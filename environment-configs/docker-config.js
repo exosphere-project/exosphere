@@ -30,7 +30,7 @@ var config = {
       "operatingSystemChoices":[
         {
           "friendlyName":"Ubuntu",
-          "description":"Wide compatibility with community software packages, good choice for new users",
+          "description":"- Wide compatibility with community software packages\n\n- Good choice for new users",
           "logo":"assets/img/ubuntu.svg",
           "versions":[
             {
@@ -69,7 +69,7 @@ var config = {
         },
         {
           "friendlyName":"CentOS",
-          "description":"Based on Red Hat Enterprise Linux (RHEL), compatible with RPM-based software",
+          "description":"- Based on Red Hat Enterprise Linux (RHEL)\n\n- Compatible with RPM-based software",
           "logo":"assets/img/centos.svg",
           "versions":[
             {
@@ -119,7 +119,7 @@ var config = {
       "operatingSystemChoices":[
         {
           "friendlyName":"Ubuntu",
-          "description":"Wide compatibility with community software packages, good choice for new users",
+          "description":"- Wide compatibility with community software packages\n\n- Good choice for new users",
           "logo":"assets/img/ubuntu.svg",
           "versions":[
             {
@@ -150,7 +150,7 @@ var config = {
         },
         {
           "friendlyName":"CentOS",
-          "description":"Based on Red Hat Enterprise Linux (RHEL), compatible with RPM-based software",
+          "description":"- Based on Red Hat Enterprise Linux (RHEL)\n\n- Compatible with RPM-based software",
           "logo":"assets/img/centos.svg",
           "versions":[
             {
