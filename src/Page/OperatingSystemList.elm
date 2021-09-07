@@ -135,11 +135,13 @@ getImageforOpSysChoiceVersion images_ filters =
             case filters.uuidFilter of
                 Just uuid ->
                     let
-                        noHyphens : String -> String
-                        noHyphens str =
-                            String.replace "-" "" str
+                        lowerCaseNoHyphens : String -> String
+                        lowerCaseNoHyphens str =
+                            str
+                                |> String.replace "-" ""
+                                |> String.toLower
                     in
-                    noHyphens image.uuid == noHyphens uuid
+                    lowerCaseNoHyphens image.uuid == lowerCaseNoHyphens uuid
 
                 Nothing ->
                     True
