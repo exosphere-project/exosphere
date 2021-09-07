@@ -73,7 +73,7 @@ view context project opSysChoices =
         renderOpSysChoice : HelperTypes.OperatingSystemChoice -> Element.Element Msg
         renderOpSysChoice opSysChoice =
             Element.el
-                [ Element.width <| Element.px 350 ]
+                [ Element.width <| Element.px 350, Element.alignTop ]
             <|
                 Widget.column
                     (SH.materialStyle context.palette).cardColumn
@@ -113,7 +113,7 @@ view context project opSysChoices =
                     ]
     in
     Element.column VH.contentContainer
-        [ Element.wrappedRow [ Element.width Element.fill, Element.spacing 40 ]
+        [ Element.wrappedRow [ Element.width Element.fill, Element.spacing 40, Element.alignTop ]
             (List.map renderOpSysChoice opSysChoices)
         ]
 
