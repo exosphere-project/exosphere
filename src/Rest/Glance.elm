@@ -12,7 +12,7 @@ import Json.Decode.Pipeline as Pipeline
 import OpenStack.Types as OSTypes
 import Rest.Helpers exposing (expectJsonWithErrorBody, openstackCredentialedRequest, resultToMsgErrorBody)
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
-import Types.HelperTypes exposing (ExcludeFilter, HttpRequestMethod(..))
+import Types.HelperTypes exposing (HttpRequestMethod(..), MetadataFilter)
 import Types.Project exposing (Project)
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
@@ -28,7 +28,7 @@ requestImages model project =
         projectKeystoneHostname =
             UrlHelpers.hostnameFromUrl project.endpoints.keystone
 
-        maybeExcludeFilter : Maybe ExcludeFilter
+        maybeExcludeFilter : Maybe MetadataFilter
         maybeExcludeFilter =
             Dict.get projectKeystoneHostname model.cloudSpecificConfigs
                 |> Maybe.andThen (\csc -> csc.imageExcludeFilter)
@@ -81,7 +81,7 @@ catMaybes =
     List.filterMap identity
 
 
-decodeImages : Maybe ExcludeFilter -> Decode.Decoder (List OSTypes.Image)
+decodeImages : Maybe MetadataFilter -> Decode.Decoder (List OSTypes.Image)
 decodeImages maybeExcludeFilter =
     Decode.field "images" (Decode.map catMaybes (Decode.list <| imageDecoder maybeExcludeFilter))
 
@@ -113,7 +113,7 @@ decodeAdditionalProperties basePropertyNames =
             )
 
 
-imageDecoder : Maybe ExcludeFilter -> Decode.Decoder (Maybe OSTypes.Image)
+imageDecoder : Maybe MetadataFilter -> Decode.Decoder (Maybe OSTypes.Image)
 imageDecoder maybeExcludeFilter =
     case maybeExcludeFilter of
         Nothing ->
@@ -187,6 +187,9 @@ imageDecoderHelper =
         |> Pipeline.required "owner" Decode.string
         |> Pipeline.required "visibility" (Decode.string |> Decode.andThen imageVisibilityDecoder)
         |> Pipeline.custom (decodeAdditionalProperties basePropertyNames)
+        |> Pipeline.required "created_at" (Decode.string |> Decode.andThen Rest.Helpers.iso8601StringToPosixDecodeError)
+        |> Pipeline.optional "os_distro" (Decode.string |> Decode.andThen (\s -> Decode.succeed <| Just s)) Nothing
+        |> Pipeline.optional "os_version" (Decode.string |> Decode.andThen (\s -> Decode.succeed <| Just s)) Nothing
 
 
 imageVisibilityDecoder : String -> Decode.Decoder OSTypes.ImageVisibility

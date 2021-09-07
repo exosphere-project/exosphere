@@ -118,6 +118,31 @@ materialStyle exoPalette =
                     cb.container
                         ++ exoButtonAttributes
             }
+
+        tab =
+            let
+                defaultTab =
+                    Material.tab regularPalette
+
+                defaultTB =
+                    defaultTab.button
+
+                exoTBAttributes =
+                    exoButtonAttributes
+                        ++ [ Element.fill
+                                |> Element.maximum 500
+                                |> Element.width
+                           ]
+
+                exoTB =
+                    { defaultTB
+                        | container = defaultTB.container ++ exoTBAttributes
+                    }
+            in
+            { defaultTab
+                | button = exoTB
+                , containerColumn = defaultTab.containerColumn ++ [ Element.spacing 15 ]
+            }
     in
     { textInput = Material.textInput regularPalette
     , column = Material.column
@@ -136,6 +161,7 @@ materialStyle exoPalette =
     , chipButton = Material.chip regularPalette
     , row = Material.row
     , progressIndicator = Material.progressIndicator regularPalette
+    , tab = tab
     }
 
 

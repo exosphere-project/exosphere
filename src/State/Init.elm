@@ -8,6 +8,7 @@ import Json.Decode as Decode
 import LocalStorage.LocalStorage as LocalStorage
 import LocalStorage.Types as LocalStorageTypes
 import Maybe
+import OpenStack.Types as OSTypes
 import Ports
 import Random
 import Rest.ApiModelHelpers as ApiModelHelpers
@@ -17,8 +18,9 @@ import Style.Types
 import Time
 import Toasty
 import Types.Defaults as Defaults
+import Types.Error
 import Types.Flags exposing (Flags)
-import Types.HelperTypes exposing (DefaultLoginView(..), HttpRequestMethod(..), ProjectIdentifier)
+import Types.HelperTypes as HelperTypes exposing (DefaultLoginView(..), HttpRequestMethod(..), ProjectIdentifier)
 import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project, ProjectSecret(..))
@@ -73,9 +75,28 @@ init flags urlKey =
                                 Nothing
                     )
 
+        ( cloudSpecificConfigs, decodeErrorLogMessages ) =
+            -- TODO should this be a toast message or something else super obviously visible? Can the app die loudly?
+            case decodeCloudSpecificConfigs flags.clouds of
+                Ok configs ->
+                    ( configs, [] )
+
+                Err error ->
+                    ( Dict.empty
+                    , [ { message = Decode.errorToString error
+                        , context =
+                            Types.Error.ErrorContext
+                                "decode cloud-specific configs from Flags JSON"
+                                Types.Error.ErrorCrit
+                                Nothing
+                        , timestamp = currentTime
+                        }
+                      ]
+                    )
+
         emptyModel : Bool -> UUID.UUID -> SharedModel
         emptyModel showDebugMsgs uuid =
-            { logMessages = []
+            { logMessages = decodeErrorLogMessages
             , urlPathPrefix = flags.urlPathPrefix
             , navigationKey = Tuple.second urlKey
             , windowSize = { width = flags.width, height = flags.height }
@@ -110,18 +131,7 @@ init flags urlKey =
                 , localization = Maybe.withDefault Defaults.localization flags.localization
                 }
             , openIdConnectLoginConfig = flags.openIdConnectLoginConfig
-            , cloudSpecificConfigs =
-                flags.clouds
-                    |> List.map
-                        (\c ->
-                            ( c.keystoneHostname
-                            , { userAppProxy = c.userAppProxy
-                              , imageExcludeFilter = c.imageExcludeFilter
-                              , featuredImageNamePrefix = c.featuredImageNamePrefix
-                              }
-                            )
-                        )
-                    |> Dict.fromList
+            , cloudSpecificConfigs = cloudSpecificConfigs
             , instanceConfigMgtRepoUrl =
                 flags.instanceConfigMgtRepoUrl
                     |> Maybe.withDefault "https://gitlab.com/exosphere/exosphere.git"
@@ -228,3 +238,82 @@ init flags urlKey =
     ( setViewModel
     , Cmd.batch [ Cmd.map SharedMsg requestResourcesCmd, setViewCmd ]
     )
+
+
+
+-- Flag JSON Decoders
+
+
+decodeCloudSpecificConfigs : Decode.Value -> Result Decode.Error (Dict.Dict HelperTypes.KeystoneHostname HelperTypes.CloudSpecificConfig)
+decodeCloudSpecificConfigs value =
+    Decode.decodeValue (Decode.list decodeCloudSpecificConfig |> Decode.map Dict.fromList) value
+
+
+decodeCloudSpecificConfig : Decode.Decoder ( HelperTypes.KeystoneHostname, HelperTypes.CloudSpecificConfig )
+decodeCloudSpecificConfig =
+    Decode.map4 HelperTypes.CloudSpecificConfig
+        (Decode.field "userAppProxy" (Decode.nullable Decode.string))
+        (Decode.field "imageExcludeFilter" (Decode.nullable metadataFilterDecoder))
+        (Decode.field "featuredImageNamePrefix" (Decode.nullable Decode.string))
+        (Decode.field "operatingSystemChoices" (Decode.list operatingSystemChoiceDecoder))
+        |> Decode.andThen
+            (\cloudSpecificConfig ->
+                Decode.field "keystoneHostname" Decode.string
+                    |> Decode.map (\keystoneHostname -> ( keystoneHostname, cloudSpecificConfig ))
+            )
+
+
+metadataFilterDecoder : Decode.Decoder HelperTypes.MetadataFilter
+metadataFilterDecoder =
+    Decode.map2 HelperTypes.MetadataFilter
+        (Decode.field "filterKey" Decode.string)
+        (Decode.field "filterValue" Decode.string)
+
+
+operatingSystemChoiceDecoder : Decode.Decoder HelperTypes.OperatingSystemChoice
+operatingSystemChoiceDecoder =
+    Decode.map4 HelperTypes.OperatingSystemChoice
+        (Decode.field "friendlyName" Decode.string)
+        (Decode.field "description" Decode.string)
+        (Decode.field "logo" Decode.string)
+        (Decode.field "versions" (Decode.list operatingSystemChoiceVersionDecoder))
+
+
+operatingSystemChoiceVersionDecoder : Decode.Decoder HelperTypes.OperatingSystemChoiceVersion
+operatingSystemChoiceVersionDecoder =
+    Decode.map3 HelperTypes.OperatingSystemChoiceVersion
+        (Decode.field "friendlyName" Decode.string)
+        (Decode.field "isPrimary" Decode.bool)
+        (Decode.field "filters" imageFiltersDecoder)
+
+
+imageFiltersDecoder : Decode.Decoder HelperTypes.OperatingSystemImageFilters
+imageFiltersDecoder =
+    Decode.map6 HelperTypes.OperatingSystemImageFilters
+        (Decode.maybe (Decode.field "name" Decode.string))
+        (Decode.maybe (Decode.field "uuid" Decode.string))
+        (Decode.maybe
+            (Decode.field "visibility" Decode.string
+                |> Decode.andThen
+                    (\v ->
+                        case v of
+                            "private" ->
+                                Decode.succeed OSTypes.ImagePrivate
+
+                            "shared" ->
+                                Decode.succeed OSTypes.ImageShared
+
+                            "community" ->
+                                Decode.succeed OSTypes.ImageCommunity
+
+                            "public" ->
+                                Decode.succeed OSTypes.ImagePublic
+
+                            _ ->
+                                Decode.fail "unrecognized value for image visibility"
+                    )
+            )
+        )
+        (Decode.maybe (Decode.field "osDistro" Decode.string))
+        (Decode.maybe (Decode.field "osVersion" Decode.string))
+        (Decode.maybe (Decode.field "metadata" metadataFilterDecoder))

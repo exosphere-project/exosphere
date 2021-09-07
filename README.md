@@ -57,6 +57,7 @@ We use GitLab to track issues and contributions. To request a new feature or rep
 
 - [User Application Proxy (UAP)](docs/user-app-proxy.md)
 - [Solving the CORS Problem (Cloud CORS Proxy)](docs/solving-cors-problem.md)
+- [Configuring Operating System Choices](docs/operating-system-choices.md)
 - [Federated Login Support](docs/federated-login.md)
 
 ### For Exosphere Contributors
@@ -208,7 +209,7 @@ These options are primarily intended for cloud operators who wish to offer a cus
 |-------------------------------|----------------------------|------------------------------------------------------------------------|
 | showDebugMsgs                 | false, true                |                                                                        |
 | cloudCorsProxyUrl             | null, string               | See `docs/solving-cors-problem.md`; required to use app in web browser |
-| clouds                        | list                       | See example below; required for Guacamole support                      |
+| clouds                        | array                      | See example below; required for Guacamole support                      |
 | palette                       | null, JSON object          | Pass custom colors to style Exosphere, see example below               |
 | logo                          | null, string               | Path to custom logo to show in top-left corner of app                  |
 | favicon                       | null, string               | Path to custom favicon                                                 |
@@ -225,31 +226,54 @@ These options are primarily intended for cloud operators who wish to offer a cus
 
 #### Example cloud configuration
 
-The `clouds` flag is a list containing JSON objects for each cloud with a custom configuration. Each of these JSON objects contains the following properties:
+The `clouds` flag is an array containing JSON objects for each cloud with a custom configuration. Each of these JSON objects contains the following properties:
 
 - `keystoneHostname` (string): Used to look up the custom configuration for a cloud, e.g. `openstack.example.cloud`
 - `userAppProxy` (null, string): The hostname of the User Application proxy (UAP), e.g. `uap.openstack.example.cloud`. See `docs/user-app-proxy.md` for more information.
 - `imageExcludeFilter` (null, JSON object): A key:value property to exclude images from UI, see example below
 - `featuredImageNamePrefix` (null, string): A (public) image is 'featured' if the name starts with this string
+- `operatingSystemChoices` (array): An array of operating system choices specific to this cloud, can be left empty. See `docs/operating-system-choices.md` for more information.
 
 ```javascript
-  clouds: [
+{
+  "clouds":[
     {
-      keystoneHostname: "openstack.example.cloud",
-      userAppProxy: "uap.openstack.example.cloud",
-      imageExcludeFilter: null,
-      featuredImageNamePrefix: null
+      "keystoneHostname":"openstack.example.cloud",
+      "userAppProxy":"uap.openstack.example.cloud",
+      "imageExcludeFilter":null,
+      "featuredImageNamePrefix":null,
+      "operatingSystemChoices":[
+        
+      ]
     },
     {
-      keystoneHostname: "iu.jetstream-cloud.org",
-      userAppProxy: "proxy-j7m-iu.exosphere.app",
-      imageExcludeFilter: {
-        filterKey: "atmo_image_include",
-        filterValue: "true"
+      "keystoneHostname":"iu.jetstream-cloud.org",
+      "userAppProxy":"proxy-j7m-iu.exosphere.app",
+      "imageExcludeFilter":{
+        "filterKey":"atmo_image_include",
+        "filterValue":"true"
       },
-      featuredImageNamePrefix: "JS-API-Featured"
+      "featuredImageNamePrefix":"JS-API-Featured",
+      "operatingSystemChoices":[
+        {
+          "friendlyName":"Ubuntu",
+          "description":"Wide compatibility with community software packages, good choice for new users",
+          "logo":"assets/img/ubuntu.svg",
+          "versions":[
+            {
+              "friendlyName":"20.04 (latest)",
+              "isPrimary":true,
+              "filters":{
+                "name":"JS-API-Featured-Ubuntu20-Latest",
+                "visibility":"public"
+              }
+            }
+          ]
+        }
+      ]
     }
   ]
+}
 ```
 
 ##### Example Image Exclude Filter

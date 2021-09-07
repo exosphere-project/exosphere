@@ -10,7 +10,7 @@ import Page.AllResourcesList
 import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.GetSupport
-import Page.ImageList
+import Page.InstanceSourcePicker
 import Page.KeypairCreate
 import Page.KeypairList
 import Page.LoginJetstream
@@ -58,7 +58,7 @@ type ProjectViewConstructor
     = AllResourcesList Page.AllResourcesList.Model
     | FloatingIpAssign Page.FloatingIpAssign.Model
     | FloatingIpList Page.FloatingIpList.Model
-    | ImageList Page.ImageList.Model
+    | InstanceSourcePicker Page.InstanceSourcePicker.Model
     | KeypairCreate Page.KeypairCreate.Model
     | KeypairList Page.KeypairList.Model
     | ServerCreate HelperTypes.CreateServerPageModel

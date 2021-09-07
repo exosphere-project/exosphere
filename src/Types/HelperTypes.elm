@@ -2,7 +2,6 @@ module Types.HelperTypes exposing
     ( CloudSpecificConfig
     , CreateServerPageModel
     , DefaultLoginView(..)
-    , ExcludeFilter
     , FloatingIpAssignmentStatus(..)
     , FloatingIpOption(..)
     , FloatingIpReuseOption(..)
@@ -13,7 +12,11 @@ module Types.HelperTypes exposing
     , JetstreamProvider(..)
     , KeystoneHostname
     , Localization
+    , MetadataFilter
     , OpenIdConnectLoginConfig
+    , OperatingSystemChoice
+    , OperatingSystemChoiceVersion
+    , OperatingSystemImageFilters
     , Password
     , ProjectIdentifier
     , SupportableItemType(..)
@@ -105,7 +108,7 @@ type alias WindowSize =
     }
 
 
-type alias ExcludeFilter =
+type alias MetadataFilter =
     { filterKey : String
     , filterValue : String
     }
@@ -113,8 +116,34 @@ type alias ExcludeFilter =
 
 type alias CloudSpecificConfig =
     { userAppProxy : Maybe UserAppProxyHostname
-    , imageExcludeFilter : Maybe ExcludeFilter
+    , imageExcludeFilter : Maybe MetadataFilter
     , featuredImageNamePrefix : Maybe String
+    , operatingSystemChoices : List OperatingSystemChoice
+    }
+
+
+type alias OperatingSystemChoice =
+    { friendlyName : String
+    , description : String
+    , logo : Url
+    , versions : List OperatingSystemChoiceVersion
+    }
+
+
+type alias OperatingSystemChoiceVersion =
+    { friendlyName : String
+    , isPrimary : Bool
+    , filters : OperatingSystemImageFilters
+    }
+
+
+type alias OperatingSystemImageFilters =
+    { nameFilter : Maybe String
+    , uuidFilter : Maybe OSTypes.ImageUuid
+    , visibilityFilter : Maybe OSTypes.ImageVisibility
+    , osDistroFilter : Maybe String
+    , osVersionFilter : Maybe String
+    , metadataFilter : Maybe MetadataFilter
     }
 
 

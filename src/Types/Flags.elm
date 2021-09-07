@@ -33,13 +33,7 @@ type alias Flags =
     , openIdConnectLoginConfig :
         Maybe HelperTypes.OpenIdConnectLoginConfig
     , localization : Maybe HelperTypes.Localization
-    , clouds :
-        List
-            { keystoneHostname : HelperTypes.KeystoneHostname
-            , userAppProxy : Maybe HelperTypes.UserAppProxyHostname
-            , imageExcludeFilter : Maybe HelperTypes.ExcludeFilter
-            , featuredImageNamePrefix : Maybe String
-            }
+    , clouds : Decode.Value
     , instanceConfigMgtRepoUrl : Maybe String
     , instanceConfigMgtRepoCheckout : Maybe String
 

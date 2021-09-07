@@ -1,4 +1,4 @@
-module Page.ImageList exposing (Model, Msg, init, update, view)
+module Page.ImageList exposing (Model, Msg(..), init, update, view)
 
 import Element
 import Element.Font as Font
@@ -102,97 +102,6 @@ update msg _ model =
 
 view : View.Types.Context -> Project -> Model -> Element.Element Msg
 view context project model =
-    if List.isEmpty project.images then
-        Element.row [ Element.spacing 15 ]
-            [ Widget.circularProgressIndicator (SH.materialStyle context.palette).progressIndicator Nothing
-            , Element.text <|
-                String.join " "
-                    [ context.localization.staticRepresentationOfBlockDeviceContents
-                        |> Helpers.String.toTitleCase
-                        |> Helpers.String.pluralize
-                    , "loading..."
-                    ]
-            ]
-
-    else
-        images context project model
-
-
-projectOwnsImage : Project -> OSTypes.Image -> Bool
-projectOwnsImage project image =
-    image.projectUuid == project.auth.project.uuid
-
-
-filterByOwner : Bool -> Project -> List OSTypes.Image -> List OSTypes.Image
-filterByOwner onlyOwnImages project someImages =
-    if not onlyOwnImages then
-        someImages
-
-    else
-        List.filter (projectOwnsImage project) someImages
-
-
-filterByTags : Set.Set String -> List OSTypes.Image -> List OSTypes.Image
-filterByTags tagsToFilterBy someImages =
-    if tagsToFilterBy == Set.empty then
-        someImages
-
-    else
-        List.filter
-            (\i ->
-                let
-                    imageTags =
-                        Set.fromList i.tags
-                in
-                Set.Extra.subset tagsToFilterBy imageTags
-            )
-            someImages
-
-
-filterBySearchText : String -> List OSTypes.Image -> List OSTypes.Image
-filterBySearchText searchText someImages =
-    if searchText == "" then
-        someImages
-
-    else
-        List.filter (\i -> String.contains (String.toUpper searchText) (String.toUpper i.name)) someImages
-
-
-filterByVisibility : ImageListVisibilityFilter -> List OSTypes.Image -> List OSTypes.Image
-filterByVisibility filter someImages =
-    let
-        include i =
-            List.any identity
-                [ i.visibility == OSTypes.ImagePublic && filter.public
-                , i.visibility == OSTypes.ImagePrivate && filter.private
-                , i.visibility == OSTypes.ImageCommunity && filter.community
-                , i.visibility == OSTypes.ImageShared && filter.shared
-                ]
-    in
-    List.filter include someImages
-
-
-isImageFeaturedByDeployer : Maybe String -> OSTypes.Image -> Bool
-isImageFeaturedByDeployer maybeFeaturedImageNamePrefix image =
-    case maybeFeaturedImageNamePrefix of
-        Nothing ->
-            False
-
-        Just featuredImageNamePrefix ->
-            String.startsWith featuredImageNamePrefix image.name && image.visibility == OSTypes.ImagePublic
-
-
-filterImages : Model -> Project -> List OSTypes.Image -> List OSTypes.Image
-filterImages model project someImages =
-    someImages
-        |> filterByOwner model.onlyOwnImages project
-        |> filterByTags model.tags
-        |> filterBySearchText model.searchText
-        |> filterByVisibility model.visibilityFilter
-
-
-images : View.Types.Context -> Project -> Model -> Element.Element Msg
-images context project model =
     let
         generateAllTags : List OSTypes.Image -> List ImageTag
         generateAllTags someImages =
@@ -388,64 +297,51 @@ images context project model =
                     }
                 ]
     in
-    Element.column
-        (VH.exoColumnAttributes
-            ++ [ Element.width Element.fill ]
-        )
-        [ Element.el (VH.heading2 context.palette)
-            (Element.text <|
-                String.join " "
-                    [ "Choose"
-                    , Helpers.String.indefiniteArticle context.localization.staticRepresentationOfBlockDeviceContents
-                    , context.localization.staticRepresentationOfBlockDeviceContents
-                    ]
-            )
-        , Element.column VH.contentContainer
-            [ Input.text (VH.inputItemAttributes context.palette.background)
-                { text = model.searchText
-                , placeholder = Just (Input.placeholder [] (Element.text "try \"Ubuntu\""))
-                , onChange = GotSearchText
-                , label =
-                    Input.labelAbove []
-                        (Element.text <|
-                            String.join " "
-                                [ "Filter on"
-                                , context.localization.staticRepresentationOfBlockDeviceContents
-                                , "name:"
-                                ]
-                        )
-                }
-            , visibilityFilters
-            , tagsView
-            , Input.checkbox []
-                { checked = model.onlyOwnImages
-                , onChange = GotOnlyOwnImages
-                , icon = Input.defaultCheckbox
-                , label =
-                    Input.labelRight [] <|
-                        Element.text <|
-                            String.join
-                                " "
-                                [ "Show only"
-                                , context.localization.staticRepresentationOfBlockDeviceContents
-                                    |> Helpers.String.pluralize
-                                , "owned by this"
-                                , context.localization.unitOfTenancy
-                                ]
-                }
-            , Widget.textButton
-                (SH.materialStyle context.palette).button
-                { text = "Clear filters (show all)"
-                , onPress = Just GotClearFilters
-                }
-            , if noMatchWarning then
-                Element.text "No matches found. Broaden your search terms, or clear the search filter."
+    Element.column VH.contentContainer
+        [ Input.text (VH.inputItemAttributes context.palette.background)
+            { text = model.searchText
+            , placeholder = Just (Input.placeholder [] (Element.text "try \"Ubuntu\""))
+            , onChange = GotSearchText
+            , label =
+                Input.labelAbove []
+                    (Element.text <|
+                        String.join " "
+                            [ "Filter on"
+                            , context.localization.staticRepresentationOfBlockDeviceContents
+                            , "name:"
+                            ]
+                    )
+            }
+        , visibilityFilters
+        , tagsView
+        , Input.checkbox []
+            { checked = model.onlyOwnImages
+            , onChange = GotOnlyOwnImages
+            , icon = Input.defaultCheckbox
+            , label =
+                Input.labelRight [] <|
+                    Element.text <|
+                        String.join
+                            " "
+                            [ "Show only"
+                            , context.localization.staticRepresentationOfBlockDeviceContents
+                                |> Helpers.String.pluralize
+                            , "owned by this"
+                            , context.localization.unitOfTenancy
+                            ]
+            }
+        , Widget.textButton
+            (SH.materialStyle context.palette).button
+            { text = "Clear filters (show all)"
+            , onPress = Just GotClearFilters
+            }
+        , if noMatchWarning then
+            Element.text "No matches found. Broaden your search terms, or clear the search filter."
 
-              else
-                Element.none
-            , List.map (renderImage context project model) combinedImages
-                |> imagesColumnView
-            ]
+          else
+            Element.none
+        , List.map (renderImage context project model) combinedImages
+            |> imagesColumnView
         ]
 
 
@@ -581,3 +477,76 @@ renderImage context project model image =
         title
         subtitle
         imageDetailsView
+
+
+projectOwnsImage : Project -> OSTypes.Image -> Bool
+projectOwnsImage project image =
+    image.projectUuid == project.auth.project.uuid
+
+
+filterByOwner : Bool -> Project -> List OSTypes.Image -> List OSTypes.Image
+filterByOwner onlyOwnImages project someImages =
+    if not onlyOwnImages then
+        someImages
+
+    else
+        List.filter (projectOwnsImage project) someImages
+
+
+filterByTags : Set.Set String -> List OSTypes.Image -> List OSTypes.Image
+filterByTags tagsToFilterBy someImages =
+    if tagsToFilterBy == Set.empty then
+        someImages
+
+    else
+        List.filter
+            (\i ->
+                let
+                    imageTags =
+                        Set.fromList i.tags
+                in
+                Set.Extra.subset tagsToFilterBy imageTags
+            )
+            someImages
+
+
+filterBySearchText : String -> List OSTypes.Image -> List OSTypes.Image
+filterBySearchText searchText someImages =
+    if searchText == "" then
+        someImages
+
+    else
+        List.filter (\i -> String.contains (String.toUpper searchText) (String.toUpper i.name)) someImages
+
+
+filterByVisibility : ImageListVisibilityFilter -> List OSTypes.Image -> List OSTypes.Image
+filterByVisibility filter someImages =
+    let
+        include i =
+            List.any identity
+                [ i.visibility == OSTypes.ImagePublic && filter.public
+                , i.visibility == OSTypes.ImagePrivate && filter.private
+                , i.visibility == OSTypes.ImageCommunity && filter.community
+                , i.visibility == OSTypes.ImageShared && filter.shared
+                ]
+    in
+    List.filter include someImages
+
+
+isImageFeaturedByDeployer : Maybe String -> OSTypes.Image -> Bool
+isImageFeaturedByDeployer maybeFeaturedImageNamePrefix image =
+    case maybeFeaturedImageNamePrefix of
+        Nothing ->
+            False
+
+        Just featuredImageNamePrefix ->
+            String.startsWith featuredImageNamePrefix image.name && image.visibility == OSTypes.ImagePublic
+
+
+filterImages : Model -> Project -> List OSTypes.Image -> List OSTypes.Image
+filterImages model project someImages =
+    someImages
+        |> filterByOwner model.onlyOwnImages project
+        |> filterByTags model.tags
+        |> filterBySearchText model.searchText
+        |> filterByVisibility model.visibilityFilter

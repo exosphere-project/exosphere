@@ -760,6 +760,7 @@ elmUiRenderer context =
     , text = Element.text
     , strong = \content -> Element.row [ Font.bold ] content
     , emphasis = \content -> Element.row [ Font.italic ] content
+    , strikethrough = \content -> Element.row [ Font.strike ] content
     , codeSpan =
         -- TODO implement this (show fixed-width font) once we need it
         Element.text
@@ -797,27 +798,26 @@ elmUiRenderer context =
                 children
     , unorderedList =
         \items ->
-            Element.column [ Element.spacing 15 ]
+            Element.column [ Element.spacing 10 ]
                 (items
                     |> List.map
                         (\(Markdown.Block.ListItem task children) ->
-                            Element.row [ Element.spacing 5 ]
-                                [ Element.row
-                                    [ Element.alignTop ]
-                                    ((case task of
-                                        Markdown.Block.IncompleteTask ->
-                                            Element.Input.defaultCheckbox False
+                            Element.row
+                                [ Element.alignTop, Element.spacing 10 ]
+                            <|
+                                List.concat
+                                    [ [ case task of
+                                            Markdown.Block.IncompleteTask ->
+                                                Element.Input.defaultCheckbox False
 
-                                        Markdown.Block.CompletedTask ->
-                                            Element.Input.defaultCheckbox True
+                                            Markdown.Block.CompletedTask ->
+                                                Element.Input.defaultCheckbox True
 
-                                        Markdown.Block.NoTask ->
-                                            Element.text "•"
-                                     )
-                                        :: Element.text " "
-                                        :: children
-                                    )
-                                ]
+                                            Markdown.Block.NoTask ->
+                                                Element.text "•"
+                                      ]
+                                    , children
+                                    ]
                         )
                 )
     , orderedList =

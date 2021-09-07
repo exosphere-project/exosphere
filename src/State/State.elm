@@ -20,7 +20,7 @@ import Page.AllResourcesList
 import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.GetSupport
-import Page.ImageList
+import Page.InstanceSourcePicker
 import Page.KeypairCreate
 import Page.KeypairList
 import Page.LoginJetstream
@@ -286,17 +286,17 @@ updateUnderlying outerMsg outerModel =
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
 
-                        ( ImageListMsg pageMsg, ImageList pageModel ) ->
+                        ( InstanceSourcePickerMsg pageMsg, InstanceSourcePicker pageModel ) ->
                             let
                                 ( newSharedModel, cmd, sharedMsg ) =
-                                    Page.ImageList.update pageMsg project pageModel
+                                    Page.InstanceSourcePicker.update pageMsg project pageModel
                             in
                             ( { outerModel
                                 | viewState =
                                     ProjectView projectId projectViewModel <|
-                                        ImageList newSharedModel
+                                        InstanceSourcePicker newSharedModel
                               }
-                            , Cmd.map (\msg -> ImageListMsg msg) cmd
+                            , Cmd.map (\msg -> InstanceSourcePickerMsg msg) cmd
                             )
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
