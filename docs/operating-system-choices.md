@@ -36,7 +36,7 @@ Each member of the `filters` object defines a criterion that Exosphere will use 
 If there are no matching matches for the combined filtering criteria, that version will not be displayed on the menu.
 
 - `name` (string) matches on exact image name.
-- `uuid` (string) matches on image UUID. (TODO hyphens?)
+- `uuid` (string) matches on image UUID. Hyphens are disregarded.
 - `visibility` (string) can be one of `private`, `shared`, `community`, or `public`.
 - `osDistro` and `osVersion` (string) (note casing and lack of underscore in JSON key!) matches on exact values for `os_distro` and `os_version` respectively. These are commonly used metadata properties. The [Glance Administration Guide](https://docs.openstack.org/glance/latest/admin/useful-image-properties.html#image-property-keys-and-values) documents commonly set values for them, but Exosphere is not currently restricted to this set of values.
 - `metadata` (object) allows you to select for arbitrary image metadata. It accepts an object with two fields, `filterKey` and `filterValue`, both of which have string values.

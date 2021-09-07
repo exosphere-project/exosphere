@@ -134,7 +134,12 @@ getImageforOpSysChoiceVersion images_ filters =
         applyUuidFilter image =
             case filters.uuidFilter of
                 Just uuid ->
-                    image.uuid == uuid
+                    let
+                        noHyphens : String -> String
+                        noHyphens str =
+                            String.replace "-" "" str
+                    in
+                    noHyphens image.uuid == noHyphens uuid
 
                 Nothing ->
                     True
