@@ -760,6 +760,7 @@ elmUiRenderer context =
     , text = Element.text
     , strong = \content -> Element.row [ Font.bold ] content
     , emphasis = \content -> Element.row [ Font.italic ] content
+    , strikethrough = \content -> Element.row [ Font.strike ] content
     , codeSpan =
         -- TODO implement this (show fixed-width font) once we need it
         Element.text
