@@ -209,7 +209,7 @@ These options are primarily intended for cloud operators who wish to offer a cus
 |-------------------------------|----------------------------|------------------------------------------------------------------------|
 | showDebugMsgs                 | false, true                |                                                                        |
 | cloudCorsProxyUrl             | null, string               | See `docs/solving-cors-problem.md`; required to use app in web browser |
-| clouds                        | array                      | See example below; required for Guacamole support                      |
+| clouds                        | array                      | Imported from `cloud_configs.js`; see example below                    |
 | palette                       | null, JSON object          | Pass custom colors to style Exosphere, see example below               |
 | logo                          | null, string               | Path to custom logo to show in top-left corner of app                  |
 | favicon                       | null, string               | Path to custom favicon                                                 |
@@ -226,16 +226,20 @@ These options are primarily intended for cloud operators who wish to offer a cus
 
 #### Example cloud configuration
 
-The `clouds` flag is an array containing JSON objects for each cloud with a custom configuration. Each of these JSON objects contains the following properties:
+The `clouds` flag is an array containing JSON objects for each cloud with a custom configuration.
+
+By default, the `clouds` flag is imported from `cloud_configs.js`. As a deployer, you can add your own cloud(s) to that file, or override it entirely by defining a `clouds` member of the `config` object in `config.js`.
+
+Each of these JSON objects contains the following properties:
 
 - `keystoneHostname` (string): Used to look up the custom configuration for a cloud, e.g. `openstack.example.cloud`
-- `userAppProxy` (null, string): The hostname of the User Application proxy (UAP), e.g. `uap.openstack.example.cloud`. See `docs/user-app-proxy.md` for more information.
+- `userAppProxy` (null, string): The hostname of the User Application proxy (UAP), e.g. `uap.openstack.example.cloud`. See `docs/user-app-proxy.md` for more information. This _must_ be set for Guacamole support (in-browser shell and desktop) to work on a given cloud.
 - `imageExcludeFilter` (null, JSON object): A key:value property to exclude images from UI, see example below
 - `featuredImageNamePrefix` (null, string): A (public) image is 'featured' if the name starts with this string
 - `operatingSystemChoices` (array): An array of operating system choices specific to this cloud, can be left empty. See `docs/operating-system-choices.md` for more information.
 
 ```javascript
-{
+var cloud_configs = {
   "clouds":[
     {
       "keystoneHostname":"openstack.example.cloud",
