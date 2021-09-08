@@ -352,12 +352,11 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
                             ++ """\\\""""
                             ++ customWorkflowSource.repository
                             ++ """\\\""""
-                            ++ (case customWorkflowSource.reference of
-                                    Just sourceRepositoryReference ->
-                                        """,\\"workflow_repo_version\\":""" ++ """\\\"""" ++ sourceRepositoryReference ++ """\\\""""
+                            ++ (if customWorkflowSource.reference /= "" then
+                                    """,\\"workflow_repo_version\\":""" ++ """\\\"""" ++ customWorkflowSource.reference ++ """\\\""""
 
-                                    _ ->
-                                        ""
+                                else
+                                    ""
                                )
                 , """}"""
                 ]
@@ -615,8 +614,8 @@ serverOrigin serverDetails =
             Decode.map3
                 CustomWorkflowSource
                 (Decode.field "repo" Decode.string)
-                (Decode.maybe (Decode.field "ref" Decode.string))
-                (Decode.maybe (Decode.field "path" Decode.string))
+                (Decode.field "ref" Decode.string)
+                (Decode.field "path" Decode.string)
 
         customWorkflowStatus =
             case
@@ -653,35 +652,15 @@ serverOrigin serverDetails =
 
 encodeCustomWorkflowSource : CustomWorkflowSource -> List ( String, Json.Encode.Value )
 encodeCustomWorkflowSource customWorkflowSource =
-    let
-        workflowRef =
-            case customWorkflowSource.reference of
-                Just sourceRepositoryReference ->
-                    [ ( "ref", Json.Encode.string sourceRepositoryReference ) ]
-
-                _ ->
-                    []
-
-        workflowPath =
-            case customWorkflowSource.path of
-                Nothing ->
-                    []
-
-                Just workflowSourcePath ->
-                    [ ( "path", Json.Encode.string workflowSourcePath ) ]
-    in
     [ ( "exoCustomWorkflow"
       , Json.Encode.string <|
             Json.Encode.encode 0 <|
                 Json.Encode.object
-                    (List.concat
-                        [ [ ( "v", Json.Encode.int 1 )
-                          , ( "repo", Json.Encode.string customWorkflowSource.repository )
-                          ]
-                        , workflowRef
-                        , workflowPath
-                        ]
-                    )
+                    [ ( "v", Json.Encode.int 1 )
+                    , ( "repo", Json.Encode.string customWorkflowSource.repository )
+                    , ( "ref", Json.Encode.string customWorkflowSource.reference )
+                    , ( "path", Json.Encode.string customWorkflowSource.path )
+                    ]
       )
     ]
 

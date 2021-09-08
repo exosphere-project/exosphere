@@ -18,6 +18,7 @@ import RemoteData
 import Route
 import ServerDeploy exposing (cloudInitUserDataTemplate)
 import Style.Helpers as SH
+import Style.Widgets.Card exposing (badge)
 import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Style.Widgets.Select
@@ -31,7 +32,6 @@ import Types.HelperTypes as HelperTypes
 import Types.Project exposing (Project)
 import Types.Server exposing (NewServerNetworkOptions(..))
 import Types.SharedMsg as SharedMsg
-import Types.Workflow
 import View.Helpers as VH exposing (edges)
 import View.Types
 import Widget
@@ -51,27 +51,20 @@ type Msg
     | GotNetworks
     | GotNetworkUuid (Maybe OSTypes.NetworkUuid)
     | GotAutoAllocatedNetwork OSTypes.NetworkUuid
-    | GotClearCustomWorkflowSource
-    | GotCustomWorkflowSourceRepository Types.Workflow.SourceRepositoryIdentifier
-    | GotCustomWorkflowSourceReference Types.Workflow.SourceRepositoryReference
     | GotShowAdvancedOptions Bool
     | GotKeypairName (Maybe String)
     | GotDeployGuacamole (Maybe Bool)
     | GotDeployDesktopEnvironment Bool
     | GotInstallOperatingSystemUpdates Bool
     | GotFloatingIpCreationOption FloatingIpOption
-    | GotCustomWorkflowSourcePath Types.Workflow.SourceRepositoryPath
+    | GotIncludeWorkflow Bool
+    | GotWorkflowRepository String
+    | GotWorkflowReference String
+    | GotWorkflowPath String
+    | GotClearCustomWorkflowInputs
     | GotShowWorkFlowExplanationToggleTip
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
-
-
-defaultSourceInput : Types.Workflow.SourceInput
-defaultSourceInput =
-    { repository = ""
-    , reference = ""
-    , path = ""
-    }
 
 
 init : OSTypes.ImageUuid -> String -> Maybe Bool -> Model
@@ -84,14 +77,17 @@ init imageUuid imageName deployGuacamole =
     , volSizeTextInput = Nothing
     , userDataTemplate = cloudInitUserDataTemplate
     , networkUuid = Nothing
-    , customWorkflowSource = Types.Workflow.EmptySource
-    , customWorkflowSourceInput = defaultSourceInput
     , showAdvancedOptions = False
     , keypairName = Nothing
     , deployGuacamole = deployGuacamole
     , deployDesktopEnvironment = False
     , installOperatingSystemUpdates = True
     , floatingIpCreationOption = HelperTypes.Automatic
+    , includeWorkflow = False
+    , workflowInputRepository = ""
+    , workflowInputReference = ""
+    , workflowInputPath = ""
+    , workflowInputIsValid = False
     , showWorkflowExplanationToggleTip = False
     }
 
@@ -175,73 +171,62 @@ update msg project model =
         GotFloatingIpCreationOption floatingIpOption ->
             ( { model | floatingIpCreationOption = floatingIpOption }, Cmd.none, SharedMsg.NoOp )
 
-        SharedMsg sharedMsg ->
-            ( model, Cmd.none, sharedMsg )
+        GotIncludeWorkflow includeWorkflow ->
+            ( { model | includeWorkflow = includeWorkflow }, Cmd.none, SharedMsg.NoOp )
 
-        NoOp ->
-            ( model, Cmd.none, SharedMsg.NoOp )
-
-        GotCustomWorkflowSourceRepository repository ->
-            let
-                oldCustomWorkflowSourceInput =
-                    model.customWorkflowSourceInput
-
-                newCustomWorkflowSourceInput =
-                    { oldCustomWorkflowSourceInput | repository = repository }
-
-                customWorkflowSource =
-                    Types.Workflow.sourceInputToWorkflowSource newCustomWorkflowSourceInput
-            in
+        GotWorkflowRepository repository ->
             ( { model
-                | customWorkflowSourceInput = newCustomWorkflowSourceInput
-                , customWorkflowSource = customWorkflowSource
+                | workflowInputRepository = repository
+                , workflowInputIsValid =
+                    workflowInputIsValid
+                        ( repository
+                        , model.workflowInputReference
+                        , model.workflowInputPath
+                        )
               }
             , Cmd.none
             , SharedMsg.NoOp
             )
 
-        GotCustomWorkflowSourceReference repositoryReference ->
-            let
-                oldCustomWorkflowSourceInput =
-                    model.customWorkflowSourceInput
-
-                newCustomWorkflowSourceInput =
-                    { oldCustomWorkflowSourceInput | reference = repositoryReference }
-
-                customWorkflowSource =
-                    Types.Workflow.sourceInputToWorkflowSource newCustomWorkflowSourceInput
-            in
+        GotWorkflowReference reference ->
             ( { model
-                | customWorkflowSourceInput = newCustomWorkflowSourceInput
-                , customWorkflowSource = customWorkflowSource
+                | workflowInputReference = reference
+                , workflowInputIsValid =
+                    workflowInputIsValid
+                        ( model.workflowInputRepository
+                        , reference
+                        , model.workflowInputPath
+                        )
               }
             , Cmd.none
             , SharedMsg.NoOp
             )
 
-        GotCustomWorkflowSourcePath repositoryPath ->
-            let
-                oldCustomWorkflowSourceInput =
-                    model.customWorkflowSourceInput
-
-                newCustomWorkflowSourceInput =
-                    { oldCustomWorkflowSourceInput | path = repositoryPath }
-
-                customWorkflowSource =
-                    Types.Workflow.sourceInputToWorkflowSource newCustomWorkflowSourceInput
-            in
+        GotWorkflowPath path ->
             ( { model
-                | customWorkflowSourceInput = newCustomWorkflowSourceInput
-                , customWorkflowSource = customWorkflowSource
+                | workflowInputPath = path
+                , workflowInputIsValid =
+                    workflowInputIsValid
+                        ( model.workflowInputRepository
+                        , model.workflowInputReference
+                        , path
+                        )
               }
             , Cmd.none
             , SharedMsg.NoOp
             )
 
-        GotClearCustomWorkflowSource ->
+        GotClearCustomWorkflowInputs ->
             ( { model
-                | customWorkflowSourceInput = defaultSourceInput
-                , customWorkflowSource = Types.Workflow.EmptySource
+                | workflowInputRepository = ""
+                , workflowInputReference = ""
+                , workflowInputPath = ""
+                , workflowInputIsValid =
+                    workflowInputIsValid
+                        ( model.workflowInputRepository
+                        , model.workflowInputReference
+                        , model.workflowInputPath
+                        )
               }
             , Cmd.none
             , SharedMsg.NoOp
@@ -249,6 +234,12 @@ update msg project model =
 
         GotShowWorkFlowExplanationToggleTip ->
             ( { model | showWorkflowExplanationToggleTip = not model.showWorkflowExplanationToggleTip }, Cmd.none, SharedMsg.NoOp )
+
+        SharedMsg sharedMsg ->
+            ( model, Cmd.none, sharedMsg )
+
+        NoOp ->
+            ( model, Cmd.none, SharedMsg.NoOp )
 
 
 enforceQuotaCompliance : Project -> Model -> Model
@@ -367,12 +358,7 @@ view context project model =
                             False
 
                 invalidWorkflowTextInput =
-                    case model.customWorkflowSource of
-                        Types.Workflow.InvalidSource ->
-                            True
-
-                        _ ->
-                            False
+                    model.includeWorkflow && not model.workflowInputIsValid
 
                 invalidInputs =
                     invalidVolSizeTextInput || invalidWorkflowTextInput
@@ -864,25 +850,46 @@ customWorkflowInput context model =
         Element.none
 
 
+workflowInputIsEmpty : ( String, String, String ) -> Bool
+workflowInputIsEmpty ( repository, reference, path ) =
+    [ repository
+    , reference
+    , path
+    ]
+        |> List.map String.trim
+        |> List.all String.isEmpty
+
+
+workflowInputIsValid : ( String, String, String ) -> Bool
+workflowInputIsValid ( repository, reference, path ) =
+    (repository /= "") && not (workflowInputIsEmpty ( repository, reference, path ))
+
+
 customWorkflowInputExperimental : View.Types.Context -> Model -> Element.Element Msg
 customWorkflowInputExperimental context model =
     let
         clearButton =
             Widget.textButton
                 (SH.materialStyle context.palette).button
-                { text = "Remove workflow"
+                { text = "Clear workflow"
                 , onPress =
-                    if model.customWorkflowSource == Types.Workflow.EmptySource then
+                    if
+                        workflowInputIsEmpty
+                            ( model.workflowInputRepository
+                            , model.workflowInputReference
+                            , model.workflowInputPath
+                            )
+                    then
                         Nothing
 
                     else
-                        Just GotClearCustomWorkflowSource
+                        Just GotClearCustomWorkflowInputs
                 }
 
         workflowInput =
             let
                 repoInputLabel =
-                    "Git repository URL or DOI"
+                    "DOI or Git repository URL"
 
                 repoTypeAndTextInput =
                     Element.column
@@ -894,15 +901,15 @@ customWorkflowInputExperimental context model =
                         [ Element.text repoInputLabel
                         , Input.text
                             (VH.inputItemAttributes context.palette.background)
-                            { text = model.customWorkflowSourceInput.repository
+                            { text = model.workflowInputRepository
                             , placeholder =
                                 Just
                                     (Input.placeholder
                                         []
-                                        (Element.text repoInputLabel)
+                                        (Element.text "https://github.com/binder-examples/minimal-dockerfile")
                                     )
                             , onChange =
-                                GotCustomWorkflowSourceRepository
+                                GotWorkflowRepository
                             , label = Input.labelHidden repoInputLabel
                             }
                         ]
@@ -910,7 +917,7 @@ customWorkflowInputExperimental context model =
                 referenceInput =
                     Input.text
                         (VH.inputItemAttributes context.palette.background)
-                        { text = model.customWorkflowSourceInput.reference
+                        { text = model.workflowInputReference
                         , placeholder =
                             Just
                                 (Input.placeholder
@@ -918,14 +925,14 @@ customWorkflowInputExperimental context model =
                                     (Element.text "HEAD")
                                 )
                         , onChange =
-                            GotCustomWorkflowSourceReference
-                        , label = Input.labelAbove [] (Element.text "Git ref (branch, tag, or commit) (optional)")
+                            GotWorkflowReference
+                        , label = Input.labelAbove [] (Element.text "Git reference (branch, tag, or commit) (optional)")
                         }
 
                 sourcePathInput =
                     let
                         pathInputLabel =
-                            "URL to open e.g. /rstudio (optional)"
+                            "Path to open (optional)"
                     in
                     Element.column
                         (VH.exoColumnAttributes
@@ -936,15 +943,15 @@ customWorkflowInputExperimental context model =
                         [ Element.text pathInputLabel
                         , Input.text
                             (VH.inputItemAttributes context.palette.background)
-                            { text = model.customWorkflowSourceInput.path
+                            { text = model.workflowInputPath
                             , placeholder =
                                 Just
                                     (Input.placeholder
                                         []
-                                        (Element.text pathInputLabel)
+                                        (Element.text "/rstudio")
                                     )
                             , onChange =
-                                GotCustomWorkflowSourcePath
+                                GotWorkflowPath
                             , label = Input.labelHidden pathInputLabel
                             }
                         ]
@@ -965,7 +972,7 @@ customWorkflowInputExperimental context model =
                     [ Element.width
                         (Element.fill
                             |> Element.minimum 100
-                            |> Element.maximum 300
+                         --|> Element.maximum 300
                         )
                     , Element.spacing 7
                     ]
@@ -978,13 +985,8 @@ customWorkflowInputExperimental context model =
                 model.showWorkflowExplanationToggleTip
                 GotShowWorkFlowExplanationToggleTip
 
-        betaMessage =
-            Element.el
-                [ Font.color (SH.toElementColor context.palette.warn)
-                , Font.size 10
-                , Element.onRight workflowExplanationToggleTip
-                ]
-                (Element.text "BETA")
+        experimentalBadge =
+            badge "Experimental"
     in
     Element.column
         (VH.exoColumnAttributes
@@ -993,15 +995,35 @@ customWorkflowInputExperimental context model =
                ]
         )
     <|
-        [ Element.row [ Element.spacingXY 5 0, Element.alignTop ]
-            [ Element.el
-                (VH.heading4 ++ [ Font.size 17 ])
-                (Element.text ("Launch a workflow in the " ++ context.localization.virtualComputer))
-            , betaMessage
-            ]
-        , workflowInput
-        , clearButton
-        ]
+        (Input.radioRow [ Element.spacing 10 ]
+            { label =
+                Input.labelAbove [ Element.paddingXY 0 12, Font.bold ]
+                    (Element.row [ Element.spacingXY 10 0 ]
+                        [ Element.el
+                            (VH.heading4 ++ [ Font.size 17 ])
+                            (Element.text ("Launch a workflow in the " ++ context.localization.virtualComputer))
+                        , experimentalBadge
+                        , workflowExplanationToggleTip
+                        ]
+                    )
+            , onChange = GotIncludeWorkflow
+            , options =
+                [ Input.option False (Element.text "No")
+                , Input.option True (Element.text "Yes")
+
+                {- -}
+                ]
+            , selected = Just model.includeWorkflow
+            }
+            :: (if not model.includeWorkflow then
+                    [ Element.none ]
+
+                else
+                    [ workflowInput
+                    , clearButton
+                    ]
+               )
+        )
 
 
 desktopEnvironmentPicker : View.Types.Context -> Project -> Model -> Element.Element Msg

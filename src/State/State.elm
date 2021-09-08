@@ -1023,12 +1023,15 @@ processProjectSpecificMsg outerModel project msg =
         RequestCreateServer pageModel networkUuid ->
             let
                 customWorkFlowSource =
-                    case pageModel.customWorkflowSource of
-                        Types.Workflow.Success cs ->
-                            Just cs
+                    if pageModel.workflowInputIsValid then
+                        Just
+                            { repository = pageModel.workflowInputRepository
+                            , reference = pageModel.workflowInputReference
+                            , path = pageModel.workflowInputPath
+                            }
 
-                        _ ->
-                            Nothing
+                    else
+                        Nothing
 
                 createServerRequest =
                     { name = pageModel.serverName
