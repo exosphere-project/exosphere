@@ -164,5 +164,5 @@ var cloud_configs = {
         }
       ]
     }
-  ],
+  ]
 }
