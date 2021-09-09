@@ -996,7 +996,7 @@ customWorkflowInputExperimental context model =
     <|
         (Input.radioRow [ Element.spacing 10 ]
             { label =
-                Input.labelAbove [ Element.paddingXY 0 12, Font.bold ]
+                Input.labelAbove [ Element.paddingXY 0 12 ]
                     (Element.row [ Element.spacingXY 10 0 ]
                         [ Element.el
                             (VH.heading4 ++ [ Font.size 17 ])
