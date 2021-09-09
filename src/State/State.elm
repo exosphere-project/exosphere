@@ -1023,7 +1023,7 @@ processProjectSpecificMsg outerModel project msg =
         RequestCreateServer pageModel networkUuid ->
             let
                 customWorkFlowSource =
-                    if pageModel.workflowInputIsValid then
+                    if pageModel.includeWorkflow && pageModel.workflowInputIsValid then
                         Just
                             { repository = pageModel.workflowInputRepository
                             , reference = pageModel.workflowInputReference
