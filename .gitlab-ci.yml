@@ -28,6 +28,7 @@ cache:
     - 'sed -i -e "s/instanceConfigMgtRepoCheckout:.*/instanceConfigMgtRepoCheckout: \"${CI_COMMIT_SHA}\"/g" public/config.js'
     - cp public/elm-web.js .
     - cp public/ports.js .
+    - cp public/cloud_configs.js .
     - cp public/config.js .
   script:
     - BROWSER_LOWER="$(echo $BROWSER | tr '[:upper:]' '[:lower:]')"
@@ -70,6 +71,7 @@ elm_make:
     - npx elm make --optimize src/Exosphere.elm --output public/elm-web.js
     - cp index.html public/index.html
     - cp ports.js public/ports.js
+    - cp cloud_configs.js public/cloud_configs.js
     - cp config.js public/config.js
     - cp exosphere.webmanifest public
     - cp -R assets public

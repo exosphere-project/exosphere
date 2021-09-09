@@ -47,12 +47,13 @@ var flags = {
     timeZone : d.getTimezoneOffset()
 }
 
+const merged_config = Object.assign({}, cloud_configs, config);
 
 // start the elm app in the container
 // and keep a reference for communicating with the app
 var app = moduleToInit({
     node: container,
-    flags: Object.assign(flags, config)
+    flags: Object.assign(flags, merged_config)
 });
 
 app.ports.openNewWindow.subscribe(function (url) {
