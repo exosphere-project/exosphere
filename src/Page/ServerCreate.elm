@@ -84,7 +84,10 @@ init imageUuid imageName deployGuacamole =
     , installOperatingSystemUpdates = True
     , floatingIpCreationOption = HelperTypes.Automatic
     , includeWorkflow = False
-    , workflowInput = Nothing
+    , workflowInputRepository = ""
+    , workflowInputReference = ""
+    , workflowInputPath = ""
+    , workflowInputIsValid = False
     , showWorkflowExplanationToggleTip = False
     }
 
@@ -169,74 +172,61 @@ update msg project model =
             ( { model | floatingIpCreationOption = floatingIpOption }, Cmd.none, SharedMsg.NoOp )
 
         GotIncludeWorkflow includeWorkflow ->
-            let
-                workflowInput =
-                    if includeWorkflow then
-                        Just
-                            { repository = ""
-                            , reference = ""
-                            , path = ""
-                            , isValid = False
-                            }
-
-                    else
-                        Nothing
-            in
-            ( { model
-                | includeWorkflow = includeWorkflow
-                , workflowInput = workflowInput
-              }
-            , Cmd.none
-            , SharedMsg.NoOp
-            )
+            ( { model | includeWorkflow = includeWorkflow }, Cmd.none, SharedMsg.NoOp )
 
         GotWorkflowRepository repository ->
-            let
-                newWorkflowInput =
-                    model.workflowInput
-                        |> Maybe.map (\wi -> { wi | repository = repository })
-            in
             ( { model
-                | workflowInput = newWorkflowInput
+                | workflowInputRepository = repository
+                , workflowInputIsValid =
+                    workflowInputIsValid
+                        ( repository
+                        , model.workflowInputReference
+                        , model.workflowInputPath
+                        )
               }
             , Cmd.none
             , SharedMsg.NoOp
             )
 
         GotWorkflowReference reference ->
-            let
-                newWorkflowInput =
-                    model.workflowInput
-                        |> Maybe.map (\wi -> { wi | reference = reference })
-            in
             ( { model
-                | workflowInput = newWorkflowInput
+                | workflowInputReference = reference
+                , workflowInputIsValid =
+                    workflowInputIsValid
+                        ( model.workflowInputRepository
+                        , reference
+                        , model.workflowInputPath
+                        )
               }
             , Cmd.none
             , SharedMsg.NoOp
             )
 
         GotWorkflowPath path ->
-            let
-                newWorkflowInput =
-                    model.workflowInput
-                        |> Maybe.map (\wi -> { wi | path = path })
-            in
             ( { model
-                | workflowInput = newWorkflowInput
+                | workflowInputPath = path
+                , workflowInputIsValid =
+                    workflowInputIsValid
+                        ( model.workflowInputRepository
+                        , model.workflowInputReference
+                        , path
+                        )
               }
             , Cmd.none
             , SharedMsg.NoOp
             )
 
         GotClearCustomWorkflowInputs ->
-            let
-                newWorkflowInput =
-                    model.workflowInput
-                        |> Maybe.map (\wi -> { wi | repository = "", reference = "", path = "", isValid = False })
-            in
             ( { model
-                | workflowInput = newWorkflowInput
+                | workflowInputRepository = ""
+                , workflowInputReference = ""
+                , workflowInputPath = ""
+                , workflowInputIsValid =
+                    workflowInputIsValid
+                        ( model.workflowInputRepository
+                        , model.workflowInputReference
+                        , model.workflowInputPath
+                        )
               }
             , Cmd.none
             , SharedMsg.NoOp
@@ -368,9 +358,7 @@ view context project model =
                             False
 
                 invalidWorkflowTextInput =
-                    model.workflowInput
-                        |> Maybe.map (\wi -> not wi.isValid && model.includeWorkflow)
-                        |> Maybe.withDefault False
+                    model.includeWorkflow && not model.workflowInputIsValid
 
                 invalidInputs =
                     invalidVolSizeTextInput || invalidWorkflowTextInput
@@ -862,22 +850,19 @@ customWorkflowInput context model =
         Element.none
 
 
-workflowInputIsEmpty : HelperTypes.WorkflowInput -> Bool
-workflowInputIsEmpty workflowInput =
-    [ workflowInput.repository
-    , workflowInput.reference
-    , workflowInput.path
+workflowInputIsEmpty : ( String, String, String ) -> Bool
+workflowInputIsEmpty ( repository, reference, path ) =
+    [ repository
+    , reference
+    , path
     ]
         |> List.map String.trim
         |> List.all String.isEmpty
 
 
-workflowInputIsValid : Maybe HelperTypes.WorkflowInput -> Bool
-workflowInputIsValid maybeWorkflowInput =
-    maybeWorkflowInput
-        |> Maybe.map
-            (\workflowInput -> (workflowInput.repository /= "") && not (workflowInputIsEmpty workflowInput))
-        |> Maybe.withDefault True
+workflowInputIsValid : ( String, String, String ) -> Bool
+workflowInputIsValid ( repository, reference, path ) =
+    (repository /= "") && not (workflowInputIsEmpty ( repository, reference, path ))
 
 
 customWorkflowInputExperimental : View.Types.Context -> Model -> Element.Element Msg
@@ -888,15 +873,17 @@ customWorkflowInputExperimental context model =
                 (SH.materialStyle context.palette).button
                 { text = "Clear workflow"
                 , onPress =
-                    Maybe.map workflowInputIsEmpty model.workflowInput
-                        |> Maybe.andThen
-                            (\isEmpty ->
-                                if not isEmpty then
-                                    Just GotClearCustomWorkflowInputs
-
-                                else
-                                    Nothing
+                    if
+                        workflowInputIsEmpty
+                            ( model.workflowInputRepository
+                            , model.workflowInputReference
+                            , model.workflowInputPath
                             )
+                    then
+                        Nothing
+
+                    else
+                        Just GotClearCustomWorkflowInputs
                 }
 
         workflowInput =
@@ -914,10 +901,7 @@ customWorkflowInputExperimental context model =
                         [ Element.text repoInputLabel
                         , Input.text
                             (VH.inputItemAttributes context.palette.background)
-                            { text =
-                                model.workflowInput
-                                    |> Maybe.map (\wi -> wi.repository)
-                                    |> Maybe.withDefault ""
+                            { text = model.workflowInputRepository
                             , placeholder =
                                 Just
                                     (Input.placeholder
@@ -933,10 +917,7 @@ customWorkflowInputExperimental context model =
                 referenceInput =
                     Input.text
                         (VH.inputItemAttributes context.palette.background)
-                        { text =
-                            model.workflowInput
-                                |> Maybe.map (\wi -> wi.reference)
-                                |> Maybe.withDefault ""
+                        { text = model.workflowInputReference
                         , placeholder =
                             Just
                                 (Input.placeholder
@@ -962,10 +943,7 @@ customWorkflowInputExperimental context model =
                         [ Element.text pathInputLabel
                         , Input.text
                             (VH.inputItemAttributes context.palette.background)
-                            { text =
-                                model.workflowInput
-                                    |> Maybe.map (\wi -> wi.path)
-                                    |> Maybe.withDefault ""
+                            { text = model.workflowInputPath
                             , placeholder =
                                 Just
                                     (Input.placeholder
