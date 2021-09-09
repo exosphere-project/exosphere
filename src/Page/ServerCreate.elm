@@ -18,9 +18,11 @@ import RemoteData
 import Route
 import ServerDeploy exposing (cloudInitUserDataTemplate)
 import Style.Helpers as SH
+import Style.Widgets.Card exposing (badge)
 import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Style.Widgets.Select
+import Style.Widgets.ToggleTip
 import Types.HelperTypes as HelperTypes
     exposing
         ( FloatingIpAssignmentStatus(..)
@@ -30,12 +32,6 @@ import Types.HelperTypes as HelperTypes
 import Types.Project exposing (Project)
 import Types.Server exposing (NewServerNetworkOptions(..))
 import Types.SharedMsg as SharedMsg
-import Types.Workflow
-    exposing
-        ( CustomWorkflowSource
-        , CustomWorkflowSourceRepository(..)
-        )
-import Url
 import View.Helpers as VH exposing (edges)
 import View.Types
 import Widget
@@ -55,13 +51,19 @@ type Msg
     | GotNetworks
     | GotNetworkUuid (Maybe OSTypes.NetworkUuid)
     | GotAutoAllocatedNetwork OSTypes.NetworkUuid
-    | GotCustomWorkflowSource (Maybe CustomWorkflowSource) (Maybe String)
     | GotShowAdvancedOptions Bool
     | GotKeypairName (Maybe String)
     | GotDeployGuacamole (Maybe Bool)
     | GotDeployDesktopEnvironment Bool
     | GotInstallOperatingSystemUpdates Bool
     | GotFloatingIpCreationOption FloatingIpOption
+    | GotIncludeWorkflow Bool
+    | GotWorkflowRepository String
+    | GotWorkflowReference String
+    | GotWorkflowPath String
+    | GotClearCustomWorkflowInputs
+    | GotWorkflowInputModified
+    | GotShowWorkFlowExplanationToggleTip
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
 
@@ -76,14 +78,18 @@ init imageUuid imageName deployGuacamole =
     , volSizeTextInput = Nothing
     , userDataTemplate = cloudInitUserDataTemplate
     , networkUuid = Nothing
-    , customWorkflowSource = Nothing
-    , customWorkflowSourceInput = Nothing
     , showAdvancedOptions = False
     , keypairName = Nothing
     , deployGuacamole = deployGuacamole
     , deployDesktopEnvironment = False
     , installOperatingSystemUpdates = True
     , floatingIpCreationOption = HelperTypes.Automatic
+    , includeWorkflow = False
+    , workflowInputRepository = ""
+    , workflowInputReference = ""
+    , workflowInputPath = ""
+    , workflowInputIsValid = False
+    , showWorkflowExplanationToggleTip = False
     }
 
 
@@ -148,15 +154,6 @@ update msg project model =
             , SharedMsg.NoOp
             )
 
-        GotCustomWorkflowSource maybeCustomWorkflowSource maybeCustomWorkflowSourceInput ->
-            ( { model
-                | customWorkflowSource = maybeCustomWorkflowSource
-                , customWorkflowSourceInput = maybeCustomWorkflowSourceInput
-              }
-            , Cmd.none
-            , SharedMsg.NoOp
-            )
-
         GotShowAdvancedOptions showAdvancedOptions ->
             ( { model | showAdvancedOptions = showAdvancedOptions }, Cmd.none, SharedMsg.NoOp )
 
@@ -174,6 +171,54 @@ update msg project model =
 
         GotFloatingIpCreationOption floatingIpOption ->
             ( { model | floatingIpCreationOption = floatingIpOption }, Cmd.none, SharedMsg.NoOp )
+
+        GotIncludeWorkflow includeWorkflow ->
+            { model
+                | includeWorkflow = includeWorkflow
+            }
+                |> update GotWorkflowInputModified project
+
+        GotWorkflowRepository repository ->
+            { model
+                | workflowInputRepository = repository
+            }
+                |> update GotWorkflowInputModified project
+
+        GotWorkflowReference reference ->
+            { model
+                | workflowInputReference = reference
+            }
+                |> update GotWorkflowInputModified project
+
+        GotWorkflowPath path ->
+            { model
+                | workflowInputPath = path
+            }
+                |> update GotWorkflowInputModified project
+
+        GotClearCustomWorkflowInputs ->
+            { model
+                | workflowInputRepository = ""
+                , workflowInputReference = ""
+                , workflowInputPath = ""
+            }
+                |> update GotWorkflowInputModified project
+
+        GotWorkflowInputModified ->
+            ( { model
+                | workflowInputIsValid =
+                    workflowInputIsValid
+                        ( model.workflowInputRepository
+                        , model.workflowInputReference
+                        , model.workflowInputPath
+                        )
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
+
+        GotShowWorkFlowExplanationToggleTip ->
+            ( { model | showWorkflowExplanationToggleTip = not model.showWorkflowExplanationToggleTip }, Cmd.none, SharedMsg.NoOp )
 
         SharedMsg sharedMsg ->
             ( model, Cmd.none, sharedMsg )
@@ -298,12 +343,7 @@ view context project model =
                             False
 
                 invalidWorkflowTextInput =
-                    case ( model.customWorkflowSourceInput, model.customWorkflowSource ) of
-                        ( Just _, Nothing ) ->
-                            True
-
-                        ( _, _ ) ->
-                            False
+                    model.includeWorkflow && not model.workflowInputIsValid
 
                 invalidInputs =
                     invalidVolSizeTextInput || invalidWorkflowTextInput
@@ -795,58 +835,142 @@ customWorkflowInput context model =
         Element.none
 
 
+workflowInputIsEmpty : ( String, String, String ) -> Bool
+workflowInputIsEmpty ( repository, reference, path ) =
+    [ repository
+    , reference
+    , path
+    ]
+        |> List.map String.trim
+        |> List.all String.isEmpty
+
+
+workflowInputIsValid : ( String, String, String ) -> Bool
+workflowInputIsValid ( repository, reference, path ) =
+    (repository /= "") && not (workflowInputIsEmpty ( repository, reference, path ))
+
+
 customWorkflowInputExperimental : View.Types.Context -> Model -> Element.Element Msg
 customWorkflowInputExperimental context model =
     let
         clearButton =
             Widget.textButton
                 (SH.materialStyle context.palette).button
-                { text = "Remove workflow"
+                { text = "Clear workflow"
                 , onPress =
-                    model.customWorkflowSource
-                        |> Maybe.map (\_ -> GotCustomWorkflowSource Nothing Nothing)
-                }
+                    if
+                        workflowInputIsEmpty
+                            ( model.workflowInputRepository
+                            , model.workflowInputReference
+                            , model.workflowInputPath
+                            )
+                    then
+                        Nothing
 
-        workFlowInputToWorkflow : String -> Maybe CustomWorkflowSource
-        workFlowInputToWorkflow workflowInputString =
-            Url.fromString workflowInputString
-                |> Maybe.map
-                    (\url ->
-                        { repository =
-                            GitRepository
-                                url
-                                Nothing
-                        , path = Nothing
-                        }
-                    )
+                    else
+                        Just GotClearCustomWorkflowInputs
+                }
 
         workflowInput =
-            Input.text
-                (VH.inputItemAttributes context.palette.background)
-                { text = model.customWorkflowSourceInput |> Maybe.withDefault ""
-                , placeholder =
-                    Just
-                        (Input.placeholder
-                            []
-                            (Element.text "https://github.com/binder-examples/minimal-dockerfile")
+            let
+                repoInputLabel =
+                    "DOI or Git repository URL"
+
+                repoTypeAndTextInput =
+                    Element.column
+                        (VH.exoColumnAttributes
+                            ++ [ Element.width Element.fill
+                               , Element.padding 0
+                               ]
                         )
-                , onChange =
-                    \n ->
-                        if n == "" then
-                            GotCustomWorkflowSource Nothing Nothing
+                        [ Element.text repoInputLabel
+                        , Input.text
+                            (VH.inputItemAttributes context.palette.background)
+                            { text = model.workflowInputRepository
+                            , placeholder =
+                                Just
+                                    (Input.placeholder
+                                        []
+                                        (Element.text "https://github.com/binder-examples/minimal-dockerfile")
+                                    )
+                            , onChange =
+                                GotWorkflowRepository
+                            , label = Input.labelHidden repoInputLabel
+                            }
+                        ]
 
-                        else
-                            GotCustomWorkflowSource (workFlowInputToWorkflow n) (Just n)
-                , label = Input.labelLeft [] (Element.text "Git repository URL")
-                }
+                referenceInput =
+                    Input.text
+                        (VH.inputItemAttributes context.palette.background)
+                        { text = model.workflowInputReference
+                        , placeholder =
+                            Just
+                                (Input.placeholder
+                                    []
+                                    (Element.text "HEAD")
+                                )
+                        , onChange =
+                            GotWorkflowReference
+                        , label = Input.labelAbove [] (Element.text "Git reference (branch, tag, or commit) (optional)")
+                        }
 
-        warning =
-            Element.paragraph
-                ([ Background.color (SH.toElementColor context.palette.warn), Font.color (SH.toElementColor context.palette.on.warn) ]
-                    ++ VH.exoElementAttributes
+                sourcePathInput =
+                    let
+                        pathInputLabel =
+                            "Path to open (optional)"
+                    in
+                    Element.column
+                        (VH.exoColumnAttributes
+                            ++ [ Element.width Element.fill
+                               , Element.padding 0
+                               ]
+                        )
+                        [ Element.text pathInputLabel
+                        , Input.text
+                            (VH.inputItemAttributes context.palette.background)
+                            { text = model.workflowInputPath
+                            , placeholder =
+                                Just
+                                    (Input.placeholder
+                                        []
+                                        (Element.text "/rstudio")
+                                    )
+                            , onChange =
+                                GotWorkflowPath
+                            , label = Input.labelHidden pathInputLabel
+                            }
+                        ]
+            in
+            Element.column
+                (VH.exoColumnAttributes
+                    ++ [ Element.width Element.fill ]
                 )
-                [ Element.text "Note: Workflows is an experimental feature"
+                [ repoTypeAndTextInput
+                , referenceInput
+                , sourcePathInput
                 ]
+
+        workflowExplanationToggleTip =
+            Style.Widgets.ToggleTip.toggleTip
+                context.palette
+                (Element.column
+                    [ Element.width
+                        (Element.fill
+                            |> Element.minimum 100
+                        )
+                    , Element.spacing 7
+                    ]
+                    [ Element.text "Any Binder™-compatible repository can be launched."
+                    , Element.paragraph []
+                        [ Element.text "See mybinder.org for more information"
+                        ]
+                    ]
+                )
+                model.showWorkflowExplanationToggleTip
+                GotShowWorkFlowExplanationToggleTip
+
+        experimentalBadge =
+            badge "Experimental"
     in
     Element.column
         (VH.exoColumnAttributes
@@ -855,16 +979,35 @@ customWorkflowInputExperimental context model =
                ]
         )
     <|
-        [ Element.el
-            (VH.heading4
-                ++ [ Font.size 17
-                   ]
-            )
-            (Element.text ("Launch a workflow in the " ++ context.localization.virtualComputer))
-        , warning
-        , workflowInput
-        , clearButton
-        ]
+        (Input.radioRow [ Element.spacing 10 ]
+            { label =
+                Input.labelAbove [ Element.paddingXY 0 12 ]
+                    (Element.row [ Element.spacingXY 10 0 ]
+                        [ Element.el
+                            (VH.heading4 ++ [ Font.size 17 ])
+                            (Element.text ("Launch a workflow in the " ++ context.localization.virtualComputer))
+                        , experimentalBadge
+                        , workflowExplanationToggleTip
+                        ]
+                    )
+            , onChange = GotIncludeWorkflow
+            , options =
+                [ Input.option False (Element.text "No")
+                , Input.option True (Element.text "Yes")
+
+                {- -}
+                ]
+            , selected = Just model.includeWorkflow
+            }
+            :: (if not model.includeWorkflow then
+                    [ Element.none ]
+
+                else
+                    [ workflowInput
+                    , clearButton
+                    ]
+               )
+        )
 
 
 desktopEnvironmentPicker : View.Types.Context -> Project -> Model -> Element.Element Msg

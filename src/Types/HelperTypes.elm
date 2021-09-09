@@ -31,7 +31,6 @@ module Types.HelperTypes exposing
 import OpenStack.Types as OSTypes
 import RemoteData exposing (WebData)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput)
-import Types.Workflow exposing (CustomWorkflowSource)
 
 
 
@@ -236,11 +235,15 @@ type alias CreateServerPageModel =
     , userDataTemplate : String
     , networkUuid : Maybe OSTypes.NetworkUuid
     , showAdvancedOptions : Bool
-    , customWorkflowSource : Maybe CustomWorkflowSource
-    , customWorkflowSourceInput : Maybe String
     , keypairName : Maybe String
     , deployGuacamole : Maybe Bool -- Nothing when cloud doesn't support Guacamole
     , deployDesktopEnvironment : Bool
     , installOperatingSystemUpdates : Bool
     , floatingIpCreationOption : FloatingIpOption
+    , includeWorkflow : Bool
+    , workflowInputRepository : String
+    , workflowInputReference : String
+    , workflowInputPath : String
+    , workflowInputIsValid : Bool
+    , showWorkflowExplanationToggleTip : Bool
     }

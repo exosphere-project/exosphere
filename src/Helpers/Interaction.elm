@@ -70,7 +70,7 @@ interactionStatus project server interaction context currentTime tlsReverseProxy
                                                     proxyHostname
                                                     floatingIp
                                                     8888
-                                                    ("/?token=" ++ token)
+                                                    (customWorkflow.source.path ++ "/?token=" ++ token)
                                                     False
 
                                         ( Nothing, _ ) ->
