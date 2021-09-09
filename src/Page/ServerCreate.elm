@@ -62,6 +62,7 @@ type Msg
     | GotWorkflowReference String
     | GotWorkflowPath String
     | GotClearCustomWorkflowInputs
+    | GotWorkflowInputModified
     | GotShowWorkFlowExplanationToggleTip
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
@@ -172,56 +173,40 @@ update msg project model =
             ( { model | floatingIpCreationOption = floatingIpOption }, Cmd.none, SharedMsg.NoOp )
 
         GotIncludeWorkflow includeWorkflow ->
-            ( { model | includeWorkflow = includeWorkflow }, Cmd.none, SharedMsg.NoOp )
+            { model
+                | includeWorkflow = includeWorkflow
+            }
+                |> update GotWorkflowInputModified project
 
         GotWorkflowRepository repository ->
-            ( { model
+            { model
                 | workflowInputRepository = repository
-                , workflowInputIsValid =
-                    workflowInputIsValid
-                        ( repository
-                        , model.workflowInputReference
-                        , model.workflowInputPath
-                        )
-              }
-            , Cmd.none
-            , SharedMsg.NoOp
-            )
+            }
+                |> update GotWorkflowInputModified project
 
         GotWorkflowReference reference ->
-            ( { model
+            { model
                 | workflowInputReference = reference
-                , workflowInputIsValid =
-                    workflowInputIsValid
-                        ( model.workflowInputRepository
-                        , reference
-                        , model.workflowInputPath
-                        )
-              }
-            , Cmd.none
-            , SharedMsg.NoOp
-            )
+            }
+                |> update GotWorkflowInputModified project
 
         GotWorkflowPath path ->
-            ( { model
+            { model
                 | workflowInputPath = path
-                , workflowInputIsValid =
-                    workflowInputIsValid
-                        ( model.workflowInputRepository
-                        , model.workflowInputReference
-                        , path
-                        )
-              }
-            , Cmd.none
-            , SharedMsg.NoOp
-            )
+            }
+                |> update GotWorkflowInputModified project
 
         GotClearCustomWorkflowInputs ->
-            ( { model
+            { model
                 | workflowInputRepository = ""
                 , workflowInputReference = ""
                 , workflowInputPath = ""
-                , workflowInputIsValid =
+            }
+                |> update GotWorkflowInputModified project
+
+        GotWorkflowInputModified ->
+            ( { model
+                | workflowInputIsValid =
                     workflowInputIsValid
                         ( model.workflowInputRepository
                         , model.workflowInputReference
