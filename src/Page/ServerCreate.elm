@@ -972,7 +972,6 @@ customWorkflowInputExperimental context model =
                     [ Element.width
                         (Element.fill
                             |> Element.minimum 100
-                         --|> Element.maximum 300
                         )
                     , Element.spacing 7
                     ]
