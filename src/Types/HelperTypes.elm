@@ -26,6 +26,7 @@ module Types.HelperTypes exposing
     , UserAppProxyHostname
     , Uuid
     , WindowSize
+    , WorkflowInput
     )
 
 import OpenStack.Types as OSTypes
@@ -225,6 +226,14 @@ type SupportableItemType
     | SupportableVolume
 
 
+type alias WorkflowInput =
+    { repository : String
+    , reference : String
+    , path : String
+    , isValid : Bool
+    }
+
+
 type alias CreateServerPageModel =
     { serverName : String
     , imageUuid : OSTypes.ImageUuid
@@ -241,9 +250,6 @@ type alias CreateServerPageModel =
     , installOperatingSystemUpdates : Bool
     , floatingIpCreationOption : FloatingIpOption
     , includeWorkflow : Bool
-    , workflowInputRepository : String
-    , workflowInputReference : String
-    , workflowInputPath : String
-    , workflowInputIsValid : Bool
+    , workflowInput : Maybe WorkflowInput
     , showWorkflowExplanationToggleTip : Bool
     }
