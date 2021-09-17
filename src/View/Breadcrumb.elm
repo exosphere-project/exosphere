@@ -282,9 +282,9 @@ breadcrumb outerModel context =
         separator =
             Element.el [ Font.color (context.palette.muted |> SH.toElementColor) ] <| Element.text ">"
     in
-    Element.row
+    Element.wrappedRow
         [ Element.paddingXY 10 4
-        , Element.spacing 10
+        , Element.spacingXY 10 4
         , Font.size 15
         ]
     <|
