@@ -24,35 +24,35 @@ import View.Types
 -- TODO consider some central translation of view state to route
 
 
-type alias Token =
+type alias Item =
     { route : Maybe Route.Route
     , label : String
     }
 
 
-renderToken : Bool -> View.Types.Context -> Token -> Element.Element SharedMsg
-renderToken disableClick context token =
+renderItem : Bool -> View.Types.Context -> Item -> Element.Element SharedMsg
+renderItem disableClick context item =
     if disableClick then
-        Element.text token.label
+        Element.text item.label
 
     else
-        case token.route of
+        case item.route of
             Just route ->
                 Element.link
                     (View.Helpers.linkAttribs context)
                     { url = Route.toUrl context.urlPathPrefix route
-                    , label = Element.text token.label
+                    , label = Element.text item.label
                     }
 
             Nothing ->
-                Element.text token.label
+                Element.text item.label
 
 
 breadcrumb : Types.OuterModel.OuterModel -> View.Types.Context -> Element.Element SharedMsg
 breadcrumb outerModel context =
     let
-        viewStateTokens : List Token
-        viewStateTokens =
+        viewStateItems : List Item
+        viewStateItems =
             case outerModel.viewState of
                 NonProjectView constructor ->
                     case constructor of
@@ -73,7 +73,7 @@ breadcrumb outerModel context =
 
                 ProjectView projectId _ constructor ->
                     let
-                        projectToken =
+                        projectItem =
                             case GetterSetters.projectLookup outerModel.sharedModel projectId of
                                 Just project ->
                                     [ { route = Just <| Route.ProjectRoute projectId <| Route.AllResourcesList
@@ -262,21 +262,21 @@ breadcrumb outerModel context =
                                     ]
                     in
                     List.concat
-                        [ projectToken
+                        [ projectItem
                         , projectPage
                         ]
 
-        firstToken : Token
-        firstToken =
+        firstItem : Item
+        firstItem =
             { route = Nothing, label = "Home" }
 
-        lastToken : Maybe Token
-        lastToken =
-            viewStateTokens |> List.reverse |> List.head
+        lastItem : Maybe Item
+        lastItem =
+            viewStateItems |> List.reverse |> List.head
 
-        restOfTokens : List Token
-        restOfTokens =
-            viewStateTokens |> List.reverse |> List.tail |> Maybe.map List.reverse |> Maybe.withDefault []
+        restOfItems : List Item
+        restOfItems =
+            viewStateItems |> List.reverse |> List.tail |> Maybe.map List.reverse |> Maybe.withDefault []
 
         separator : Element.Element msg
         separator =
@@ -292,12 +292,12 @@ breadcrumb outerModel context =
             separator
         <|
             List.concat
-                [ List.map (renderToken False context) <|
-                    firstToken
-                        :: restOfTokens
-                , case lastToken of
-                    Just token ->
-                        [ renderToken True context token ]
+                [ List.map (renderItem False context) <|
+                    firstItem
+                        :: restOfItems
+                , case lastItem of
+                    Just item ->
+                        [ renderItem True context item ]
 
                     Nothing ->
                         []
