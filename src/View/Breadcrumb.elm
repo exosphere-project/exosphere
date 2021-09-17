@@ -50,6 +50,17 @@ renderItem disableClick context item =
 
 breadcrumb : Types.OuterModel.OuterModel -> View.Types.Context -> Element.Element SharedMsg
 breadcrumb outerModel context =
+    -- Home page doesn't need a breadcrumb
+    case outerModel.viewState of
+        NonProjectView Home ->
+            Element.none
+
+        _ ->
+            breadcrumb_ outerModel context
+
+
+breadcrumb_ : Types.OuterModel.OuterModel -> View.Types.Context -> Element.Element SharedMsg
+breadcrumb_ outerModel context =
     let
         viewStateItems : List Item
         viewStateItems =
@@ -268,7 +279,7 @@ breadcrumb outerModel context =
 
         firstItem : Item
         firstItem =
-            { route = Nothing, label = "Home" }
+            { route = Just Route.Home, label = "Home" }
 
         ( lastItem, restOfItems ) =
             case List.reverse viewStateItems of

@@ -81,9 +81,20 @@ navigateToPage url outerModel =
     )
 
 
+
+-- TODO consider viewStateToRoute to help with generating the breadcrumb
+
+
 routeToViewStateModelCmd : SharedModel -> Route.Route -> ( ViewState, SharedModel, Cmd SharedMsg )
 routeToViewStateModelCmd sharedModel route =
     case route of
+        -- TODO these should be in alphabetic order
+        Route.Home ->
+            ( NonProjectView <| Home
+            , sharedModel
+            , Cmd.none
+            )
+
         Route.GetSupport maybeSupportableItemTuple ->
             ( NonProjectView <| GetSupport <| Page.GetSupport.init maybeSupportableItemTuple
             , sharedModel

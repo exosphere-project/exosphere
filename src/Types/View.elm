@@ -37,8 +37,11 @@ type ViewState
     | ProjectView HelperTypes.ProjectIdentifier { createPopup : Bool } ProjectViewConstructor
 
 
-type NonProjectViewConstructor
-    = LoginPicker
+type
+    NonProjectViewConstructor
+    -- TODO these should be in alphabetic order
+    = Home
+    | LoginPicker
     | Login LoginView
     | LoadingUnscopedProjects OSTypes.AuthTokenString
     | SelectProjects Page.SelectProjects.Model

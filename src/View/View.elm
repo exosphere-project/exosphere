@@ -97,6 +97,10 @@ elementView windowSize outerModel context =
                 , case outerModel.viewState of
                     NonProjectView viewConstructor ->
                         case viewConstructor of
+                            -- TODO these should be in alphabetic order
+                            Home ->
+                                Element.text "TODO home page"
+
                             GetSupport pageModel ->
                                 Page.GetSupport.view context outerModel.sharedModel pageModel
                                     |> Element.map GetSupportMsg

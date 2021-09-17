@@ -30,7 +30,8 @@ import Url.Parser.Query as Query
 
 
 type Route
-    = GetSupport (Maybe ( HelperTypes.SupportableItemType, Maybe HelperTypes.Uuid ))
+    = Home
+    | GetSupport (Maybe ( HelperTypes.SupportableItemType, Maybe HelperTypes.Uuid ))
     | HelpAbout
     | LoadingUnscopedProjects OSTypes.AuthTokenString
     | LoginJetstream (Maybe HelperTypes.JetstreamCreds)
@@ -68,6 +69,12 @@ toUrl maybePathPrefix route =
             buildPrefixedUrl maybePathPrefix
     in
     case route of
+        -- TODO these should be in alphabetic order
+        Home ->
+            buildUrlFunc
+                [ "home" ]
+                []
+
         GetSupport _ ->
             buildUrlFunc
                 [ "getsupport" ]
@@ -367,6 +374,9 @@ pathParsers : Route -> List (Parser (Route -> b) b)
 pathParsers defaultRoute =
     [ -- Non-project-specific pages
       map defaultRoute top
+    , map
+        Home
+        (s "home")
     , map
         (\creds ->
             LoginOpenstack (Just creds)

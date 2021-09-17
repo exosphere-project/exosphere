@@ -19,6 +19,10 @@ pageTitle outerModel =
     case outerModel.viewState of
         NonProjectView nonProjectViewConstructor ->
             case nonProjectViewConstructor of
+                -- TODO these should be in alphabetic order
+                Home ->
+                    "Exosphere"
+
                 GetSupport _ ->
                     "Get Support"
 
