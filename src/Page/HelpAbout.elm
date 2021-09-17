@@ -48,32 +48,28 @@ defaultHelpAboutText context =
     Element.column VH.contentContainer
         [ Element.paragraph []
             [ Element.text "Exosphere is a user-friendly, extensible client for cloud computing. Check out our "
-            , VH.browserLink
+            , VH.externalLink
                 context
                 "https://gitlab.com/exosphere/exosphere/blob/master/README.md"
-              <|
-                View.Types.BrowserLinkTextLabel "README on GitLab"
+                "README on GitLab"
             , Element.text "."
             ]
         , Element.paragraph []
             [ Element.text "To ask for help, report a bug, or request a new feature, "
-            , VH.browserLink
+            , VH.externalLink
                 context
                 "https://gitlab.com/exosphere/exosphere/issues"
-              <|
-                View.Types.BrowserLinkTextLabel "create an issue"
+                "create an issue"
             , Element.text " on Exosphere's GitLab project. Someone will respond within a day or so. For real-time assistance, try Exosphere chat. Our chat is on "
-            , VH.browserLink
+            , VH.externalLink
                 context
                 "https://gitter.im/exosphere-app/community"
-              <|
-                View.Types.BrowserLinkTextLabel "gitter"
+                "gitter"
             , Element.text " and "
-            , VH.browserLink
+            , VH.externalLink
                 context
                 "https://riot.im/app/#/room/#exosphere:matrix.org"
-              <|
-                View.Types.BrowserLinkTextLabel "Matrix via Element"
+                "Matrix via Element"
             , Element.text ". The chat is bridged across both platforms, so join whichever you prefer."
             ]
         ]

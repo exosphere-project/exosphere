@@ -1,6 +1,5 @@
 module View.Types exposing
-    ( BrowserLinkLabel(..)
-    , Context
+    ( Context
     , ImageTag
     )
 
@@ -20,11 +19,6 @@ type alias Context =
     , urlPathPrefix : Maybe String
     , navigationKey : Browser.Navigation.Key
     }
-
-
-type BrowserLinkLabel msg
-    = BrowserLinkTextLabel String
-    | BrowserLinkFancyLabel (Element.Element msg)
 
 
 type alias ImageTag =
