@@ -13,10 +13,6 @@ import View.Types
 
 
 
--- TODO this should render as "Home > Project whatever > Instances > instance-name-here"
--- not "Home > Project whatever > Instance instance-name-here"
--- Same for volumes
--- Each token in the breadcrumb needs a label and a URL. All tokens are rendered as a link, except the last one (denoting current page), which is rendered as text.
 -- TODO consider some central translation of view state to route
 
 
@@ -50,11 +46,22 @@ breadcrumb outerModel context =
         pathTokens : List Token
         pathTokens =
             case outerModel.viewState of
-                NonProjectView _ ->
-                    [ { route = Nothing
-                      , label = View.PageTitle.pageTitle outerModel context
-                      }
-                    ]
+                NonProjectView constructor ->
+                    case constructor of
+                        Login _ ->
+                            [ { route = Just <| Route.LoginPicker
+                              , label = "Log in"
+                              }
+                            , { route = Nothing
+                              , label = View.PageTitle.pageTitle outerModel context
+                              }
+                            ]
+
+                        _ ->
+                            [ { route = Nothing
+                              , label = View.PageTitle.pageTitle outerModel context
+                              }
+                            ]
 
                 ProjectView projectId _ constructor ->
                     let
@@ -154,7 +161,15 @@ breadcrumb outerModel context =
                                     ]
 
                                 ServerDetail pageModel ->
-                                    [ { route = Nothing
+                                    [ { route = Just <| Route.ProjectRoute projectId <| Route.ServerList
+                                      , label =
+                                            String.join " "
+                                                [ context.localization.virtualComputer
+                                                    |> Helpers.String.pluralize
+                                                    |> Helpers.String.toTitleCase
+                                                ]
+                                      }
+                                    , { route = Nothing
                                       , label =
                                             String.join " "
                                                 [ context.localization.virtualComputer
@@ -198,7 +213,15 @@ breadcrumb outerModel context =
                                     ]
 
                                 VolumeDetail pageModel ->
-                                    [ { route = Nothing
+                                    [ { route = Just <| Route.ProjectRoute projectId <| Route.VolumeList
+                                      , label =
+                                            String.join " "
+                                                [ context.localization.blockDevice
+                                                    |> Helpers.String.pluralize
+                                                    |> Helpers.String.toTitleCase
+                                                ]
+                                      }
+                                    , { route = Nothing
                                       , label =
                                             String.join " "
                                                 [ context.localization.blockDevice
