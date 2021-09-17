@@ -14,6 +14,7 @@ import Page.AllResourcesList
 import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.GetSupport
+import Page.Home
 import Page.InstanceSourcePicker
 import Page.KeypairCreate
 import Page.KeypairList
@@ -90,7 +91,7 @@ routeToViewStateModelCmd sharedModel route =
     case route of
         -- TODO these should be in alphabetic order
         Route.Home ->
-            ( NonProjectView <| Home
+            ( NonProjectView <| Home Page.Home.init
             , sharedModel
             , Cmd.none
             )

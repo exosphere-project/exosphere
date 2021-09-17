@@ -15,6 +15,7 @@ import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.GetSupport
 import Page.HelpAbout
+import Page.Home
 import Page.InstanceSourcePicker
 import Page.KeypairCreate
 import Page.KeypairList
@@ -98,8 +99,9 @@ elementView windowSize outerModel context =
                     NonProjectView viewConstructor ->
                         case viewConstructor of
                             -- TODO these should be in alphabetic order
-                            Home ->
-                                Element.text "TODO home page"
+                            Home pageModel ->
+                                Page.Home.view context outerModel.sharedModel pageModel
+                                    |> Element.map HomeMsg
 
                             GetSupport pageModel ->
                                 Page.GetSupport.view context outerModel.sharedModel pageModel

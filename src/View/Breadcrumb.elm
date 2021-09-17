@@ -52,7 +52,7 @@ breadcrumb : Types.OuterModel.OuterModel -> View.Types.Context -> Element.Elemen
 breadcrumb outerModel context =
     -- Home page doesn't need a breadcrumb
     case outerModel.viewState of
-        NonProjectView Home ->
+        NonProjectView (Home _) ->
             Element.none
 
         _ ->

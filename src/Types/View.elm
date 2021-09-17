@@ -10,6 +10,7 @@ import Page.AllResourcesList
 import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.GetSupport
+import Page.Home
 import Page.InstanceSourcePicker
 import Page.KeypairCreate
 import Page.KeypairList
@@ -40,7 +41,7 @@ type ViewState
 type
     NonProjectViewConstructor
     -- TODO these should be in alphabetic order
-    = Home
+    = Home Page.Home.Model
     | LoginPicker
     | Login LoginView
     | LoadingUnscopedProjects OSTypes.AuthTokenString

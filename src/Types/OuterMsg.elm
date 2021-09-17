@@ -4,6 +4,7 @@ import Page.AllResourcesList
 import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.GetSupport
+import Page.Home
 import Page.InstanceSourcePicker
 import Page.KeypairCreate
 import Page.KeypairList
@@ -31,6 +32,7 @@ type OuterMsg
     | FloatingIpAssignMsg Page.FloatingIpAssign.Msg
     | FloatingIpListMsg Page.FloatingIpList.Msg
     | GetSupportMsg Page.GetSupport.Msg
+    | HomeMsg Page.Home.Msg
     | InstanceSourcePickerMsg Page.InstanceSourcePicker.Msg
     | KeypairCreateMsg Page.KeypairCreate.Msg
     | KeypairListMsg Page.KeypairList.Msg

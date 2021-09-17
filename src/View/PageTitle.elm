@@ -20,7 +20,7 @@ pageTitle outerModel =
         NonProjectView nonProjectViewConstructor ->
             case nonProjectViewConstructor of
                 -- TODO these should be in alphabetic order
-                Home ->
+                Home _ ->
                     "Exosphere"
 
                 GetSupport _ ->
