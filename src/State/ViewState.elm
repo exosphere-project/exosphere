@@ -54,7 +54,7 @@ navigateToPage : Url.Url -> OuterModel -> ( OuterModel, Cmd OuterMsg )
 navigateToPage url outerModel =
     let
         route =
-            Route.fromUrl outerModel.sharedModel.viewContext.urlPathPrefix (defaultRoute outerModel.sharedModel) url
+            Route.fromUrl outerModel.sharedModel.viewContext.urlPathPrefix defaultRoute url
 
         ( newViewState, pageSpecificSharedModel, pageSpecificCmd ) =
             routeToViewStateModelCmd outerModel.sharedModel route
@@ -384,16 +384,9 @@ routeToViewStateModelCmd sharedModel route =
             )
 
 
-defaultRoute : SharedModel -> Route.Route
-defaultRoute sharedModel =
-    case sharedModel.projects of
-        [] ->
-            defaultLoginPage sharedModel.style.defaultLoginView
-
-        firstProject :: _ ->
-            Route.ProjectRoute
-                firstProject.auth.project.uuid
-                Route.AllResourcesList
+defaultRoute : Route.Route
+defaultRoute =
+    Route.Home
 
 
 defaultLoginPage : Maybe DefaultLoginView -> Route.Route
