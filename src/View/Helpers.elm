@@ -1,6 +1,5 @@
 module View.Helpers exposing
-    ( browserLink
-    , compactKVRow
+    ( compactKVRow
     , compactKVSubRow
     , contentContainer
     , createdAgoByFrom
@@ -9,6 +8,7 @@ module View.Helpers exposing
     , exoElementAttributes
     , exoPaddingSpacingAttributes
     , exoRowAttributes
+    , externalLink
     , featuredImageNamePrefixLookup
     , formContainer
     , friendlyProjectTitle
@@ -21,6 +21,7 @@ module View.Helpers exposing
     , heading4
     , hint
     , inputItemAttributes
+    , linkAttribs
     , possiblyUntitledResource
     , renderMarkdown
     , renderMessageAsElement
@@ -294,31 +295,20 @@ renderMessageAsString message =
         |> String.concat
 
 
-browserLink : View.Types.Context -> Types.HelperTypes.Url -> View.Types.BrowserLinkLabel msg -> Element.Element msg
-browserLink context url label =
-    let
-        linkAttribs =
-            [ context.palette.primary |> SH.toElementColor |> Font.color
-            , Font.underline
-            , Element.pointer
-            ]
+linkAttribs : View.Types.Context -> List (Element.Attribute msg)
+linkAttribs context =
+    [ context.palette.primary |> SH.toElementColor |> Font.color
+    , Font.underline
+    , Element.pointer
+    ]
 
-        renderedLabel =
-            case label of
-                View.Types.BrowserLinkTextLabel str ->
-                    { attribs = linkAttribs
-                    , contents = Element.text str
-                    }
 
-                View.Types.BrowserLinkFancyLabel el ->
-                    { attribs = []
-                    , contents = el
-                    }
-    in
+externalLink : View.Types.Context -> Types.HelperTypes.Url -> String -> Element.Element msg
+externalLink context url label =
     Element.newTabLink
-        renderedLabel.attribs
+        (linkAttribs context)
         { url = url
-        , label = renderedLabel.contents
+        , label = Element.text label
         }
 
 
@@ -766,18 +756,16 @@ elmUiRenderer context =
         Element.text
     , link =
         \{ destination } body ->
-            browserLink
-                context
-                destination
-                (View.Types.BrowserLinkFancyLabel
-                    (Element.paragraph
+            Element.newTabLink (linkAttribs context)
+                { url = destination
+                , label =
+                    Element.paragraph
                         [ context.palette.primary |> SH.toElementColor |> Font.color
                         , Font.underline
                         , Element.pointer
                         ]
                         body
-                    )
-                )
+                }
     , hardLineBreak = Html.br [] [] |> Element.html |> Element.el []
     , image =
         \image ->

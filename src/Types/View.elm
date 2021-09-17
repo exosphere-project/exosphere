@@ -65,6 +65,7 @@ type ProjectViewConstructor
     | ServerCreateImage Page.ServerCreateImage.Model
     | ServerDetail Page.ServerDetail.Model
     | ServerList Page.ServerList.Model
+      -- TODO these should be in alphabetical order
     | VolumeList Page.VolumeList.Model
     | VolumeAttach Page.VolumeAttach.Model
     | VolumeCreate Page.VolumeCreate.Model

@@ -110,47 +110,42 @@ helpText context =
         [ Element.paragraph
             []
             [ Element.text "To use Exosphere with "
-            , VH.browserLink
+            , VH.externalLink
                 context
                 "https://jetstream-cloud.org"
-              <|
-                View.Types.BrowserLinkTextLabel "Jetstream Cloud"
+                "Jetstream Cloud"
             , Element.text ", you need access to a Jetstream allocation. Possible ways to get this:"
             ]
         , Element.paragraph
             []
             [ Element.text "- Request access to the Exosphere Trial Allocation; please create an account on "
-            , VH.browserLink
+            , VH.externalLink
                 context
                 "https://portal.xsede.org"
-              <|
-                View.Types.BrowserLinkTextLabel "XSEDE User Portal"
+                "XSEDE User Portal"
             , Element.text ", then "
-            , VH.browserLink
+            , VH.externalLink
                 context
                 "https://gitlab.com/exosphere/exosphere/issues/new"
-              <|
-                View.Types.BrowserLinkTextLabel "create an issue"
+                "create an issue"
             , Element.text " asking for access and providing your XSEDE username."
             ]
         , Element.paragraph
             []
             [ Element.text "- If you know someone else who already has an allocation, they can add you to it. (See \"How do I let other XSEDE accounts use my allocation?\" on "
-            , VH.browserLink
+            , VH.externalLink
                 context
                 "https://iujetstream.atlassian.net/wiki/spaces/JWT/pages/537460937/Jetstream+Allocations+FAQ"
-              <|
-                View.Types.BrowserLinkTextLabel "this FAQ"
+                "this FAQ"
             , Element.text ")"
             ]
         , Element.paragraph
             []
             [ Element.text "- "
-            , VH.browserLink
+            , VH.externalLink
                 context
                 "https://iujetstream.atlassian.net/wiki/spaces/JWT/pages/49184781/Jetstream+Allocations"
-              <|
-                View.Types.BrowserLinkTextLabel "Apply for your own Startup Allocation"
+                "Apply for your own Startup Allocation"
             ]
         , Element.paragraph [] []
         , Element.paragraph
@@ -160,20 +155,18 @@ helpText context =
         , Element.paragraph
             []
             [ Element.text "1. TACC username (usually looks like 'tg******'); "
-            , VH.browserLink
+            , VH.externalLink
                 context
                 "https://portal.tacc.utexas.edu/password-reset/-/password/forgot-username"
-              <|
-                View.Types.BrowserLinkTextLabel "look up your TACC username"
+                "look up your TACC username"
             ]
         , Element.paragraph
             []
             [ Element.text "2. TACC password; "
-            , VH.browserLink
+            , VH.externalLink
                 context
                 "https://portal.tacc.utexas.edu/password-reset/-/password/request-reset"
-              <|
-                View.Types.BrowserLinkTextLabel "set your TACC password"
+                "set your TACC password"
             ]
         ]
 

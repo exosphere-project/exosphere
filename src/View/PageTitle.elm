@@ -1,4 +1,4 @@
-module View.PageTitle exposing (pageTitle)
+module View.PageTitle exposing (pageTitle, serverName, volumeName)
 
 import Helpers.GetterSetters as GetterSetters
 import Helpers.String

@@ -238,11 +238,10 @@ loginOpenstackOpenRcEntry context model =
         VH.formContainer
         [ Element.paragraph []
             [ Element.text "Paste an "
-            , VH.browserLink
+            , VH.externalLink
                 context
                 "https://docs.openstack.org/newton/install-guide-rdo/keystone-openrc.html"
-              <|
-                View.Types.BrowserLinkTextLabel "OpenRC"
+                "OpenRC"
             , Element.text " file"
             ]
         , Input.multiline

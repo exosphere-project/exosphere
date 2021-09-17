@@ -517,10 +517,10 @@ passwordVulnWarning context server =
                             , context.localization.virtualComputer
                             , "to query the instance metadata service and determine the password for exouser (who is a sudoer). This represents a "
                             ]
-                    , VH.browserLink
+                    , VH.externalLink
                         context
                         "https://en.wikipedia.org/wiki/Privilege_escalation"
-                        (View.Types.BrowserLinkTextLabel "privilege escalation vulnerability")
+                        "privilege escalation vulnerability"
                     , Element.text <|
                         String.join " "
                             [ ". If you have used this"
@@ -529,10 +529,10 @@ passwordVulnWarning context server =
                             , context.localization.virtualComputer
                             , "and moving to that one instead of this one. For more information, see "
                             ]
-                    , VH.browserLink
+                    , VH.externalLink
                         context
                         "https://gitlab.com/exosphere/exosphere/issues/284"
-                        (View.Types.BrowserLinkTextLabel "issue #284")
+                        "issue #284"
                     , Element.text " on the Exosphere GitLab project."
                     ]
 
