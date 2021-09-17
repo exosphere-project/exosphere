@@ -1,12 +1,20 @@
 module View.Breadcrumb exposing (breadcrumb)
 
 import Element
+import Element.Font as Font
 import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import Route
+import Style.Helpers as SH
 import Types.OuterModel
 import Types.SharedMsg exposing (SharedMsg)
-import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
+import Types.View
+    exposing
+        ( LoginView(..)
+        , NonProjectViewConstructor(..)
+        , ProjectViewConstructor(..)
+        , ViewState(..)
+        )
 import View.Helpers
 import View.PageTitle
 import View.Types
@@ -43,8 +51,8 @@ renderToken disableClick context token =
 breadcrumb : Types.OuterModel.OuterModel -> View.Types.Context -> Element.Element SharedMsg
 breadcrumb outerModel context =
     let
-        pathTokens : List Token
-        pathTokens =
+        viewStateTokens : List Token
+        viewStateTokens =
             case outerModel.viewState of
                 NonProjectView constructor ->
                     case constructor of
@@ -258,19 +266,31 @@ breadcrumb outerModel context =
                         , projectPage
                         ]
 
+        firstToken : Token
         firstToken =
             { route = Nothing, label = "Home" }
 
+        lastToken : Maybe Token
         lastToken =
-            pathTokens |> List.reverse |> List.head
+            viewStateTokens |> List.reverse |> List.head
 
+        restOfTokens : List Token
         restOfTokens =
-            pathTokens |> List.reverse |> List.tail |> Maybe.map List.reverse |> Maybe.withDefault []
+            viewStateTokens |> List.reverse |> List.tail |> Maybe.map List.reverse |> Maybe.withDefault []
+
+        separator : Element.Element msg
+        separator =
+            Element.el [ Font.color (context.palette.muted |> SH.toElementColor) ] <| Element.text ">"
     in
     Element.row
-        [ Element.paddingXY 10 4, Element.spacing 10 ]
+        [ Element.paddingXY 10 4
+        , Element.spacing 10
+        , Font.size 15
+        ]
     <|
-        List.intersperse (Element.text ">") <|
+        List.intersperse
+            separator
+        <|
             List.concat
                 [ List.map (renderToken False context) <|
                     firstToken
