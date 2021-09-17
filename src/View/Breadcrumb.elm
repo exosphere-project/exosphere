@@ -12,140 +12,250 @@ import View.PageTitle
 import View.Types
 
 
+
+-- TODO this should render as "Home > Project whatever > Instances > instance-name-here"
+-- not "Home > Project whatever > Instance instance-name-here"
+-- Same for volumes
+-- Each token in the breadcrumb needs a label and a URL. All tokens are rendered as a link, except the last one (denoting current page), which is rendered as text.
+-- TODO consider some central translation of view state to route
+
+
+type alias Token =
+    { route : Maybe Route.Route
+    , label : String
+    }
+
+
+renderToken : Bool -> View.Types.Context -> Token -> Element.Element SharedMsg
+renderToken disableClick context token =
+    if disableClick then
+        Element.text token.label
+
+    else
+        case token.route of
+            Just route ->
+                Element.link
+                    (View.Helpers.linkAttribs context)
+                    { url = Route.toUrl context.urlPathPrefix route
+                    , label = Element.text token.label
+                    }
+
+            Nothing ->
+                Element.text token.label
+
+
 breadcrumb : Types.OuterModel.OuterModel -> View.Types.Context -> Element.Element SharedMsg
 breadcrumb outerModel context =
     let
-        path =
+        pathTokens : List Token
+        pathTokens =
             case outerModel.viewState of
                 NonProjectView _ ->
-                    [ Element.text <| View.PageTitle.pageTitle outerModel context ]
+                    [ { route = Nothing
+                      , label = View.PageTitle.pageTitle outerModel context
+                      }
+                    ]
 
                 ProjectView projectId _ constructor ->
                     let
-                        renderProject =
+                        projectToken =
                             case GetterSetters.projectLookup outerModel.sharedModel projectId of
                                 Just project ->
-                                    Element.link (View.Helpers.linkAttribs context)
-                                        { url = Route.toUrl context.urlPathPrefix (Route.ProjectRoute projectId <| Route.AllResourcesList)
-                                        , label = Element.text ("Project " ++ project.auth.project.name)
-                                        }
+                                    [ { route = Just <| Route.ProjectRoute projectId <| Route.AllResourcesList
+                                      , label = "Project " ++ project.auth.project.name
+                                      }
+                                    ]
 
                                 Nothing ->
-                                    Element.text "Unknown Project"
+                                    [ { route = Nothing
+                                      , label = "Unknown project"
+                                      }
+                                    ]
 
-                        renderProjectPage =
-                            Element.text <|
-                                case constructor of
-                                    -- TODO a lot of this duplicates what is in View.PageTitle, consider factoring things out
-                                    AllResourcesList _ ->
-                                        "All Resources"
+                        projectPage =
+                            case constructor of
+                                AllResourcesList _ ->
+                                    []
 
-                                    FloatingIpAssign _ ->
-                                        String.join " "
-                                            [ "Assign"
-                                            , context.localization.floatingIpAddress
-                                                |> Helpers.String.toTitleCase
-                                            ]
+                                FloatingIpAssign _ ->
+                                    [ { route = Nothing
+                                      , label =
+                                            String.join " "
+                                                [ "Assign"
+                                                , context.localization.floatingIpAddress
+                                                    |> Helpers.String.toTitleCase
+                                                ]
+                                      }
+                                    ]
 
-                                    FloatingIpList _ ->
-                                        String.join " "
-                                            [ context.localization.floatingIpAddress
-                                                |> Helpers.String.pluralize
-                                                |> Helpers.String.toTitleCase
-                                            ]
+                                FloatingIpList _ ->
+                                    [ { route = Nothing
+                                      , label =
+                                            String.join " "
+                                                [ context.localization.floatingIpAddress
+                                                    |> Helpers.String.pluralize
+                                                    |> Helpers.String.toTitleCase
+                                                ]
+                                      }
+                                    ]
 
-                                    InstanceSourcePicker _ ->
-                                        String.join " "
-                                            [ context.localization.virtualComputer
-                                                |> Helpers.String.toTitleCase
-                                            , "sources"
-                                            ]
+                                InstanceSourcePicker _ ->
+                                    [ { route = Nothing
+                                      , label =
+                                            String.join " "
+                                                [ context.localization.virtualComputer
+                                                    |> Helpers.String.toTitleCase
+                                                , "sources"
+                                                ]
+                                      }
+                                    ]
 
-                                    KeypairCreate _ ->
-                                        String.join " "
-                                            [ "Upload"
-                                            , context.localization.pkiPublicKeyForSsh
-                                            ]
+                                KeypairCreate _ ->
+                                    [ { route = Nothing
+                                      , label =
+                                            String.join " "
+                                                [ "Upload"
+                                                , context.localization.pkiPublicKeyForSsh
+                                                ]
+                                      }
+                                    ]
 
-                                    KeypairList _ ->
-                                        String.join " "
-                                            [ context.localization.pkiPublicKeyForSsh
-                                                |> Helpers.String.pluralize
-                                                |> Helpers.String.toTitleCase
-                                            ]
+                                KeypairList _ ->
+                                    [ { route = Nothing
+                                      , label =
+                                            String.join " "
+                                                [ context.localization.pkiPublicKeyForSsh
+                                                    |> Helpers.String.pluralize
+                                                    |> Helpers.String.toTitleCase
+                                                ]
+                                      }
+                                    ]
 
-                                    ServerCreate _ ->
-                                        String.join " "
-                                            [ "Create"
-                                            , context.localization.virtualComputer
-                                                |> Helpers.String.toTitleCase
-                                            ]
+                                ServerCreate _ ->
+                                    [ { route = Nothing
+                                      , label =
+                                            String.join " "
+                                                [ "Create"
+                                                , context.localization.virtualComputer
+                                                    |> Helpers.String.toTitleCase
+                                                ]
+                                      }
+                                    ]
 
-                                    ServerCreateImage _ ->
-                                        String.join " "
-                                            [ "Create"
-                                            , context.localization.staticRepresentationOfBlockDeviceContents
-                                                |> Helpers.String.toTitleCase
-                                            ]
+                                ServerCreateImage _ ->
+                                    [ { route = Nothing
+                                      , label =
+                                            String.join " "
+                                                [ "Create"
+                                                , context.localization.staticRepresentationOfBlockDeviceContents
+                                                    |> Helpers.String.toTitleCase
+                                                ]
+                                      }
+                                    ]
 
-                                    ServerDetail pageModel ->
-                                        -- TODO this should render as "Home > Project whatever > Instances > instance-name-here"
-                                        -- not "Home > Project whatever > Instance instance-name-here"
-                                        String.join " "
-                                            [ context.localization.virtualComputer
-                                                |> Helpers.String.toTitleCase
-                                            , View.PageTitle.serverName (GetterSetters.projectLookup outerModel.sharedModel projectId) pageModel.serverUuid
-                                            ]
+                                ServerDetail pageModel ->
+                                    [ { route = Nothing
+                                      , label =
+                                            String.join " "
+                                                [ context.localization.virtualComputer
+                                                    |> Helpers.String.toTitleCase
+                                                , View.PageTitle.serverName (GetterSetters.projectLookup outerModel.sharedModel projectId) pageModel.serverUuid
+                                                ]
+                                      }
+                                    ]
 
-                                    ServerList _ ->
-                                        String.join " "
-                                            [ context.localization.virtualComputer
-                                                |> Helpers.String.pluralize
-                                                |> Helpers.String.toTitleCase
-                                            ]
+                                ServerList _ ->
+                                    [ { route = Nothing
+                                      , label =
+                                            String.join " "
+                                                [ context.localization.virtualComputer
+                                                    |> Helpers.String.pluralize
+                                                    |> Helpers.String.toTitleCase
+                                                ]
+                                      }
+                                    ]
 
-                                    VolumeAttach _ ->
-                                        String.join " "
-                                            [ "Attach"
-                                            , context.localization.blockDevice
-                                                |> Helpers.String.toTitleCase
-                                            ]
+                                VolumeAttach _ ->
+                                    [ { route = Nothing
+                                      , label =
+                                            String.join " "
+                                                [ "Attach"
+                                                , context.localization.blockDevice
+                                                    |> Helpers.String.toTitleCase
+                                                ]
+                                      }
+                                    ]
 
-                                    VolumeCreate _ ->
-                                        String.join " "
-                                            [ "Create"
-                                            , context.localization.blockDevice
-                                                |> Helpers.String.toTitleCase
-                                            ]
+                                VolumeCreate _ ->
+                                    [ { route = Nothing
+                                      , label =
+                                            String.join " "
+                                                [ "Create"
+                                                , context.localization.blockDevice
+                                                    |> Helpers.String.toTitleCase
+                                                ]
+                                      }
+                                    ]
 
-                                    VolumeDetail pageModel ->
-                                        String.join " "
-                                            [ context.localization.blockDevice
-                                                |> Helpers.String.toTitleCase
-                                            , View.PageTitle.volumeName (GetterSetters.projectLookup outerModel.sharedModel projectId) pageModel.volumeUuid
-                                            ]
+                                VolumeDetail pageModel ->
+                                    [ { route = Nothing
+                                      , label =
+                                            String.join " "
+                                                [ context.localization.blockDevice
+                                                    |> Helpers.String.toTitleCase
+                                                , View.PageTitle.volumeName (GetterSetters.projectLookup outerModel.sharedModel projectId) pageModel.volumeUuid
+                                                ]
+                                      }
+                                    ]
 
-                                    VolumeList _ ->
-                                        String.join " "
-                                            [ context.localization.blockDevice
-                                                |> Helpers.String.pluralize
-                                                |> Helpers.String.toTitleCase
-                                            ]
+                                VolumeList _ ->
+                                    [ { route = Nothing
+                                      , label =
+                                            String.join " "
+                                                [ context.localization.blockDevice
+                                                    |> Helpers.String.pluralize
+                                                    |> Helpers.String.toTitleCase
+                                                ]
+                                      }
+                                    ]
 
-                                    VolumeMountInstructions _ ->
-                                        String.join " "
-                                            [ "Mount"
-                                            , context.localization.blockDevice
-                                                |> Helpers.String.toTitleCase
-                                            ]
+                                VolumeMountInstructions _ ->
+                                    [ { route = Nothing
+                                      , label =
+                                            String.join " "
+                                                [ "Mount"
+                                                , context.localization.blockDevice
+                                                    |> Helpers.String.toTitleCase
+                                                ]
+                                      }
+                                    ]
                     in
-                    [ renderProject
-                    , renderProjectPage
-                    ]
+                    List.concat
+                        [ projectToken
+                        , projectPage
+                        ]
+
+        firstToken =
+            { route = Nothing, label = "Home" }
+
+        lastToken =
+            pathTokens |> List.reverse |> List.head
+
+        restOfTokens =
+            pathTokens |> List.reverse |> List.tail |> Maybe.map List.reverse |> Maybe.withDefault []
     in
     Element.row
         [ Element.paddingXY 10 4, Element.spacing 10 ]
     <|
         List.intersperse (Element.text ">") <|
             List.concat
-                [ [ Element.text "Home" ], path ]
+                [ List.map (renderToken False context) <|
+                    firstToken
+                        :: restOfTokens
+                , case lastToken of
+                    Just token ->
+                        [ renderToken True context token ]
+
+                    Nothing ->
+                        []
+                ]
