@@ -5,7 +5,6 @@ module View.Types exposing
 
 import Browser.Navigation
 import Dict
-import Element
 import Style.Types exposing (ExoPalette)
 import Types.HelperTypes exposing (CloudSpecificConfig, KeystoneHostname, Localization, WindowSize)
 
