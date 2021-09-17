@@ -45,6 +45,7 @@ import Types.Project exposing (Project)
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg exposing (SharedMsg(..))
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
+import View.Breadcrumb
 import View.Helpers as VH
 import View.Nav
 import View.PageTitle
@@ -91,7 +92,9 @@ elementView windowSize outerModel context =
                 , Element.height Element.fill
                 , Element.scrollbars
                 ]
-                [ case outerModel.viewState of
+                [ View.Breadcrumb.breadcrumb outerModel context
+                    |> Element.map SharedMsg
+                , case outerModel.viewState of
                     NonProjectView viewConstructor ->
                         case viewConstructor of
                             GetSupport pageModel ->
