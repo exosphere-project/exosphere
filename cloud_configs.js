@@ -4,6 +4,8 @@ var cloud_configs = {
   "clouds":[
     {
       "keystoneHostname":"iu.jetstream-cloud.org",
+      "friendlyName":"Jetstream Cloud",
+      "friendlySubName":"Indiana University",
       "userAppProxy":"proxy-j7m-iu.exosphere.app",
       "imageExcludeFilter":{
         "filterKey":"atmo_image_include",
@@ -93,6 +95,8 @@ var cloud_configs = {
     },
     {
       "keystoneHostname":"tacc.jetstream-cloud.org",
+      "friendlyName":"Jetstream Cloud",
+      "friendlySubName":"Texas Advanced Computing Center",
       "userAppProxy":"proxy-j7m-tacc.exosphere.app",
       "imageExcludeFilter":{
         "filterKey":"atmo_image_include",

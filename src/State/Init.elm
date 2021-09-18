@@ -257,7 +257,9 @@ decodeCloudSpecificConfigs value =
 
 decodeCloudSpecificConfig : Decode.Decoder ( HelperTypes.KeystoneHostname, HelperTypes.CloudSpecificConfig )
 decodeCloudSpecificConfig =
-    Decode.map4 HelperTypes.CloudSpecificConfig
+    Decode.map6 HelperTypes.CloudSpecificConfig
+        (Decode.field "friendlyName" Decode.string)
+        (Decode.field "friendlySubName" (Decode.nullable Decode.string))
         (Decode.field "userAppProxy" (Decode.nullable Decode.string))
         (Decode.field "imageExcludeFilter" (Decode.nullable metadataFilterDecoder))
         (Decode.field "featuredImageNamePrefix" (Decode.nullable Decode.string))
