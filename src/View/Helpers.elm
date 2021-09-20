@@ -28,6 +28,7 @@ module View.Helpers exposing
     , renderMessageAsString
     , renderRDPP
     , renderWebData
+    , requiredLabel
     , serverStatusBadge
     , sortProjects
     , titleFromHostname
@@ -981,3 +982,15 @@ userAppProxyLookup context project =
     in
     Dict.get projectKeystoneHostname context.cloudSpecificConfigs
         |> Maybe.andThen (\csc -> csc.userAppProxy)
+
+
+requiredLabel : ExoPalette -> Element.Element msg -> Element.Element msg
+requiredLabel palette undecoratedLabelView =
+    Element.row []
+        [ undecoratedLabelView
+        , Element.el
+            [ Element.paddingXY 4 0
+            , Font.color (SH.toElementColor palette.error)
+            ]
+            (Element.text "*")
+        ]
