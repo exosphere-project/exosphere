@@ -903,13 +903,13 @@ customWorkflowInputExperimental context model =
                                 )
                         , onChange =
                             GotWorkflowReference
-                        , label = Input.labelAbove [] (Element.text "Git reference (branch, tag, or commit) (optional)")
+                        , label = Input.labelAbove [] (Element.text "Git reference (branch, tag, or commit)")
                         }
 
                 sourcePathInput =
                     let
                         pathInputLabel =
-                            "Path to open (optional)"
+                            "Path to open"
                     in
                     Element.column
                         (VH.exoColumnAttributes
@@ -937,7 +937,7 @@ customWorkflowInputExperimental context model =
                 (VH.exoColumnAttributes
                     ++ [ Element.width Element.fill ]
                 )
-                [ repoTypeAndTextInput
+                [ repoInput
                 , referenceInput
                 , sourcePathInput
                 ]
