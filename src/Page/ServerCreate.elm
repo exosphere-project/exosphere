@@ -874,30 +874,22 @@ customWorkflowInputExperimental context model =
         workflowInput =
             let
                 repoInputLabel =
-                    "DOI or Git repository URL"
+                    VH.requiredLabel context.palette (Element.text "DOI or Git repository URL")
 
-                repoTypeAndTextInput =
-                    Element.column
-                        (VH.exoColumnAttributes
-                            ++ [ Element.width Element.fill
-                               , Element.padding 0
-                               ]
-                        )
-                        [ Element.text repoInputLabel
-                        , Input.text
-                            (VH.inputItemAttributes context.palette.background)
-                            { text = model.workflowInputRepository
-                            , placeholder =
-                                Just
-                                    (Input.placeholder
-                                        []
-                                        (Element.text "Example, https://github.com/binder-examples/minimal-dockerfile")
-                                    )
-                            , onChange =
-                                GotWorkflowRepository
-                            , label = Input.labelHidden repoInputLabel
-                            }
-                        ]
+                repoInput =
+                    Input.text
+                        (VH.inputItemAttributes context.palette.background)
+                        { text = model.workflowInputRepository
+                        , placeholder =
+                            Just
+                                (Input.placeholder
+                                    []
+                                    (Element.text "Example, https://github.com/binder-examples/minimal-dockerfile")
+                                )
+                        , onChange =
+                            GotWorkflowRepository
+                        , label = Input.labelAbove [] repoInputLabel
+                        }
 
                 referenceInput =
                     Input.text
