@@ -372,7 +372,9 @@ view context project model =
                             )
                         )
                 , onChange = GotServerName
-                , label = Input.labelLeft [] (Element.text "Name")
+                , label =
+                    Input.labelLeft []
+                        (VH.requiredLabel context.palette (Element.text "Name"))
                 }
             , renderInvalidNameReasons
             , Element.row VH.exoRowAttributes
