@@ -1217,7 +1217,8 @@ networkPicker context project model =
     in
     Element.column
         VH.exoColumnAttributes
-        [ Element.el [ Font.bold ] <| Element.text "Network"
+        [ VH.requiredLabel context.palette
+            (Element.el [ Font.bold ] <| Element.text "Network")
         , guidance
         , picker
         ]
