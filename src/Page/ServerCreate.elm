@@ -365,7 +365,7 @@ view context project model =
                             []
                             (Element.text <|
                                 String.join " "
-                                    [ "My"
+                                    [ "Example, My"
                                     , context.localization.virtualComputer
                                         |> Helpers.String.toTitleCase
                                     ]
@@ -891,7 +891,7 @@ customWorkflowInputExperimental context model =
                                 Just
                                     (Input.placeholder
                                         []
-                                        (Element.text "https://github.com/binder-examples/minimal-dockerfile")
+                                        (Element.text "Example, https://github.com/binder-examples/minimal-dockerfile")
                                     )
                             , onChange =
                                 GotWorkflowRepository
@@ -907,7 +907,7 @@ customWorkflowInputExperimental context model =
                             Just
                                 (Input.placeholder
                                     []
-                                    (Element.text "HEAD")
+                                    (Element.text "Example, HEAD")
                                 )
                         , onChange =
                             GotWorkflowReference
@@ -933,7 +933,7 @@ customWorkflowInputExperimental context model =
                                 Just
                                     (Input.placeholder
                                         []
-                                        (Element.text "/rstudio")
+                                        (Element.text "Example, /rstudio")
                                     )
                             , onChange =
                                 GotWorkflowPath
