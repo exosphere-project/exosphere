@@ -886,8 +886,17 @@ customWorkflowInputExperimental context model =
 
                 repoError =
                     if displayRepoInputError then
-                        Element.el [ Font.color (SH.toElementColor context.palette.error) ]
-                            (Element.text "Required")
+                        Element.row [ Element.spacingXY 5 0 ]
+                            [ Element.el
+                                [ Font.color (context.palette.error |> SH.toElementColor)
+                                ]
+                                (FeatherIcons.alertCircle
+                                    |> FeatherIcons.toHtml []
+                                    |> Element.html
+                                )
+                            , Element.el [ Font.color (SH.toElementColor context.palette.error) ]
+                                (Element.text "Required")
+                            ]
 
                     else
                         Element.none
