@@ -878,21 +878,25 @@ customWorkflowInputExperimental context model =
     let
         workflowInput =
             let
+                displayRepoInputError =
+                    model.workflowInputRepository == "" && model.workflowInputIsValid == Just False
+
                 repoInputLabel =
                     VH.requiredLabel context.palette (Element.text "DOI or Git repository URL")
 
                 repoError =
-                    if model.workflowInputRepository == "" && model.workflowInputIsValid == Just False then
+                    if displayRepoInputError then
                         Element.el [ Font.color (SH.toElementColor context.palette.error) ]
                             (Element.text "Required")
 
                     else
                         Element.none
 
-                repoInput =
+                repoInputWithoutErrorBorder =
                     Input.text
                         (VH.inputItemAttributes context.palette.background
-                            ++ [ Events.onLoseFocus GotWorkflowInputLoseFocus ]
+                            ++ [ Events.onLoseFocus GotWorkflowInputLoseFocus
+                               ]
                         )
                         { text = model.workflowInputRepository
                         , placeholder =
@@ -905,6 +909,18 @@ customWorkflowInputExperimental context model =
                             GotWorkflowRepository
                         , label = Input.labelAbove [] repoInputLabel
                         }
+
+                repoInput =
+                    if displayRepoInputError then
+                        Element.el
+                            [ Element.width Element.fill
+                            , Border.widthEach { bottom = 4, left = 0, right = 0, top = 0 }
+                            , Border.color (SH.toElementColor context.palette.error)
+                            ]
+                            repoInputWithoutErrorBorder
+
+                    else
+                        repoInputWithoutErrorBorder
 
                 referenceInput =
                     Input.text
