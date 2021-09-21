@@ -3,6 +3,7 @@ module Page.ServerCreate exposing (Model, Msg(..), init, update, view)
 import Element
 import Element.Background as Background
 import Element.Border as Border
+import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons
@@ -61,8 +62,7 @@ type Msg
     | GotWorkflowRepository String
     | GotWorkflowReference String
     | GotWorkflowPath String
-    | GotClearCustomWorkflowInputs
-    | GotWorkflowInputModified
+    | GotWorkflowInputLoseFocus
     | GotShowWorkFlowExplanationToggleTip
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
@@ -88,7 +88,7 @@ init imageUuid imageName deployGuacamole =
     , workflowInputRepository = ""
     , workflowInputReference = ""
     , workflowInputPath = ""
-    , workflowInputIsValid = False
+    , workflowInputIsValid = Nothing
     , showWorkflowExplanationToggleTip = False
     }
 
@@ -173,45 +173,66 @@ update msg project model =
             ( { model | floatingIpCreationOption = floatingIpOption }, Cmd.none, SharedMsg.NoOp )
 
         GotIncludeWorkflow includeWorkflow ->
-            { model
+            ( { model
                 | includeWorkflow = includeWorkflow
-            }
-                |> update GotWorkflowInputModified project
-
-        GotWorkflowRepository repository ->
-            { model
-                | workflowInputRepository = repository
-            }
-                |> update GotWorkflowInputModified project
-
-        GotWorkflowReference reference ->
-            { model
-                | workflowInputReference = reference
-            }
-                |> update GotWorkflowInputModified project
-
-        GotWorkflowPath path ->
-            { model
-                | workflowInputPath = path
-            }
-                |> update GotWorkflowInputModified project
-
-        GotClearCustomWorkflowInputs ->
-            { model
-                | workflowInputRepository = ""
+                , workflowInputIsValid = Nothing
+                , workflowInputRepository = ""
                 , workflowInputReference = ""
                 , workflowInputPath = ""
-            }
-                |> update GotWorkflowInputModified project
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
 
-        GotWorkflowInputModified ->
+        GotWorkflowRepository repository ->
+            let
+                newWorkflowInputIsValid =
+                    if model.workflowInputIsValid /= Nothing then
+                        Just
+                            (workflowInputIsValid
+                                ( model.workflowInputRepository
+                                , model.workflowInputReference
+                                , model.workflowInputPath
+                                )
+                            )
+
+                    else
+                        Nothing
+            in
+            ( { model
+                | workflowInputRepository = repository
+                , workflowInputIsValid = newWorkflowInputIsValid
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
+
+        GotWorkflowInputLoseFocus ->
             ( { model
                 | workflowInputIsValid =
-                    workflowInputIsValid
-                        ( model.workflowInputRepository
-                        , model.workflowInputReference
-                        , model.workflowInputPath
+                    Just
+                        (workflowInputIsValid
+                            ( model.workflowInputRepository
+                            , model.workflowInputReference
+                            , model.workflowInputPath
+                            )
                         )
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
+
+        GotWorkflowReference reference ->
+            ( { model
+                | workflowInputReference = reference
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
+
+        GotWorkflowPath path ->
+            ( { model
+                | workflowInputPath = path
               }
             , Cmd.none
             , SharedMsg.NoOp
@@ -343,7 +364,7 @@ view context project model =
                             False
 
                 invalidWorkflowTextInput =
-                    model.includeWorkflow && not model.workflowInputIsValid
+                    model.includeWorkflow && not (Maybe.withDefault False model.workflowInputIsValid)
 
                 invalidInputs =
                     invalidVolSizeTextInput || invalidWorkflowTextInput
@@ -855,32 +876,24 @@ workflowInputIsValid ( repository, reference, path ) =
 customWorkflowInputExperimental : View.Types.Context -> Model -> Element.Element Msg
 customWorkflowInputExperimental context model =
     let
-        clearButton =
-            Widget.textButton
-                (SH.materialStyle context.palette).button
-                { text = "Clear workflow"
-                , onPress =
-                    if
-                        workflowInputIsEmpty
-                            ( model.workflowInputRepository
-                            , model.workflowInputReference
-                            , model.workflowInputPath
-                            )
-                    then
-                        Nothing
-
-                    else
-                        Just GotClearCustomWorkflowInputs
-                }
-
         workflowInput =
             let
                 repoInputLabel =
                     VH.requiredLabel context.palette (Element.text "DOI or Git repository URL")
 
+                repoError =
+                    if model.workflowInputRepository == "" && model.workflowInputIsValid == Just False then
+                        Element.el [ Font.color (SH.toElementColor context.palette.error) ]
+                            (Element.text "Required")
+
+                    else
+                        Element.none
+
                 repoInput =
                     Input.text
-                        (VH.inputItemAttributes context.palette.background)
+                        (VH.inputItemAttributes context.palette.background
+                            ++ [ Events.onLoseFocus GotWorkflowInputLoseFocus ]
+                        )
                         { text = model.workflowInputRepository
                         , placeholder =
                             Just
@@ -895,7 +908,9 @@ customWorkflowInputExperimental context model =
 
                 referenceInput =
                     Input.text
-                        (VH.inputItemAttributes context.palette.background)
+                        (VH.inputItemAttributes context.palette.background
+                            ++ [ Events.onLoseFocus GotWorkflowInputLoseFocus ]
+                        )
                         { text = model.workflowInputReference
                         , placeholder =
                             Just
@@ -921,7 +936,9 @@ customWorkflowInputExperimental context model =
                         )
                         [ Element.text pathInputLabel
                         , Input.text
-                            (VH.inputItemAttributes context.palette.background)
+                            (VH.inputItemAttributes context.palette.background
+                                ++ [ Events.onLoseFocus GotWorkflowInputLoseFocus ]
+                            )
                             { text = model.workflowInputPath
                             , placeholder =
                                 Just
@@ -940,6 +957,7 @@ customWorkflowInputExperimental context model =
                     ++ [ Element.width Element.fill ]
                 )
                 [ repoInput
+                , repoError
                 , referenceInput
                 , sourcePathInput
                 ]
@@ -998,7 +1016,6 @@ customWorkflowInputExperimental context model =
 
                 else
                     [ workflowInput
-                    , clearButton
                     ]
                )
         )
