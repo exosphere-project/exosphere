@@ -892,11 +892,19 @@ customWorkflowInputExperimental context model =
                     else
                         Element.none
 
+                inputErrorIcon =
+                    if displayRepoInputError then
+                        VH.invalidInputAttributes context.palette
+
+                    else
+                        []
+
                 repoInputWithoutErrorBorder =
                     Input.text
                         (VH.inputItemAttributes context.palette.background
                             ++ [ Events.onLoseFocus GotWorkflowInputLoseFocus
                                ]
+                            ++ inputErrorIcon
                         )
                         { text = model.workflowInputRepository
                         , placeholder =

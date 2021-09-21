@@ -21,6 +21,7 @@ module View.Helpers exposing
     , heading4
     , hint
     , inputItemAttributes
+    , invalidInputAttributes
     , linkAttribs
     , possiblyUntitledResource
     , renderMarkdown
@@ -46,6 +47,7 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input
 import Element.Region as Region
+import FeatherIcons
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.Time exposing (humanReadableTime)
@@ -994,3 +996,19 @@ requiredLabel palette undecoratedLabelView =
             ]
             (Element.text "*")
         ]
+
+
+invalidInputAttributes : ExoPalette -> List (Element.Attribute msg)
+invalidInputAttributes palette =
+    [ Element.onRight
+        (Element.el
+            [ Font.color (palette.error |> SH.toElementColor)
+            , Element.moveLeft 30
+            , Element.centerY
+            ]
+            (FeatherIcons.alertCircle
+                |> FeatherIcons.toHtml []
+                |> Element.html
+            )
+        )
+    ]
