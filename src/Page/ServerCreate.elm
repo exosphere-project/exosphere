@@ -910,10 +910,10 @@ customWorkflowInputExperimental context model =
 
                 repoInputWithoutErrorBorder =
                     Input.text
-                        (VH.inputItemAttributes context.palette.background
-                            ++ [ Events.onLoseFocus GotWorkflowInputLoseFocus
-                               ]
-                            ++ inputErrorIcon
+                        (Events.onLoseFocus GotWorkflowInputLoseFocus
+                            :: (VH.inputItemAttributes context.palette.background
+                                    ++ inputErrorIcon
+                               )
                         )
                         { text = model.workflowInputRepository
                         , placeholder =
