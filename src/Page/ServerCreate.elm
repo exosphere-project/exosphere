@@ -918,7 +918,7 @@ customWorkflowInputExperimental context model =
                     else
                         []
 
-                repoInputWithoutErrorBorder =
+                repoInputWithoutValidationStatusBorder =
                     Input.text
                         (Events.onLoseFocus GotWorkflowInputLoseFocus
                             :: (VH.inputItemAttributes context.palette.background
@@ -944,10 +944,10 @@ customWorkflowInputExperimental context model =
                             , Border.widthEach { bottom = 4, left = 0, right = 0, top = 0 }
                             , Border.color (SH.toElementColor context.palette.error)
                             ]
-                            repoInputWithoutErrorBorder
+                            repoInputWithoutValidationStatusBorder
 
                     else
-                        repoInputWithoutErrorBorder
+                        repoInputWithoutValidationStatusBorder
 
                 referenceInput =
                     Input.text
