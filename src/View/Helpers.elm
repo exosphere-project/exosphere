@@ -1001,31 +1001,34 @@ requiredLabel palette undecoratedLabelView =
 
 invalidInputAttributes : ExoPalette -> List (Element.Attribute msg)
 invalidInputAttributes palette =
-    [ Element.onRight
-        (Element.el
-            [ Font.color (palette.error |> SH.toElementColor)
-            , Element.moveLeft 30
-            , Element.centerY
-            ]
-            (FeatherIcons.alertCircle
-                |> FeatherIcons.toHtml []
-                |> Element.html
-            )
-        )
-    ]
+    validOrInvalidInputElementAttributes palette.error FeatherIcons.alertCircle
 
 
 validInputAttributes : ExoPalette -> List (Element.Attribute msg)
 validInputAttributes palette =
+    validOrInvalidInputElementAttributes palette.readyGood FeatherIcons.checkCircle
+
+
+validOrInvalidInputElementAttributes : Color.Color -> FeatherIcons.Icon -> List (Element.Attribute msg)
+validOrInvalidInputElementAttributes color icon =
     [ Element.onRight
         (Element.el
-            [ Font.color (palette.readyGood |> SH.toElementColor)
+            [ Font.color (color |> SH.toElementColor)
             , Element.moveLeft 30
             , Element.centerY
             ]
-            (FeatherIcons.checkCircle
+            (icon
                 |> FeatherIcons.toHtml []
                 |> Element.html
             )
+        )
+    , Element.below
+        (Element.el
+            [ Font.color (color |> SH.toElementColor)
+            , Element.width Element.fill
+            , Element.height (Element.px 2)
+            , Background.color (color |> SH.toElementColor)
+            ]
+            Element.none
         )
     ]
