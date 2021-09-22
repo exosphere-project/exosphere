@@ -901,7 +901,7 @@ customWorkflowInputExperimental context model =
                     else
                         Element.none
 
-                inputErrorIcon =
+                inputErrorAttributes =
                     if displayRepoInputError then
                         VH.invalidInputAttributes context.palette
 
@@ -912,7 +912,7 @@ customWorkflowInputExperimental context model =
                     Input.text
                         (Events.onLoseFocus GotWorkflowInputLoseFocus
                             :: (VH.inputItemAttributes context.palette.background
-                                    ++ inputErrorIcon
+                                    ++ inputErrorAttributes
                                )
                         )
                         { text = model.workflowInputRepository
