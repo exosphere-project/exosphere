@@ -293,12 +293,13 @@ view context project model =
         invalidNameReasons =
             serverNameValidator (Just context.localization.virtualComputer) model.serverName
 
-        inputErrorAttributes =
-            if invalidNameReasons /= Nothing then
-                VH.invalidInputAttributes context.palette
+        inputValidationStatusAttributes =
+            case invalidNameReasons of
+                Nothing ->
+                    VH.validInputAttributes context.palette
 
-            else
-                []
+                Just _ ->
+                    VH.invalidInputAttributes context.palette
 
         renderInvalidNameReasons =
             case invalidNameReasons of
@@ -386,7 +387,7 @@ view context project model =
         contents flavor computeQuota volumeQuota =
             [ Input.text
                 (VH.inputItemAttributes context.palette.background
-                    ++ inputErrorAttributes
+                    ++ inputValidationStatusAttributes
                 )
                 { text = model.serverName
                 , placeholder =

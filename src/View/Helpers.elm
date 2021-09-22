@@ -36,6 +36,7 @@ module View.Helpers exposing
     , toExoPalette
     , toViewContext
     , userAppProxyLookup
+    , validInputAttributes
     )
 
 import Color
@@ -1007,6 +1008,22 @@ invalidInputAttributes palette =
             , Element.centerY
             ]
             (FeatherIcons.alertCircle
+                |> FeatherIcons.toHtml []
+                |> Element.html
+            )
+        )
+    ]
+
+
+validInputAttributes : ExoPalette -> List (Element.Attribute msg)
+validInputAttributes palette =
+    [ Element.onRight
+        (Element.el
+            [ Font.color (palette.readyGood |> SH.toElementColor)
+            , Element.moveLeft 30
+            , Element.centerY
+            ]
+            (FeatherIcons.checkCircle
                 |> FeatherIcons.toHtml []
                 |> Element.html
             )
