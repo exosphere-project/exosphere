@@ -911,18 +911,18 @@ customWorkflowInputExperimental context model =
                     else
                         Element.none
 
-                inputErrorAttributes =
+                inputValidationStatusAttributes =
                     if displayRepoInputError then
                         VH.invalidInputAttributes context.palette
 
                     else
                         []
 
-                repoInputWithoutValidationStatusBorder =
+                repoInput =
                     Input.text
                         (Events.onLoseFocus GotWorkflowInputLoseFocus
                             :: (VH.inputItemAttributes context.palette.background
-                                    ++ inputErrorAttributes
+                                    ++ inputValidationStatusAttributes
                                )
                         )
                         { text = model.workflowInputRepository
@@ -936,18 +936,6 @@ customWorkflowInputExperimental context model =
                             GotWorkflowRepository
                         , label = Input.labelAbove [] repoInputLabel
                         }
-
-                repoInput =
-                    if displayRepoInputError then
-                        Element.el
-                            [ Element.width Element.fill
-                            , Border.widthEach { bottom = 4, left = 0, right = 0, top = 0 }
-                            , Border.color (SH.toElementColor context.palette.error)
-                            ]
-                            repoInputWithoutValidationStatusBorder
-
-                    else
-                        repoInputWithoutValidationStatusBorder
 
                 referenceInput =
                     Input.text
