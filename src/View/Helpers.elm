@@ -173,8 +173,13 @@ formContainer : List (Element.Attribute msg)
 formContainer =
     -- Keeps form fields from displaying too wide
     [ Element.width (Element.maximum 600 Element.fill)
+
+    -- PatternFly guidelines: There should be 24 pixels between field inside a form (spacing)
     , Element.spacing 24
-    , Element.paddingXY 0 10
+
+    -- PatternFly guidelines: There should be 24 pixels between a form and it surroundings (padding)
+    -- It's set to 4 here, because the form is probably already inside two nested elements each with padding of 10
+    , Element.paddingEach { edges | left = 4 }
     ]
 
 
