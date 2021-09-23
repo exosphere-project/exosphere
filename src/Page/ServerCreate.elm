@@ -894,7 +894,7 @@ customWorkflowInputExperimental context model =
                 repoInputLabel =
                     VH.requiredLabel context.palette (Element.text "DOI or Git repository URL")
 
-                repoError =
+                repoInputHelperText =
                     if displayRepoInputError then
                         Element.row [ Element.spacingXY 5 0 ]
                             [ Element.el
@@ -919,23 +919,26 @@ customWorkflowInputExperimental context model =
                         []
 
                 repoInput =
-                    Input.text
-                        (Events.onLoseFocus GotWorkflowInputLoseFocus
-                            :: (VH.inputItemAttributes context.palette.background
-                                    ++ inputValidationStatusAttributes
-                               )
-                        )
-                        { text = model.workflowInputRepository
-                        , placeholder =
-                            Just
-                                (Input.placeholder
-                                    []
-                                    (Element.text "Example, https://github.com/binder-examples/minimal-dockerfile")
-                                )
-                        , onChange =
-                            GotWorkflowRepository
-                        , label = Input.labelAbove [] repoInputLabel
-                        }
+                    Element.column [ Element.width Element.fill, Element.spacing 10 ]
+                        [ Input.text
+                            (Events.onLoseFocus GotWorkflowInputLoseFocus
+                                :: (VH.inputItemAttributes context.palette.background
+                                        ++ inputValidationStatusAttributes
+                                   )
+                            )
+                            { text = model.workflowInputRepository
+                            , placeholder =
+                                Just
+                                    (Input.placeholder
+                                        []
+                                        (Element.text "Example, https://github.com/binder-examples/minimal-dockerfile")
+                                    )
+                            , onChange =
+                                GotWorkflowRepository
+                            , label = Input.labelAbove [] repoInputLabel
+                            }
+                        , repoInputHelperText
+                        ]
 
                 referenceInput =
                     Input.text
@@ -985,10 +988,11 @@ customWorkflowInputExperimental context model =
             in
             Element.column
                 (VH.exoColumnAttributes
-                    ++ [ Element.width Element.fill ]
+                    ++ [ Element.width Element.fill
+                       , Element.spacing 24
+                       ]
                 )
                 [ repoInput
-                , repoError
                 , referenceInput
                 , sourcePathInput
                 ]
