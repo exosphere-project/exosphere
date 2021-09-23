@@ -172,7 +172,7 @@ formContainer : List (Element.Attribute msg)
 formContainer =
     -- Keeps form fields from displaying too wide
     [ Element.width (Element.maximum 600 Element.fill)
-    , Element.spacing 15
+    , Element.spacing 24
     , Element.paddingXY 0 10
     ]
 

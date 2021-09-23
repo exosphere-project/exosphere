@@ -428,7 +428,7 @@ view context project model =
             , desktopEnvironmentPicker context project model
             , customWorkflowInput context model
             , Element.column
-                VH.exoColumnAttributes
+                [ Element.spacing 24 ]
               <|
                 [ Input.radioRow [ Element.spacing 10 ]
                     { label = Input.labelAbove [ Element.paddingXY 0 12, Font.bold ] (Element.text "Advanced Options")
@@ -464,7 +464,10 @@ view context project model =
             ]
     in
     Element.column
-        (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
+        [ Element.spacing 24
+        , Element.padding 10
+        , Element.width Element.fill
+        ]
     <|
         [ Element.el
             (VH.heading2 context.palette)
@@ -633,7 +636,7 @@ flavorPicker context project model computeQuota =
                 |> not
     in
     Element.column
-        VH.exoColumnAttributes
+        [ Element.spacing 10 ]
         [ Element.el
             [ Font.bold ]
             (Element.text <| Helpers.String.toTitleCase context.localization.virtualComputerHardwareConfig)
@@ -739,7 +742,7 @@ volBackedPrompt context model volumeQuota flavor =
                             Just False
                 }
     in
-    Element.column VH.exoColumnAttributes
+    Element.column [ Element.spacing 10 ]
         [ Element.text "Choose a root disk size"
         , if canLaunchVolBacked then
             radioInput
@@ -760,7 +763,7 @@ volBackedPrompt context model volumeQuota flavor =
                 Element.none
 
             Just volSizeTextInput ->
-                Element.row VH.exoRowAttributes
+                Element.row [ Element.spacing 10 ]
                     [ numericTextInput
                         context.palette
                         (VH.inputItemAttributes context.palette.background)
@@ -799,7 +802,7 @@ countPicker context model computeQuota volumeQuota flavor =
                 computeQuota
                 volumeQuota
     in
-    Element.column VH.exoColumnAttributes
+    Element.column [ Element.spacing 10 ]
         [ Element.text <|
             String.concat
                 [ "How many "
@@ -821,7 +824,7 @@ countPicker context model computeQuota volumeQuota flavor =
 
             Nothing ->
                 Element.none
-        , Element.row VH.exoRowAttributes
+        , Element.row [ Element.spacing 10 ]
             [ Input.slider
                 [ Element.height (Element.px 30)
                 , Element.width (Element.px 100 |> Element.minimum 200)
@@ -968,11 +971,9 @@ customWorkflowInputExperimental context model =
                             "Path to open"
                     in
                     Element.column
-                        (VH.exoColumnAttributes
-                            ++ [ Element.width Element.fill
-                               , Element.padding 0
-                               ]
-                        )
+                        [ Element.width Element.fill
+                        , Element.spacing 10
+                        ]
                         [ Element.text pathInputLabel
                         , Input.text
                             (VH.inputItemAttributes context.palette.background
@@ -992,11 +993,9 @@ customWorkflowInputExperimental context model =
                         ]
             in
             Element.column
-                (VH.exoColumnAttributes
-                    ++ [ Element.width Element.fill
-                       , Element.spacing 24
-                       ]
-                )
+                [ Element.width Element.fill
+                , Element.spacing 24
+                ]
                 [ repoInput
                 , referenceInput
                 , sourcePathInput
@@ -1025,11 +1024,9 @@ customWorkflowInputExperimental context model =
             badge "Experimental"
     in
     Element.column
-        (VH.exoColumnAttributes
-            ++ [ Element.width Element.fill
-               , Element.spacingXY 0 12
-               ]
-        )
+        [ Element.width Element.fill
+        , Element.spacing 24
+        ]
     <|
         (Input.radioRow [ Element.spacing 10 ]
             { label =
@@ -1134,7 +1131,7 @@ desktopEnvironmentPicker context project model =
             ]
                 |> List.filterMap identity
     in
-    Element.column VH.exoColumnAttributes
+    Element.column [ Element.spacing 10 ]
         [ Input.radioRow VH.exoElementAttributes
             { label =
                 Input.labelAbove [ Element.paddingXY 0 12, Font.bold ]
@@ -1176,24 +1173,22 @@ guacamolePicker context model =
                     ]
 
         Just deployGuacamole ->
-            Element.column VH.exoColumnAttributes
-                [ Input.radioRow [ Element.spacing 10 ]
-                    { label = Input.labelAbove [ Element.paddingXY 0 12, Font.bold ] (Element.text "Deploy Guacamole for easy remote access?")
-                    , onChange = \new -> GotDeployGuacamole <| Just new
-                    , options =
-                        [ Input.option True (Element.text "Yes")
-                        , Input.option False (Element.text "No")
+            Input.radioRow [ Element.spacing 10 ]
+                { label = Input.labelAbove [ Element.paddingXY 0 12, Font.bold ] (Element.text "Deploy Guacamole for easy remote access?")
+                , onChange = \new -> GotDeployGuacamole <| Just new
+                , options =
+                    [ Input.option True (Element.text "Yes")
+                    , Input.option False (Element.text "No")
 
-                        {- -}
-                        ]
-                    , selected = Just deployGuacamole
-                    }
-                ]
+                    {- -}
+                    ]
+                , selected = Just deployGuacamole
+                }
 
 
 skipOperatingSystemUpdatesPicker : View.Types.Context -> Model -> Element.Element Msg
 skipOperatingSystemUpdatesPicker context model =
-    Element.column VH.exoColumnAttributes
+    Element.column [ Element.spacing 10 ]
         [ Input.radioRow [ Element.spacing 10 ]
             { label = Input.labelAbove [ Element.paddingXY 0 12, Font.bold ] (Element.text "Install operating system updates?")
             , onChange = GotInstallOperatingSystemUpdates
@@ -1273,7 +1268,7 @@ networkPicker context project model =
                 }
     in
     Element.column
-        VH.exoColumnAttributes
+        [ Element.spacing 10 ]
         [ VH.requiredLabel context.palette
             (Element.el [ Font.bold ] <| Element.text "Network")
         , guidance
@@ -1373,7 +1368,7 @@ floatingIpPicker context project model =
                     Element.none
     in
     Element.column
-        VH.exoColumnAttributes
+        [ Element.spacing 10 ]
         [ Element.el [ Font.bold ] <|
             Element.text <|
                 Helpers.String.toTitleCase context.localization.floatingIpAddress
@@ -1423,7 +1418,7 @@ keypairPicker context project model =
                     }
     in
     Element.column
-        VH.exoColumnAttributes
+        [ Element.spacing 10 ]
         [ Element.el
             [ Font.bold ]
             (Element.text
@@ -1464,7 +1459,7 @@ keypairPicker context project model =
 userDataInput : View.Types.Context -> Model -> Element.Element Msg
 userDataInput context model =
     Element.column
-        VH.exoColumnAttributes
+        [ Element.spacing 10 ]
         [ Element.el
             [ Font.bold ]
             (Element.text
