@@ -22,6 +22,7 @@ module View.Helpers exposing
     , hint
     , inputItemAttributes
     , invalidInputAttributes
+    , invalidInputHelperText
     , linkAttribs
     , possiblyUntitledResource
     , renderMarkdown
@@ -1032,3 +1033,21 @@ validOrInvalidInputElementAttributes color icon =
             Element.none
         )
     ]
+
+
+invalidInputHelperText : ExoPalette -> String -> Element.Element msg
+invalidInputHelperText palette helperText =
+    Element.row [ Element.spacingXY 5 0 ]
+        [ Element.el
+            [ Font.color (palette.error |> SH.toElementColor)
+            ]
+            (FeatherIcons.alertCircle
+                |> FeatherIcons.toHtml []
+                |> Element.html
+            )
+        , Element.el
+            [ Font.color (SH.toElementColor palette.error)
+            , Font.size 16
+            ]
+            (Element.text helperText)
+        ]

@@ -304,17 +304,10 @@ view context project model =
         renderInvalidNameReasons =
             case invalidNameReasons of
                 Just reasons ->
-                    Element.column
-                        [ Font.color (SH.toElementColor context.palette.error)
-                        , Font.size 14
-                        , Element.alignRight
-                        , Element.moveDown 6
-                        ]
-                    <|
-                        List.map Element.text reasons
+                    List.map (VH.invalidInputHelperText context.palette) reasons
 
                 Nothing ->
-                    Element.none
+                    []
 
         maybeNetworkGuidance =
             case Helpers.newServerNetworkOptions project of
@@ -389,7 +382,7 @@ view context project model =
                 [ Element.spacing 10
                 , Element.width Element.fill
                 ]
-                [ Input.text
+                (Input.text
                     (VH.inputItemAttributes context.palette.background
                         ++ inputValidationStatusAttributes
                     )
@@ -411,8 +404,8 @@ view context project model =
                         Input.labelLeft []
                             (VH.requiredLabel context.palette (Element.text "Name"))
                     }
-                , renderInvalidNameReasons
-                ]
+                    :: renderInvalidNameReasons
+                )
             , Element.row []
                 [ Element.text <|
                     String.concat
@@ -904,17 +897,7 @@ customWorkflowInputExperimental context model =
 
                 repoInputHelperText =
                     if displayRepoInputError then
-                        Element.row [ Element.spacingXY 5 0 ]
-                            [ Element.el
-                                [ Font.color (context.palette.error |> SH.toElementColor)
-                                ]
-                                (FeatherIcons.alertCircle
-                                    |> FeatherIcons.toHtml []
-                                    |> Element.html
-                                )
-                            , Element.el [ Font.color (SH.toElementColor context.palette.error) ]
-                                (Element.text "Required")
-                            ]
+                        VH.invalidInputHelperText context.palette "Required"
 
                     else
                         Element.none
