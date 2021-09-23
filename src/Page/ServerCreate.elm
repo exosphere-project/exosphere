@@ -385,30 +385,35 @@ view context project model =
                     Nothing
 
         contents flavor computeQuota volumeQuota =
-            [ Input.text
-                (VH.inputItemAttributes context.palette.background
-                    ++ inputValidationStatusAttributes
-                )
-                { text = model.serverName
-                , placeholder =
-                    Just
-                        (Input.placeholder
-                            []
-                            (Element.text <|
-                                String.join " "
-                                    [ "Example, My"
-                                    , context.localization.virtualComputer
-                                        |> Helpers.String.toTitleCase
-                                    ]
+            [ Element.column
+                [ Element.spacing 10
+                , Element.width Element.fill
+                ]
+                [ Input.text
+                    (VH.inputItemAttributes context.palette.background
+                        ++ inputValidationStatusAttributes
+                    )
+                    { text = model.serverName
+                    , placeholder =
+                        Just
+                            (Input.placeholder
+                                []
+                                (Element.text <|
+                                    String.join " "
+                                        [ "Example, My"
+                                        , context.localization.virtualComputer
+                                            |> Helpers.String.toTitleCase
+                                        ]
+                                )
                             )
-                        )
-                , onChange = GotServerName
-                , label =
-                    Input.labelLeft []
-                        (VH.requiredLabel context.palette (Element.text "Name"))
-                }
-            , renderInvalidNameReasons
-            , Element.row VH.exoRowAttributes
+                    , onChange = GotServerName
+                    , label =
+                        Input.labelLeft []
+                            (VH.requiredLabel context.palette (Element.text "Name"))
+                    }
+                , renderInvalidNameReasons
+                ]
+            , Element.row []
                 [ Element.text <|
                     String.concat
                         [ context.localization.staticRepresentationOfBlockDeviceContents
