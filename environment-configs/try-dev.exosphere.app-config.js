@@ -14,11 +14,11 @@ var config = {
   "supportInfoMarkdown":null,
   "userSupportEmail":"incoming+exosphere-exosphere-6891229-issue-@incoming.gitlab.com",
   "openIdConnectLoginConfig":{
-    "keystoneAuthUrl":"https://iu.jetstream-cloud.org:5000/v3",
+    "keystoneAuthUrl":"https://js2.jetstream-cloud.org:5000/identity/v3",
     "webssoKeystoneEndpoint":"/auth/OS-FEDERATION/websso/openid?origin=https://try-dev.exosphere.app/exosphere/oidc-redirector",
     "oidcLoginIcon":"assets/img/XSEDE_Logo_Black_INF.png",
     "oidcLoginButtonLabel":"Add XSEDE Account",
-    "oidcLoginButtonDescription":"Under construction, may not work, Jetstream IU Cloud only"
+    "oidcLoginButtonDescription":"Jetstream 2 only"
   },
   "localization":null,
   "instanceConfigMgtRepoUrl":null,
