@@ -1042,7 +1042,7 @@ validOrInvalidInputElementAttributes color icon =
 
 invalidInputHelperText : ExoPalette -> String -> Element.Element msg
 invalidInputHelperText palette helperText =
-    Element.row [ Element.spacingXY 5 0 ]
+    Element.row [ Element.spacingXY 10 0 ]
         [ Element.el
             [ Font.color (palette.error |> SH.toElementColor)
             ]

@@ -19,6 +19,7 @@ import RemoteData
 import Route
 import ServerDeploy exposing (cloudInitUserDataTemplate)
 import Style.Helpers as SH
+import Style.Widgets.Alert
 import Style.Widgets.Card exposing (badge)
 import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
@@ -64,6 +65,7 @@ type Msg
     | GotWorkflowPath String
     | GotWorkflowInputLoseFocus
     | GotShowWorkFlowExplanationToggleTip
+    | GotDisabledCreateButtonPressed
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
 
@@ -90,6 +92,7 @@ init imageUuid imageName deployGuacamole =
     , workflowInputPath = ""
     , workflowInputIsValid = Nothing
     , showWorkflowExplanationToggleTip = False
+    , showFormInvalidToggleTip = False
     }
 
 
@@ -239,7 +242,20 @@ update msg project model =
             )
 
         GotShowWorkFlowExplanationToggleTip ->
-            ( { model | showWorkflowExplanationToggleTip = not model.showWorkflowExplanationToggleTip }, Cmd.none, SharedMsg.NoOp )
+            ( { model
+                | showWorkflowExplanationToggleTip = not model.showWorkflowExplanationToggleTip
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
+
+        GotDisabledCreateButtonPressed ->
+            ( { model
+                | showFormInvalidToggleTip = not model.showFormInvalidToggleTip
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
 
         SharedMsg sharedMsg ->
             ( model, Cmd.none, sharedMsg )
@@ -349,7 +365,7 @@ view context project model =
                         [ Element.text guidanceText
                         ]
 
-        createOnPress =
+        ( createOnPress, maybeInvalidFormReasons ) =
             let
                 invalidVolSizeTextInput =
                     case model.volSizeTextInput of
@@ -365,20 +381,111 @@ view context project model =
                             False
 
                 invalidWorkflowTextInput =
-                    model.includeWorkflow && not (Maybe.withDefault False model.workflowInputIsValid)
+                    model.workflowInputRepository == "" && model.workflowInputIsValid == Just False
 
                 invalidInputs =
                     invalidVolSizeTextInput || invalidWorkflowTextInput
             in
             case ( invalidNameReasons, invalidInputs, model.networkUuid ) of
                 ( Nothing, False, Just netUuid ) ->
-                    Just <| SharedMsg (SharedMsg.ProjectMsg project.auth.project.uuid (SharedMsg.RequestCreateServer model netUuid))
+                    ( Just <| SharedMsg (SharedMsg.ProjectMsg project.auth.project.uuid (SharedMsg.RequestCreateServer model netUuid))
+                    , Nothing
+                    )
 
                 ( _, _, _ ) ->
-                    Nothing
+                    let
+                        invalidVolSizeReasons =
+                            if invalidVolSizeTextInput then
+                                [ "Custom root disk size is invalid" ]
+
+                            else
+                                []
+
+                        invalidWorkflowReasons =
+                            if invalidWorkflowTextInput then
+                                [ "Custom workflow input is invalid" ]
+
+                            else
+                                []
+
+                        invalidNetworkReasons =
+                            if model.networkUuid == Nothing then
+                                maybeNetworkGuidance
+                                    |> Maybe.map List.singleton
+                                    |> Maybe.withDefault [ "No network selected" ]
+
+                            else
+                                []
+
+                        invalidFormReasons =
+                            (invalidNameReasons |> Maybe.withDefault [])
+                                ++ invalidVolSizeReasons
+                                ++ invalidWorkflowReasons
+                                ++ invalidNetworkReasons
+                    in
+                    ( Just GotDisabledCreateButtonPressed, Just invalidFormReasons )
+
+        formInvalidToggleTip =
+            Style.Widgets.ToggleTip.toggleTip
+                context.palette
+                (Element.column
+                    [ Element.width
+                        (Element.fill
+                            |> Element.minimum 100
+                        )
+                    , Element.spacing 7
+                    ]
+                    [ Element.text "Please correct problems with the form\n"
+                    , Element.column []
+                        (maybeInvalidFormReasons
+                            |> Maybe.withDefault []
+                            |> List.map ((++) "- ")
+                            |> List.map Element.text
+                        )
+                    ]
+                )
+                model.showFormInvalidToggleTip
+                GotDisabledCreateButtonPressed
+
+        createButton =
+            case maybeInvalidFormReasons of
+                Nothing ->
+                    Widget.textButton
+                        (SH.materialStyle context.palette).primaryButton
+                        { text = "Create"
+                        , onPress = createOnPress
+                        }
+
+                Just _ ->
+                    Element.row [ Element.spacingXY 10 0 ]
+                        [ formInvalidToggleTip
+                        , Widget.button
+                            (SH.materialStyle context.palette).warningButton
+                            { text = "Create"
+                            , icon =
+                                FeatherIcons.alertTriangle
+                                    |> FeatherIcons.withSize 20
+                                    |> FeatherIcons.toHtml []
+                                    |> Element.html
+                                    |> Element.el [ Element.paddingEach { edges | right = 5 } ]
+                            , onPress = createOnPress
+                            }
+                        ]
+
+        renderInvalidFormReasons =
+            let
+                title =
+                    Element.text "Address form errors to proceed"
+            in
+            maybeInvalidFormReasons
+                |> Maybe.map (\reasons -> List.map ((++) "- ") reasons |> List.map Element.text)
+                |> Maybe.map (Element.column [ Element.spacingXY 0 5 ])
+                |> Maybe.map (Style.Widgets.Alert.inlineAlert context.palette title Element.none)
+                |> Maybe.withDefault Element.none
 
         contents flavor computeQuota volumeQuota =
-            [ Element.column
+            [ renderInvalidFormReasons
+            , Element.column
                 [ Element.spacing 10
                 , Element.width Element.fill
                 ]
@@ -449,11 +556,7 @@ view context project model =
                        )
             , renderNetworkGuidance
             , Element.el [ Element.alignRight ] <|
-                Widget.textButton
-                    (SH.materialStyle context.palette).primaryButton
-                    { text = "Create"
-                    , onPress = createOnPress
-                    }
+                createButton
             ]
     in
     Element.column
