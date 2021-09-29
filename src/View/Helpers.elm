@@ -1032,7 +1032,7 @@ validOrInvalidInputElementAttributes color icon =
         (Element.el
             [ Font.color (color |> SH.toElementColor)
             , Element.width Element.fill
-            , Element.height (Element.px 2)
+            , Element.height (Element.px 3)
             , Background.color (color |> SH.toElementColor)
             ]
             Element.none
