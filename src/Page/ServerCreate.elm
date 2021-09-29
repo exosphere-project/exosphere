@@ -19,7 +19,6 @@ import RemoteData
 import Route
 import ServerDeploy exposing (cloudInitUserDataTemplate)
 import Style.Helpers as SH
-import Style.Widgets.Alert
 import Style.Widgets.Card exposing (badge)
 import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
@@ -472,20 +471,8 @@ view context project model =
                             }
                         ]
 
-        renderInvalidFormReasons =
-            let
-                title =
-                    Element.text "Address form errors to proceed"
-            in
-            maybeInvalidFormReasons
-                |> Maybe.map (\reasons -> List.map ((++) "- ") reasons |> List.map Element.text)
-                |> Maybe.map (Element.column [ Element.spacingXY 0 5 ])
-                |> Maybe.map (Style.Widgets.Alert.inlineAlert context.palette title Element.none)
-                |> Maybe.withDefault Element.none
-
         contents flavor computeQuota volumeQuota =
-            [ renderInvalidFormReasons
-            , Element.column
+            [ Element.column
                 [ Element.spacing 10
                 , Element.width Element.fill
                 ]
