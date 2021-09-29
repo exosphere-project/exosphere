@@ -393,34 +393,39 @@ view context project model =
 
                 ( _, _, _ ) ->
                     let
-                        invalidVolSizeReasons =
+                        invalidVolSizeReason =
                             if invalidVolSizeTextInput then
-                                [ "Custom root disk size is invalid" ]
+                                [ "Enter valid custom root disk size" ]
 
                             else
                                 []
 
-                        invalidWorkflowReasons =
+                        invalidWorkflowReason =
                             if invalidWorkflowTextInput then
-                                [ "Custom workflow input is invalid" ]
+                                [ "Enter a valid workflow repository" ]
 
                             else
                                 []
 
-                        invalidNetworkReasons =
+                        invalidNetworkReason =
                             if model.networkUuid == Nothing then
-                                maybeNetworkGuidance
-                                    |> Maybe.map List.singleton
-                                    |> Maybe.withDefault [ "No network selected" ]
+                                [ "Choose a network" ]
 
                             else
                                 []
+
+                        invalidNameFormReason =
+                            if invalidNameReasons == Nothing then
+                                []
+
+                            else
+                                [ "Enter a valid server name" ]
 
                         invalidFormReasons =
-                            (invalidNameReasons |> Maybe.withDefault [])
-                                ++ invalidVolSizeReasons
-                                ++ invalidWorkflowReasons
-                                ++ invalidNetworkReasons
+                            invalidNameFormReason
+                                ++ invalidVolSizeReason
+                                ++ invalidWorkflowReason
+                                ++ invalidNetworkReason
                     in
                     ( Just GotDisabledCreateButtonPressed, Just invalidFormReasons )
 
@@ -434,10 +439,9 @@ view context project model =
                         )
                     , Element.spacing 7
                     ]
-                    [ Element.text "Please correct problems with the form\n"
-                    , Element.column []
+                    [ Element.column []
                         (maybeInvalidFormReasons
-                            |> Maybe.withDefault []
+                            |> Maybe.withDefault [ "Please correct problems with the form" ]
                             |> List.map ((++) "- ")
                             |> List.map Element.text
                         )
