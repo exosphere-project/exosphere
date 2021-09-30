@@ -1028,6 +1028,12 @@ validOrInvalidInputElementAttributes color icon =
                 |> Element.html
             )
         )
+    , Element.paddingEach
+        { top = 10
+        , right = 35
+        , bottom = 10
+        , left = 10
+        }
     , Element.below
         (Element.el
             [ Font.color (color |> SH.toElementColor)
