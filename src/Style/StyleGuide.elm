@@ -7,7 +7,6 @@ import Element.Region as Region
 import Set exposing (Set)
 import Style.Helpers as SH
 import Style.Types
-import Style.Widgets.Alert exposing (inlineAlert)
 import Style.Widgets.Card exposing (badge, exoCard, expandoCard)
 import Style.Widgets.ChipsFilter exposing (chipsFilter)
 import Style.Widgets.CopyableText exposing (copyableText)
@@ -46,8 +45,6 @@ widgets msgMapper palette model =
     , timesCircle (palette.on.background |> SH.toElementColor) 40
     , Element.text "Style.Widgets.Icon.ipAddress"
     , ipAddress (palette.on.background |> SH.toElementColor) 40
-    , Element.text "Style.Widgets.Alert.inlineAlert"
-    , inlineAlert palette (Element.text "Title") (Element.text "Subtitle") (Element.text "Lorem ipsum dolor sit amet.")
     , Element.text "Style.Widgets.Card.exoCard"
     , exoCard palette (Element.text "Title") (Element.text "Subtitle") (Element.text "Lorem ipsum dolor sit amet.")
     , Element.text "Style.Widgets.Card.expandoCard"
