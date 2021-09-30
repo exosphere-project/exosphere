@@ -177,7 +177,12 @@ update msg project model =
         GotIncludeWorkflow includeWorkflow ->
             ( { model
                 | includeWorkflow = includeWorkflow
-                , workflowInputIsValid = Nothing
+                , workflowInputIsValid =
+                    if includeWorkflow then
+                        Just False
+
+                    else
+                        Nothing
                 , workflowInputRepository = ""
                 , workflowInputReference = ""
                 , workflowInputPath = ""
