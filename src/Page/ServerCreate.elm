@@ -434,27 +434,6 @@ view context project model =
                     in
                     ( Just GotDisabledCreateButtonPressed, Just invalidFormReasons )
 
-        formInvalidToggleTip =
-            Style.Widgets.ToggleTip.toggleTip
-                context.palette
-                (Element.column
-                    [ Element.width
-                        (Element.fill
-                            |> Element.minimum 100
-                        )
-                    , Element.spacing 7
-                    ]
-                    [ Element.column []
-                        (maybeInvalidFormReasons
-                            |> Maybe.withDefault [ "Please correct problems with the form" ]
-                            |> List.map ((++) "- ")
-                            |> List.map Element.text
-                        )
-                    ]
-                )
-                model.showFormInvalidToggleTip
-                GotDisabledCreateButtonPressed
-
         createButton =
             case maybeInvalidFormReasons of
                 Nothing ->
@@ -465,9 +444,32 @@ view context project model =
                         }
 
                 Just _ ->
-                    Element.row [ Element.spacingXY 10 0 ]
-                        [ formInvalidToggleTip
-                        , Widget.button
+                    let
+                        formInvalidHintView =
+                            Element.column
+                                [ Element.width
+                                    (Element.fill
+                                        |> Element.minimum 100
+                                    )
+                                ]
+                                [ Element.column
+                                    [ Element.spacing 10
+                                    , Element.padding 5
+                                    ]
+                                    (maybeInvalidFormReasons
+                                        |> Maybe.withDefault [ "Please correct problems with the form" ]
+                                        |> List.map (VH.invalidInputHelperText context.palette)
+                                    )
+                                ]
+                    in
+                    Element.el
+                        (if model.showFormInvalidToggleTip then
+                            Style.Widgets.ToggleTip.floatingMessageShownAttributes context.palette formInvalidHintView
+
+                         else
+                            []
+                        )
+                        (Widget.button
                             (SH.materialStyle context.palette).warningButton
                             { text = "Create"
                             , icon =
@@ -478,7 +480,7 @@ view context project model =
                                     |> Element.el [ Element.paddingEach { edges | right = 5 } ]
                             , onPress = createOnPress
                             }
-                        ]
+                        )
 
         contents flavor computeQuota volumeQuota =
             [ Element.column
