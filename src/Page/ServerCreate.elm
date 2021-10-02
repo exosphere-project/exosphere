@@ -424,7 +424,7 @@ view context project model =
                                 []
 
                             else
-                                [ "Enter a valid server name" ]
+                                [ "Enter a valid " ++ context.localization.virtualComputer ++ " name" ]
 
                         invalidFormReasons =
                             invalidNameFormReason
