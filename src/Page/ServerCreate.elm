@@ -398,6 +398,13 @@ view context project model =
 
                 ( _, _, _ ) ->
                     let
+                        invalidNameFormReason =
+                            if invalidNameReasons == Nothing then
+                                []
+
+                            else
+                                [ "Enter a valid " ++ context.localization.virtualComputer ++ " name" ]
+
                         invalidVolSizeReason =
                             if invalidVolSizeTextInput then
                                 [ "Enter valid custom root disk size" ]
@@ -418,13 +425,6 @@ view context project model =
 
                             else
                                 []
-
-                        invalidNameFormReason =
-                            if invalidNameReasons == Nothing then
-                                []
-
-                            else
-                                [ "Enter a valid " ++ context.localization.virtualComputer ++ " name" ]
 
                         invalidFormReasons =
                             invalidNameFormReason
