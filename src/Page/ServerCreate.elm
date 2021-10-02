@@ -313,7 +313,7 @@ view context project model =
         invalidNameReasons =
             serverNameValidator (Just context.localization.virtualComputer) model.serverName
 
-        inputValidationStatusAttributes =
+        serverNameValidationStatusAttributes =
             case invalidNameReasons of
                 Nothing ->
                     VH.validInputAttributes context.palette
@@ -489,7 +489,7 @@ view context project model =
                 ]
                 (Input.text
                     (VH.inputItemAttributes context.palette.background
-                        ++ inputValidationStatusAttributes
+                        ++ serverNameValidationStatusAttributes
                     )
                     { text = model.serverName
                     , placeholder =
