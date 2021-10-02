@@ -21,6 +21,8 @@ module View.Helpers exposing
     , heading4
     , hint
     , inputItemAttributes
+    , invalidInputAttributes
+    , invalidInputHelperText
     , linkAttribs
     , possiblyUntitledResource
     , renderMarkdown
@@ -28,12 +30,14 @@ module View.Helpers exposing
     , renderMessageAsString
     , renderRDPP
     , renderWebData
+    , requiredLabel
     , serverStatusBadge
     , sortProjects
     , titleFromHostname
     , toExoPalette
     , toViewContext
     , userAppProxyLookup
+    , validInputAttributes
     )
 
 import Color
@@ -45,6 +49,7 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input
 import Element.Region as Region
+import FeatherIcons
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.Time exposing (humanReadableTime)
@@ -981,3 +986,74 @@ userAppProxyLookup context project =
     in
     Dict.get projectKeystoneHostname context.cloudSpecificConfigs
         |> Maybe.andThen (\csc -> csc.userAppProxy)
+
+
+requiredLabel : ExoPalette -> Element.Element msg -> Element.Element msg
+requiredLabel palette undecoratedLabelView =
+    Element.row []
+        [ undecoratedLabelView
+        , Element.el
+            [ Element.paddingXY 4 0
+            , Font.color (SH.toElementColor palette.error)
+            ]
+            (Element.text "*")
+        ]
+
+
+invalidInputAttributes : ExoPalette -> List (Element.Attribute msg)
+invalidInputAttributes palette =
+    validOrInvalidInputElementAttributes palette.error FeatherIcons.alertCircle
+
+
+validInputAttributes : ExoPalette -> List (Element.Attribute msg)
+validInputAttributes palette =
+    validOrInvalidInputElementAttributes palette.readyGood FeatherIcons.checkCircle
+
+
+validOrInvalidInputElementAttributes : Color.Color -> FeatherIcons.Icon -> List (Element.Attribute msg)
+validOrInvalidInputElementAttributes color icon =
+    [ Element.onRight
+        (Element.el
+            [ Font.color (color |> SH.toElementColor)
+            , Element.moveLeft 30
+            , Element.centerY
+            ]
+            (icon
+                |> FeatherIcons.toHtml []
+                |> Element.html
+            )
+        )
+    , Element.paddingEach
+        { top = 10
+        , right = 35
+        , bottom = 10
+        , left = 10
+        }
+    , Element.below
+        (Element.el
+            [ Font.color (color |> SH.toElementColor)
+            , Element.width Element.fill
+            , Element.height (Element.px 3)
+            , Background.color (color |> SH.toElementColor)
+            ]
+            Element.none
+        )
+    ]
+
+
+invalidInputHelperText : ExoPalette -> String -> Element.Element msg
+invalidInputHelperText palette helperText =
+    Element.row [ Element.spacingXY 10 0 ]
+        [ Element.el
+            [ Font.color (palette.error |> SH.toElementColor)
+            ]
+            (FeatherIcons.alertCircle
+                |> FeatherIcons.toHtml []
+                |> Element.html
+            )
+        , Element.el
+            [ Font.color (SH.toElementColor palette.error)
+            , Font.size 16
+            ]
+            (Element.text helperText)
+        ]

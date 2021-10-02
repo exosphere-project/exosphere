@@ -3,6 +3,7 @@ module Page.ServerCreate exposing (Model, Msg(..), init, update, view)
 import Element
 import Element.Background as Background
 import Element.Border as Border
+import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons
@@ -61,9 +62,9 @@ type Msg
     | GotWorkflowRepository String
     | GotWorkflowReference String
     | GotWorkflowPath String
-    | GotClearCustomWorkflowInputs
-    | GotWorkflowInputModified
+    | GotWorkflowInputLoseFocus
     | GotShowWorkFlowExplanationToggleTip
+    | GotDisabledCreateButtonPressed
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
 
@@ -88,8 +89,9 @@ init imageUuid imageName deployGuacamole =
     , workflowInputRepository = ""
     , workflowInputReference = ""
     , workflowInputPath = ""
-    , workflowInputIsValid = False
+    , workflowInputIsValid = Nothing
     , showWorkflowExplanationToggleTip = False
+    , showFormInvalidToggleTip = False
     }
 
 
@@ -173,52 +175,91 @@ update msg project model =
             ( { model | floatingIpCreationOption = floatingIpOption }, Cmd.none, SharedMsg.NoOp )
 
         GotIncludeWorkflow includeWorkflow ->
-            { model
+            ( { model
                 | includeWorkflow = includeWorkflow
-            }
-                |> update GotWorkflowInputModified project
+                , workflowInputIsValid =
+                    if includeWorkflow then
+                        Just False
 
-        GotWorkflowRepository repository ->
-            { model
-                | workflowInputRepository = repository
-            }
-                |> update GotWorkflowInputModified project
-
-        GotWorkflowReference reference ->
-            { model
-                | workflowInputReference = reference
-            }
-                |> update GotWorkflowInputModified project
-
-        GotWorkflowPath path ->
-            { model
-                | workflowInputPath = path
-            }
-                |> update GotWorkflowInputModified project
-
-        GotClearCustomWorkflowInputs ->
-            { model
-                | workflowInputRepository = ""
+                    else
+                        Nothing
+                , workflowInputRepository = ""
                 , workflowInputReference = ""
                 , workflowInputPath = ""
-            }
-                |> update GotWorkflowInputModified project
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
 
-        GotWorkflowInputModified ->
+        GotWorkflowRepository repository ->
+            let
+                newWorkflowInputIsValid =
+                    if model.workflowInputIsValid /= Nothing then
+                        Just
+                            (workflowInputIsValid
+                                ( model.workflowInputRepository
+                                , model.workflowInputReference
+                                , model.workflowInputPath
+                                )
+                            )
+
+                    else
+                        Nothing
+            in
+            ( { model
+                | workflowInputRepository = repository
+                , workflowInputIsValid = newWorkflowInputIsValid
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
+
+        GotWorkflowInputLoseFocus ->
             ( { model
                 | workflowInputIsValid =
-                    workflowInputIsValid
-                        ( model.workflowInputRepository
-                        , model.workflowInputReference
-                        , model.workflowInputPath
+                    Just
+                        (workflowInputIsValid
+                            ( model.workflowInputRepository
+                            , model.workflowInputReference
+                            , model.workflowInputPath
+                            )
                         )
               }
             , Cmd.none
             , SharedMsg.NoOp
             )
 
+        GotWorkflowReference reference ->
+            ( { model
+                | workflowInputReference = reference
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
+
+        GotWorkflowPath path ->
+            ( { model
+                | workflowInputPath = path
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
+
         GotShowWorkFlowExplanationToggleTip ->
-            ( { model | showWorkflowExplanationToggleTip = not model.showWorkflowExplanationToggleTip }, Cmd.none, SharedMsg.NoOp )
+            ( { model
+                | showWorkflowExplanationToggleTip = not model.showWorkflowExplanationToggleTip
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
+
+        GotDisabledCreateButtonPressed ->
+            ( { model
+                | showFormInvalidToggleTip = not model.showFormInvalidToggleTip
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
 
         SharedMsg sharedMsg ->
             ( model, Cmd.none, sharedMsg )
@@ -272,20 +313,21 @@ view context project model =
         invalidNameReasons =
             serverNameValidator (Just context.localization.virtualComputer) model.serverName
 
+        serverNameValidationStatusAttributes =
+            case invalidNameReasons of
+                Nothing ->
+                    VH.validInputAttributes context.palette
+
+                Just _ ->
+                    VH.invalidInputAttributes context.palette
+
         renderInvalidNameReasons =
             case invalidNameReasons of
                 Just reasons ->
-                    Element.column
-                        [ Font.color (SH.toElementColor context.palette.error)
-                        , Font.size 14
-                        , Element.alignRight
-                        , Element.moveDown 6
-                        ]
-                    <|
-                        List.map Element.text reasons
+                    List.map (VH.invalidInputHelperText context.palette) reasons
 
                 Nothing ->
-                    Element.none
+                    []
 
         maybeNetworkGuidance =
             case Helpers.newServerNetworkOptions project of
@@ -327,7 +369,7 @@ view context project model =
                         [ Element.text guidanceText
                         ]
 
-        createOnPress =
+        ( createOnPress, maybeInvalidFormReasons ) =
             let
                 invalidVolSizeTextInput =
                     case model.volSizeTextInput of
@@ -343,39 +385,133 @@ view context project model =
                             False
 
                 invalidWorkflowTextInput =
-                    model.includeWorkflow && not model.workflowInputIsValid
+                    model.workflowInputRepository == "" && model.workflowInputIsValid == Just False
 
                 invalidInputs =
                     invalidVolSizeTextInput || invalidWorkflowTextInput
             in
             case ( invalidNameReasons, invalidInputs, model.networkUuid ) of
                 ( Nothing, False, Just netUuid ) ->
-                    Just <| SharedMsg (SharedMsg.ProjectMsg project.auth.project.uuid (SharedMsg.RequestCreateServer model netUuid))
+                    ( Just <| SharedMsg (SharedMsg.ProjectMsg project.auth.project.uuid (SharedMsg.RequestCreateServer model netUuid))
+                    , Nothing
+                    )
 
                 ( _, _, _ ) ->
-                    Nothing
+                    let
+                        invalidNameFormReason =
+                            if invalidNameReasons == Nothing then
+                                []
+
+                            else
+                                [ "Enter a valid " ++ context.localization.virtualComputer ++ " name" ]
+
+                        invalidVolSizeReason =
+                            if invalidVolSizeTextInput then
+                                [ "Enter valid custom root disk size" ]
+
+                            else
+                                []
+
+                        invalidWorkflowReason =
+                            if invalidWorkflowTextInput then
+                                [ "Enter a valid workflow repository" ]
+
+                            else
+                                []
+
+                        invalidNetworkReason =
+                            if model.networkUuid == Nothing then
+                                [ "Choose a network" ]
+
+                            else
+                                []
+
+                        invalidFormReasons =
+                            invalidNameFormReason
+                                ++ invalidVolSizeReason
+                                ++ invalidWorkflowReason
+                                ++ invalidNetworkReason
+                    in
+                    ( Just GotDisabledCreateButtonPressed, Just invalidFormReasons )
+
+        createButton =
+            case maybeInvalidFormReasons of
+                Nothing ->
+                    Widget.textButton
+                        (SH.materialStyle context.palette).primaryButton
+                        { text = "Create"
+                        , onPress = createOnPress
+                        }
+
+                Just _ ->
+                    let
+                        formInvalidHintView =
+                            Element.column
+                                [ Element.width
+                                    (Element.fill
+                                        |> Element.minimum 100
+                                    )
+                                ]
+                                [ Element.column
+                                    [ Element.spacing 10
+                                    , Element.padding 5
+                                    ]
+                                    (maybeInvalidFormReasons
+                                        |> Maybe.withDefault [ "Please correct problems with the form" ]
+                                        |> List.map (VH.invalidInputHelperText context.palette)
+                                    )
+                                ]
+                    in
+                    Element.el
+                        (if model.showFormInvalidToggleTip then
+                            Style.Widgets.ToggleTip.floatingMessageShownAttributes context.palette formInvalidHintView
+
+                         else
+                            []
+                        )
+                        (Widget.button
+                            (SH.materialStyle context.palette).warningButton
+                            { text = "Create"
+                            , icon =
+                                FeatherIcons.alertTriangle
+                                    |> FeatherIcons.withSize 20
+                                    |> FeatherIcons.toHtml []
+                                    |> Element.html
+                                    |> Element.el [ Element.paddingEach { edges | right = 5 } ]
+                            , onPress = createOnPress
+                            }
+                        )
 
         contents flavor computeQuota volumeQuota =
-            [ Input.text
-                (VH.inputItemAttributes context.palette.background)
-                { text = model.serverName
-                , placeholder =
-                    Just
-                        (Input.placeholder
-                            []
-                            (Element.text <|
-                                String.join " "
-                                    [ "My"
-                                    , context.localization.virtualComputer
-                                        |> Helpers.String.toTitleCase
-                                    ]
+            [ Element.column
+                [ Element.spacing 10
+                , Element.width Element.fill
+                ]
+                (Input.text
+                    (VH.inputItemAttributes context.palette.background
+                        ++ serverNameValidationStatusAttributes
+                    )
+                    { text = model.serverName
+                    , placeholder =
+                        Just
+                            (Input.placeholder
+                                []
+                                (Element.text <|
+                                    String.join " "
+                                        [ "Example, My"
+                                        , context.localization.virtualComputer
+                                            |> Helpers.String.toTitleCase
+                                        ]
+                                )
                             )
-                        )
-                , onChange = GotServerName
-                , label = Input.labelLeft [] (Element.text "Name")
-                }
-            , renderInvalidNameReasons
-            , Element.row VH.exoRowAttributes
+                    , onChange = GotServerName
+                    , label =
+                        Input.labelLeft []
+                            (VH.requiredLabel context.palette (Element.text "Name"))
+                    }
+                    :: renderInvalidNameReasons
+                )
+            , Element.row []
                 [ Element.text <|
                     String.concat
                         [ context.localization.staticRepresentationOfBlockDeviceContents
@@ -390,7 +526,7 @@ view context project model =
             , desktopEnvironmentPicker context project model
             , customWorkflowInput context model
             , Element.column
-                VH.exoColumnAttributes
+                [ Element.spacing 24 ]
               <|
                 [ Input.radioRow [ Element.spacing 10 ]
                     { label = Input.labelAbove [ Element.paddingXY 0 12, Font.bold ] (Element.text "Advanced Options")
@@ -418,15 +554,14 @@ view context project model =
                        )
             , renderNetworkGuidance
             , Element.el [ Element.alignRight ] <|
-                Widget.textButton
-                    (SH.materialStyle context.palette).primaryButton
-                    { text = "Create"
-                    , onPress = createOnPress
-                    }
+                createButton
             ]
     in
     Element.column
-        (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
+        [ Element.spacing 24
+        , Element.padding 10
+        , Element.width Element.fill
+        ]
     <|
         [ Element.el
             (VH.heading2 context.palette)
@@ -437,7 +572,18 @@ view context project model =
                         |> Helpers.String.toTitleCase
                     ]
             )
-        , Element.column VH.formContainer <|
+        , Element.column
+            [ -- Keeps form fields from displaying too wide
+              Element.width (Element.maximum 600 Element.fill)
+
+            -- PatternFly guidelines: There should be 24 pixels between field inside a form (spacing)
+            , Element.spacing 24
+
+            -- PatternFly guidelines: There should be 24 pixels between a form and it surroundings (padding)
+            -- It's set to 4 here, because the form is probably already inside two nested elements each with padding of 10
+            , Element.paddingEach { edges | left = 4 }
+            ]
+          <|
             case
                 ( GetterSetters.flavorLookup project model.flavorUuid
                 , project.computeQuota
@@ -595,7 +741,7 @@ flavorPicker context project model computeQuota =
                 |> not
     in
     Element.column
-        VH.exoColumnAttributes
+        [ Element.spacing 10 ]
         [ Element.el
             [ Font.bold ]
             (Element.text <| Helpers.String.toTitleCase context.localization.virtualComputerHardwareConfig)
@@ -701,7 +847,7 @@ volBackedPrompt context model volumeQuota flavor =
                             Just False
                 }
     in
-    Element.column VH.exoColumnAttributes
+    Element.column [ Element.spacing 10 ]
         [ Element.text "Choose a root disk size"
         , if canLaunchVolBacked then
             radioInput
@@ -722,7 +868,7 @@ volBackedPrompt context model volumeQuota flavor =
                 Element.none
 
             Just volSizeTextInput ->
-                Element.row VH.exoRowAttributes
+                Element.row [ Element.spacing 10 ]
                     [ numericTextInput
                         context.palette
                         (VH.inputItemAttributes context.palette.background)
@@ -761,7 +907,7 @@ countPicker context model computeQuota volumeQuota flavor =
                 computeQuota
                 volumeQuota
     in
-    Element.column VH.exoColumnAttributes
+    Element.column [ Element.spacing 10 ]
         [ Element.text <|
             String.concat
                 [ "How many "
@@ -783,7 +929,7 @@ countPicker context model computeQuota volumeQuota flavor =
 
             Nothing ->
                 Element.none
-        , Element.row VH.exoRowAttributes
+        , Element.row [ Element.spacing 10 ]
             [ Input.slider
                 [ Element.height (Element.px 30)
                 , Element.width (Element.px 100 |> Element.minimum 200)
@@ -853,87 +999,87 @@ workflowInputIsValid ( repository, reference, path ) =
 customWorkflowInputExperimental : View.Types.Context -> Model -> Element.Element Msg
 customWorkflowInputExperimental context model =
     let
-        clearButton =
-            Widget.textButton
-                (SH.materialStyle context.palette).button
-                { text = "Clear workflow"
-                , onPress =
-                    if
-                        workflowInputIsEmpty
-                            ( model.workflowInputRepository
-                            , model.workflowInputReference
-                            , model.workflowInputPath
-                            )
-                    then
-                        Nothing
-
-                    else
-                        Just GotClearCustomWorkflowInputs
-                }
-
         workflowInput =
             let
-                repoInputLabel =
-                    "DOI or Git repository URL"
+                displayRepoInputError =
+                    model.workflowInputRepository == "" && model.workflowInputIsValid == Just False
 
-                repoTypeAndTextInput =
-                    Element.column
-                        (VH.exoColumnAttributes
-                            ++ [ Element.width Element.fill
-                               , Element.padding 0
-                               ]
-                        )
-                        [ Element.text repoInputLabel
-                        , Input.text
-                            (VH.inputItemAttributes context.palette.background)
+                repoInputLabel =
+                    VH.requiredLabel context.palette (Element.text "DOI or Git repository URL")
+
+                repoInputHelperText =
+                    if displayRepoInputError then
+                        VH.invalidInputHelperText context.palette "Required"
+
+                    else
+                        Element.none
+
+                inputValidationStatusAttributes =
+                    if displayRepoInputError then
+                        VH.invalidInputAttributes context.palette
+
+                    else
+                        []
+
+                repoInput =
+                    Element.column [ Element.width Element.fill, Element.spacing 10 ]
+                        [ Input.text
+                            (Events.onLoseFocus GotWorkflowInputLoseFocus
+                                :: (VH.inputItemAttributes context.palette.background
+                                        ++ inputValidationStatusAttributes
+                                   )
+                            )
                             { text = model.workflowInputRepository
                             , placeholder =
                                 Just
                                     (Input.placeholder
                                         []
-                                        (Element.text "https://github.com/binder-examples/minimal-dockerfile")
+                                        (Element.text "Example, https://github.com/binder-examples/minimal-dockerfile")
                                     )
                             , onChange =
                                 GotWorkflowRepository
-                            , label = Input.labelHidden repoInputLabel
+                            , label = Input.labelAbove [] repoInputLabel
                             }
+                        , repoInputHelperText
                         ]
 
                 referenceInput =
                     Input.text
-                        (VH.inputItemAttributes context.palette.background)
+                        (VH.inputItemAttributes context.palette.background
+                            ++ [ Events.onLoseFocus GotWorkflowInputLoseFocus ]
+                        )
                         { text = model.workflowInputReference
                         , placeholder =
                             Just
                                 (Input.placeholder
                                     []
-                                    (Element.text "HEAD")
+                                    (Element.text "Example, HEAD")
                                 )
                         , onChange =
                             GotWorkflowReference
-                        , label = Input.labelAbove [] (Element.text "Git reference (branch, tag, or commit) (optional)")
+                        , label = Input.labelAbove [] (Element.text "Git reference (branch, tag, or commit)")
                         }
 
                 sourcePathInput =
                     let
                         pathInputLabel =
-                            "Path to open (optional)"
+                            "Path to open"
                     in
                     Element.column
-                        (VH.exoColumnAttributes
-                            ++ [ Element.width Element.fill
-                               , Element.padding 0
-                               ]
-                        )
+                        [ Element.width Element.fill
+                        , Element.spacing 10
+                        ]
                         [ Element.text pathInputLabel
                         , Input.text
-                            (VH.inputItemAttributes context.palette.background)
+                            (VH.inputItemAttributes context.palette.background
+                                ++ [ Events.onLoseFocus GotWorkflowInputLoseFocus ]
+                            )
                             { text = model.workflowInputPath
                             , placeholder =
                                 Just
                                     (Input.placeholder
                                         []
-                                        (Element.text "/rstudio")
+                                        (Element.text "Example, /rstudio")
                                     )
                             , onChange =
                                 GotWorkflowPath
@@ -942,10 +1088,10 @@ customWorkflowInputExperimental context model =
                         ]
             in
             Element.column
-                (VH.exoColumnAttributes
-                    ++ [ Element.width Element.fill ]
-                )
-                [ repoTypeAndTextInput
+                [ Element.width Element.fill
+                , Element.spacing 24
+                ]
+                [ repoInput
                 , referenceInput
                 , sourcePathInput
                 ]
@@ -973,11 +1119,9 @@ customWorkflowInputExperimental context model =
             badge "Experimental"
     in
     Element.column
-        (VH.exoColumnAttributes
-            ++ [ Element.width Element.fill
-               , Element.spacingXY 0 12
-               ]
-        )
+        [ Element.width Element.fill
+        , Element.spacing 24
+        ]
     <|
         (Input.radioRow [ Element.spacing 10 ]
             { label =
@@ -1004,7 +1148,6 @@ customWorkflowInputExperimental context model =
 
                 else
                     [ workflowInput
-                    , clearButton
                     ]
                )
         )
@@ -1083,7 +1226,7 @@ desktopEnvironmentPicker context project model =
             ]
                 |> List.filterMap identity
     in
-    Element.column VH.exoColumnAttributes
+    Element.column [ Element.spacing 10 ]
         [ Input.radioRow VH.exoElementAttributes
             { label =
                 Input.labelAbove [ Element.paddingXY 0 12, Font.bold ]
@@ -1125,24 +1268,22 @@ guacamolePicker context model =
                     ]
 
         Just deployGuacamole ->
-            Element.column VH.exoColumnAttributes
-                [ Input.radioRow [ Element.spacing 10 ]
-                    { label = Input.labelAbove [ Element.paddingXY 0 12, Font.bold ] (Element.text "Deploy Guacamole for easy remote access?")
-                    , onChange = \new -> GotDeployGuacamole <| Just new
-                    , options =
-                        [ Input.option True (Element.text "Yes")
-                        , Input.option False (Element.text "No")
+            Input.radioRow [ Element.spacing 10 ]
+                { label = Input.labelAbove [ Element.paddingXY 0 12, Font.bold ] (Element.text "Deploy Guacamole for easy remote access?")
+                , onChange = \new -> GotDeployGuacamole <| Just new
+                , options =
+                    [ Input.option True (Element.text "Yes")
+                    , Input.option False (Element.text "No")
 
-                        {- -}
-                        ]
-                    , selected = Just deployGuacamole
-                    }
-                ]
+                    {- -}
+                    ]
+                , selected = Just deployGuacamole
+                }
 
 
 skipOperatingSystemUpdatesPicker : View.Types.Context -> Model -> Element.Element Msg
 skipOperatingSystemUpdatesPicker context model =
-    Element.column VH.exoColumnAttributes
+    Element.column [ Element.spacing 10 ]
         [ Input.radioRow [ Element.spacing 10 ]
             { label = Input.labelAbove [ Element.paddingXY 0 12, Font.bold ] (Element.text "Install operating system updates?")
             , onChange = GotInstallOperatingSystemUpdates
@@ -1222,8 +1363,9 @@ networkPicker context project model =
                 }
     in
     Element.column
-        VH.exoColumnAttributes
-        [ Element.el [ Font.bold ] <| Element.text "Network"
+        [ Element.spacing 10 ]
+        [ VH.requiredLabel context.palette
+            (Element.el [ Font.bold ] <| Element.text "Network")
         , guidance
         , picker
         ]
@@ -1321,7 +1463,7 @@ floatingIpPicker context project model =
                     Element.none
     in
     Element.column
-        VH.exoColumnAttributes
+        [ Element.spacing 10 ]
         [ Element.el [ Font.bold ] <|
             Element.text <|
                 Helpers.String.toTitleCase context.localization.floatingIpAddress
@@ -1371,7 +1513,7 @@ keypairPicker context project model =
                     }
     in
     Element.column
-        VH.exoColumnAttributes
+        [ Element.spacing 10 ]
         [ Element.el
             [ Font.bold ]
             (Element.text
@@ -1412,7 +1554,7 @@ keypairPicker context project model =
 userDataInput : View.Types.Context -> Model -> Element.Element Msg
 userDataInput context model =
     Element.column
-        VH.exoColumnAttributes
+        [ Element.spacing 10 ]
         [ Element.el
             [ Font.bold ]
             (Element.text
