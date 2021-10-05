@@ -1,6 +1,5 @@
 module State.ViewState exposing
-    ( defaultLoginPage
-    , navigateToPage
+    ( navigateToPage
     , viewStateToSupportableItem
     )
 
@@ -54,7 +53,7 @@ navigateToPage : Url.Url -> OuterModel -> ( OuterModel, Cmd OuterMsg )
 navigateToPage url outerModel =
     let
         route =
-            Route.fromUrl outerModel.sharedModel.viewContext.urlPathPrefix defaultRoute url
+            Route.fromUrl outerModel.sharedModel.viewContext.urlPathPrefix Route.defaultRoute url
 
         ( newViewState, pageSpecificSharedModel, pageSpecificCmd ) =
             routeToViewStateModelCmd outerModel.sharedModel route
@@ -382,26 +381,6 @@ routeToViewStateModelCmd sharedModel route =
             , sharedModel
             , Cmd.none
             )
-
-
-defaultRoute : Route.Route
-defaultRoute =
-    Route.Home
-
-
-defaultLoginPage : Maybe DefaultLoginView -> Route.Route
-defaultLoginPage maybeDefaultLoginView =
-    case maybeDefaultLoginView of
-        Nothing ->
-            Route.LoginPicker
-
-        Just defaultLoginView ->
-            case defaultLoginView of
-                DefaultLoginOpenstack ->
-                    Route.LoginOpenstack Nothing
-
-                DefaultLoginJetstream ->
-                    Route.LoginJetstream Nothing
 
 
 viewStateToSupportableItem :

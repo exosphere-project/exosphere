@@ -1,6 +1,8 @@
 module Route exposing
     ( ProjectRouteConstructor(..)
     , Route(..)
+    , defaultLoginPage
+    , defaultRoute
     , fromUrl
     , pushUrl
     , replaceUrl
@@ -349,12 +351,12 @@ withReplaceUrl viewContext route ( model, cmd, sharedMsg ) =
 
 
 fromUrl : Maybe String -> Route -> Url.Url -> Route
-fromUrl maybePathPrefix defaultRoute url =
+fromUrl maybePathPrefix defaultRoute_ url =
     (case maybePathPrefix of
         Nothing ->
             parse
                 (oneOf
-                    (pathParsers defaultRoute)
+                    (pathParsers defaultRoute_)
                 )
                 url
 
@@ -363,17 +365,17 @@ fromUrl maybePathPrefix defaultRoute url =
                 (s
                     pathPrefix
                     </> oneOf
-                            (pathParsers defaultRoute)
+                            (pathParsers defaultRoute_)
                 )
                 url
     )
-        |> Maybe.withDefault defaultRoute
+        |> Maybe.withDefault defaultRoute_
 
 
 pathParsers : Route -> List (Parser (Route -> b) b)
-pathParsers defaultRoute =
+pathParsers defaultRoute_ =
     [ -- Non-project-specific pages
-      map defaultRoute top
+      map defaultRoute_ top
     , map
         Home
         (s "home")
@@ -612,3 +614,23 @@ projectRouteParsers =
          s "attachvolinstructions" <?> queryParser
         )
     ]
+
+
+defaultRoute : Route
+defaultRoute =
+    Home
+
+
+defaultLoginPage : Maybe HelperTypes.DefaultLoginView -> Route
+defaultLoginPage maybeDefaultLoginView =
+    case maybeDefaultLoginView of
+        Nothing ->
+            LoginPicker
+
+        Just defaultLoginView ->
+            case defaultLoginView of
+                HelperTypes.DefaultLoginOpenstack ->
+                    LoginOpenstack Nothing
+
+                HelperTypes.DefaultLoginJetstream ->
+                    LoginJetstream Nothing

@@ -77,7 +77,10 @@ navMenu outerModel context =
                             MenuItem.Inactive
 
                 destUrl =
-                    Route.toUrl context.urlPathPrefix (State.ViewState.defaultLoginPage outerModel.sharedModel.style.defaultLoginView)
+                    Route.toUrl context.urlPathPrefix
+                        (Route.defaultLoginPage
+                            outerModel.sharedModel.style.defaultLoginView
+                        )
             in
             MenuItem.menuItem context.palette
                 active
