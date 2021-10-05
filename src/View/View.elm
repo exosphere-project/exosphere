@@ -55,29 +55,29 @@ import Widget
 
 view : OuterModel -> Browser.Document OuterMsg
 view outerModel =
-    let
-        context =
-            VH.toViewContext outerModel.sharedModel
-    in
     { title =
-        View.PageTitle.pageTitle outerModel context
+        View.PageTitle.pageTitle outerModel
     , body =
-        [ view_ outerModel context ]
+        [ view_ outerModel ]
     }
 
 
-view_ : OuterModel -> View.Types.Context -> Html.Html OuterMsg
-view_ outerModel context =
+view_ : OuterModel -> Html.Html OuterMsg
+view_ outerModel =
+    let
+        { viewContext } =
+            outerModel.sharedModel
+    in
     Element.layout
         [ Font.size 17
         , Font.family
             [ Font.typeface "Open Sans"
             , Font.sansSerif
             ]
-        , Font.color <| SH.toElementColor <| context.palette.on.background
-        , Background.color <| SH.toElementColor <| context.palette.background
+        , Font.color <| SH.toElementColor <| viewContext.palette.on.background
+        , Background.color <| SH.toElementColor <| viewContext.palette.background
         ]
-        (elementView outerModel.sharedModel.windowSize outerModel context)
+        (elementView viewContext.windowSize outerModel viewContext)
 
 
 elementView : WindowSize -> OuterModel -> View.Types.Context -> Element.Element OuterMsg

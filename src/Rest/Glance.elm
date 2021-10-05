@@ -30,7 +30,7 @@ requestImages model project =
 
         maybeExcludeFilter : Maybe MetadataFilter
         maybeExcludeFilter =
-            Dict.get projectKeystoneHostname model.cloudSpecificConfigs
+            Dict.get projectKeystoneHostname model.viewContext.cloudSpecificConfigs
                 |> Maybe.andThen (\csc -> csc.imageExcludeFilter)
 
         errorContext =

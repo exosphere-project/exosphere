@@ -24,7 +24,7 @@ generateStoredState model =
         strippedProjects =
             List.map generateStoredProject model.projects
     in
-    encodeStoredState strippedProjects model.clientUuid model.style.styleMode model.experimentalFeaturesEnabled
+    encodeStoredState strippedProjects model.clientUuid model.style.styleMode model.viewContext.experimentalFeaturesEnabled
 
 
 generateStoredProject : Types.Project.Project -> StoredProject
@@ -67,11 +67,17 @@ hydrateModelFromStoredState emptyModel newClientUuid storedState =
         experimentalFeaturesEnabled =
             storedState.experimentalFeaturesEnabled
                 |> Maybe.withDefault False
+
+        viewContext =
+            model.viewContext
     in
     { model
         | projects = projects
         , style = newStyle
-        , experimentalFeaturesEnabled = experimentalFeaturesEnabled
+        , viewContext =
+            { viewContext
+                | experimentalFeaturesEnabled = experimentalFeaturesEnabled
+            }
     }
 
 

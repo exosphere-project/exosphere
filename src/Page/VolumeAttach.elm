@@ -36,11 +36,11 @@ init maybeServerUuid maybeVolumeUuid =
 
 
 update : Msg -> SharedModel -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
-update msg sharedModel project model =
+update msg { viewContext } project model =
     let
         withReplaceUrl ( model_, cmd, sharedMsg ) =
             Route.withReplaceUrl
-                sharedModel
+                viewContext
                 (Route.ProjectRoute
                     project.auth.project.uuid
                     (Route.VolumeAttach

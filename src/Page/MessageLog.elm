@@ -27,11 +27,11 @@ init maybeShowDebugMsgs =
 
 
 update : Msg -> SharedModel -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
-update msg sharedModel model =
+update msg { viewContext } model =
     case msg of
         GotShowDebugMsgs new ->
             ( { model | showDebugMsgs = new }
-            , Route.replaceUrl sharedModel (Route.MessageLog new)
+            , Route.replaceUrl viewContext (Route.MessageLog new)
             , SharedMsg.NoOp
             )
 
