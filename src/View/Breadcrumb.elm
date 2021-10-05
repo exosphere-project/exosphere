@@ -270,13 +270,13 @@ breadcrumb outerModel context =
         firstItem =
             { route = Nothing, label = "Home" }
 
-        lastItem : Maybe Item
-        lastItem =
-            viewStateItems |> List.reverse |> List.head
+        ( lastItem, restOfItems ) =
+            case List.reverse viewStateItems of
+                [] ->
+                    ( Nothing, [] )
 
-        restOfItems : List Item
-        restOfItems =
-            viewStateItems |> List.reverse |> List.tail |> Maybe.map List.reverse |> Maybe.withDefault []
+                head :: tail ->
+                    ( Just head, List.reverse tail )
 
         separator : Element.Element msg
         separator =
