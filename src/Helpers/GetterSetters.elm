@@ -24,6 +24,7 @@ module Helpers.GetterSetters exposing
     , projectSetServersLoading
     , projectUpdateKeypair
     , projectUpdateServer
+    , projectsForCloud
     , providerLookup
     , serverLookup
     , serverPresentNotDeleting
@@ -67,6 +68,17 @@ projectLookup model projectIdentifier =
     model.projects
         |> List.filter (\p -> p.auth.project.uuid == projectIdentifier)
         |> List.head
+
+
+projectsForCloud : SharedModel -> HelperTypes.KeystoneHostname -> List Project
+projectsForCloud sharedModel keystoneHostname =
+    let
+        projectMatches : Project -> Bool
+        projectMatches project =
+            UrlHelpers.hostnameFromUrl project.endpoints.keystone == keystoneHostname
+    in
+    sharedModel.projects
+        |> List.filter projectMatches
 
 
 flavorLookup : Project -> OSTypes.FlavorUuid -> Maybe OSTypes.Flavor
