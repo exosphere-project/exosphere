@@ -9,6 +9,7 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import Helpers.Url as UrlHelpers
 import RemoteData
+import Route
 import Set
 import Style.Helpers as SH
 import Style.Widgets.Icon as Icon
@@ -145,32 +146,42 @@ renderProject context project =
                     (Icon.ipAddress (SH.toElementColor context.palette.on.background) 24)
                     (RDPP.withDefault [] project.floatingIps)
                 ]
+
+        route =
+            Route.toUrl context.urlPathPrefix
+                (Route.ProjectRoute project.auth.project.uuid
+                    Route.AllResourcesList
+                )
     in
-    Widget.column
-        (SH.materialStyle context.palette).cardColumn
-        [ Element.column
-            [ Element.centerX
-            , Element.paddingXY 10 15
-            , Element.spacing 15
-            ]
-          <|
-            [ Element.el
-                [ Element.centerX
-                , Font.bold
-                ]
-              <|
-                Element.text <|
-                    String.join " "
-                        [ context.localization.unitOfTenancy
-                            |> Helpers.String.toTitleCase
-                        , project.auth.project.name
+    Element.link []
+        { url = route
+        , label =
+            Widget.column
+                (SH.materialStyle context.palette).cardColumn
+                [ Element.column
+                    [ Element.centerX
+                    , Element.paddingXY 10 15
+                    , Element.spacing 15
+                    ]
+                  <|
+                    [ Element.el
+                        [ Element.centerX
+                        , Font.bold
                         ]
-            ]
-        , Element.column
-            [ Element.padding 10
-            , Element.spacing 10
-            , Element.centerX
-            ]
-            [ cardBody
-            ]
-        ]
+                      <|
+                        Element.text <|
+                            String.join " "
+                                [ context.localization.unitOfTenancy
+                                    |> Helpers.String.toTitleCase
+                                , project.auth.project.name
+                                ]
+                    ]
+                , Element.column
+                    [ Element.padding 10
+                    , Element.spacing 10
+                    , Element.centerX
+                    ]
+                    [ cardBody
+                    ]
+                ]
+        }
