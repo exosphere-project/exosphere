@@ -57,7 +57,7 @@ view context sharedModel model =
                 |> Set.fromList
                 |> Set.toList
     in
-    Element.column [ Element.padding 10, Element.spacing 10 ]
+    Element.column [ Element.padding 10, Element.spacing 10, Element.width Element.fill ]
         [ Element.el (VH.heading2 context.palette) <| Element.text "Clouds"
         , Element.wrappedRow
             [ Element.padding 10, Element.spacingXY 0 60 ]
