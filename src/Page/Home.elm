@@ -59,7 +59,7 @@ view context sharedModel model =
     in
     Element.column [ Element.padding 10, Element.spacing 10, Element.width Element.fill ]
         [ Element.el (VH.heading2 context.palette) <| Element.text "Clouds"
-        , Element.wrappedRow
+        , Element.column
             [ Element.padding 10, Element.spacingXY 0 60 ]
             (List.map (renderCloud context sharedModel) uniqueKeystoneHostnames)
         ]
