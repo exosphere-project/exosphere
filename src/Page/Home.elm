@@ -3,12 +3,17 @@ module Page.Home exposing (Model, Msg, init, update, view)
 import Dict
 import Element
 import Element.Font as Font
+import FeatherIcons
 import Helpers.GetterSetters as GetterSetters
+import Helpers.RemoteDataPlusPlus as RDPP
+import Helpers.String
 import Helpers.Url as UrlHelpers
+import RemoteData
 import Set
 import Style.Helpers as SH
+import Style.Widgets.Icon as Icon
 import Types.HelperTypes as HelperTypes
-import Types.Project as Project
+import Types.Project exposing (Project)
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
@@ -54,13 +59,9 @@ view context sharedModel model =
     Element.column [ Element.padding 10, Element.spacing 10 ]
         [ Element.el (VH.heading2 context.palette) <| Element.text "Clouds"
         , Element.wrappedRow
-            [ Element.padding 10, Element.spacing 10 ]
+            [ Element.padding 10, Element.spacingXY 0 60 ]
             (List.map (renderCloud context sharedModel) uniqueKeystoneHostnames)
         ]
-
-
-
--- TODO need renderCloud AND renderProject
 
 
 renderCloud : View.Types.Context -> SharedModel -> HelperTypes.KeystoneHostname -> Element.Element Msg
@@ -73,9 +74,77 @@ renderCloud context sharedModel keystoneHostname =
             Dict.get keystoneHostname context.cloudSpecificConfigs
 
         friendlyCloudName =
-            maybeCloudSpecificConfig
-                |> Maybe.map .friendlyName
-                |> Maybe.withDefault keystoneHostname
+            case maybeCloudSpecificConfig of
+                Nothing ->
+                    keystoneHostname
+
+                Just cloudSpecificConfig ->
+                    cloudSpecificConfig.friendlyName
+                        ++ (case cloudSpecificConfig.friendlySubName of
+                                Nothing ->
+                                    ""
+
+                                Just subName ->
+                                    ": " ++ subName
+                           )
+    in
+    Element.column
+        [ Element.width Element.fill, Element.spacingXY 0 24 ]
+    <|
+        [ Element.row (VH.heading3 context.palette ++ [ Element.spacing 15 ])
+            [ FeatherIcons.cloud |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
+            , Element.text friendlyCloudName
+            ]
+        , Element.wrappedRow [ Element.spacing 24 ] (projects |> List.map (renderProject context))
+        ]
+
+
+renderProject : View.Types.Context -> Project -> Element.Element Msg
+renderProject context project =
+    -- TODO make entire card clickable
+    let
+        cardBody =
+            let
+                renderResourceQuantity : String -> Element.Element Msg -> List a -> Element.Element Msg
+                renderResourceQuantity resourceNameSingular icon resourceList =
+                    let
+                        resourceQuantity =
+                            List.length resourceList
+                    in
+                    if resourceQuantity > 0 then
+                        Element.row [ Element.spacing 8 ]
+                            [ icon
+                            , Element.text <|
+                                String.join " "
+                                    [ String.fromInt resourceQuantity
+                                    , resourceNameSingular
+                                        |> (if resourceQuantity > 1 then
+                                                Helpers.String.pluralize
+
+                                            else
+                                                identity
+                                           )
+                                    ]
+                            ]
+
+                    else
+                        Element.none
+            in
+            Element.column
+                [ Element.spacing 12 ]
+                [ renderResourceQuantity
+                    context.localization.virtualComputer
+                    (FeatherIcons.server |> FeatherIcons.toHtml [] |> Element.html |> Element.el [])
+                    (RDPP.withDefault [] project.servers)
+                , renderResourceQuantity
+                    context.localization.blockDevice
+                    (FeatherIcons.hardDrive |> FeatherIcons.toHtml [] |> Element.html |> Element.el [])
+                    (RemoteData.withDefault [] project.volumes)
+                , renderResourceQuantity
+                    context.localization.floatingIpAddress
+                    (Icon.ipAddress (SH.toElementColor context.palette.on.background) 24)
+                    (RDPP.withDefault [] project.floatingIps)
+                ]
     in
     Widget.column
         (SH.materialStyle context.palette).cardColumn
@@ -90,19 +159,18 @@ renderCloud context sharedModel keystoneHostname =
                 , Font.bold
                 ]
               <|
-                Element.text friendlyCloudName
-            , maybeCloudSpecificConfig
-                |> Maybe.andThen .friendlySubName
-                |> Maybe.map Element.text
-                |> Maybe.withDefault Element.none
+                Element.text <|
+                    String.join " "
+                        [ context.localization.unitOfTenancy
+                            |> Helpers.String.toTitleCase
+                        , project.auth.project.name
+                        ]
             ]
         , Element.column
             [ Element.padding 10
             , Element.spacing 10
             , Element.centerX
             ]
-            (projects
-                |> List.map (\p -> p.auth.project.name)
-                |> List.map Element.text
-            )
+            [ cardBody
+            ]
         ]
