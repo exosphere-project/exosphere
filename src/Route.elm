@@ -300,23 +300,42 @@ buildPrefixedUrl maybePathPrefix pathParts queryParams =
     UB.absolute prefixedPathParts queryParams
 
 
-pushUrl : Browser.Navigation.Key -> Maybe String -> Route -> Cmd msg
-pushUrl key maybePathPrefix route =
-    Browser.Navigation.pushUrl key (toUrl maybePathPrefix route)
+pushUrl :
+    { r
+        | navigationKey : Browser.Navigation.Key
+        , urlPathPrefix : Maybe String
+    }
+    -> Route
+    -> Cmd msg
+pushUrl { navigationKey, urlPathPrefix } route =
+    Browser.Navigation.pushUrl navigationKey (toUrl urlPathPrefix route)
 
 
-replaceUrl : Browser.Navigation.Key -> Maybe String -> Route -> Cmd msg
-replaceUrl key maybePathPrefix route =
-    Browser.Navigation.replaceUrl key (toUrl maybePathPrefix route)
+replaceUrl :
+    { r
+        | navigationKey : Browser.Navigation.Key
+        , urlPathPrefix : Maybe String
+    }
+    -> Route
+    -> Cmd msg
+replaceUrl { navigationKey, urlPathPrefix } route =
+    Browser.Navigation.replaceUrl navigationKey (toUrl urlPathPrefix route)
 
 
-withReplaceUrl : Browser.Navigation.Key -> Maybe String -> Route -> ( model, Cmd msg, sharedMsg ) -> ( model, Cmd msg, sharedMsg )
-withReplaceUrl key maybePathPrefix route ( model, cmd, sharedMsg ) =
+withReplaceUrl :
+    { r
+        | navigationKey : Browser.Navigation.Key
+        , urlPathPrefix : Maybe String
+    }
+    -> Route
+    -> ( model, Cmd msg, sharedMsg )
+    -> ( model, Cmd msg, sharedMsg )
+withReplaceUrl viewContext route ( model, cmd, sharedMsg ) =
     -- Helper for use in pages
     ( model
     , Cmd.batch
         [ cmd
-        , replaceUrl key maybePathPrefix route
+        , replaceUrl viewContext route
         ]
     , sharedMsg
     )

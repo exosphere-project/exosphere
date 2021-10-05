@@ -40,8 +40,7 @@ update msg sharedModel project model =
     let
         withReplaceUrl ( model_, cmd, sharedMsg ) =
             Route.withReplaceUrl
-                sharedModel.navigationKey
-                sharedModel.urlPathPrefix
+                sharedModel
                 (Route.ProjectRoute
                     project.auth.project.uuid
                     (Route.VolumeAttach
