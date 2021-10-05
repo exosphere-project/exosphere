@@ -61,13 +61,13 @@ breadcrumb outerModel context =
                               , label = "Log in"
                               }
                             , { route = Nothing
-                              , label = View.PageTitle.pageTitle outerModel context
+                              , label = View.PageTitle.pageTitle outerModel
                               }
                             ]
 
                         _ ->
                             [ { route = Nothing
-                              , label = View.PageTitle.pageTitle outerModel context
+                              , label = View.PageTitle.pageTitle outerModel
                               }
                             ]
 

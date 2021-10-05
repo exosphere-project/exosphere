@@ -31,7 +31,7 @@ init serverUuid maybeImageName =
 
 
 update : Msg -> SharedModel -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
-update msg sharedModel project model =
+update msg { viewContext } project model =
     case msg of
         GotImageName imageName ->
             let
@@ -39,7 +39,7 @@ update msg sharedModel project model =
                     { model | imageName = imageName }
             in
             ( newModel
-            , Route.replaceUrl sharedModel <|
+            , Route.replaceUrl viewContext <|
                 Route.ProjectRoute project.auth.project.uuid <|
                     Route.ServerCreateImage newModel.serverUuid (Just newModel.imageName)
             , SharedMsg.NoOp

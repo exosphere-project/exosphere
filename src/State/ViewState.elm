@@ -46,7 +46,6 @@ import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
 import Url
-import View.Helpers
 import View.PageTitle
 
 
@@ -54,13 +53,13 @@ navigateToPage : Url.Url -> OuterModel -> ( OuterModel, Cmd OuterMsg )
 navigateToPage url outerModel =
     let
         route =
-            Route.fromUrl outerModel.sharedModel.urlPathPrefix (defaultRoute outerModel.sharedModel) url
+            Route.fromUrl outerModel.sharedModel.viewContext.urlPathPrefix (defaultRoute outerModel.sharedModel) url
 
         ( newViewState, pageSpecificSharedModel, pageSpecificCmd ) =
             routeToViewStateModelCmd outerModel.sharedModel route
 
         newUrl =
-            Route.toUrl outerModel.sharedModel.urlPathPrefix route
+            Route.toUrl outerModel.sharedModel.viewContext.urlPathPrefix route
 
         newOuterModel =
             { outerModel
@@ -68,11 +67,8 @@ navigateToPage url outerModel =
                 , sharedModel = pageSpecificSharedModel
             }
 
-        newViewContext =
-            View.Helpers.toViewContext newOuterModel.sharedModel
-
         newPageTitle =
-            View.PageTitle.pageTitle newOuterModel newViewContext
+            View.PageTitle.pageTitle newOuterModel
 
         updateMatomoCmd =
             Ports.pushUrlAndTitleToMatomo { newUrl = newUrl, pageTitle = newPageTitle }

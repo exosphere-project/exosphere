@@ -29,6 +29,7 @@ import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
 import UUID
 import Url
+import View.Helpers exposing (toExoPalette)
 
 
 init : Flags -> ( Url.Url, Browser.Navigation.Key ) -> ( OuterModel, Cmd OuterMsg )
@@ -94,12 +95,31 @@ init flags urlKey =
                       ]
                     )
 
+        style =
+            { logo =
+                case flags.logo of
+                    Just logoUrl ->
+                        logoUrl
+
+                    Nothing ->
+                        "assets/img/logo-alt.svg"
+            , primaryColor = primaryColor
+            , secondaryColor = secondaryColor
+            , styleMode = Style.Types.LightMode
+            , appTitle =
+                flags.appTitle |> Maybe.withDefault "Exosphere"
+            , topBarShowAppTitle = flags.topBarShowAppTitle
+            , defaultLoginView = defaultLoginView
+            , aboutAppMarkdown = flags.aboutAppMarkdown
+            , supportInfoMarkdown = flags.supportInfoMarkdown
+            , userSupportEmail =
+                flags.userSupportEmail
+                    |> Maybe.withDefault "incoming+exosphere-exosphere-6891229-issue-@incoming.gitlab.com"
+            }
+
         emptyModel : Bool -> UUID.UUID -> SharedModel
         emptyModel showDebugMsgs uuid =
             { logMessages = decodeErrorLogMessages
-            , urlPathPrefix = flags.urlPathPrefix
-            , navigationKey = Tuple.second urlKey
-            , windowSize = { width = flags.width, height = flags.height }
             , unscopedProviders = []
             , projects = []
             , toasties = Toasty.initialState
@@ -108,37 +128,23 @@ init flags urlKey =
             , clientCurrentTime = currentTime
             , timeZone = timeZone
             , showDebugMsgs = showDebugMsgs
-            , style =
-                { logo =
-                    case flags.logo of
-                        Just logoUrl ->
-                            logoUrl
-
-                        Nothing ->
-                            "assets/img/logo-alt.svg"
-                , primaryColor = primaryColor
-                , secondaryColor = secondaryColor
-                , styleMode = Style.Types.LightMode
-                , appTitle =
-                    flags.appTitle |> Maybe.withDefault "Exosphere"
-                , topBarShowAppTitle = flags.topBarShowAppTitle
-                , defaultLoginView = defaultLoginView
-                , aboutAppMarkdown = flags.aboutAppMarkdown
-                , supportInfoMarkdown = flags.supportInfoMarkdown
-                , userSupportEmail =
-                    flags.userSupportEmail
-                        |> Maybe.withDefault "incoming+exosphere-exosphere-6891229-issue-@incoming.gitlab.com"
-                , localization = Maybe.withDefault Defaults.localization flags.localization
-                }
+            , style = style
             , openIdConnectLoginConfig = flags.openIdConnectLoginConfig
-            , cloudSpecificConfigs = cloudSpecificConfigs
             , instanceConfigMgtRepoUrl =
                 flags.instanceConfigMgtRepoUrl
                     |> Maybe.withDefault "https://gitlab.com/exosphere/exosphere.git"
             , instanceConfigMgtRepoCheckout =
                 flags.instanceConfigMgtRepoCheckout
                     |> Maybe.withDefault "master"
-            , experimentalFeaturesEnabled = False
+            , viewContext =
+                { cloudSpecificConfigs = cloudSpecificConfigs
+                , experimentalFeaturesEnabled = False
+                , localization = Maybe.withDefault Defaults.localization flags.localization
+                , navigationKey = Tuple.second urlKey
+                , palette = toExoPalette style
+                , urlPathPrefix = flags.urlPathPrefix
+                , windowSize = { width = flags.width, height = flags.height }
+                }
             }
 
         -- This only gets used if we do not find a client UUID in stored state

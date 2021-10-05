@@ -35,7 +35,6 @@ module View.Helpers exposing
     , sortProjects
     , titleFromHostname
     , toExoPalette
-    , toViewContext
     , userAppProxyLookup
     , validInputAttributes
     )
@@ -74,18 +73,6 @@ import Types.Server exposing (ExoSetupStatus(..), Server, ServerOrigin(..), Serv
 import Types.SharedModel exposing (LogMessage, SharedModel, Style)
 import View.Types
 import Widget
-
-
-toViewContext : SharedModel -> View.Types.Context
-toViewContext model =
-    { palette = toExoPalette model.style
-    , localization = model.style.localization
-    , windowSize = model.windowSize
-    , cloudSpecificConfigs = model.cloudSpecificConfigs
-    , experimentalFeaturesEnabled = model.experimentalFeaturesEnabled
-    , urlPathPrefix = model.urlPathPrefix
-    , navigationKey = model.navigationKey
-    }
 
 
 toExoPalette : Style -> ExoPalette

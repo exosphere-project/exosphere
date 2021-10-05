@@ -8,11 +8,14 @@ import Types.OuterModel exposing (OuterModel)
 import Types.Project exposing (Project)
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
 import View.Helpers as VH
-import View.Types
 
 
-pageTitle : OuterModel -> View.Types.Context -> String
-pageTitle outerModel context =
+pageTitle : OuterModel -> String
+pageTitle outerModel =
+    let
+        { localization } =
+            outerModel.sharedModel.viewContext
+    in
     case outerModel.viewState of
         NonProjectView nonProjectViewConstructor ->
             case nonProjectViewConstructor of
@@ -25,7 +28,7 @@ pageTitle outerModel context =
                 LoadingUnscopedProjects _ ->
                     String.join " "
                         [ "Loading"
-                        , Helpers.String.pluralize context.localization.unitOfTenancy
+                        , Helpers.String.pluralize localization.unitOfTenancy
                         ]
 
                 Login loginView ->
@@ -54,7 +57,7 @@ pageTitle outerModel context =
                     in
                     String.join " "
                         [ "Select"
-                        , context.localization.unitOfTenancy
+                        , localization.unitOfTenancy
                             |> Helpers.String.pluralize
                             |> Helpers.String.toTitleCase
                         , "for"
@@ -75,7 +78,7 @@ pageTitle outerModel context =
                         |> Maybe.withDefault
                             (String.join " "
                                 [ "could not find"
-                                , context.localization.unitOfTenancy
+                                , localization.unitOfTenancy
                                 , "name"
                                 ]
                             )
@@ -90,7 +93,7 @@ pageTitle outerModel context =
                 FloatingIpAssign _ ->
                     String.join " "
                         [ "Assign"
-                        , context.localization.floatingIpAddress
+                        , localization.floatingIpAddress
                             |> Helpers.String.toTitleCase
                         , "for"
                         , projectName
@@ -98,7 +101,7 @@ pageTitle outerModel context =
 
                 FloatingIpList _ ->
                     String.join " "
-                        [ context.localization.floatingIpAddress
+                        [ localization.floatingIpAddress
                             |> Helpers.String.pluralize
                             |> Helpers.String.toTitleCase
                         , "for"
@@ -107,7 +110,7 @@ pageTitle outerModel context =
 
                 InstanceSourcePicker _ ->
                     String.join " "
-                        [ context.localization.virtualComputer
+                        [ localization.virtualComputer
                             |> Helpers.String.toTitleCase
                         , "sources"
                         , "for"
@@ -117,14 +120,14 @@ pageTitle outerModel context =
                 KeypairCreate _ ->
                     String.join " "
                         [ "Upload"
-                        , context.localization.pkiPublicKeyForSsh
+                        , localization.pkiPublicKeyForSsh
                         , "for"
                         , projectName
                         ]
 
                 KeypairList _ ->
                     String.join " "
-                        [ context.localization.pkiPublicKeyForSsh
+                        [ localization.pkiPublicKeyForSsh
                             |> Helpers.String.pluralize
                             |> Helpers.String.toTitleCase
                         , "for"
@@ -134,14 +137,14 @@ pageTitle outerModel context =
                 ServerCreate _ ->
                     String.join " "
                         [ "Create"
-                        , context.localization.virtualComputer
+                        , localization.virtualComputer
                             |> Helpers.String.toTitleCase
                         ]
 
                 ServerCreateImage pageModel ->
                     String.join " "
                         [ "Create"
-                        , context.localization.staticRepresentationOfBlockDeviceContents
+                        , localization.staticRepresentationOfBlockDeviceContents
                             |> Helpers.String.toTitleCase
                         , "for"
                         , serverName maybeProject pageModel.serverUuid
@@ -149,14 +152,14 @@ pageTitle outerModel context =
 
                 ServerDetail pageModel ->
                     String.join " "
-                        [ context.localization.virtualComputer
+                        [ localization.virtualComputer
                             |> Helpers.String.toTitleCase
                         , serverName maybeProject pageModel.serverUuid
                         ]
 
                 ServerList _ ->
                     String.join " "
-                        [ context.localization.virtualComputer
+                        [ localization.virtualComputer
                             |> Helpers.String.pluralize
                             |> Helpers.String.toTitleCase
                         , "for"
@@ -166,27 +169,27 @@ pageTitle outerModel context =
                 VolumeAttach _ ->
                     String.join " "
                         [ "Attach"
-                        , context.localization.blockDevice
+                        , localization.blockDevice
                             |> Helpers.String.toTitleCase
                         ]
 
                 VolumeCreate _ ->
                     String.join " "
                         [ "Create"
-                        , context.localization.blockDevice
+                        , localization.blockDevice
                             |> Helpers.String.toTitleCase
                         ]
 
                 VolumeDetail pageModel ->
                     String.join " "
-                        [ context.localization.blockDevice
+                        [ localization.blockDevice
                             |> Helpers.String.toTitleCase
                         , volumeName maybeProject pageModel.volumeUuid
                         ]
 
                 VolumeList _ ->
                     String.join " "
-                        [ context.localization.blockDevice
+                        [ localization.blockDevice
                             |> Helpers.String.pluralize
                             |> Helpers.String.toTitleCase
                         , "for"
@@ -196,7 +199,7 @@ pageTitle outerModel context =
                 VolumeMountInstructions _ ->
                     String.join " "
                         [ "Mount"
-                        , context.localization.blockDevice
+                        , localization.blockDevice
                             |> Helpers.String.toTitleCase
                         ]
 

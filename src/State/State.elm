@@ -78,6 +78,7 @@ import Types.Workflow
         , ServerCustomWorkflowStatus(..)
         )
 import Url
+import View.Helpers exposing (toExoPalette)
 
 
 update : OuterMsg -> OuterModel -> ( OuterModel, Cmd OuterMsg )
@@ -466,8 +467,11 @@ updateUnderlying outerMsg outerModel =
 processSharedMsg : SharedMsg -> OuterModel -> ( OuterModel, Cmd OuterMsg )
 processSharedMsg sharedMsg outerModel =
     let
-        sharedModel =
-            outerModel.sharedModel
+        { sharedModel } =
+            outerModel
+
+        { viewContext } =
+            sharedModel
     in
     case sharedMsg of
         ToastyMsg subMsg ->
@@ -476,7 +480,14 @@ processSharedMsg sharedMsg outerModel =
                 |> mapToOuterModel outerModel
 
         MsgChangeWindowSize x y ->
-            ( { sharedModel | windowSize = { width = x, height = y } }, Cmd.none )
+            ( { sharedModel
+                | viewContext =
+                    { viewContext
+                        | windowSize = { width = x, height = y }
+                    }
+              }
+            , Cmd.none
+            )
                 |> mapToOuterModel outerModel
 
         Tick interval time ->
@@ -634,7 +645,7 @@ processSharedMsg sharedMsg outerModel =
 
                         _ ->
                             ( newOuterModel
-                            , Route.pushUrl sharedModel (Route.SelectProjects keystoneUrl)
+                            , Route.pushUrl viewContext (Route.SelectProjects keystoneUrl)
                             )
 
                 Nothing ->
@@ -674,18 +685,18 @@ processSharedMsg sharedMsg outerModel =
                         newViewStateCmd =
                             case List.head newUnscopedProviders of
                                 Just unscopedProvider ->
-                                    Route.pushUrl sharedModel (Route.SelectProjects unscopedProvider.authUrl)
+                                    Route.pushUrl viewContext (Route.SelectProjects unscopedProvider.authUrl)
 
                                 Nothing ->
                                     -- If we have at least one project then show it, else show the login page
                                     case List.head sharedModel.projects of
                                         Just project ->
-                                            Route.pushUrl sharedModel <|
+                                            Route.pushUrl viewContext <|
                                                 Route.ProjectRoute project.auth.project.uuid <|
                                                     Route.AllResourcesList
 
                                         Nothing ->
-                                            Route.pushUrl sharedModel Route.LoginPicker
+                                            Route.pushUrl viewContext Route.LoginPicker
 
                         sharedModelUpdatedUnscopedProviders =
                             { sharedModel | unscopedProviders = newUnscopedProviders }
@@ -721,7 +732,7 @@ processSharedMsg sharedMsg outerModel =
         LinkClicked urlRequest ->
             case urlRequest of
                 Browser.Internal url ->
-                    ( outerModel, Browser.Navigation.pushUrl sharedModel.navigationKey (Url.toString url) )
+                    ( outerModel, Browser.Navigation.pushUrl viewContext.navigationKey (Url.toString url) )
 
                 Browser.External url ->
                     ( outerModel, Browser.Navigation.load url )
@@ -737,14 +748,19 @@ processSharedMsg sharedMsg outerModel =
                 newStyle =
                     { oldStyle | styleMode = styleMode }
             in
-            ( { sharedModel | style = newStyle }, Cmd.none )
+            ( { sharedModel
+                | style = newStyle
+                , viewContext = { viewContext | palette = toExoPalette newStyle }
+              }
+            , Cmd.none
+            )
                 |> mapToOuterModel outerModel
 
         NoOp ->
             ( outerModel, Cmd.none )
 
         SetExperimentalFeaturesEnabled choice ->
-            ( { sharedModel | experimentalFeaturesEnabled = choice }, Cmd.none )
+            ( { sharedModel | viewContext = { viewContext | experimentalFeaturesEnabled = choice } }, Cmd.none )
                 |> mapToOuterModel outerModel
 
 
@@ -976,7 +992,7 @@ processProjectSpecificMsg outerModel project msg =
                                 Nothing ->
                                     Route.LoginPicker
                     in
-                    ( newOuterModel, Route.pushUrl sharedModel route )
+                    ( newOuterModel, Route.pushUrl sharedModel.viewContext route )
 
         ServerMsg serverUuid serverMsgConstructor ->
             case GetterSetters.serverLookup project serverUuid of
@@ -1104,7 +1120,7 @@ processProjectSpecificMsg outerModel project msg =
         RequestAssignFloatingIp port_ floatingIpUuid ->
             let
                 setViewCmd =
-                    Route.pushUrl sharedModel
+                    Route.pushUrl sharedModel.viewContext
                         (Route.ProjectRoute project.auth.project.uuid <| Route.FloatingIpList)
             in
             ( outerModel
@@ -1303,7 +1319,7 @@ processProjectSpecificMsg outerModel project msg =
                     GetterSetters.modelUpdateProject sharedModel newProject
             in
             ( { outerModel | sharedModel = newSharedModel }
-            , Route.pushUrl sharedModel (Route.ProjectRoute newProject.auth.project.uuid Route.KeypairList)
+            , Route.pushUrl sharedModel.viewContext (Route.ProjectRoute newProject.auth.project.uuid Route.KeypairList)
             )
 
         RequestDeleteKeypair keypairId ->
@@ -1357,7 +1373,7 @@ processProjectSpecificMsg outerModel project msg =
             ( { outerModel | sharedModel = newSharedModel }
             , Cmd.batch
                 [ Cmd.map SharedMsg newCmd
-                , Route.pushUrl sharedModel newRoute
+                , Route.pushUrl sharedModel.viewContext newRoute
                 ]
             )
 
@@ -1527,7 +1543,7 @@ processProjectSpecificMsg outerModel project msg =
         ReceiveCreateVolume ->
             {- Should we add new volume to model now? -}
             ( outerModel
-            , Route.pushUrl sharedModel (Route.ProjectRoute project.auth.project.uuid Route.VolumeList)
+            , Route.pushUrl sharedModel.viewContext (Route.ProjectRoute project.auth.project.uuid Route.VolumeList)
             )
 
         ReceiveVolumes volumes ->
@@ -1621,12 +1637,12 @@ processProjectSpecificMsg outerModel project msg =
 
         ReceiveAttachVolume attachment ->
             ( outerModel
-            , Route.pushUrl sharedModel (Route.ProjectRoute project.auth.project.uuid <| Route.VolumeMountInstructions attachment)
+            , Route.pushUrl sharedModel.viewContext (Route.ProjectRoute project.auth.project.uuid <| Route.VolumeMountInstructions attachment)
             )
 
         ReceiveDetachVolume ->
             ( outerModel
-            , Route.pushUrl sharedModel (Route.ProjectRoute project.auth.project.uuid Route.VolumeList)
+            , Route.pushUrl sharedModel.viewContext (Route.ProjectRoute project.auth.project.uuid Route.VolumeList)
             )
 
         ReceiveAppCredential appCredential ->
@@ -1695,7 +1711,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
             ( outerModel
             , Cmd.batch
                 [ Cmd.map SharedMsg createImageCmd
-                , Route.pushUrl sharedModel newRoute
+                , Route.pushUrl sharedModel.viewContext newRoute
                 ]
             )
 
@@ -1749,7 +1765,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
             , case outerModel.viewState of
                 ProjectView projectId _ (ServerDetail pageModel) ->
                     if pageModel.serverUuid == server.osProps.uuid then
-                        Route.pushUrl sharedModel (Route.ProjectRoute projectId Route.AllResourcesList)
+                        Route.pushUrl sharedModel.viewContext (Route.ProjectRoute projectId Route.AllResourcesList)
 
                     else
                         Cmd.none
@@ -2223,7 +2239,7 @@ createProject outerModel authToken endpoints =
                     Cmd.none
 
                 _ ->
-                    Route.pushUrl sharedModel <|
+                    Route.pushUrl sharedModel.viewContext <|
                         Route.ProjectRoute newProject.auth.project.uuid Route.AllResourcesList
 
         ( newSharedModel, newCmd ) =

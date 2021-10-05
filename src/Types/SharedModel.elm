@@ -1,8 +1,6 @@
 module Types.SharedModel exposing (LogMessage, SharedModel, Style)
 
-import Browser.Navigation
 import Color
-import Dict
 import Style.Types
 import Time
 import Toasty
@@ -10,13 +8,11 @@ import Types.Error exposing (ErrorContext, Toast)
 import Types.HelperTypes as HelperTypes
 import Types.Project exposing (Project)
 import UUID
+import View.Types
 
 
 type alias SharedModel =
     { logMessages : List LogMessage
-    , urlPathPrefix : Maybe String
-    , navigationKey : Browser.Navigation.Key
-    , windowSize : HelperTypes.WindowSize
     , unscopedProviders : List HelperTypes.UnscopedProvider
     , projects : List Project
     , toasties : Toasty.Stack Toast
@@ -28,10 +24,9 @@ type alias SharedModel =
     , style : Style
     , openIdConnectLoginConfig :
         Maybe HelperTypes.OpenIdConnectLoginConfig
-    , cloudSpecificConfigs : Dict.Dict HelperTypes.KeystoneHostname HelperTypes.CloudSpecificConfig
     , instanceConfigMgtRepoUrl : HelperTypes.Url
     , instanceConfigMgtRepoCheckout : String
-    , experimentalFeaturesEnabled : Bool
+    , viewContext : View.Types.Context
     }
 
 
@@ -46,7 +41,6 @@ type alias Style =
     , aboutAppMarkdown : Maybe String
     , supportInfoMarkdown : Maybe String
     , userSupportEmail : String
-    , localization : HelperTypes.Localization
     }
 
 

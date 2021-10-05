@@ -96,7 +96,7 @@ view context sharedModel model =
                     , Input.option True (Element.text "Enabled")
                     ]
                 , selected =
-                    Just sharedModel.experimentalFeaturesEnabled
+                    Just sharedModel.viewContext.experimentalFeaturesEnabled
                 , label =
                     Input.labelAbove VH.heading4
                         (Element.el
