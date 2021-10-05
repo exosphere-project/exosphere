@@ -31,10 +31,7 @@ update msg sharedModel model =
     case msg of
         GotShowDebugMsgs new ->
             ( { model | showDebugMsgs = new }
-            , Route.replaceUrl
-                sharedModel.navigationKey
-                sharedModel.urlPathPrefix
-                (Route.MessageLog new)
+            , Route.replaceUrl sharedModel (Route.MessageLog new)
             , SharedMsg.NoOp
             )
 

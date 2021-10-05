@@ -39,14 +39,9 @@ update msg sharedModel project model =
                     { model | imageName = imageName }
             in
             ( newModel
-            , Route.replaceUrl
-                sharedModel.navigationKey
-                sharedModel.urlPathPrefix
-                (Route.ProjectRoute project.auth.project.uuid
-                    (Route.ServerCreateImage newModel.serverUuid
-                        (Just newModel.imageName)
-                    )
-                )
+            , Route.replaceUrl sharedModel <|
+                Route.ProjectRoute project.auth.project.uuid <|
+                    Route.ServerCreateImage newModel.serverUuid (Just newModel.imageName)
             , SharedMsg.NoOp
             )
 

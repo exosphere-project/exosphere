@@ -634,10 +634,7 @@ processSharedMsg sharedMsg outerModel =
 
                         _ ->
                             ( newOuterModel
-                            , Route.pushUrl
-                                sharedModel.navigationKey
-                                sharedModel.urlPathPrefix
-                                (Route.SelectProjects keystoneUrl)
+                            , Route.pushUrl sharedModel (Route.SelectProjects keystoneUrl)
                             )
 
                 Nothing ->
@@ -677,27 +674,18 @@ processSharedMsg sharedMsg outerModel =
                         newViewStateCmd =
                             case List.head newUnscopedProviders of
                                 Just unscopedProvider ->
-                                    Route.pushUrl
-                                        sharedModel.navigationKey
-                                        sharedModel.urlPathPrefix
-                                        (Route.SelectProjects unscopedProvider.authUrl)
+                                    Route.pushUrl sharedModel (Route.SelectProjects unscopedProvider.authUrl)
 
                                 Nothing ->
                                     -- If we have at least one project then show it, else show the login page
                                     case List.head sharedModel.projects of
                                         Just project ->
-                                            Route.pushUrl
-                                                sharedModel.navigationKey
-                                                sharedModel.urlPathPrefix
-                                            <|
+                                            Route.pushUrl sharedModel <|
                                                 Route.ProjectRoute project.auth.project.uuid <|
                                                     Route.AllResourcesList
 
                                         Nothing ->
-                                            Route.pushUrl
-                                                sharedModel.navigationKey
-                                                sharedModel.urlPathPrefix
-                                                Route.LoginPicker
+                                            Route.pushUrl sharedModel Route.LoginPicker
 
                         sharedModelUpdatedUnscopedProviders =
                             { sharedModel | unscopedProviders = newUnscopedProviders }
@@ -988,7 +976,7 @@ processProjectSpecificMsg outerModel project msg =
                                 Nothing ->
                                     Route.LoginPicker
                     in
-                    ( newOuterModel, Route.pushUrl sharedModel.navigationKey sharedModel.urlPathPrefix route )
+                    ( newOuterModel, Route.pushUrl sharedModel route )
 
         ServerMsg serverUuid serverMsgConstructor ->
             case GetterSetters.serverLookup project serverUuid of
@@ -1116,9 +1104,7 @@ processProjectSpecificMsg outerModel project msg =
         RequestAssignFloatingIp port_ floatingIpUuid ->
             let
                 setViewCmd =
-                    Route.pushUrl
-                        sharedModel.navigationKey
-                        sharedModel.urlPathPrefix
+                    Route.pushUrl sharedModel
                         (Route.ProjectRoute project.auth.project.uuid <| Route.FloatingIpList)
             in
             ( outerModel
@@ -1317,9 +1303,7 @@ processProjectSpecificMsg outerModel project msg =
                     GetterSetters.modelUpdateProject sharedModel newProject
             in
             ( { outerModel | sharedModel = newSharedModel }
-            , Route.pushUrl sharedModel.navigationKey
-                sharedModel.urlPathPrefix
-                (Route.ProjectRoute newProject.auth.project.uuid <| Route.KeypairList)
+            , Route.pushUrl sharedModel (Route.ProjectRoute newProject.auth.project.uuid Route.KeypairList)
             )
 
         RequestDeleteKeypair keypairId ->
@@ -1373,7 +1357,7 @@ processProjectSpecificMsg outerModel project msg =
             ( { outerModel | sharedModel = newSharedModel }
             , Cmd.batch
                 [ Cmd.map SharedMsg newCmd
-                , Route.pushUrl sharedModel.navigationKey sharedModel.urlPathPrefix newRoute
+                , Route.pushUrl sharedModel newRoute
                 ]
             )
 
@@ -1543,9 +1527,7 @@ processProjectSpecificMsg outerModel project msg =
         ReceiveCreateVolume ->
             {- Should we add new volume to model now? -}
             ( outerModel
-            , Route.pushUrl sharedModel.navigationKey
-                sharedModel.urlPathPrefix
-                (Route.ProjectRoute project.auth.project.uuid <| Route.VolumeList)
+            , Route.pushUrl sharedModel (Route.ProjectRoute project.auth.project.uuid Route.VolumeList)
             )
 
         ReceiveVolumes volumes ->
@@ -1639,17 +1621,12 @@ processProjectSpecificMsg outerModel project msg =
 
         ReceiveAttachVolume attachment ->
             ( outerModel
-            , Route.pushUrl sharedModel.navigationKey
-                sharedModel.urlPathPrefix
-                (Route.ProjectRoute project.auth.project.uuid <| Route.VolumeMountInstructions attachment)
+            , Route.pushUrl sharedModel (Route.ProjectRoute project.auth.project.uuid <| Route.VolumeMountInstructions attachment)
             )
 
         ReceiveDetachVolume ->
             ( outerModel
-            , Route.pushUrl
-                sharedModel.navigationKey
-                sharedModel.urlPathPrefix
-                (Route.ProjectRoute project.auth.project.uuid <| Route.VolumeList)
+            , Route.pushUrl sharedModel (Route.ProjectRoute project.auth.project.uuid Route.VolumeList)
             )
 
         ReceiveAppCredential appCredential ->
@@ -1718,7 +1695,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
             ( outerModel
             , Cmd.batch
                 [ Cmd.map SharedMsg createImageCmd
-                , Route.pushUrl sharedModel.navigationKey sharedModel.urlPathPrefix newRoute
+                , Route.pushUrl sharedModel newRoute
                 ]
             )
 
@@ -1772,10 +1749,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
             , case outerModel.viewState of
                 ProjectView projectId _ (ServerDetail pageModel) ->
                     if pageModel.serverUuid == server.osProps.uuid then
-                        Route.pushUrl
-                            sharedModel.navigationKey
-                            sharedModel.urlPathPrefix
-                            (Route.ProjectRoute projectId <| Route.AllResourcesList)
+                        Route.pushUrl sharedModel (Route.ProjectRoute projectId Route.AllResourcesList)
 
                     else
                         Cmd.none
@@ -2249,9 +2223,8 @@ createProject outerModel authToken endpoints =
                     Cmd.none
 
                 _ ->
-                    Route.pushUrl sharedModel.navigationKey sharedModel.urlPathPrefix <|
-                        Route.ProjectRoute newProject.auth.project.uuid <|
-                            Route.AllResourcesList
+                    Route.pushUrl sharedModel <|
+                        Route.ProjectRoute newProject.auth.project.uuid Route.AllResourcesList
 
         ( newSharedModel, newCmd ) =
             ( { sharedModel
