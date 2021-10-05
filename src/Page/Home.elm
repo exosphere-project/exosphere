@@ -36,7 +36,7 @@ init =
 
 
 update : Msg -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
-update msg model =
+update _ model =
     ( model, Cmd.none, SharedMsg.NoOp )
 
 
@@ -45,7 +45,7 @@ update msg model =
 
 
 view : View.Types.Context -> SharedModel -> Model -> Element.Element Msg
-view context sharedModel model =
+view context sharedModel _ =
     let
         uniqueKeystoneHostnames : List HelperTypes.KeystoneHostname
         uniqueKeystoneHostnames =
