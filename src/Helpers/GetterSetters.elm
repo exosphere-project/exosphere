@@ -145,7 +145,7 @@ getExternalNetwork : Project -> Maybe OSTypes.Network
 getExternalNetwork project =
     case project.networks.data of
         RDPP.DoHave networks _ ->
-            List.filter (\n -> n.isExternal) networks |> List.head
+            List.filter .isExternal networks |> List.head
 
         RDPP.DontHave ->
             Nothing
@@ -419,7 +419,7 @@ modelUpdateUnscopedProvider model newProvider =
             newProvider :: otherProviders
 
         newProvidersSorted =
-            List.sortBy (\p -> p.authUrl) newProviders
+            List.sortBy .authUrl newProviders
     in
     { model | unscopedProviders = newProvidersSorted }
 

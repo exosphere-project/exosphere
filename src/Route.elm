@@ -516,17 +516,13 @@ projectRouteParsers =
          s "servers" </> string </> s "image" <?> queryParser
         )
     , map
-        (\svrUuid ->
-            ServerDetail svrUuid
-        )
+        ServerDetail
         (s "servers" </> string)
     , map
         ServerList
         (s "servers")
     , map
-        (\volUuid ->
-            VolumeDetail volUuid
-        )
+        VolumeDetail
         (s "volumes" </> string)
     , map
         VolumeList
@@ -593,9 +589,7 @@ projectRouteParsers =
          s "attachvol" <?> queryParser
         )
     , map
-        (\attachment ->
-            VolumeMountInstructions attachment
-        )
+        VolumeMountInstructions
         (let
             queryParser =
                 Query.map3
