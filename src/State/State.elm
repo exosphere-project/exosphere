@@ -154,7 +154,7 @@ updateUnderlying outerMsg outerModel =
             ( { outerModel
                 | viewState = NonProjectView <| GetSupport newPageModel
               }
-            , Cmd.map (\msg -> GetSupportMsg msg) cmd
+            , Cmd.map GetSupportMsg cmd
             )
                 |> pipelineCmdOuterModelMsg
                     (processSharedMsg sharedMsg)
@@ -167,7 +167,7 @@ updateUnderlying outerMsg outerModel =
             ( { outerModel
                 | viewState = NonProjectView <| Home newPageModel
               }
-            , Cmd.map (\msg -> HomeMsg msg) cmd
+            , Cmd.map HomeMsg cmd
             )
                 |> pipelineCmdOuterModelMsg
                     (processSharedMsg sharedMsg)
@@ -180,7 +180,7 @@ updateUnderlying outerMsg outerModel =
             ( { outerModel
                 | viewState = NonProjectView <| Login <| LoginJetstream newPageModel
               }
-            , Cmd.map (\msg -> LoginJetstreamMsg msg) cmd
+            , Cmd.map LoginJetstreamMsg cmd
             )
                 |> pipelineCmdOuterModelMsg
                     (processSharedMsg sharedMsg)
@@ -193,7 +193,7 @@ updateUnderlying outerMsg outerModel =
             ( { outerModel
                 | viewState = NonProjectView <| Login <| LoginOpenstack newPageModel
               }
-            , Cmd.map (\msg -> LoginOpenstackMsg msg) cmd
+            , Cmd.map LoginOpenstackMsg cmd
             )
                 |> pipelineCmdOuterModelMsg
                     (processSharedMsg sharedMsg)
@@ -206,7 +206,7 @@ updateUnderlying outerMsg outerModel =
             ( { outerModel
                 | viewState = NonProjectView <| LoginPicker
               }
-            , Cmd.map (\msg -> LoginPickerMsg msg) cmd
+            , Cmd.map LoginPickerMsg cmd
             )
                 |> pipelineCmdOuterModelMsg
                     (processSharedMsg sharedMsg)
@@ -219,7 +219,7 @@ updateUnderlying outerMsg outerModel =
             ( { outerModel
                 | viewState = NonProjectView <| MessageLog newPageModel
               }
-            , Cmd.map (\msg -> MessageLogMsg msg) cmd
+            , Cmd.map MessageLogMsg cmd
             )
                 |> pipelineCmdOuterModelMsg
                     (processSharedMsg sharedMsg)
@@ -232,7 +232,7 @@ updateUnderlying outerMsg outerModel =
             ( { outerModel
                 | viewState = NonProjectView <| SelectProjects newPageModel
               }
-            , Cmd.map (\msg -> SelectProjectsMsg msg) cmd
+            , Cmd.map SelectProjectsMsg cmd
             )
                 |> pipelineCmdOuterModelMsg
                     (processSharedMsg sharedMsg)
@@ -245,7 +245,7 @@ updateUnderlying outerMsg outerModel =
             ( { outerModel
                 | viewState = NonProjectView <| Settings newPageModel
               }
-            , Cmd.map (\msg -> SettingsMsg msg) cmd
+            , Cmd.map SettingsMsg cmd
             )
                 |> pipelineCmdOuterModelMsg
                     (processSharedMsg sharedMsg)
@@ -266,7 +266,7 @@ updateUnderlying outerMsg outerModel =
                                     ProjectView projectId projectViewModel <|
                                         AllResourcesList newSharedModel
                               }
-                            , Cmd.map (\msg -> AllResourcesListMsg msg) cmd
+                            , Cmd.map AllResourcesListMsg cmd
                             )
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
@@ -281,7 +281,7 @@ updateUnderlying outerMsg outerModel =
                                     ProjectView projectId projectViewModel <|
                                         FloatingIpAssign newSharedModel
                               }
-                            , Cmd.map (\msg -> FloatingIpAssignMsg msg) cmd
+                            , Cmd.map FloatingIpAssignMsg cmd
                             )
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
@@ -296,7 +296,7 @@ updateUnderlying outerMsg outerModel =
                                     ProjectView projectId projectViewModel <|
                                         FloatingIpList newSharedModel
                               }
-                            , Cmd.map (\msg -> FloatingIpListMsg msg) cmd
+                            , Cmd.map FloatingIpListMsg cmd
                             )
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
@@ -311,7 +311,7 @@ updateUnderlying outerMsg outerModel =
                                     ProjectView projectId projectViewModel <|
                                         InstanceSourcePicker newSharedModel
                               }
-                            , Cmd.map (\msg -> InstanceSourcePickerMsg msg) cmd
+                            , Cmd.map InstanceSourcePickerMsg cmd
                             )
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
@@ -326,7 +326,7 @@ updateUnderlying outerMsg outerModel =
                                     ProjectView projectId projectViewModel <|
                                         KeypairCreate newSharedModel
                               }
-                            , Cmd.map (\msg -> KeypairCreateMsg msg) cmd
+                            , Cmd.map KeypairCreateMsg cmd
                             )
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
@@ -341,7 +341,7 @@ updateUnderlying outerMsg outerModel =
                                     ProjectView projectId projectViewModel <|
                                         KeypairList newSharedModel
                               }
-                            , Cmd.map (\msg -> KeypairListMsg msg) cmd
+                            , Cmd.map KeypairListMsg cmd
                             )
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
@@ -356,7 +356,7 @@ updateUnderlying outerMsg outerModel =
                                     ProjectView projectId projectViewModel <|
                                         ServerCreate newSharedModel
                               }
-                            , Cmd.map (\msg -> ServerCreateMsg msg) cmd
+                            , Cmd.map ServerCreateMsg cmd
                             )
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
@@ -371,7 +371,7 @@ updateUnderlying outerMsg outerModel =
                                     ProjectView projectId projectViewModel <|
                                         ServerCreateImage newSharedModel
                               }
-                            , Cmd.map (\msg -> ServerCreateImageMsg msg) cmd
+                            , Cmd.map ServerCreateImageMsg cmd
                             )
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
@@ -386,7 +386,7 @@ updateUnderlying outerMsg outerModel =
                                     ProjectView projectId projectViewModel <|
                                         ServerDetail newSharedModel
                               }
-                            , Cmd.map (\msg -> ServerDetailMsg msg) cmd
+                            , Cmd.map ServerDetailMsg cmd
                             )
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
@@ -401,7 +401,7 @@ updateUnderlying outerMsg outerModel =
                                     ProjectView projectId projectViewModel <|
                                         ServerList newSharedModel
                               }
-                            , Cmd.map (\msg -> ServerListMsg msg) cmd
+                            , Cmd.map ServerListMsg cmd
                             )
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
@@ -416,7 +416,7 @@ updateUnderlying outerMsg outerModel =
                                     ProjectView projectId projectViewModel <|
                                         VolumeAttach newSharedModel
                               }
-                            , Cmd.map (\msg -> VolumeAttachMsg msg) cmd
+                            , Cmd.map VolumeAttachMsg cmd
                             )
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
@@ -431,7 +431,7 @@ updateUnderlying outerMsg outerModel =
                                     ProjectView projectId projectViewModel <|
                                         VolumeCreate newSharedModel
                               }
-                            , Cmd.map (\msg -> VolumeCreateMsg msg) cmd
+                            , Cmd.map VolumeCreateMsg cmd
                             )
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
@@ -446,7 +446,7 @@ updateUnderlying outerMsg outerModel =
                                     ProjectView projectId projectViewModel <|
                                         VolumeDetail newSharedModel
                               }
-                            , Cmd.map (\msg -> VolumeDetailMsg msg) cmd
+                            , Cmd.map VolumeDetailMsg cmd
                             )
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
@@ -461,7 +461,7 @@ updateUnderlying outerMsg outerModel =
                                     ProjectView projectId projectViewModel <|
                                         VolumeList newSharedModel
                               }
-                            , Cmd.map (\msg -> VolumeListMsg msg) cmd
+                            , Cmd.map VolumeListMsg cmd
                             )
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
@@ -802,7 +802,7 @@ processTick outerModel interval time =
 
         viewIndependentCmd =
             if interval == 5 then
-                Task.perform (\posix -> DoOrchestration posix) Time.now
+                Task.perform DoOrchestration Time.now
 
             else
                 Cmd.none
