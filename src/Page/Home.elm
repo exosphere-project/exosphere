@@ -189,28 +189,25 @@ renderProject context project =
         , label =
             Widget.column
                 (SH.materialStyle context.palette).cardColumn
-                [ Element.column
-                    [ Element.centerX
-                    , Element.paddingXY 10 15
-                    , Element.spacing 15
+                [ Element.el
+                    [ Element.padding 10
+                    , Element.centerX
+                    , Font.bold
                     ]
                   <|
-                    [ Element.el
-                        [ Element.centerX
-                        , Font.bold
-                        ]
-                      <|
-                        Element.text <|
+                    Element.paragraph []
+                        [ Element.text <|
                             String.join " "
                                 [ context.localization.unitOfTenancy
                                     |> Helpers.String.toTitleCase
                                 , project.auth.project.name
                                 ]
-                    ]
+                        ]
                 , Element.column
                     [ Element.padding 10
                     , Element.spacing 10
                     , Element.centerX
+                    , Element.height (Element.px 120)
                     ]
                     [ cardBody
                     ]
