@@ -71,14 +71,10 @@ projectLookup model projectIdentifier =
 
 
 projectsForCloud : SharedModel -> HelperTypes.KeystoneHostname -> List Project
-projectsForCloud sharedModel keystoneHostname =
-    let
-        projectMatches : Project -> Bool
-        projectMatches project =
-            UrlHelpers.hostnameFromUrl project.endpoints.keystone == keystoneHostname
-    in
-    sharedModel.projects
-        |> List.filter projectMatches
+projectsForCloud { projects } keystoneHostname =
+    List.filter
+        (.endpoints >> .keystone >> UrlHelpers.hostnameFromUrl >> (==) keystoneHostname)
+        projects
 
 
 flavorLookup : Project -> OSTypes.FlavorUuid -> Maybe OSTypes.Flavor
