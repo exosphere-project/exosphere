@@ -20,6 +20,7 @@ import Page.AllResourcesList
 import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.GetSupport
+import Page.Home
 import Page.InstanceSourcePicker
 import Page.KeypairCreate
 import Page.KeypairList
@@ -154,6 +155,19 @@ updateUnderlying outerMsg outerModel =
                 | viewState = NonProjectView <| GetSupport newPageModel
               }
             , Cmd.map (\msg -> GetSupportMsg msg) cmd
+            )
+                |> pipelineCmdOuterModelMsg
+                    (processSharedMsg sharedMsg)
+
+        ( HomeMsg pageMsg, NonProjectView (Home pageModel) ) ->
+            let
+                ( newPageModel, cmd, sharedMsg ) =
+                    Page.Home.update pageMsg pageModel
+            in
+            ( { outerModel
+                | viewState = NonProjectView <| Home newPageModel
+              }
+            , Cmd.map (\msg -> HomeMsg msg) cmd
             )
                 |> pipelineCmdOuterModelMsg
                     (processSharedMsg sharedMsg)
@@ -2253,6 +2267,8 @@ createProject outerModel authToken endpoints =
                 |> List.map (\x -> x newProject)
                 |> Cmd.batch
             )
+                |> Helpers.pipelineCmd
+                    (ApiModelHelpers.requestVolumes newProject.auth.project.uuid)
                 |> Helpers.pipelineCmd
                     (ApiModelHelpers.requestFloatingIps newProject.auth.project.uuid)
                 |> Helpers.pipelineCmd

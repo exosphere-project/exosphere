@@ -15,6 +15,7 @@ import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.GetSupport
 import Page.HelpAbout
+import Page.Home
 import Page.InstanceSourcePicker
 import Page.KeypairCreate
 import Page.KeypairList
@@ -103,6 +104,10 @@ elementView windowSize outerModel context =
 
                             HelpAbout ->
                                 Page.HelpAbout.view outerModel.sharedModel context
+
+                            Home pageModel ->
+                                Page.Home.view context outerModel.sharedModel pageModel
+                                    |> Element.map HomeMsg
 
                             LoadingUnscopedProjects _ ->
                                 -- TODO put a fidget spinner here

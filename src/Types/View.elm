@@ -10,6 +10,7 @@ import Page.AllResourcesList
 import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.GetSupport
+import Page.Home
 import Page.InstanceSourcePicker
 import Page.KeypairCreate
 import Page.KeypairList
@@ -37,8 +38,11 @@ type ViewState
     | ProjectView HelperTypes.ProjectIdentifier { createPopup : Bool } ProjectViewConstructor
 
 
-type NonProjectViewConstructor
-    = LoginPicker
+type
+    NonProjectViewConstructor
+    -- TODO these should be in alphabetic order
+    = Home Page.Home.Model
+    | LoginPicker
     | Login LoginView
     | LoadingUnscopedProjects OSTypes.AuthTokenString
     | SelectProjects Page.SelectProjects.Model

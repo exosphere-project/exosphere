@@ -25,6 +25,9 @@ pageTitle outerModel =
                 HelpAbout ->
                     "About " ++ outerModel.sharedModel.style.appTitle
 
+                Home _ ->
+                    "Exosphere"
+
                 LoadingUnscopedProjects _ ->
                     String.join " "
                         [ "Loading"

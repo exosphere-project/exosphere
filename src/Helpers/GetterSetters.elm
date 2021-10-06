@@ -22,8 +22,10 @@ module Helpers.GetterSetters exposing
     , projectSetPortsLoading
     , projectSetServerLoading
     , projectSetServersLoading
+    , projectSetVolumesLoading
     , projectUpdateKeypair
     , projectUpdateServer
+    , projectsForCloud
     , providerLookup
     , serverLookup
     , serverPresentNotDeleting
@@ -67,6 +69,13 @@ projectLookup model projectIdentifier =
     model.projects
         |> List.filter (\p -> p.auth.project.uuid == projectIdentifier)
         |> List.head
+
+
+projectsForCloud : SharedModel -> HelperTypes.KeystoneHostname -> List Project
+projectsForCloud { projects } keystoneHostname =
+    List.filter
+        (.endpoints >> .keystone >> UrlHelpers.hostnameFromUrl >> (==) keystoneHostname)
+        projects
 
 
 flavorLookup : Project -> OSTypes.FlavorUuid -> Maybe OSTypes.Flavor
@@ -371,6 +380,11 @@ projectSetServerLoading project serverUuid =
                     { server | exoProps = newExoProps }
             in
             projectUpdateServer project newServer
+
+
+projectSetVolumesLoading : Project -> Project
+projectSetVolumesLoading project =
+    { project | volumes = RemoteData.Loading }
 
 
 projectSetNetworksLoading : Project -> Project

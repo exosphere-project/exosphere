@@ -114,7 +114,9 @@ type alias MetadataFilter =
 
 
 type alias CloudSpecificConfig =
-    { userAppProxy : Maybe UserAppProxyHostname
+    { friendlyName : String
+    , friendlySubName : Maybe String
+    , userAppProxy : Maybe UserAppProxyHostname
     , imageExcludeFilter : Maybe MetadataFilter
     , featuredImageNamePrefix : Maybe String
     , operatingSystemChoices : List OperatingSystemChoice

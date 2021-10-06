@@ -1,6 +1,5 @@
 module State.ViewState exposing
-    ( defaultLoginPage
-    , navigateToPage
+    ( navigateToPage
     , viewStateToSupportableItem
     )
 
@@ -14,6 +13,7 @@ import Page.AllResourcesList
 import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.GetSupport
+import Page.Home
 import Page.InstanceSourcePicker
 import Page.KeypairCreate
 import Page.KeypairList
@@ -53,7 +53,7 @@ navigateToPage : Url.Url -> OuterModel -> ( OuterModel, Cmd OuterMsg )
 navigateToPage url outerModel =
     let
         route =
-            Route.fromUrl outerModel.sharedModel.viewContext.urlPathPrefix (defaultRoute outerModel.sharedModel) url
+            Route.fromUrl outerModel.sharedModel.viewContext.urlPathPrefix Route.defaultRoute url
 
         ( newViewState, pageSpecificSharedModel, pageSpecificCmd ) =
             routeToViewStateModelCmd outerModel.sharedModel route
@@ -81,6 +81,10 @@ navigateToPage url outerModel =
     )
 
 
+
+-- TODO consider viewStateToRoute to help with generating the breadcrumb
+
+
 routeToViewStateModelCmd : SharedModel -> Route.Route -> ( ViewState, SharedModel, Cmd SharedMsg )
 routeToViewStateModelCmd sharedModel route =
     case route of
@@ -94,6 +98,12 @@ routeToViewStateModelCmd sharedModel route =
             ( NonProjectView <| HelpAbout
             , sharedModel
             , Ports.instantiateClipboardJs ()
+            )
+
+        Route.Home ->
+            ( NonProjectView <| Home Page.Home.init
+            , sharedModel
+            , Cmd.none
             )
 
         Route.LoadingUnscopedProjects authTokenString ->
@@ -370,33 +380,6 @@ routeToViewStateModelCmd sharedModel route =
             , sharedModel
             , Cmd.none
             )
-
-
-defaultRoute : SharedModel -> Route.Route
-defaultRoute sharedModel =
-    case sharedModel.projects of
-        [] ->
-            defaultLoginPage sharedModel.style.defaultLoginView
-
-        firstProject :: _ ->
-            Route.ProjectRoute
-                firstProject.auth.project.uuid
-                Route.AllResourcesList
-
-
-defaultLoginPage : Maybe DefaultLoginView -> Route.Route
-defaultLoginPage maybeDefaultLoginView =
-    case maybeDefaultLoginView of
-        Nothing ->
-            Route.LoginPicker
-
-        Just defaultLoginView ->
-            case defaultLoginView of
-                DefaultLoginOpenstack ->
-                    Route.LoginOpenstack Nothing
-
-                DefaultLoginJetstream ->
-                    Route.LoginJetstream Nothing
 
 
 viewStateToSupportableItem :

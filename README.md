@@ -233,6 +233,8 @@ By default, the `clouds` flag is imported from `cloud_configs.js`. As a deployer
 Each of these JSON objects contains the following properties:
 
 - `keystoneHostname` (string): Used to look up the custom configuration for a cloud, e.g. `openstack.example.cloud`
+- `friendlyName` (string): Name of cloud to display to user
+- `friendlySubName` (null, string): Optional name of cloud location, region, etc.
 - `userAppProxy` (null, string): The hostname of the User Application proxy (UAP), e.g. `uap.openstack.example.cloud`. See `docs/user-app-proxy.md` for more information. This _must_ be set for Guacamole support (in-browser shell and desktop) to work on a given cloud.
 - `imageExcludeFilter` (null, JSON object): A key:value property to exclude images from UI, see example below
 - `featuredImageNamePrefix` (null, string): A (public) image is 'featured' if the name starts with this string
@@ -243,6 +245,8 @@ var cloud_configs = {
   "clouds":[
     {
       "keystoneHostname":"openstack.example.cloud",
+      "friendlyName":"My Example Cloud 1",
+      "friendlySubName":null,
       "userAppProxy":"uap.openstack.example.cloud",
       "imageExcludeFilter":null,
       "featuredImageNamePrefix":null,
@@ -252,6 +256,8 @@ var cloud_configs = {
     },
     {
       "keystoneHostname":"iu.jetstream-cloud.org",
+      "friendlyName":"Jetstream Cloud",      
+      "friendlySubName":"Indiana University",
       "userAppProxy":"proxy-j7m-iu.exosphere.app",
       "imageExcludeFilter":{
         "filterKey":"atmo_image_include",

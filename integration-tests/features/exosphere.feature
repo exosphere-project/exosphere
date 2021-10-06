@@ -4,7 +4,9 @@ Feature: Text presence
     Scenario: Adding a Jetstream cloud account
         Given a browser
         When I go to Exosphere
-        Then I should see "Choose a Login Method" within 60 seconds
+        Then I should see "Add project" within 60 seconds
+        When I click the "Add project" button
+        Then I should see "Add Jetstream Account" within 60 seconds
         When I click the "Add Jetstream Account" button
         Then I should see "Add a Jetstream Cloud Account" within 15 seconds
         When I enter TACC credentials
@@ -21,6 +23,8 @@ Feature: Text presence
     Scenario: Launch an instance
         Given a browser
         When I go to Exosphere
+        Then I should see "Add project" within 60 seconds
+        When I click the "Add project" button
         Then I should see "Choose a Login Method" within 60 seconds
         When I add a Jetstream Cloud Account for allocation "TG-INI210003"
         Then I should see "iu.jetstream-cloud.org - TG-INI210003" within 15 seconds
@@ -59,6 +63,8 @@ Feature: Text presence
     Scenario: Delete instance
         Given a browser
         When I go to Exosphere
+        Then I should see "Add project" within 60 seconds
+        When I click the "Add project" button
         Then I should see "Choose a Login Method" within 60 seconds
         When I add a Jetstream Cloud Account for allocation "TG-INI210003"
         Then I should see "iu.jetstream-cloud.org - TG-INI210003" within 15 seconds

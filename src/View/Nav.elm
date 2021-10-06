@@ -77,7 +77,10 @@ navMenu outerModel context =
                             MenuItem.Inactive
 
                 destUrl =
-                    Route.toUrl context.urlPathPrefix (State.ViewState.defaultLoginPage outerModel.sharedModel.style.defaultLoginView)
+                    Route.toUrl context.urlPathPrefix
+                        (Route.defaultLoginPage
+                            outerModel.sharedModel.style.defaultLoginView
+                        )
             in
             MenuItem.menuItem context.palette
                 active
@@ -117,6 +120,7 @@ navBar outerModel context =
                 [ Element.padding 5
                 , Element.spacing 20
                 ]
+                -- TODO clicking here should take user to home page
                 [ Element.image [ Element.height (Element.px 50) ] { src = outerModel.sharedModel.style.logo, description = "" }
                 , if outerModel.sharedModel.style.topBarShowAppTitle then
                     Element.el
