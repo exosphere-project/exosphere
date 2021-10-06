@@ -56,7 +56,7 @@ Feature: Text presence
         And I should see an element with xpath "//div[contains(string(),'Building')]" within 10 seconds
         # Now we wait for the instance to become ready...
         Then I should see an element with xpath "//div[contains(string(),'Running Setup')]" within 500 seconds
-        Then I should see an element with xpath "//div[contains(string(),'Ready')]" within 300 seconds
+        Then I should see an element with xpath "//div[contains(string(),'Ready')]" within 600 seconds
 
 
     @delete
