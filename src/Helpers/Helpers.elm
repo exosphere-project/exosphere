@@ -83,7 +83,7 @@ stringIsUuidOrDefault str =
 
                 isValidHex : Char -> Bool
                 isValidHex c =
-                    String.any (\h -> c == h) "0123456789abcdef"
+                    String.any (\h -> c == h) "0123456789abcdefABCDEF"
 
                 isValidLength =
                     String.length strNoHyphens == 32
