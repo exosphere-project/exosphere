@@ -693,39 +693,32 @@ serverFromThisExoClient clientUuid server =
 serverNeedsFrequentPoll : Server -> Bool
 serverNeedsFrequentPoll server =
     case
-        ( server.exoProps.deletionAttempted
-        , server.exoProps.targetOpenstackStatus
-        , server.exoProps.serverOrigin
+        ( server.osProps.details.openstackStatus
+        , ( server.exoProps.deletionAttempted
+          , server.exoProps.targetOpenstackStatus
+          , server.exoProps.serverOrigin
+          )
         )
     of
-        ( False, Nothing, ServerNotFromExo ) ->
-            case server.osProps.details.openstackStatus of
-                OSTypes.ServerBuilding ->
+        ( OSTypes.ServerBuilding, _ ) ->
+            True
+
+        ( _, ( False, Nothing, ServerNotFromExo ) ) ->
+            False
+
+        ( _, ( False, Nothing, ServerFromExo { exoSetupStatus } ) ) ->
+            case exoSetupStatus.data of
+                RDPP.DoHave ExoSetupWaiting _ ->
                     True
 
-                _ ->
+                RDPP.DoHave ExoSetupRunning _ ->
+                    True
+
+                RDPP.DoHave _ _ ->
                     False
 
-        ( False, Nothing, ServerFromExo exoOriginProps ) ->
-            case server.osProps.details.openstackStatus of
-                OSTypes.ServerBuilding ->
+                RDPP.DontHave ->
                     True
-
-                _ ->
-                    case exoOriginProps.exoSetupStatus.data of
-                        RDPP.DoHave exoSetupStatus _ ->
-                            case exoSetupStatus of
-                                ExoSetupWaiting ->
-                                    True
-
-                                ExoSetupRunning ->
-                                    True
-
-                                _ ->
-                                    False
-
-                        RDPP.DontHave ->
-                            True
 
         _ ->
             True
