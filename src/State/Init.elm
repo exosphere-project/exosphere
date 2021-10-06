@@ -219,6 +219,7 @@ init flags urlKey =
                 applyRequestsToProject projectId model =
                     ( model, otherCmds )
                         |> Helpers.pipelineCmd (ApiModelHelpers.requestServers projectId)
+                        |> Helpers.pipelineCmd (ApiModelHelpers.requestVolumes projectId)
                         |> Helpers.pipelineCmd (ApiModelHelpers.requestFloatingIps projectId)
                         |> Helpers.pipelineCmd (ApiModelHelpers.requestPorts projectId)
             in

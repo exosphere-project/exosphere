@@ -2268,6 +2268,8 @@ createProject outerModel authToken endpoints =
                 |> Cmd.batch
             )
                 |> Helpers.pipelineCmd
+                    (ApiModelHelpers.requestVolumes newProject.auth.project.uuid)
+                |> Helpers.pipelineCmd
                     (ApiModelHelpers.requestFloatingIps newProject.auth.project.uuid)
                 |> Helpers.pipelineCmd
                     (ApiModelHelpers.requestPorts newProject.auth.project.uuid)

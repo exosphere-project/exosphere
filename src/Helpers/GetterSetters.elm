@@ -22,6 +22,7 @@ module Helpers.GetterSetters exposing
     , projectSetPortsLoading
     , projectSetServerLoading
     , projectSetServersLoading
+    , projectSetVolumesLoading
     , projectUpdateKeypair
     , projectUpdateServer
     , projectsForCloud
@@ -379,6 +380,11 @@ projectSetServerLoading project serverUuid =
                     { server | exoProps = newExoProps }
             in
             projectUpdateServer project newServer
+
+
+projectSetVolumesLoading : Project -> Project
+projectSetVolumesLoading project =
+    { project | volumes = RemoteData.Loading }
 
 
 projectSetNetworksLoading : Project -> Project

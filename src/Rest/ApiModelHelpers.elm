@@ -7,11 +7,13 @@ module Rest.ApiModelHelpers exposing
     , requestServer
     , requestServers
     , requestVolumeQuota
+    , requestVolumes
     )
 
 import Helpers.GetterSetters as GetterSetters
 import OpenStack.Quotas
 import OpenStack.Types as OSTypes
+import OpenStack.Volumes
 import RemoteData
 import Rest.Neutron
 import Rest.Nova
@@ -46,6 +48,20 @@ requestServer projectUuid serverUuid model =
                 |> (\p -> GetterSetters.projectSetServerLoading p serverUuid)
                 |> GetterSetters.modelUpdateProject model
             , Rest.Nova.requestServer project serverUuid
+            )
+
+        Nothing ->
+            ( model, Cmd.none )
+
+
+requestVolumes : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd SharedMsg )
+requestVolumes projectUuid model =
+    case GetterSetters.projectLookup model projectUuid of
+        Just project ->
+            ( project
+                |> GetterSetters.projectSetVolumesLoading
+                |> GetterSetters.modelUpdateProject model
+            , OpenStack.Volumes.requestVolumes project
             )
 
         Nothing ->
