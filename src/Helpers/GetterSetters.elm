@@ -36,6 +36,7 @@ module Helpers.GetterSetters exposing
     )
 
 import Dict
+import Helpers.List exposing (multiSortBy)
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.Url as UrlHelpers
 import OpenStack.Types as OSTypes
@@ -234,12 +235,8 @@ getServerExouserPassword serverDetails =
 
 
 sortedFlavors : List OSTypes.Flavor -> List OSTypes.Flavor
-sortedFlavors flavors =
-    flavors
-        |> List.sortBy .disk_ephemeral
-        |> List.sortBy .disk_root
-        |> List.sortBy .ram_mb
-        |> List.sortBy .vcpu
+sortedFlavors =
+    multiSortBy [ .vcpu, .ram_mb, .disk_root, .disk_ephemeral ]
 
 
 getVolsAttachedToServer : Project -> Server -> List OSTypes.Volume
@@ -291,9 +288,11 @@ modelUpdateProject model newProject =
             newProject :: otherProjects
 
         newProjectsSorted =
-            newProjects
-                |> List.sortBy (\p -> p.auth.project.name)
-                |> List.sortBy (\p -> UrlHelpers.hostnameFromUrl p.endpoints.keystone)
+            multiSortBy
+                [ \p -> UrlHelpers.hostnameFromUrl p.endpoints.keystone
+                , \p -> p.auth.project.name
+                ]
+                newProjects
     in
     { model | projects = newProjectsSorted }
 
