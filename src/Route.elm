@@ -452,26 +452,7 @@ pathParsers defaultRoute_ =
         )
         (s "selectprojs" <?> Query.string "keystoneurl")
     , map
-        (\maybeShowDebugMsgs ->
-            let
-                showDebugMsgs =
-                    case maybeShowDebugMsgs of
-                        Just str ->
-                            case str of
-                                "true" ->
-                                    True
-
-                                "false" ->
-                                    False
-
-                                _ ->
-                                    False
-
-                        Nothing ->
-                            False
-            in
-            MessageLog showDebugMsgs
-        )
+        (\maybeShowDebugMsgs -> MessageLog (maybeShowDebugMsgs == Just "true"))
         (s "msglog" <?> Query.string "showdebug")
     , map
         Settings
