@@ -36,6 +36,7 @@ if (isElectron) {
 
 var flags = {
     // Flags that Exosphere sets dynamically, not intended to be modified by deployer
+    localeGuessingString: new Intl.NumberFormat(navigator.language).format(Math.PI * -1000000),
     width: window.innerWidth,
     height: window.innerHeight,
     storedState: startingState,
@@ -43,8 +44,8 @@ var flags = {
     randomSeed1: randomSeeds[1],
     randomSeed2: randomSeeds[2],
     randomSeed3: randomSeeds[3],
-    epoch : Date.now(),
-    timeZone : d.getTimezoneOffset()
+    epoch: Date.now(),
+    timeZone: d.getTimezoneOffset()
 }
 
 const merged_config = Object.assign({}, cloud_configs, config);
@@ -60,12 +61,12 @@ app.ports.openNewWindow.subscribe(function (url) {
     window.open(url);
 });
 
-app.ports.setStorage.subscribe(function(state) {
-  localStorage.setItem('exosphere-save', JSON.stringify(state));
+app.ports.setStorage.subscribe(function (state) {
+    localStorage.setItem('exosphere-save', JSON.stringify(state));
 });
 
-app.ports.instantiateClipboardJs.subscribe(function() {
-  var clipboard = new ClipboardJS('.copy-button');
+app.ports.instantiateClipboardJs.subscribe(function () {
+    var clipboard = new ClipboardJS('.copy-button');
 });
 
 app.ports.setFavicon.subscribe(function (url) {
@@ -80,7 +81,7 @@ app.ports.setFavicon.subscribe(function (url) {
 });
 
 // Note that this only does anything if an Exosphere environment is deployed with Matomo analytics. By default, it has no effect.
-app.ports.pushUrlAndTitleToMatomo.subscribe(function(args) {
+app.ports.pushUrlAndTitleToMatomo.subscribe(function (args) {
     if (typeof _paq !== 'undefined') {
         // From https://developer.matomo.org/guides/spa-tracking
         var currentUrl = args.newUrl;

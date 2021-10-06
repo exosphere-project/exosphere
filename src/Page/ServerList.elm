@@ -4,6 +4,7 @@ import Element
 import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons
+import Helpers.Formatting exposing (humanCount)
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
@@ -458,7 +459,7 @@ onlyOwnExpander context model otherUsersServers =
             if model.onlyOwnServers then
                 String.concat
                     [ "Hiding "
-                    , String.fromInt numOtherUsersServers
+                    , humanCount context.locale numOtherUsersServers
                     , " "
                     , serversPluralization
                     , " created by "

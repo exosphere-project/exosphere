@@ -38,6 +38,7 @@ type alias Flags =
     , instanceConfigMgtRepoCheckout : Maybe String
 
     -- Flags that Exosphere sets dynamically
+    , localeGuessingString : String
     , width : Int
     , height : Int
     , storedState : Maybe Decode.Value

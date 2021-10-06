@@ -7,6 +7,9 @@ import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons
+import FormatNumber
+import FormatNumber.Locales exposing (Decimals(..))
+import Helpers.Formatting exposing (Unit(..), humanCount)
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
@@ -620,6 +623,9 @@ view context project model =
 flavorPicker : View.Types.Context -> Project -> Model -> OSTypes.ComputeQuota -> Element.Element Msg
 flavorPicker context project model computeQuota =
     let
+        { locale } =
+            context
+
         -- This is a kludge. Input.radio is intended to display a group of multiple radio buttons,
         -- but we want to embed a button in each table row, so we define several Input.radios,
         -- each containing just a single option.
@@ -672,11 +678,13 @@ flavorPicker context project model computeQuota =
               }
             , { header = Element.el headerAttribs (Element.text "CPUs")
               , width = Element.fill
-              , view = \r -> Element.el [ paddingRight, Font.alignRight ] (Element.text (String.fromInt r.vcpu))
+              , view = \r -> Element.el [ paddingRight, Font.alignRight ] (Element.text (humanCount locale r.vcpu))
               }
-            , { header = Element.el headerAttribs (Element.text "RAM (GB)")
+            , { header = Element.el headerAttribs (Element.text "RAM")
               , width = Element.fill
-              , view = \r -> Element.el [ paddingRight, Font.alignRight ] (Element.text (r.ram_mb // 1024 |> String.fromInt))
+              , view =
+                    \r ->
+                        Element.el [ paddingRight, Font.alignRight ] (Element.text (FormatNumber.format { locale | decimals = Exact 0 } (toFloat r.ram_mb / 1024) ++ " GB"))
               }
             , { header = Element.el headerAttribs (Element.text "Root Disk")
               , width = Element.fill
@@ -769,6 +777,9 @@ flavorPicker context project model computeQuota =
 volBackedPrompt : View.Types.Context -> Model -> OSTypes.VolumeQuota -> OSTypes.Flavor -> Element.Element Msg
 volBackedPrompt context model volumeQuota flavor =
     let
+        { locale } =
+            context
+
         ( volumeCountAvail, volumeSizeGbAvail ) =
             OSQuotas.volumeQuotaAvail volumeQuota
 
@@ -797,7 +808,7 @@ volBackedPrompt context model volumeQuota flavor =
 
             else
                 String.concat
-                    [ String.fromInt flavorRootDiskSize
+                    [ FormatNumber.format { locale | decimals = Exact 0 } (toFloat flavorRootDiskSize)
                     , " GB (default for selected "
                     , context.localization.virtualComputerHardwareConfig
                     , ")"
@@ -898,6 +909,9 @@ countPicker :
     -> Element.Element Msg
 countPicker context model computeQuota volumeQuota flavor =
     let
+        { locale } =
+            context
+
         countAvail =
             OSQuotas.overallQuotaAvailServers
                 (model.volSizeTextInput
@@ -923,7 +937,7 @@ countPicker context model computeQuota volumeQuota flavor =
                         [ "Your"
                         , context.localization.maxResourcesPerProject
                         , "supports up to"
-                        , String.fromInt countAvail_
+                        , humanCount locale countAvail_
                         , "of these."
                         ]
 
@@ -957,7 +971,7 @@ countPicker context model computeQuota volumeQuota flavor =
                 }
             , Element.el
                 [ Element.width Element.shrink ]
-                (Element.text <| String.fromInt model.count)
+                (Element.text (humanCount locale model.count))
             , case countAvail of
                 Just countAvail_ ->
                     if model.count == countAvail_ then
