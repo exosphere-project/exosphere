@@ -134,7 +134,6 @@ renderCloud context sharedModel keystoneHostname =
 
 renderProject : View.Types.Context -> Project -> Element.Element Msg
 renderProject context project =
-    -- TODO make entire card clickable
     let
         cardBody =
             let
