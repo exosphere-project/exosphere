@@ -443,48 +443,39 @@ newServerNetworkOptions project =
                     )
                 |> List.head
     in
-    -- Prefer auto-allocated network topology that we get/create
-    case project.autoAllocatedNetworkUuid.data of
-        RDPP.DoHave netUuid _ ->
+    case ( project.autoAllocatedNetworkUuid.data, project.autoAllocatedNetworkUuid.refreshStatus ) of
+        -- Prefer auto-allocated network topology that we get/create
+        ( RDPP.DoHave netUuid _, _ ) ->
             AutoSelectedNetwork netUuid
 
-        RDPP.DontHave ->
-            case project.autoAllocatedNetworkUuid.refreshStatus of
-                RDPP.Loading ->
-                    NetworksLoading
+        ( RDPP.DontHave, RDPP.Loading ) ->
+            NetworksLoading
 
-                RDPP.NotLoading maybeError ->
-                    case maybeError of
-                        Nothing ->
-                            -- We haven't gotten auto-allocated network yet, say "loading" anyway
-                            NetworksLoading
+        ( RDPP.DontHave, RDPP.NotLoading Nothing ) ->
+            -- We haven't gotten auto-allocated network yet, say "loading" anyway
+            NetworksLoading
 
-                        Just _ ->
-                            -- auto-allocation API call failed, so look through list of networks
-                            case
-                                projectNets
-                                    |> List.filter (\n -> n.name == "auto_allocated_network")
-                                    |> List.head
-                            of
-                                Just net ->
-                                    AutoSelectedNetwork net.uuid
+        ( RDPP.DontHave, RDPP.NotLoading (Just _) ) ->
+            -- auto-allocation API call failed, so look through list of networks
+            projectNets
+                |> List.filter (\n -> n.name == "auto_allocated_network")
+                |> List.head
+                |> Maybe.map (.uuid >> AutoSelectedNetwork)
+                |> Maybe.withDefault
+                    (maybeProjectNameNet
+                        |> Maybe.map (.uuid >> AutoSelectedNetwork)
+                        |> Maybe.withDefault
+                            (case ( project.networks.refreshStatus, projectNets ) of
+                                ( RDPP.Loading, _ ) ->
+                                    NetworksLoading
 
-                                Nothing ->
-                                    case maybeProjectNameNet of
-                                        Just projectNameNet ->
-                                            AutoSelectedNetwork projectNameNet.uuid
+                                ( RDPP.NotLoading _, [] ) ->
+                                    NoneAvailable
 
-                                        Nothing ->
-                                            case project.networks.refreshStatus of
-                                                RDPP.Loading ->
-                                                    NetworksLoading
-
-                                                RDPP.NotLoading _ ->
-                                                    if List.isEmpty projectNets then
-                                                        NoneAvailable
-
-                                                    else
-                                                        ManualNetworkSelection
+                                ( RDPP.NotLoading _, _ :: _ ) ->
+                                    ManualNetworkSelection
+                            )
+                    )
 
 
 isBootVol : Maybe OSTypes.ServerUuid -> OSTypes.Volume -> Bool
