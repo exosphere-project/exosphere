@@ -4,6 +4,7 @@ import Element
 import Element.Background as Background
 import Element.Font as Font
 import FeatherIcons
+import Helpers.Formatting exposing (humanCount)
 import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
@@ -349,7 +350,7 @@ ipsAssignedToResourcesExpander context model ipsAssignedToResources =
             if model.hideAssignedIps then
                 String.join " "
                     [ "Hiding"
-                    , String.fromInt numIpsAssignedToResources
+                    , humanCount context.locale numIpsAssignedToResources
                     , ipsPluralization
                     , "assigned to"
                     , resourcesPluralization

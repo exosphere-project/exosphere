@@ -4,6 +4,8 @@ import Element
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
+import FormatNumber.Locales exposing (Decimals(..))
+import Helpers.Formatting exposing (Unit(..), humanNumber)
 import Helpers.String
 import OpenStack.Types as OSTypes
 import RemoteData exposing (RemoteData(..), WebData)
@@ -31,16 +33,19 @@ view context resourceType =
             volumeQuotaDetails context quota
 
 
-infoItem : View.Types.Context -> { inUse : Int, limit : Maybe Int } -> ( String, String ) -> Element.Element msg
+infoItem : View.Types.Context -> { inUse : Int, limit : Maybe Int } -> ( String, Unit ) -> Element.Element msg
 infoItem context detail ( label, units ) =
     let
-        labelLimit m_ =
-            m_
-                |> Maybe.map labelUse
-                |> Maybe.withDefault "N/A"
+        { locale } =
+            context
 
-        labelUse i_ =
-            String.fromInt i_
+        ( usedCount, usedLabel ) =
+            humanNumber { locale | decimals = Exact 0 } units detail.inUse
+
+        ( limitCount, limitLabel ) =
+            detail.limit
+                |> Maybe.map (humanNumber { locale | decimals = Exact 0 } units)
+                |> Maybe.withDefault ( "", "N/A" )
 
         bg =
             Background.color <| SH.toElementColor context.palette.surface
@@ -53,17 +58,24 @@ infoItem context detail ( label, units ) =
     in
     Element.row
         (VH.exoRowAttributes ++ [ Element.spacing 5, Element.width Element.fill ])
-        [ Element.el [ Font.bold ] <|
-            Element.text label
-        , Element.el [ bg, border, pad ] <|
-            Element.text (labelUse detail.inUse)
-        , Element.el [] <|
-            Element.text "of"
-        , Element.el [ bg, border, pad ] <|
-            Element.text (labelLimit detail.limit)
-        , Element.el [ Font.italic ] <|
-            Element.text units
-        ]
+        (List.concat
+            [ [ Element.el [ Font.bold ] <|
+                    Element.text label
+              , Element.el [ bg, border, pad ] <|
+                    Element.text usedCount
+              ]
+            , if usedLabel == limitLabel then
+                []
+
+              else
+                [ Element.el [ Font.italic ] (Element.text usedLabel) ]
+            , [ Element.el [] (Element.text "of")
+              , Element.el [ bg, border, pad ] <|
+                    Element.text limitCount
+              , Element.el [ Font.italic ] <| Element.text limitLabel
+              ]
+            ]
+        )
 
 
 computeInfoItems : View.Types.Context -> OSTypes.ComputeQuota -> Element.Element msg
@@ -78,10 +90,10 @@ computeInfoItems context quota =
                     |> Helpers.String.toTitleCase
                 , "used:"
                 ]
-            , "total"
+            , Count
             )
-        , infoItem context quota.cores ( "Cores used:", "total" )
-        , infoItem context quota.ram ( "RAM used:", "MB" )
+        , infoItem context quota.cores ( "Cores used:", Count )
+        , infoItem context quota.ram ( "RAM used:", MebiBytes )
         ]
 
 
@@ -135,7 +147,7 @@ floatingIpInfoItems context floatingIpsUsed quota =
                     |> Helpers.String.toTitleCase
                 , "used:"
                 ]
-            , "total"
+            , Count
             )
         ]
 
@@ -160,9 +172,9 @@ volumeInfoItems context quota =
                     |> Helpers.String.toTitleCase
                 , "used:"
                 ]
-            , "total"
+            , Count
             )
-        , infoItem context quota.gigabytes ( "Storage used:", "GB" )
+        , infoItem context quota.gigabytes ( "Storage used:", GibiBytes )
         ]
 
 

@@ -3,7 +3,8 @@ module Page.ImageList exposing (Model, Msg(..), init, update, view)
 import Element
 import Element.Font as Font
 import Element.Input as Input
-import Filesize
+import FormatNumber.Locales exposing (Decimals(..))
+import Helpers.Formatting exposing (Unit(..), humanNumber)
 import Helpers.String
 import List.Extra
 import OpenStack.Types as OSTypes
@@ -147,8 +148,11 @@ view context project model =
                 tagChecked =
                     Set.member tag.label model.tags
 
+                ( tagCount, _ ) =
+                    humanNumber context.locale Count tag.frequency
+
                 checkboxLabel =
-                    tag.label ++ " (" ++ String.fromInt tag.frequency ++ ")"
+                    tag.label ++ " (" ++ tagCount ++ ")"
             in
             if tagChecked then
                 Element.none
@@ -348,13 +352,20 @@ view context project model =
 renderImage : View.Types.Context -> Project -> Model -> OSTypes.Image -> Element.Element Msg
 renderImage context project model image =
     let
+        { locale } =
+            context
+
         imageDetailsExpanded =
             Set.member image.uuid model.expandImageDetails
 
         size =
             case image.size of
                 Just s ->
-                    Filesize.format s
+                    let
+                        ( count, units ) =
+                            humanNumber { locale | decimals = Exact 2 } Bytes s
+                    in
+                    count ++ " " ++ units
 
                 Nothing ->
                     "size unknown"

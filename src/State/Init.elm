@@ -3,6 +3,7 @@ module State.Init exposing (init)
 import Browser.Navigation
 import Color
 import Dict
+import FormatNumber.Locales
 import Helpers.Helpers as Helpers
 import Json.Decode as Decode
 import LocalStorage.LocalStorage as LocalStorage
@@ -139,6 +140,10 @@ init flags urlKey =
             , viewContext =
                 { cloudSpecificConfigs = cloudSpecificConfigs
                 , experimentalFeaturesEnabled = False
+                , locale =
+                    flags.localeGuessingString
+                        |> FormatNumber.Locales.fromString
+                        >> Maybe.withDefault FormatNumber.Locales.usLocale
                 , localization = Maybe.withDefault Defaults.localization flags.localization
                 , navigationKey = Tuple.second urlKey
                 , palette = toExoPalette style

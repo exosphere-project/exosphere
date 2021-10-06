@@ -5,12 +5,14 @@ module View.Types exposing
 
 import Browser.Navigation
 import Dict
+import FormatNumber.Locales
 import Style.Types exposing (ExoPalette)
 import Types.HelperTypes exposing (CloudSpecificConfig, KeystoneHostname, Localization, WindowSize)
 
 
 type alias Context =
     { palette : ExoPalette
+    , locale : FormatNumber.Locales.Locale
     , localization : Localization
     , cloudSpecificConfigs : Dict.Dict KeystoneHostname CloudSpecificConfig
     , windowSize : WindowSize
