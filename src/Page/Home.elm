@@ -108,23 +108,18 @@ renderCloud context sharedModel keystoneHostname =
         projects =
             GetterSetters.projectsForCloud sharedModel keystoneHostname
 
-        maybeCloudSpecificConfig =
-            Dict.get keystoneHostname context.cloudSpecificConfigs
-
         friendlyCloudName =
-            case maybeCloudSpecificConfig of
+            case Dict.get keystoneHostname context.cloudSpecificConfigs of
                 Nothing ->
                     keystoneHostname
 
-                Just cloudSpecificConfig ->
-                    cloudSpecificConfig.friendlyName
-                        ++ (case cloudSpecificConfig.friendlySubName of
-                                Nothing ->
-                                    ""
+                Just { friendlyName, friendlySubName } ->
+                    case friendlySubName of
+                        Nothing ->
+                            friendlyName
 
-                                Just subName ->
-                                    ": " ++ subName
-                           )
+                        Just subName ->
+                            friendlyName ++ ": " ++ subName
     in
     Element.column
         [ Element.width Element.fill, Element.spacingXY 0 24 ]
