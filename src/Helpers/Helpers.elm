@@ -111,17 +111,12 @@ naiveUuidParser =
 serviceCatalogToEndpoints : OSTypes.ServiceCatalog -> Result String Endpoints
 serviceCatalogToEndpoints catalog =
     let
+        -- Future optimization, use a real URL parser
         novaUrlWithMicroversionSupport : String -> String
         novaUrlWithMicroversionSupport url =
-            -- Future optimization, use a real URL parser
-            if String.contains "/v2/" url then
-                String.replace "/v2/" "/v2.1/" url
-
-            else if String.contains "/v2.0/" url then
-                String.replace "/v2.0/" "/v2.1/" url
-
-            else
-                url
+            url
+                |> String.replace "/v2/" "/v2.1/"
+                |> String.replace "/v2.0/" "/v2.1/"
 
         maybeEndpointsDict : Dict.Dict String (Maybe String)
         maybeEndpointsDict =
