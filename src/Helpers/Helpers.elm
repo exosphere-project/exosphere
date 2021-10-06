@@ -24,7 +24,6 @@ module Helpers.Helpers exposing
 -- Many functions which get and set things in the data model have been moved from here to GetterSetters.elm.
 -- Getter/setter functions that remain here are too "smart" (too much business logic) for GetterSetters.elm.
 
-import Dict
 import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
 import Http
@@ -123,35 +122,35 @@ serviceCatalogToEndpoints catalog =
             else
                 url
 
-        maybeEndpointsDict : Dict.Dict String (Maybe String)
-        maybeEndpointsDict =
-            Dict.fromList
-                [ ( "cinder", GetterSetters.getServicePublicUrl "volumev3" catalog )
-                , ( "glance", GetterSetters.getServicePublicUrl "image" catalog )
-                , ( "keystone", GetterSetters.getServicePublicUrl "identity" catalog )
-                , ( "nova", GetterSetters.getServicePublicUrl "compute" catalog |> Maybe.map novaUrlWithMicroversionSupport )
-                , ( "neutron", GetterSetters.getServicePublicUrl "network" catalog )
-                ]
+        endpoints =
+            [ ( "cinder", GetterSetters.getServicePublicUrl "volumev3" catalog )
+            , ( "glance", GetterSetters.getServicePublicUrl "image" catalog )
+            , ( "keystone", GetterSetters.getServicePublicUrl "identity" catalog )
+            , ( "nova", GetterSetters.getServicePublicUrl "compute" catalog |> Maybe.map novaUrlWithMicroversionSupport )
+            , ( "neutron", GetterSetters.getServicePublicUrl "network" catalog )
+            ]
+
+        missingServiceName service =
+            case service of
+                ( name, Nothing ) ->
+                    Just name
+
+                _ ->
+                    Nothing
     in
-    -- I am not super proud of this factoring
     case
-        [ "cinder", "glance", "keystone", "nova", "neutron" ]
-            |> List.map (\k -> Dict.get k maybeEndpointsDict)
-            |> List.map (Maybe.withDefault Nothing)
+        List.filterMap Tuple.second endpoints
     of
-        [ Just cinderUrl, Just glanceUrl, Just keystoneUrl, Just novaUrl, Just neutronUrl ] ->
+        [ cinderUrl, glanceUrl, keystoneUrl, novaUrl, neutronUrl ] ->
             Ok <| Endpoints cinderUrl glanceUrl keystoneUrl novaUrl neutronUrl
 
         _ ->
-            let
-                unfoundServices =
-                    Dict.filter (\_ v -> v == Nothing) maybeEndpointsDict
-                        |> Dict.keys
-            in
-            Err
-                ("Could not locate URL(s) in service catalog for the following service(s): "
-                    ++ String.join ", " unfoundServices
-                )
+            Err <|
+                "Could not locate URL(s) in service catalog for the following service(s): "
+                    ++ (endpoints
+                            |> List.filterMap missingServiceName
+                            |> String.join ", "
+                       )
 
 
 encodeFloatingIpOption : FloatingIpOption -> List ( String, Json.Encode.Value )
