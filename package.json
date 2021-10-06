@@ -7,8 +7,8 @@
   "scripts": {
     "postinstall": "elm-tooling install",
     "elm": "elm make src/Exosphere.elm --output=elm-web.js || true",
-    "live": "elm-live src/Exosphere.elm --pushstate true --verbose --start-page index.html --hot true -- --output=elm-web.js",
-    "live-debug": "elm-live src/Exosphere.elm --pushstate true --verbose --start-page index.html --hot true -- --output=elm-web.js --debug",
+    "live": "elm-live src/Exosphere.elm --host app.exosphere.localhost --open --pushstate true --verbose --start-page index.html --hot true -- --output=elm-web.js",
+    "live-debug": "elm-live src/Exosphere.elm --host app.exosphere.localhost --open --pushstate true --verbose --start-page index.html --hot true -- --output=elm-web.js --debug",
     "build-style-guide": "elm make src/Style/StyleGuide.elm --output=styleguide.html",
     "live-style-guide": "elm-live src/Style/StyleGuide.elm --port 8001 --open --start-page styleguide.html -- --output=styleguide.html --debug",
     "test": "elm-test-rs",
