@@ -134,33 +134,30 @@ renderCloud context sharedModel keystoneHostname =
 renderProject : View.Types.Context -> Project -> Element.Element Msg
 renderProject context project =
     let
+        renderResourceCount : String -> Element.Element Msg -> Int -> Element.Element Msg
+        renderResourceCount resourceNameSingular icon count =
+            Element.row [ Element.spacing 8 ]
+                [ icon
+                , Element.text <|
+                    String.join " "
+                        [ String.fromInt count
+                        , if count > 1 then
+                            Helpers.String.pluralize resourceNameSingular
+
+                          else
+                            resourceNameSingular
+                        ]
+                ]
+
+        renderResourceQuantity name icon list =
+            case List.length list of
+                0 ->
+                    Element.none
+
+                n ->
+                    renderResourceCount name icon n
+
         cardBody =
-            let
-                renderResourceQuantity : String -> Element.Element Msg -> List a -> Element.Element Msg
-                renderResourceQuantity resourceNameSingular icon resourceList =
-                    let
-                        resourceQuantity =
-                            List.length resourceList
-                    in
-                    if resourceQuantity > 0 then
-                        Element.row [ Element.spacing 8 ]
-                            [ icon
-                            , Element.text <|
-                                String.join " "
-                                    [ String.fromInt resourceQuantity
-                                    , resourceNameSingular
-                                        |> (if resourceQuantity > 1 then
-                                                Helpers.String.pluralize
-
-                                            else
-                                                identity
-                                           )
-                                    ]
-                            ]
-
-                    else
-                        Element.none
-            in
             Element.column
                 [ Element.spacing 12 ]
                 [ renderResourceQuantity
