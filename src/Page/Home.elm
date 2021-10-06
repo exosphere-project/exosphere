@@ -123,7 +123,6 @@ renderCloud context sharedModel keystoneHostname =
     in
     Element.column
         [ Element.width Element.fill, Element.spacingXY 0 24 ]
-    <|
         [ Element.row (VH.heading3 context.palette ++ [ Element.spacing 15 ])
             [ FeatherIcons.cloud |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
             , Element.text friendlyCloudName
