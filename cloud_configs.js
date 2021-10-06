@@ -167,6 +167,15 @@ var cloud_configs = {
           ]
         }
       ]
+    },
+    {
+      "keystoneHostname":"keystone.rc.nectar.org.au",
+      "friendlyName":"Nectar Cloud",
+      "friendlySubName":null,
+      "userAppProxy":null,
+      "imageExcludeFilter":null,
+      "featuredImageNamePrefix":null,
+      "operatingSystemChoices":[]
     }
   ]
 }
