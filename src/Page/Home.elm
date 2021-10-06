@@ -50,9 +50,7 @@ view context sharedModel _ =
         uniqueKeystoneHostnames : List HelperTypes.KeystoneHostname
         uniqueKeystoneHostnames =
             sharedModel.projects
-                |> List.map .endpoints
-                |> List.map .keystone
-                |> List.map UrlHelpers.hostnameFromUrl
+                |> List.map (.endpoints >> .keystone >> UrlHelpers.hostnameFromUrl)
                 -- convert list to set and then back to remove duplicate values
                 |> Set.fromList
                 |> Set.toList
