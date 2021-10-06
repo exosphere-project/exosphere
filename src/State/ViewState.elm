@@ -88,13 +88,6 @@ navigateToPage url outerModel =
 routeToViewStateModelCmd : SharedModel -> Route.Route -> ( ViewState, SharedModel, Cmd SharedMsg )
 routeToViewStateModelCmd sharedModel route =
     case route of
-        -- TODO these should be in alphabetic order
-        Route.Home ->
-            ( NonProjectView <| Home Page.Home.init
-            , sharedModel
-            , Cmd.none
-            )
-
         Route.GetSupport maybeSupportableItemTuple ->
             ( NonProjectView <| GetSupport <| Page.GetSupport.init maybeSupportableItemTuple
             , sharedModel
@@ -105,6 +98,12 @@ routeToViewStateModelCmd sharedModel route =
             ( NonProjectView <| HelpAbout
             , sharedModel
             , Ports.instantiateClipboardJs ()
+            )
+
+        Route.Home ->
+            ( NonProjectView <| Home Page.Home.init
+            , sharedModel
+            , Cmd.none
             )
 
         Route.LoadingUnscopedProjects authTokenString ->

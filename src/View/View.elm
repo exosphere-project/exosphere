@@ -98,17 +98,16 @@ elementView windowSize outerModel context =
                 , case outerModel.viewState of
                     NonProjectView viewConstructor ->
                         case viewConstructor of
-                            -- TODO these should be in alphabetic order
-                            Home pageModel ->
-                                Page.Home.view context outerModel.sharedModel pageModel
-                                    |> Element.map HomeMsg
-
                             GetSupport pageModel ->
                                 Page.GetSupport.view context outerModel.sharedModel pageModel
                                     |> Element.map GetSupportMsg
 
                             HelpAbout ->
                                 Page.HelpAbout.view outerModel.sharedModel context
+
+                            Home pageModel ->
+                                Page.Home.view context outerModel.sharedModel pageModel
+                                    |> Element.map HomeMsg
 
                             LoadingUnscopedProjects _ ->
                                 -- TODO put a fidget spinner here

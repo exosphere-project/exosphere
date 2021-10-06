@@ -32,9 +32,9 @@ import Url.Parser.Query as Query
 
 
 type Route
-    = Home
-    | GetSupport (Maybe ( HelperTypes.SupportableItemType, Maybe HelperTypes.Uuid ))
+    = GetSupport (Maybe ( HelperTypes.SupportableItemType, Maybe HelperTypes.Uuid ))
     | HelpAbout
+    | Home
     | LoadingUnscopedProjects OSTypes.AuthTokenString
     | LoginJetstream (Maybe HelperTypes.JetstreamCreds)
     | LoginOpenstack (Maybe OSTypes.OpenstackLogin)
@@ -71,12 +71,6 @@ toUrl maybePathPrefix route =
             buildPrefixedUrl maybePathPrefix
     in
     case route of
-        -- TODO these should be in alphabetic order
-        Home ->
-            buildUrlFunc
-                [ "home" ]
-                []
-
         GetSupport _ ->
             buildUrlFunc
                 [ "getsupport" ]
@@ -85,6 +79,11 @@ toUrl maybePathPrefix route =
         HelpAbout ->
             buildUrlFunc
                 [ "helpabout" ]
+                []
+
+        Home ->
+            buildUrlFunc
+                [ "home" ]
                 []
 
         LoadingUnscopedProjects _ ->

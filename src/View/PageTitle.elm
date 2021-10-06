@@ -19,15 +19,14 @@ pageTitle outerModel =
     case outerModel.viewState of
         NonProjectView nonProjectViewConstructor ->
             case nonProjectViewConstructor of
-                -- TODO these should be in alphabetic order
-                Home _ ->
-                    "Exosphere"
-
                 GetSupport _ ->
                     "Get Support"
 
                 HelpAbout ->
                     "About " ++ outerModel.sharedModel.style.appTitle
+
+                Home _ ->
+                    "Exosphere"
 
                 LoadingUnscopedProjects _ ->
                     String.join " "
