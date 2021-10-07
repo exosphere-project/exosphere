@@ -21,7 +21,7 @@ import Toasty
 import Types.Defaults as Defaults
 import Types.Error
 import Types.Flags exposing (Flags)
-import Types.HelperTypes as HelperTypes exposing (DefaultLoginView(..), HttpRequestMethod(..), ProjectIdentifier)
+import Types.HelperTypes as HelperTypes exposing (CloudSpecificConfigMap, DefaultLoginView(..), HttpRequestMethod(..), ProjectIdentifier)
 import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project, ProjectSecret(..))
@@ -256,7 +256,7 @@ init flags urlKey =
 -- Flag JSON Decoders
 
 
-decodeCloudSpecificConfigs : Decode.Value -> Result Decode.Error (Dict.Dict HelperTypes.KeystoneHostname HelperTypes.CloudSpecificConfig)
+decodeCloudSpecificConfigs : Decode.Value -> Result Decode.Error CloudSpecificConfigMap
 decodeCloudSpecificConfigs value =
     Decode.decodeValue (Decode.list decodeCloudSpecificConfig |> Decode.map Dict.fromList) value
 
