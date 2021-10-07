@@ -16,6 +16,7 @@ import Time
 import Types.Project
 import Types.SharedModel as Types
 import UUID
+import View.Helpers exposing (toExoPalette)
 
 
 generateStoredState : Types.SharedModel -> Encode.Value
@@ -77,6 +78,7 @@ hydrateModelFromStoredState emptyModel newClientUuid storedState =
         , viewContext =
             { viewContext
                 | experimentalFeaturesEnabled = experimentalFeaturesEnabled
+                , palette = toExoPalette newStyle
             }
     }
 
