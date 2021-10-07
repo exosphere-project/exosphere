@@ -515,57 +515,50 @@ volDeviceToMountpoint device =
 serverOrigin : OSTypes.ServerDetails -> ServerOrigin
 serverOrigin serverDetails =
     let
-        exoServerVersion =
-            let
-                maybeDecodedVersion =
-                    List.filter (\i -> i.key == "exoServerVersion") serverDetails.metadata
-                        |> List.head
-                        |> Maybe.map .value
-                        |> Maybe.andThen String.toInt
+        maybeDecodedVersion =
+            List.filter (\i -> i.key == "exoServerVersion") serverDetails.metadata
+                |> List.head
+                |> Maybe.map .value
+                |> Maybe.andThen String.toInt
 
-                version0 =
-                    List.filter (\i -> i.key == "exouserPassword") serverDetails.metadata
-                        |> List.isEmpty
-                        |> not
-            in
-            case maybeDecodedVersion of
-                Just v ->
+        version0 =
+            List.filter (\i -> i.key == "exouserPassword") serverDetails.metadata
+                |> List.isEmpty
+                |> not
+
+        exoServerVersion =
+            case ( maybeDecodedVersion, version0 ) of
+                ( Just v, _ ) ->
                     Just v
 
-                Nothing ->
-                    if version0 then
-                        Just 0
+                ( Nothing, True ) ->
+                    Just 0
 
-                    else
-                        Nothing
+                ( Nothing, False ) ->
+                    Nothing
 
         exoSetupStatus =
-            let
-                maybeStrStatus =
-                    List.filter (\i -> i.key == "exoSetup") serverDetails.metadata
-                        |> List.head
-                        |> Maybe.map .value
-            in
-            case maybeStrStatus of
-                Nothing ->
-                    ExoSetupUnknown
+            List.filter (\i -> i.key == "exoSetup") serverDetails.metadata
+                |> List.head
+                |> Maybe.map
+                    (\{ value } ->
+                        case value of
+                            "waiting" ->
+                                ExoSetupWaiting
 
-                Just strStatus ->
-                    case strStatus of
-                        "waiting" ->
-                            ExoSetupWaiting
+                            "running" ->
+                                ExoSetupRunning
 
-                        "running" ->
-                            ExoSetupRunning
+                            "complete" ->
+                                ExoSetupComplete
 
-                        "complete" ->
-                            ExoSetupComplete
+                            "error" ->
+                                ExoSetupError
 
-                        "error" ->
-                            ExoSetupError
-
-                        _ ->
-                            ExoSetupUnknown
+                            _ ->
+                                ExoSetupUnknown
+                    )
+                |> Maybe.withDefault ExoSetupUnknown
 
         exoSetupStatusRDPP =
             RDPP.RemoteDataPlusPlus (RDPP.DoHave exoSetupStatus (Time.millisToPosix 0)) (RDPP.NotLoading Nothing)
