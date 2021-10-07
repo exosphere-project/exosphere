@@ -2249,9 +2249,10 @@ createProject outerModel authToken endpoints =
                 NonProjectView (SelectProjects _) ->
                     Cmd.none
 
+                -- Otherwise take them to home page
                 _ ->
                     Route.pushUrl sharedModel.viewContext <|
-                        Route.ProjectRoute newProject.auth.project.uuid Route.AllResourcesList
+                        Route.Home
 
         ( newSharedModel, newCmd ) =
             ( { sharedModel
