@@ -55,7 +55,7 @@ import Style.Widgets.NumericTextInput.NumericTextInput
 import Task
 import Time
 import Toasty
-import Types.Error as Error exposing (ErrorContext, ErrorLevel(..))
+import Types.Error as Error exposing (AppError, ErrorContext, ErrorLevel(..))
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes as HelperTypes exposing (HttpRequestMethod(..), UnscopedProviderProject)
 import Types.OuterModel exposing (OuterModel)
@@ -82,8 +82,22 @@ import Url
 import View.Helpers exposing (toExoPalette)
 
 
-update : OuterMsg -> OuterModel -> ( OuterModel, Cmd OuterMsg )
-update msg outerModel =
+update : OuterMsg -> Result AppError OuterModel -> ( Result AppError OuterModel, Cmd OuterMsg )
+update msg result =
+    case result of
+        Err appError ->
+            ( Err appError, Cmd.none )
+
+        Ok model ->
+            let
+                ( newModel, nextMsg ) =
+                    updateValid msg model
+            in
+            ( Ok newModel, nextMsg )
+
+
+updateValid : OuterMsg -> OuterModel -> ( OuterModel, Cmd OuterMsg )
+updateValid msg outerModel =
     {- We want to `setStorage` on every update. This function adds the setStorage
        command for every step of the update function.
     -}

@@ -39,6 +39,7 @@ import Route
 import Style.Helpers as SH
 import Style.Toast
 import Toasty
+import Types.Error exposing (AppError)
 import Types.HelperTypes exposing (ProjectIdentifier, WindowSize)
 import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
@@ -54,12 +55,29 @@ import View.Types
 import Widget
 
 
-view : OuterModel -> Browser.Document OuterMsg
-view outerModel =
+view : Result AppError OuterModel -> Browser.Document OuterMsg
+view resultModel =
+    case resultModel of
+        Err appError ->
+            viewInvalid appError
+
+        Ok model ->
+            viewValid model
+
+
+viewValid : OuterModel -> Browser.Document OuterMsg
+viewValid outerModel =
     { title =
         View.PageTitle.pageTitle outerModel
     , body =
         [ view_ outerModel ]
+    }
+
+
+viewInvalid : AppError -> Browser.Document OuterMsg
+viewInvalid appError =
+    { title = "Error"
+    , body = [ Element.text appError.error |> Element.layout []  ]
     }
 
 
