@@ -96,7 +96,11 @@ addProjectCard context sharedModel =
                         |> FeatherIcons.withSize 85
                         |> FeatherIcons.toHtml []
                         |> Element.html
-                        |> Element.el []
+                        |> Element.el
+                            [ context.palette.muted
+                                |> SH.toElementColor
+                                |> Font.color
+                            ]
                     , Element.text "Add Project"
                     ]
                 ]
