@@ -130,6 +130,14 @@ def i_press_label_radiobutton(context, label):
     element.click()
 
 
+@step(u'I click the "{label}" card')
+@persona_vars
+def see_unique_instance_name_within(context, label):
+    context.execute_steps(f"""
+    When I press the last element with xpath "//div[contains(string(),'{label}')]"
+    """)
+
+
 @step("I enter TACC credentials")
 @persona_vars
 def i_login_to_exosphere(context):
