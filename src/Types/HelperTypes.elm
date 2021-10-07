@@ -1,5 +1,6 @@
 module Types.HelperTypes exposing
     ( CloudSpecificConfig
+    , CloudSpecificConfigMap
     , CreateServerPageModel
     , DefaultLoginView(..)
     , FloatingIpAssignmentStatus(..)
@@ -28,6 +29,7 @@ module Types.HelperTypes exposing
     , WindowSize
     )
 
+import Dict exposing (Dict)
 import OpenStack.Types as OSTypes
 import RemoteData exposing (WebData)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput)
@@ -121,6 +123,10 @@ type alias CloudSpecificConfig =
     , featuredImageNamePrefix : Maybe String
     , operatingSystemChoices : List OperatingSystemChoice
     }
+
+
+type alias CloudSpecificConfigMap =
+    Dict KeystoneHostname CloudSpecificConfig
 
 
 type alias OperatingSystemChoice =
