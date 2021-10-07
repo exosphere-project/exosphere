@@ -1,6 +1,5 @@
 module Page.Home exposing (Model, Msg, init, update, view)
 
-import Dict
 import Element
 import Element.Font as Font
 import FeatherIcons
@@ -93,45 +92,66 @@ viewWithoutProjects context sharedModel =
 viewWithProjects : View.Types.Context -> SharedModel -> List HelperTypes.KeystoneHostname -> Element.Element Msg
 viewWithProjects context sharedModel uniqueKeystoneHostnames =
     Element.column [ Element.padding 10, Element.spacing 10, Element.width Element.fill ]
-        [ Element.el (VH.heading2 context.palette) <| Element.text "Clouds"
-        , Element.column
-            [ Element.padding 10, Element.spacingXY 0 60 ]
-            (List.map (renderCloud context sharedModel) uniqueKeystoneHostnames)
-        ]
-
-
-renderCloud : View.Types.Context -> SharedModel -> HelperTypes.KeystoneHostname -> Element.Element Msg
-renderCloud context sharedModel keystoneHostname =
-    let
-        projects =
-            GetterSetters.projectsForCloud sharedModel keystoneHostname
-
-        friendlyCloudName =
-            case Dict.get keystoneHostname context.cloudSpecificConfigs of
-                Nothing ->
-                    keystoneHostname
-
-                Just { friendlyName, friendlySubName } ->
-                    case friendlySubName of
-                        Nothing ->
-                            friendlyName
-
-                        Just subName ->
-                            friendlyName ++ ": " ++ subName
-    in
-    Element.column
-        [ Element.width Element.fill, Element.spacingXY 0 24 ]
-        [ Element.row (VH.heading3 context.palette ++ [ Element.spacing 15 ])
-            [ FeatherIcons.cloud |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
-            , Element.text friendlyCloudName
-            ]
-        , Element.wrappedRow [ Element.spacing 24 ] (projects |> List.map (renderProject context))
+        [ Element.el (VH.heading2 context.palette)
+            (context.localization.unitOfTenancy
+                |> Helpers.String.pluralize
+                |> Helpers.String.toTitleCase
+                |> Element.text
+            )
+        , Element.wrappedRow
+            [ Element.spacing 24 ]
+            (List.map (renderProject context) sharedModel.projects)
         ]
 
 
 renderProject : View.Types.Context -> Project -> Element.Element Msg
 renderProject context project =
     let
+        cloudSpecificConfig =
+            GetterSetters.cloudSpecificConfigLookup context.cloudSpecificConfigs project
+
+        ( friendlyName, friendlySubName ) =
+            case cloudSpecificConfig of
+                Nothing ->
+                    ( UrlHelpers.hostnameFromUrl project.endpoints.keystone, Nothing )
+
+                Just config ->
+                    ( config.friendlyName, config.friendlySubName )
+
+        title =
+            Element.column
+                [ Element.width <| Element.px 300, Element.padding 5, Element.spacing 8 ]
+                [ Element.el
+                    [ Element.padding 10
+                    , Element.centerX
+                    , Font.bold
+                    ]
+                  <|
+                    Element.paragraph []
+                        [ Element.text <|
+                            String.join " "
+                                [ context.localization.unitOfTenancy
+                                    |> Helpers.String.toTitleCase
+                                , project.auth.project.name
+                                ]
+                        ]
+                , Element.wrappedRow [ Element.spacing 10, Element.centerX ] <|
+                    case friendlySubName of
+                        Just subName ->
+                            [ Element.el
+                                [ context.palette.muted
+                                    |> SH.toElementColor
+                                    |> Font.color
+                                ]
+                              <|
+                                Element.text friendlyName
+                            , Element.text subName
+                            ]
+
+                        Nothing ->
+                            [ Element.text friendlyName ]
+                ]
+
         renderResourceCount : String -> Element.Element Msg -> Int -> Element.Element Msg
         renderResourceCount resourceNameSingular icon count =
             Element.row [ Element.spacing 8 ]
@@ -183,20 +203,7 @@ renderProject context project =
         , label =
             Widget.column
                 (SH.materialStyle context.palette).cardColumn
-                [ Element.el
-                    [ Element.padding 10
-                    , Element.centerX
-                    , Font.bold
-                    ]
-                  <|
-                    Element.paragraph []
-                        [ Element.text <|
-                            String.join " "
-                                [ context.localization.unitOfTenancy
-                                    |> Helpers.String.toTitleCase
-                                , project.auth.project.name
-                                ]
-                        ]
+                [ title
                 , Element.column
                     [ Element.padding 10
                     , Element.spacing 10
