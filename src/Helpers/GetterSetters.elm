@@ -264,12 +264,9 @@ serverPresentNotDeleting model serverUuid =
     let
         notDeletingServerUuids =
             model.projects
-                |> List.map .servers
-                |> List.map (RDPP.withDefault [])
-                |> List.concat
+                |> List.concatMap (.servers >> RDPP.withDefault [])
                 |> List.filter (\s -> not s.exoProps.deletionAttempted)
-                |> List.map .osProps
-                |> List.map .uuid
+                |> List.map (.osProps >> .uuid)
     in
     List.member serverUuid notDeletingServerUuids
 
