@@ -250,7 +250,7 @@ renderFloatingIpCard context project model ip =
                 Nothing ->
                     Element.text "Unassigned"
     in
-    Style.Widgets.Card.exoCard
+    Style.Widgets.Card.exoCardWithTitleAndSubtitle
         context.palette
         (Style.Widgets.CopyableText.copyableText
             context.palette

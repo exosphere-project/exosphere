@@ -11,6 +11,8 @@ import RemoteData
 import Route
 import Set
 import Style.Helpers as SH
+import Style.Types
+import Style.Widgets.Card exposing (exoCardFixedSize)
 import Style.Widgets.Icon as Icon
 import Types.HelperTypes as HelperTypes
 import Types.Project exposing (Project)
@@ -54,54 +56,51 @@ view context sharedModel _ =
                 |> Set.fromList
                 |> Set.toList
     in
-    if List.isEmpty sharedModel.projects then
-        viewWithoutProjects context sharedModel
-
-    else
-        viewWithProjects context sharedModel uniqueKeystoneHostnames
-
-
-viewWithoutProjects : View.Types.Context -> SharedModel -> Element.Element Msg
-viewWithoutProjects context sharedModel =
-    Element.column
-        [ Element.padding 10, Element.spacing 24, Element.centerX ]
-        [ Element.text <|
-            String.join " "
-                [ "You are not logged into any"
-                , context.localization.unitOfTenancy
-                    |> Helpers.String.pluralize
-                , "yet."
-                ]
-        , Element.link
-            [ Element.centerX ]
-            { url =
-                Route.toUrl context.urlPathPrefix
-                    (Route.defaultLoginPage
-                        sharedModel.style.defaultLoginView
-                    )
-            , label =
-                Widget.textButton
-                    (SH.materialStyle context.palette).button
-                    { text = "Add " ++ context.localization.unitOfTenancy
-                    , onPress = Just NoOp
-                    }
-            }
-        ]
+    viewWithProjects context sharedModel uniqueKeystoneHostnames
 
 
 viewWithProjects : View.Types.Context -> SharedModel -> List HelperTypes.KeystoneHostname -> Element.Element Msg
 viewWithProjects context sharedModel uniqueKeystoneHostnames =
-    Element.column [ Element.padding 10, Element.spacing 10, Element.width Element.fill ]
+    Element.column [ Element.padding 10, Element.spacing 24, Element.width Element.fill ]
         [ Element.el (VH.heading2 context.palette)
             (context.localization.unitOfTenancy
                 |> Helpers.String.pluralize
                 |> Helpers.String.toTitleCase
                 |> Element.text
             )
+        , if List.isEmpty uniqueKeystoneHostnames then
+            Element.text "You are not logged into any projects yet."
+
+          else
+            Element.none
         , Element.wrappedRow
             [ Element.spacing 24 ]
-            (List.map (renderProject context) sharedModel.projects)
+            (List.append (List.map (renderProject context) sharedModel.projects) [ addProjectCard context sharedModel ])
         ]
+
+
+addProjectCard : View.Types.Context -> SharedModel -> Element.Element Msg
+addProjectCard context sharedModel =
+    Element.link []
+        { url =
+            Route.toUrl context.urlPathPrefix
+                (Route.defaultLoginPage
+                    sharedModel.style.defaultLoginView
+                )
+        , label =
+            card
+                context.palette
+                [ Element.column
+                    [ Element.centerX, Element.centerY, Element.spacing 24 ]
+                    [ FeatherIcons.plusCircle
+                        |> FeatherIcons.withSize 85
+                        |> FeatherIcons.toHtml []
+                        |> Element.html
+                        |> Element.el []
+                    , Element.text "Add Project"
+                    ]
+                ]
+        }
 
 
 renderProject : View.Types.Context -> Project -> Element.Element Msg
@@ -120,7 +119,7 @@ renderProject context project =
 
         title =
             Element.column
-                [ Element.width <| Element.px 300, Element.padding 5, Element.spacing 8 ]
+                [ Element.width Element.fill, Element.padding 5, Element.spacing 8 ]
                 [ Element.el
                     [ Element.padding 10
                     , Element.centerX
@@ -201,16 +200,10 @@ renderProject context project =
     Element.link []
         { url = route
         , label =
-            Widget.column
-                (SH.materialStyle context.palette).cardColumn
-                [ title
-                , Element.column
-                    [ Element.padding 10
-                    , Element.spacing 10
-                    , Element.centerX
-                    , Element.height (Element.px 120)
-                    ]
-                    [ cardBody
-                    ]
-                ]
+            card context.palette [ title, cardBody ]
         }
+
+
+card : Style.Types.ExoPalette -> List (Element.Element Msg) -> Element.Element Msg
+card palette content =
+    exoCardFixedSize palette 320 220 content
