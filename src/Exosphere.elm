@@ -4,6 +4,7 @@ import Browser exposing (application)
 import State.Init
 import State.State as State
 import State.Subscriptions
+import Types.Error exposing (AppError)
 import Types.Flags exposing (Flags)
 import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
@@ -15,7 +16,7 @@ import View.View exposing (view)
 {- App Setup -}
 
 
-main : Program Flags OuterModel OuterMsg
+main : Program Flags (Result AppError OuterModel) OuterMsg
 main =
     application
         { init = \flags url key -> State.Init.init flags ( url, key )
