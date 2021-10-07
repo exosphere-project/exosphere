@@ -62,11 +62,7 @@ viewWithProjects : View.Types.Context -> SharedModel -> List HelperTypes.Keyston
 viewWithProjects context sharedModel uniqueKeystoneHostnames =
     Element.column [ Element.padding 10, Element.spacing 24, Element.width Element.fill ]
         [ Element.el (VH.heading2 context.palette)
-            (context.localization.unitOfTenancy
-                |> Helpers.String.pluralize
-                |> Helpers.String.toTitleCase
-                |> Element.text
-            )
+            (Element.text "Home")
         , if List.isEmpty uniqueKeystoneHostnames then
             Element.text "You are not logged into any projects yet."
 
