@@ -96,7 +96,7 @@ addProjectCard context sharedModel =
                                 |> SH.toElementColor
                                 |> Font.color
                             ]
-                    , Element.text "Add Project"
+                    , Element.text "Add project"
                     ]
                 ]
         }
