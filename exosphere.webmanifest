@@ -9,19 +9,39 @@
       "type": "image/png"
     },
     {
-      "src": "assets/img/logo-192px-maskable.png",
-      "sizes": "192x192",
+      "src": "assets/img/logo-384px-maskable.png",
+      "sizes": "384x384",
       "type": "image/png"
     },
     {
-      "src": "assets/img/logo-32px.png",
-      "sizes": "32x32",
+      "src": "assets/img/logo-196px-maskable.png",
+      "sizes": "196x196",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/img/logo-128px-maskable.png",
+      "sizes": "128x128",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/img/logo-96px-maskable.png",
+      "sizes": "96x96",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/img/logo-72px-maskable.png",
+      "sizes": "72x72",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/img/logo-48px.png",
+      "sizes": "48x48",
       "type": "image/png"
     }
 
   ],
   "start_url": "/exosphere/",
   "display": "minimal-ui",
-  "theme_color": "#FFFFFF",
-  "background_color": "#FFFFFF"
+  "theme_color": "#448aff",
+  "background_color": "#448aff"
 }
