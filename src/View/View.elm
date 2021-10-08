@@ -340,7 +340,7 @@ projectNav context p projectViewModel =
                 { icon =
                     Element.row [ Element.spacing 10 ]
                         [ Element.text removeText
-                        , FeatherIcons.logOut |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
+                        , FeatherIcons.logOut |> FeatherIcons.withSize 18 |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
                         ]
                 , text = removeText
                 , onPress =
@@ -372,7 +372,9 @@ createButton context projectId expanded =
 
         renderButton : Element.Element Never -> String -> Route.Route -> Element.Element OuterMsg
         renderButton icon_ text route =
-            Element.link []
+            Element.link [
+                Element.width Element.fill
+            ]
                 { url = Route.toUrl context.urlPathPrefix route
                 , label =
                     Widget.iconButton
@@ -415,19 +417,19 @@ createButton context projectId expanded =
                 , Border.rounded 4
                 ]
                 [ renderButton
-                    (FeatherIcons.server |> FeatherIcons.toHtml [] |> Element.html)
+                    (FeatherIcons.server |> FeatherIcons.withSize 18 |> FeatherIcons.toHtml [] |> Element.html)
                     (context.localization.virtualComputer
                         |> Helpers.String.toTitleCase
                     )
                     (Route.ProjectRoute projectId <| Route.InstanceSourcePicker)
                 , renderButton
-                    (FeatherIcons.hardDrive |> FeatherIcons.toHtml [] |> Element.html)
+                    (FeatherIcons.hardDrive |> FeatherIcons.withSize 18 |> FeatherIcons.toHtml [] |> Element.html)
                     (context.localization.blockDevice
                         |> Helpers.String.toTitleCase
                     )
                     (Route.ProjectRoute projectId <| Route.VolumeCreate)
                 , renderButton
-                    (FeatherIcons.key |> FeatherIcons.toHtml [] |> Element.html)
+                    (FeatherIcons.key |> FeatherIcons.withSize 18 |> FeatherIcons.toHtml [] |> Element.html)
                     (context.localization.pkiPublicKeyForSsh
                         |> Helpers.String.toTitleCase
                     )
@@ -456,6 +458,7 @@ createButton context projectId expanded =
                     [ Element.text "Create"
                     , Element.el []
                         (icon
+                            |> FeatherIcons.withSize 18
                             |> FeatherIcons.toHtml []
                             |> Element.html
                         )
