@@ -1,13 +1,14 @@
-module Style.Widgets.IconButton exposing (chip, goToButton)
+module Style.Widgets.IconButton exposing (chip, goToButton, iconButton)
 
-import Element exposing (Element)
+import Element as Element exposing (Element)
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons
 import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
-import Style.Widgets.Icon exposing (timesCircle)
+import Style.Widgets.Icon exposing (Icon(..), iconEl, timesCircle)
+import View.Types
 
 
 chip : ExoPalette -> Maybe msg -> Element msg -> Element msg
@@ -47,4 +48,19 @@ goToButton palette onPress =
                 |> FeatherIcons.toHtml []
                 |> Element.html
                 |> Element.el []
+        }
+
+
+iconButton : View.Types.Context -> List (Element.Attribute msg) -> { icon : Icon, label : String, onClick : Maybe msg } -> Element.Element msg
+iconButton context attributes { icon, label, onClick } =
+    Input.button attributes
+        { onPress = onClick
+        , label =
+            Element.row
+                [ Element.padding 10
+                , Element.spacing 8
+                ]
+                [ iconEl [] icon 20 context.palette.menu.on.surface
+                , Element.text label
+                ]
         }
