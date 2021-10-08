@@ -19,9 +19,9 @@ import Style.Types
 import Time
 import Toasty
 import Types.Defaults as Defaults
-import Types.Error
+import Types.Error exposing (AppError)
 import Types.Flags exposing (Flags)
-import Types.HelperTypes as HelperTypes exposing (DefaultLoginView(..), HttpRequestMethod(..), ProjectIdentifier)
+import Types.HelperTypes as HelperTypes exposing (CloudSpecificConfigMap, DefaultLoginView(..), HttpRequestMethod(..), ProjectIdentifier)
 import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project, ProjectSecret(..))
@@ -33,8 +33,27 @@ import Url
 import View.Helpers exposing (toExoPalette)
 
 
-init : Flags -> ( Url.Url, Browser.Navigation.Key ) -> ( OuterModel, Cmd OuterMsg )
+init : Flags -> ( Url.Url, Browser.Navigation.Key ) -> ( Result AppError OuterModel, Cmd OuterMsg )
 init flags urlKey =
+    case validateCloudSpecificConfigs flags.clouds of
+        Ok cloudSpecificConfigs ->
+            case initWithValidFlags flags cloudSpecificConfigs urlKey of
+                ( model, cmd ) ->
+                    ( Ok model, cmd )
+
+        Err appError ->
+            ( Err appError, Cmd.none )
+
+
+validateCloudSpecificConfigs : Decode.Value -> Result AppError CloudSpecificConfigMap
+validateCloudSpecificConfigs clouds =
+    decodeCloudSpecificConfigs clouds
+        |> Result.mapError Decode.errorToString
+        |> Result.mapError AppError
+
+
+initWithValidFlags : Flags -> CloudSpecificConfigMap -> ( Url.Url, Browser.Navigation.Key ) -> ( OuterModel, Cmd OuterMsg )
+initWithValidFlags flags cloudSpecificConfigs urlKey =
     let
         currentTime =
             Time.millisToPosix flags.epoch
@@ -77,25 +96,6 @@ init flags urlKey =
                                 Nothing
                     )
 
-        ( cloudSpecificConfigs, decodeErrorLogMessages ) =
-            -- TODO should this be a toast message or something else super obviously visible? Can the app die loudly?
-            case decodeCloudSpecificConfigs flags.clouds of
-                Ok configs ->
-                    ( configs, [] )
-
-                Err error ->
-                    ( Dict.empty
-                    , [ { message = Decode.errorToString error
-                        , context =
-                            Types.Error.ErrorContext
-                                "decode cloud-specific configs from Flags JSON"
-                                Types.Error.ErrorCrit
-                                Nothing
-                        , timestamp = currentTime
-                        }
-                      ]
-                    )
-
         style =
             { logo =
                 case flags.logo of
@@ -120,7 +120,7 @@ init flags urlKey =
 
         emptyModel : Bool -> UUID.UUID -> SharedModel
         emptyModel showDebugMsgs uuid =
-            { logMessages = decodeErrorLogMessages
+            { logMessages = []
             , unscopedProviders = []
             , projects = []
             , toasties = Toasty.initialState
@@ -256,7 +256,7 @@ init flags urlKey =
 -- Flag JSON Decoders
 
 
-decodeCloudSpecificConfigs : Decode.Value -> Result Decode.Error (Dict.Dict HelperTypes.KeystoneHostname HelperTypes.CloudSpecificConfig)
+decodeCloudSpecificConfigs : Decode.Value -> Result Decode.Error CloudSpecificConfigMap
 decodeCloudSpecificConfigs value =
     Decode.decodeValue (Decode.list decodeCloudSpecificConfig |> Decode.map Dict.fromList) value
 

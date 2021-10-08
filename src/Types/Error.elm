@@ -1,5 +1,6 @@
 module Types.Error exposing
-    ( ErrorContext
+    ( AppError
+    , ErrorContext
     , ErrorLevel(..)
     , HttpErrorWithBody
     , Toast
@@ -31,6 +32,10 @@ type alias HttpErrorWithBody =
     { error : Http.Error
     , body : String
     }
+
+
+type alias AppError =
+    { error : String }
 
 
 toFriendlyErrorLevel : ErrorLevel -> String
