@@ -507,6 +507,7 @@ onlyOwnExpander context model otherUsersServers =
                     Element.row [ Element.spacing 5 ]
                         [ Element.text changeActionVerb
                         , changeActionIcon
+                            |> FeatherIcons.withSize 18
                             |> FeatherIcons.toHtml []
                             |> Element.html
                             |> Element.el []
