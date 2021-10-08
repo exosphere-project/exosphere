@@ -422,7 +422,7 @@ renderServer context projectId model isMyServer server =
                         }
                     ]
     in
-    Style.Widgets.Card.exoCard
+    Style.Widgets.Card.exoCardWithTitleAndSubtitle
         context.palette
         (Element.row [ Element.spacing 8 ] [ checkbox, serverLabel server ])
         (Element.row [ Element.spacing 8 ] deleteWidget)

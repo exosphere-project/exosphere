@@ -1,6 +1,8 @@
 module Style.Widgets.Card exposing
     ( badge
     , exoCard
+    , exoCardFixedSize
+    , exoCardWithTitleAndSubtitle
     , expandoCard
     )
 
@@ -16,8 +18,43 @@ import Style.Types
 import Widget
 
 
-exoCard : Style.Types.ExoPalette -> Element msg -> Element msg -> Element msg -> Element msg
-exoCard palette title subTitle content =
+exoCard : Style.Types.ExoPalette -> Element msg -> Element msg
+exoCard palette content =
+    Widget.column
+        (SH.materialStyle palette).cardColumn
+        [ content ]
+
+
+exoCardFixedSize : Style.Types.ExoPalette -> Int -> Int -> List (Element msg) -> Element msg
+exoCardFixedSize palette width height content =
+    let
+        baseAttribs =
+            (SH.materialStyle palette).cardColumn
+
+        widthHeightAttribs =
+            [ Element.width (Element.px width)
+            , Element.height (Element.px height)
+            ]
+
+        attribs =
+            { baseAttribs
+                | containerColumn =
+                    List.append baseAttribs.containerColumn
+                        widthHeightAttribs
+                , element =
+                    List.append baseAttribs.element
+                        [ Element.width Element.fill
+                        , Element.height Element.fill
+                        ]
+            }
+    in
+    Widget.column
+        attribs
+        content
+
+
+exoCardWithTitleAndSubtitle : Style.Types.ExoPalette -> Element msg -> Element msg -> Element msg -> Element msg
+exoCardWithTitleAndSubtitle palette title subTitle content =
     Widget.column
         (SH.materialStyle palette).cardColumn
     <|

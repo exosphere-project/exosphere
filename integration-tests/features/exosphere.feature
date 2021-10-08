@@ -5,7 +5,7 @@ Feature: Text presence
         Given a browser
         When I go to Exosphere
         Then I should see "Add project" within 60 seconds
-        When I click the "Add project" button
+        When I click the "Add project" card
         Then I should see "Add Jetstream Account" within 60 seconds
         When I click the "Add Jetstream Account" button
         Then I should see "Add a Jetstream Cloud Account" within 15 seconds
@@ -16,6 +16,8 @@ Feature: Text presence
         When I click the "TG-INI210003" checkbox
         And I click the "Choose" button
         Then I wait for 2 seconds
+        Then I should see "TG-INI210003" within 5 seconds
+        When I click the "TG-INI210003" card
         Then I should see "iu.jetstream-cloud.org - TG-INI210003" within 5 seconds
         And I should see an element with xpath "//h3[contains(string(),'Instances')]" within 20 seconds
 
@@ -24,9 +26,11 @@ Feature: Text presence
         Given a browser
         When I go to Exosphere
         Then I should see "Add project" within 60 seconds
-        When I click the "Add project" button
+        When I click the "Add project" card
         Then I should see "Choose a Login Method" within 60 seconds
         When I add a Jetstream Cloud Account for allocation "TG-INI210003"
+        Then I should see "TG-INI210003" within 5 seconds
+        When I click the "TG-INI210003" card
         Then I should see "iu.jetstream-cloud.org - TG-INI210003" within 15 seconds
         And I should see an element with xpath "//h3[contains(string(),'Instances')]" within 20 seconds
         Given a unique instance name starting with "ubuntu"
@@ -64,9 +68,11 @@ Feature: Text presence
         Given a browser
         When I go to Exosphere
         Then I should see "Add project" within 60 seconds
-        When I click the "Add project" button
+        When I click the "Add project" card
         Then I should see "Choose a Login Method" within 60 seconds
         When I add a Jetstream Cloud Account for allocation "TG-INI210003"
+        Then I should see "TG-INI210003" within 5 seconds
+        When I click the "TG-INI210003" card
         Then I should see "iu.jetstream-cloud.org - TG-INI210003" within 15 seconds
         And I should see an element with xpath "//h3[contains(string(),'Instances')]" within 20 seconds
         Given a unique instance name starting with "ubuntu"

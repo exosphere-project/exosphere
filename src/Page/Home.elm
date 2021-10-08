@@ -1,6 +1,5 @@
 module Page.Home exposing (Model, Msg, init, update, view)
 
-import Dict
 import Element
 import Element.Font as Font
 import FeatherIcons
@@ -12,6 +11,8 @@ import RemoteData
 import Route
 import Set
 import Style.Helpers as SH
+import Style.Types
+import Style.Widgets.Card exposing (exoCardFixedSize)
 import Style.Widgets.Icon as Icon
 import Types.HelperTypes as HelperTypes
 import Types.Project exposing (Project)
@@ -19,7 +20,6 @@ import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
-import Widget
 
 
 type alias Model =
@@ -55,83 +55,112 @@ view context sharedModel _ =
                 |> Set.fromList
                 |> Set.toList
     in
-    if List.isEmpty sharedModel.projects then
-        viewWithoutProjects context sharedModel
-
-    else
-        viewWithProjects context sharedModel uniqueKeystoneHostnames
-
-
-viewWithoutProjects : View.Types.Context -> SharedModel -> Element.Element Msg
-viewWithoutProjects context sharedModel =
-    Element.column
-        [ Element.padding 10, Element.spacing 24, Element.centerX ]
-        [ Element.text <|
-            String.join " "
-                [ "You are not logged into any"
-                , context.localization.unitOfTenancy
-                    |> Helpers.String.pluralize
-                , "yet."
-                ]
-        , Element.link
-            [ Element.centerX ]
-            { url =
-                Route.toUrl context.urlPathPrefix
-                    (Route.defaultLoginPage
-                        sharedModel.style.defaultLoginView
-                    )
-            , label =
-                Widget.textButton
-                    (SH.materialStyle context.palette).button
-                    { text = "Add " ++ context.localization.unitOfTenancy
-                    , onPress = Just NoOp
-                    }
-            }
-        ]
+    viewWithProjects context sharedModel uniqueKeystoneHostnames
 
 
 viewWithProjects : View.Types.Context -> SharedModel -> List HelperTypes.KeystoneHostname -> Element.Element Msg
 viewWithProjects context sharedModel uniqueKeystoneHostnames =
-    Element.column [ Element.padding 10, Element.spacing 10, Element.width Element.fill ]
-        [ Element.el (VH.heading2 context.palette) <| Element.text "Clouds"
-        , Element.column
-            [ Element.padding 10, Element.spacingXY 0 60 ]
-            (List.map (renderCloud context sharedModel) uniqueKeystoneHostnames)
+    Element.column (Element.spacing 24 :: VH.contentContainer)
+        [ Element.el (VH.heading2 context.palette)
+            (Element.text "Home")
+        , if List.isEmpty uniqueKeystoneHostnames then
+            Element.text <|
+                String.join " "
+                    [ "You are not logged into any"
+                    , context.localization.unitOfTenancy |> Helpers.String.pluralize
+                    , "yet."
+                    ]
+
+          else
+            Element.none
+        , Element.wrappedRow
+            [ Element.spacing 24 ]
+            (List.append (List.map (renderProject context) sharedModel.projects) [ addProjectCard context sharedModel ])
         ]
 
 
-renderCloud : View.Types.Context -> SharedModel -> HelperTypes.KeystoneHostname -> Element.Element Msg
-renderCloud context sharedModel keystoneHostname =
-    let
-        projects =
-            GetterSetters.projectsForCloud sharedModel keystoneHostname
-
-        friendlyCloudName =
-            case Dict.get keystoneHostname context.cloudSpecificConfigs of
-                Nothing ->
-                    keystoneHostname
-
-                Just { friendlyName, friendlySubName } ->
-                    case friendlySubName of
-                        Nothing ->
-                            friendlyName
-
-                        Just subName ->
-                            friendlyName ++ ": " ++ subName
-    in
-    Element.column
-        [ Element.width Element.fill, Element.spacingXY 0 24 ]
-        [ Element.row (VH.heading3 context.palette ++ [ Element.spacing 15 ])
-            [ FeatherIcons.cloud |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
-            , Element.text friendlyCloudName
-            ]
-        , Element.wrappedRow [ Element.spacing 24 ] (projects |> List.map (renderProject context))
-        ]
+addProjectCard : View.Types.Context -> SharedModel -> Element.Element Msg
+addProjectCard context sharedModel =
+    Element.link []
+        { url =
+            Route.toUrl context.urlPathPrefix
+                (Route.defaultLoginPage
+                    sharedModel.style.defaultLoginView
+                )
+        , label =
+            card
+                context.palette
+                [ Element.column
+                    [ Element.centerX, Element.centerY, Element.spacing 24 ]
+                    [ FeatherIcons.plusCircle
+                        |> FeatherIcons.withSize 85
+                        |> FeatherIcons.toHtml []
+                        |> Element.html
+                        |> Element.el
+                            [ context.palette.muted
+                                |> SH.toElementColor
+                                |> Font.color
+                            ]
+                    , Element.text ("Add " ++ context.localization.unitOfTenancy)
+                    ]
+                ]
+        }
 
 
 renderProject : View.Types.Context -> Project -> Element.Element Msg
 renderProject context project =
     let
+        cloudSpecificConfig =
+            GetterSetters.cloudSpecificConfigLookup context.cloudSpecificConfigs project
+
+        ( friendlyName, friendlySubName ) =
+            case cloudSpecificConfig of
+                Nothing ->
+                    ( UrlHelpers.hostnameFromUrl project.endpoints.keystone, Nothing )
+
+                Just config ->
+                    ( config.friendlyName, config.friendlySubName )
+
+        title =
+            Element.column
+                [ Element.width Element.fill, Element.padding 5, Element.spacing 8 ]
+                [ Element.el
+                    [ Element.padding 10
+                    , Element.centerX
+                    , Font.bold
+                    ]
+                  <|
+                    Element.row [ Element.spacing 8 ]
+                        [ Element.el
+                            [ context.palette.muted
+                                |> SH.toElementColor
+                                |> Font.color
+                            ]
+                          <|
+                            Element.text
+                                (context.localization.unitOfTenancy
+                                    |> Helpers.String.toTitleCase
+                                )
+                        , Element.text <|
+                            project.auth.project.name
+                        ]
+                , Element.wrappedRow [ Element.spacing 10, Element.centerX ] <|
+                    case friendlySubName of
+                        Just subName ->
+                            [ Element.el
+                                [ context.palette.muted
+                                    |> SH.toElementColor
+                                    |> Font.color
+                                ]
+                              <|
+                                Element.text friendlyName
+                            , Element.text subName
+                            ]
+
+                        Nothing ->
+                            [ Element.text friendlyName ]
+                ]
+
         renderResourceCount : String -> Element.Element Msg -> Int -> Element.Element Msg
         renderResourceCount resourceNameSingular icon count =
             Element.row [ Element.spacing 8 ]
@@ -181,29 +210,10 @@ renderProject context project =
     Element.link []
         { url = route
         , label =
-            Widget.column
-                (SH.materialStyle context.palette).cardColumn
-                [ Element.el
-                    [ Element.padding 10
-                    , Element.centerX
-                    , Font.bold
-                    ]
-                  <|
-                    Element.paragraph []
-                        [ Element.text <|
-                            String.join " "
-                                [ context.localization.unitOfTenancy
-                                    |> Helpers.String.toTitleCase
-                                , project.auth.project.name
-                                ]
-                        ]
-                , Element.column
-                    [ Element.padding 10
-                    , Element.spacing 10
-                    , Element.centerX
-                    , Element.height (Element.px 120)
-                    ]
-                    [ cardBody
-                    ]
-                ]
+            card context.palette [ title, cardBody ]
         }
+
+
+card : Style.Types.ExoPalette -> List (Element.Element Msg) -> Element.Element Msg
+card palette content =
+    exoCardFixedSize palette 320 220 content

@@ -989,24 +989,21 @@ processProjectSpecificMsg outerModel project msg =
 
                 newOuterModel =
                     { outerModel | sharedModel = { sharedModel | projects = newProjects } }
+
+                cmd =
+                    -- if we are in a view specific to this project then navigate to the home page
+                    case outerModel.viewState of
+                        ProjectView projectId _ _ ->
+                            if projectId == project.auth.project.uuid then
+                                Route.pushUrl sharedModel.viewContext Route.Home
+
+                            else
+                                Cmd.none
+
+                        _ ->
+                            Cmd.none
             in
-            case outerModel.viewState of
-                NonProjectView _ ->
-                    -- If we are not in a project-specific view then stay there
-                    ( newOuterModel, Cmd.none )
-
-                ProjectView _ _ _ ->
-                    -- If we have any projects switch to the first one in the list, otherwise switch to login view
-                    let
-                        route =
-                            case List.head newProjects of
-                                Just p ->
-                                    Route.ProjectRoute p.auth.project.uuid Route.AllResourcesList
-
-                                Nothing ->
-                                    Route.LoginPicker
-                    in
-                    ( newOuterModel, Route.pushUrl sharedModel.viewContext route )
+            ( newOuterModel, cmd )
 
         ServerMsg serverUuid serverMsgConstructor ->
             case GetterSetters.serverLookup project serverUuid of
@@ -2252,9 +2249,10 @@ createProject outerModel authToken endpoints =
                 NonProjectView (SelectProjects _) ->
                     Cmd.none
 
+                -- Otherwise take them to home page
                 _ ->
                     Route.pushUrl sharedModel.viewContext <|
-                        Route.ProjectRoute newProject.auth.project.uuid Route.AllResourcesList
+                        Route.Home
 
         ( newSharedModel, newCmd ) =
             ( { sharedModel

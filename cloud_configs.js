@@ -96,7 +96,7 @@ var cloud_configs = {
     {
       "keystoneHostname":"tacc.jetstream-cloud.org",
       "friendlyName":"Jetstream Cloud",
-      "friendlySubName":"Texas Advanced Computing Center",
+      "friendlySubName":"TACC",
       "userAppProxy":"proxy-j7m-tacc.exosphere.app",
       "imageExcludeFilter":{
         "filterKey":"atmo_image_include",

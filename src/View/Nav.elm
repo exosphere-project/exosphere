@@ -116,24 +116,27 @@ navBar outerModel context =
             Element.row
 
         navBarBrand =
-            Element.row
-                [ Element.padding 5
-                , Element.spacing 20
-                ]
-                -- TODO clicking here should take user to home page
-                [ Element.image [ Element.height (Element.px 50) ] { src = outerModel.sharedModel.style.logo, description = "" }
-                , if outerModel.sharedModel.style.topBarShowAppTitle then
-                    Element.el
-                        [ Region.heading 1
-                        , Font.bold
-                        , Font.size 26
-                        , Font.color (SH.toElementColor context.palette.menu.on.surface)
+            Element.link []
+                { url = Route.toUrl context.urlPathPrefix Route.Home
+                , label =
+                    Element.row
+                        [ Element.padding 5
+                        , Element.spacing 20
                         ]
-                        (Element.text outerModel.sharedModel.style.appTitle)
+                        [ Element.image [ Element.height (Element.px 50) ] { src = outerModel.sharedModel.style.logo, description = "" }
+                        , if outerModel.sharedModel.style.topBarShowAppTitle then
+                            Element.el
+                                [ Region.heading 1
+                                , Font.bold
+                                , Font.size 26
+                                , Font.color (SH.toElementColor context.palette.menu.on.surface)
+                                ]
+                                (Element.text outerModel.sharedModel.style.appTitle)
 
-                  else
-                    Element.none
-                ]
+                          else
+                            Element.none
+                        ]
+                }
 
         navBarRight =
             let

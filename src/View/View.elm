@@ -89,7 +89,7 @@ elementView windowSize outerModel context =
                 [ Element.padding 10
                 , Element.alignTop
                 , Element.width <|
-                    Element.px (windowSize.width - View.Nav.navMenuWidth)
+                    Element.px windowSize.width
                 , Element.height Element.fill
                 , Element.scrollbars
                 ]
@@ -193,22 +193,16 @@ elementView windowSize outerModel context =
                 , Element.width Element.fill
                 ]
                 (View.Nav.navBar outerModel context)
-            , Element.row
+            , Element.el
                 [ Element.padding 0
                 , Element.spacing 0
                 , Element.width Element.fill
                 , Element.height <|
                     Element.px (windowSize.height - View.Nav.navBarHeight)
                 ]
-                [ View.Nav.navMenu outerModel context
-                , mainContentContainerView
-                ]
+                mainContentContainerView
             ]
         ]
-
-
-
---
 
 
 type alias ProjectViewModel =
