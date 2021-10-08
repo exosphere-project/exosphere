@@ -1,5 +1,6 @@
 port module Ports exposing
-    ( instantiateClipboardJs
+    ( changeThemePreference
+    , instantiateClipboardJs
     , openNewWindow
     , pushUrlAndTitleToMatomo
     , setFavicon
@@ -7,6 +8,9 @@ port module Ports exposing
     )
 
 import Json.Encode as Encode
+
+
+port changeThemePreference : (Encode.Value -> msg) -> Sub msg
 
 
 port openNewWindow : String -> Cmd msg

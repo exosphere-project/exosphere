@@ -10,14 +10,23 @@ import Color
 import Element
 import Element.Font as Font
 import Html.Attributes
-import Style.Types exposing (ElmUiWidgetStyle, ExoPalette, StyleMode(..))
+import Style.Types as ST exposing (ElmUiWidgetStyle, ExoPalette, StyleMode, Theme(..))
 import Widget.Style.Material as Material
 
 
 toExoPalette : Color.Color -> Color.Color -> StyleMode -> ExoPalette
-toExoPalette primaryColor secondaryColor styleMode =
-    case styleMode of
-        LightMode ->
+toExoPalette primaryColor secondaryColor { theme, systemPreference } =
+    let
+        themeChoice =
+            case theme of
+                ST.Override choice ->
+                    choice
+
+                ST.System ->
+                    systemPreference |> Maybe.withDefault ST.Light
+    in
+    case themeChoice of
+        Light ->
             { primary = primaryColor
 
             -- I (cmart) don't believe secondary gets used right now, but at some point we'll want to pick a secondary color?
@@ -49,7 +58,7 @@ toExoPalette primaryColor secondaryColor styleMode =
                 }
             }
 
-        DarkMode ->
+        Dark ->
             { primary = primaryColor
             , secondary = secondaryColor
             , background = Color.rgb255 36 36 36

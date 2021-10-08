@@ -15,7 +15,8 @@ import Random
 import Rest.ApiModelHelpers as ApiModelHelpers
 import Rest.Keystone
 import State.ViewState
-import Style.Types
+import Style.Theme
+import Style.Types as ST
 import Time
 import Toasty
 import Types.Defaults as Defaults
@@ -78,7 +79,7 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
                     )
 
                 Nothing ->
-                    ( Style.Types.defaultPrimaryColor, Style.Types.defaultSecondaryColor )
+                    ( ST.defaultPrimaryColor, ST.defaultSecondaryColor )
 
         defaultLoginView : Maybe DefaultLoginView
         defaultLoginView =
@@ -106,7 +107,13 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
                         "assets/img/logo-alt.svg"
             , primaryColor = primaryColor
             , secondaryColor = secondaryColor
-            , styleMode = Style.Types.LightMode
+            , styleMode =
+                { theme = ST.System
+                , systemPreference =
+                    flags.themePreference
+                        |> Maybe.map Style.Theme.fromString
+                        |> Maybe.withDefault Nothing
+                }
             , appTitle =
                 flags.appTitle |> Maybe.withDefault "Exosphere"
             , topBarShowAppTitle = flags.topBarShowAppTitle

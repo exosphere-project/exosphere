@@ -47,5 +47,6 @@ type alias Flags =
     , randomSeed2 : Int
     , randomSeed3 : Int
     , epoch : Int
+    , themePreference : Maybe String
     , timeZone : Int
     }

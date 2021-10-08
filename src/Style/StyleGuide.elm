@@ -204,7 +204,7 @@ view msgMapper model =
             SH.toExoPalette
                 Style.Types.defaultPrimaryColor
                 Style.Types.defaultSecondaryColor
-                Style.Types.LightMode
+                { theme = Style.Types.Override Style.Types.Light, systemPreference = Nothing }
     in
     intro
         ++ widgets msgMapper palette model

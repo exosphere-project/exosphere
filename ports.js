@@ -34,6 +34,18 @@ if (isElectron) {
     var moduleToInit = Elm.Exosphere.init;
 }
 
+const themeDetector = 'undefined' !== typeof window.matchMedia
+    ? window.matchMedia('(prefers-color-scheme: dark)')
+    : null;
+
+const themePreference = (detector) => {
+    if (!detector) {
+        return null;
+    }
+
+    return detector.matches ? 'dark' : 'light';
+}
+
 var flags = {
     // Flags that Exosphere sets dynamically, not intended to be modified by deployer
     localeGuessingString: new Intl.NumberFormat(navigator.language).format(Math.PI * -1000000),
@@ -45,6 +57,7 @@ var flags = {
     randomSeed2: randomSeeds[2],
     randomSeed3: randomSeeds[3],
     epoch: Date.now(),
+    themePreference: themePreference(themeDetector),
     timeZone: d.getTimezoneOffset()
 }
 
@@ -100,3 +113,8 @@ app.ports.pushUrlAndTitleToMatomo.subscribe(function (args) {
         _paq.push(['trackContentImpressionsWithinNode', content]);
     }
 });
+
+// Notify app of OS color scheme changes, if we can
+themeDetector && themeDetector.addEventListener( 'change', detector =>
+    app.ports.changeThemePreference.send(themePreference(detector))
+);

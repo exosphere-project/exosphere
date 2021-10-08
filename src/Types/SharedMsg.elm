@@ -9,7 +9,7 @@ import Browser
 import Http
 import OpenStack.Types as OSTypes
 import Set
-import Style.Types
+import Style.Types as ST
 import Time
 import Toasty
 import Types.Error exposing (ErrorContext, HttpErrorWithBody, Toast)
@@ -20,6 +20,7 @@ import Url
 
 type SharedMsg
     = Tick TickInterval Time.Posix
+    | ChangeSystemThemePreference ST.Theme
     | DoOrchestration Time.Posix
     | HandleApiErrorWithBody ErrorContext HttpErrorWithBody
     | RequestUnscopedToken OSTypes.OpenstackLogin
@@ -34,7 +35,7 @@ type SharedMsg
     | UrlChanged Url.Url
     | ToastyMsg (Toasty.Msg Toast)
     | MsgChangeWindowSize Int Int
-    | SetStyle Style.Types.StyleMode
+    | SelectTheme ST.ThemeChoice
     | SetExperimentalFeaturesEnabled Bool
     | NoOp
 

@@ -1,6 +1,9 @@
 module State.Subscriptions exposing (subscriptions)
 
 import Browser.Events
+import Ports exposing (changeThemePreference)
+import Style.Theme exposing (decodeThemePreference)
+import Style.Types as ST
 import Time
 import Types.Error exposing (AppError)
 import Types.OuterModel exposing (OuterModel)
@@ -26,4 +29,15 @@ subscriptionsValid _ =
         , Time.every (60 * 1000) (\x -> SharedMsg <| Tick 60 x)
         , Time.every (300 * 1000) (\x -> SharedMsg <| Tick 300 x)
         , Browser.Events.onResize (\x y -> SharedMsg <| MsgChangeWindowSize x y)
+        , changeThemePreference (decodeThemePreference >> sendThemeUpdate)
         ]
+
+
+sendThemeUpdate : Maybe ST.Theme -> OuterMsg
+sendThemeUpdate update =
+    case update of
+        Just theme ->
+            SharedMsg (ChangeSystemThemePreference theme)
+
+        Nothing ->
+            SharedMsg NoOp
