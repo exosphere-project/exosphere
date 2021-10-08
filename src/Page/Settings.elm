@@ -3,7 +3,7 @@ module Page.Settings exposing (Model, Msg(..), init, update, view)
 import Element
 import Element.Input as Input
 import FeatherIcons
-import Style.Types
+import Style.Types as ST
 import Style.Widgets.ToggleTip
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
@@ -17,7 +17,7 @@ type alias Model =
 
 
 type Msg
-    = GotStyleMode Style.Types.StyleMode
+    = SelectTheme ST.ThemeChoice
     | GotEnableExperimentalFeatures Bool
     | GotShowExperimentalFeaturesToggleTip
 
@@ -31,8 +31,8 @@ init =
 update : Msg -> SharedModel -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
 update msg _ model =
     case msg of
-        GotStyleMode mode ->
-            ( model, Cmd.none, SharedMsg.SetStyle mode )
+        SelectTheme mode ->
+            ( model, Cmd.none, SharedMsg.SelectTheme mode )
 
         GotEnableExperimentalFeatures choice ->
             ( model, Cmd.none, SharedMsg.SetExperimentalFeaturesEnabled choice )
@@ -75,15 +75,14 @@ view context sharedModel model =
         , Element.column VH.formContainer
             [ Input.radio
                 VH.exoColumnAttributes
-                { onChange =
-                    \newStyleMode ->
-                        GotStyleMode newStyleMode
+                { onChange = SelectTheme
                 , options =
-                    [ Input.option Style.Types.LightMode (Element.text "Light")
-                    , Input.option Style.Types.DarkMode (Element.text "Dark")
+                    [ Input.option (ST.Override ST.Light) (Element.text "Light")
+                    , Input.option (ST.Override ST.Dark) (Element.text "Dark")
+                    , Input.option ST.System (Element.text "System")
                     ]
                 , selected =
-                    Just sharedModel.style.styleMode
+                    Just sharedModel.style.styleMode.theme
                 , label = Input.labelAbove VH.heading4 (Element.text "Color theme")
                 }
             , Input.radio

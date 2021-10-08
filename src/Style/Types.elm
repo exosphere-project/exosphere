@@ -1,7 +1,9 @@
 module Style.Types exposing
     ( ElmUiWidgetStyle
     , ExoPalette
-    , StyleMode(..)
+    , StyleMode
+    , Theme(..)
+    , ThemeChoice(..)
     , defaultPrimaryColor
     , defaultSecondaryColor
     )
@@ -34,9 +36,20 @@ type alias ElmUiWidgetStyle style msg =
     }
 
 
-type StyleMode
-    = LightMode
-    | DarkMode
+type Theme
+    = Light
+    | Dark
+
+
+type ThemeChoice
+    = Override Theme
+    | System
+
+
+type alias StyleMode =
+    { theme : ThemeChoice
+    , systemPreference : Maybe Theme
+    }
 
 
 type alias ExoPalette =

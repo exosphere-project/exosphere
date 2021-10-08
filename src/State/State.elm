@@ -500,6 +500,34 @@ processSharedMsg sharedMsg outerModel =
             sharedModel
     in
     case sharedMsg of
+        ChangeSystemThemePreference preference ->
+            let
+                { style } =
+                    sharedModel
+
+                { styleMode } =
+                    style
+
+                newStyleMode =
+                    { styleMode | systemPreference = Just preference }
+
+                newStyle =
+                    { style | styleMode = newStyleMode }
+
+                newPalette =
+                    toExoPalette newStyle
+
+                newViewContext =
+                    { viewContext | palette = newPalette }
+            in
+            mapToOuterModel outerModel
+                ( { sharedModel
+                    | style = newStyle
+                    , viewContext = newViewContext
+                  }
+                , Cmd.none
+                )
+
         ToastyMsg subMsg ->
             Toasty.update Style.Toast.toastConfig ToastyMsg subMsg outerModel.sharedModel
                 |> mapToOuterMsg
@@ -766,13 +794,19 @@ processSharedMsg sharedMsg outerModel =
         UrlChanged url ->
             ViewStateHelpers.navigateToPage url outerModel
 
-        SetStyle styleMode ->
+        SelectTheme themeChoice ->
             let
                 oldStyle =
                     sharedModel.style
 
+                oldStyleMode =
+                    oldStyle.styleMode
+
+                newStyleMode =
+                    { oldStyleMode | theme = themeChoice }
+
                 newStyle =
-                    { oldStyle | styleMode = styleMode }
+                    { oldStyle | styleMode = newStyleMode }
             in
             ( { sharedModel
                 | style = newStyle

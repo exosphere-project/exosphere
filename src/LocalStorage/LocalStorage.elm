@@ -11,7 +11,7 @@ import Json.Encode as Encode
 import LocalStorage.Types exposing (StoredProject, StoredProject2, StoredState)
 import OpenStack.Types as OSTypes
 import RemoteData
-import Style.Types
+import Style.Types as ST
 import Time
 import Types.Project
 import Types.SharedModel as Types
@@ -57,7 +57,9 @@ hydrateModelFromStoredState emptyModel newClientUuid storedState =
                     newClientUuid
 
         styleMode =
-            storedState.styleMode |> Maybe.withDefault Style.Types.LightMode
+            storedState.styleMode
+                |> Maybe.withDefault { theme = ST.System, systemPreference = Nothing }
+                |> (\r -> { r | systemPreference = model.style.styleMode.systemPreference })
 
         oldStyle =
             model.style
@@ -107,7 +109,7 @@ hydrateProjectFromStoredProject storedProject =
 -- Encoders
 
 
-encodeStoredState : List StoredProject -> UUID.UUID -> Style.Types.StyleMode -> Bool -> Encode.Value
+encodeStoredState : List StoredProject -> UUID.UUID -> ST.StyleMode -> Bool -> Encode.Value
 encodeStoredState projects clientUuid styleMode experimentalFeaturesEnabled =
     let
         secretEncode : Types.Project.ProjectSecret -> Encode.Value
@@ -227,15 +229,18 @@ encodeExoEndpoints endpoints =
         ]
 
 
-encodeStyleMode : Style.Types.StyleMode -> Encode.Value
-encodeStyleMode styleMode =
+encodeStyleMode : ST.StyleMode -> Encode.Value
+encodeStyleMode { theme } =
     Encode.string <|
-        case styleMode of
-            Style.Types.DarkMode ->
+        case theme of
+            ST.Override ST.Dark ->
                 "darkMode"
 
-            Style.Types.LightMode ->
+            ST.Override ST.Light ->
                 "lightMode"
+
+            ST.System ->
+                "system"
 
 
 
@@ -425,14 +430,26 @@ openstackStoredEndpointInterfaceDecoder interface =
             Decode.fail "unrecognized interface type"
 
 
-decodeStyleMode : String -> Decode.Decoder Style.Types.StyleMode
+decodeStyleMode : String -> Decode.Decoder ST.StyleMode
 decodeStyleMode styleModeStr =
     case styleModeStr of
         "darkMode" ->
-            Decode.succeed Style.Types.DarkMode
+            Decode.succeed <|
+                { theme = ST.Override ST.Dark
+                , systemPreference = Nothing
+                }
 
         "lightMode" ->
-            Decode.succeed Style.Types.LightMode
+            Decode.succeed <|
+                { theme = ST.Override ST.Light
+                , systemPreference = Nothing
+                }
+
+        "system" ->
+            Decode.succeed <|
+                { theme = ST.System
+                , systemPreference = Nothing
+                }
 
         _ ->
             Decode.fail "unrecognized style mode"
