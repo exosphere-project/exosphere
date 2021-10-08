@@ -372,9 +372,9 @@ createButton context projectId expanded =
 
         renderButton : Element.Element Never -> String -> Route.Route -> Element.Element OuterMsg
         renderButton icon_ text route =
-            Element.link [
-                Element.width Element.fill
-            ]
+            Element.link
+                [ Element.width Element.fill
+                ]
                 { url = Route.toUrl context.urlPathPrefix route
                 , label =
                     Widget.iconButton
