@@ -27,6 +27,7 @@ module View.Helpers exposing
     , possiblyUntitledResource
     , renderIf
     , renderMarkdown
+    , renderMaybe
     , renderMessageAsElement
     , renderMessageAsString
     , renderRDPP
@@ -1061,3 +1062,13 @@ renderIf condition component =
 
     else
         Element.none
+
+
+renderMaybe : Maybe a -> (a -> Element.Element msg) -> Element.Element msg
+renderMaybe condition component =
+    case condition of
+        Just value ->
+            component value
+
+        Nothing ->
+            Element.none

@@ -5,6 +5,7 @@ import Element.Background as Background
 import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons
+import Helpers.Boolean as HB
 import Helpers.String
 import Route
 import State.ViewState
@@ -167,8 +168,10 @@ navBar outerModel context =
                 , Element.height (Element.px navBarHeight)
                 , Element.width Element.fill
                 ]
-                [ homeLogo context { logoUrl = style.logo, title = style.appTitle }
-                    |> VH.renderIf style.topBarShowAppTitle
+                [ homeLogo context
+                    { logoUrl = style.logo
+                    , title = HB.toMaybe style.appTitle style.topBarShowAppTitle
+                    }
                 , navBarRight
                 ]
     in
