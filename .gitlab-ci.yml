@@ -35,7 +35,7 @@ cache:
     - mkdir -p /kaniko/.docker
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(echo -n $CI_REGISTRY_USER:$CI_REGISTRY_PASSWORD | base64)\"}}}" > /kaniko/.docker/config.json
     - |
-      TAGLIST="$CI_COMMIT_REF_NAME $CI_COMMIT_SHORT_SHA $CI_COMMIT_BRANCH"
+      TAGLIST="$CI_COMMIT_SHORT_SHA $CI_COMMIT_REF_SLUG"
       if [[ "$CI_COMMIT_BRANCH" == "$CI_DEFAULT_BRANCH" ]]; then TAGLIST="$TAGLIST latest"; fi
       if [[ -n "$TAGLIST" ]]; then
         for TAG in $TAGLIST; do
@@ -280,7 +280,7 @@ mr_e2e_firefox:
   extends: .mr_e2e
   variables:
     BROWSER_LOWER: "firefox"
-    SELENIUM_CONTAINER_IMAGE: "$CI_REGISTRY_IMAGE:e2e-firefox-$CI_COMMIT_BRANCH"
+    SELENIUM_CONTAINER_IMAGE: "$CI_REGISTRY_IMAGE:e2e-firefox-$CI_COMMIT_SHORT_SHA"
   needs:
     - build_with_kaniko_e2e_firefox
 
@@ -288,7 +288,7 @@ mr_e2e_chrome:
   extends: .mr_e2e
   variables:
     BROWSER_LOWER: "chrome"
-    SELENIUM_CONTAINER_IMAGE: "$CI_REGISTRY_IMAGE:e2e-chrome-$CI_COMMIT_BRANCH"
+    SELENIUM_CONTAINER_IMAGE: "$CI_REGISTRY_IMAGE:e2e-chrome-$CI_COMMIT_SHORT_SHA"
   needs:
     - build_with_kaniko_e2e_chrome
 
