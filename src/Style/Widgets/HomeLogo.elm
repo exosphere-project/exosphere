@@ -20,7 +20,7 @@ homeLogo context { logoUrl, title } =
         , label =
             Element.row
                 [ Element.padding 5
-                , Element.spacing 20
+                , Element.spacing 10
                 ]
                 [ Element.image
                     [ Element.height (Element.px 50) ]
