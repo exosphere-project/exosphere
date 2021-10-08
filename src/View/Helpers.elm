@@ -290,8 +290,15 @@ renderMessageAsString message =
 linkAttribs : View.Types.Context -> List (Element.Attribute msg)
 linkAttribs context =
     [ context.palette.primary |> SH.toElementColor |> Font.color
-    , Font.underline
     , Element.pointer
+    , Border.color (SH.toElementColor context.palette.background)
+    , Border.widthEach
+        { bottom = 1
+        , left = 0
+        , top = 0
+        , right = 0
+        }
+    , Element.mouseOver [ Border.color (SH.toElementColor context.palette.primary) ]
     ]
 
 
