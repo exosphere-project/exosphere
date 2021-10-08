@@ -64,7 +64,12 @@ viewWithProjects context sharedModel uniqueKeystoneHostnames =
         [ Element.el (VH.heading2 context.palette)
             (Element.text "Home")
         , if List.isEmpty uniqueKeystoneHostnames then
-            Element.text "You are not logged into any projects yet."
+            Element.text <|
+                String.join " "
+                    [ "You are not logged into any"
+                    , context.localization.unitOfTenancy |> Helpers.String.pluralize
+                    , "yet."
+                    ]
 
           else
             Element.none
@@ -96,7 +101,7 @@ addProjectCard context sharedModel =
                                 |> SH.toElementColor
                                 |> Font.color
                             ]
-                    , Element.text "Add project"
+                    , Element.text ("Add " ++ context.localization.unitOfTenancy)
                     ]
                 ]
         }
