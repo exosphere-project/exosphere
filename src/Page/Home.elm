@@ -60,7 +60,7 @@ view context sharedModel _ =
 
 viewWithProjects : View.Types.Context -> SharedModel -> List HelperTypes.KeystoneHostname -> Element.Element Msg
 viewWithProjects context sharedModel uniqueKeystoneHostnames =
-    Element.column [ Element.padding 10, Element.spacing 24, Element.width Element.fill ]
+    Element.column (Element.spacing 24 :: VH.contentContainer)
         [ Element.el (VH.heading2 context.palette)
             (Element.text "Home")
         , if List.isEmpty uniqueKeystoneHostnames then
