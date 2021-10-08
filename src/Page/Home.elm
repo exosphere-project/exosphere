@@ -130,13 +130,19 @@ renderProject context project =
                     , Font.bold
                     ]
                   <|
-                    Element.paragraph []
-                        [ Element.text <|
-                            String.join " "
-                                [ context.localization.unitOfTenancy
+                    Element.row [ Element.spacing 8 ]
+                        [ Element.el
+                            [ context.palette.muted
+                                |> SH.toElementColor
+                                |> Font.color
+                            ]
+                          <|
+                            Element.text
+                                (context.localization.unitOfTenancy
                                     |> Helpers.String.toTitleCase
-                                , project.auth.project.name
-                                ]
+                                )
+                        , Element.text <|
+                            project.auth.project.name
                         ]
                 , Element.wrappedRow [ Element.spacing 10, Element.centerX ] <|
                     case friendlySubName of
