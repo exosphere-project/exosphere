@@ -421,7 +421,7 @@ interactionDetails interaction context =
                     , ". Pro tip, press Ctrl+Alt+Shift inside the terminal window to show a graphical file upload/download tool!"
                     ]
                 )
-                (\_ _ -> FeatherIcons.terminal |> FeatherIcons.toHtml [] |> Element.html)
+                (\_ _ -> FeatherIcons.terminal |> FeatherIcons.withSize 18 |> FeatherIcons.toHtml [] |> Element.html)
                 ITypes.UrlInteraction
 
         ITypes.GuacDesktop ->
@@ -433,14 +433,14 @@ interactionDetails interaction context =
                     , "'s desktop environment"
                     ]
                 )
-                (\_ _ -> FeatherIcons.monitor |> FeatherIcons.toHtml [] |> Element.html)
+                (\_ _ -> FeatherIcons.monitor |> FeatherIcons.withSize 18 |> FeatherIcons.toHtml [] |> Element.html)
                 ITypes.UrlInteraction
 
         ITypes.NativeSSH ->
             ITypes.InteractionDetails
                 "Native SSH"
                 "Advanced feature: use your computer's native SSH client to get a command-line session with extra capabilities"
-                (\_ _ -> FeatherIcons.terminal |> FeatherIcons.toHtml [] |> Element.html)
+                (\_ _ -> FeatherIcons.terminal |> FeatherIcons.withSize 18 |> FeatherIcons.toHtml [] |> Element.html)
                 ITypes.TextInteraction
 
         ITypes.Console ->
@@ -463,7 +463,7 @@ interactionDetails interaction context =
                     , context.localization.virtualComputer
                     ]
                 )
-                (\_ _ -> FeatherIcons.codesandbox |> FeatherIcons.toHtml [] |> Element.html)
+                (\_ _ -> FeatherIcons.codesandbox |> FeatherIcons.withSize 18 |> FeatherIcons.toHtml [] |> Element.html)
                 ITypes.UrlInteraction
 
 
