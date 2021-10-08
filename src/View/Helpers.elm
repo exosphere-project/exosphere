@@ -25,7 +25,9 @@ module View.Helpers exposing
     , invalidInputHelperText
     , linkAttribs
     , possiblyUntitledResource
+    , renderIf
     , renderMarkdown
+    , renderMaybe
     , renderMessageAsElement
     , renderMessageAsString
     , renderRDPP
@@ -1051,3 +1053,22 @@ invalidInputHelperText palette helperText =
             ]
             (Element.text helperText)
         ]
+
+
+renderIf : Bool -> Element.Element msg -> Element.Element msg
+renderIf condition component =
+    if condition then
+        component
+
+    else
+        Element.none
+
+
+renderMaybe : Maybe a -> (a -> Element.Element msg) -> Element.Element msg
+renderMaybe condition component =
+    case condition of
+        Just value ->
+            component value
+
+        Nothing ->
+            Element.none

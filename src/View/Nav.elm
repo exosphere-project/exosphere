@@ -4,12 +4,13 @@ import Element
 import Element.Background as Background
 import Element.Font as Font
 import Element.Input as Input
-import Element.Region as Region
 import FeatherIcons
+import Helpers.Boolean as HB
 import Helpers.String
 import Route
 import State.ViewState
 import Style.Helpers as SH
+import Style.Widgets.HomeLogo exposing (homeLogo)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.MenuItem as MenuItem
 import Types.OuterModel exposing (OuterModel)
@@ -104,6 +105,9 @@ navMenu outerModel context =
 navBar : OuterModel -> View.Types.Context -> Element.Element OuterMsg
 navBar outerModel context =
     let
+        { style } =
+            outerModel.sharedModel
+
         navBarContainerAttributes =
             [ Background.color (SH.toElementColor context.palette.menu.secondary)
             , Element.width Element.fill
@@ -114,29 +118,6 @@ navBar outerModel context =
         -- https://package.elm-lang.org/packages/mdgriffith/elm-ui/latest/Element#responsiveness
         navBarContainerElement =
             Element.row
-
-        navBarBrand =
-            Element.link []
-                { url = Route.toUrl context.urlPathPrefix Route.Home
-                , label =
-                    Element.row
-                        [ Element.padding 5
-                        , Element.spacing 20
-                        ]
-                        [ Element.image [ Element.height (Element.px 50) ] { src = outerModel.sharedModel.style.logo, description = "" }
-                        , if outerModel.sharedModel.style.topBarShowAppTitle then
-                            Element.el
-                                [ Region.heading 1
-                                , Font.bold
-                                , Font.size 26
-                                , Font.color (SH.toElementColor context.palette.menu.on.surface)
-                                ]
-                                (Element.text outerModel.sharedModel.style.appTitle)
-
-                          else
-                            Element.none
-                        ]
-                }
 
         navBarRight =
             let
@@ -187,7 +168,10 @@ navBar outerModel context =
                 , Element.height (Element.px navBarHeight)
                 , Element.width Element.fill
                 ]
-                [ navBarBrand
+                [ homeLogo context
+                    { logoUrl = style.logo
+                    , title = HB.toMaybe style.appTitle style.topBarShowAppTitle
+                    }
                 , navBarRight
                 ]
     in
