@@ -4,7 +4,6 @@ import Element
 import Element.Background as Background
 import Element.Font as Font
 import Element.Input as Input
-import Element.Region as Region
 import FeatherIcons
 import Helpers.String
 import Route
@@ -170,7 +169,6 @@ navBar outerModel context =
                 ]
                 [ homeLogo context { logoUrl = style.logo, title = style.appTitle }
                     |> VH.renderIf style.topBarShowAppTitle
-
                 , navBarRight
                 ]
     in
