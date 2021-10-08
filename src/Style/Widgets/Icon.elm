@@ -1,7 +1,9 @@
 module Style.Widgets.Icon exposing
-    ( bell
+    ( Icon(..)
+    , bell
     , console
     , copyToClipboard
+    , iconEl
     , ipAddress
     , lock
     , lockOpen
@@ -12,10 +14,40 @@ module Style.Widgets.Icon exposing
     , windowClose
     )
 
+import Color
 import Element
+import FeatherIcons
 import Html
+import Style.Helpers as SH
 import Svg
 import Svg.Attributes as SA
+
+
+type Icon
+    = Bell
+    | HelpCircle
+    | Info
+    | Settings
+
+
+iconEl : List (Element.Attribute msg) -> Icon -> Int -> Color.Color -> Element.Element msg
+iconEl attributes icon size color =
+    let
+        svg =
+            case icon of
+                Bell ->
+                    bell_
+
+                HelpCircle ->
+                    fromFeather FeatherIcons.helpCircle
+
+                Info ->
+                    fromFeather FeatherIcons.info
+
+                Settings ->
+                    fromFeather FeatherIcons.settings
+    in
+    toEl attributes (svg (SH.toElementColor color) size)
 
 
 windowClose : Element.Color -> Int -> Element.Element msg
@@ -266,3 +298,15 @@ elementColorToSvgColor elColor =
                 |> String.join ","
     in
     "rgb(" ++ strVals ++ ")"
+
+
+fromFeather : FeatherIcons.Icon -> Element.Color -> Int -> Html.Html msg
+fromFeather icon color size =
+    icon
+        |> FeatherIcons.withSize (1.2 * toFloat size)
+        |> FeatherIcons.toHtml [ SA.stroke (elementColorToSvgColor color) ]
+
+
+toEl : List (Element.Attribute msg) -> Html.Html msg -> Element.Element msg
+toEl attributes html =
+    Element.el attributes (Element.html html)

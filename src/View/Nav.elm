@@ -3,7 +3,6 @@ module View.Nav exposing (navBar, navBarHeight, navMenu, navMenuWidth)
 import Element
 import Element.Background as Background
 import Element.Font as Font
-import Element.Input as Input
 import FeatherIcons
 import Helpers.Boolean as HB
 import Helpers.String
@@ -13,10 +12,10 @@ import Style.Helpers as SH
 import Style.Widgets.HomeLogo exposing (homeLogo)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.MenuItem as MenuItem
+import Style.Widgets.NavButton exposing (navButton)
 import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project)
-import Types.SharedMsg as SharedMsg
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
 import View.Helpers as VH
 import View.Types
@@ -119,48 +118,6 @@ navBar outerModel context =
         navBarContainerElement =
             Element.row
 
-        navBarRight =
-            let
-                renderButton : Route.Route -> List (Element.Element OuterMsg) -> Element.Element OuterMsg
-                renderButton route buttonLabelRowContents =
-                    Element.link
-                        [ Font.color (SH.toElementColor context.palette.menu.on.surface) ]
-                        { url = Route.toUrl context.urlPathPrefix route
-                        , label =
-                            Input.button []
-                                { onPress = Just (SharedMsg <| SharedMsg.NoOp)
-                                , label =
-                                    Element.row
-                                        (VH.exoRowAttributes ++ [ Element.spacing 8 ])
-                                        buttonLabelRowContents
-                                }
-                        }
-            in
-            Element.row
-                [ Element.alignRight, Element.paddingXY 20 0, Element.spacing 15 ]
-                [ Element.el
-                    [ Font.color (SH.toElementColor context.palette.menu.on.surface) ]
-                    (Element.text "")
-                , renderButton (Route.MessageLog False)
-                    [ Icon.bell (SH.toElementColor context.palette.menu.on.surface) 20
-                    , Element.text "Messages"
-                    ]
-                , renderButton Route.Settings
-                    [ FeatherIcons.settings |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
-                    , Element.text "Settings"
-                    ]
-                , renderButton (Route.GetSupport (State.ViewState.viewStateToSupportableItem outerModel.viewState))
-                    [ FeatherIcons.helpCircle |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
-                    , Element.text "Get Support"
-                    ]
-                , renderButton Route.HelpAbout
-                    [ FeatherIcons.info |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
-                    , Element.text "About"
-                    ]
-
-                -- This is where the right-hand side menu would go
-                ]
-
         navBarHeaderView =
             Element.row
                 [ Element.padding 10
@@ -172,7 +129,33 @@ navBar outerModel context =
                     { logoUrl = style.logo
                     , title = HB.toMaybe style.appTitle style.topBarShowAppTitle
                     }
-                , navBarRight
+                , Element.row
+                    [ Element.alignRight, Element.paddingXY 20 0, Element.spacing 15 ]
+                    [ navButton context
+                        []
+                        { icon = Icon.Bell
+                        , label = "Messages"
+                        , route = Route.MessageLog False
+                        }
+                    , navButton context
+                        []
+                        { icon = Icon.Settings
+                        , label = "Settings"
+                        , route = Route.Settings
+                        }
+                    , navButton context
+                        []
+                        { icon = Icon.HelpCircle
+                        , label = "Get Support"
+                        , route = Route.GetSupport (State.ViewState.viewStateToSupportableItem outerModel.viewState)
+                        }
+                    , navButton context
+                        []
+                        { icon = Icon.Info
+                        , label = "About"
+                        , route = Route.HelpAbout
+                        }
+                    ]
                 ]
     in
     navBarContainerElement
