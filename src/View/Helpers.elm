@@ -79,7 +79,7 @@ import Widget
 
 toExoPalette : Style -> ExoPalette
 toExoPalette style =
-    SH.toExoPalette style.primaryColor style.secondaryColor style.styleMode
+    SH.toExoPalette style.deployerColors style.styleMode
 
 
 

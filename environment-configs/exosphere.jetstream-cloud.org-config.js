@@ -5,15 +5,29 @@ var config = {
   "cloudCorsProxyUrl":"https://exosphere.jetstream-cloud.org/proxy",
   "urlPathPrefix":"exosphere",
   "palette":{
-    "primary":{
-      "r":155,
-      "g":33,
-      "b":35
+    "light":{
+      "primary":{
+        "r":150,
+        "g":35,
+        "b":38
+      },
+      "secondary":{
+        "r":0,
+        "g":0,
+        "b":0
+      }
     },
-    "secondary":{
-      "r":52,
-      "g":122,
-      "b":140
+    "dark":{
+      "primary":{
+        "r":221,
+        "g":0,
+        "b":49
+      },
+      "secondary":{
+        "r":0,
+        "g":0,
+        "b":0
+      }
     }
   },
   "logo":"assets/img/jetstream-logo-white.svg",

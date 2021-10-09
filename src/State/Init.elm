@@ -71,15 +71,21 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
             , experimentalFeaturesEnabled = Nothing
             }
 
-        ( primaryColor, secondaryColor ) =
+        deployerColors =
             case flags.palette of
                 Just palette ->
-                    ( Color.rgb255 palette.primary.r palette.primary.g palette.primary.b
-                    , Color.rgb255 palette.secondary.r palette.secondary.g palette.secondary.b
-                    )
+                    { light =
+                        { primary = Color.rgb255 palette.light.primary.r palette.light.primary.g palette.light.primary.b
+                        , secondary = Color.rgb255 palette.light.secondary.r palette.light.secondary.g palette.light.secondary.b
+                        }
+                    , dark =
+                        { primary = Color.rgb255 palette.dark.primary.r palette.dark.primary.g palette.dark.primary.b
+                        , secondary = Color.rgb255 palette.dark.secondary.r palette.dark.secondary.g palette.dark.secondary.b
+                        }
+                    }
 
                 Nothing ->
-                    ( ST.defaultPrimaryColor, ST.defaultSecondaryColor )
+                    ST.defaultColors
 
         defaultLoginView : Maybe DefaultLoginView
         defaultLoginView =
@@ -105,8 +111,7 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
 
                     Nothing ->
                         "assets/img/logo-alt.svg"
-            , primaryColor = primaryColor
-            , secondaryColor = secondaryColor
+            , deployerColors = deployerColors
             , styleMode =
                 { theme = ST.System
                 , systemPreference =

@@ -1,11 +1,12 @@
 module Style.Types exposing
-    ( ElmUiWidgetStyle
+    ( DeployerColorThemes
+    , DeployerColors
+    , ElmUiWidgetStyle
     , ExoPalette
     , StyleMode
     , Theme(..)
     , ThemeChoice(..)
-    , defaultPrimaryColor
-    , defaultSecondaryColor
+    , defaultColors
     )
 
 import Color
@@ -83,11 +84,26 @@ type alias ExoPalette =
     }
 
 
-defaultPrimaryColor : Color.Color
-defaultPrimaryColor =
-    Color.rgb255 0 108 163
+type alias DeployerColorThemes =
+    { light : DeployerColors
+    , dark : DeployerColors
+    }
 
 
-defaultSecondaryColor : Color.Color
-defaultSecondaryColor =
-    Color.rgb255 96 239 255
+type alias DeployerColors =
+    { primary : Color.Color
+    , secondary : Color.Color
+    }
+
+
+defaultColors : DeployerColorThemes
+defaultColors =
+    { light =
+        { primary = Color.rgb255 0 108 163
+        , secondary = Color.rgb255 96 239 255
+        }
+    , dark =
+        { primary = Color.rgb255 83 183 226
+        , secondary = Color.rgb255 96 239 255
+        }
+    }
