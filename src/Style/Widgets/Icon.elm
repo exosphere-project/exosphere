@@ -27,6 +27,7 @@ type Icon
     = Bell
     | HelpCircle
     | Info
+    | Logout
     | Settings
 
 
@@ -43,6 +44,9 @@ iconEl attributes icon size color =
 
                 Info ->
                     fromFeather FeatherIcons.info
+
+                Logout ->
+                    fromFeather FeatherIcons.logOut
 
                 Settings ->
                     fromFeather FeatherIcons.settings

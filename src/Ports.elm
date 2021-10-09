@@ -1,6 +1,7 @@
 port module Ports exposing
     ( changeThemePreference
     , instantiateClipboardJs
+    , logout
     , openNewWindow
     , pushUrlAndTitleToMatomo
     , setFavicon
@@ -20,6 +21,9 @@ port setStorage : Encode.Value -> Cmd msg
 
 
 port instantiateClipboardJs : () -> Cmd msg
+
+
+port logout : () -> Cmd msg
 
 
 port setFavicon : String -> Cmd msg
