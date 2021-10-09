@@ -13,15 +13,29 @@ type alias Flags =
     , topBarShowAppTitle : Bool
     , palette :
         Maybe
-            { primary :
-                { r : Int
-                , g : Int
-                , b : Int
+            { light :
+                { primary :
+                    { r : Int
+                    , g : Int
+                    , b : Int
+                    }
+                , secondary :
+                    { r : Int
+                    , g : Int
+                    , b : Int
+                    }
                 }
-            , secondary :
-                { r : Int
-                , g : Int
-                , b : Int
+            , dark :
+                { primary :
+                    { r : Int
+                    , g : Int
+                    , b : Int
+                    }
+                , secondary :
+                    { r : Int
+                    , g : Int
+                    , b : Int
+                    }
                 }
             }
     , logo : Maybe String

@@ -1,6 +1,5 @@
 module Types.SharedModel exposing (LogMessage, SharedModel, Style)
 
-import Color
 import Style.Types
 import Time
 import Toasty
@@ -32,8 +31,7 @@ type alias SharedModel =
 
 type alias Style =
     { logo : HelperTypes.Url
-    , primaryColor : Color.Color
-    , secondaryColor : Color.Color
+    , deployerColors : Style.Types.DeployerColorThemes
     , styleMode : Style.Types.StyleMode
     , appTitle : String
     , topBarShowAppTitle : Bool
