@@ -202,8 +202,7 @@ view msgMapper model =
     let
         palette =
             SH.toExoPalette
-                Style.Types.defaultPrimaryColor
-                Style.Types.defaultSecondaryColor
+                Style.Types.defaultColors
                 { theme = Style.Types.Override Style.Types.Light, systemPreference = Nothing }
     in
     intro
