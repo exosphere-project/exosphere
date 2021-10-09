@@ -6,14 +6,15 @@
   "main": "elm-web.js",
   "scripts": {
     "postinstall": "elm-tooling install",
-    "elm": "elm make src/Exosphere.elm --output=elm-web.js || true",
-    "live": "elm-live src/Exosphere.elm --host app.exosphere.localhost --open --pushstate true --verbose --start-page index.html --hot true -- --output=elm-web.js",
-    "live-debug": "elm-live src/Exosphere.elm --host app.exosphere.localhost --open --pushstate true --verbose --start-page index.html --hot true -- --output=elm-web.js --debug",
-    "build-style-guide": "elm make src/Style/StyleGuide.elm --output=styleguide.html",
-    "live-style-guide": "elm-live src/Style/StyleGuide.elm --port 8001 --open --start-page styleguide.html -- --output=styleguide.html --debug",
-    "test": "elm-test-rs",
-    "elm:format": "elm-format --validate src",
-    "elm:analyse": "elm-analyse"
+    "start": "npm run live",
+    "elm": "npx elm make src/Exosphere.elm --output=elm-web.js || true",
+    "live": "npx elm-live src/Exosphere.elm --host app.exosphere.localhost --open --pushstate true --verbose --start-page index.html --hot true -- --output=elm-web.js",
+    "live-debug": "npx elm-live src/Exosphere.elm --host app.exosphere.localhost --open --pushstate true --verbose --start-page index.html --hot true -- --output=elm-web.js --debug",
+    "build-style-guide": "npx elm make src/Style/StyleGuide.elm --output=styleguide.html",
+    "live-style-guide": "npx elm-live src/Style/StyleGuide.elm --port 8001 --open --start-page styleguide.html -- --output=styleguide.html --debug",
+    "test": "npx elm-test-rs",
+    "elm:format": "npx elm-format --validate src",
+    "elm:analyse": "npx elm-analyse"
   },
   "author": {
     "email": "dont@spam.me"
@@ -26,6 +27,7 @@
     }
   },
   "devDependencies": {
+    "elm-analyse": "^0.16.5",
     "elm-live": "^4.0.2",
     "elm-tooling": "^1.3.0"
   },
