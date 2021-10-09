@@ -528,6 +528,9 @@ processSharedMsg sharedMsg outerModel =
                 , Cmd.none
                 )
 
+        Logout ->
+            ( outerModel, Ports.logout () )
+
         ToastyMsg subMsg ->
             Toasty.update Style.Toast.toastConfig ToastyMsg subMsg outerModel.sharedModel
                 |> mapToOuterMsg

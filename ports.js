@@ -15,6 +15,13 @@ var isElectron = (userAgent.indexOf(' electron/') > -1);
 var typedArray = new Int32Array(4);
 var randomSeeds = crypto.getRandomValues(typedArray);
 
+// Used on logout to ensure we don't save preferences
+// during the logout sequence. On logout this gets set
+// to disable updates, but then logout reloads the page
+// which "re-enables" persistence by means of
+// re-initializing the page.
+let disablePersistence = false;
+
 // We need this to get the UTC offset?
 var d = new Date();
 
@@ -70,11 +77,21 @@ var app = moduleToInit({
     flags: Object.assign(flags, merged_config)
 });
 
+app.ports.logout.subscribe(() => {
+    disablePersistence = true;
+    localStorage.clear();
+    window.location.reload();
+});
+
 app.ports.openNewWindow.subscribe(function (url) {
     window.open(url);
 });
 
 app.ports.setStorage.subscribe(function (state) {
+    if (disablePersistence) {
+        return;
+    }
+
     localStorage.setItem('exosphere-save', JSON.stringify(state));
 });
 

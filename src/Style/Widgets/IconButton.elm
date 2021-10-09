@@ -1,4 +1,4 @@
-module Style.Widgets.IconButton exposing (chip, goToButton, iconButton)
+module Style.Widgets.IconButton exposing (FlowOrder(..), chip, goToButton, iconButton)
 
 import Element as Element exposing (Element)
 import Element.Border as Border
@@ -9,6 +9,11 @@ import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
 import Style.Widgets.Icon exposing (Icon(..), iconEl, timesCircle)
 import View.Types
+
+
+type FlowOrder
+    = Before
+    | After
 
 
 chip : ExoPalette -> Maybe msg -> Element msg -> Element msg
@@ -51,8 +56,15 @@ goToButton palette onPress =
         }
 
 
-iconButton : View.Types.Context -> List (Element.Attribute msg) -> { icon : Icon, label : String, onClick : Maybe msg } -> Element.Element msg
-iconButton context attributes { icon, label, onClick } =
+iconButton : View.Types.Context -> List (Element.Attribute msg) -> { icon : Icon, iconPlacement : FlowOrder, label : String, onClick : Maybe msg } -> Element.Element msg
+iconButton context attributes { icon, iconPlacement, label, onClick } =
+    let
+        labelUI =
+            Element.text label
+
+        iconUI =
+            iconEl [] icon 20 context.palette.menu.on.surface
+    in
     Input.button attributes
         { onPress = onClick
         , label =
@@ -60,7 +72,11 @@ iconButton context attributes { icon, label, onClick } =
                 [ Element.padding 10
                 , Element.spacing 8
                 ]
-                [ iconEl [] icon 20 context.palette.menu.on.surface
-                , Element.text label
-                ]
+                (case iconPlacement of
+                    Before ->
+                        [ iconUI, labelUI ]
+
+                    After ->
+                        [ labelUI, iconUI ]
+                )
         }

@@ -23,6 +23,7 @@ type SharedMsg
     | ChangeSystemThemePreference ST.Theme
     | DoOrchestration Time.Posix
     | HandleApiErrorWithBody ErrorContext HttpErrorWithBody
+    | Logout
     | RequestUnscopedToken OSTypes.OpenstackLogin
     | JetstreamLogin HelperTypes.JetstreamCreds
     | ReceiveScopedAuthToken ( Http.Metadata, String )
