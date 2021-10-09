@@ -28,7 +28,6 @@ The most frequent cause of CI pipeline failure is due to issues found by `elm-an
  
  ```bash
  npm install
- npm install --no-save elm-analyse
  npm run elm:format
  npm run elm:analyse
  ```
