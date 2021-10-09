@@ -90,16 +90,10 @@ Then install the project's dependencies (including Elm). Convenience command to 
 npm install
 ```
 
-To compile the app and serve it using a local development server install `elm-live` (once only):
+To compile the app and serve it using a local development server run this command:
 
 ```
-npm install --no-save elm-live
-```
-
-Then run this command:
-
-```
-npm run live
+npm start
 ```
 
 Then browse to <http://app.exosphere.localhost:8000/>
