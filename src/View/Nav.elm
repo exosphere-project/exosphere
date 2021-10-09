@@ -158,7 +158,7 @@ navBar outerModel context =
                         , route = Route.HelpAbout
                         }
                     , iconButton context
-                        []
+                        [ Font.color (SH.toElementColor context.palette.menu.on.surface) ]
                         { icon = Icon.Logout
                         , iconPlacement = After
                         , label = "Logout"
