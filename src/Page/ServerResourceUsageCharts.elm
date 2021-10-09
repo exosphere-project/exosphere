@@ -85,6 +85,7 @@ view context widthPx ( currentTime, timeZone ) timeSeriesDict =
                 , direction = Tick.negative
                 , label = Just label
                 }
+        
         timeRange getDataFunc =
             Axis.custom
                 { title = Title.default ""
