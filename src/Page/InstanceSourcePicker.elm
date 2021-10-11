@@ -144,7 +144,7 @@ view context project model =
                 if List.isEmpty choices then
                     imageListOnlyView
 
-                else if List.map .versions choices |> List.concat |> List.isEmpty then
+                else if List.concatMap .versions choices |> List.isEmpty then
                     imageListOnlyView
 
                 else

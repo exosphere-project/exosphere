@@ -9,6 +9,7 @@ module OpenStack.Volumes exposing
 import Http
 import Json.Decode as Decode
 import Json.Encode
+import List.Extra
 import OpenStack.Types as OSTypes
 import RemoteData
 import Rest.Helpers
@@ -246,4 +247,6 @@ imageMetadataDecoder =
 volumeLookup : Project -> OSTypes.VolumeUuid -> Maybe OSTypes.Volume
 volumeLookup project volumeUuid =
     {- TODO fix or justify other lookup functions being in Helpers.Helpers -}
-    List.filter (\v -> v.uuid == volumeUuid) (RemoteData.withDefault [] project.volumes) |> List.head
+    project.volumes
+        |> RemoteData.withDefault []
+        |> List.Extra.find (\v -> v.uuid == volumeUuid)

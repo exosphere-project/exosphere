@@ -21,6 +21,7 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import Http
 import Json.Decode as Decode
 import Json.Encode as Encode
+import List.Extra
 import OpenStack.SecurityGroupRule as SecurityGroupRule exposing (SecurityGroupRule, securityGroupRuleDecoder)
 import OpenStack.Types as OSTypes
 import Rest.Helpers
@@ -380,7 +381,8 @@ requestCreateExoSecurityGroupRules : SharedModel -> Project -> List SecurityGrou
 requestCreateExoSecurityGroupRules model project rules =
     let
         maybeSecurityGroup =
-            List.filter (\g -> g.name == "exosphere") project.securityGroups |> List.head
+            project.securityGroups
+                |> List.Extra.find (\g -> g.name == "exosphere")
     in
     case maybeSecurityGroup of
         Nothing ->
@@ -531,7 +533,7 @@ receiveSecurityGroupsAndEnsureExoGroup model project securityGroups =
             GetterSetters.modelUpdateProject model newProject
 
         cmds =
-            case List.filter (\a -> a.name == "exosphere") securityGroups |> List.head of
+            case List.Extra.find (\a -> a.name == "exosphere") securityGroups of
                 Just exoGroup ->
                     -- check rules, ensure rules are latest set and none missing
                     -- if rules are missing, request to create them

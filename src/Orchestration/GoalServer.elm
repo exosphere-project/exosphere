@@ -224,8 +224,8 @@ stepServerRequestPorts time project server =
 
                     RDPP.DoHave portsData _ ->
                         if
-                            List.filter (\port_ -> port_.deviceUuid == server.osProps.uuid) portsData
-                                |> List.isEmpty
+                            portsData
+                                |> List.all (\port_ -> port_.deviceUuid /= server.osProps.uuid)
                         then
                             requestStuff
 

@@ -38,6 +38,7 @@ import Dict
 import Helpers.List exposing (multiSortBy)
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.Url as UrlHelpers
+import List.Extra
 import OpenStack.Types as OSTypes
 import RemoteData
 import Types.HelperTypes as HelperTypes
@@ -55,60 +56,51 @@ unscopedProjectLookup : HelperTypes.UnscopedProvider -> HelperTypes.ProjectIdent
 unscopedProjectLookup provider projectIdentifier =
     provider.projectsAvailable
         |> RemoteData.withDefault []
-        |> List.filter (\project -> project.project.uuid == projectIdentifier)
-        |> List.head
+        |> List.Extra.find (\project -> project.project.uuid == projectIdentifier)
 
 
 serverLookup : Project -> OSTypes.ServerUuid -> Maybe Server
 serverLookup project serverUuid =
-    List.filter (\s -> s.osProps.uuid == serverUuid) (RDPP.withDefault [] project.servers) |> List.head
+    RDPP.withDefault [] project.servers
+        |> List.Extra.find (\s -> s.osProps.uuid == serverUuid)
 
 
 projectLookup : SharedModel -> HelperTypes.ProjectIdentifier -> Maybe Project
 projectLookup model projectIdentifier =
     model.projects
-        |> List.filter (\p -> p.auth.project.uuid == projectIdentifier)
-        |> List.head
+        |> List.Extra.find (\p -> p.auth.project.uuid == projectIdentifier)
 
 
 flavorLookup : Project -> OSTypes.FlavorUuid -> Maybe OSTypes.Flavor
 flavorLookup project flavorUuid =
-    List.filter
-        (\f -> f.uuid == flavorUuid)
-        project.flavors
-        |> List.head
+    project.flavors
+        |> List.Extra.find (\f -> f.uuid == flavorUuid)
 
 
 imageLookup : Project -> OSTypes.ImageUuid -> Maybe OSTypes.Image
 imageLookup project imageUuid =
-    List.filter
-        (\i -> i.uuid == imageUuid)
-        project.images
-        |> List.head
+    project.images
+        |> List.Extra.find (\i -> i.uuid == imageUuid)
 
 
 volumeLookup : Project -> OSTypes.VolumeUuid -> Maybe OSTypes.Volume
 volumeLookup project volumeUuid =
-    List.filter
-        (\v -> v.uuid == volumeUuid)
-        (RemoteData.withDefault [] project.volumes)
-        |> List.head
+    project.volumes
+        |> RemoteData.withDefault []
+        |> List.Extra.find (\v -> v.uuid == volumeUuid)
 
 
 providerLookup : SharedModel -> OSTypes.KeystoneUrl -> Maybe HelperTypes.UnscopedProvider
 providerLookup model keystoneUrl =
-    List.filter
-        (\uP -> uP.authUrl == keystoneUrl)
-        model.unscopedProviders
-        |> List.head
+    model.unscopedProviders
+        |> List.Extra.find (\uP -> uP.authUrl == keystoneUrl)
 
 
 floatingIpLookup : Project -> OSTypes.IpAddressUuid -> Maybe OSTypes.FloatingIp
 floatingIpLookup project ipUuid =
-    List.filter
-        (\i -> i.uuid == ipUuid)
-        (RDPP.withDefault [] project.floatingIps)
-        |> List.head
+    project.floatingIps
+        |> RDPP.withDefault []
+        |> List.Extra.find (\i -> i.uuid == ipUuid)
 
 
 
@@ -124,21 +116,21 @@ getServicePublicUrl serviceType catalog =
 
 getServiceFromCatalog : String -> OSTypes.ServiceCatalog -> Maybe OSTypes.Service
 getServiceFromCatalog serviceType catalog =
-    List.filter (\s -> s.type_ == serviceType) catalog
-        |> List.head
+    catalog
+        |> List.Extra.find (\s -> s.type_ == serviceType)
 
 
 getPublicEndpointFromService : OSTypes.Service -> Maybe OSTypes.Endpoint
 getPublicEndpointFromService service =
-    List.filter (\e -> e.interface == OSTypes.Public) service.endpoints
-        |> List.head
+    service.endpoints
+        |> List.Extra.find (\e -> e.interface == OSTypes.Public)
 
 
 getExternalNetwork : Project -> Maybe OSTypes.Network
 getExternalNetwork project =
     case project.networks.data of
         RDPP.DoHave networks _ ->
-            List.filter .isExternal networks |> List.head
+            List.Extra.find .isExternal networks
 
         RDPP.DontHave ->
             Nothing
@@ -154,8 +146,7 @@ getPortServer : Project -> OSTypes.Port -> Maybe Server
 getPortServer project port_ =
     project.servers
         |> RDPP.withDefault []
-        |> List.filter (\server -> server.osProps.uuid == port_.deviceUuid)
-        |> List.head
+        |> List.Extra.find (\server -> server.osProps.uuid == port_.deviceUuid)
 
 
 getFloatingIpPort : Project -> OSTypes.FloatingIp -> Maybe OSTypes.Port
@@ -165,8 +156,7 @@ getFloatingIpPort project floatingIp =
             (\portUuid ->
                 project.ports
                     |> RDPP.withDefault []
-                    |> List.filter (\p -> p.uuid == portUuid)
-                    |> List.head
+                    |> List.Extra.find (\p -> p.uuid == portUuid)
             )
 
 
@@ -209,13 +199,13 @@ getServerExouserPassword : OSTypes.ServerDetails -> Maybe String
 getServerExouserPassword serverDetails =
     let
         newLocation =
-            List.filter (\t -> String.startsWith "exoPw:" t) serverDetails.tags
-                |> List.head
+            serverDetails.tags
+                |> List.Extra.find (\t -> String.startsWith "exoPw:" t)
                 |> Maybe.map (String.dropLeft 6)
 
         oldLocation =
-            List.filter (\i -> i.key == "exouserPassword") serverDetails.metadata
-                |> List.head
+            serverDetails.metadata
+                |> List.Extra.find (\i -> i.key == "exouserPassword")
                 |> Maybe.map .value
     in
     case newLocation of
@@ -241,9 +231,7 @@ getVolsAttachedToServer project server =
 volumeIsAttachedToServer : OSTypes.VolumeUuid -> Server -> Bool
 volumeIsAttachedToServer volumeUuid server =
     server.osProps.details.volumesAttached
-        |> List.filter (\v -> v == volumeUuid)
-        |> List.isEmpty
-        |> not
+        |> List.any (\v -> v == volumeUuid)
 
 
 getServersWithVolAttached : Project -> OSTypes.Volume -> List OSTypes.ServerUuid
