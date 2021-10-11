@@ -470,6 +470,6 @@ unscopedProjectDecoder =
             (Decode.field "name" Decode.string)
             (Decode.field "id" Decode.string)
         )
-        (Decode.field "description" Decode.string)
+        (Decode.field "description" Decode.string |> Decode.nullable)
         (Decode.field "domain_id" Decode.string)
         (Decode.field "enabled" Decode.bool)

@@ -124,11 +124,14 @@ renderProject selectedProjects project =
 
                 labelStr =
                     case p.description of
-                        "" ->
+                        Nothing ->
                             p.project.name ++ disabledMsg
 
-                        _ ->
-                            p.project.name ++ " -- " ++ p.description ++ disabledMsg
+                        Just description ->
+                            p.project.name
+                                ++ " -- "
+                                ++ description
+                                ++ disabledMsg
             in
             Element.text labelStr
     in
