@@ -14,6 +14,7 @@ import Helpers.Interaction as IHelpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import Helpers.Time
+import List.Extra
 import OpenStack.ServerActions as ServerActions
 import OpenStack.ServerNameValidator exposing (serverNameValidator)
 import OpenStack.Types as OSTypes
@@ -1278,8 +1279,7 @@ serverVolumes context project server =
 
         deviceRawName vol =
             vol.attachments
-                |> List.filter (\a -> a.serverUuid == server.osProps.uuid)
-                |> List.head
+                |> List.Extra.find (\a -> a.serverUuid == server.osProps.uuid)
                 |> Maybe.map .device
 
         isBootVol vol =

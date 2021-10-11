@@ -253,15 +253,12 @@ renderTableHead :
 renderTableHead context projectId allServersSelected ( selectableServers, selectedServers ) =
     let
         deleteButtonOnPress =
-            if List.isEmpty selectedServers then
-                Nothing
+            case List.map (\s -> s.osProps.uuid) selectedServers of
+                [] ->
+                    Nothing
 
-            else
-                let
-                    uuidsToDelete =
-                        List.map (\s -> s.osProps.uuid) selectedServers
-                in
-                Just <| SharedMsg (SharedMsg.ProjectMsg projectId (SharedMsg.RequestDeleteServers uuidsToDelete))
+                uuidsToDelete ->
+                    Just <| SharedMsg (SharedMsg.ProjectMsg projectId (SharedMsg.RequestDeleteServers uuidsToDelete))
 
         onChecked new =
             let

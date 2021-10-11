@@ -14,6 +14,7 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
+import List.Extra
 import Maybe
 import OpenStack.Quotas as OSQuotas
 import OpenStack.ServerNameValidator exposing (serverNameValidator)
@@ -715,7 +716,7 @@ flavorPicker context project model computeQuota =
             ]
 
         zeroRootDiskExplainText =
-            case List.filter (\f -> f.disk_root == 0) project.flavors |> List.head of
+            case List.Extra.find (\f -> f.disk_root == 0) project.flavors of
                 Just _ ->
                     String.concat
                         [ "* No default root disk size is defined for this "

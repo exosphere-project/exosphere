@@ -29,6 +29,7 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import Http
 import Json.Decode as Decode
 import Json.Encode
+import List.Extra
 import OpenStack.Types as OSTypes
 import Parser exposing ((|.))
 import Regex
@@ -178,13 +179,13 @@ decodeFloatingIpOption : OSTypes.ServerDetails -> FloatingIpOption
 decodeFloatingIpOption serverDetails =
     let
         maybeFloatingIpOptionStr =
-            List.filter (\i -> i.key == "exoFloatingIpOption") serverDetails.metadata
-                |> List.head
+            serverDetails.metadata
+                |> List.Extra.find (\i -> i.key == "exoFloatingIpOption")
                 |> Maybe.map .value
 
         maybeReuseOptionStr =
-            List.filter (\i -> i.key == "exoFloatingIpReuseOption") serverDetails.metadata
-                |> List.head
+            serverDetails.metadata
+                |> List.Extra.find (\i -> i.key == "exoFloatingIpReuseOption")
                 |> Maybe.map .value
     in
     case maybeFloatingIpOptionStr of
@@ -307,8 +308,7 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
         getPublicKeyFromKeypairName keypairName =
             project.keypairs
                 |> RemoteData.withDefault []
-                |> List.filter (\kp -> kp.name == keypairName)
-                |> List.head
+                |> List.Extra.find (\kp -> kp.name == keypairName)
                 |> Maybe.map .publicKey
 
         authorizedKeysYaml : String
@@ -429,13 +429,12 @@ newServerNetworkOptions project =
 
         maybeProjectNameNet =
             projectNets
-                |> List.filter
+                |> List.Extra.find
                     (\n ->
                         String.contains
                             (String.toLower project.auth.project.name)
                             (String.toLower n.name)
                     )
-                |> List.head
     in
     case ( project.autoAllocatedNetworkUuid.data, project.autoAllocatedNetworkUuid.refreshStatus ) of
         -- Prefer auto-allocated network topology that we get/create
@@ -452,8 +451,7 @@ newServerNetworkOptions project =
         ( RDPP.DontHave, RDPP.NotLoading (Just _) ) ->
             -- auto-allocation API call failed, so look through list of networks
             projectNets
-                |> List.filter (\n -> n.name == "auto_allocated_network")
-                |> List.head
+                |> List.Extra.find (\n -> n.name == "auto_allocated_network")
                 |> Maybe.map (.uuid >> AutoSelectedNetwork)
                 |> Maybe.withDefault
                     (maybeProjectNameNet
@@ -498,8 +496,7 @@ isBootVol maybeServerUuid volume =
 getBootVol : List OSTypes.Volume -> OSTypes.ServerUuid -> Maybe OSTypes.Volume
 getBootVol vols serverUuid =
     vols
-        |> List.filter (isBootVol <| Just serverUuid)
-        |> List.head
+        |> List.Extra.find (isBootVol <| Just serverUuid)
 
 
 volDeviceToMountpoint : OSTypes.VolumeAttachmentDevice -> Maybe String
@@ -516,15 +513,14 @@ serverOrigin : OSTypes.ServerDetails -> ServerOrigin
 serverOrigin serverDetails =
     let
         maybeDecodedVersion =
-            List.filter (\i -> i.key == "exoServerVersion") serverDetails.metadata
-                |> List.head
+            serverDetails.metadata
+                |> List.Extra.find (\i -> i.key == "exoServerVersion")
                 |> Maybe.map .value
                 |> Maybe.andThen String.toInt
 
         version0 =
-            List.filter (\i -> i.key == "exouserPassword") serverDetails.metadata
-                |> List.isEmpty
-                |> not
+            serverDetails.metadata
+                |> List.any (\i -> i.key == "exouserPassword")
 
         exoServerVersion =
             case ( maybeDecodedVersion, version0 ) of
@@ -538,8 +534,7 @@ serverOrigin serverDetails =
                     Nothing
 
         exoSetupStatus =
-            List.filter (\i -> i.key == "exoSetup") serverDetails.metadata
-                |> List.head
+            List.Extra.find (\i -> i.key == "exoSetup") serverDetails.metadata
                 |> Maybe.map
                     (\{ value } ->
                         case value of
@@ -573,8 +568,7 @@ serverOrigin serverDetails =
 
         guacamoleStatus =
             case
-                List.filter (\i -> i.key == "exoGuac") serverDetails.metadata
-                    |> List.head
+                List.Extra.find (\i -> i.key == "exoGuac") serverDetails.metadata
             of
                 Nothing ->
                     GuacTypes.NotLaunchedWithGuacamole
@@ -597,8 +591,7 @@ serverOrigin serverDetails =
 
         customWorkflowStatus =
             case
-                List.filter (\i -> i.key == "exoCustomWorkflow") serverDetails.metadata
-                    |> List.head
+                List.Extra.find (\i -> i.key == "exoCustomWorkflow") serverDetails.metadata
             of
                 Nothing ->
                     NotLaunchedWithCustomWorkflow
@@ -615,8 +608,8 @@ serverOrigin serverDetails =
                             NotLaunchedWithCustomWorkflow
 
         creatorName =
-            List.filter (\i -> i.key == "exoCreatorUsername") serverDetails.metadata
-                |> List.head
+            serverDetails.metadata
+                |> List.Extra.find (\i -> i.key == "exoCreatorUsername")
                 |> Maybe.map .value
     in
     case exoServerVersion of
