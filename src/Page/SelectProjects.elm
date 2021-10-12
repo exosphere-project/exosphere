@@ -133,18 +133,28 @@ renderProject selectedProjects project =
                     else
                         " (disabled)"
 
+                labelStrNoDescription =
+                    p.project.name ++ disabledMsg
+
+                labelStrWithDescription description =
+                    p.project.name
+                        ++ " -- "
+                        ++ description
+                        ++ disabledMsg
+
                 labelStr =
                     case p.description of
                         Nothing ->
-                            p.project.name ++ disabledMsg
+                            labelStrNoDescription
 
                         Just description ->
-                            p.project.name
-                                ++ " -- "
-                                ++ description
-                                ++ disabledMsg
+                            if String.isEmpty description then
+                                labelStrNoDescription
+
+                            else
+                                labelStrWithDescription description
             in
-            Element.text labelStr
+            Element.paragraph [ Element.width Element.fill ] [ Element.text labelStr ]
     in
     Input.checkbox []
         { checked = selected
@@ -155,7 +165,7 @@ renderProject selectedProjects project =
 
             else
                 \_ -> nullCheckbox
-        , label = Input.labelRight [] (renderProjectLabel project)
+        , label = Input.labelRight [ Element.width Element.fill ] (renderProjectLabel project)
         }
 
 
