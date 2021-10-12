@@ -163,7 +163,7 @@ type alias UnscopedProvider =
 
 type alias UnscopedProviderProject =
     { project : OSTypes.NameAndUuid
-    , description : String
+    , description : Maybe String
     , domainId : Uuid
     , enabled : Bool
     }
