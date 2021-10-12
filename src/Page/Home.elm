@@ -110,6 +110,56 @@ addProjectCard context sharedModel =
 renderProject : View.Types.Context -> Project -> Element.Element Msg
 renderProject context project =
     let
+        renderProjectName =
+            Element.el
+                [ Element.padding 10
+                , Element.centerX
+                , Font.bold
+                ]
+            <|
+                Element.row [ Element.spacing 8 ]
+                    [ Element.el
+                        [ context.palette.muted
+                            |> SH.toElementColor
+                            |> Font.color
+                        ]
+                      <|
+                        Element.text
+                            (context.localization.unitOfTenancy
+                                |> Helpers.String.toTitleCase
+                            )
+                    , Element.text <|
+                        project.auth.project.name
+                    ]
+
+        renderProjectDescription =
+            case project.description of
+                Nothing ->
+                    Element.none
+
+                Just description ->
+                    if description == "" then
+                        Element.none
+
+                    else
+                        renderProjectDescription_ description
+
+        renderProjectDescription_ description =
+            let
+                attribs =
+                    if String.length description < 30 then
+                        [ Element.centerX
+                        ]
+
+                    else
+                        [ Element.clipX
+                        , Element.width Element.fill
+                        ]
+            in
+            Element.el
+                ([ Element.height (Element.px 25) ] ++ attribs)
+                (Element.text description)
+
         cloudSpecificConfig =
             GetterSetters.cloudSpecificConfigLookup context.cloudSpecificConfigs project
 
@@ -121,44 +171,38 @@ renderProject context project =
                 Just config ->
                     ( config.friendlyName, config.friendlySubName )
 
-        title =
-            Element.column
-                [ Element.width Element.fill, Element.padding 5, Element.spacing 8 ]
-                [ Element.el
-                    [ Element.padding 10
-                    , Element.centerX
-                    , Font.bold
-                    ]
-                  <|
-                    Element.row [ Element.spacing 8 ]
+        renderCloudName =
+            Element.wrappedRow
+                [ Element.spacing 10
+                , Element.centerX
+                , Element.alignBottom
+                ]
+            <|
+                case friendlySubName of
+                    Just subName ->
                         [ Element.el
                             [ context.palette.muted
                                 |> SH.toElementColor
                                 |> Font.color
                             ]
                           <|
-                            Element.text
-                                (context.localization.unitOfTenancy
-                                    |> Helpers.String.toTitleCase
-                                )
-                        , Element.text <|
-                            project.auth.project.name
+                            Element.text friendlyName
+                        , Element.text subName
                         ]
-                , Element.wrappedRow [ Element.spacing 10, Element.centerX ] <|
-                    case friendlySubName of
-                        Just subName ->
-                            [ Element.el
-                                [ context.palette.muted
-                                    |> SH.toElementColor
-                                    |> Font.color
-                                ]
-                              <|
-                                Element.text friendlyName
-                            , Element.text subName
-                            ]
 
-                        Nothing ->
-                            [ Element.text friendlyName ]
+                    Nothing ->
+                        [ Element.text friendlyName ]
+
+        title =
+            Element.column
+                [ Element.width Element.fill
+                , Element.height (Element.px 110)
+                , Element.paddingEach { top = 5, bottom = 10, left = 5, right = 5 }
+                , Element.spacing 8
+                ]
+                [ renderProjectName
+                , renderProjectDescription
+                , renderCloudName
                 ]
 
         renderResourceCount : String -> Element.Element Msg -> Int -> Element.Element Msg
@@ -186,7 +230,7 @@ renderProject context project =
 
         cardBody =
             Element.column
-                [ Element.spacing 12 ]
+                [ Element.height (Element.px 120), Element.padding 10, Element.spacing 12 ]
                 [ renderResourceQuantity
                     context.localization.virtualComputer
                     (FeatherIcons.server |> FeatherIcons.toHtml [] |> Element.html |> Element.el [])
@@ -216,4 +260,4 @@ renderProject context project =
 
 card : Style.Types.ExoPalette -> List (Element.Element Msg) -> Element.Element Msg
 card palette content =
-    exoCardFixedSize palette 320 220 content
+    exoCardFixedSize palette 320 250 content
