@@ -8,7 +8,6 @@ module Types.SharedMsg exposing
 import Browser
 import Http
 import OpenStack.Types as OSTypes
-import Set
 import Style.Types as ST
 import Time
 import Toasty
@@ -26,10 +25,10 @@ type SharedMsg
     | Logout
     | RequestUnscopedToken OSTypes.OpenstackLogin
     | JetstreamLogin HelperTypes.JetstreamCreds
-    | ReceiveScopedAuthToken ( Http.Metadata, String )
+    | ReceiveScopedAuthToken (Maybe OSTypes.ProjectDescription) ( Http.Metadata, String )
     | ReceiveUnscopedAuthToken OSTypes.KeystoneUrl ( Http.Metadata, String )
     | ReceiveUnscopedProjects OSTypes.KeystoneUrl (List HelperTypes.UnscopedProviderProject)
-    | RequestProjectLoginFromProvider OSTypes.KeystoneUrl (Set.Set HelperTypes.ProjectIdentifier)
+    | RequestProjectLoginFromProvider OSTypes.KeystoneUrl (List HelperTypes.UnscopedProviderProject)
     | ProjectMsg HelperTypes.ProjectIdentifier ProjectSpecificMsgConstructor
     | OpenNewWindow String
     | LinkClicked Browser.UrlRequest

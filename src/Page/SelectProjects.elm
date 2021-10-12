@@ -35,7 +35,7 @@ init keystoneUrl =
 
 
 update : Msg -> SharedModel -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
-update msg _ model =
+update msg sharedModel model =
     case msg of
         GotBoxChecked projectId checked ->
             let
@@ -51,9 +51,20 @@ update msg _ model =
             ( { model | selectedProjects = newSelectedProjects }, Cmd.none, SharedMsg.NoOp )
 
         GotSubmit ->
+            let
+                unscopedProjects =
+                    case GetterSetters.unscopedProviderLookup sharedModel model.providerKeystoneUrl of
+                        Nothing ->
+                            []
+
+                        Just unscopedProvider ->
+                            model.selectedProjects
+                                |> Set.toList
+                                |> List.filterMap (\projectIdentifier -> GetterSetters.unscopedProjectLookup unscopedProvider projectIdentifier)
+            in
             ( model
             , Cmd.none
-            , SharedMsg.RequestProjectLoginFromProvider model.providerKeystoneUrl model.selectedProjects
+            , SharedMsg.RequestProjectLoginFromProvider model.providerKeystoneUrl unscopedProjects
             )
 
 

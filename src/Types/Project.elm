@@ -16,6 +16,7 @@ type alias Project =
     { secret : ProjectSecret
     , auth : OSTypes.ScopedAuthToken
     , endpoints : Endpoints
+    , description : Maybe String
     , images : List OSTypes.Image
     , servers : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List Server)
     , flavors : List OSTypes.Flavor
