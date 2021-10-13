@@ -190,6 +190,7 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
                     in
                     case decodedValueResult of
                         Result.Err _ ->
+                            -- TODO spit this error out to message log
                             emptyStoredState
 
                         Result.Ok decodedValue ->
