@@ -68,7 +68,7 @@ elm_make:
     - if [ -d home/.npm ]; then echo "Restoring ~/.npm"; mv home/.npm ~/; fi
     - npm install
   script:
-    - mkdir public
+    - mkdir -p public
     - npm run build:prod
     - cp elm-web.js public/elm-web.js
     - cp index.html public/index.html
