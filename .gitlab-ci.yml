@@ -87,6 +87,30 @@ elm_make:
     paths:
       - public
 
+
+minify:
+  stage: build
+  needs:
+    - elm_make
+  before_script:
+    - if [ -d home/.elm ]; then echo "Restoring ~/.elm"; mv home/.elm ~/; fi
+    - if [ -d home/.npm ]; then echo "Restoring ~/.npm"; mv home/.npm ~/; fi
+    - npm install
+  script:
+    - cp --force public/elm-web.js elm-web.js
+    - npm run minify
+    - cp --force elm-web.js public/elm-web.js
+  after_script:
+    - mkdir -p home && mv ~/.elm home
+    - mkdir -p home && mv ~/.npm home
+  artifacts:
+    paths:
+      - public
+  only:
+    - master
+    - dev
+
+
 build_style_guide:
   stage: test
   needs:
@@ -153,6 +177,7 @@ deploy_prod:
   resource_group: deploy_prod
   dependencies:
     - elm_make
+    - minify
   before_script:
     # See https://docs.gitlab.com/ee/ci/ssh_keys/README.html
     - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
@@ -180,6 +205,7 @@ deploy_jetstream:
   resource_group: deploy_jetstream
   dependencies:
     - elm_make
+    - minify
   before_script:
     # See https://docs.gitlab.com/ee/ci/ssh_keys/README.html
     - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
@@ -208,6 +234,7 @@ deploy_dev:
   resource_group: deploy_dev
   needs:
     - elm_make
+    - minify
   before_script:
     # See https://docs.gitlab.com/ee/ci/ssh_keys/README.html
     - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
