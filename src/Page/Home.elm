@@ -1,6 +1,7 @@
 module Page.Home exposing (Model, Msg, init, update, view)
 
 import Element
+import Element.Border as Border
 import Element.Font as Font
 import FeatherIcons
 import Helpers.GetterSetters as GetterSetters
@@ -145,20 +146,11 @@ renderProject context project =
                         renderProjectDescription_ description
 
         renderProjectDescription_ description =
-            let
-                attribs =
-                    if String.length description < 30 then
-                        [ Element.centerX
-                        ]
-
-                    else
-                        [ Element.clipX
-                        , Element.width Element.fill
-                        ]
-            in
             Element.el
-                ([ Element.height (Element.px 25) ] ++ attribs)
-                (Element.text description)
+                [ Element.height (Element.px 25)
+                , Element.centerX
+                ]
+                (Element.text (String.left 30 description ++ "..."))
 
         cloudSpecificConfig =
             GetterSetters.cloudSpecificConfigLookup context.cloudSpecificConfigs project
