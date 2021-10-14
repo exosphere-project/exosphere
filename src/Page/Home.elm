@@ -1,7 +1,6 @@
 module Page.Home exposing (Model, Msg, init, update, view)
 
 import Element
-import Element.Border as Border
 import Element.Font as Font
 import FeatherIcons
 import Helpers.GetterSetters as GetterSetters
