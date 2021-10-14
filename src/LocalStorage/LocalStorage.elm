@@ -400,9 +400,7 @@ storedProjectDecode =
         (Decode.field "secret" decodeProjectSecret)
         (Decode.field "auth" decodeStoredAuthTokenDetails)
         (Decode.field "endpoints" decodeEndpoints)
-        (Decode.field "description" Decode.string
-            |> Decode.nullable
-        )
+        (Decode.field "description" (Decode.nullable Decode.string))
 
 
 decodeStoredAuthTokenDetails : Decode.Decoder OSTypes.ScopedAuthToken
