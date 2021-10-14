@@ -30,6 +30,7 @@ module Helpers.GetterSetters exposing
     , serverPresentNotDeleting
     , sortedFlavors
     , unscopedProjectLookup
+    , unscopedProviderLookup
     , volumeIsAttachedToServer
     , volumeLookup
     )
@@ -50,6 +51,12 @@ import Types.SharedModel exposing (SharedModel)
 
 -- Getters, i.e. lookup functions
 -- Primitive getters
+
+
+unscopedProviderLookup : SharedModel -> OSTypes.KeystoneUrl -> Maybe HelperTypes.UnscopedProvider
+unscopedProviderLookup sharedModel keystoneUrl =
+    sharedModel.unscopedProviders
+        |> List.Extra.find (\provider -> provider.authUrl == keystoneUrl)
 
 
 unscopedProjectLookup : HelperTypes.UnscopedProvider -> HelperTypes.ProjectIdentifier -> Maybe HelperTypes.UnscopedProviderProject

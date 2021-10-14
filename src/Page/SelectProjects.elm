@@ -35,7 +35,7 @@ init keystoneUrl =
 
 
 update : Msg -> SharedModel -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
-update msg _ model =
+update msg sharedModel model =
     case msg of
         GotBoxChecked projectId checked ->
             let
@@ -51,9 +51,20 @@ update msg _ model =
             ( { model | selectedProjects = newSelectedProjects }, Cmd.none, SharedMsg.NoOp )
 
         GotSubmit ->
+            let
+                unscopedProjects =
+                    case GetterSetters.unscopedProviderLookup sharedModel model.providerKeystoneUrl of
+                        Nothing ->
+                            []
+
+                        Just unscopedProvider ->
+                            model.selectedProjects
+                                |> Set.toList
+                                |> List.filterMap (\projectIdentifier -> GetterSetters.unscopedProjectLookup unscopedProvider projectIdentifier)
+            in
             ( model
             , Cmd.none
-            , SharedMsg.RequestProjectLoginFromProvider model.providerKeystoneUrl model.selectedProjects
+            , SharedMsg.RequestProjectLoginFromProvider model.providerKeystoneUrl unscopedProjects
             )
 
 
@@ -120,20 +131,35 @@ renderProject selectedProjects project =
                         ""
 
                     else
-                        " (disabled)"
+                        "(disabled)"
+
+                labelStrNoDescription =
+                    String.join " "
+                        [ p.project.name
+                        , disabledMsg
+                        ]
+
+                labelStrWithDescription description =
+                    String.join " "
+                        [ p.project.name
+                        , String.fromChar '—'
+                        , description
+                        , disabledMsg
+                        ]
 
                 labelStr =
                     case p.description of
                         Nothing ->
-                            p.project.name ++ disabledMsg
+                            labelStrNoDescription
 
                         Just description ->
-                            p.project.name
-                                ++ " -- "
-                                ++ description
-                                ++ disabledMsg
+                            if String.isEmpty description then
+                                labelStrNoDescription
+
+                            else
+                                labelStrWithDescription description
             in
-            Element.text labelStr
+            Element.paragraph [ Element.width Element.fill ] [ Element.text labelStr ]
     in
     Input.checkbox []
         { checked = selected
@@ -144,7 +170,7 @@ renderProject selectedProjects project =
 
             else
                 \_ -> nullCheckbox
-        , label = Input.labelRight [] (renderProjectLabel project)
+        , label = Input.labelRight [ Element.width Element.fill ] (renderProjectLabel project)
         }
 
 

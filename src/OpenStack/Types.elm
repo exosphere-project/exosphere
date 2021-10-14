@@ -34,6 +34,7 @@ module OpenStack.Types exposing
     , OpenstackLogin
     , Port
     , PortUuid
+    , ProjectDescription
     , PublicKey
     , QuotaItemDetail
     , ScopedAuthToken
@@ -168,6 +169,10 @@ type alias ProjectUuid =
 
 type alias ServiceCatalog =
     List Service
+
+
+type alias ProjectDescription =
+    String
 
 
 type alias Service =

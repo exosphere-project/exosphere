@@ -46,7 +46,6 @@ import Rest.Keystone
 import Rest.Neutron
 import Rest.Nova
 import Route
-import Set
 import State.Auth
 import State.Error
 import State.ViewState as ViewStateHelpers
@@ -586,7 +585,7 @@ processSharedMsg sharedMsg outerModel =
             ( outerModel, Cmd.batch cmds )
                 |> mapToOuterMsg
 
-        ReceiveScopedAuthToken ( metadata, response ) ->
+        ReceiveScopedAuthToken projectDescription ( metadata, response ) ->
             case Rest.Keystone.decodeScopedAuthToken <| Http.GoodStatus_ metadata response of
                 Err error ->
                     State.Error.processStringError
@@ -625,7 +624,7 @@ processSharedMsg sharedMsg outerModel =
                                 GetterSetters.projectLookup sharedModel <| projectId
                             of
                                 Nothing ->
-                                    createProject outerModel authToken endpoints
+                                    createProject outerModel projectDescription authToken endpoints
 
                                 Just project ->
                                     -- If we don't have an application credential for this project yet, then get one
@@ -709,7 +708,7 @@ processSharedMsg sharedMsg outerModel =
                     -- Provider not found, may have been removed, nothing to do
                     ( outerModel, Cmd.none )
 
-        RequestProjectLoginFromProvider keystoneUrl desiredProjectIdentifiers ->
+        RequestProjectLoginFromProvider keystoneUrl unscopedProjects ->
             case GetterSetters.providerLookup sharedModel keystoneUrl of
                 Just provider ->
                     let
@@ -717,16 +716,12 @@ processSharedMsg sharedMsg outerModel =
                         buildLoginRequest project =
                             Rest.Keystone.requestScopedAuthToken
                                 sharedModel.cloudCorsProxyUrl
+                                project.description
                             <|
                                 OSTypes.TokenCreds
                                     keystoneUrl
                                     provider.token
                                     project.project.uuid
-
-                        unscopedProjects =
-                            desiredProjectIdentifiers
-                                |> Set.toList
-                                |> List.filterMap (GetterSetters.unscopedProjectLookup provider)
 
                         loginRequests =
                             List.map buildLoginRequest unscopedProjects
@@ -2263,8 +2258,8 @@ processNewFloatingIp time project floatingIp =
     }
 
 
-createProject : OuterModel -> OSTypes.ScopedAuthToken -> Endpoints -> ( OuterModel, Cmd OuterMsg )
-createProject outerModel authToken endpoints =
+createProject : OuterModel -> Maybe OSTypes.ProjectDescription -> OSTypes.ScopedAuthToken -> Endpoints -> ( OuterModel, Cmd OuterMsg )
+createProject outerModel description authToken endpoints =
     let
         sharedModel =
             outerModel.sharedModel
@@ -2275,6 +2270,7 @@ createProject outerModel authToken endpoints =
 
             -- Maybe todo, eliminate parallel data structures in auth and endpoints?
             , endpoints = endpoints
+            , description = description
             , images = []
             , servers = RDPP.RemoteDataPlusPlus RDPP.DontHave RDPP.Loading
             , flavors = []

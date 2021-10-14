@@ -8,7 +8,7 @@ import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Json.Decode as Decode
 import Json.Encode as Encode
-import LocalStorage.Types exposing (StoredProject, StoredProject2, StoredState)
+import LocalStorage.Types exposing (StoredProject, StoredProject2, StoredProject3, StoredState)
 import OpenStack.Types as OSTypes
 import RemoteData
 import Style.Types as ST
@@ -33,6 +33,7 @@ generateStoredProject project =
     { secret = project.secret
     , auth = project.auth
     , endpoints = project.endpoints
+    , description = project.description
     }
 
 
@@ -90,6 +91,7 @@ hydrateProjectFromStoredProject storedProject =
     { secret = storedProject.secret
     , auth = storedProject.auth
     , endpoints = storedProject.endpoints
+    , description = storedProject.description
     , images = []
     , servers = RDPP.empty
     , flavors = []
@@ -132,10 +134,15 @@ encodeStoredState projects clientUuid styleMode experimentalFeaturesEnabled =
                 [ ( "secret", secretEncode storedProject.secret )
                 , ( "auth", encodeAuthToken storedProject.auth )
                 , ( "endpoints", encodeExoEndpoints storedProject.endpoints )
+                , ( "description"
+                  , storedProject.description
+                        |> Maybe.map Encode.string
+                        |> Maybe.withDefault Encode.null
+                  )
                 ]
     in
     Encode.object
-        [ ( "6"
+        [ ( "7"
           , Encode.object
                 [ ( "projects", Encode.list storedProjectEncode projects )
                 , ( "clientUuid", Encode.string (UUID.toString clientUuid) )
@@ -259,16 +266,19 @@ decodeStoredState =
                 , Decode.at [ "2", "projects" ] (Decode.list storedProjectDecode2)
 
                 -- Added Endpoints
-                , Decode.at [ "3", "projects" ] (Decode.list storedProjectDecode)
+                , Decode.at [ "3", "projects" ] (Decode.list storedProjectDecode3)
 
                 -- Added client UUID
-                , Decode.at [ "4", "projects" ] (Decode.list storedProjectDecode)
+                , Decode.at [ "4", "projects" ] (Decode.list storedProjectDecode3)
 
                 -- Added StyleMode
-                , Decode.at [ "5", "projects" ] (Decode.list storedProjectDecode)
+                , Decode.at [ "5", "projects" ] (Decode.list storedProjectDecode3)
 
                 -- Added ExperimentalFeaturesEnabled
-                , Decode.at [ "6", "projects" ] (Decode.list storedProjectDecode)
+                , Decode.at [ "6", "projects" ] (Decode.list storedProjectDecode3)
+
+                -- Added project description field
+                , Decode.at [ "7", "projects" ] (Decode.list storedProjectDecode)
                 ]
 
         clientUuid =
@@ -279,6 +289,7 @@ decodeStoredState =
                     [ Decode.at [ "4", "clientUuid" ] Decode.string
                     , Decode.at [ "5", "clientUuid" ] Decode.string
                     , Decode.at [ "6", "clientUuid" ] Decode.string
+                    , Decode.at [ "7", "clientUuid" ] Decode.string
                     ]
                     |> Decode.map UUID.fromString
                     |> Decode.andThen
@@ -297,13 +308,18 @@ decodeStoredState =
                 (Decode.oneOf
                     [ Decode.at [ "5", "styleMode" ] Decode.string
                     , Decode.at [ "6", "styleMode" ] Decode.string
+                    , Decode.at [ "7", "styleMode" ] Decode.string
                     ]
                     |> Decode.andThen decodeStyleMode
                 )
 
         experimentalFeaturesEnabled =
             Decode.maybe
-                (Decode.at [ "6", "experimentalFeaturesEnabled" ] Decode.bool)
+                (Decode.oneOf
+                    [ Decode.at [ "6", "experimentalFeaturesEnabled" ] Decode.bool
+                    , Decode.at [ "7", "experimentalFeaturesEnabled" ] Decode.bool
+                    ]
+                )
     in
     Decode.map4 StoredState projects clientUuid styleMode experimentalFeaturesEnabled
 
@@ -322,6 +338,7 @@ storedProject2ToStoredProject sp =
                     sp.secret
                     sp.auth
                     endpoints
+                    Nothing
 
         Err e ->
             Decode.fail ("Could not decode endpoints from service catalog because: " ++ e)
@@ -333,6 +350,25 @@ storedProjectDecode2 =
         (Decode.field "secret" decodeProjectSecret)
         (Decode.field "auth" decodeStoredAuthTokenDetails)
         |> Decode.andThen storedProject2ToStoredProject
+
+
+storedProject3ToStoredProject : StoredProject3 -> Decode.Decoder StoredProject
+storedProject3ToStoredProject sp =
+    Decode.succeed <|
+        StoredProject
+            sp.secret
+            sp.auth
+            sp.endpoints
+            Nothing
+
+
+storedProjectDecode3 : Decode.Decoder StoredProject
+storedProjectDecode3 =
+    Decode.map3 StoredProject3
+        (Decode.field "secret" decodeProjectSecret)
+        (Decode.field "auth" decodeStoredAuthTokenDetails)
+        (Decode.field "endpoints" decodeEndpoints)
+        |> Decode.andThen storedProject3ToStoredProject
 
 
 decodeProjectSecret : Decode.Decoder Types.Project.ProjectSecret
@@ -360,10 +396,11 @@ decodeProjectSecret =
 
 storedProjectDecode : Decode.Decoder StoredProject
 storedProjectDecode =
-    Decode.map3 StoredProject
+    Decode.map4 StoredProject
         (Decode.field "secret" decodeProjectSecret)
         (Decode.field "auth" decodeStoredAuthTokenDetails)
         (Decode.field "endpoints" decodeEndpoints)
+        (Decode.field "description" (Decode.nullable Decode.string))
 
 
 decodeStoredAuthTokenDetails : Decode.Decoder OSTypes.ScopedAuthToken
