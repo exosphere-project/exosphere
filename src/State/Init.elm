@@ -130,9 +130,42 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
                     |> Maybe.withDefault "incoming+exosphere-exosphere-6891229-issue-@incoming.gitlab.com"
             }
 
+        ( storedState, storedStateDecodeError ) =
+            case flags.storedState of
+                Nothing ->
+                    ( emptyStoredState, Nothing )
+
+                Just storedStateValue ->
+                    let
+                        decodedValueResult =
+                            Decode.decodeValue LocalStorage.decodeStoredState storedStateValue
+                    in
+                    case decodedValueResult of
+                        Result.Err e ->
+                            -- TODO spit this error out to message log
+                            ( emptyStoredState, Just <| Decode.errorToString e )
+
+                        Result.Ok decodedValue ->
+                            ( decodedValue, Nothing )
+
+        logMessages =
+            case storedStateDecodeError of
+                Just error ->
+                    let
+                        context =
+                            Types.Error.ErrorContext
+                                "decode stored application state retrieved from browser local storage"
+                                Types.Error.ErrorWarn
+                                Nothing
+                    in
+                    [ { message = error, context = context, timestamp = currentTime } ]
+
+                Nothing ->
+                    []
+
         emptyModel : Bool -> UUID.UUID -> SharedModel
         emptyModel showDebugMsgs uuid =
-            { logMessages = []
+            { logMessages = logMessages
             , unscopedProviders = []
             , projects = []
             , toasties = Toasty.initialState
@@ -176,25 +209,6 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
                         (Random.initialSeed flags.randomSeed3)
             in
             UUID.step seeds |> Tuple.first
-
-        storedState : LocalStorageTypes.StoredState
-        storedState =
-            case flags.storedState of
-                Nothing ->
-                    emptyStoredState
-
-                Just storedStateValue ->
-                    let
-                        decodedValueResult =
-                            Decode.decodeValue LocalStorage.decodeStoredState storedStateValue
-                    in
-                    case decodedValueResult of
-                        Result.Err _ ->
-                            -- TODO spit this error out to message log
-                            emptyStoredState
-
-                        Result.Ok decodedValue ->
-                            decodedValue
 
         hydratedModel : SharedModel
         hydratedModel =
