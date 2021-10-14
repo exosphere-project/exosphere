@@ -131,16 +131,21 @@ renderProject selectedProjects project =
                         ""
 
                     else
-                        " (disabled)"
+                        "(disabled)"
 
                 labelStrNoDescription =
-                    p.project.name ++ disabledMsg
+                    String.join " "
+                        [ p.project.name
+                        , disabledMsg
+                        ]
 
                 labelStrWithDescription description =
-                    p.project.name
-                        ++ " -- "
-                        ++ description
-                        ++ disabledMsg
+                    String.join " "
+                        [ p.project.name
+                        , String.fromChar '—'
+                        , description
+                        , disabledMsg
+                        ]
 
                 labelStr =
                     case p.description of
