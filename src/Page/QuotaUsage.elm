@@ -1,15 +1,12 @@
 module Page.QuotaUsage exposing (ResourceType(..), view)
 
 import Element
-import Element.Background as Background
-import Element.Border as Border
-import Element.Font as Font
 import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (Unit(..), humanNumber)
 import Helpers.String
 import OpenStack.Types as OSTypes
 import RemoteData exposing (RemoteData(..), WebData)
-import Style.Helpers as SH
+import Style.Widgets.Meter
 import View.Helpers as VH
 import View.Types
 
@@ -47,53 +44,43 @@ infoItem context detail ( label, units ) =
                 |> Maybe.map (humanNumber { locale | decimals = Exact 0 } units)
                 |> Maybe.withDefault ( "", "N/A" )
 
-        bg =
-            Background.color <| SH.toElementColor context.palette.surface
+        text =
+            String.join " " <|
+                List.concat
+                    [ [ usedCount ]
+                    , if usedLabel == limitLabel then
+                        []
 
-        border =
-            Border.rounded 5
-
-        pad =
-            Element.paddingXY 4 2
+                      else
+                        [ usedLabel ]
+                    , [ "of" ]
+                    , [ limitCount ]
+                    , [ limitLabel ]
+                    ]
     in
-    Element.row
-        (VH.exoRowAttributes ++ [ Element.spacing 5, Element.width Element.fill ])
-        (List.concat
-            [ [ Element.el [ Font.bold ] <|
-                    Element.text label
-              , Element.el [ bg, border, pad ] <|
-                    Element.text usedCount
-              ]
-            , if usedLabel == limitLabel then
-                []
-
-              else
-                [ Element.el [ Font.italic ] (Element.text usedLabel) ]
-            , [ Element.el [] (Element.text "of")
-              , Element.el [ bg, border, pad ] <|
-                    Element.text limitCount
-              , Element.el [ Font.italic ] <| Element.text limitLabel
-              ]
-            ]
-        )
+    Style.Widgets.Meter.meter context.palette label text detail.inUse (Maybe.withDefault -1 detail.limit)
 
 
 computeInfoItems : View.Types.Context -> OSTypes.ComputeQuota -> Element.Element msg
 computeInfoItems context quota =
     Element.wrappedRow
-        (VH.exoRowAttributes ++ [ Element.width Element.fill ])
+        (VH.exoRowAttributes
+            ++ [ Element.width Element.fill
+               , Element.spacing 35
+               ]
+        )
         [ infoItem context
             quota.instances
             ( String.join " "
                 [ context.localization.virtualComputer
                     |> Helpers.String.pluralize
                     |> Helpers.String.toTitleCase
-                , "used:"
+                , "used"
                 ]
             , Count
             )
-        , infoItem context quota.cores ( "Cores used:", Count )
-        , infoItem context quota.ram ( "RAM used:", MebiBytes )
+        , infoItem context quota.cores ( "Cores used", Count )
+        , infoItem context quota.ram ( "RAM used", MebiBytes )
         ]
 
 
@@ -138,14 +125,14 @@ floatingIpInfoItems context floatingIpsUsed quota =
             { incorrectIpsQuota | inUse = floatingIpsUsed }
     in
     Element.wrappedRow
-        (VH.exoRowAttributes ++ [ Element.width Element.fill ])
+        (VH.exoRowAttributes ++ [ Element.centerX ])
         [ infoItem context
             correctedIpsQuota
             ( String.join " "
                 [ context.localization.floatingIpAddress
                     |> Helpers.String.pluralize
                     |> Helpers.String.toTitleCase
-                , "used:"
+                , "used"
                 ]
             , Count
             )
@@ -161,8 +148,12 @@ floatingIpQuotaDetails context quota floatingIpsUsed =
 
 volumeInfoItems : View.Types.Context -> OSTypes.VolumeQuota -> Element.Element msg
 volumeInfoItems context quota =
-    Element.wrappedRow
-        (VH.exoRowAttributes ++ [ Element.width Element.fill ])
+    Element.row
+        (VH.exoRowAttributes
+            ++ [ Element.centerX
+               , Element.spacing 35
+               ]
+        )
         [ infoItem
             context
             quota.volumes
@@ -170,11 +161,11 @@ volumeInfoItems context quota =
                 [ context.localization.blockDevice
                     |> Helpers.String.pluralize
                     |> Helpers.String.toTitleCase
-                , "used:"
+                , "used"
                 ]
             , Count
             )
-        , infoItem context quota.gigabytes ( "Storage used:", GibiBytes )
+        , infoItem context quota.gigabytes ( "Storage used", GibiBytes )
         ]
 
 

@@ -1,6 +1,5 @@
 module Style.Widgets.Meter exposing (meter)
 
-import Color
 import Css
 import Css.Global
 import Element
@@ -66,7 +65,7 @@ meter palette title subtitle value maximum =
                 ]
             , Html.meter
                 [ HtmlA.css
-                    [ Css.width (Css.px 300)
+                    [ Css.width (Css.px 260)
                     , Css.height (Css.px 25)
                     , Css.property "background" "none"
                     , Css.backgroundColor (Css.hex "#F5F5F5")
