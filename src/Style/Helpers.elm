@@ -1,5 +1,6 @@
 module Style.Helpers exposing
     ( materialStyle
+    , toCssColor
     , toElementColor
     , toElementColorWithOpacity
     , toExoPalette
@@ -7,6 +8,7 @@ module Style.Helpers exposing
     )
 
 import Color
+import Css
 import Element
 import Element.Font as Font
 import Html.Attributes
@@ -209,3 +211,17 @@ toElementColorWithOpacity color alpha =
             Color.toRgba color
     in
     Element.rgba red green blue alpha
+
+
+toCssColor : Color.Color -> Css.Color
+toCssColor color =
+    let
+        { red, green, blue } =
+            Color.toRgba color
+
+        to255Int float =
+            float
+                * 255
+                |> round
+    in
+    Css.rgb (to255Int red) (to255Int green) (to255Int blue)

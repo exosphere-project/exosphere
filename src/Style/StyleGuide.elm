@@ -13,6 +13,7 @@ import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon exposing (bell, ipAddress, remove, roundRect, timesCircle)
 import Style.Widgets.IconButton exposing (chip)
 import Style.Widgets.MenuItem exposing (MenuItemState(..), menuItem)
+import Style.Widgets.Meter exposing (meter)
 import Style.Widgets.StatusBadge exposing (StatusBadgeState(..), statusBadge)
 import Widget
 
@@ -81,6 +82,8 @@ widgets msgMapper palette model =
         model.chipFilterModel
     , Element.text "Style.Widgets.StatusBadge.statusBadge"
     , statusBadge palette ReadyGood (Element.text "Ready")
+    , Element.text "Style.Widgets.Meter"
+    , meter palette "Space used" "6 of 10 GB" 6 10
     ]
 
 
