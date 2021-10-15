@@ -22,7 +22,7 @@ import Page.ServerResourceUsageAlerts
 import Page.ServerResourceUsageCharts
 import RemoteData
 import Route
-import Style.Helpers as SH
+import Style.Helpers as SH exposing (shadowDefaults)
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton
@@ -250,10 +250,8 @@ serverDetail_ context project currentTimeAndZone model server =
                                     , Element.padding 10
                                     , Border.rounded 4
                                     , Border.shadow
-                                        { blur = 10
-                                        , color = SH.toElementColorWithOpacity context.palette.muted 0.2
-                                        , offset = ( 0, 2 )
-                                        , size = 1
+                                        { shadowDefaults
+                                            | color = SH.toElementColorWithOpacity context.palette.muted 0.2
                                         }
                                     ]
 

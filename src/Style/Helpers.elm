@@ -1,5 +1,6 @@
 module Style.Helpers exposing
     ( materialStyle
+    , shadowDefaults
     , toCssColor
     , toElementColor
     , toElementColorWithOpacity
@@ -225,3 +226,12 @@ toCssColor color =
                 |> round
     in
     Css.rgb (to255Int red) (to255Int green) (to255Int blue)
+
+
+shadowDefaults : { offset : ( Float, Float ), blur : Float, size : Float, color : Element.Color }
+shadowDefaults =
+    { offset = ( 0, 4 )
+    , blur = 8
+    , size = 0
+    , color = Element.rgba255 3 3 3 0.18
+    }

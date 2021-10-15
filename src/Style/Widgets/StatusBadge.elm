@@ -24,8 +24,7 @@ statusBadge palette state status =
     Element.el
         [ Element.paddingXY 8 6
         , Border.rounded 4
-        , Border.shadow
-            { offset = ( 0, 3 ), blur = 6, size = 0, color = Element.rgba 0 0 0 0.32 }
+        , Border.shadow SH.shadowDefaults
         , Background.color backgroundColor
         , Font.color textColor
         ]

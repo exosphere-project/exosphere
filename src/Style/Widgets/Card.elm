@@ -158,12 +158,7 @@ badge : String -> Element msg
 badge title =
     -- TODO a bunch of hard-coded colors here that don't cleanly fit in the palette. Look into functions to lighten/darken palette colors
     Element.el
-        [ Border.shadow
-            { blur = 10
-            , color = Element.rgba255 0 0 0 0.05
-            , offset = ( 0, 2 )
-            , size = 1
-            }
+        [ Border.shadow SH.shadowDefaults
         , Border.width 1
         , Border.color <| Element.rgb255 181 181 181
         , Background.gradient
