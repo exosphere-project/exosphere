@@ -36,7 +36,7 @@ import Page.VolumeDetail
 import Page.VolumeList
 import Page.VolumeMountInstructions
 import Route
-import Style.Helpers as SH
+import Style.Helpers as SH exposing (shadowDefaults)
 import Style.Toast
 import Toasty
 import Types.Error exposing (AppError)
@@ -207,7 +207,7 @@ elementView windowSize outerModel context =
                 Element.px windowSize.height
             ]
             [ Element.el
-                [ Border.shadow { offset = ( 0, 0 ), size = 1, blur = 5, color = Element.rgb 0.1 0.1 0.1 }
+                [ Border.shadow shadowDefaults
                 , Element.width Element.fill
                 ]
                 (View.Nav.navBar outerModel context)
@@ -407,10 +407,8 @@ createButton context projectId expanded =
                     }
                 , Background.color <| SH.toElementColor context.palette.background
                 , Border.shadow
-                    { blur = 10
-                    , color = SH.toElementColorWithOpacity context.palette.muted 0.2
-                    , offset = ( 0, 2 )
-                    , size = 1
+                    { shadowDefaults
+                        | color = SH.toElementColorWithOpacity context.palette.muted 0.2
                     }
                 , Border.width 1
                 , Border.color <| SH.toElementColor context.palette.muted

@@ -25,8 +25,7 @@ floatingMessage palette content =
         , Border.width 1
         , Border.rounded 5
         , Border.color (SH.toElementColor palette.muted)
-        , Border.shadow
-            { offset = ( 0, 3 ), blur = 6, size = 0, color = Element.rgba 0 0 0 0.32 }
+        , Border.shadow SH.shadowDefaults
         , Font.color (palette.on.surface |> SH.toElementColor)
         ]
         content
