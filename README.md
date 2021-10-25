@@ -45,7 +45,7 @@ To start a conversation or ask for help, talk to us in real-time on [Matrix / El
 We use GitLab to track issues and contributions. To request a new feature or report a bug, [create a new issue](https://gitlab.com/exosphere/exosphere/-/issues/new) on our GitLab project.
 
 
-We discuss project progress and priorities on a **weekly video call** Mondays at 16:00 UTC. The whole community is invited! Join at <https://meet.jit.si/exosphere>, or dial in at +1.512.647.1431, PIN: 3037 7824 88#.
+We discuss project progress and priorities on a **weekly video call** Mondays at 16:00 UTC. The whole community is invited! Join at <https://meet.jit.si/exosphere>, or dial in at +1.512.647.1431, PIN: 3037 7824 88#. Find the agenda and notes from previous meetings [here](https://c-mart.sandcats.io/shared/wfRsWBVmJZ3maUn7HMFqNj_MR_Bzy1vob9CzWu1n7QI).
 
 ## Documentation
 
