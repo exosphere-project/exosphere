@@ -3,6 +3,7 @@ module Style.Widgets.Meter exposing (meter)
 import Element
 import Element.Background as Background
 import Element.Font as Font
+import Html.Attributes as HtmlA
 import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
 
@@ -18,12 +19,11 @@ meter palette title subtitle value maximum =
             [ Element.text title
             , Element.el [ Element.alignRight ] (Element.text subtitle)
             ]
-
-        {- TODO: Add aria attributes using Html.Attribute.attribute or try element.region -}
         , Element.row
             [ Element.width (Element.px 260)
             , Element.height (Element.px 25)
             , Background.color (SH.toElementColorWithOpacity palette.primary 0.15)
+            , Element.htmlAttribute (HtmlA.attribute "role" "progressbar")
             ]
             [ Element.el
                 [ Element.width (Element.fillPortion value)
