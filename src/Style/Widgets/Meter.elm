@@ -23,7 +23,7 @@ meter palette title subtitle value maximum =
             [ Element.width (Element.px 260)
             , Element.height (Element.px 25)
             , Background.color (SH.toElementColorWithOpacity palette.primary 0.15)
-            , Element.htmlAttribute (HtmlA.attribute "role" "progressbar")
+            , Element.htmlAttribute (HtmlA.attribute "role" "meter")
             ]
             [ Element.el
                 [ Element.width (Element.fillPortion value)
