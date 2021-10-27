@@ -3,7 +3,10 @@ module ServerDeploy exposing (cloudInitUserDataTemplate)
 
 cloudInitUserDataTemplate : String
 cloudInitUserDataTemplate =
-    -- The virtualenv case expression is due to CentOS 7 requiring `virtualenv-3`, Ubuntu 18 requiring `python3 -m virtualenv`, and everything else just using `virtualenv`
+    {-
+       The virtualenv case expression is due to CentOS 7 requiring use of `virtualenv-3`,
+       Ubuntu 18 requiring `python3 -m virtualenv`, and everything else just using `virtualenv`.
+    -}
     """#cloud-config
 users:
   - default
