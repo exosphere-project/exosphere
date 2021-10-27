@@ -3,6 +3,7 @@ module ServerDeploy exposing (cloudInitUserDataTemplate)
 
 cloudInitUserDataTemplate : String
 cloudInitUserDataTemplate =
+    -- The virtualenv case expression is due to CentOS 7 requiring `virtualenv-3`, Ubuntu 18 requiring `python3 -m virtualenv`, and everything else just using `virtualenv`
     """#cloud-config
 users:
   - default
@@ -21,7 +22,7 @@ runcmd:
   - echo '{"exoSetup":"running"}' > /dev/console
   - chmod 640 /var/log/cloud-init-output.log
   - |
-    virtualenv /opt/ansible-venv
+    (which virtualenv && virtualenv /opt/ansible-venv) || (which virtualenv-3 && virtualenv-3 /opt/ansible-venv) || python3 -m virtualenv /opt/ansible-venv
     . /opt/ansible-venv/bin/activate
     pip install ansible-base
     ansible-pull --url "{instance-config-mgt-repo-url}" --checkout "{instance-config-mgt-repo-checkout}" --directory /opt/instance-config-mgt -i /opt/instance-config-mgt/ansible/hosts -e "{ansible-extra-vars}" /opt/instance-config-mgt/ansible/playbook.yml
