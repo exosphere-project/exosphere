@@ -52,18 +52,33 @@ view context widthPx ( currentTime, timeZone ) timeSeriesDict =
 
         percentRange getDataFunc =
             let
+                tick percent =
+                    let
+                        label =
+                            Junk.label context.palette.on.background (String.fromInt percent ++ "%")
+                    in
+                    Tick.custom
+                        { position = toFloat percent
+                        , color = context.palette.on.background
+                        , width = 2
+                        , length = 2
+                        , grid = True
+                        , direction = Tick.negative
+                        , label = Just label
+                        }
+
                 ticks =
                     Ticks.custom <|
                         \_ _ ->
-                            [ Tick.int 0
-                            , Tick.int 25
-                            , Tick.int 50
-                            , Tick.int 75
-                            , Tick.int 100
+                            [ tick 0
+                            , tick 25
+                            , tick 50
+                            , tick 75
+                            , tick 100
                             ]
             in
             Axis.custom
-                { title = Title.default "Percent"
+                { title = Title.default ""
                 , variable = Just << getDataFunc
                 , pixels = 220
                 , range = Range.window 0 100
@@ -75,14 +90,14 @@ view context widthPx ( currentTime, timeZone ) timeSeriesDict =
         customTick number =
             let
                 label =
-                    Junk.label Colors.black (millisecond_to_str number)
+                    Junk.label context.palette.on.background (millisecond_to_str number)
 
                 even =
                     modBy 20 number == 0
             in
             Tick.custom
                 { position = toFloat number
-                , color = Colors.black
+                , color = context.palette.on.background
                 , width = 2
                 , length = 2
                 , grid = even
