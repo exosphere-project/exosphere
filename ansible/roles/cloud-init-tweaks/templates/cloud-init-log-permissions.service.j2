@@ -10,7 +10,7 @@ PartOf=cloud-init.service
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStart=/bin/chmod u=rw,g=r,o= /var/log/cloud-init.log /var/log/cloud-init-output.log
+ExecStart=/bin/chmod u=rw,g=r,o= {{ cloud_init_log_files }}
 
 [Install]
 WantedBy=multi-user.target

@@ -1,5 +1,12 @@
 ---
 
+- name: 'operating system-specific variables imported'
+  include_vars: "{{ item }}"
+  with_first_found:
+    - "{{ ansible_distribution }}-{{ ansible_distribution_major_version}}.yml"
+    - "{{ ansible_distribution }}.yml"
+  ignore_errors: true
+
 # https://bugs.launchpad.net/cloud-init/+bug/1541196
 
 - name: 'systemd unit file templated for cloud-init log file permissions control'

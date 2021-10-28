@@ -1,0 +1,3 @@
+---
+
+cloud_init_log_files: '/var/log/cloud-init.log /var/log/cloud-init-output.log'
