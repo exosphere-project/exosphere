@@ -12,7 +12,6 @@ import LineChart.Axis.Range as Range
 import LineChart.Axis.Tick as Tick
 import LineChart.Axis.Ticks as Ticks
 import LineChart.Axis.Title as Title
-import LineChart.Colors as Colors
 import LineChart.Container as Container
 import LineChart.Dots as Dots
 import LineChart.Events as Events
@@ -50,39 +49,56 @@ view context widthPx ( currentTime, timeZone ) timeSeriesDict =
                 |> accessor
                 |> toFloat
 
-        percentRange getDataFunc =
+        percentRangeCustomTick : Int -> Tick.Config msg
+        percentRangeCustomTick percent =
             let
-                ticks =
-                    Ticks.custom <|
-                        \_ _ ->
-                            [ Tick.int 0
-                            , Tick.int 25
-                            , Tick.int 50
-                            , Tick.int 75
-                            , Tick.int 100
-                            ]
+                label =
+                    Junk.label context.palette.on.background (String.fromInt percent ++ "%")
             in
+            Tick.custom
+                { position = toFloat percent
+                , color = context.palette.on.background
+                , width = 2
+                , length = 2
+                , grid = True
+                , direction = Tick.negative
+                , label = Just label
+                }
+
+        percentRangeCustomTicks : Ticks.Config msg
+        percentRangeCustomTicks =
+            Ticks.custom <|
+                \_ _ ->
+                    [ percentRangeCustomTick 0
+                    , percentRangeCustomTick 25
+                    , percentRangeCustomTick 50
+                    , percentRangeCustomTick 75
+                    , percentRangeCustomTick 100
+                    ]
+
+        percentRange : (( Int, DataPoint ) -> Float) -> Axis.Config ( Int, DataPoint ) msg
+        percentRange getDataFunc =
             Axis.custom
-                { title = Title.default "Percent"
+                { title = Title.default ""
                 , variable = Just << getDataFunc
                 , pixels = 220
                 , range = Range.window 0 100
                 , axisLine = AxisLine.full context.palette.on.background
-                , ticks = ticks
+                , ticks = percentRangeCustomTicks
                 }
 
-        customTick : Int -> Tick.Config msg
-        customTick number =
+        timeRangeCustomTick : Int -> Tick.Config msg
+        timeRangeCustomTick number =
             let
                 label =
-                    Junk.label Colors.black (millisecond_to_str number)
+                    Junk.label context.palette.on.background (millisecond_to_str number)
 
                 even =
                     modBy 20 number == 0
             in
             Tick.custom
                 { position = toFloat number
-                , color = Colors.black
+                , color = context.palette.on.background
                 , width = 2
                 , length = 2
                 , grid = even
@@ -90,6 +106,7 @@ view context widthPx ( currentTime, timeZone ) timeSeriesDict =
                 , label = Just label
                 }
 
+        timeRange : (( Int, DataPoint ) -> Float) -> Axis.Config ( Int, DataPoint ) msg
         timeRange getDataFunc =
             Axis.custom
                 { title = Title.default ""
@@ -97,7 +114,7 @@ view context widthPx ( currentTime, timeZone ) timeSeriesDict =
                 , pixels = widthPx
                 , range = Range.default
                 , axisLine = AxisLine.full context.palette.on.background
-                , ticks = Ticks.intCustom 4 customTick
+                , ticks = Ticks.intCustom 4 timeRangeCustomTick
                 }
 
         -- function call for proper formatting of times
