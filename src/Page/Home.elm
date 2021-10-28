@@ -15,11 +15,13 @@ import Style.Types
 import Style.Widgets.Card exposing (exoCardFixedSize)
 import Style.Widgets.Icon as Icon
 import Types.HelperTypes as HelperTypes
+import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project)
 import Types.SharedModel exposing (SharedModel)
-import Types.SharedMsg as SharedMsg
+import Types.SharedMsg as SM
 import View.Helpers as VH
 import View.Types
+import Widget
 
 
 type alias Model =
@@ -35,9 +37,9 @@ init =
     ()
 
 
-update : Msg -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
+update : Msg -> Model -> ( Model, Cmd Msg, SM.SharedMsg )
 update _ model =
-    ( model, Cmd.none, SharedMsg.NoOp )
+    ( model, Cmd.none, SM.NoOp )
 
 
 
@@ -60,6 +62,15 @@ view context sharedModel _ =
 
 viewWithProjects : View.Types.Context -> SharedModel -> List HelperTypes.KeystoneHostname -> Element.Element Msg
 viewWithProjects context sharedModel uniqueKeystoneHostnames =
+    let
+        removeAllText =
+            String.join " "
+                [ "Remove All"
+                , Helpers.String.toTitleCase
+                    context.localization.unitOfTenancy
+                    |> Helpers.String.pluralize
+                ]
+    in
     Element.column (Element.spacing 24 :: VH.contentContainer)
         [ Element.el (VH.heading2 context.palette)
             (Element.text "Home")
@@ -76,6 +87,19 @@ viewWithProjects context sharedModel uniqueKeystoneHostnames =
         , Element.wrappedRow
             [ Element.spacing 24 ]
             (List.append (List.map (renderProject context) sharedModel.projects) [ addProjectCard context sharedModel ])
+        , Element.el [ Element.alignRight ]
+            (Widget.iconButton
+                (SH.materialStyle context.palette).button
+                { icon =
+                    Element.row [ Element.spacing 10 ]
+                        [ Element.text removeAllText
+                        , FeatherIcons.logOut |> FeatherIcons.withSize 18 |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
+                        ]
+                , text = removeAllText
+                , onPress =
+                    Just <| SharedMsg SM.Logout
+                }
+            )
         ]
 
 
