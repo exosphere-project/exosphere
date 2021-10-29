@@ -15,10 +15,9 @@ import Style.Types
 import Style.Widgets.Card exposing (exoCardFixedSize)
 import Style.Widgets.Icon as Icon
 import Types.HelperTypes as HelperTypes
-import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project)
 import Types.SharedModel exposing (SharedModel)
-import Types.SharedMsg as SM
+import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
 import Widget
@@ -30,6 +29,7 @@ type alias Model =
 
 type Msg
     = NoOp
+    | Logout
 
 
 init : Model
@@ -37,9 +37,14 @@ init =
     ()
 
 
-update : Msg -> Model -> ( Model, Cmd Msg, SM.SharedMsg )
-update _ model =
-    ( model, Cmd.none, SM.NoOp )
+update : Msg -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
+update msg model =
+    case msg of
+        NoOp ->
+            ( model, Cmd.none, SharedMsg.NoOp )
+
+        Logout ->
+            ( model, Cmd.none, SharedMsg.Logout )
 
 
 
@@ -97,7 +102,7 @@ viewWithProjects context sharedModel uniqueKeystoneHostnames =
                         ]
                 , text = removeAllText
                 , onPress =
-                    Just <| SharedMsg SM.Logout
+                    Just Logout
                 }
             )
         ]
