@@ -87,19 +87,23 @@ viewWithProjects context sharedModel uniqueKeystoneHostnames =
                     ++ [ Element.width Element.shrink ]
                 )
                 (Element.text "Home")
-            , Element.el [ Element.alignRight ]
-                (Widget.iconButton
-                    (SH.materialStyle context.palette).button
-                    { icon =
-                        Element.row [ Element.spacing 10 ]
-                            [ Element.text removeAllText
-                            , FeatherIcons.logOut |> FeatherIcons.withSize 18 |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
-                            ]
-                    , text = removeAllText
-                    , onPress =
-                        Just Logout
-                    }
-                )
+            , if List.isEmpty uniqueKeystoneHostnames then
+                Element.none
+
+              else
+                Element.el [ Element.alignRight ]
+                    (Widget.iconButton
+                        (SH.materialStyle context.palette).button
+                        { icon =
+                            Element.row [ Element.spacing 10 ]
+                                [ Element.text removeAllText
+                                , FeatherIcons.logOut |> FeatherIcons.withSize 18 |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
+                                ]
+                        , text = removeAllText
+                        , onPress =
+                            Just Logout
+                        }
+                    )
             ]
         , if List.isEmpty uniqueKeystoneHostnames then
             Element.text <|
