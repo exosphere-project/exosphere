@@ -76,9 +76,31 @@ viewWithProjects context sharedModel uniqueKeystoneHostnames =
                     |> Helpers.String.pluralize
                 ]
     in
-    Element.column (Element.spacing 24 :: VH.contentContainer)
-        [ Element.el (VH.heading2 context.palette)
-            (Element.text "Home")
+    Element.column
+        [ Element.width Element.fill
+        , Element.padding 10
+        , Element.spacing 20
+        ]
+        [ Element.row [ Element.width Element.fill ]
+            [ Element.el
+                (VH.heading2 context.palette
+                    ++ [ Element.width Element.shrink ]
+                )
+                (Element.text "Home")
+            , Element.el [ Element.alignRight ]
+                (Widget.iconButton
+                    (SH.materialStyle context.palette).button
+                    { icon =
+                        Element.row [ Element.spacing 10 ]
+                            [ Element.text removeAllText
+                            , FeatherIcons.logOut |> FeatherIcons.withSize 18 |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
+                            ]
+                    , text = removeAllText
+                    , onPress =
+                        Just Logout
+                    }
+                )
+            ]
         , if List.isEmpty uniqueKeystoneHostnames then
             Element.text <|
                 String.join " "
@@ -90,21 +112,8 @@ viewWithProjects context sharedModel uniqueKeystoneHostnames =
           else
             Element.none
         , Element.wrappedRow
-            [ Element.spacing 24 ]
+            [ Element.spacing 24, Element.width (Element.maximum 900 Element.fill) ]
             (List.append (List.map (renderProject context) sharedModel.projects) [ addProjectCard context sharedModel ])
-        , Element.el [ Element.alignRight ]
-            (Widget.iconButton
-                (SH.materialStyle context.palette).button
-                { icon =
-                    Element.row [ Element.spacing 10 ]
-                        [ Element.text removeAllText
-                        , FeatherIcons.logOut |> FeatherIcons.withSize 18 |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
-                        ]
-                , text = removeAllText
-                , onPress =
-                    Just Logout
-                }
-            )
         ]
 
 
