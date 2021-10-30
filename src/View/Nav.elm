@@ -11,13 +11,12 @@ import State.ViewState
 import Style.Helpers as SH
 import Style.Widgets.HomeLogo exposing (homeLogo)
 import Style.Widgets.Icon as Icon
-import Style.Widgets.IconButton exposing (FlowOrder(..), iconButton)
+import Style.Widgets.IconButton exposing (FlowOrder(..))
 import Style.Widgets.MenuItem as MenuItem
 import Style.Widgets.NavButton exposing (navButton)
 import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project)
-import Types.SharedMsg exposing (SharedMsg(..))
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
 import View.Helpers as VH
 import View.Types
@@ -156,13 +155,6 @@ navBar outerModel context =
                         { icon = Icon.Info
                         , label = "About"
                         , route = Route.HelpAbout
-                        }
-                    , iconButton context
-                        [ Font.color (SH.toElementColor context.palette.menu.on.surface) ]
-                        { icon = Icon.Logout
-                        , iconPlacement = After
-                        , label = "Logout"
-                        , onClick = Just <| SharedMsg Logout
                         }
                     ]
                 ]

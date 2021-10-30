@@ -20,6 +20,7 @@ import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
+import Widget
 
 
 type alias Model =
@@ -28,6 +29,7 @@ type alias Model =
 
 type Msg
     = NoOp
+    | Logout
 
 
 init : Model
@@ -36,8 +38,13 @@ init =
 
 
 update : Msg -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
-update _ model =
-    ( model, Cmd.none, SharedMsg.NoOp )
+update msg model =
+    case msg of
+        NoOp ->
+            ( model, Cmd.none, SharedMsg.NoOp )
+
+        Logout ->
+            ( model, Cmd.none, SharedMsg.Logout )
 
 
 
@@ -60,9 +67,44 @@ view context sharedModel _ =
 
 viewWithProjects : View.Types.Context -> SharedModel -> List HelperTypes.KeystoneHostname -> Element.Element Msg
 viewWithProjects context sharedModel uniqueKeystoneHostnames =
-    Element.column (Element.spacing 24 :: VH.contentContainer)
-        [ Element.el (VH.heading2 context.palette)
-            (Element.text "Home")
+    let
+        removeAllText =
+            String.join " "
+                [ "Remove All"
+                , Helpers.String.toTitleCase
+                    context.localization.unitOfTenancy
+                    |> Helpers.String.pluralize
+                ]
+    in
+    Element.column
+        [ Element.width Element.fill
+        , Element.padding 10
+        , Element.spacing 20
+        ]
+        [ Element.row [ Element.width Element.fill ]
+            [ Element.el
+                (VH.heading2 context.palette
+                    ++ [ Element.width Element.shrink ]
+                )
+                (Element.text "Home")
+            , if List.isEmpty uniqueKeystoneHostnames then
+                Element.none
+
+              else
+                Element.el [ Element.alignRight ]
+                    (Widget.iconButton
+                        (SH.materialStyle context.palette).button
+                        { icon =
+                            Element.row [ Element.spacing 10 ]
+                                [ Element.text removeAllText
+                                , FeatherIcons.logOut |> FeatherIcons.withSize 18 |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
+                                ]
+                        , text = removeAllText
+                        , onPress =
+                            Just Logout
+                        }
+                    )
+            ]
         , if List.isEmpty uniqueKeystoneHostnames then
             Element.text <|
                 String.join " "
@@ -74,7 +116,7 @@ viewWithProjects context sharedModel uniqueKeystoneHostnames =
           else
             Element.none
         , Element.wrappedRow
-            [ Element.spacing 24 ]
+            [ Element.spacing 24, Element.width (Element.maximum 900 Element.fill) ]
             (List.append (List.map (renderProject context) sharedModel.projects) [ addProjectCard context sharedModel ])
         ]
 
