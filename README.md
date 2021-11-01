@@ -81,41 +81,39 @@ We discuss project progress and priorities on a **weekly video call** Mondays at
 
 The following techniques are intended for cloud operators, advanced users, and for development purposes. We suggest that new users start with one of the hosted applications linked above.
 
-### Build and Run Exosphere Locally
+### Docker
 
-If you are building Exosphere for consumption in a web browser, please also see [solving-cors-problem.md](docs/solving-cors-problem.md).
+You can run Exosphere using a Docker container. The Docker container includes a Cloud CORS Proxy (CCP) through which Exosphere communicates with OpenStack API endpoints. This has the following benefits:
 
-First [install node.js + npm](https://www.npmjs.com/get-npm). (If you use Ubuntu/Debian you may also need to `apt-get install nodejs-legacy`.)
+1. You can use Exosphere to access OpenStack APIs which are not accessible from outside an organization's secure network (as long as the computer running the container can access the OpenStack APIs)
+2. Your cloud credentials will never pass through the proxy servers managed by the Exosphere project for the convenience of most users
 
-Then install the project's dependencies (including Elm). Convenience command to do this (run from the root of the exosphere repo):
+Note: See [solving-cors-problem.md](docs/solving-cors-problem.md) for background information about the Cloud CORS Proxy (CCP). 
+
+#### Use an official Exosphere container image
 
 ```bash
-npm install
+docker run --publish 127.0.0.1:8000:8000 registry.gitlab.com/exosphere/exosphere
 ```
 
-To compile the app and serve it using a local development server run this command:
+Open URL in a browser: <http://127.0.0.1:8000/> 
 
-```
-npm start
-```
+#### Build a container image from the source code
 
-Then browse to <http://app.exosphere.localhost:8000/>
-
-To enable the Elm Debugger in the local development server run the following command instead:
-
-```
-npm run live-debug
+```bash
+git clone https://gitlab.com/exosphere/exosphere.git
+cd exosphere
+docker build -t exosphere -f ./docker/standalone.Dockerfile .
+docker run --publish 127.0.0.1:8000:8000 exosphere
 ```
 
-Note: The local development server uses elm-live. It detects changes to the Exosphere source code, recompiles it, and
-refreshes the browser with the latest version of the app. See [elm-live.com](https://www.elm-live.com/) for more
-information.
+Open URL in a browser: <http://127.0.0.1:8000/>
 
-### Build and Run Exosphere with Docker
+#### Use Docker when developing Exosphere
 
-If you want to build exosphere (as shown above) for a browser but do not want
-to install node on your system, you can use the [Dockerfile](Dockerfile)
-to build a container instead. First, build the container:
+If you want to work on the Exosphere code but do not want to install `node` on your system, then you can use the [Dockerfile](Dockerfile) in the root directory of the repository to build a development container instead. 
+
+First, build the container:
 
 ```bash
 docker build -t exosphere .
@@ -124,7 +122,7 @@ docker build -t exosphere .
 And then run, binding port 8000 to 8000 in the container:
 
 ```bash
-docker run --rm -it --name exosphere -p 8000:8000 exosphere
+docker run --rm -it --name exosphere --publish 127.0.0.1:8000:8000 exosphere
 ```
 
 You should see `elm-live` starting:
@@ -177,6 +175,34 @@ docker cp exosphere:/usr/src/app/elm-web.js my-elm.js
 ```
 
 When it's time to cleanup, press Ctrl-C in the terminal window running `elm-live`.
+
+### Build and Run Exosphere Locally (not using Docker)
+
+First [install node.js + npm](https://www.npmjs.com/get-npm). (If you use Ubuntu/Debian you may also need to `apt-get install nodejs-legacy`.)
+
+Then install the project's dependencies (including Elm). Convenience command to do this (run from the root of the exosphere repo):
+
+```bash
+npm install
+```
+
+To compile the app and serve it using a local development server run this command:
+
+```
+npm start
+```
+
+Then browse to <http://app.exosphere.localhost:8000/>
+
+To enable the Elm Debugger in the local development server run the following command instead:
+
+```
+npm run live-debug
+```
+
+Note: The local development server uses elm-live. It detects changes to the Exosphere source code, recompiles it, and
+refreshes the browser with the latest version of the app. See [elm-live.com](https://www.elm-live.com/) for more
+information.
 
 ### Exosphere Compatibility
 
