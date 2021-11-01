@@ -81,10 +81,10 @@ viewWithProjects context sharedModel uniqueKeystoneHostnames =
         , Element.padding 10
         , Element.spacing 20
         ]
-        [ Element.row [ Element.width Element.fill ]
+        [ Element.row [ Element.width Element.fill, Element.spacing 25 ]
             [ Element.el
                 (VH.heading2 context.palette
-                    ++ [ Element.width Element.shrink ]
+                    ++ [ Element.width Element.fill ]
                 )
                 (Element.text "Home")
             , if List.isEmpty uniqueKeystoneHostnames then
