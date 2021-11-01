@@ -83,7 +83,7 @@ view context p model =
     let
         renderHeaderLink : Element.Element Msg -> String -> Route.ProjectRouteConstructor -> Element.Element Msg
         renderHeaderLink icon str projRouteConstructor =
-            Element.link []
+            Element.link [ Element.width Element.fill ]
                 { url = Route.toUrl context.urlPathPrefix (Route.ProjectRoute p.auth.project.uuid projRouteConstructor)
                 , label =
                     Element.row
