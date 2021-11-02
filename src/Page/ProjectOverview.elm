@@ -170,8 +170,6 @@ serverTileContents context project =
                 ]
     in
     Element.column [ Element.width Element.fill, Element.spacing 15 ] <|
-        -- TODO render no resource
-        -- TODO deal with situation where there are no servers created by user but there are some created by other users
         List.concat
             [ if List.isEmpty shownServers then
                 [ mutedText context <|
