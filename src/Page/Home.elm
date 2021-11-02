@@ -190,8 +190,9 @@ renderProject context project =
             Element.el
                 [ Element.height (Element.px 25)
                 , Element.centerX
+                , Element.width Element.fill
                 ]
-                (Element.text (String.left 30 description ++ "..."))
+                (VH.ellipsizedText description)
 
         cloudSpecificConfig =
             GetterSetters.cloudSpecificConfigLookup context.cloudSpecificConfigs project

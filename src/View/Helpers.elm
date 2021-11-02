@@ -4,6 +4,7 @@ module View.Helpers exposing
     , contentContainer
     , createdAgoByFrom
     , edges
+    , ellipsizedText
     , exoColumnAttributes
     , exoElementAttributes
     , exoPaddingSpacingAttributes
@@ -42,6 +43,7 @@ module View.Helpers exposing
     )
 
 import Color
+import Css
 import DateFormat.Relative
 import Dict
 import Element
@@ -56,6 +58,8 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.Time exposing (humanReadableTime)
 import Helpers.Url as UrlHelpers
 import Html
+import Html.Styled
+import Html.Styled.Attributes
 import Markdown.Block
 import Markdown.Html
 import Markdown.Parser
@@ -200,6 +204,31 @@ edges =
     , bottom = 0
     , left = 0
     }
+
+
+ellipsizedText : String -> Element.Element msg
+ellipsizedText text =
+    -- Parent element where this is used needs an `Element.width Element.fill` or something.
+    -- from https://elmlang.slack.com/archives/C4F9NBLR1/p1635861051191700?thread_ts=1635806498.188700&cid=C4F9NBLR1
+    let
+        elmUiElement_text_classes : String
+        elmUiElement_text_classes =
+            "s t wf hf"
+    in
+    Html.Styled.span
+        [ [ Css.textOverflow Css.ellipsis
+          , Css.overflow Css.hidden
+          , Css.width (Css.pct 100)
+
+          -- Unsure if this is needed
+          --, Css.lineHeight (Css.num 1.1)
+          ]
+            |> Html.Styled.Attributes.css
+        , Html.Styled.Attributes.class elmUiElement_text_classes
+        ]
+        [ Html.Styled.text text ]
+        |> Html.Styled.toUnstyled
+        |> Element.html
 
 
 hint : View.Types.Context -> String -> Element.Attribute msg
