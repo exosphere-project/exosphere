@@ -15,6 +15,28 @@ cache:
     - home/.npm
     - elm-stuff/
 
+build_standalone_container:
+  stage: dockerize
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: [ "" ]
+  before_script:
+    - 'sed -i -e "s/instanceConfigMgtRepoUrl:.*/instanceConfigMgtRepoUrl: \"https:\/\/gitlab.com\/${CI_PROJECT_NAMESPACE}\/${CI_PROJECT_NAME}\.git\",/g" environment-configs/docker-config.js'
+    - 'sed -i -e "s/instanceConfigMgtRepoCheckout:.*/instanceConfigMgtRepoCheckout: \"${CI_COMMIT_SHA}\"/g" environment-configs/docker-config.js'
+  script:
+    - mkdir -p /kaniko/.docker
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(echo -n $CI_REGISTRY_USER:$CI_REGISTRY_PASSWORD | base64)\"}}}" > /kaniko/.docker/config.json
+    - |
+      TAGLIST="$CI_COMMIT_SHORT_SHA $CI_COMMIT_REF_SLUG"
+      if [[ "$CI_COMMIT_BRANCH" == "$CI_DEFAULT_BRANCH" ]]; then TAGLIST="$TAGLIST latest"; fi
+      if [[ -n "$TAGLIST" ]]; then
+        for TAG in $TAGLIST; do
+          FORMATTEDTAGLIST="${FORMATTEDTAGLIST} --destination $CI_REGISTRY_IMAGE:$TAG ";
+        done;
+      fi
+      DOCKER_FILE="$CI_PROJECT_DIR/docker/standalone.Dockerfile"
+      /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $DOCKER_FILE $FORMATTEDTAGLIST
+
 .build_with_kaniko:
   #Hidden job to use as an "extends" template
   stage: dockerize
