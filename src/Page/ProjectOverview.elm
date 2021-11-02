@@ -1,15 +1,13 @@
 module Page.ProjectOverview exposing (Model, Msg, init, update, view)
 
 import Element
+import Element.Border as Border
 import Element.Font as Font
 import FeatherIcons
 import Helpers.String
-import Page.FloatingIpList
-import Page.KeypairList
-import Page.ServerList
-import Page.VolumeList
 import Route
 import Style.Helpers as SH
+import Style.Widgets.Card
 import Style.Widgets.Icon as Icon
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg
@@ -18,96 +16,66 @@ import View.Types
 
 
 type alias Model =
-    { serverListModel : Page.ServerList.Model
-    , volumeListModel : Page.VolumeList.Model
-    , keypairListModel : Page.KeypairList.Model
-    , floatingIpListModel : Page.FloatingIpList.Model
-    }
+    {}
 
 
 type Msg
-    = ServerListMsg Page.ServerList.Msg
-    | VolumeListMsg Page.VolumeList.Msg
-    | KeypairListMsg Page.KeypairList.Msg
-    | FloatingIpListMsg Page.FloatingIpList.Msg
-    | NoOp
+    = NoOp
 
 
 init : Model
 init =
     Model
-        (Page.ServerList.init False)
-        (Page.VolumeList.init False)
-        (Page.KeypairList.init False)
-        (Page.FloatingIpList.init False)
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
-update msg project model =
+update msg _ model =
     case msg of
-        -- Repetitive dispatch code, unsure if there's a better way
-        ServerListMsg msg_ ->
-            let
-                ( pageModel, pageCmd, sharedMsg ) =
-                    Page.ServerList.update msg_ project model.serverListModel
-            in
-            ( { model | serverListModel = pageModel }, Cmd.map ServerListMsg pageCmd, sharedMsg )
-
-        VolumeListMsg msg_ ->
-            let
-                ( pageModel, pageCmd, sharedMsg ) =
-                    Page.VolumeList.update msg_ project model.volumeListModel
-            in
-            ( { model | volumeListModel = pageModel }, Cmd.map VolumeListMsg pageCmd, sharedMsg )
-
-        KeypairListMsg msg_ ->
-            let
-                ( pageModel, pageCmd, sharedMsg ) =
-                    Page.KeypairList.update msg_ project model.keypairListModel
-            in
-            ( { model | keypairListModel = pageModel }, Cmd.map KeypairListMsg pageCmd, sharedMsg )
-
-        FloatingIpListMsg msg_ ->
-            let
-                ( pageModel, pageCmd, sharedMsg ) =
-                    Page.FloatingIpList.update msg_ project model.floatingIpListModel
-            in
-            ( { model | floatingIpListModel = pageModel }, Cmd.map FloatingIpListMsg pageCmd, sharedMsg )
-
         NoOp ->
             ( model, Cmd.none, SharedMsg.NoOp )
 
 
 view : View.Types.Context -> Project -> Model -> Element.Element Msg
-view context p model =
+view context p _ =
     let
-        renderHeaderLink : Element.Element Msg -> String -> Route.ProjectRouteConstructor -> Element.Element Msg
-        renderHeaderLink icon str projRouteConstructor =
-            Element.link [ Element.width Element.fill ]
+        renderTile : Element.Element Msg -> String -> Route.ProjectRouteConstructor -> Element.Element Msg -> Element.Element Msg
+        renderTile icon str projRouteConstructor contents =
+            Element.link []
                 { url = Route.toUrl context.urlPathPrefix (Route.ProjectRoute p.auth.project.uuid projRouteConstructor)
                 , label =
-                    Element.row
-                        (VH.heading3 context.palette
-                            ++ [ Element.spacing 12
-                               , Element.mouseOver
-                                    [ Font.color
-                                        (context.palette.primary
-                                            |> SH.toElementColor
-                                        )
-                                    ]
-                               , Element.pointer
-                               ]
-                        )
-                        [ icon
-                        , Element.text str
+                    tile context
+                        [ Element.column [ Element.padding 10 ]
+                            [ Element.row
+                                (VH.heading3 context.palette
+                                    ++ [ Element.spacing 12
+                                       , Border.width 0
+                                       , Element.mouseOver
+                                            [ Font.color
+                                                (context.palette.primary
+                                                    |> SH.toElementColor
+                                                )
+                                            ]
+                                       , Element.pointer
+                                       ]
+                                )
+                                [ icon
+                                , Element.text str
+                                ]
+                            , contents
+                            ]
                         ]
                 }
+
+        renderDescription : String -> Element.Element Msg
+        renderDescription description =
+            Element.el VH.contentContainer <|
+                Element.paragraph [ Font.italic ] [ Element.text description ]
     in
     Element.column
-        [ Element.spacing 25, Element.width Element.fill ]
-        [ Element.column
-            [ Element.width Element.fill ]
-            [ renderHeaderLink
+        [ Element.spacing 15, Element.width Element.fill ]
+        [ VH.renderMaybe p.description renderDescription
+        , Element.wrappedRow [ Element.spacing 25 ]
+            [ renderTile
                 (FeatherIcons.server
                     |> FeatherIcons.toHtml []
                     |> Element.html
@@ -118,14 +86,8 @@ view context p model =
                     |> Helpers.String.toTitleCase
                 )
                 Route.ServerList
-            , Page.ServerList.view context
-                p
-                model.serverListModel
-                |> Element.map ServerListMsg
-            ]
-        , Element.column
-            [ Element.width Element.fill ]
-            [ renderHeaderLink
+                (Element.text "some contents")
+            , renderTile
                 (FeatherIcons.hardDrive
                     |> FeatherIcons.toHtml []
                     |> Element.html
@@ -136,30 +98,16 @@ view context p model =
                     |> Helpers.String.toTitleCase
                 )
                 Route.VolumeList
-            , Page.VolumeList.view context
-                p
-                model.volumeListModel
-                |> Element.map VolumeListMsg
-            ]
-        , Element.column
-            [ Element.width Element.fill ]
-            [ renderHeaderLink
+                (Element.text "some contents")
+            , renderTile
                 (Icon.ipAddress (SH.toElementColor context.palette.on.background) 24)
                 (context.localization.floatingIpAddress
                     |> Helpers.String.pluralize
                     |> Helpers.String.toTitleCase
                 )
                 Route.FloatingIpList
-            , Page.FloatingIpList.view context
-                p
-                model.floatingIpListModel
-                |> Element.map FloatingIpListMsg
-            ]
-        , Element.column
-            [ Element.width Element.fill
-            , Element.spacingXY 0 15 -- Because no quota view taking up space
-            ]
-            [ renderHeaderLink
+                (Element.text "some contents")
+            , renderTile
                 (FeatherIcons.key
                     |> FeatherIcons.toHtml []
                     |> Element.html
@@ -170,9 +118,11 @@ view context p model =
                     |> Helpers.String.toTitleCase
                 )
                 Route.KeypairList
-            , Page.KeypairList.view context
-                p
-                model.keypairListModel
-                |> Element.map KeypairListMsg
+                (Element.text "some contents")
             ]
         ]
+
+
+tile : View.Types.Context -> List (Element.Element Msg) -> Element.Element Msg
+tile context contents =
+    Style.Widgets.Card.exoCardFixedSize context.palette 400 400 contents
