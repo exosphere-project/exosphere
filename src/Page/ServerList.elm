@@ -186,7 +186,7 @@ view context project model =
           else
             Element.none
         , Element.column VH.contentContainer
-            [ Page.QuotaUsage.view context (Page.QuotaUsage.Compute project.computeQuota)
+            [ Page.QuotaUsage.view context Page.QuotaUsage.Full (Page.QuotaUsage.Compute project.computeQuota)
             , serverListContents
             ]
         ]

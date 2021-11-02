@@ -1,4 +1,4 @@
-module Page.QuotaUsage exposing (ResourceType(..), view)
+module Page.QuotaUsage exposing (Display(..), ResourceType(..), view)
 
 import Element
 import FormatNumber.Locales exposing (Decimals(..))
@@ -17,17 +17,22 @@ type ResourceType
     | Volume (WebData OSTypes.VolumeQuota)
 
 
-view : View.Types.Context -> ResourceType -> Element.Element msg
-view context resourceType =
+type Display
+    = Brief
+    | Full
+
+
+view : View.Types.Context -> Display -> ResourceType -> Element.Element msg
+view context display resourceType =
     case resourceType of
         Compute quota ->
-            computeQuotaDetails context quota
+            computeQuotaDetails context display quota
 
         FloatingIp quota floatingIpsUsed ->
-            floatingIpQuotaDetails context quota floatingIpsUsed
+            floatingIpQuotaDetails context display quota floatingIpsUsed
 
         Volume quota ->
-            volumeQuotaDetails context quota
+            volumeQuotaDetails context display quota
 
 
 infoItem : View.Types.Context -> { inUse : Int, limit : Maybe Int } -> ( String, Unit ) -> Element.Element msg
@@ -61,27 +66,36 @@ infoItem context detail ( label, units ) =
     Style.Widgets.Meter.meter context.palette label text detail.inUse (Maybe.withDefault -1 detail.limit)
 
 
-computeInfoItems : View.Types.Context -> OSTypes.ComputeQuota -> Element.Element msg
-computeInfoItems context quota =
-    Element.wrappedRow
-        (VH.exoRowAttributes
-            ++ [ Element.width Element.fill
-               , Element.spacing 35
-               ]
-        )
-        [ infoItem context
-            quota.instances
-            ( String.join " "
-                [ context.localization.virtualComputer
-                    |> Helpers.String.pluralize
-                    |> Helpers.String.toTitleCase
-                , "used"
+computeInfoItems : View.Types.Context -> Display -> OSTypes.ComputeQuota -> Element.Element msg
+computeInfoItems context display quota =
+    let
+        brief =
+            infoItem context
+                quota.instances
+                ( String.join " "
+                    [ context.localization.virtualComputer
+                        |> Helpers.String.pluralize
+                        |> Helpers.String.toTitleCase
+                    , "used"
+                    ]
+                , Count
+                )
+    in
+    case display of
+        Brief ->
+            brief
+
+        Full ->
+            Element.wrappedRow
+                (VH.exoRowAttributes
+                    ++ [ Element.width Element.fill
+                       , Element.spacing 35
+                       ]
+                )
+                [ brief
+                , infoItem context quota.cores ( "Cores used", Count )
+                , infoItem context quota.ram ( "RAM used", MebiBytes )
                 ]
-            , Count
-            )
-        , infoItem context quota.cores ( "Cores used", Count )
-        , infoItem context quota.ram ( "RAM used", MebiBytes )
-        ]
 
 
 quotaDetail : View.Types.Context -> WebData q -> (q -> Element.Element msg) -> Element.Element msg
@@ -97,15 +111,15 @@ quotaDetail context quota infoItemsF =
     VH.renderWebData context quota resourceWord infoItemsF
 
 
-computeQuotaDetails : View.Types.Context -> WebData OSTypes.ComputeQuota -> Element.Element msg
-computeQuotaDetails context quota =
+computeQuotaDetails : View.Types.Context -> Display -> WebData OSTypes.ComputeQuota -> Element.Element msg
+computeQuotaDetails context display quota =
     Element.row
         (VH.exoRowAttributes ++ [ Element.width Element.fill ])
-        [ quotaDetail context quota (computeInfoItems context) ]
+        [ quotaDetail context quota (computeInfoItems context display) ]
 
 
-floatingIpInfoItems : View.Types.Context -> Int -> OSTypes.ComputeQuota -> Element.Element msg
-floatingIpInfoItems context floatingIpsUsed quota =
+floatingIpInfoItems : View.Types.Context -> Display -> Int -> OSTypes.ComputeQuota -> Element.Element msg
+floatingIpInfoItems context display floatingIpsUsed quota =
     {-
        Compute quota reports incorrect number of floating IPs used (0), so we are overriding it with a count of the floating IPs returned by Neutron.
 
@@ -123,54 +137,71 @@ floatingIpInfoItems context floatingIpsUsed quota =
 
         correctedIpsQuota =
             { incorrectIpsQuota | inUse = floatingIpsUsed }
+
+        brief =
+            infoItem context
+                correctedIpsQuota
+                ( String.join " "
+                    [ context.localization.floatingIpAddress
+                        |> Helpers.String.pluralize
+                        |> Helpers.String.toTitleCase
+                    , "used"
+                    ]
+                , Count
+                )
     in
-    Element.wrappedRow
-        (VH.exoRowAttributes ++ [ Element.centerX ])
-        [ infoItem context
-            correctedIpsQuota
-            ( String.join " "
-                [ context.localization.floatingIpAddress
-                    |> Helpers.String.pluralize
-                    |> Helpers.String.toTitleCase
-                , "used"
+    case display of
+        Brief ->
+            brief
+
+        Full ->
+            Element.wrappedRow
+                (VH.exoRowAttributes ++ [ Element.centerX ])
+                [ brief
                 ]
-            , Count
-            )
-        ]
 
 
-floatingIpQuotaDetails : View.Types.Context -> WebData OSTypes.ComputeQuota -> Int -> Element.Element msg
-floatingIpQuotaDetails context quota floatingIpsUsed =
+floatingIpQuotaDetails : View.Types.Context -> Display -> WebData OSTypes.ComputeQuota -> Int -> Element.Element msg
+floatingIpQuotaDetails context display quota floatingIpsUsed =
     Element.row
         (VH.exoRowAttributes ++ [ Element.width Element.fill ])
-        [ quotaDetail context quota (floatingIpInfoItems context floatingIpsUsed) ]
+        [ quotaDetail context quota (floatingIpInfoItems context display floatingIpsUsed) ]
 
 
-volumeInfoItems : View.Types.Context -> OSTypes.VolumeQuota -> Element.Element msg
-volumeInfoItems context quota =
-    Element.wrappedRow
-        (VH.exoRowAttributes
-            ++ [ Element.width Element.fill
-               , Element.spacing 35
-               ]
-        )
-        [ infoItem
-            context
-            quota.volumes
-            ( String.join " "
-                [ context.localization.blockDevice
-                    |> Helpers.String.pluralize
-                    |> Helpers.String.toTitleCase
-                , "used"
+volumeInfoItems : View.Types.Context -> Display -> OSTypes.VolumeQuota -> Element.Element msg
+volumeInfoItems context display quota =
+    let
+        brief =
+            infoItem
+                context
+                quota.volumes
+                ( String.join " "
+                    [ context.localization.blockDevice
+                        |> Helpers.String.pluralize
+                        |> Helpers.String.toTitleCase
+                    , "used"
+                    ]
+                , Count
+                )
+    in
+    case display of
+        Brief ->
+            brief
+
+        Full ->
+            Element.wrappedRow
+                (VH.exoRowAttributes
+                    ++ [ Element.centerX
+                       , Element.spacing 35
+                       ]
+                )
+                [ brief
+                , infoItem context quota.gigabytes ( "Storage used", GibiBytes )
                 ]
-            , Count
-            )
-        , infoItem context quota.gigabytes ( "Storage used", GibiBytes )
-        ]
 
 
-volumeQuotaDetails : View.Types.Context -> WebData OSTypes.VolumeQuota -> Element.Element msg
-volumeQuotaDetails context quota =
+volumeQuotaDetails : View.Types.Context -> Display -> WebData OSTypes.VolumeQuota -> Element.Element msg
+volumeQuotaDetails context display quota =
     Element.row
         (VH.exoRowAttributes ++ [ Element.width Element.fill ])
-        [ quotaDetail context quota (volumeInfoItems context) ]
+        [ quotaDetail context quota (volumeInfoItems context display) ]

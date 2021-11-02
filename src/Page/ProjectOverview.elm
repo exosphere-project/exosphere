@@ -96,7 +96,7 @@ view context p _ =
                 Route.ServerList
                 (Element.column []
                     [ Element.text "some contents"
-                    , Page.QuotaUsage.view context (Page.QuotaUsage.Compute p.computeQuota)
+                    , Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.Compute p.computeQuota)
                     ]
                 )
             , renderTile
@@ -112,7 +112,7 @@ view context p _ =
                 Route.VolumeList
                 (Element.column []
                     [ Element.text "some contents"
-                    , Page.QuotaUsage.view context (Page.QuotaUsage.Volume p.volumeQuota)
+                    , Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.Volume p.volumeQuota)
                     ]
                 )
             , renderTile
@@ -124,7 +124,7 @@ view context p _ =
                 Route.FloatingIpList
                 (Element.column []
                     [ Element.text "some contents"
-                    , Page.QuotaUsage.view context (Page.QuotaUsage.FloatingIp p.computeQuota floatingIpsUsedCount)
+                    , Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.FloatingIp p.computeQuota floatingIpsUsedCount)
                     ]
                 )
             , renderTile

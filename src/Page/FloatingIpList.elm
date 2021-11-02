@@ -178,7 +178,7 @@ view context project model =
           else
             Element.none
         , Element.column VH.contentContainer
-            [ Page.QuotaUsage.view context (Page.QuotaUsage.FloatingIp project.computeQuota floatingIpsUsedCount)
+            [ Page.QuotaUsage.view context Page.QuotaUsage.Full (Page.QuotaUsage.FloatingIp project.computeQuota floatingIpsUsedCount)
             , VH.renderRDPP
                 context
                 project.floatingIps
