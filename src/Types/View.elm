@@ -57,7 +57,7 @@ type LoginView
 
 
 type ProjectViewConstructor
-    = AllResourcesList Page.ProjectOverview.Model
+    = ProjectOverview Page.ProjectOverview.Model
     | FloatingIpAssign Page.FloatingIpAssign.Model
     | FloatingIpList Page.FloatingIpList.Model
     | InstanceSourcePicker Page.InstanceSourcePicker.Model

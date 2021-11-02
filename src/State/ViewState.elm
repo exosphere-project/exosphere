@@ -184,7 +184,7 @@ routeToViewStateModelCmd sharedModel route =
                             ProjectView projectId { createPopup = False }
                     in
                     case projectPage of
-                        Route.AllResourcesList ->
+                        Route.ProjectOverview ->
                             let
                                 ( newSharedModel, newCmd ) =
                                     ( sharedModel
@@ -201,7 +201,7 @@ routeToViewStateModelCmd sharedModel route =
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestServers project.auth.project.uuid)
                             in
-                            ( projectViewProto <| AllResourcesList <| Page.ProjectOverview.init
+                            ( projectViewProto <| ProjectOverview <| Page.ProjectOverview.init
                             , newSharedModel
                             , newCmd
                             )

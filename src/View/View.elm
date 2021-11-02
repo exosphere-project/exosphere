@@ -239,9 +239,9 @@ project model context p projectViewModel viewConstructor =
     let
         v =
             case viewConstructor of
-                AllResourcesList pageModel ->
+                ProjectOverview pageModel ->
                     Page.ProjectOverview.view context p pageModel
-                        |> Element.map AllResourcesListMsg
+                        |> Element.map ProjectOverviewMsg
 
                 FloatingIpAssign pageModel ->
                     Page.FloatingIpAssign.view context p pageModel

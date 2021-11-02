@@ -267,7 +267,7 @@ updateUnderlying outerMsg outerModel =
                     case ( pageSpecificMsg, projectViewConstructor ) of
                         -- This is the repetitive dispatch code that people warn you about when you use the nested Elm architecture.
                         -- Maybe there is a way to make it less repetitive (or at least more compact) in the future.
-                        ( AllResourcesListMsg pageMsg, AllResourcesList pageModel ) ->
+                        ( ProjectOverviewMsg pageMsg, ProjectOverview pageModel ) ->
                             let
                                 ( newSharedModel, cmd, sharedMsg ) =
                                     Page.ProjectOverview.update pageMsg project pageModel
@@ -275,9 +275,9 @@ updateUnderlying outerMsg outerModel =
                             ( { outerModel
                                 | viewState =
                                     ProjectView projectId projectViewModel <|
-                                        AllResourcesList newSharedModel
+                                        ProjectOverview newSharedModel
                               }
-                            , Cmd.map AllResourcesListMsg cmd
+                            , Cmd.map ProjectOverviewMsg cmd
                             )
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
@@ -745,7 +745,7 @@ processSharedMsg sharedMsg outerModel =
                                         Just project ->
                                             Route.pushUrl viewContext <|
                                                 Route.ProjectRoute project.auth.project.uuid <|
-                                                    Route.AllResourcesList
+                                                    Route.ProjectOverview
 
                                         Nothing ->
                                             Route.pushUrl viewContext Route.LoginPicker
@@ -884,7 +884,7 @@ processTick outerModel interval time =
                                     )
                             in
                             case projectViewState of
-                                AllResourcesList _ ->
+                                ProjectOverview _ ->
                                     pollVolumes
 
                                 ServerDetail model ->
@@ -1414,7 +1414,7 @@ processProjectSpecificMsg outerModel project msg =
                 newRoute =
                     Route.ProjectRoute
                         project.auth.project.uuid
-                        Route.AllResourcesList
+                        Route.ProjectOverview
 
                 ( newSharedModel, newCmd ) =
                     ( sharedModel, Cmd.none )
@@ -1758,7 +1758,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                 newRoute =
                     Route.ProjectRoute
                         project.auth.project.uuid
-                        Route.AllResourcesList
+                        Route.ProjectOverview
 
                 createImageCmd =
                     Rest.Nova.requestCreateServerImage project server.osProps.uuid imageName
@@ -1820,7 +1820,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
             , case outerModel.viewState of
                 ProjectView projectId _ (ServerDetail pageModel) ->
                     if pageModel.serverUuid == server.osProps.uuid then
-                        Route.pushUrl sharedModel.viewContext (Route.ProjectRoute projectId Route.AllResourcesList)
+                        Route.pushUrl sharedModel.viewContext (Route.ProjectRoute projectId Route.ProjectOverview)
 
                     else
                         Cmd.none

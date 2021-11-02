@@ -28,7 +28,7 @@ import Types.SharedMsg
 
 type OuterMsg
     = SharedMsg Types.SharedMsg.SharedMsg
-    | AllResourcesListMsg Page.ProjectOverview.Msg
+    | ProjectOverviewMsg Page.ProjectOverview.Msg
     | FloatingIpAssignMsg Page.FloatingIpAssign.Msg
     | FloatingIpListMsg Page.FloatingIpList.Msg
     | GetSupportMsg Page.GetSupport.Msg

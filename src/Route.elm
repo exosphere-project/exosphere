@@ -47,7 +47,7 @@ type Route
 
 
 type ProjectRouteConstructor
-    = AllResourcesList
+    = ProjectOverview
     | FloatingIpAssign (Maybe OSTypes.IpAddressUuid) (Maybe OSTypes.ServerUuid)
     | FloatingIpList
     | InstanceSourcePicker
@@ -137,8 +137,8 @@ toUrl maybePathPrefix route =
 
                 ( projectSpecificPath, projectSpecificQuery ) =
                     case projectRouteConstructor of
-                        AllResourcesList ->
-                            ( [ "resources" ]
+                        ProjectOverview ->
+                            ( [ "overview" ]
                             , []
                             )
 
@@ -478,13 +478,18 @@ projectRouteParsers =
         InstanceSourcePicker
         (s "instancesource")
 
-    -- Legacy URL, keeping parser around to handle any old links
+    -- Legacy URLs, keeping parsers around to handle any old links
     , map
         InstanceSourcePicker
         (s "images")
     , map
-        AllResourcesList
+        ProjectOverview
         (s "resources")
+
+    -- Current URLs
+    , map
+        ProjectOverview
+        (s "overview")
     , map
         (\svrUuid imageName ->
             ServerCreateImage svrUuid (Just imageName)

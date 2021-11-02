@@ -87,10 +87,10 @@ pageTitle outerModel =
                             )
             in
             case projectViewConstructor of
-                AllResourcesList _ ->
+                ProjectOverview _ ->
                     String.join " "
-                        [ "All resources for"
-                        , projectName
+                        [ projectName
+                        , "overview"
                         ]
 
                 FloatingIpAssign _ ->

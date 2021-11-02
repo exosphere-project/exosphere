@@ -88,7 +88,7 @@ breadcrumb_ outerModel context =
                         projectItem =
                             case GetterSetters.projectLookup outerModel.sharedModel projectId of
                                 Just project ->
-                                    [ { route = Just <| Route.ProjectRoute projectId <| Route.AllResourcesList
+                                    [ { route = Just <| Route.ProjectRoute projectId <| Route.ProjectOverview
                                       , label = "Project " ++ project.auth.project.name
                                       }
                                     ]
@@ -101,7 +101,7 @@ breadcrumb_ outerModel context =
 
                         projectPage =
                             case constructor of
-                                AllResourcesList _ ->
+                                ProjectOverview _ ->
                                     []
 
                                 FloatingIpAssign _ ->
