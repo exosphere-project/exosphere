@@ -7,7 +7,6 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import Helpers.Url as UrlHelpers
-import Html.Attributes
 import RemoteData
 import Route
 import Set
