@@ -4,7 +4,9 @@ import Element
 import Element.Border as Border
 import Element.Font as Font
 import FeatherIcons
+import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
+import Page.QuotaUsage
 import Route
 import Style.Helpers as SH
 import Style.Widgets.Card
@@ -70,6 +72,12 @@ view context p _ =
         renderDescription description =
             Element.el VH.contentContainer <|
                 Element.paragraph [ Font.italic ] [ Element.text description ]
+
+        floatingIpsUsedCount =
+            p.floatingIps
+                -- Defaulting to 0 if not loaded yet, not the greatest factoring
+                |> RDPP.withDefault []
+                |> List.length
     in
     Element.column
         [ Element.spacing 15, Element.width Element.fill ]
@@ -86,7 +94,11 @@ view context p _ =
                     |> Helpers.String.toTitleCase
                 )
                 Route.ServerList
-                (Element.text "some contents")
+                (Element.column []
+                    [ Element.text "some contents"
+                    , Page.QuotaUsage.view context (Page.QuotaUsage.Compute p.computeQuota)
+                    ]
+                )
             , renderTile
                 (FeatherIcons.hardDrive
                     |> FeatherIcons.toHtml []
@@ -98,7 +110,11 @@ view context p _ =
                     |> Helpers.String.toTitleCase
                 )
                 Route.VolumeList
-                (Element.text "some contents")
+                (Element.column []
+                    [ Element.text "some contents"
+                    , Page.QuotaUsage.view context (Page.QuotaUsage.Volume p.volumeQuota)
+                    ]
+                )
             , renderTile
                 (Icon.ipAddress (SH.toElementColor context.palette.on.background) 24)
                 (context.localization.floatingIpAddress
@@ -106,7 +122,11 @@ view context p _ =
                     |> Helpers.String.toTitleCase
                 )
                 Route.FloatingIpList
-                (Element.text "some contents")
+                (Element.column []
+                    [ Element.text "some contents"
+                    , Page.QuotaUsage.view context (Page.QuotaUsage.FloatingIp p.computeQuota floatingIpsUsedCount)
+                    ]
+                )
             , renderTile
                 (FeatherIcons.key
                     |> FeatherIcons.toHtml []

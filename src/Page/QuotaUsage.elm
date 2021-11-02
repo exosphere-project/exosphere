@@ -148,9 +148,9 @@ floatingIpQuotaDetails context quota floatingIpsUsed =
 
 volumeInfoItems : View.Types.Context -> OSTypes.VolumeQuota -> Element.Element msg
 volumeInfoItems context quota =
-    Element.row
+    Element.wrappedRow
         (VH.exoRowAttributes
-            ++ [ Element.centerX
+            ++ [ Element.width Element.fill
                , Element.spacing 35
                ]
         )
