@@ -7,6 +7,7 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import Helpers.Url as UrlHelpers
+import Html.Attributes
 import RemoteData
 import Route
 import Set
@@ -190,8 +191,9 @@ renderProject context project =
             Element.el
                 [ Element.height (Element.px 25)
                 , Element.centerX
+                , Element.width Element.fill
                 ]
-                (Element.text (String.left 30 description ++ "..."))
+                (VH.ellipsizedText description)
 
         cloudSpecificConfig =
             GetterSetters.cloudSpecificConfigLookup context.cloudSpecificConfigs project
