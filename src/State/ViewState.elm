@@ -9,7 +9,6 @@ import Helpers.Random as RandomHelpers
 import OpenStack.Quotas as OSQuotas
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes as OSVolumes
-import Page.AllResourcesList
 import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.GetSupport
@@ -20,6 +19,7 @@ import Page.KeypairList
 import Page.LoginJetstream
 import Page.LoginOpenstack
 import Page.MessageLog
+import Page.ProjectOverview
 import Page.SelectProjects
 import Page.ServerCreate
 import Page.ServerCreateImage
@@ -201,7 +201,7 @@ routeToViewStateModelCmd sharedModel route =
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestServers project.auth.project.uuid)
                             in
-                            ( projectViewProto <| AllResourcesList <| Page.AllResourcesList.init
+                            ( projectViewProto <| AllResourcesList <| Page.ProjectOverview.init
                             , newSharedModel
                             , newCmd
                             )

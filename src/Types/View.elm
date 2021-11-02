@@ -6,7 +6,6 @@ module Types.View exposing
     )
 
 import OpenStack.Types as OSTypes
-import Page.AllResourcesList
 import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.GetSupport
@@ -17,6 +16,7 @@ import Page.KeypairList
 import Page.LoginJetstream
 import Page.LoginOpenstack
 import Page.MessageLog
+import Page.ProjectOverview
 import Page.SelectProjects
 import Page.ServerCreateImage
 import Page.ServerDetail
@@ -57,7 +57,7 @@ type LoginView
 
 
 type ProjectViewConstructor
-    = AllResourcesList Page.AllResourcesList.Model
+    = AllResourcesList Page.ProjectOverview.Model
     | FloatingIpAssign Page.FloatingIpAssign.Model
     | FloatingIpList Page.FloatingIpList.Model
     | InstanceSourcePicker Page.InstanceSourcePicker.Model

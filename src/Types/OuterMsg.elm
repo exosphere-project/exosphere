@@ -1,6 +1,5 @@
 module Types.OuterMsg exposing (OuterMsg(..))
 
-import Page.AllResourcesList
 import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.GetSupport
@@ -12,6 +11,7 @@ import Page.LoginJetstream
 import Page.LoginOpenstack
 import Page.LoginPicker
 import Page.MessageLog
+import Page.ProjectOverview
 import Page.SelectProjects
 import Page.ServerCreate
 import Page.ServerCreateImage
@@ -28,7 +28,7 @@ import Types.SharedMsg
 
 type OuterMsg
     = SharedMsg Types.SharedMsg.SharedMsg
-    | AllResourcesListMsg Page.AllResourcesList.Msg
+    | AllResourcesListMsg Page.ProjectOverview.Msg
     | FloatingIpAssignMsg Page.FloatingIpAssign.Msg
     | FloatingIpListMsg Page.FloatingIpList.Msg
     | GetSupportMsg Page.GetSupport.Msg

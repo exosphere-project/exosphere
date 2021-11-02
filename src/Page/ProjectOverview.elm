@@ -1,4 +1,4 @@
-module Page.AllResourcesList exposing (Model, Msg, init, update, view)
+module Page.ProjectOverview exposing (Model, Msg, init, update, view)
 
 import Element
 import Element.Font as Font

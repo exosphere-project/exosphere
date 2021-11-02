@@ -16,7 +16,6 @@ import OpenStack.ServerVolumes as OSSvrVols
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes as OSVolumes
 import Orchestration.Orchestration as Orchestration
-import Page.AllResourcesList
 import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.GetSupport
@@ -28,6 +27,7 @@ import Page.LoginJetstream
 import Page.LoginOpenstack
 import Page.LoginPicker
 import Page.MessageLog
+import Page.ProjectOverview
 import Page.SelectProjects
 import Page.ServerCreate
 import Page.ServerCreateImage
@@ -270,7 +270,7 @@ updateUnderlying outerMsg outerModel =
                         ( AllResourcesListMsg pageMsg, AllResourcesList pageModel ) ->
                             let
                                 ( newSharedModel, cmd, sharedMsg ) =
-                                    Page.AllResourcesList.update pageMsg project pageModel
+                                    Page.ProjectOverview.update pageMsg project pageModel
                             in
                             ( { outerModel
                                 | viewState =
