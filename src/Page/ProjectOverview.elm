@@ -40,13 +40,13 @@ update msg _ model =
 view : View.Types.Context -> Project -> Model -> Element.Element Msg
 view context p _ =
     let
-        renderTile : Element.Element Msg -> String -> Route.ProjectRouteConstructor -> Element.Element Msg -> Element.Element Msg
-        renderTile icon str projRouteConstructor contents =
+        renderTile : Element.Element Msg -> String -> Route.ProjectRouteConstructor -> Element.Element Msg -> Element.Element Msg -> Element.Element Msg
+        renderTile icon str projRouteConstructor quotaMeter contents =
             Element.link []
                 { url = Route.toUrl context.urlPathPrefix (Route.ProjectRoute p.auth.project.uuid projRouteConstructor)
                 , label =
                     tile context
-                        [ Element.column [ Element.padding 10 ]
+                        [ Element.column [ Element.padding 10, Element.width Element.fill ]
                             [ Element.row
                                 (VH.heading3 context.palette
                                     ++ [ Element.spacing 12
@@ -63,6 +63,7 @@ view context p _ =
                                 [ icon
                                 , Element.text str
                                 ]
+                            , Element.el [ Element.centerX ] quotaMeter
                             , contents
                             ]
                         ]
@@ -94,9 +95,9 @@ view context p _ =
                     |> Helpers.String.toTitleCase
                 )
                 Route.ServerList
-                (Element.column []
+                (Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.Compute p.computeQuota))
+                (Element.column [ Element.width Element.fill ]
                     [ Element.text "some contents"
-                    , Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.Compute p.computeQuota)
                     ]
                 )
             , renderTile
@@ -110,9 +111,9 @@ view context p _ =
                     |> Helpers.String.toTitleCase
                 )
                 Route.VolumeList
+                (Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.Volume p.volumeQuota))
                 (Element.column []
                     [ Element.text "some contents"
-                    , Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.Volume p.volumeQuota)
                     ]
                 )
             , renderTile
@@ -122,9 +123,9 @@ view context p _ =
                     |> Helpers.String.toTitleCase
                 )
                 Route.FloatingIpList
+                (Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.FloatingIp p.computeQuota floatingIpsUsedCount))
                 (Element.column []
                     [ Element.text "some contents"
-                    , Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.FloatingIp p.computeQuota floatingIpsUsedCount)
                     ]
                 )
             , renderTile
@@ -138,6 +139,7 @@ view context p _ =
                     |> Helpers.String.toTitleCase
                 )
                 Route.KeypairList
+                Element.none
                 (Element.text "some contents")
             ]
         ]
