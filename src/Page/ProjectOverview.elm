@@ -6,6 +6,7 @@ import Element.Font as Font
 import FeatherIcons
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
+import Html.Attributes
 import OpenStack.Types as OSTypes
 import Page.QuotaUsage
 import Route
@@ -158,6 +159,11 @@ serverTileContents context project =
                 [ VH.serverStatusBadge context.palette server
                 , VH.possiblyUntitledResource server.osProps.name context.localization.virtualComputer
                     |> VH.ellipsizedText
+                    |> Element.el
+                        [ Element.centerY
+                        , Element.width Element.fill
+                        , Element.htmlAttribute <| Html.Attributes.style "min-width" "0"
+                        ]
                 ]
 
         renderServers : List Server -> Element.Element Msg
