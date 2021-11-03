@@ -113,10 +113,7 @@ view context project _ =
                 )
                 Route.VolumeList
                 (Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.Volume project.volumeQuota))
-                (Element.column []
-                    [ Element.text "some contents"
-                    ]
-                )
+                (volumeTileContents context project)
             , renderTile
                 (Icon.ipAddress (SH.toElementColor context.palette.on.background) 24)
                 (context.localization.floatingIpAddress
@@ -172,7 +169,7 @@ serverTileContents context project =
                 shownServers =
                     servers
                         |> List.filter (ownServer project.auth.user.uuid)
-                        |> List.take 5
+                        |> List.take 3
 
                 numOtherServers =
                     List.length servers - List.length shownServers
@@ -199,7 +196,13 @@ serverTileContents context project =
                                 [ "and"
                                 , String.fromInt numOtherServers
                                 , "more"
-                                , context.localization.virtualComputer |> Helpers.String.pluralize
+                                , context.localization.virtualComputer
+                                    |> (if numOtherServers /= 1 then
+                                            Helpers.String.pluralize
+
+                                        else
+                                            identity
+                                       )
                                 ]
                         ]
                     ]
@@ -207,8 +210,75 @@ serverTileContents context project =
     VH.renderRDPP
         context
         project.servers
-        (context.localization.virtualComputer |> Helpers.String.pluralize)
+        (context.localization.virtualComputer
+            |> Helpers.String.pluralize
+        )
         renderServers
+
+
+volumeTileContents : View.Types.Context -> Project -> Element.Element Msg
+volumeTileContents context project =
+    let
+        renderVolume : OSTypes.Volume -> Element.Element Msg
+        renderVolume volume =
+            Element.row [ Element.width Element.fill, Element.height (Element.px 30), Element.spacing 10 ]
+                [ VH.possiblyUntitledResource volume.name context.localization.blockDevice
+                    |> VH.ellipsizedText
+                    |> Element.el
+                        [ Element.centerY
+                        , Element.width Element.fill
+                        , Element.htmlAttribute <| Html.Attributes.style "min-width" "0"
+                        ]
+                , (String.fromInt volume.size ++ " GB") |> Element.text |> Element.el [ Element.centerY ]
+                ]
+
+        renderVolumes : List OSTypes.Volume -> Element.Element Msg
+        renderVolumes volumes =
+            let
+                shownVolumes =
+                    List.take 3 volumes
+
+                numOtherVolumes =
+                    List.length volumes - List.length shownVolumes
+            in
+            Element.column [ Element.width Element.fill, Element.spacing 15 ] <|
+                List.concat
+                    [ if List.isEmpty shownVolumes then
+                        [ mutedText context <|
+                            String.join " "
+                                [ "No"
+                                , context.localization.blockDevice |> Helpers.String.pluralize
+                                , "created by you"
+                                ]
+                        ]
+
+                      else
+                        List.map renderVolume shownVolumes
+                    , if numOtherVolumes == 0 then
+                        []
+
+                      else
+                        [ mutedText context <|
+                            String.join " "
+                                [ "and"
+                                , String.fromInt numOtherVolumes
+                                , "more"
+                                , context.localization.blockDevice
+                                    |> (if numOtherVolumes /= 1 then
+                                            Helpers.String.pluralize
+
+                                        else
+                                            identity
+                                       )
+                                ]
+                        ]
+                    ]
+    in
+    VH.renderWebData
+        context
+        project.volumes
+        (context.localization.blockDevice |> Helpers.String.pluralize)
+        renderVolumes
 
 
 mutedText : View.Types.Context -> String -> Element.Element Msg
