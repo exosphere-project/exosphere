@@ -184,7 +184,10 @@ serverTileContents context project =
 
                       else
                         List.map renderServer shownServers
-                    , if numOtherServers > 0 then
+                    , if numOtherServers == 0 then
+                        []
+
+                      else
                         [ mutedText context <|
                             String.join " "
                                 [ "and"
@@ -193,9 +196,6 @@ serverTileContents context project =
                                 , context.localization.virtualComputer |> Helpers.String.pluralize
                                 ]
                         ]
-
-                      else
-                        []
                     ]
     in
     VH.renderRDPP
