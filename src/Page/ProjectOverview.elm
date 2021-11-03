@@ -152,15 +152,6 @@ serverTileContents context project =
         ownServer userUuid server =
             server.osProps.details.userUuid == userUuid
 
-        shownServers =
-            project.servers
-                |> RDPP.withDefault []
-                |> List.filter (ownServer project.auth.user.uuid)
-                |> List.take 5
-
-        numOtherServers =
-            List.length (RDPP.withDefault [] project.servers) - List.length shownServers
-
         renderServer : Server -> Element.Element Msg
         renderServer server =
             Element.row [ Element.width Element.fill, Element.height (Element.px 30), Element.spacing 10 ]
@@ -168,33 +159,50 @@ serverTileContents context project =
                 , VH.possiblyUntitledResource server.osProps.name context.localization.virtualComputer
                     |> VH.ellipsizedText
                 ]
+
+        renderServers : List Server -> Element.Element Msg
+        renderServers servers =
+            let
+                shownServers =
+                    servers
+                        |> List.filter (ownServer project.auth.user.uuid)
+                        |> List.take 5
+
+                numOtherServers =
+                    List.length servers - List.length shownServers
+            in
+            Element.column [ Element.width Element.fill, Element.spacing 15 ] <|
+                List.concat
+                    [ if List.isEmpty shownServers then
+                        [ mutedText context <|
+                            String.join " "
+                                [ "No"
+                                , context.localization.virtualComputer |> Helpers.String.pluralize
+                                , "created by you"
+                                ]
+                        ]
+
+                      else
+                        List.map renderServer shownServers
+                    , if numOtherServers > 0 then
+                        [ mutedText context <|
+                            String.join " "
+                                [ "and"
+                                , String.fromInt numOtherServers
+                                , "more"
+                                , context.localization.virtualComputer |> Helpers.String.pluralize
+                                ]
+                        ]
+
+                      else
+                        []
+                    ]
     in
-    Element.column [ Element.width Element.fill, Element.spacing 15 ] <|
-        List.concat
-            [ if List.isEmpty shownServers then
-                [ mutedText context <|
-                    String.join " "
-                        [ "No"
-                        , context.localization.virtualComputer |> Helpers.String.pluralize
-                        , "created by you"
-                        ]
-                ]
-
-              else
-                List.map renderServer shownServers
-            , if numOtherServers > 0 then
-                [ mutedText context <|
-                    String.join " "
-                        [ "and"
-                        , String.fromInt numOtherServers
-                        , "more"
-                        , context.localization.virtualComputer |> Helpers.String.pluralize
-                        ]
-                ]
-
-              else
-                []
-            ]
+    VH.renderRDPP
+        context
+        project.servers
+        (context.localization.virtualComputer |> Helpers.String.pluralize)
+        renderServers
 
 
 mutedText : View.Types.Context -> String -> Element.Element Msg
