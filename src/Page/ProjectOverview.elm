@@ -122,10 +122,7 @@ view context project _ =
                 )
                 Route.FloatingIpList
                 (Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.FloatingIp project.computeQuota floatingIpsUsedCount))
-                (Element.column []
-                    [ Element.text "some contents"
-                    ]
-                )
+                (floatingIpTileContents context project)
             , renderTile
                 (FeatherIcons.key
                     |> FeatherIcons.toHtml []
@@ -146,125 +143,131 @@ view context project _ =
 serverTileContents : View.Types.Context -> Project -> Element.Element Msg
 serverTileContents context project =
     let
-        ownServer : OSTypes.UserUuid -> Server -> Bool
-        ownServer userUuid server =
-            server.osProps.details.userUuid == userUuid
+        ownServer : Server -> Bool
+        ownServer server =
+            server.osProps.details.userUuid == project.auth.user.uuid
 
-        renderServer : Server -> Element.Element Msg
+        renderServer : Server -> List (Element.Element Msg)
         renderServer server =
-            Element.row [ Element.width Element.fill, Element.height (Element.px 30), Element.spacing 10 ]
-                [ VH.serverStatusBadge context.palette server
-                , VH.possiblyUntitledResource server.osProps.name context.localization.virtualComputer
-                    |> VH.ellipsizedText
-                    |> Element.el
-                        [ Element.centerY
-                        , Element.width Element.fill
-                        , Element.htmlAttribute <| Html.Attributes.style "min-width" "0"
-                        ]
-                ]
-
-        renderServers : List Server -> Element.Element Msg
-        renderServers servers =
-            let
-                shownServers =
-                    servers
-                        |> List.filter (ownServer project.auth.user.uuid)
-                        |> List.take 3
-
-                numOtherServers =
-                    List.length servers - List.length shownServers
-            in
-            Element.column [ Element.width Element.fill, Element.spacing 15 ] <|
-                List.concat
-                    [ if List.isEmpty shownServers then
-                        [ mutedText context <|
-                            String.join " "
-                                [ "No"
-                                , context.localization.virtualComputer |> Helpers.String.pluralize
-                                , "created by you"
-                                ]
-                        ]
-
-                      else
-                        List.map renderServer shownServers
-                    , if numOtherServers == 0 then
-                        []
-
-                      else
-                        [ mutedText context <|
-                            String.join " "
-                                [ "and"
-                                , String.fromInt numOtherServers
-                                , "more"
-                                , context.localization.virtualComputer
-                                    |> (if numOtherServers /= 1 then
-                                            Helpers.String.pluralize
-
-                                        else
-                                            identity
-                                       )
-                                ]
-                        ]
+            [ VH.serverStatusBadge context.palette server
+            , VH.possiblyUntitledResource server.osProps.name context.localization.virtualComputer
+                |> VH.ellipsizedText
+                |> Element.el
+                    [ Element.centerY
+                    , Element.width Element.fill
+                    , Element.htmlAttribute <| Html.Attributes.style "min-width" "0"
                     ]
+            ]
     in
-    VH.renderRDPP
+    tileContents
         context
         project.servers
-        (context.localization.virtualComputer
-            |> Helpers.String.pluralize
-        )
-        renderServers
+        context.localization.virtualComputer
+        VH.renderRDPP
+        renderServer
+        ownServer
 
 
 volumeTileContents : View.Types.Context -> Project -> Element.Element Msg
 volumeTileContents context project =
     let
-        renderVolume : OSTypes.Volume -> Element.Element Msg
+        renderVolume : OSTypes.Volume -> List (Element.Element Msg)
         renderVolume volume =
-            Element.row [ Element.width Element.fill, Element.height (Element.px 30), Element.spacing 10 ]
-                [ VH.possiblyUntitledResource volume.name context.localization.blockDevice
-                    |> VH.ellipsizedText
-                    |> Element.el
-                        [ Element.centerY
-                        , Element.width Element.fill
-                        , Element.htmlAttribute <| Html.Attributes.style "min-width" "0"
-                        ]
-                , (String.fromInt volume.size ++ " GB") |> Element.text |> Element.el [ Element.centerY ]
-                ]
+            [ VH.possiblyUntitledResource volume.name context.localization.blockDevice
+                |> VH.ellipsizedText
+                |> Element.el
+                    [ Element.centerY
+                    , Element.width Element.fill
+                    , Element.htmlAttribute <| Html.Attributes.style "min-width" "0"
+                    ]
+            , (String.fromInt volume.size ++ " GB") |> Element.text |> Element.el [ Element.centerY ]
+            ]
+    in
+    tileContents
+        context
+        project.volumes
+        context.localization.blockDevice
+        VH.renderWebData
+        renderVolume
+        (\_ -> True)
 
-        renderVolumes : List OSTypes.Volume -> Element.Element Msg
-        renderVolumes volumes =
+
+floatingIpTileContents : View.Types.Context -> Project -> Element.Element Msg
+floatingIpTileContents context project =
+    -- TODO hide any floating IPs? check FloatingIpList.elm
+    let
+        renderFloatingIp : OSTypes.FloatingIp -> List (Element.Element Msg)
+        renderFloatingIp floatingIp =
+            [ Element.text floatingIp.address ]
+    in
+    tileContents
+        context
+        project.floatingIps
+        context.localization.floatingIpAddress
+        VH.renderRDPP
+        renderFloatingIp
+        (\_ -> True)
+
+
+tileContents :
+    View.Types.Context
+    -> resourceWithAvailabilityMetadata
+    -> String
+    ->
+        (View.Types.Context
+         -> resourceWithAvailabilityMetadata
+         -> String
+         -> (List singleItem -> Element.Element Msg)
+         -> Element.Element Msg
+        )
+    -> (singleItem -> List (Element.Element Msg))
+    -> (singleItem -> Bool)
+    -> Element.Element Msg
+tileContents context resourceWithAvailabilityMetadata resourceWord renderResource renderItemRowContents showItemInPreview =
+    let
+        -- TODO func to determine whether an item is shown in preview
+        renderItems items =
             let
-                shownVolumes =
-                    List.take 3 volumes
+                shownItems =
+                    items
+                        |> List.filter showItemInPreview
+                        |> List.take 3
 
-                numOtherVolumes =
-                    List.length volumes - List.length shownVolumes
+                numOtherItems =
+                    List.length items - List.length shownItems
+
+                renderItemRow : List (Element.Element msg) -> Element.Element msg
+                renderItemRow contents =
+                    Element.row
+                        [ Element.width Element.fill, Element.height (Element.px 30), Element.spacing 10 ]
+                        contents
             in
             Element.column [ Element.width Element.fill, Element.spacing 15 ] <|
                 List.concat
-                    [ if List.isEmpty shownVolumes then
+                    [ if List.isEmpty shownItems then
                         [ mutedText context <|
                             String.join " "
                                 [ "No"
-                                , context.localization.blockDevice |> Helpers.String.pluralize
-                                , "created by you"
+                                , Helpers.String.pluralize resourceWord
+                                , "to preview"
                                 ]
                         ]
 
                       else
-                        List.map renderVolume shownVolumes
-                    , if numOtherVolumes == 0 then
+                        shownItems
+                            |> List.map renderItemRowContents
+                            |> List.map renderItemRow
+                    , if numOtherItems == 0 then
                         []
 
                       else
                         [ mutedText context <|
                             String.join " "
                                 [ "and"
-                                , String.fromInt numOtherVolumes
+                                , String.fromInt numOtherItems
                                 , "more"
-                                , context.localization.blockDevice
-                                    |> (if numOtherVolumes /= 1 then
+                                , resourceWord
+                                    |> (if numOtherItems /= 1 then
                                             Helpers.String.pluralize
 
                                         else
@@ -274,11 +277,7 @@ volumeTileContents context project =
                         ]
                     ]
     in
-    VH.renderWebData
-        context
-        project.volumes
-        (context.localization.blockDevice |> Helpers.String.pluralize)
-        renderVolumes
+    renderResource context resourceWithAvailabilityMetadata (Helpers.String.pluralize resourceWord) renderItems
 
 
 mutedText : View.Types.Context -> String -> Element.Element Msg
