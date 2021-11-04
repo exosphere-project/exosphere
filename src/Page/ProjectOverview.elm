@@ -222,7 +222,16 @@ keypairTileContents context project =
     let
         renderKeypair : OSTypes.Keypair -> List (Element.Element Msg)
         renderKeypair keypair =
-            [ Element.text keypair.name ]
+            [ Element.el [ Element.centerY ] (Element.text keypair.name)
+            , Element.el
+                [ Element.centerY
+                , Element.width Element.fill
+                , Element.htmlAttribute <| Html.Attributes.style "min-width" "0"
+                , Font.family [ Font.monospace ]
+                , Font.size 14
+                ]
+                (VH.ellipsizedText keypair.fingerprint)
+            ]
     in
     tileContents
         context
