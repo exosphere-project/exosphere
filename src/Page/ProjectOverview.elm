@@ -56,12 +56,6 @@ view context project _ =
                                     ++ [ Element.spacing 12
                                        , Element.paddingEach { bottom = 0, left = 0, right = 0, top = 0 }
                                        , Border.width 0
-                                       , Element.mouseOver
-                                            [ Font.color
-                                                (context.palette.primary
-                                                    |> SH.toElementColor
-                                                )
-                                            ]
                                        , Element.pointer
                                        ]
                                 )
