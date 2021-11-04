@@ -55,7 +55,7 @@ Feature: Text presence
         And I click the last "Create" button
         When I press the last element with xpath "//h3[contains(string(),'Instances')]"
         Then I should see the unique instance name within 5 seconds
-        And the browser's URL should contain "/projects/285529556e524028aae29f9c8b0f8017/resources"
+        And the browser's URL should contain "/projects/285529556e524028aae29f9c8b0f8017/servers"
         When I press on the unique instance name
         Then I should see an element with xpath "//h2[contains(string(),'Instance')]" within 2 seconds
         And I should see an element with xpath "//div[contains(string(),'Building')]" within 10 seconds
