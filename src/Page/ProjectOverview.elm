@@ -49,7 +49,7 @@ view context project _ =
                 { url = Route.toUrl context.urlPathPrefix (Route.ProjectRoute project.auth.project.uuid projRouteConstructor)
                 , label =
                     tile context
-                        [ Element.column [ Element.padding 10, Element.width Element.fill, Element.spacing 20 ]
+                        [ Element.column [ Element.padding 18, Element.width Element.fill, Element.spacing 20 ]
                             [ Element.row
                                 (VH.heading3 context.palette
                                     ++ [ Element.spacing 12
