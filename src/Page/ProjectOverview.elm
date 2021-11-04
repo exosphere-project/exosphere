@@ -149,14 +149,14 @@ serverTileContents context project =
 
         renderServer : Server -> List (Element.Element Msg)
         renderServer server =
-            [ VH.serverStatusBadge context.palette server
-            , VH.possiblyUntitledResource server.osProps.name context.localization.virtualComputer
+            [ VH.possiblyUntitledResource server.osProps.name context.localization.virtualComputer
                 |> VH.ellipsizedText
                 |> Element.el
                     [ Element.centerY
                     , Element.width Element.fill
                     , Element.htmlAttribute <| Html.Attributes.style "min-width" "0"
                     ]
+            , VH.serverStatusBadge context.palette server
             ]
     in
     tileContents
