@@ -448,6 +448,9 @@ type alias ComputeQuota =
     , instances : QuotaItemDetail
     , ram : QuotaItemDetail
     , floatingIps : QuotaItemDetail
+
+    -- OpenStack doesn't tell us a quantity of keypairs in use, only the limit
+    , keypairsLimit : Int
     }
 
 

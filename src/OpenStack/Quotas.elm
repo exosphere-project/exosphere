@@ -54,7 +54,7 @@ requestComputeQuota project =
 
 computeQuotaDecoder : Decode.Decoder OSTypes.ComputeQuota
 computeQuotaDecoder =
-    Decode.map4 OSTypes.ComputeQuota
+    Decode.map5 OSTypes.ComputeQuota
         (Decode.map2 OSTypes.QuotaItemDetail
             (Decode.at [ "absolute", "totalCoresUsed" ] Decode.int)
             (Decode.at [ "absolute", "maxTotalCores" ] specialIntToMaybe)
@@ -71,6 +71,7 @@ computeQuotaDecoder =
             (Decode.at [ "absolute", "totalFloatingIpsUsed" ] Decode.int)
             (Decode.at [ "absolute", "maxTotalFloatingIps" ] specialIntToMaybe)
         )
+        (Decode.at [ "absolute", "maxTotalKeypairs" ] Decode.int)
 
 
 

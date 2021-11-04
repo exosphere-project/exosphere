@@ -9,6 +9,7 @@ import Helpers.String
 import Html.Attributes
 import OpenStack.Types as OSTypes
 import Page.QuotaUsage
+import RemoteData
 import Route
 import Style.Helpers as SH
 import Style.Widgets.Card
@@ -83,6 +84,11 @@ view context project _ =
                 -- Defaulting to 0 if not loaded yet, not the greatest factoring
                 |> RDPP.withDefault []
                 |> List.length
+
+        keypairsUsedCount =
+            project.keypairs
+                |> RemoteData.withDefault []
+                |> List.length
     in
     Element.column
         [ Element.spacing 15, Element.width Element.fill ]
@@ -134,7 +140,7 @@ view context project _ =
                     |> Helpers.String.toTitleCase
                 )
                 Route.KeypairList
-                Element.none
+                (Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.Keypair project.computeQuota keypairsUsedCount))
                 (keypairTileContents context project)
             ]
         ]

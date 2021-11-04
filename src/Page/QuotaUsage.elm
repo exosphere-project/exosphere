@@ -15,6 +15,7 @@ type ResourceType
     = Compute (WebData OSTypes.ComputeQuota)
     | FloatingIp (WebData OSTypes.ComputeQuota) Int
     | Volume (WebData OSTypes.VolumeQuota)
+    | Keypair (WebData OSTypes.ComputeQuota) Int
 
 
 type Display
@@ -33,6 +34,9 @@ view context display resourceType =
 
         Volume quota ->
             volumeQuotaDetails context display quota
+
+        Keypair quota keypairsUsed ->
+            keypairQuotaDetails context display quota keypairsUsed
 
 
 infoItem : View.Types.Context -> { inUse : Int, limit : Maybe Int } -> ( String, Unit ) -> Element.Element msg
@@ -166,6 +170,39 @@ floatingIpQuotaDetails context display quota floatingIpsUsed =
     Element.row
         (VH.exoRowAttributes ++ [ Element.width Element.fill ])
         [ quotaDetail context quota (floatingIpInfoItems context display floatingIpsUsed) ]
+
+
+keypairInfoItems : View.Types.Context -> Display -> Int -> OSTypes.ComputeQuota -> Element.Element msg
+keypairInfoItems context display keypairsUsed quota =
+    let
+        brief =
+            infoItem context
+                (OSTypes.QuotaItemDetail keypairsUsed (Just quota.keypairsLimit))
+                ( String.join " "
+                    [ context.localization.pkiPublicKeyForSsh
+                        |> Helpers.String.pluralize
+                        |> Helpers.String.toTitleCase
+                    , "used"
+                    ]
+                , Count
+                )
+    in
+    case display of
+        Brief ->
+            brief
+
+        Full ->
+            Element.wrappedRow
+                (VH.exoRowAttributes ++ [ Element.centerX ])
+                [ brief
+                ]
+
+
+keypairQuotaDetails : View.Types.Context -> Display -> WebData OSTypes.ComputeQuota -> Int -> Element.Element msg
+keypairQuotaDetails context display quota keypairsUsed =
+    Element.row
+        (VH.exoRowAttributes ++ [ Element.width Element.fill ])
+        [ quotaDetail context quota (keypairInfoItems context display keypairsUsed) ]
 
 
 volumeInfoItems : View.Types.Context -> Display -> OSTypes.VolumeQuota -> Element.Element msg
