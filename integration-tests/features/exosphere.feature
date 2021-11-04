@@ -53,6 +53,7 @@ Feature: Text presence
         And I press the "No" option in the "Install operating system updates?" radio button group
         And I should see "Warning: Skipping operating system updates is a security risk" within 2 seconds
         And I click the last "Create" button
+        When I click the "Instances" button
         Then I should see the unique instance name within 5 seconds
         And the browser's URL should contain "/projects/285529556e524028aae29f9c8b0f8017/resources"
         When I press on the unique instance name
@@ -75,6 +76,7 @@ Feature: Text presence
         When I click the "TG-INI210003" card
         Then I should see "iu.jetstream-cloud.org - TG-INI210003" within 15 seconds
         And I should see an element with xpath "//h3[contains(string(),'Instances')]" within 20 seconds
+        When I click the "Instances" button
         Given a unique instance name starting with "ubuntu"
         Then I should see the unique instance name within 30 seconds
         When I press on the unique instance name
