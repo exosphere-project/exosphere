@@ -135,7 +135,7 @@ view context project _ =
                 )
                 Route.KeypairList
                 Element.none
-                (Element.text "some contents")
+                (keypairTileContents context project)
             ]
         ]
 
@@ -206,6 +206,22 @@ floatingIpTileContents context project =
         context.localization.floatingIpAddress
         VH.renderRDPP
         renderFloatingIp
+        (\_ -> True)
+
+
+keypairTileContents : View.Types.Context -> Project -> Element.Element Msg
+keypairTileContents context project =
+    let
+        renderKeypair : OSTypes.Keypair -> List (Element.Element Msg)
+        renderKeypair keypair =
+            [ Element.text keypair.name ]
+    in
+    tileContents
+        context
+        project.keypairs
+        context.localization.pkiPublicKeyForSsh
+        VH.renderWebData
+        renderKeypair
         (\_ -> True)
 
 
