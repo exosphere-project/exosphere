@@ -194,11 +194,19 @@ volumeTileContents context project =
 
 floatingIpTileContents : View.Types.Context -> Project -> Element.Element Msg
 floatingIpTileContents context project =
-    -- TODO hide any floating IPs? check FloatingIpList.elm
     let
         renderFloatingIp : OSTypes.FloatingIp -> List (Element.Element Msg)
         renderFloatingIp floatingIp =
             [ Element.text floatingIp.address ]
+
+        showFloatingIp : OSTypes.FloatingIp -> Bool
+        showFloatingIp floatingIp =
+            case floatingIp.portUuid of
+                Just _ ->
+                    False
+
+                Nothing ->
+                    True
     in
     tileContents
         context
@@ -206,7 +214,7 @@ floatingIpTileContents context project =
         context.localization.floatingIpAddress
         VH.renderRDPP
         renderFloatingIp
-        (\_ -> True)
+        showFloatingIp
 
 
 keypairTileContents : View.Types.Context -> Project -> Element.Element Msg
