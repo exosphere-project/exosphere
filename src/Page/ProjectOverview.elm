@@ -225,7 +225,6 @@ tileContents :
     -> Element.Element Msg
 tileContents context resourceWithAvailabilityMetadata resourceWord renderResource renderItemRowContents showItemInPreview =
     let
-        -- TODO func to determine whether an item is shown in preview
         renderItems items =
             let
                 shownItems =
