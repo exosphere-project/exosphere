@@ -264,6 +264,17 @@ tileContents :
     -> Element.Element Msg
 tileContents context resourceWithAvailabilityMetadata resourceWord renderResource renderItemRowContents showItemInPreview =
     let
+        mutedText : String -> Element.Element Msg
+        mutedText text =
+            Element.el
+                [ Element.centerX
+                , context.palette.muted
+                    |> SH.toElementColor
+                    |> Font.color
+                ]
+            <|
+                Element.text text
+
         renderItems items =
             let
                 shownItems =
@@ -283,7 +294,7 @@ tileContents context resourceWithAvailabilityMetadata resourceWord renderResourc
             Element.column [ Element.width Element.fill, Element.spacing 15 ] <|
                 List.concat
                     [ if List.isEmpty shownItems then
-                        [ mutedText context <|
+                        [ mutedText <|
                             String.join " "
                                 [ "No"
                                 , Helpers.String.pluralize resourceWord
@@ -299,7 +310,7 @@ tileContents context resourceWithAvailabilityMetadata resourceWord renderResourc
                         []
 
                       else
-                        [ mutedText context <|
+                        [ mutedText <|
                             String.join " "
                                 [ "and"
                                 , String.fromInt numOtherItems
@@ -316,18 +327,6 @@ tileContents context resourceWithAvailabilityMetadata resourceWord renderResourc
                     ]
     in
     renderResource context resourceWithAvailabilityMetadata (Helpers.String.pluralize resourceWord) renderItems
-
-
-mutedText : View.Types.Context -> String -> Element.Element Msg
-mutedText context text =
-    Element.el
-        [ Element.centerX
-        , context.palette.muted
-            |> SH.toElementColor
-            |> Font.color
-        ]
-    <|
-        Element.text text
 
 
 tile : View.Types.Context -> List (Element.Element Msg) -> Element.Element Msg
