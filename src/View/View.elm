@@ -10,7 +10,6 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import Helpers.Url as UrlHelpers
 import Html
-import Page.AllResourcesList
 import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.GetSupport
@@ -23,6 +22,7 @@ import Page.LoginJetstream
 import Page.LoginOpenstack
 import Page.LoginPicker
 import Page.MessageLog
+import Page.ProjectOverview
 import Page.SelectProjects
 import Page.ServerCreate
 import Page.ServerCreateImage
@@ -239,9 +239,9 @@ project model context p projectViewModel viewConstructor =
     let
         v =
             case viewConstructor of
-                AllResourcesList pageModel ->
-                    Page.AllResourcesList.view context p pageModel
-                        |> Element.map AllResourcesListMsg
+                ProjectOverview pageModel ->
+                    Page.ProjectOverview.view context p pageModel
+                        |> Element.map ProjectOverviewMsg
 
                 FloatingIpAssign pageModel ->
                     Page.FloatingIpAssign.view context p pageModel

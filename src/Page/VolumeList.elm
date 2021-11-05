@@ -117,7 +117,7 @@ view context project model =
           else
             Element.none
         , Element.column VH.contentContainer
-            [ Page.QuotaUsage.view context (Page.QuotaUsage.Volume project.volumeQuota)
+            [ Page.QuotaUsage.view context Page.QuotaUsage.Full (Page.QuotaUsage.Volume project.volumeQuota)
             , VH.renderWebData
                 context
                 project.volumes

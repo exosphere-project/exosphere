@@ -6,6 +6,8 @@ import FeatherIcons
 import Helpers.String
 import Html.Attributes
 import OpenStack.Types as OSTypes
+import Page.QuotaUsage
+import RemoteData
 import Route
 import Set
 import Style.Helpers as SH
@@ -142,6 +144,11 @@ view context project model =
                         (renderKeypairCard context model)
                         keypairs_
                     )
+
+        keypairsUsedCount =
+            project.keypairs
+                |> RemoteData.withDefault []
+                |> List.length
     in
     Element.column
         [ Element.spacing 20, Element.width Element.fill ]
@@ -157,11 +164,14 @@ view context project model =
 
           else
             Element.none
-        , VH.renderWebData
-            context
-            project.keypairs
-            (Helpers.String.pluralize context.localization.pkiPublicKeyForSsh)
-            renderKeypairs
+        , Element.column VH.contentContainer
+            [ Page.QuotaUsage.view context Page.QuotaUsage.Full (Page.QuotaUsage.Keypair project.computeQuota keypairsUsedCount)
+            , VH.renderWebData
+                context
+                project.keypairs
+                (Helpers.String.pluralize context.localization.pkiPublicKeyForSsh)
+                renderKeypairs
+            ]
         ]
 
 

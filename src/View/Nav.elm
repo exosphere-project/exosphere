@@ -58,7 +58,7 @@ navMenu outerModel context =
                 status
                 (FeatherIcons.cloud |> FeatherIcons.toHtml [] |> Element.html |> Element.el [] |> Just)
                 projectTitle
-                (Route.toUrl context.urlPathPrefix (Route.ProjectRoute project.auth.project.uuid Route.AllResourcesList))
+                (Route.toUrl context.urlPathPrefix (Route.ProjectRoute project.auth.project.uuid Route.ProjectOverview))
 
         projectMenuItems : List Project -> List (Element.Element OuterMsg)
         projectMenuItems projects =

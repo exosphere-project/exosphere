@@ -53,8 +53,10 @@ Feature: Text presence
         And I press the "No" option in the "Install operating system updates?" radio button group
         And I should see "Warning: Skipping operating system updates is a security risk" within 2 seconds
         And I click the last "Create" button
+        Then I should see an element with xpath "//h3[contains(string(),'Instances')]" within 5 seconds
+        When I press the last element with xpath "//h3[contains(string(),'Instances')]"
         Then I should see the unique instance name within 5 seconds
-        And the browser's URL should contain "/projects/285529556e524028aae29f9c8b0f8017/resources"
+        And the browser's URL should contain "/projects/285529556e524028aae29f9c8b0f8017/servers"
         When I press on the unique instance name
         Then I should see an element with xpath "//h2[contains(string(),'Instance')]" within 2 seconds
         And I should see an element with xpath "//div[contains(string(),'Building')]" within 10 seconds
@@ -75,6 +77,7 @@ Feature: Text presence
         When I click the "TG-INI210003" card
         Then I should see "iu.jetstream-cloud.org - TG-INI210003" within 15 seconds
         And I should see an element with xpath "//h3[contains(string(),'Instances')]" within 20 seconds
+        When I press the last element with xpath "//h3[contains(string(),'Instances')]"
         Given a unique instance name starting with "ubuntu"
         Then I should see the unique instance name within 30 seconds
         When I press on the unique instance name
@@ -82,7 +85,5 @@ Feature: Text presence
         When I click the "Delete" button
         Then I should see "Are you sure you want to delete?" within 5 seconds
         When I click the "Yes" button
-        Then I should see "Deleting..." within 5 seconds
         And I should not see the unique instance name within 30 seconds
-        And I should not see "Deleting..."
 

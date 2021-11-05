@@ -122,6 +122,7 @@ computeQuotasAndLimitsSuite =
                             { inUse = 0
                             , limit = Just 10
                             }
+                        , keypairsLimit = 100
                         }
                     )
         ]

@@ -208,8 +208,10 @@ edges =
 
 ellipsizedText : String -> Element.Element msg
 ellipsizedText text =
-    -- Parent element where this is used needs an `Element.width Element.fill` or something.
     -- from https://elmlang.slack.com/archives/C4F9NBLR1/p1635861051191700?thread_ts=1635806498.188700&cid=C4F9NBLR1
+    -- If this still overflows its container, then the outer-most container that's overflowing its parent needs
+    -- `Html.Attributes.style "min-width" "0"`
+    -- per https://stackoverflow.com/a/53784508
     let
         elmUiElement_text_classes : String
         elmUiElement_text_classes =
@@ -219,9 +221,7 @@ ellipsizedText text =
         [ [ Css.textOverflow Css.ellipsis
           , Css.overflow Css.hidden
           , Css.width (Css.pct 100)
-
-          -- Unsure if this is needed
-          --, Css.lineHeight (Css.num 1.1)
+          , Css.lineHeight (Css.num 1.3)
           ]
             |> Html.Styled.Attributes.css
         , Html.Styled.Attributes.class elmUiElement_text_classes

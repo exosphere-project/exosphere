@@ -20,7 +20,7 @@ meter palette title subtitle value maximum =
             , Element.el [ Element.alignRight ] (Element.text subtitle)
             ]
         , Element.row
-            [ Element.width (Element.px 260)
+            [ Element.width (Element.px 262)
             , Element.height (Element.px 25)
             , Background.color (SH.toElementColorWithOpacity palette.primary 0.15)
             , Element.htmlAttribute (HtmlA.attribute "role" "meter")
