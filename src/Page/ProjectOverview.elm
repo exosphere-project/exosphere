@@ -14,6 +14,7 @@ import Route
 import Style.Helpers as SH
 import Style.Widgets.Card
 import Style.Widgets.Icon as Icon
+import Time exposing (posixToMillis)
 import Types.Project exposing (Project)
 import Types.Server exposing (Server)
 import Types.SharedMsg as SharedMsg
@@ -158,10 +159,27 @@ serverTileContents context project =
                     ]
             , VH.serverStatusBadge context.palette server
             ]
+
+        sortedServers =
+            case project.servers.data of
+                RDPP.DoHave servers recTime ->
+                    let
+                        serversSortedByCreatedTime =
+                            servers
+                                |> List.sortBy (\s -> posixToMillis s.osProps.details.created)
+                                |> List.reverse
+
+                        serversRDPP =
+                            project.servers
+                    in
+                    { serversRDPP | data = RDPP.DoHave serversSortedByCreatedTime recTime }
+
+                _ ->
+                    project.servers
     in
     tileContents
         context
-        project.servers
+        sortedServers
         context.localization.virtualComputer
         VH.renderRDPP
         renderServer

@@ -15,6 +15,7 @@ import Set
 import Style.Helpers as SH
 import Style.Widgets.Card
 import Style.Widgets.Icon as Icon
+import Time exposing (posixToMillis)
 import Types.HelperTypes exposing (ProjectIdentifier)
 import Types.Project exposing (Project)
 import Types.Server exposing (Server, ServerOrigin(..))
@@ -199,18 +200,23 @@ serverList_ :
     -> Model
     -> List Server
     -> Element.Element Msg
-serverList_ context projectId userUuid model servers =
+serverList_ context projectId userUuid model unsortedServers =
     {- Render a list of servers -}
     let
+        serversSortedByCreatedTime =
+            unsortedServers
+                |> List.sortBy (\s -> posixToMillis s.osProps.details.created)
+                |> List.reverse
+
         ( ownServers, otherUsersServers ) =
-            List.partition (ownServer userUuid) servers
+            List.partition (ownServer userUuid) serversSortedByCreatedTime
 
         shownServers =
             if model.onlyOwnServers then
                 ownServers
 
             else
-                servers
+                serversSortedByCreatedTime
 
         selectableServers =
             shownServers
