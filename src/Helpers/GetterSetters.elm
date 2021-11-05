@@ -42,6 +42,7 @@ import Helpers.Url as UrlHelpers
 import List.Extra
 import OpenStack.Types as OSTypes
 import RemoteData
+import Time
 import Types.HelperTypes as HelperTypes
 import Types.Project exposing (Project)
 import Types.Server exposing (Server)
@@ -300,7 +301,13 @@ projectUpdateServer project server =
                     server :: otherServers
 
                 newServersSorted =
-                    List.sortBy (\s -> s.osProps.name) newServers
+                    -- Default sort order is by created timestamp, most recent first
+                    newServers
+                        |> List.sortBy
+                            (\s ->
+                                Time.posixToMillis s.osProps.details.created
+                                    |> negate
+                            )
 
                 oldServersRDPP =
                     project.servers
