@@ -461,121 +461,125 @@ getServerUiStatus server =
         targetStatusActive =
             maybeFirstTargetStatus == Just OSTypes.ServerActive
     in
-    case server.osProps.details.openstackStatus of
-        OSTypes.ServerActive ->
-            let
-                whenNoTargetStatus =
-                    case server.exoProps.serverOrigin of
-                        ServerFromExo serverFromExoProps ->
-                            if serverFromExoProps.exoServerVersion < 4 then
+    if server.exoProps.deletionAttempted then
+        ServerUiStatusDeleting
+
+    else
+        case server.osProps.details.openstackStatus of
+            OSTypes.ServerActive ->
+                let
+                    whenNoTargetStatus =
+                        case server.exoProps.serverOrigin of
+                            ServerFromExo serverFromExoProps ->
+                                if serverFromExoProps.exoServerVersion < 4 then
+                                    ServerUiStatusReady
+
+                                else
+                                    case serverFromExoProps.exoSetupStatus.data of
+                                        RDPP.DoHave status _ ->
+                                            case status of
+                                                ExoSetupWaiting ->
+                                                    ServerUiStatusBuilding
+
+                                                ExoSetupRunning ->
+                                                    ServerUiStatusRunningSetup
+
+                                                ExoSetupComplete ->
+                                                    ServerUiStatusReady
+
+                                                ExoSetupError ->
+                                                    ServerUiStatusError
+
+                                                ExoSetupTimeout ->
+                                                    ServerUiStatusError
+
+                                                ExoSetupUnknown ->
+                                                    ServerUiStatusUnknown
+
+                                        RDPP.DontHave ->
+                                            ServerUiStatusUnknown
+
+                            ServerNotFromExo ->
                                 ServerUiStatusReady
+                in
+                case maybeFirstTargetStatus of
+                    Just OSTypes.ServerSuspended ->
+                        ServerUiStatusSuspending
 
-                            else
-                                case serverFromExoProps.exoSetupStatus.data of
-                                    RDPP.DoHave status _ ->
-                                        case status of
-                                            ExoSetupWaiting ->
-                                                ServerUiStatusBuilding
+                    Just OSTypes.ServerShelved ->
+                        ServerUiStatusShelving
 
-                                            ExoSetupRunning ->
-                                                ServerUiStatusRunningSetup
+                    Just OSTypes.ServerShelvedOffloaded ->
+                        ServerUiStatusShelving
 
-                                            ExoSetupComplete ->
-                                                ServerUiStatusReady
+                    Just OSTypes.ServerSoftDeleted ->
+                        ServerUiStatusDeleting
 
-                                            ExoSetupError ->
-                                                ServerUiStatusError
+                    Just OSTypes.ServerDeleted ->
+                        ServerUiStatusDeleting
 
-                                            ExoSetupTimeout ->
-                                                ServerUiStatusError
+                    _ ->
+                        whenNoTargetStatus
 
-                                            ExoSetupUnknown ->
-                                                ServerUiStatusUnknown
+            OSTypes.ServerPaused ->
+                if targetStatusActive then
+                    ServerUiStatusUnpausing
 
-                                    RDPP.DontHave ->
-                                        ServerUiStatusUnknown
+                else
+                    ServerUiStatusPaused
 
-                        ServerNotFromExo ->
-                            ServerUiStatusReady
-            in
-            case maybeFirstTargetStatus of
-                Just OSTypes.ServerSuspended ->
-                    ServerUiStatusSuspending
+            OSTypes.ServerReboot ->
+                ServerUiStatusRebooting
 
-                Just OSTypes.ServerShelved ->
-                    ServerUiStatusShelving
+            OSTypes.ServerSuspended ->
+                if targetStatusActive then
+                    ServerUiStatusResuming
 
-                Just OSTypes.ServerShelvedOffloaded ->
-                    ServerUiStatusShelving
+                else
+                    ServerUiStatusSuspended
 
-                Just OSTypes.ServerSoftDeleted ->
-                    ServerUiStatusDeleting
+            OSTypes.ServerShutoff ->
+                if targetStatusActive then
+                    ServerUiStatusStarting
 
-                Just OSTypes.ServerDeleted ->
-                    ServerUiStatusDeleting
+                else
+                    ServerUiStatusShutoff
 
-                _ ->
-                    whenNoTargetStatus
+            OSTypes.ServerStopped ->
+                if targetStatusActive then
+                    ServerUiStatusStarting
 
-        OSTypes.ServerPaused ->
-            if targetStatusActive then
-                ServerUiStatusUnpausing
+                else
+                    ServerUiStatusStopped
 
-            else
-                ServerUiStatusPaused
+            OSTypes.ServerSoftDeleted ->
+                ServerUiStatusSoftDeleted
 
-        OSTypes.ServerReboot ->
-            ServerUiStatusRebooting
+            OSTypes.ServerError ->
+                ServerUiStatusError
 
-        OSTypes.ServerSuspended ->
-            if targetStatusActive then
-                ServerUiStatusResuming
+            OSTypes.ServerBuilding ->
+                ServerUiStatusBuilding
 
-            else
-                ServerUiStatusSuspended
+            OSTypes.ServerRescued ->
+                ServerUiStatusRescued
 
-        OSTypes.ServerShutoff ->
-            if targetStatusActive then
-                ServerUiStatusStarting
+            OSTypes.ServerShelved ->
+                if targetStatusActive then
+                    ServerUiStatusUnshelving
 
-            else
-                ServerUiStatusShutoff
+                else
+                    ServerUiStatusShelved
 
-        OSTypes.ServerStopped ->
-            if targetStatusActive then
-                ServerUiStatusStarting
+            OSTypes.ServerShelvedOffloaded ->
+                if targetStatusActive then
+                    ServerUiStatusUnshelving
 
-            else
-                ServerUiStatusStopped
+                else
+                    ServerUiStatusShelved
 
-        OSTypes.ServerSoftDeleted ->
-            ServerUiStatusSoftDeleted
-
-        OSTypes.ServerError ->
-            ServerUiStatusError
-
-        OSTypes.ServerBuilding ->
-            ServerUiStatusBuilding
-
-        OSTypes.ServerRescued ->
-            ServerUiStatusRescued
-
-        OSTypes.ServerShelved ->
-            if targetStatusActive then
-                ServerUiStatusUnshelving
-
-            else
-                ServerUiStatusShelved
-
-        OSTypes.ServerShelvedOffloaded ->
-            if targetStatusActive then
-                ServerUiStatusUnshelving
-
-            else
-                ServerUiStatusShelved
-
-        OSTypes.ServerDeleted ->
-            ServerUiStatusDeleted
+            OSTypes.ServerDeleted ->
+                ServerUiStatusDeleted
 
 
 getExoSetupStatusStr : Server -> Maybe String

@@ -386,7 +386,7 @@ renderServer context projectId model isMyServer server =
         deleteWidget =
             case ( deletionAttempted, server.osProps.details.lockStatus, confirmationNeeded ) of
                 ( True, _, _ ) ->
-                    [ Element.text "Deleting..." ]
+                    []
 
                 ( False, OSTypes.ServerUnlocked, True ) ->
                     [ Element.text "Confirm delete?"
