@@ -252,6 +252,7 @@ routeToViewStateModelCmd sharedModel route =
                             , sharedModel
                             , Cmd.batch
                                 [ Rest.Nova.requestKeypairs project
+                                , OSQuotas.requestComputeQuota project
                                 , Ports.instantiateClipboardJs ()
                                 ]
                             )
@@ -323,7 +324,10 @@ routeToViewStateModelCmd sharedModel route =
                             in
                             ( projectViewProto <| ServerList <| Page.ServerList.init True
                             , newSharedModel
-                            , cmd
+                            , Cmd.batch
+                                [ cmd
+                                , OSQuotas.requestComputeQuota project
+                                ]
                             )
 
                         Route.VolumeAttach maybeServerUuid maybeVolumeUuid ->
@@ -356,6 +360,7 @@ routeToViewStateModelCmd sharedModel route =
                             , Cmd.batch
                                 [ OSVolumes.requestVolumes project
                                 , Ports.instantiateClipboardJs ()
+                                , OSQuotas.requestVolumeQuota project
                                 ]
                             )
 
