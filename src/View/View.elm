@@ -324,7 +324,11 @@ projectNav context p projectViewModel =
         [ Element.el
             (VH.heading2 context.palette
                 -- Removing bottom border from this heading because it runs into buttons to the right and looks weird
+                -- Removing bottom padding to vertically align it with butttons
+                -- Shrink heading width so that username can be shown right next to it
                 ++ [ Border.width 0
+                   , Element.padding 0
+                   , Element.width Element.shrink
                    ]
             )
           <|
@@ -332,6 +336,15 @@ projectNav context p projectViewModel =
                 UrlHelpers.hostnameFromUrl p.endpoints.keystone
                     ++ " - "
                     ++ p.auth.project.name
+        , Element.paragraph
+            [ Font.size 15
+            , Element.alpha 0.75
+            , Element.paddingEach { left = 5, top = 0, bottom = 0, right = 0 }
+            ]
+            [ Element.text "(logged in as "
+            , Element.el [ Font.bold ] (Element.text p.auth.user.name)
+            , Element.text ")"
+            ]
         , Element.el
             [ Element.alignRight ]
           <|
