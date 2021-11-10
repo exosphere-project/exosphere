@@ -371,13 +371,13 @@ To test the instance provisioning code locally on a cloud instance, do this:
 ```
 virtualenv /opt/ansible-venv
 . /opt/ansible-venv/bin/activate
-pip install ansible-base
+pip install ansible-core
 ansible-pull --url https://gitlab.com/exosphere/exosphere.git --directory /opt/instance-config-mgt -i /opt/instance-config-mgt/ansible/hosts /opt/instance-config-mgt/ansible/playbook.yml
 ```
 
 Optionally, pass the `--checkout` argument to specify a git branch/tag or commit hash.
 
-For now, we are using only [built-in Ansible modules](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/#modules), because Exosphere uses the lightweight `ansible-base` / `ansible-core` package.
+For now, we are using only [built-in Ansible modules](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/#modules), because Exosphere uses the lightweight `ansible-core` package.
 
 #### Ansible variables currently used
 
