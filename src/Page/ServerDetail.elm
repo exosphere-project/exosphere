@@ -413,7 +413,7 @@ serverDetail_ context project currentTimeAndZone model server =
                                 [ "* "
                                 , context.localization.blockDevice
                                     |> Helpers.String.toTitleCase
-                                , "will only be automatically formatted/mounted on operating systems which use systemd 236 or newer (e.g. Ubuntu 18.04, CentOS 8)."
+                                , "will only be automatically formatted/mounted on operating systems which use systemd 236 or newer (e.g. Ubuntu 18.04, CentOS 8, AlmaLinux, Rocky Linux)."
                                 ]
                         ]
             , if
