@@ -956,17 +956,12 @@ createdAgoByFrom context currentTime createdTime maybeWhoCreatedTuple maybeFromT
 
         muted =
             Font.color (context.palette.muted |> SH.toElementColor)
-
-        separator =
-            Element.el
-                [ Element.paddingXY 10 0
-                , muted
-                ]
-                (Element.text "/")
     in
-    Element.wrappedRow [ Element.spacingXY 0 10 ] <|
-        [ Element.row []
-            [ Element.el [ muted ] (Element.text "Created ")
+    Element.wrappedRow
+        [ Element.width Element.fill, Element.spaceEvenly ]
+    <|
+        [ Element.row [ Element.paddingXY 5 6 ]
+            [ Element.el [ muted ] (Element.text "created ")
             , Element.text timeDistanceStr
             , Style.Widgets.ToggleTip.toggleTip
                 context.palette
@@ -976,9 +971,8 @@ createdAgoByFrom context currentTime createdTime maybeWhoCreatedTuple maybeFromT
             ]
         , case maybeWhoCreatedTuple of
             Just ( creatorAdjective, whoCreated ) ->
-                Element.row []
-                    [ separator
-                    , Element.el [ muted ] (Element.text <| "by " ++ creatorAdjective ++ " ")
+                Element.row [ Element.paddingXY 5 6 ]
+                    [ Element.el [ muted ] (Element.text <| creatorAdjective ++ " ")
                     , Element.text whoCreated
                     ]
 
@@ -986,9 +980,8 @@ createdAgoByFrom context currentTime createdTime maybeWhoCreatedTuple maybeFromT
                 Element.none
         , case maybeFromTuple of
             Just ( fromAdjective, whereFrom ) ->
-                Element.row []
-                    [ separator
-                    , Element.el [ muted ] (Element.text <| "from " ++ fromAdjective ++ " ")
+                Element.row [ Element.paddingXY 5 6 ]
+                    [ Element.el [ muted ] (Element.text <| fromAdjective ++ " ")
                     , Element.text whereFrom
                     ]
 

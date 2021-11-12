@@ -354,18 +354,14 @@ serverDetail_ context project currentTimeAndZone model server =
                     (serverStatus context model server)
                 ]
             , passwordVulnWarning context server
-            , Element.el
-                [ Element.paddingXY 0 5
-                ]
-              <|
-                VH.createdAgoByFrom
-                    context
-                    (Tuple.first currentTimeAndZone)
-                    details.created
-                    (Just ( "user", creatorName ))
-                    (Just ( context.localization.staticRepresentationOfBlockDeviceContents, imageText ))
-                    model.showCreatedTimeToggleTip
-                    (GotShowCreatedTimeToggleTip (not model.showCreatedTimeToggleTip))
+            , VH.createdAgoByFrom
+                context
+                (Tuple.first currentTimeAndZone)
+                details.created
+                (Just ( "user", creatorName ))
+                (Just ( context.localization.staticRepresentationOfBlockDeviceContents, imageText ))
+                model.showCreatedTimeToggleTip
+                (GotShowCreatedTimeToggleTip (not model.showCreatedTimeToggleTip))
             , VH.compactKVRow "UUID" <| copyableText context.palette [] server.osProps.uuid
             , VH.compactKVRow
                 (Helpers.String.toTitleCase context.localization.virtualComputerHardwareConfig)
