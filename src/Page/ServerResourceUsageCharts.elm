@@ -143,8 +143,8 @@ view context widthPx ( currentTime, timeZone ) timeSeriesDict =
                             system
                             system.x.min
                             system.y.max
-                            13
-                            25
+                            0
+                            -15
                             [ Junk.label context.palette.on.background title ]
                         ]
                     , html = []
@@ -155,7 +155,7 @@ view context widthPx ( currentTime, timeZone ) timeSeriesDict =
         chartConfig getYData title =
             { y = percentRange getYData
             , x = timeRange getTime
-            , container = Container.spaced "line-chart-1" 25 25 25 50
+            , container = Container.spaced "line-chart-1" 35 25 25 50
             , interpolation = Interpolation.monotone
             , intersection = Intersection.default
             , legends = Legends.none
