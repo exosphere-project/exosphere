@@ -24,7 +24,6 @@ import Time
 import Tuple
 import Types.ServerResourceUsage exposing (AlertLevel(..), DataPoint, TimeSeries)
 import Types.SharedMsg exposing (SharedMsg(..))
-import View.Helpers as VH
 import View.Types
 
 
@@ -87,17 +86,17 @@ view context widthPx ( currentTime, timeZone ) timeSeriesDict =
                 , ticks = percentRangeCustomTicks
                 }
 
-        timeRangeCustomTick : Int -> Tick.Config msg
-        timeRangeCustomTick number =
+        timeRangeCustomTick : Tick.Time -> Tick.Config msg
+        timeRangeCustomTick time =
             let
                 label =
-                    Junk.label context.palette.on.background (millisecond_to_str number)
+                    Junk.label context.palette.on.background (millisecond_to_str (Time.posixToMillis time.timestamp))
 
                 even =
-                    modBy 20 number == 0
+                    modBy 20 (Time.posixToMillis time.timestamp) == 0
             in
             Tick.custom
-                { position = toFloat number
+                { position = toFloat (Time.posixToMillis time.timestamp)
                 , color = context.palette.on.background
                 , width = 2
                 , length = 2
@@ -114,7 +113,7 @@ view context widthPx ( currentTime, timeZone ) timeSeriesDict =
                 , pixels = widthPx
                 , range = Range.default
                 , axisLine = AxisLine.full context.palette.on.background
-                , ticks = Ticks.intCustom 4 timeRangeCustomTick
+                , ticks = Ticks.timeCustom timeZone 3 timeRangeCustomTick
                 }
 
         -- function call for proper formatting of times
@@ -129,28 +128,39 @@ view context widthPx ( currentTime, timeZone ) timeSeriesDict =
                 minutes =
                     Time.toMinute timeZone posix_time
 
-                am_pm =
-                    if hours < 12 then
-                        "AM"
-
-                    else
-                        "PM"
-
                 string_and_pad time =
                     String.padLeft 2 '0' <| String.fromInt time
             in
-            string_and_pad (modBy 12 hours) ++ ":" ++ string_and_pad minutes ++ " " ++ am_pm
+            (modBy 12 hours |> String.fromInt) ++ ":" ++ string_and_pad minutes
 
-        chartConfig : (( Int, DataPoint ) -> Float) -> LineChart.Config ( Int, DataPoint ) msg
-        chartConfig getYData =
+        junk : String -> Junk.Config ( Int, DataPoint ) msg
+        junk title =
+            Junk.custom
+                (\system ->
+                    { below = []
+                    , above =
+                        [ Junk.placed
+                            system
+                            system.x.min
+                            system.y.max
+                            13
+                            25
+                            [ Junk.label context.palette.on.background title ]
+                        ]
+                    , html = []
+                    }
+                )
+
+        chartConfig : (( Int, DataPoint ) -> Float) -> String -> LineChart.Config ( Int, DataPoint ) msg
+        chartConfig getYData title =
             { y = percentRange getYData
             , x = timeRange getTime
-            , container = Container.spaced "line-chart-1" 40 20 40 70
+            , container = Container.spaced "line-chart-1" 25 25 25 50
             , interpolation = Interpolation.monotone
             , intersection = Intersection.default
             , legends = Legends.none
             , events = Events.default
-            , junk = Junk.default
+            , junk = junk title
             , grid = Grid.default
             , area = Area.default
             , line = Line.default
@@ -166,14 +176,17 @@ view context widthPx ( currentTime, timeZone ) timeSeriesDict =
                 (Dict.toList timeSeriesListLast30m)
             ]
     in
-    Element.column VH.exoColumnAttributes
-        [ Element.el VH.heading4 (Element.text "CPU Usage")
+    Element.wrappedRow [ Element.spaceEvenly ]
+        [ Element.html <|
+            LineChart.viewCustom
+                (chartConfig (getMetricUsedPct .cpuPctUsed) "CPU")
+                series
         , Element.html <|
-            LineChart.viewCustom (chartConfig (getMetricUsedPct .cpuPctUsed)) series
-        , Element.el VH.heading4 (Element.text "Memory Usage")
+            LineChart.viewCustom
+                (chartConfig (getMetricUsedPct .memPctUsed) "Memory")
+                series
         , Element.html <|
-            LineChart.viewCustom (chartConfig (getMetricUsedPct .memPctUsed)) series
-        , Element.el VH.heading4 (Element.text "Root Filesystem Usage")
-        , Element.html <|
-            LineChart.viewCustom (chartConfig (getMetricUsedPct .rootfsPctUsed)) series
+            LineChart.viewCustom
+                (chartConfig (getMetricUsedPct .rootfsPctUsed) "Root Disk")
+                series
         ]

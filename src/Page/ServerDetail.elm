@@ -337,7 +337,7 @@ serverDetail_ context project currentTimeAndZone model server =
                     serverNameViewPlain
 
         chartsWidthPx =
-            context.windowSize.width - 250
+            context.windowSize.width // 3 - 25
 
         firstColumnContents : List (Element.Element Msg)
         firstColumnContents =
@@ -362,6 +362,11 @@ serverDetail_ context project currentTimeAndZone model server =
                 (Just ( context.localization.staticRepresentationOfBlockDeviceContents, imageText ))
                 model.showCreatedTimeToggleTip
                 (GotShowCreatedTimeToggleTip (not model.showCreatedTimeToggleTip))
+            , if details.openstackStatus == OSTypes.ServerActive then
+                resourceUsageCharts context chartsWidthPx currentTimeAndZone server
+
+              else
+                Element.none
             , VH.compactKVRow "UUID" <| copyableText context.palette [] server.osProps.uuid
             , VH.compactKVRow
                 (Helpers.String.toTitleCase context.localization.virtualComputerHardwareConfig)
@@ -447,22 +452,13 @@ serverDetail_ context project currentTimeAndZone model server =
 
         secondColumnContents : List (Element.Element Msg)
         secondColumnContents =
-            List.concat
-                [ [ Element.el (VH.heading3 context.palette) (Element.text "Actions")
-                  , viewServerActions context project model server
-                  , serverEventHistory
-                        context
-                        (Tuple.first currentTimeAndZone)
-                        server.events
-                  ]
-                , if details.openstackStatus == OSTypes.ServerActive then
-                    [ Element.el (VH.heading3 context.palette) (Element.text "System Resource Usage")
-                    , resourceUsageCharts context chartsWidthPx currentTimeAndZone server
-                    ]
-
-                  else
-                    []
-                ]
+            [ Element.el (VH.heading3 context.palette) (Element.text "Actions")
+            , viewServerActions context project model server
+            , serverEventHistory
+                context
+                (Tuple.first currentTimeAndZone)
+                server.events
+            ]
     in
     Element.column
         (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
