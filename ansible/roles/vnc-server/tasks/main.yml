@@ -5,6 +5,7 @@
   with_first_found:
     - "{{ ansible_distribution }}-{{ ansible_distribution_major_version}}.yml"
     - "{{ ansible_distribution }}.yml"
+    - "{{ ansible_os_family }}.yml"
 
 - name: 'VNC Server installed'
   package:
@@ -31,6 +32,6 @@
   import_tasks: 'configure-ubuntu.yml'
   when: 'ansible_distribution == "Ubuntu"'
 
-- name: 'configuration tasks imported for CentOS'
-  import_tasks: 'configure-centos.yml'
-  when: 'ansible_distribution == "CentOS"'
+- name: 'configuration tasks imported for RedHat-like'
+  import_tasks: 'configure-rhel.yml'
+  when: 'ansible_os_family == "RedHat"'

@@ -27,7 +27,7 @@ runcmd:
   - |
     (which virtualenv && virtualenv /opt/ansible-venv) || (which virtualenv-3 && virtualenv-3 /opt/ansible-venv) || python3 -m virtualenv /opt/ansible-venv
     . /opt/ansible-venv/bin/activate
-    pip install ansible-base
+    pip install ansible-core
     ansible-pull --url "{instance-config-mgt-repo-url}" --checkout "{instance-config-mgt-repo-checkout}" --directory /opt/instance-config-mgt -i /opt/instance-config-mgt/ansible/hosts -e "{ansible-extra-vars}" /opt/instance-config-mgt/ansible/playbook.yml
   - sleep 1  # Ensures that console log output from previous command completes before the following command begins
   - echo '{"exoSetup":"complete"}' > /dev/console

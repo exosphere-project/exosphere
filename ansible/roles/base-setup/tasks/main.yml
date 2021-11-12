@@ -13,9 +13,9 @@
     groups:
       - '{{ default_user_group }}'
 
-- name: 'tasks imported for CentOS'
-  import_tasks: 'centos.yml'
-  when: 'ansible_distribution == "CentOS"'
+- name: 'tasks imported for RedHat family'
+  import_tasks: 'rhel.yml'
+  when: 'ansible_os_family == "RedHat"'
 
 - name: 'tasks imported for Ubuntu'
   import_tasks: 'ubuntu.yml'

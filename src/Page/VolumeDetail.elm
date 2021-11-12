@@ -183,7 +183,7 @@ renderAttachment context project attachment =
                         |> Helpers.String.toTitleCase
                     , "will only be automatically formatted/mounted on operating"
                     ]
-        , Element.el [ Font.size 11 ] <| Element.text "systems which use systemd 236 or newer (e.g. Ubuntu 18.04 and CentOS 8)"
+        , Element.el [ Font.size 11 ] <| Element.text "systems which use systemd 236 or newer (e.g. Ubuntu 18.04, CentOS 8, AlmaLinux, or RockyLinux)"
         ]
 
 

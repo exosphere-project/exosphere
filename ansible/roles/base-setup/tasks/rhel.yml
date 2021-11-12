@@ -4,6 +4,10 @@
   yum:
     name:
       - 'epel-release'
-      - 'haveged'
     state: 'present'
 
+- name: 'packages installed'
+  yum:
+    name:
+      - 'haveged'
+    state: 'present'

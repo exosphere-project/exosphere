@@ -24,7 +24,7 @@ _OK, what can I do with Exosphere?_
 - Easily create instances to run your code, and volumes to manage your data
   - Works great for containers, intensive compute jobs, disposable experiments, and persistent web services
 - Get **one-click, browser-based shell** access to cloud resources with Exosphere's [Apache Guacamole](http://guacamole.apache.org) integration
-  - One-click **graphical desktop** as well! (alpha feature for CentOS 8)
+  - One-click **graphical desktop** as well! (alpha feature for CentOS 8, AlmaLinux, and Rocky Linux)
 - **Pretty graphs** show resource utilization of each instance at a glance
 - If you're a cloud operator, deliver a customized interface with white-labeling, localized nomenclature, and single sign-on
 - 100% self-hostable, 99% standalone client application
@@ -213,9 +213,9 @@ information.
 
 #### Supported Instance Operating Systems
 
-Exosphere works best with instances launched from images based on **Ubuntu 20.04 LTS and CentOS 8**. Ubuntu 18.04 and CentOS 7 are also supported, but they receive less attention when testing new features. Exosphere can launch instances that run other operating systems, but some features and integrations are likely to not work.
+Exosphere works best with instances launched from images based on **Ubuntu 20.04 LTS, CentOS 8, AlmaLinux, and Rocky Linux**. Ubuntu 18.04 and CentOS 7 are also supported, but they receive less attention when testing new features. Exosphere can launch instances that run other operating systems, but some features and integrations are likely to not work.
 
-One exception to the above: the one-click graphical desktop feature, currently in alpha stage, only works with CentOS 8.
+One exception to the above: the one-click graphical desktop feature, currently in alpha stage, only works with CentOS 8, AlmaLinux, and Rocky Linux.
 
 If your community relies on an operating system that we don't currently support, please [create an issue](https://gitlab.com/exosphere/exosphere/-/issues) explaining your need! It's probably not hard to add support for Linux distros that use systemd and an APT/YUM/DNF package system.
 
@@ -371,13 +371,13 @@ To test the instance provisioning code locally on a cloud instance, do this:
 ```
 virtualenv /opt/ansible-venv
 . /opt/ansible-venv/bin/activate
-pip install ansible-base
+pip install ansible-core
 ansible-pull --url https://gitlab.com/exosphere/exosphere.git --directory /opt/instance-config-mgt -i /opt/instance-config-mgt/ansible/hosts /opt/instance-config-mgt/ansible/playbook.yml
 ```
 
 Optionally, pass the `--checkout` argument to specify a git branch/tag or commit hash.
 
-For now, we are using only [built-in Ansible modules](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/#modules), because Exosphere uses the lightweight `ansible-base` / `ansible-core` package.
+For now, we are using only [built-in Ansible modules](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/#modules), because Exosphere uses the lightweight `ansible-core` package.
 
 #### Ansible variables currently used
 
