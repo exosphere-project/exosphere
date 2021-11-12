@@ -349,6 +349,9 @@ serverDetail_ context project currentTimeAndZone model server =
                         |> Helpers.String.toTitleCase
                     )
                 , serverNameView
+                , Element.el
+                    [ Element.alignRight, Font.size 18, Font.regular ]
+                    (serverStatus context model server)
                 ]
             , passwordVulnWarning context server
             , Element.el
@@ -363,7 +366,6 @@ serverDetail_ context project currentTimeAndZone model server =
                     (Just ( context.localization.staticRepresentationOfBlockDeviceContents, imageText ))
                     model.showCreatedTimeToggleTip
                     (GotShowCreatedTimeToggleTip (not model.showCreatedTimeToggleTip))
-            , VH.compactKVRow "Status" (serverStatus context model server)
             , VH.compactKVRow "UUID" <| copyableText context.palette [] server.osProps.uuid
             , VH.compactKVRow
                 (Helpers.String.toTitleCase context.localization.virtualComputerHardwareConfig)
@@ -582,9 +584,9 @@ serverStatus context model server =
                 (GotShowVerboseStatus (not model.verboseStatus))
     in
     Element.row [ Element.spacing 15 ]
-        [ statusBadge
+        [ verboseStatusToggleTip
+        , statusBadge
         , lockStatus details.lockStatus
-        , verboseStatusToggleTip
         ]
 
 
