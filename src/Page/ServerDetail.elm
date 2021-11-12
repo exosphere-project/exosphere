@@ -336,16 +336,8 @@ serverDetail_ context project currentTimeAndZone model server =
                 Nothing ->
                     serverNameViewPlain
 
-        ( dualColumn, columnWidth, chartsWidthPx ) =
-            if context.windowSize.width < 1402 then
-                ( False, Element.fill, context.windowSize.width - 250 )
-
-            else
-                let
-                    colWidthPx =
-                        (context.windowSize.width - 220) // 2
-                in
-                ( True, colWidthPx |> Element.px, colWidthPx - 30 )
+        chartsWidthPx =
+            context.windowSize.width - 250
 
         firstColumnContents : List (Element.Element Msg)
         firstColumnContents =
@@ -474,28 +466,9 @@ serverDetail_ context project currentTimeAndZone model server =
                     []
                 ]
     in
-    if dualColumn then
-        let
-            columnAttributes =
-                VH.exoColumnAttributes
-                    ++ [ Element.alignTop
-                       , Element.centerX
-                       , Element.width columnWidth
-                       ]
-        in
-        Element.row [ Element.width Element.fill, Element.spacing 5 ]
-            [ Element.column
-                columnAttributes
-                firstColumnContents
-            , Element.column
-                columnAttributes
-                secondColumnContents
-            ]
-
-    else
-        Element.column
-            (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-            (List.append firstColumnContents secondColumnContents)
+    Element.column
+        (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
+        (List.append firstColumnContents secondColumnContents)
 
 
 passwordVulnWarning : View.Types.Context -> Server -> Element.Element Msg
