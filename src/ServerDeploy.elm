@@ -23,7 +23,7 @@ packages:
 runcmd:
   - echo on > /proc/sys/kernel/printk_devkmsg || true  # Disable console rate limiting for distros that use kmsg
   - sleep 1  # Ensures that console log output from any previous command completes before the following command begins
-  - echo '{"exoSetup":"running"}' > /dev/console
+  - echo '{"exoSetup":"running"}' | tee --append /dev/console > /dev/kmsg || true
   - chmod 640 /var/log/cloud-init-output.log
   - |
     (which virtualenv && virtualenv /opt/ansible-venv) || (which virtualenv-3 && virtualenv-3 /opt/ansible-venv) || python3 -m virtualenv /opt/ansible-venv
@@ -31,7 +31,7 @@ runcmd:
     pip install ansible-core
     ansible-pull --url "{instance-config-mgt-repo-url}" --checkout "{instance-config-mgt-repo-checkout}" --directory /opt/instance-config-mgt -i /opt/instance-config-mgt/ansible/hosts -e "{ansible-extra-vars}" /opt/instance-config-mgt/ansible/playbook.yml
   - sleep 1  # Ensures that console log output from previous command completes before the following command begins
-  - echo '{"exoSetup":"complete"}' > /dev/console
+  - echo '{"exoSetup":"complete"}' | tee --append /dev/console > /dev/kmsg || true
 mount_default_fields: [None, None, "ext4", "user,exec,rw,auto,nofail,x-systemd.makefs,x-systemd.automount", "0", "2"]
 mounts:
   - [ /dev/sdb, /media/volume/sdb ]
