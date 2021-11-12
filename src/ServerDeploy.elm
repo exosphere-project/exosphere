@@ -21,6 +21,7 @@ packages:
   - python3-virtualenv
   - git
 runcmd:
+  - echo on > /proc/sys/kernel/printk_devkmsg || true  # Disable console rate limiting for distros that use kmsg
   - sleep 1  # Ensures that console log output from any previous command completes before the following command begins
   - echo '{"exoSetup":"running"}' > /dev/console
   - chmod 640 /var/log/cloud-init-output.log
