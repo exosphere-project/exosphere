@@ -13,13 +13,25 @@ import Types.ServerResourceUsage exposing (DataPoint, History, TimeSeries)
 parseConsoleLog : String -> History -> History
 parseConsoleLog consoleLog prevHistory =
     let
+        stripTimeSinceBootFromLogLine : String -> String
+        stripTimeSinceBootFromLogLine line =
+            -- Remove everything before first open curly brace
+            -- This accommodates lines written to /dev/kmsg which begin with, e.g., `[ 2915.727779]`
+            case String.indices "{" line |> List.head of
+                Just index ->
+                    String.dropLeft index line
+
+                Nothing ->
+                    line
+
         loglines =
             String.split "\n" consoleLog
 
         decodedData =
-            List.filterMap
-                (\l -> Json.Decode.decodeString decodeLogLine l |> Result.toMaybe)
-                loglines
+            loglines
+                |> List.map stripTimeSinceBootFromLogLine
+                |> List.filterMap
+                    (\l -> Json.Decode.decodeString decodeLogLine l |> Result.toMaybe)
 
         newTimeSeries =
             List.foldl

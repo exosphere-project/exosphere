@@ -7,9 +7,9 @@
     mode: '0544'
 
 - name: 'system load logged first time'
-  shell: '/opt/system_load_json.py > /dev/console'
+  shell: '/opt/system_load_json.py > {{ console_file }}'
 
 - name: 'system load logging script run every minute'
   cron:
     name: 'system load logging script run every minute'
-    job: '/opt/system_load_json.py > /dev/console'
+    job: '/opt/system_load_json.py > {{ console_file }}'

@@ -5,7 +5,7 @@
   when: 'workflow_source_repository is not defined or workflow_source_repository == ""'
 
 # Write to console that workflow provisioning has started
-- shell: 'echo ''{"exoWorkflowSetup":"started"}'' > /dev/console'
+- shell: 'echo ''{"exoWorkflowSetup":"started"}'' > {{ console_file }}'
 
 - name: 'custom workflow details logging script copied into place'
   copy:
@@ -88,7 +88,7 @@
   check_mode: false
 
 - name: 'Write Jupyter notebook token to console'
-  shell: 'echo ''{"exoWorkflowToken":"{{ workflow_token.stdout }}"}'' > /dev/console'
+  shell: 'echo ''{"exoWorkflowToken":"{{ workflow_token.stdout }}"}'' > {{ console_file }}'
   check_mode: false
 
 - name: 'custom workflow details logged first time'
@@ -96,12 +96,12 @@
   retries: 3
   delay: 10
   until: result is not failed
-  shell: '/opt/custom_workflow_json.sh > /dev/console'
+  shell: '/opt/custom_workflow_json.sh > {{ console_file }}'
 
 - name: 'custom workflow logging script run every minute'
   cron:
     name: 'custom workflow details logging script run every minute'
-    job: '/opt/custom_workflow_json.sh > /dev/console'
+    job: '/opt/custom_workflow_json.sh > {{ console_file }}'
 
 # Write to console that workflow provisioning is complete
-- shell: 'echo ''{"exoWorkflowSetup":"complete"}'' > /dev/console'
+- shell: 'echo ''{"exoWorkflowSetup":"complete"}'' > {{ console_file }}'
