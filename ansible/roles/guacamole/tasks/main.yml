@@ -37,4 +37,4 @@
   args:
     chdir: '/opt/guacamole'
 
-- shell: 'echo ''{"guacDeployComplete":true}'' > /dev/console'
+- shell: 'echo ''{"guacDeployComplete":true}'' > {{ console_file }}'
