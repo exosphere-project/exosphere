@@ -1179,7 +1179,7 @@ desktopEnvironmentPicker context project model =
                         [ "Warning: this is an alpha feature that currently only supports "
                         , context.localization.staticRepresentationOfBlockDeviceContents
                             |> Helpers.String.pluralize
-                        , " based on CentOS 8, AlmaLinux, or Rocky Linux. Support for other operating systems is coming soon, but if you choose "
+                        , " based on CentOS 8. Support for other operating systems is coming soon, but if you choose "
                         , context.localization.staticRepresentationOfBlockDeviceContents
                             |> Helpers.String.indefiniteArticle
                         , " "
