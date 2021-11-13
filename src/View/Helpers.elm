@@ -2,7 +2,7 @@ module View.Helpers exposing
     ( compactKVRow
     , compactKVSubRow
     , contentContainer
-    , createdAgoByFrom
+    , createdAgoByFromSize
     , dropdownAttributes
     , edges
     , ellipsizedText
@@ -960,16 +960,17 @@ friendlyProjectTitle model project =
         providerTitle
 
 
-createdAgoByFrom :
+createdAgoByFromSize :
     View.Types.Context
     -> Time.Posix
     -> Time.Posix
     -> Maybe ( String, String )
     -> Maybe ( String, String )
+    -> Maybe ( String, String )
     -> Bool
     -> msg
     -> Element.Element msg
-createdAgoByFrom context currentTime createdTime maybeWhoCreatedTuple maybeFromTuple showToggleTip showHideTipMsg =
+createdAgoByFromSize context currentTime createdTime maybeWhoCreatedTuple maybeFromTuple maybeSizeTuple showToggleTip showHideTipMsg =
     let
         timeDistanceStr =
             DateFormat.Relative.relativeTime currentTime createdTime
@@ -1006,6 +1007,15 @@ createdAgoByFrom context currentTime createdTime maybeWhoCreatedTuple maybeFromT
                 Element.row [ Element.paddingXY 5 6 ]
                     [ Element.el [ muted ] (Element.text <| fromAdjective ++ " ")
                     , Element.text whereFrom
+                    ]
+
+            Nothing ->
+                Element.none
+        , case maybeSizeTuple of
+            Just ( sizeAdjective, size ) ->
+                Element.row [ Element.paddingXY 5 6 ]
+                    [ Element.el [ muted ] (Element.text <| sizeAdjective ++ " ")
+                    , Element.text size
                     ]
 
             Nothing ->

@@ -362,9 +362,6 @@ serverDetail_ context project currentTimeAndZone model server =
                 (VH.userAppProxyLookup context project)
                 model
             , VH.compactKVRow
-                (Helpers.String.toTitleCase context.localization.virtualComputerHardwareConfig)
-                (Element.text flavorText)
-            , VH.compactKVRow
                 (String.join " "
                     [ context.localization.pkiPublicKeyForSsh
                         |> Helpers.String.toTitleCase
@@ -385,43 +382,47 @@ serverDetail_ context project currentTimeAndZone model server =
 
         secondColumnContents : List (Element.Element Msg)
         secondColumnContents =
+            let
+                attachButton =
+                    if
+                        not <|
+                            List.member
+                                server.osProps.details.openstackStatus
+                                [ OSTypes.ServerShelved
+                                , OSTypes.ServerShelvedOffloaded
+                                , OSTypes.ServerError
+                                , OSTypes.ServerSoftDeleted
+                                , OSTypes.ServerBuilding
+                                ]
+                    then
+                        Element.link []
+                            { url =
+                                Route.toUrl context.urlPathPrefix
+                                    (Route.ProjectRoute project.auth.project.uuid <|
+                                        Route.VolumeAttach (Just server.osProps.uuid) Nothing
+                                    )
+                            , label =
+                                Widget.textButton
+                                    (SH.materialStyle context.palette).button
+                                    { text = "Attach " ++ context.localization.blockDevice
+                                    , onPress = Just NoOp
+                                    }
+                            }
+
+                    else
+                        Element.none
+            in
             [ Element.el (VH.heading3 context.palette)
-                (Element.text <|
-                    String.concat
-                        [ context.localization.blockDevice
-                            |> Helpers.String.pluralize
-                            |> Helpers.String.toTitleCase
-                        , " Attached"
-                        ]
+                (Element.row
+                    [ Element.width Element.fill ]
+                    [ context.localization.blockDevice
+                        |> Helpers.String.pluralize
+                        |> Helpers.String.toTitleCase
+                        |> Element.text
+                    , Element.el [ Element.alignRight ] attachButton
+                    ]
                 )
             , serverVolumes context project server
-            , if
-                not <|
-                    List.member
-                        server.osProps.details.openstackStatus
-                        [ OSTypes.ServerShelved
-                        , OSTypes.ServerShelvedOffloaded
-                        , OSTypes.ServerError
-                        , OSTypes.ServerSoftDeleted
-                        , OSTypes.ServerBuilding
-                        ]
-              then
-                Element.link []
-                    { url =
-                        Route.toUrl context.urlPathPrefix
-                            (Route.ProjectRoute project.auth.project.uuid <|
-                                Route.VolumeAttach (Just server.osProps.uuid) Nothing
-                            )
-                    , label =
-                        Widget.textButton
-                            (SH.materialStyle context.palette).button
-                            { text = "Attach " ++ context.localization.blockDevice
-                            , onPress = Just NoOp
-                            }
-                    }
-
-              else
-                Element.none
             , serverEventHistory
                 context
                 model
@@ -464,12 +465,13 @@ serverDetail_ context project currentTimeAndZone model server =
                 (serverActionsDropdown context project model server)
             ]
         , passwordVulnWarning context server
-        , VH.createdAgoByFrom
+        , VH.createdAgoByFromSize
             context
             (Tuple.first currentTimeAndZone)
             details.created
             (Just ( "user", creatorName ))
             (Just ( context.localization.staticRepresentationOfBlockDeviceContents, imageText ))
+            (Just ( context.localization.virtualComputerHardwareConfig, flavorText ))
             model.showCreatedTimeToggleTip
             (GotShowCreatedTimeToggleTip (not model.showCreatedTimeToggleTip))
         , if details.openstackStatus == OSTypes.ServerActive then
