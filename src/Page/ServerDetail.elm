@@ -459,7 +459,7 @@ serverDetail_ context project currentTimeAndZone model server =
                 in
                 ( True, colWidthPx |> Element.px )
     in
-    Element.column VH.exoColumnAttributes
+    Element.column (VH.exoColumnAttributes ++ [ Element.spacing 15 ])
         [ Element.row
             (VH.heading2 context.palette ++ [ Element.spacing 10 ])
             [ FeatherIcons.server |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
@@ -507,14 +507,17 @@ serverDetail_ context project currentTimeAndZone model server =
                            ]
             in
             Element.row
-                [ Element.width Element.fill, Element.spacing 5 ]
+                [ Element.width Element.fill
+                , Element.spacing 5
+                , Element.paddingEach { top = 10, bottom = 0, left = 0, right = 0 }
+                ]
                 [ Element.column columnAttributes firstColumnContents
                 , Element.column columnAttributes secondColumnContents
                 ]
 
           else
             Element.column
-                (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
+                (VH.exoColumnAttributes ++ [ Element.width (Element.maximum 700 Element.fill), Element.centerX ])
                 (List.append firstColumnContents secondColumnContents)
         ]
 
