@@ -48,6 +48,7 @@ type alias Model =
     , serverActionNamePendingConfirmation : Maybe String
     , serverNamePendingConfirmation : Maybe String
     , activeInteractionToggleTip : Maybe Interaction
+    , activeEventHistoryAbsoluteTimeToggleTip : Maybe Time.Posix
     , retainFloatingIpsWhenDeleting : Bool
     , showActionsDropdown : Bool
     }
@@ -75,6 +76,7 @@ type Msg
     | GotServerActionNamePendingConfirmation (Maybe String)
     | GotServerNamePendingConfirmation (Maybe String)
     | GotActiveInteractionToggleTip (Maybe Interaction)
+    | GotActiveEventHistoryAbsoluteTimeToggleTip (Maybe Time.Posix)
     | GotRetainFloatingIpsWhenDeleting Bool
     | GotShowActionsDropdown Bool
     | GotSetServerName String
@@ -92,6 +94,7 @@ init serverUuid =
     , serverActionNamePendingConfirmation = Nothing
     , serverNamePendingConfirmation = Nothing
     , activeInteractionToggleTip = Nothing
+    , activeEventHistoryAbsoluteTimeToggleTip = Nothing
     , retainFloatingIpsWhenDeleting = False
     , showActionsDropdown = False
     }
@@ -120,6 +123,9 @@ update msg project model =
 
         GotActiveInteractionToggleTip maybeInteraction ->
             ( { model | activeInteractionToggleTip = maybeInteraction }, Cmd.none, SharedMsg.NoOp )
+
+        GotActiveEventHistoryAbsoluteTimeToggleTip maybeTime ->
+            ( { model | activeEventHistoryAbsoluteTimeToggleTip = maybeTime }, Cmd.none, SharedMsg.NoOp )
 
         GotRetainFloatingIpsWhenDeleting retain ->
             ( { model | retainFloatingIpsWhenDeleting = retain }, Cmd.none, SharedMsg.NoOp )
@@ -433,6 +439,7 @@ serverDetail_ context project currentTimeAndZone model server =
             , serverVolumes context project server
             , serverEventHistory
                 context
+                model
                 (Tuple.first currentTimeAndZone)
                 server.events
             ]
@@ -906,10 +913,11 @@ serverActionsDropdown context project model server =
 
 serverEventHistory :
     View.Types.Context
+    -> Model
     -> Time.Posix
     -> RemoteData.WebData (List OSTypes.ServerEvent)
     -> Element.Element Msg
-serverEventHistory context currentTime serverEventsWebData =
+serverEventHistory context model currentTime serverEventsWebData =
     case serverEventsWebData of
         RemoteData.Success serverEvents ->
             let
@@ -937,22 +945,30 @@ serverEventHistory context currentTime serverEventsWebData =
                                 let
                                     relativeTime =
                                         DateFormat.Relative.relativeTime currentTime event.startTime
-                                in
-                                Element.text <|
-                                    relativeTime
-                      }
-                    , { header = Element.none
-                      , width = Element.px 200
-                      , view =
-                            \event ->
-                                let
+
                                     absoluteTime =
-                                        Helpers.Time.humanReadableTime event.startTime
+                                        let
+                                            shown =
+                                                model.activeEventHistoryAbsoluteTimeToggleTip
+                                                    == Just event.startTime
+
+                                            showHideMsg =
+                                                if shown then
+                                                    GotActiveEventHistoryAbsoluteTimeToggleTip Nothing
+
+                                                else
+                                                    GotActiveEventHistoryAbsoluteTimeToggleTip
+                                                        (Just event.startTime)
+                                        in
+                                        Style.Widgets.ToggleTip.toggleTip context.palette
+                                            (Element.text (Helpers.Time.humanReadableTime event.startTime))
+                                            shown
+                                            showHideMsg
                                 in
-                                Element.text <|
-                                    "("
-                                        ++ absoluteTime
-                                        ++ ")"
+                                Element.row []
+                                    [ Element.text relativeTime
+                                    , absoluteTime
+                                    ]
                       }
                     ]
             in
