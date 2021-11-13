@@ -409,24 +409,7 @@ createButton context projectId expanded =
 
         dropdown =
             Element.column
-                [ Element.alignRight
-                , Element.moveDown 5
-                , Element.spacing 5
-                , Element.paddingEach
-                    { top = 5
-                    , right = 6
-                    , bottom = 5
-                    , left = 6
-                    }
-                , Background.color <| SH.toElementColor context.palette.background
-                , Border.shadow
-                    { shadowDefaults
-                        | color = SH.toElementColorWithOpacity context.palette.muted 0.2
-                    }
-                , Border.width 1
-                , Border.color <| SH.toElementColor context.palette.muted
-                , Border.rounded 4
-                ]
+                (VH.dropdownAttributes context)
                 [ renderButton
                     (FeatherIcons.server |> FeatherIcons.withSize 18 |> FeatherIcons.toHtml [] |> Element.html)
                     (context.localization.virtualComputer

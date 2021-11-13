@@ -49,6 +49,7 @@ type alias Model =
     , serverNamePendingConfirmation : Maybe String
     , activeInteractionToggleTip : Maybe Interaction
     , retainFloatingIpsWhenDeleting : Bool
+    , showActionsDropdown : Bool
     }
 
 
@@ -75,6 +76,7 @@ type Msg
     | GotServerNamePendingConfirmation (Maybe String)
     | GotActiveInteractionToggleTip (Maybe Interaction)
     | GotRetainFloatingIpsWhenDeleting Bool
+    | GotShowActionsDropdown Bool
     | GotSetServerName String
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
@@ -91,6 +93,7 @@ init serverUuid =
     , serverNamePendingConfirmation = Nothing
     , activeInteractionToggleTip = Nothing
     , retainFloatingIpsWhenDeleting = False
+    , showActionsDropdown = False
     }
 
 
@@ -120,6 +123,9 @@ update msg project model =
 
         GotRetainFloatingIpsWhenDeleting retain ->
             ( { model | retainFloatingIpsWhenDeleting = retain }, Cmd.none, SharedMsg.NoOp )
+
+        GotShowActionsDropdown shown ->
+            ( { model | showActionsDropdown = shown }, Cmd.none, SharedMsg.NoOp )
 
         GotSetServerName validName ->
             ( model
@@ -352,6 +358,9 @@ serverDetail_ context project currentTimeAndZone model server =
                 , Element.el
                     [ Element.alignRight, Font.size 18, Font.regular ]
                     (serverStatus context model server)
+                , Element.el
+                    [ Element.alignRight, Font.size 16, Font.regular ]
+                    (serverActionsDropdown context project model server)
                 ]
             , passwordVulnWarning context server
             , VH.createdAgoByFrom
@@ -452,9 +461,7 @@ serverDetail_ context project currentTimeAndZone model server =
 
         secondColumnContents : List (Element.Element Msg)
         secondColumnContents =
-            [ Element.el (VH.heading3 context.palette) (Element.text "Actions")
-            , viewServerActions context project model server
-            , serverEventHistory
+            [ serverEventHistory
                 context
                 (Tuple.first currentTimeAndZone)
                 server.events
@@ -812,13 +819,14 @@ serverPassword context model server =
         ]
 
 
-viewServerActions : View.Types.Context -> Project -> Model -> Server -> Element.Element Msg
-viewServerActions context project model server =
-    Element.column
-        (VH.exoColumnAttributes ++ [ Element.spacingXY 0 10 ])
-    <|
-        case server.exoProps.targetOpenstackStatus of
-            Nothing ->
+serverActionsDropdown : View.Types.Context -> Project -> Model -> Server -> Element.Element Msg
+serverActionsDropdown context project model server =
+    -- TODO collapse when a button is clicked
+    let
+        contents =
+            Element.column
+                (VH.dropdownAttributes context ++ [ Element.padding 10 ])
+            <|
                 List.map
                     (renderServerActionButton context project model server)
                     (ServerActions.getAllowed
@@ -828,8 +836,37 @@ viewServerActions context project model server =
                         server.osProps.details.lockStatus
                     )
 
-            Just _ ->
-                []
+        ( attribs, icon ) =
+            if model.showActionsDropdown then
+                ( [ Element.below contents ], FeatherIcons.chevronUp )
+
+            else
+                ( [], FeatherIcons.chevronDown )
+    in
+    case server.exoProps.targetOpenstackStatus of
+        Nothing ->
+            Element.column
+                attribs
+                [ Widget.iconButton
+                    (SH.materialStyle context.palette).button
+                    { text = "Actions"
+                    , icon =
+                        Element.row
+                            [ Element.spacing 5 ]
+                            [ Element.text "Actions"
+                            , Element.el []
+                                (icon
+                                    |> FeatherIcons.withSize 18
+                                    |> FeatherIcons.toHtml []
+                                    |> Element.html
+                                )
+                            ]
+                    , onPress = Just (GotShowActionsDropdown (not model.showActionsDropdown))
+                    }
+                ]
+
+        Just _ ->
+            Element.none
 
 
 serverEventHistory :
@@ -971,7 +1008,7 @@ renderServerActionButton context project model server serverAction =
             -- This is ugly, we should have an explicit custom type for server actions and match on that
             if String.toLower serverAction.name == String.toLower context.localization.staticRepresentationOfBlockDeviceContents then
                 -- Overriding button for image, because we just want to navigate to another page
-                Element.link []
+                Element.link [ Element.width Element.fill ]
                     { url =
                         Route.toUrl context.urlPathPrefix
                             (Route.ProjectRoute project.auth.project.uuid <|
@@ -1006,35 +1043,48 @@ confirmationMessage serverAction =
 
 serverActionSelectModButton : View.Types.Context -> ServerActions.SelectMod -> (Widget.TextButton Msg -> Element.Element Msg)
 serverActionSelectModButton context selectMod =
-    case selectMod of
-        ServerActions.NoMod ->
-            Widget.textButton (SH.materialStyle context.palette).button
+    let
+        buttonPalette =
+            case selectMod of
+                ServerActions.NoMod ->
+                    (SH.materialStyle context.palette).button
 
-        ServerActions.Primary ->
-            Widget.textButton (SH.materialStyle context.palette).primaryButton
+                ServerActions.Primary ->
+                    (SH.materialStyle context.palette).primaryButton
 
-        ServerActions.Warning ->
-            Widget.textButton (SH.materialStyle context.palette).warningButton
+                ServerActions.Warning ->
+                    (SH.materialStyle context.palette).warningButton
 
-        ServerActions.Danger ->
-            Widget.textButton (SH.materialStyle context.palette).dangerButton
+                ServerActions.Danger ->
+                    (SH.materialStyle context.palette).dangerButton
+    in
+    Widget.textButton
+        { buttonPalette
+            | container =
+                buttonPalette.container
+                    ++ [ Element.width Element.fill ]
+            , labelRow =
+                buttonPalette.labelRow
+                    ++ [ Element.centerX ]
+            , text =
+                buttonPalette.text
+                    ++ [ Element.centerX ]
+        }
 
 
 renderActionButton : View.Types.Context -> ServerActions.ServerAction -> Maybe Msg -> String -> Element.Element Msg
 renderActionButton context serverAction actionMsg title =
     Element.row
-        [ Element.spacing 10 ]
-        [ Element.el
-            [ Element.width <| Element.px 120 ]
+        [ Element.spacing 10, Element.width Element.fill ]
+        [ Element.text serverAction.description
+        , Element.el
+            [ Element.width <| Element.px 100, Element.alignRight ]
           <|
             serverActionSelectModButton context
                 serverAction.selectMod
                 { text = title
                 , onPress = actionMsg
                 }
-        , Element.text serverAction.description
-
-        -- TODO hover text with description
         ]
 
 
