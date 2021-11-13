@@ -366,6 +366,9 @@ serverDetail_ context project currentTimeAndZone model server =
                 project
                 server
                 model
+            , VH.compactKVSubRow "Username" (Element.text "exouser")
+            , VH.compactKVSubRow "Passphrase"
+                (serverPassword context model server)
             , VH.compactKVSubRow
                 (String.join " "
                     [ context.localization.pkiPublicKeyForSsh
@@ -374,8 +377,6 @@ serverDetail_ context project currentTimeAndZone model server =
                     ]
                 )
                 (Element.text (Maybe.withDefault "(none)" details.keypairName))
-            , VH.compactKVSubRow "Passphrase"
-                (serverPassword context model server)
             ]
 
         secondColumnContents : List (Element.Element Msg)
@@ -833,12 +834,7 @@ serverPassword context model server =
                 |> Maybe.withDefault (Element.text "Not available yet, check back in a few minutes.")
                 << Maybe.map
                     (\password ->
-                        Element.column
-                            [ Element.spacing 10 ]
-                            [ Element.paragraph []
-                                [ Element.text "Log in with username \"exouser\" and the following passphrase:" ]
-                            , passwordShower password
-                            ]
+                        passwordShower password
                     )
     in
     passwordHint
