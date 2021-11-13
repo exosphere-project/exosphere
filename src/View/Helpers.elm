@@ -996,7 +996,7 @@ createdAgoByFromSize context currentTime createdTime maybeWhoCreatedTuple maybeF
         , case maybeWhoCreatedTuple of
             Just ( creatorAdjective, whoCreated ) ->
                 Element.row [ Element.paddingXY 5 6 ]
-                    [ Element.el [ muted ] (Element.text <| creatorAdjective ++ " ")
+                    [ Element.el [ muted ] (Element.text <| "by " ++ creatorAdjective ++ " ")
                     , Element.text whoCreated
                     ]
 
@@ -1005,7 +1005,7 @@ createdAgoByFromSize context currentTime createdTime maybeWhoCreatedTuple maybeF
         , case maybeFromTuple of
             Just ( fromAdjective, whereFrom ) ->
                 Element.row [ Element.paddingXY 5 6 ]
-                    [ Element.el [ muted ] (Element.text <| fromAdjective ++ " ")
+                    [ Element.el [ muted ] (Element.text <| "from " ++ fromAdjective ++ " ")
                     , Element.text whereFrom
                     ]
 
