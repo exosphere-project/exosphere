@@ -13,6 +13,7 @@ import LineChart.Axis.Tick as Tick
 import LineChart.Axis.Ticks as Ticks
 import LineChart.Axis.Title as Title
 import LineChart.Container as Container
+import LineChart.Coordinate as Coordinate
 import LineChart.Dots as Dots
 import LineChart.Events as Events
 import LineChart.Grid as Grid
@@ -20,6 +21,7 @@ import LineChart.Interpolation as Interpolation
 import LineChart.Junk as Junk
 import LineChart.Legends as Legends
 import LineChart.Line as Line
+import Svg
 import Time
 import Tuple
 import Types.ServerResourceUsage exposing (AlertLevel(..), DataPoint, TimeSeries)
@@ -30,11 +32,10 @@ import View.Types
 view : View.Types.Context -> Int -> ( Time.Posix, Time.Zone ) -> TimeSeries -> Element.Element SharedMsg
 view context widthPx ( currentTime, timeZone ) timeSeriesDict =
     let
+        thirtyMinMillis =
+            30 * 60 * 1000
+
         timeSeriesListLast30m =
-            let
-                thirtyMinMillis =
-                    1800000
-            in
             timeSeriesRecentDataPoints timeSeriesDict currentTime thirtyMinMillis
 
         getTime : ( Int, DataPoint ) -> Float
@@ -86,24 +87,41 @@ view context widthPx ( currentTime, timeZone ) timeSeriesDict =
                 , ticks = percentRangeCustomTicks
                 }
 
-        timeRangeCustomTick : Tick.Time -> Tick.Config msg
+        timeRangeCustomTick : Int -> Tick.Config msg
         timeRangeCustomTick time =
             let
                 label =
-                    Junk.label context.palette.on.background (millisecond_to_str (Time.posixToMillis time.timestamp))
-
-                even =
-                    modBy 20 (Time.posixToMillis time.timestamp) == 0
+                    Svg.g [ Junk.transform [ Junk.offset 0 3 ] ] [ Junk.label context.palette.on.background (millisecond_to_str time) ]
             in
             Tick.custom
-                { position = toFloat (Time.posixToMillis time.timestamp)
+                { position = toFloat time
                 , color = context.palette.on.background
                 , width = 2
                 , length = 2
-                , grid = even
+                , grid = True
                 , direction = Tick.negative
                 , label = Just label
                 }
+
+        timeRangeCustomTicks : Coordinate.Range -> Coordinate.Range -> List (Tick.Config msg)
+        timeRangeCustomTicks _ axisRange =
+            let
+                min =
+                    axisRange.min
+
+                max =
+                    axisRange.max
+
+                increment =
+                    thirtyMinMillis / 3
+            in
+            [ min
+            , min + increment
+            , min + 2 * increment
+            , max
+            ]
+                |> List.map round
+                |> List.map timeRangeCustomTick
 
         timeRange : (( Int, DataPoint ) -> Float) -> Axis.Config ( Int, DataPoint ) msg
         timeRange getDataFunc =
@@ -111,9 +129,12 @@ view context widthPx ( currentTime, timeZone ) timeSeriesDict =
                 { title = Title.default ""
                 , variable = Just << getDataFunc
                 , pixels = widthPx
-                , range = Range.default
+                , range =
+                    Range.window
+                        (Time.posixToMillis currentTime - thirtyMinMillis |> toFloat)
+                        (Time.posixToMillis currentTime |> toFloat)
                 , axisLine = AxisLine.full context.palette.on.background
-                , ticks = Ticks.timeCustom timeZone 3 timeRangeCustomTick
+                , ticks = Ticks.custom timeRangeCustomTicks
                 }
 
         -- function call for proper formatting of times
