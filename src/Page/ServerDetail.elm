@@ -379,6 +379,22 @@ serverDetail_ context project currentTimeAndZone model server =
                     server
                     model
                 )
+            , Element.el (VH.heading3 context.palette) (Element.text "Passphrase")
+            , serverPassword context model server
+            ]
+
+        secondColumnContents : List (Element.Element Msg)
+        secondColumnContents =
+            [ Element.el (VH.heading3 context.palette)
+                (Element.text <|
+                    String.concat
+                        [ context.localization.blockDevice
+                            |> Helpers.String.pluralize
+                            |> Helpers.String.toTitleCase
+                        , " Attached"
+                        ]
+                )
+            , serverVolumes context project server
             , case GetterSetters.getVolsAttachedToServer project server of
                 [] ->
                     Element.none
@@ -421,22 +437,6 @@ serverDetail_ context project currentTimeAndZone model server =
 
               else
                 Element.none
-            , Element.el (VH.heading3 context.palette) (Element.text "Passphrase")
-            , serverPassword context model server
-            ]
-
-        secondColumnContents : List (Element.Element Msg)
-        secondColumnContents =
-            [ Element.el (VH.heading3 context.palette)
-                (Element.text <|
-                    String.concat
-                        [ context.localization.blockDevice
-                            |> Helpers.String.pluralize
-                            |> Helpers.String.toTitleCase
-                        , " Attached"
-                        ]
-                )
-            , serverVolumes context project server
             , serverEventHistory
                 context
                 model
