@@ -445,7 +445,7 @@ serverDetail_ context project currentTimeAndZone model server =
             ]
 
         ( dualColumn, columnWidth ) =
-            if context.windowSize.width < 1280 then
+            if context.windowSize.width < 1150 then
                 ( False, Element.fill )
 
             else
@@ -973,11 +973,11 @@ serverEventHistory context model currentTime serverEventsWebData =
                     ]
             in
             Element.column [ Element.paddingXY 0 10, Element.spacing 10, Element.width Element.fill ]
-                [ Element.el VH.heading4 <| Element.text "Action History"
+                [ Element.el (VH.heading3 context.palette) <| Element.text "Action History"
                 , Element.table
                     (VH.formContainer
                         ++ [ Element.spacingXY 0 7
-                           , Border.widthEach { top = 1, bottom = 1, left = 0, right = 0 }
+                           , Border.widthEach { top = 0, bottom = 1, left = 0, right = 0 }
                            , Border.color (context.palette.muted |> SH.toElementColor)
                            ]
                     )
