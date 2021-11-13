@@ -970,7 +970,10 @@ serverEventHistory context model currentTime serverEventsWebData =
                     ]
             in
             Element.column [ Element.paddingXY 0 10, Element.spacing 10, Element.width Element.fill ]
-                [ Element.el (VH.heading3 context.palette) <| Element.text "Action History"
+                [ Element.row (VH.heading3 context.palette ++ [ Element.spacing 10 ])
+                    [ Icon.history (SH.toElementColor context.palette.on.background) 20
+                    , Element.text "Action History"
+                    ]
                 , Element.table
                     (VH.formContainer
                         ++ [ Element.spacingXY 0 7
