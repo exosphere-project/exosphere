@@ -1272,7 +1272,7 @@ renderIpAddresses context project server model =
                         (\ipAddress ->
                             VH.compactKVSubRow
                                 (Helpers.String.toTitleCase context.localization.floatingIpAddress)
-                                (Element.column VH.exoColumnAttributes
+                                (Element.row VH.exoColumnAttributes
                                     [ copyableText context.palette [] ipAddress.address
                                     , Widget.textButton
                                         (SH.materialStyle context.palette).button
@@ -1315,7 +1315,7 @@ renderIpAddresses context project server model =
                         |> Element.html
             in
             Element.column
-                (VH.exoColumnAttributes ++ [ Element.padding 0 ])
+                []
                 (floatingIpAddressRows
                     ++ ipButton icon "IP Details" IpSummary
                     :: fixedIpAddressRows
@@ -1330,7 +1330,7 @@ renderIpAddresses context project server model =
                         |> Element.html
             in
             Element.column
-                (VH.exoColumnAttributes ++ [ Element.padding 0 ])
+                []
                 (floatingIpAddressRows ++ [ ipButton icon "IP Details" IpDetails ])
 
 
