@@ -350,11 +350,18 @@ serverDetail_ context project currentTimeAndZone model server =
             [ Element.row
                 (VH.heading2 context.palette ++ [ Element.spacing 10 ])
                 [ FeatherIcons.server |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
-                , Element.text
-                    (context.localization.virtualComputer
-                        |> Helpers.String.toTitleCase
-                    )
-                , serverNameView
+                , Element.column []
+                    [ Element.row [ Element.spacing 10 ]
+                        [ Element.text
+                            (context.localization.virtualComputer
+                                |> Helpers.String.toTitleCase
+                            )
+                        , serverNameView
+                        ]
+                    , Element.el
+                        [ Font.size 12, Font.color (SH.toElementColor context.palette.muted) ]
+                        (copyableText context.palette [] server.osProps.uuid)
+                    ]
                 , Element.el
                     [ Element.alignRight, Font.size 18, Font.regular ]
                     (serverStatus context model server)
@@ -376,7 +383,6 @@ serverDetail_ context project currentTimeAndZone model server =
 
               else
                 Element.none
-            , VH.compactKVRow "UUID" <| copyableText context.palette [] server.osProps.uuid
             , VH.compactKVRow
                 (Helpers.String.toTitleCase context.localization.virtualComputerHardwareConfig)
                 (Element.text flavorText)
