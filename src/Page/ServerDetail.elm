@@ -421,7 +421,7 @@ serverDetail_ context project currentTimeAndZone model server =
 
               else
                 Element.none
-            , Element.el (VH.heading3 context.palette) (Element.text "Password")
+            , Element.el (VH.heading3 context.palette) (Element.text "Passphrase")
             , serverPassword context model server
             ]
 
@@ -827,12 +827,12 @@ serverPassword context model server =
                     ( buttonText, onPressMsg ) =
                         case model.passwordVisibility of
                             PasswordShown ->
-                                ( "Hide password"
+                                ( "Hide passphrase"
                                 , changeMsg PasswordHidden
                                 )
 
                             PasswordHidden ->
-                                ( "Show password"
+                                ( "Show passphrase"
                                 , changeMsg PasswordShown
                                 )
                   in
@@ -850,15 +850,13 @@ serverPassword context model server =
                     (\password ->
                         Element.column
                             [ Element.spacing 10 ]
-                            [ Element.text "Try logging in with username \"exouser\" and the following password:"
+                            [ Element.paragraph []
+                                [ Element.text "Log in with username \"exouser\" and the following passphrase:" ]
                             , passwordShower password
                             ]
                     )
     in
-    Element.column
-        VH.exoColumnAttributes
-        [ passwordHint
-        ]
+    passwordHint
 
 
 serverActionsDropdown : View.Types.Context -> Project -> Model -> Server -> Element.Element Msg
