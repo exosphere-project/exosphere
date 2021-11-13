@@ -347,42 +347,14 @@ serverDetail_ context project currentTimeAndZone model server =
 
         firstColumnContents : List (Element.Element Msg)
         firstColumnContents =
-            [ Element.row
-                (VH.heading2 context.palette ++ [ Element.spacing 10 ])
-                [ FeatherIcons.server |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
-                , Element.column []
-                    [ Element.row [ Element.spacing 10 ]
-                        [ Element.text
-                            (context.localization.virtualComputer
-                                |> Helpers.String.toTitleCase
-                            )
-                        , serverNameView
-                        ]
-                    , Element.el
-                        [ Font.size 12, Font.color (SH.toElementColor context.palette.muted) ]
-                        (copyableText context.palette [] server.osProps.uuid)
-                    ]
-                , Element.el
-                    [ Element.alignRight, Font.size 18, Font.regular ]
-                    (serverStatus context model server)
-                , Element.el
-                    [ Element.alignRight, Font.size 16, Font.regular ]
-                    (serverActionsDropdown context project model server)
-                ]
-            , passwordVulnWarning context server
-            , VH.createdAgoByFrom
+            [ Element.el (VH.heading3 context.palette) (Element.text "Connectivity")
+            , interactions
                 context
+                project
+                server
                 (Tuple.first currentTimeAndZone)
-                details.created
-                (Just ( "user", creatorName ))
-                (Just ( context.localization.staticRepresentationOfBlockDeviceContents, imageText ))
-                model.showCreatedTimeToggleTip
-                (GotShowCreatedTimeToggleTip (not model.showCreatedTimeToggleTip))
-            , if details.openstackStatus == OSTypes.ServerActive then
-                resourceUsageCharts context chartsWidthPx currentTimeAndZone server
-
-              else
-                Element.none
+                (VH.userAppProxyLookup context project)
+                model
             , VH.compactKVRow
                 (Helpers.String.toTitleCase context.localization.virtualComputerHardwareConfig)
                 (Element.text flavorText)
@@ -401,16 +373,6 @@ serverDetail_ context project currentTimeAndZone model server =
                     server
                     model
                 )
-            , Element.el (VH.heading3 context.palette)
-                (Element.text <|
-                    String.concat
-                        [ context.localization.blockDevice
-                            |> Helpers.String.pluralize
-                            |> Helpers.String.toTitleCase
-                        , " Attached"
-                        ]
-                )
-            , serverVolumes context project server
             , case GetterSetters.getVolsAttachedToServer project server of
                 [] ->
                     Element.none
@@ -453,29 +415,96 @@ serverDetail_ context project currentTimeAndZone model server =
 
               else
                 Element.none
-            , Element.el (VH.heading2 context.palette) (Element.text "Interactions")
-            , interactions
-                context
-                project
-                server
-                (Tuple.first currentTimeAndZone)
-                (VH.userAppProxyLookup context project)
-                model
             , Element.el (VH.heading3 context.palette) (Element.text "Password")
             , serverPassword context model server
             ]
 
         secondColumnContents : List (Element.Element Msg)
         secondColumnContents =
-            [ serverEventHistory
+            [ Element.el (VH.heading3 context.palette)
+                (Element.text <|
+                    String.concat
+                        [ context.localization.blockDevice
+                            |> Helpers.String.pluralize
+                            |> Helpers.String.toTitleCase
+                        , " Attached"
+                        ]
+                )
+            , serverVolumes context project server
+            , serverEventHistory
                 context
                 (Tuple.first currentTimeAndZone)
                 server.events
             ]
+
+        ( dualColumn, columnWidth ) =
+            if context.windowSize.width < 1280 then
+                ( False, Element.fill )
+
+            else
+                let
+                    colWidthPx =
+                        (context.windowSize.width - 100) // 2
+                in
+                ( True, colWidthPx |> Element.px )
     in
-    Element.column
-        (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-        (List.append firstColumnContents secondColumnContents)
+    Element.column VH.exoColumnAttributes
+        [ Element.row
+            (VH.heading2 context.palette ++ [ Element.spacing 10 ])
+            [ FeatherIcons.server |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
+            , Element.column [ Element.spacing 5 ]
+                [ Element.row [ Element.spacing 10 ]
+                    [ Element.text
+                        (context.localization.virtualComputer
+                            |> Helpers.String.toTitleCase
+                        )
+                    , serverNameView
+                    ]
+                , Element.el
+                    [ Font.size 12, Font.color (SH.toElementColor context.palette.muted) ]
+                    (copyableText context.palette [] server.osProps.uuid)
+                ]
+            , Element.el
+                [ Element.alignRight, Font.size 18, Font.regular ]
+                (serverStatus context model server)
+            , Element.el
+                [ Element.alignRight, Font.size 16, Font.regular ]
+                (serverActionsDropdown context project model server)
+            ]
+        , passwordVulnWarning context server
+        , VH.createdAgoByFrom
+            context
+            (Tuple.first currentTimeAndZone)
+            details.created
+            (Just ( "user", creatorName ))
+            (Just ( context.localization.staticRepresentationOfBlockDeviceContents, imageText ))
+            model.showCreatedTimeToggleTip
+            (GotShowCreatedTimeToggleTip (not model.showCreatedTimeToggleTip))
+        , if details.openstackStatus == OSTypes.ServerActive then
+            resourceUsageCharts context chartsWidthPx currentTimeAndZone server
+
+          else
+            Element.none
+        , if dualColumn then
+            let
+                columnAttributes =
+                    VH.exoColumnAttributes
+                        ++ [ Element.alignTop
+                           , Element.centerX
+                           , Element.width columnWidth
+                           ]
+            in
+            Element.row
+                [ Element.width Element.fill, Element.spacing 5 ]
+                [ Element.column columnAttributes firstColumnContents
+                , Element.column columnAttributes secondColumnContents
+                ]
+
+          else
+            Element.column
+                (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
+                (List.append firstColumnContents secondColumnContents)
+        ]
 
 
 passwordVulnWarning : View.Types.Context -> Server -> Element.Element Msg
