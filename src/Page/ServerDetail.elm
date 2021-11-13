@@ -361,7 +361,12 @@ serverDetail_ context project currentTimeAndZone model server =
                 (Tuple.first currentTimeAndZone)
                 (VH.userAppProxyLookup context project)
                 model
-            , VH.compactKVRow
+            , renderIpAddresses
+                context
+                project
+                server
+                model
+            , VH.compactKVSubRow
                 (String.join " "
                     [ context.localization.pkiPublicKeyForSsh
                         |> Helpers.String.toTitleCase
@@ -369,15 +374,8 @@ serverDetail_ context project currentTimeAndZone model server =
                     ]
                 )
                 (Element.text (Maybe.withDefault "(none)" details.keypairName))
-            , VH.compactKVRow "IP addresses"
-                (renderIpAddresses
-                    context
-                    project
-                    server
-                    model
-                )
-            , Element.el (VH.heading3 context.palette) (Element.text "Passphrase")
-            , serverPassword context model server
+            , VH.compactKVSubRow "Passphrase"
+                (serverPassword context model server)
             ]
 
         secondColumnContents : List (Element.Element Msg)
