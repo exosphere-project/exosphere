@@ -830,7 +830,7 @@ serverPassword context model server =
                                 )
 
                             PasswordHidden ->
-                                ( "Show passphrase"
+                                ( "Show"
                                 , changeMsg PasswordShown
                                 )
                   in

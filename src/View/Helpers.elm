@@ -186,7 +186,7 @@ compactKVSubRow key value =
     Element.row
         (exoRowAttributes ++ [ Element.padding 0, Element.spacing 10, Font.size 14 ])
         [ Element.paragraph [ Element.width (Element.px 175), Font.bold ] [ Element.text key ]
-        , Element.el [] value
+        , Element.el [ Element.width Element.fill ] value
         ]
 
 
