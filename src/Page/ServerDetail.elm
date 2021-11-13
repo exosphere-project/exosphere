@@ -980,6 +980,7 @@ serverEventHistory context model currentTime serverEventsWebData =
                 , Element.table
                     (VH.formContainer
                         ++ [ Element.spacingXY 0 7
+                           , Element.width Element.fill
                            , Border.widthEach { top = 0, bottom = 1, left = 0, right = 0 }
                            , Border.color (context.palette.muted |> SH.toElementColor)
                            ]
