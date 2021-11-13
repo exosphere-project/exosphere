@@ -395,21 +395,6 @@ serverDetail_ context project currentTimeAndZone model server =
                         ]
                 )
             , serverVolumes context project server
-            , case GetterSetters.getVolsAttachedToServer project server of
-                [] ->
-                    Element.none
-
-                _ ->
-                    Element.paragraph [ Font.size 11 ] <|
-                        [ Element.text <|
-                            String.join
-                                " "
-                                [ "* "
-                                , context.localization.blockDevice
-                                    |> Helpers.String.toTitleCase
-                                , "will only be automatically formatted/mounted on operating systems which use systemd 236 or newer (e.g. Ubuntu 18.04, CentOS 8, AlmaLinux, Rocky Linux)."
-                                ]
-                        ]
             , if
                 not <|
                     List.member
@@ -1414,7 +1399,7 @@ serverVolumes context project server =
                       , width = Element.fill
                       , view = \v -> Element.text v.device
                       }
-                    , { header = Element.el [ Font.heavy ] <| Element.text "Mount point *"
+                    , { header = Element.el [ Font.heavy ] <| Element.text "Mount point"
                       , width = Element.fill
                       , view = \v -> Element.text v.mountpoint
                       }
