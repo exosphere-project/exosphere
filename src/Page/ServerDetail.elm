@@ -1278,7 +1278,7 @@ renderIpAddresses context project server model =
                         (\ipAddress ->
                             VH.compactKVSubRow
                                 (Helpers.String.toTitleCase context.localization.floatingIpAddress)
-                                (Element.row VH.exoColumnAttributes
+                                (Element.row [ Element.spacing 15 ]
                                     [ copyableText context.palette [] ipAddress.address
                                     , Widget.textButton
                                         (SH.materialStyle context.palette).button
