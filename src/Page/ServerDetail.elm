@@ -143,7 +143,7 @@ update msg project model =
 
         SharedMsg msg_ ->
             -- TODO convert other pages to use this style
-            ( model, Cmd.none, msg_ )
+            ( { model | showActionsDropdown = False }, Cmd.none, msg_ )
 
         NoOp ->
             ( model, Cmd.none, SharedMsg.NoOp )
@@ -854,7 +854,6 @@ serverPassword context model server =
 
 serverActionsDropdown : View.Types.Context -> Project -> Model -> Server -> Element.Element Msg
 serverActionsDropdown context project model server =
-    -- TODO collapse when a button is clicked
     let
         contents =
             Element.column
