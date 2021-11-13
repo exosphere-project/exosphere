@@ -353,7 +353,13 @@ serverDetail_ context project currentTimeAndZone model server =
 
         firstColumnContents : List (Element.Element Msg)
         firstColumnContents =
-            [ Element.el (VH.heading3 context.palette) (Element.text "Connectivity")
+            [ Element.row (VH.heading3 context.palette ++ [ Element.spacing 10 ])
+                [ FeatherIcons.monitor
+                    |> FeatherIcons.toHtml []
+                    |> Element.html
+                    |> Element.el []
+                , Element.text "Connect"
+                ]
             , interactions
                 context
                 project
@@ -413,8 +419,14 @@ serverDetail_ context project currentTimeAndZone model server =
             in
             [ Element.el (VH.heading3 context.palette)
                 (Element.row
-                    [ Element.width Element.fill ]
-                    [ context.localization.blockDevice
+                    [ Element.width Element.fill
+                    , Element.spacing 10
+                    ]
+                    [ FeatherIcons.hardDrive
+                        |> FeatherIcons.toHtml []
+                        |> Element.html
+                        |> Element.el []
+                    , context.localization.blockDevice
                         |> Helpers.String.pluralize
                         |> Helpers.String.toTitleCase
                         |> Element.text
