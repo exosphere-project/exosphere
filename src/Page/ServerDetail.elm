@@ -358,7 +358,7 @@ serverDetail_ context project currentTimeAndZone model server =
                     |> FeatherIcons.toHtml []
                     |> Element.html
                     |> Element.el []
-                , Element.text "Connect"
+                , Element.text "Interactions"
                 ]
             , interactions
                 context
@@ -367,6 +367,13 @@ serverDetail_ context project currentTimeAndZone model server =
                 (Tuple.first currentTimeAndZone)
                 (VH.userAppProxyLookup context project)
                 model
+            , Element.row (VH.heading3 context.palette ++ [ Element.spacing 10 ])
+                [ FeatherIcons.hash
+                    |> FeatherIcons.toHtml []
+                    |> Element.html
+                    |> Element.el []
+                , Element.text "Credentials"
+                ]
             , renderIpAddresses
                 context
                 project
