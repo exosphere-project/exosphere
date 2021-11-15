@@ -223,53 +223,56 @@ serverDetail_ context project currentTimeAndZone model server =
         chartsWidthPx =
             context.windowSize.width // 3 - 25
 
+        tile : List (Element.Element Msg) -> List (Element.Element Msg) -> Element.Element Msg
+        tile headerContents contents =
+            Style.Widgets.Card.exoCard context.palette
+                (Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
+                    ([ Element.row (VH.heading3 context.palette ++ [ Element.spacing 10 ]) headerContents ]
+                        ++ contents
+                    )
+                )
+
         firstColumnContents : List (Element.Element Msg)
         firstColumnContents =
-            [ Style.Widgets.Card.exoCard context.palette
-                (Element.column VH.exoColumnAttributes
-                    [ Element.row (VH.heading3 context.palette ++ [ Element.spacing 10 ])
-                        [ FeatherIcons.monitor
-                            |> FeatherIcons.toHtml []
-                            |> Element.html
-                            |> Element.el []
-                        , Element.text "Interactions"
+            [ tile
+                [ FeatherIcons.monitor
+                    |> FeatherIcons.toHtml []
+                    |> Element.html
+                    |> Element.el []
+                , Element.text "Interactions"
+                ]
+                [ interactions
+                    context
+                    project
+                    server
+                    (Tuple.first currentTimeAndZone)
+                    (VH.userAppProxyLookup context project)
+                    model
+                ]
+            , tile
+                [ FeatherIcons.hash
+                    |> FeatherIcons.toHtml []
+                    |> Element.html
+                    |> Element.el []
+                , Element.text "Credentials"
+                ]
+                [ renderIpAddresses
+                    context
+                    project
+                    server
+                    model
+                , VH.compactKVSubRow "Username" (Element.text "exouser")
+                , VH.compactKVSubRow "Passphrase"
+                    (serverPassword context model server)
+                , VH.compactKVSubRow
+                    (String.join " "
+                        [ context.localization.pkiPublicKeyForSsh
+                            |> Helpers.String.toTitleCase
+                        , "Name"
                         ]
-                    , interactions
-                        context
-                        project
-                        server
-                        (Tuple.first currentTimeAndZone)
-                        (VH.userAppProxyLookup context project)
-                        model
-                    ]
-                )
-            , Style.Widgets.Card.exoCard context.palette
-                (Element.column VH.exoColumnAttributes
-                    [ Element.row (VH.heading3 context.palette ++ [ Element.spacing 10 ])
-                        [ FeatherIcons.hash
-                            |> FeatherIcons.toHtml []
-                            |> Element.html
-                            |> Element.el []
-                        , Element.text "Credentials"
-                        ]
-                    , renderIpAddresses
-                        context
-                        project
-                        server
-                        model
-                    , VH.compactKVSubRow "Username" (Element.text "exouser")
-                    , VH.compactKVSubRow "Passphrase"
-                        (serverPassword context model server)
-                    , VH.compactKVSubRow
-                        (String.join " "
-                            [ context.localization.pkiPublicKeyForSsh
-                                |> Helpers.String.toTitleCase
-                            , "Name"
-                            ]
-                        )
-                        (Element.text (Maybe.withDefault "(none)" details.keypairName))
-                    ]
-                )
+                    )
+                    (Element.text (Maybe.withDefault "(none)" details.keypairName))
+                ]
             ]
 
         secondColumnContents : List (Element.Element Msg)
@@ -304,32 +307,29 @@ serverDetail_ context project currentTimeAndZone model server =
                     else
                         Element.none
             in
-            [ Style.Widgets.Card.exoCard context.palette
-                (Element.column VH.exoColumnAttributes
-                    [ Element.el (VH.heading3 context.palette)
-                        (Element.row
-                            [ Element.width Element.fill
-                            , Element.spacing 10
-                            ]
-                            [ FeatherIcons.hardDrive
-                                |> FeatherIcons.toHtml []
-                                |> Element.html
-                                |> Element.el []
-                            , context.localization.blockDevice
-                                |> Helpers.String.pluralize
-                                |> Helpers.String.toTitleCase
-                                |> Element.text
-                            ]
-                        )
-                    , serverVolumes context project server
-                    , Element.el [ Element.centerX ] attachButton
-                    ]
-                )
-            , serverEventHistory
-                context
-                model
-                (Tuple.first currentTimeAndZone)
-                server.events
+            [ tile
+                [ FeatherIcons.hardDrive
+                    |> FeatherIcons.toHtml []
+                    |> Element.html
+                    |> Element.el []
+                , context.localization.blockDevice
+                    |> Helpers.String.pluralize
+                    |> Helpers.String.toTitleCase
+                    |> Element.text
+                ]
+                [ serverVolumes context project server
+                , Element.el [ Element.centerX ] attachButton
+                ]
+            , tile
+                [ Icon.history (SH.toElementColor context.palette.on.background) 20
+                , Element.text "Action History"
+                ]
+                [ serverEventHistory
+                    context
+                    model
+                    (Tuple.first currentTimeAndZone)
+                    server.events
+                ]
             ]
 
         ( dualColumn, columnWidth ) =
@@ -989,22 +989,14 @@ serverEventHistory context model currentTime serverEventsWebData =
                       }
                     ]
             in
-            Style.Widgets.Card.exoCard context.palette
-                (Element.column [ Element.paddingXY 10 10, Element.spacing 10, Element.width Element.fill ]
-                    [ Element.row (VH.heading3 context.palette ++ [ Element.spacing 10 ])
-                        [ Icon.history (SH.toElementColor context.palette.on.background) 20
-                        , Element.text "Action History"
-                        ]
-                    , Element.table
-                        (VH.formContainer
-                            ++ [ Element.spacingXY 0 7
-                               , Element.width Element.fill
-                               , Border.color (context.palette.muted |> SH.toElementColor)
-                               ]
-                        )
-                        { data = serverEvents, columns = columns }
-                    ]
+            Element.table
+                (VH.formContainer
+                    ++ [ Element.spacingXY 0 7
+                       , Element.width Element.fill
+                       , Border.color (context.palette.muted |> SH.toElementColor)
+                       ]
                 )
+                { data = serverEvents, columns = columns }
 
         _ ->
             Element.none
