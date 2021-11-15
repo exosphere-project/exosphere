@@ -23,6 +23,7 @@ import Page.ServerResourceUsageCharts
 import RemoteData
 import Route
 import Style.Helpers as SH exposing (shadowDefaults)
+import Style.Widgets.Card
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton
@@ -224,43 +225,51 @@ serverDetail_ context project currentTimeAndZone model server =
 
         firstColumnContents : List (Element.Element Msg)
         firstColumnContents =
-            [ Element.row (VH.heading3 context.palette ++ [ Element.spacing 10 ])
-                [ FeatherIcons.monitor
-                    |> FeatherIcons.toHtml []
-                    |> Element.html
-                    |> Element.el []
-                , Element.text "Interactions"
-                ]
-            , interactions
-                context
-                project
-                server
-                (Tuple.first currentTimeAndZone)
-                (VH.userAppProxyLookup context project)
-                model
-            , Element.row (VH.heading3 context.palette ++ [ Element.spacing 10 ])
-                [ FeatherIcons.hash
-                    |> FeatherIcons.toHtml []
-                    |> Element.html
-                    |> Element.el []
-                , Element.text "Credentials"
-                ]
-            , renderIpAddresses
-                context
-                project
-                server
-                model
-            , VH.compactKVSubRow "Username" (Element.text "exouser")
-            , VH.compactKVSubRow "Passphrase"
-                (serverPassword context model server)
-            , VH.compactKVSubRow
-                (String.join " "
-                    [ context.localization.pkiPublicKeyForSsh
-                        |> Helpers.String.toTitleCase
-                    , "Name"
+            [ Style.Widgets.Card.exoCard context.palette
+                (Element.column VH.exoColumnAttributes
+                    [ Element.row (VH.heading3 context.palette ++ [ Element.spacing 10 ])
+                        [ FeatherIcons.monitor
+                            |> FeatherIcons.toHtml []
+                            |> Element.html
+                            |> Element.el []
+                        , Element.text "Interactions"
+                        ]
+                    , interactions
+                        context
+                        project
+                        server
+                        (Tuple.first currentTimeAndZone)
+                        (VH.userAppProxyLookup context project)
+                        model
                     ]
                 )
-                (Element.text (Maybe.withDefault "(none)" details.keypairName))
+            , Style.Widgets.Card.exoCard context.palette
+                (Element.column VH.exoColumnAttributes
+                    [ Element.row (VH.heading3 context.palette ++ [ Element.spacing 10 ])
+                        [ FeatherIcons.hash
+                            |> FeatherIcons.toHtml []
+                            |> Element.html
+                            |> Element.el []
+                        , Element.text "Credentials"
+                        ]
+                    , renderIpAddresses
+                        context
+                        project
+                        server
+                        model
+                    , VH.compactKVSubRow "Username" (Element.text "exouser")
+                    , VH.compactKVSubRow "Passphrase"
+                        (serverPassword context model server)
+                    , VH.compactKVSubRow
+                        (String.join " "
+                            [ context.localization.pkiPublicKeyForSsh
+                                |> Helpers.String.toTitleCase
+                            , "Name"
+                            ]
+                        )
+                        (Element.text (Maybe.withDefault "(none)" details.keypairName))
+                    ]
+                )
             ]
 
         secondColumnContents : List (Element.Element Msg)
@@ -295,23 +304,27 @@ serverDetail_ context project currentTimeAndZone model server =
                     else
                         Element.none
             in
-            [ Element.el (VH.heading3 context.palette)
-                (Element.row
-                    [ Element.width Element.fill
-                    , Element.spacing 10
-                    ]
-                    [ FeatherIcons.hardDrive
-                        |> FeatherIcons.toHtml []
-                        |> Element.html
-                        |> Element.el []
-                    , context.localization.blockDevice
-                        |> Helpers.String.pluralize
-                        |> Helpers.String.toTitleCase
-                        |> Element.text
-                    , Element.el [ Element.alignRight ] attachButton
+            [ Style.Widgets.Card.exoCard context.palette
+                (Element.column VH.exoColumnAttributes
+                    [ Element.el (VH.heading3 context.palette)
+                        (Element.row
+                            [ Element.width Element.fill
+                            , Element.spacing 10
+                            ]
+                            [ FeatherIcons.hardDrive
+                                |> FeatherIcons.toHtml []
+                                |> Element.html
+                                |> Element.el []
+                            , context.localization.blockDevice
+                                |> Helpers.String.pluralize
+                                |> Helpers.String.toTitleCase
+                                |> Element.text
+                            , Element.el [ Element.alignRight ] attachButton
+                            ]
+                        )
+                    , serverVolumes context project server
                     ]
                 )
-            , serverVolumes context project server
             , serverEventHistory
                 context
                 model
@@ -375,6 +388,7 @@ serverDetail_ context project currentTimeAndZone model server =
                         ++ [ Element.alignTop
                            , Element.centerX
                            , Element.width columnWidth
+                           , Element.spacing 25
                            ]
             in
             Element.row
@@ -388,7 +402,7 @@ serverDetail_ context project currentTimeAndZone model server =
 
           else
             Element.column
-                (VH.exoColumnAttributes ++ [ Element.width (Element.maximum 700 Element.fill), Element.centerX ])
+                (VH.exoColumnAttributes ++ [ Element.width (Element.maximum 700 Element.fill), Element.centerX, Element.spacing 25 ])
                 (List.append firstColumnContents secondColumnContents)
         ]
 
@@ -975,21 +989,22 @@ serverEventHistory context model currentTime serverEventsWebData =
                       }
                     ]
             in
-            Element.column [ Element.paddingXY 0 10, Element.spacing 10, Element.width Element.fill ]
-                [ Element.row (VH.heading3 context.palette ++ [ Element.spacing 10 ])
-                    [ Icon.history (SH.toElementColor context.palette.on.background) 20
-                    , Element.text "Action History"
+            Style.Widgets.Card.exoCard context.palette
+                (Element.column [ Element.paddingXY 10 10, Element.spacing 10, Element.width Element.fill ]
+                    [ Element.row (VH.heading3 context.palette ++ [ Element.spacing 10 ])
+                        [ Icon.history (SH.toElementColor context.palette.on.background) 20
+                        , Element.text "Action History"
+                        ]
+                    , Element.table
+                        (VH.formContainer
+                            ++ [ Element.spacingXY 0 7
+                               , Element.width Element.fill
+                               , Border.color (context.palette.muted |> SH.toElementColor)
+                               ]
+                        )
+                        { data = serverEvents, columns = columns }
                     ]
-                , Element.table
-                    (VH.formContainer
-                        ++ [ Element.spacingXY 0 7
-                           , Element.width Element.fill
-                           , Border.widthEach { top = 0, bottom = 1, left = 0, right = 0 }
-                           , Border.color (context.palette.muted |> SH.toElementColor)
-                           ]
-                    )
-                    { data = serverEvents, columns = columns }
-                ]
+                )
 
         _ ->
             Element.none
