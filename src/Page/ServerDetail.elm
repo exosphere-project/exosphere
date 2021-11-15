@@ -219,135 +219,6 @@ serverDetail_ context project currentTimeAndZone model server =
                         Nothing ->
                             "N/A"
 
-        serverNameViewPlain =
-            Element.row
-                [ Element.spacing 10 ]
-                [ Element.text server.osProps.name
-                , Widget.iconButton
-                    (SH.materialStyle context.palette).button
-                    { text = "Edit"
-                    , icon =
-                        FeatherIcons.edit3
-                            |> FeatherIcons.withSize 16
-                            |> FeatherIcons.toHtml []
-                            |> Element.html
-                            |> Element.el []
-                    , onPress =
-                        Just <| GotServerNamePendingConfirmation (Just server.osProps.name)
-                    }
-                ]
-
-        serverNameViewEdit =
-            let
-                invalidNameReasons =
-                    serverNameValidator
-                        (Just context.localization.virtualComputer)
-                        (model.serverNamePendingConfirmation
-                            |> Maybe.withDefault ""
-                        )
-
-                renderInvalidNameReasons =
-                    case invalidNameReasons of
-                        Just reasons ->
-                            List.map Element.text reasons
-                                |> List.map List.singleton
-                                |> List.map (Element.paragraph [])
-                                |> Element.column
-                                    [ Font.color (SH.toElementColor context.palette.error)
-                                    , Font.size 14
-                                    , Element.alignRight
-                                    , Element.moveDown 6
-                                    , Background.color (SH.toElementColorWithOpacity context.palette.surface 0.9)
-                                    , Element.spacing 10
-                                    , Element.padding 10
-                                    , Border.rounded 4
-                                    , Border.shadow
-                                        { shadowDefaults
-                                            | color = SH.toElementColorWithOpacity context.palette.muted 0.2
-                                        }
-                                    ]
-
-                        Nothing ->
-                            Element.none
-
-                rowStyle =
-                    { containerRow =
-                        [ Element.spacing 8
-                        , Element.width Element.fill
-                        ]
-                    , element = []
-                    , ifFirst = [ Element.width <| Element.minimum 200 <| Element.fill ]
-                    , ifLast = []
-                    , otherwise = []
-                    }
-
-                saveOnPress =
-                    case ( invalidNameReasons, model.serverNamePendingConfirmation ) of
-                        ( Nothing, Just validName ) ->
-                            Just <|
-                                GotSetServerName validName
-
-                        ( _, _ ) ->
-                            Nothing
-            in
-            Widget.row
-                rowStyle
-                [ Element.el
-                    [ Element.below renderInvalidNameReasons
-                    ]
-                    (Widget.textInput (Widget.Style.Material.textInput (SH.toMaterialPalette context.palette))
-                        { chips = []
-                        , text = model.serverNamePendingConfirmation |> Maybe.withDefault ""
-                        , placeholder =
-                            Just
-                                (Input.placeholder
-                                    []
-                                    (Element.text <|
-                                        String.join " "
-                                            [ "My"
-                                            , context.localization.virtualComputer
-                                                |> Helpers.String.toTitleCase
-                                            ]
-                                    )
-                                )
-                        , label = "Name"
-                        , onChange = \name -> GotServerNamePendingConfirmation <| Just name
-                        }
-                    )
-                , Widget.iconButton
-                    (SH.materialStyle context.palette).button
-                    { text = "Save"
-                    , icon =
-                        FeatherIcons.save
-                            |> FeatherIcons.withSize 16
-                            |> FeatherIcons.toHtml []
-                            |> Element.html
-                            |> Element.el []
-                    , onPress =
-                        saveOnPress
-                    }
-                , Widget.iconButton
-                    (SH.materialStyle context.palette).button
-                    { text = "Cancel"
-                    , icon =
-                        FeatherIcons.xCircle
-                            |> FeatherIcons.withSize 16
-                            |> FeatherIcons.toHtml []
-                            |> Element.html
-                            |> Element.el []
-                    , onPress =
-                        Just <| GotServerNamePendingConfirmation Nothing
-                    }
-                ]
-
-        serverNameView =
-            case model.serverNamePendingConfirmation of
-                Just _ ->
-                    serverNameViewEdit
-
-                Nothing ->
-                    serverNameViewPlain
-
         chartsWidthPx =
             context.windowSize.width // 3 - 25
 
@@ -469,7 +340,7 @@ serverDetail_ context project currentTimeAndZone model server =
                         (context.localization.virtualComputer
                             |> Helpers.String.toTitleCase
                         )
-                    , serverNameView
+                    , serverNameView context model server
                     ]
                 , Element.el
                     [ Font.size 12, Font.color (SH.toElementColor context.palette.muted) ]
@@ -520,6 +391,138 @@ serverDetail_ context project currentTimeAndZone model server =
                 (VH.exoColumnAttributes ++ [ Element.width (Element.maximum 700 Element.fill), Element.centerX ])
                 (List.append firstColumnContents secondColumnContents)
         ]
+
+
+serverNameView : View.Types.Context -> Model -> Server -> Element.Element Msg
+serverNameView context model server =
+    let
+        serverNameViewPlain =
+            Element.row
+                [ Element.spacing 10 ]
+                [ Element.text server.osProps.name
+                , Widget.iconButton
+                    (SH.materialStyle context.palette).button
+                    { text = "Edit"
+                    , icon =
+                        FeatherIcons.edit3
+                            |> FeatherIcons.withSize 16
+                            |> FeatherIcons.toHtml []
+                            |> Element.html
+                            |> Element.el []
+                    , onPress =
+                        Just <| GotServerNamePendingConfirmation (Just server.osProps.name)
+                    }
+                ]
+
+        serverNameViewEdit =
+            let
+                invalidNameReasons =
+                    serverNameValidator
+                        (Just context.localization.virtualComputer)
+                        (model.serverNamePendingConfirmation
+                            |> Maybe.withDefault ""
+                        )
+
+                renderInvalidNameReasons =
+                    case invalidNameReasons of
+                        Just reasons ->
+                            List.map Element.text reasons
+                                |> List.map List.singleton
+                                |> List.map (Element.paragraph [])
+                                |> Element.column
+                                    [ Font.color (SH.toElementColor context.palette.error)
+                                    , Font.size 14
+                                    , Element.alignRight
+                                    , Element.moveDown 6
+                                    , Background.color (SH.toElementColorWithOpacity context.palette.surface 0.9)
+                                    , Element.spacing 10
+                                    , Element.padding 10
+                                    , Border.rounded 4
+                                    , Border.shadow
+                                        { shadowDefaults
+                                            | color = SH.toElementColorWithOpacity context.palette.muted 0.2
+                                        }
+                                    ]
+
+                        Nothing ->
+                            Element.none
+
+                rowStyle =
+                    { containerRow =
+                        [ Element.spacing 8
+                        , Element.width Element.fill
+                        ]
+                    , element = []
+                    , ifFirst = [ Element.width <| Element.minimum 200 <| Element.fill ]
+                    , ifLast = []
+                    , otherwise = []
+                    }
+
+                saveOnPress =
+                    case ( invalidNameReasons, model.serverNamePendingConfirmation ) of
+                        ( Nothing, Just validName ) ->
+                            Just <|
+                                GotSetServerName validName
+
+                        ( _, _ ) ->
+                            Nothing
+            in
+            Widget.row
+                rowStyle
+                [ Element.el
+                    [ Element.below renderInvalidNameReasons
+                    ]
+                    (Widget.textInput (Widget.Style.Material.textInput (SH.toMaterialPalette context.palette))
+                        { chips = []
+                        , text = model.serverNamePendingConfirmation |> Maybe.withDefault ""
+                        , placeholder =
+                            Just
+                                (Input.placeholder
+                                    []
+                                    (Element.text <|
+                                        String.join " "
+                                            [ "My"
+                                            , context.localization.virtualComputer
+                                                |> Helpers.String.toTitleCase
+                                            ]
+                                    )
+                                )
+                        , label = "Name"
+                        , onChange = \name -> GotServerNamePendingConfirmation <| Just name
+                        }
+                    )
+                , Widget.iconButton
+                    (SH.materialStyle context.palette).button
+                    { text = "Save"
+                    , icon =
+                        FeatherIcons.save
+                            |> FeatherIcons.withSize 16
+                            |> FeatherIcons.toHtml []
+                            |> Element.html
+                            |> Element.el []
+                    , onPress =
+                        saveOnPress
+                    }
+                , Widget.iconButton
+                    (SH.materialStyle context.palette).button
+                    { text = "Cancel"
+                    , icon =
+                        FeatherIcons.xCircle
+                            |> FeatherIcons.withSize 16
+                            |> FeatherIcons.toHtml []
+                            |> Element.html
+                            |> Element.el []
+                    , onPress =
+                        Just <| GotServerNamePendingConfirmation Nothing
+                    }
+                ]
+    in
+    case model.serverNamePendingConfirmation of
+        Just _ ->
+            serverNameViewEdit
+
+        Nothing ->
+            serverNameViewPlain
 
 
 passwordVulnWarning : View.Types.Context -> Server -> Element.Element Msg
