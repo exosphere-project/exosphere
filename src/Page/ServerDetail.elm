@@ -319,10 +319,10 @@ serverDetail_ context project currentTimeAndZone model server =
                                 |> Helpers.String.pluralize
                                 |> Helpers.String.toTitleCase
                                 |> Element.text
-                            , Element.el [ Element.alignRight ] attachButton
                             ]
                         )
                     , serverVolumes context project server
+                    , Element.el [ Element.centerX ] attachButton
                     ]
                 )
             , serverEventHistory
