@@ -344,38 +344,40 @@ serverDetail_ context project currentTimeAndZone model server =
                 ( True, colWidthPx |> Element.px )
     in
     Element.column (VH.exoColumnAttributes ++ [ Element.spacing 15 ])
-        [ Element.row
-            (VH.heading2 context.palette ++ [ Element.spacing 10 ])
-            [ FeatherIcons.server |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
-            , Element.column [ Element.spacing 5 ]
-                [ Element.row [ Element.spacing 10 ]
-                    [ Element.text
-                        (context.localization.virtualComputer
-                            |> Helpers.String.toTitleCase
-                        )
-                    , serverNameView context model server
+        [ Element.column [ Element.width Element.fill ]
+            [ Element.row
+                (VH.heading2 context.palette ++ [ Element.spacing 10 ])
+                [ FeatherIcons.server |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
+                , Element.column [ Element.spacing 5 ]
+                    [ Element.row [ Element.spacing 10 ]
+                        [ Element.text
+                            (context.localization.virtualComputer
+                                |> Helpers.String.toTitleCase
+                            )
+                        , serverNameView context model server
+                        ]
+                    , Element.el
+                        [ Font.size 12, Font.color (SH.toElementColor context.palette.muted) ]
+                        (copyableText context.palette [] server.osProps.uuid)
                     ]
                 , Element.el
-                    [ Font.size 12, Font.color (SH.toElementColor context.palette.muted) ]
-                    (copyableText context.palette [] server.osProps.uuid)
+                    [ Element.alignRight, Font.size 18, Font.regular ]
+                    (serverStatus context model server)
+                , Element.el
+                    [ Element.alignRight, Font.size 16, Font.regular ]
+                    (serverActionsDropdown context project model server)
                 ]
-            , Element.el
-                [ Element.alignRight, Font.size 18, Font.regular ]
-                (serverStatus context model server)
-            , Element.el
-                [ Element.alignRight, Font.size 16, Font.regular ]
-                (serverActionsDropdown context project model server)
+            , passwordVulnWarning context server
+            , VH.createdAgoByFromSize
+                context
+                (Tuple.first currentTimeAndZone)
+                details.created
+                (Just ( "user", creatorName ))
+                (Just ( context.localization.staticRepresentationOfBlockDeviceContents, imageText ))
+                (Just ( context.localization.virtualComputerHardwareConfig, flavorText ))
+                model.showCreatedTimeToggleTip
+                (GotShowCreatedTimeToggleTip (not model.showCreatedTimeToggleTip))
             ]
-        , passwordVulnWarning context server
-        , VH.createdAgoByFromSize
-            context
-            (Tuple.first currentTimeAndZone)
-            details.created
-            (Just ( "user", creatorName ))
-            (Just ( context.localization.staticRepresentationOfBlockDeviceContents, imageText ))
-            (Just ( context.localization.virtualComputerHardwareConfig, flavorText ))
-            model.showCreatedTimeToggleTip
-            (GotShowCreatedTimeToggleTip (not model.showCreatedTimeToggleTip))
         , if details.openstackStatus == OSTypes.ServerActive then
             resourceUsageCharts context currentTimeAndZone server
 
