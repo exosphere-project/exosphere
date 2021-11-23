@@ -227,8 +227,10 @@ serverDetail_ context project currentTimeAndZone model server =
         tile headerContents contents =
             Style.Widgets.Card.exoCard context.palette
                 (Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-                    ([ Element.row (VH.heading3 context.palette ++ [ Element.spacing 10 ]) headerContents ]
-                        ++ contents
+                    (List.concat
+                        [ [ Element.row (VH.heading3 context.palette ++ [ Element.spacing 10 ]) headerContents ]
+                        , contents
+                        ]
                     )
                 )
 
