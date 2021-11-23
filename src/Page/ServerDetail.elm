@@ -33,6 +33,7 @@ import Types.HelperTypes exposing (FloatingIpOption(..), UserAppProxyHostname)
 import Types.Interaction as ITypes exposing (Interaction)
 import Types.Project exposing (Project)
 import Types.Server exposing (Server, ServerOrigin(..))
+import Types.ServerResourceUsage
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
@@ -220,9 +221,6 @@ serverDetail_ context project currentTimeAndZone model server =
                         Nothing ->
                             "N/A"
 
-        chartsWidthPx =
-            context.windowSize.width // 3 - 25
-
         tile : List (Element.Element Msg) -> List (Element.Element Msg) -> Element.Element Msg
         tile headerContents contents =
             Style.Widgets.Card.exoCard context.palette
@@ -379,7 +377,7 @@ serverDetail_ context project currentTimeAndZone model server =
             model.showCreatedTimeToggleTip
             (GotShowCreatedTimeToggleTip (not model.showCreatedTimeToggleTip))
         , if details.openstackStatus == OSTypes.ServerActive then
-            resourceUsageCharts context chartsWidthPx currentTimeAndZone server
+            resourceUsageCharts context currentTimeAndZone server
 
           else
             Element.none
@@ -1180,11 +1178,25 @@ renderConfirmationButton context serverAction actionMsg cancelMsg title =
         ]
 
 
-resourceUsageCharts : View.Types.Context -> Int -> ( Time.Posix, Time.Zone ) -> Server -> Element.Element Msg
-resourceUsageCharts context chartsWidthPx currentTimeAndZone server =
+resourceUsageCharts : View.Types.Context -> ( Time.Posix, Time.Zone ) -> Server -> Element.Element Msg
+resourceUsageCharts context currentTimeAndZone server =
     let
+        containerWidth =
+            context.windowSize.width - 76
+
+        chartsWidth =
+            max 1075 containerWidth
+
         thirtyMinMillis =
             1000 * 60 * 30
+
+        charts_ : Types.ServerResourceUsage.TimeSeries -> Element.Element SharedMsg.SharedMsg
+        charts_ timeSeries =
+            Element.column
+                [ Element.width (Element.px containerWidth) ]
+                [ Page.ServerResourceUsageAlerts.view context (Tuple.first currentTimeAndZone) timeSeries
+                , Page.ServerResourceUsageCharts.view context chartsWidth currentTimeAndZone timeSeries
+                ]
 
         charts =
             case server.exoProps.serverOrigin of
@@ -1212,10 +1224,7 @@ resourceUsageCharts context chartsWidthPx currentTimeAndZone server =
                                     Element.text "No chart data to show."
 
                             else
-                                Element.column [ Element.width Element.fill ]
-                                    [ Page.ServerResourceUsageAlerts.view context (Tuple.first currentTimeAndZone) history.timeSeries
-                                    , Page.ServerResourceUsageCharts.view context chartsWidthPx currentTimeAndZone history.timeSeries
-                                    ]
+                                charts_ history.timeSeries
 
                         _ ->
                             if exoOriginProps.exoServerVersion < 2 then

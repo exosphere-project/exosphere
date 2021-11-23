@@ -128,7 +128,7 @@ view context widthPx ( currentTime, timeZone ) timeSeriesDict =
             Axis.custom
                 { title = Title.default ""
                 , variable = Just << getDataFunc
-                , pixels = widthPx
+                , pixels = widthPx // 3
                 , range =
                     Range.window
                         (Time.posixToMillis currentTime - thirtyMinMillis |> toFloat)
@@ -197,17 +197,23 @@ view context widthPx ( currentTime, timeZone ) timeSeriesDict =
                 (Dict.toList timeSeriesListLast30m)
             ]
     in
-    Element.wrappedRow [ Element.spaceEvenly ]
-        [ Element.html <|
-            LineChart.viewCustom
-                (chartConfig (getMetricUsedPct .cpuPctUsed) "CPU")
-                series
-        , Element.html <|
-            LineChart.viewCustom
-                (chartConfig (getMetricUsedPct .memPctUsed) "Memory")
-                series
-        , Element.html <|
-            LineChart.viewCustom
-                (chartConfig (getMetricUsedPct .rootfsPctUsed) "Root Disk")
-                series
+    Element.row
+        [ Element.width Element.fill
+        , Element.scrollbarX
+
+        -- This is needed to avoid showing a vertical scroll bar
+        , Element.paddingXY 0 1
         ]
+        ([ LineChart.viewCustom
+            (chartConfig (getMetricUsedPct .cpuPctUsed) "CPU")
+            series
+         , LineChart.viewCustom
+            (chartConfig (getMetricUsedPct .memPctUsed) "Memory")
+            series
+         , LineChart.viewCustom
+            (chartConfig (getMetricUsedPct .rootfsPctUsed) "Root Disk")
+            series
+         ]
+            |> List.map Element.html
+            |> List.map (\e -> Element.el [] e)
+        )
