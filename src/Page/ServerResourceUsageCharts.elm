@@ -184,7 +184,7 @@ view context widthPx ( currentTime, timeZone ) timeSeriesDict =
             , junk = junk title
             , grid = Grid.default
             , area = Area.default
-            , line = Line.default
+            , line = Line.wider 2
             , dots = Dots.default
             }
 
@@ -192,7 +192,7 @@ view context widthPx ( currentTime, timeZone ) timeSeriesDict =
         series =
             [ LineChart.line
                 context.palette.primary
-                Dots.circle
+                Dots.none
                 ""
                 (Dict.toList timeSeriesListLast30m)
             ]
