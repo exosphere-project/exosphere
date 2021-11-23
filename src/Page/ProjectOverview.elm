@@ -325,4 +325,4 @@ tileContents context resourceWithAvailabilityMetadata resourceWord renderResourc
 
 tile : View.Types.Context -> List (Element.Element Msg) -> Element.Element Msg
 tile context contents =
-    Style.Widgets.Card.exoCardFixedSize context.palette 450 350 contents
+    Style.Widgets.Card.clickableCardFixedSize context.palette 450 350 contents

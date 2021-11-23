@@ -12,7 +12,7 @@ import Route
 import Set
 import Style.Helpers as SH
 import Style.Types
-import Style.Widgets.Card exposing (exoCardFixedSize)
+import Style.Widgets.Card exposing (clickableCardFixedSize)
 import Style.Widgets.Icon as Icon
 import Types.HelperTypes as HelperTypes
 import Types.Project exposing (Project)
@@ -294,4 +294,4 @@ renderProject context project =
 
 card : Style.Types.ExoPalette -> List (Element.Element Msg) -> Element.Element Msg
 card palette content =
-    exoCardFixedSize palette 320 250 content
+    clickableCardFixedSize palette 320 250 content

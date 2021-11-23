@@ -1,7 +1,7 @@
 module Style.Widgets.Card exposing
     ( badge
+    , clickableCardFixedSize
     , exoCard
-    , exoCardFixedSize
     , exoCardWithTitleAndSubtitle
     , expandoCard
     )
@@ -20,13 +20,25 @@ import Widget
 
 exoCard : Style.Types.ExoPalette -> Element msg -> Element msg
 exoCard palette content =
+    -- Disabling mouseover styles because entire card is not clickable
+    let
+        baseAttribs =
+            (SH.materialStyle palette).cardColumn
+
+        attribs =
+            { baseAttribs
+                | containerColumn =
+                    List.append baseAttribs.containerColumn
+                        [ Element.mouseOver [] ]
+            }
+    in
     Widget.column
-        (SH.materialStyle palette).cardColumn
+        attribs
         [ content ]
 
 
-exoCardFixedSize : Style.Types.ExoPalette -> Int -> Int -> List (Element msg) -> Element msg
-exoCardFixedSize palette width height content =
+clickableCardFixedSize : Style.Types.ExoPalette -> Int -> Int -> List (Element msg) -> Element msg
+clickableCardFixedSize palette width height content =
     let
         baseAttribs =
             (SH.materialStyle palette).cardColumn
