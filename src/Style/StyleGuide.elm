@@ -7,10 +7,10 @@ import Element.Region as Region
 import Set exposing (Set)
 import Style.Helpers as SH
 import Style.Types
-import Style.Widgets.Card exposing (badge, exoCard, exoCardFixedSize, exoCardWithTitleAndSubtitle, expandoCard)
+import Style.Widgets.Card exposing (badge, clickableCardFixedSize, exoCard, exoCardWithTitleAndSubtitle, expandoCard)
 import Style.Widgets.ChipsFilter exposing (chipsFilter)
 import Style.Widgets.CopyableText exposing (copyableText)
-import Style.Widgets.Icon exposing (bell, ipAddress, remove, roundRect, timesCircle)
+import Style.Widgets.Icon exposing (bell, history, ipAddress, remove, roundRect, timesCircle)
 import Style.Widgets.IconButton exposing (chip)
 import Style.Widgets.MenuItem exposing (MenuItemState(..), menuItem)
 import Style.Widgets.Meter exposing (meter)
@@ -46,10 +46,12 @@ widgets msgMapper palette model =
     , timesCircle (palette.on.background |> SH.toElementColor) 40
     , Element.text "Style.Widgets.Icon.ipAddress"
     , ipAddress (palette.on.background |> SH.toElementColor) 40
+    , Element.text "Style.Widgets.Icon.history"
+    , history (palette.on.background |> SH.toElementColor) 40
     , Element.text "Style.Widgets.Card.exoCard"
     , exoCard palette (Element.text "Lorem ipsum dolor sit amet.")
     , Element.text "Style.Widgets.Card.exoCardFixedSize"
-    , exoCardFixedSize palette 300 300 [ Element.text "Lorem ipsum dolor sit amet." ]
+    , clickableCardFixedSize palette 300 300 [ Element.text "Lorem ipsum dolor sit amet." ]
     , Element.text "Style.Widgets.Card.exoCardWithTitleAndSubtitle"
     , exoCardWithTitleAndSubtitle palette (Element.text "Title") (Element.text "Subtitle") (Element.text "Lorem ipsum dolor sit amet.")
     , Element.text "Style.Widgets.Card.expandoCard"

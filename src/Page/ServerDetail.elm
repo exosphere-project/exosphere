@@ -23,6 +23,7 @@ import Page.ServerResourceUsageCharts
 import RemoteData
 import Route
 import Style.Helpers as SH exposing (shadowDefaults)
+import Style.Widgets.Card
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton
@@ -32,6 +33,7 @@ import Types.HelperTypes exposing (FloatingIpOption(..), UserAppProxyHostname)
 import Types.Interaction as ITypes exposing (Interaction)
 import Types.Project exposing (Project)
 import Types.Server exposing (Server, ServerOrigin(..))
+import Types.ServerResourceUsage
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
@@ -48,7 +50,9 @@ type alias Model =
     , serverActionNamePendingConfirmation : Maybe String
     , serverNamePendingConfirmation : Maybe String
     , activeInteractionToggleTip : Maybe Interaction
+    , activeEventHistoryAbsoluteTimeToggleTip : Maybe Time.Posix
     , retainFloatingIpsWhenDeleting : Bool
+    , showActionsDropdown : Bool
     }
 
 
@@ -74,7 +78,9 @@ type Msg
     | GotServerActionNamePendingConfirmation (Maybe String)
     | GotServerNamePendingConfirmation (Maybe String)
     | GotActiveInteractionToggleTip (Maybe Interaction)
+    | GotActiveEventHistoryAbsoluteTimeToggleTip (Maybe Time.Posix)
     | GotRetainFloatingIpsWhenDeleting Bool
+    | GotShowActionsDropdown Bool
     | GotSetServerName String
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
@@ -90,7 +96,9 @@ init serverUuid =
     , serverActionNamePendingConfirmation = Nothing
     , serverNamePendingConfirmation = Nothing
     , activeInteractionToggleTip = Nothing
+    , activeEventHistoryAbsoluteTimeToggleTip = Nothing
     , retainFloatingIpsWhenDeleting = False
+    , showActionsDropdown = False
     }
 
 
@@ -118,8 +126,14 @@ update msg project model =
         GotActiveInteractionToggleTip maybeInteraction ->
             ( { model | activeInteractionToggleTip = maybeInteraction }, Cmd.none, SharedMsg.NoOp )
 
+        GotActiveEventHistoryAbsoluteTimeToggleTip maybeTime ->
+            ( { model | activeEventHistoryAbsoluteTimeToggleTip = maybeTime }, Cmd.none, SharedMsg.NoOp )
+
         GotRetainFloatingIpsWhenDeleting retain ->
             ( { model | retainFloatingIpsWhenDeleting = retain }, Cmd.none, SharedMsg.NoOp )
+
+        GotShowActionsDropdown shown ->
+            ( { model | showActionsDropdown = shown }, Cmd.none, SharedMsg.NoOp )
 
         GotSetServerName validName ->
             ( model
@@ -131,7 +145,7 @@ update msg project model =
 
         SharedMsg msg_ ->
             -- TODO convert other pages to use this style
-            ( model, Cmd.none, msg_ )
+            ( { model | showActionsDropdown = False }, Cmd.none, msg_ )
 
         NoOp ->
             ( model, Cmd.none, SharedMsg.NoOp )
@@ -207,6 +221,204 @@ serverDetail_ context project currentTimeAndZone model server =
                         Nothing ->
                             "N/A"
 
+        tile : List (Element.Element Msg) -> List (Element.Element Msg) -> Element.Element Msg
+        tile headerContents contents =
+            Style.Widgets.Card.exoCard context.palette
+                (Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
+                    (List.concat
+                        [ [ Element.row
+                                (VH.heading3 context.palette
+                                    ++ [ Element.spacing 10
+                                       , Border.width 0
+                                       ]
+                                )
+                                headerContents
+                          ]
+                        , contents
+                        ]
+                    )
+                )
+
+        firstColumnContents : List (Element.Element Msg)
+        firstColumnContents =
+            [ tile
+                [ FeatherIcons.monitor
+                    |> FeatherIcons.toHtml []
+                    |> Element.html
+                    |> Element.el []
+                , Element.text "Interactions"
+                ]
+                [ interactions
+                    context
+                    project
+                    server
+                    (Tuple.first currentTimeAndZone)
+                    (VH.userAppProxyLookup context project)
+                    model
+                ]
+            , tile
+                [ FeatherIcons.hash
+                    |> FeatherIcons.toHtml []
+                    |> Element.html
+                    |> Element.el []
+                , Element.text "Credentials"
+                ]
+                [ renderIpAddresses
+                    context
+                    project
+                    server
+                    model
+                , VH.compactKVSubRow "Username" (Element.text "exouser")
+                , VH.compactKVSubRow "Passphrase"
+                    (serverPassword context model server)
+                , VH.compactKVSubRow
+                    (String.join " "
+                        [ context.localization.pkiPublicKeyForSsh
+                            |> Helpers.String.toTitleCase
+                        , "Name"
+                        ]
+                    )
+                    (Element.text (Maybe.withDefault "(none)" details.keypairName))
+                ]
+            ]
+
+        secondColumnContents : List (Element.Element Msg)
+        secondColumnContents =
+            let
+                attachButton =
+                    if
+                        not <|
+                            List.member
+                                server.osProps.details.openstackStatus
+                                [ OSTypes.ServerShelved
+                                , OSTypes.ServerShelvedOffloaded
+                                , OSTypes.ServerError
+                                , OSTypes.ServerSoftDeleted
+                                , OSTypes.ServerBuilding
+                                ]
+                    then
+                        Element.link []
+                            { url =
+                                Route.toUrl context.urlPathPrefix
+                                    (Route.ProjectRoute project.auth.project.uuid <|
+                                        Route.VolumeAttach (Just server.osProps.uuid) Nothing
+                                    )
+                            , label =
+                                Widget.textButton
+                                    (SH.materialStyle context.palette).button
+                                    { text = "Attach " ++ context.localization.blockDevice
+                                    , onPress = Just NoOp
+                                    }
+                            }
+
+                    else
+                        Element.none
+            in
+            [ tile
+                [ FeatherIcons.hardDrive
+                    |> FeatherIcons.toHtml []
+                    |> Element.html
+                    |> Element.el []
+                , context.localization.blockDevice
+                    |> Helpers.String.pluralize
+                    |> Helpers.String.toTitleCase
+                    |> Element.text
+                ]
+                [ serverVolumes context project server
+                , Element.el [ Element.centerX ] attachButton
+                ]
+            , tile
+                [ Icon.history (SH.toElementColor context.palette.on.background) 20
+                , Element.text "Action History"
+                ]
+                [ serverEventHistory
+                    context
+                    model
+                    (Tuple.first currentTimeAndZone)
+                    server.events
+                ]
+            ]
+
+        ( dualColumn, columnWidth ) =
+            if context.windowSize.width < 1150 then
+                ( False, Element.fill )
+
+            else
+                let
+                    colWidthPx =
+                        (context.windowSize.width - 100) // 2
+                in
+                ( True, colWidthPx |> Element.px )
+    in
+    Element.column (VH.exoColumnAttributes ++ [ Element.spacing 15 ])
+        [ Element.column [ Element.width Element.fill ]
+            [ Element.row
+                (VH.heading2 context.palette ++ [ Element.spacing 10 ])
+                [ FeatherIcons.server |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
+                , Element.column [ Element.spacing 5 ]
+                    [ Element.row [ Element.spacing 10 ]
+                        [ Element.text
+                            (context.localization.virtualComputer
+                                |> Helpers.String.toTitleCase
+                            )
+                        , serverNameView context model server
+                        ]
+                    , Element.el
+                        [ Font.size 12, Font.color (SH.toElementColor context.palette.muted) ]
+                        (copyableText context.palette [] server.osProps.uuid)
+                    ]
+                , Element.el
+                    [ Element.alignRight, Font.size 18, Font.regular ]
+                    (serverStatus context model server)
+                , Element.el
+                    [ Element.alignRight, Font.size 16, Font.regular ]
+                    (serverActionsDropdown context project model server)
+                ]
+            , passwordVulnWarning context server
+            , VH.createdAgoByFromSize
+                context
+                (Tuple.first currentTimeAndZone)
+                details.created
+                (Just ( "user", creatorName ))
+                (Just ( context.localization.staticRepresentationOfBlockDeviceContents, imageText ))
+                (Just ( context.localization.virtualComputerHardwareConfig, flavorText ))
+                model.showCreatedTimeToggleTip
+                (GotShowCreatedTimeToggleTip (not model.showCreatedTimeToggleTip))
+            ]
+        , if details.openstackStatus == OSTypes.ServerActive then
+            resourceUsageCharts context currentTimeAndZone server
+
+          else
+            Element.none
+        , if dualColumn then
+            let
+                columnAttributes =
+                    VH.exoColumnAttributes
+                        ++ [ Element.alignTop
+                           , Element.centerX
+                           , Element.width columnWidth
+                           , Element.spacing 25
+                           ]
+            in
+            Element.row
+                [ Element.width Element.fill
+                , Element.spacing 5
+                , Element.paddingEach { top = 10, bottom = 0, left = 0, right = 0 }
+                ]
+                [ Element.column columnAttributes firstColumnContents
+                , Element.column columnAttributes secondColumnContents
+                ]
+
+          else
+            Element.column
+                (VH.exoColumnAttributes ++ [ Element.width (Element.maximum 700 Element.fill), Element.centerX, Element.spacing 25 ])
+                (List.append firstColumnContents secondColumnContents)
+        ]
+
+
+serverNameView : View.Types.Context -> Model -> Server -> Element.Element Msg
+serverNameView context model server =
+    let
         serverNameViewPlain =
             Element.row
                 [ Element.spacing 10 ]
@@ -327,175 +539,13 @@ serverDetail_ context project currentTimeAndZone model server =
                         Just <| GotServerNamePendingConfirmation Nothing
                     }
                 ]
-
-        serverNameView =
-            case model.serverNamePendingConfirmation of
-                Just _ ->
-                    serverNameViewEdit
-
-                Nothing ->
-                    serverNameViewPlain
-
-        ( dualColumn, columnWidth, chartsWidthPx ) =
-            if context.windowSize.width < 1402 then
-                ( False, Element.fill, context.windowSize.width - 250 )
-
-            else
-                let
-                    colWidthPx =
-                        (context.windowSize.width - 220) // 2
-                in
-                ( True, colWidthPx |> Element.px, colWidthPx - 30 )
-
-        firstColumnContents : List (Element.Element Msg)
-        firstColumnContents =
-            [ Element.row
-                (VH.heading2 context.palette ++ [ Element.spacing 10 ])
-                [ FeatherIcons.server |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
-                , Element.text
-                    (context.localization.virtualComputer
-                        |> Helpers.String.toTitleCase
-                    )
-                , serverNameView
-                ]
-            , passwordVulnWarning context server
-            , Element.el
-                [ Element.paddingXY 0 5
-                ]
-              <|
-                VH.createdAgoByFrom
-                    context
-                    (Tuple.first currentTimeAndZone)
-                    details.created
-                    (Just ( "user", creatorName ))
-                    (Just ( context.localization.staticRepresentationOfBlockDeviceContents, imageText ))
-                    model.showCreatedTimeToggleTip
-                    (GotShowCreatedTimeToggleTip (not model.showCreatedTimeToggleTip))
-            , VH.compactKVRow "Status" (serverStatus context model server)
-            , VH.compactKVRow "UUID" <| copyableText context.palette [] server.osProps.uuid
-            , VH.compactKVRow
-                (Helpers.String.toTitleCase context.localization.virtualComputerHardwareConfig)
-                (Element.text flavorText)
-            , VH.compactKVRow
-                (String.join " "
-                    [ context.localization.pkiPublicKeyForSsh
-                        |> Helpers.String.toTitleCase
-                    , "Name"
-                    ]
-                )
-                (Element.text (Maybe.withDefault "(none)" details.keypairName))
-            , VH.compactKVRow "IP addresses"
-                (renderIpAddresses
-                    context
-                    project
-                    server
-                    model
-                )
-            , Element.el (VH.heading3 context.palette)
-                (Element.text <|
-                    String.concat
-                        [ context.localization.blockDevice
-                            |> Helpers.String.pluralize
-                            |> Helpers.String.toTitleCase
-                        , " Attached"
-                        ]
-                )
-            , serverVolumes context project server
-            , case GetterSetters.getVolsAttachedToServer project server of
-                [] ->
-                    Element.none
-
-                _ ->
-                    Element.paragraph [ Font.size 11 ] <|
-                        [ Element.text <|
-                            String.join
-                                " "
-                                [ "* "
-                                , context.localization.blockDevice
-                                    |> Helpers.String.toTitleCase
-                                , "will only be automatically formatted/mounted on operating systems which use systemd 236 or newer (e.g. Ubuntu 18.04, CentOS 8, AlmaLinux, Rocky Linux)."
-                                ]
-                        ]
-            , if
-                not <|
-                    List.member
-                        server.osProps.details.openstackStatus
-                        [ OSTypes.ServerShelved
-                        , OSTypes.ServerShelvedOffloaded
-                        , OSTypes.ServerError
-                        , OSTypes.ServerSoftDeleted
-                        , OSTypes.ServerBuilding
-                        ]
-              then
-                Element.link []
-                    { url =
-                        Route.toUrl context.urlPathPrefix
-                            (Route.ProjectRoute project.auth.project.uuid <|
-                                Route.VolumeAttach (Just server.osProps.uuid) Nothing
-                            )
-                    , label =
-                        Widget.textButton
-                            (SH.materialStyle context.palette).button
-                            { text = "Attach " ++ context.localization.blockDevice
-                            , onPress = Just NoOp
-                            }
-                    }
-
-              else
-                Element.none
-            , Element.el (VH.heading2 context.palette) (Element.text "Interactions")
-            , interactions
-                context
-                project
-                server
-                (Tuple.first currentTimeAndZone)
-                (VH.userAppProxyLookup context project)
-                model
-            , Element.el (VH.heading3 context.palette) (Element.text "Password")
-            , serverPassword context model server
-            ]
-
-        secondColumnContents : List (Element.Element Msg)
-        secondColumnContents =
-            List.concat
-                [ [ Element.el (VH.heading3 context.palette) (Element.text "Actions")
-                  , viewServerActions context project model server
-                  , serverEventHistory
-                        context
-                        (Tuple.first currentTimeAndZone)
-                        server.events
-                  ]
-                , if details.openstackStatus == OSTypes.ServerActive then
-                    [ Element.el (VH.heading3 context.palette) (Element.text "System Resource Usage")
-                    , resourceUsageCharts context chartsWidthPx currentTimeAndZone server
-                    ]
-
-                  else
-                    []
-                ]
     in
-    if dualColumn then
-        let
-            columnAttributes =
-                VH.exoColumnAttributes
-                    ++ [ Element.alignTop
-                       , Element.centerX
-                       , Element.width columnWidth
-                       ]
-        in
-        Element.row [ Element.width Element.fill, Element.spacing 5 ]
-            [ Element.column
-                columnAttributes
-                firstColumnContents
-            , Element.column
-                columnAttributes
-                secondColumnContents
-            ]
+    case model.serverNamePendingConfirmation of
+        Just _ ->
+            serverNameViewEdit
 
-    else
-        Element.column
-            (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-            (List.append firstColumnContents secondColumnContents)
+        Nothing ->
+            serverNameViewPlain
 
 
 passwordVulnWarning : View.Types.Context -> Server -> Element.Element Msg
@@ -609,9 +659,9 @@ serverStatus context model server =
                 (GotShowVerboseStatus (not model.verboseStatus))
     in
     Element.row [ Element.spacing 15 ]
-        [ statusBadge
+        [ verboseStatusToggleTip
+        , statusBadge
         , lockStatus details.lockStatus
-        , verboseStatusToggleTip
         ]
 
 
@@ -811,12 +861,12 @@ serverPassword context model server =
                     ( buttonText, onPressMsg ) =
                         case model.passwordVisibility of
                             PasswordShown ->
-                                ( "Hide password"
+                                ( "Hide passphrase"
                                 , changeMsg PasswordHidden
                                 )
 
                             PasswordHidden ->
-                                ( "Show password"
+                                ( "Show"
                                 , changeMsg PasswordShown
                                 )
                   in
@@ -832,26 +882,19 @@ serverPassword context model server =
                 |> Maybe.withDefault (Element.text "Not available yet, check back in a few minutes.")
                 << Maybe.map
                     (\password ->
-                        Element.column
-                            [ Element.spacing 10 ]
-                            [ Element.text "Try logging in with username \"exouser\" and the following password:"
-                            , passwordShower password
-                            ]
+                        passwordShower password
                     )
     in
-    Element.column
-        VH.exoColumnAttributes
-        [ passwordHint
-        ]
+    passwordHint
 
 
-viewServerActions : View.Types.Context -> Project -> Model -> Server -> Element.Element Msg
-viewServerActions context project model server =
-    Element.column
-        (VH.exoColumnAttributes ++ [ Element.spacingXY 0 10 ])
-    <|
-        case server.exoProps.targetOpenstackStatus of
-            Nothing ->
+serverActionsDropdown : View.Types.Context -> Project -> Model -> Server -> Element.Element Msg
+serverActionsDropdown context project model server =
+    let
+        contents =
+            Element.column
+                (VH.dropdownAttributes context ++ [ Element.padding 10 ])
+            <|
                 List.map
                     (renderServerActionButton context project model server)
                     (ServerActions.getAllowed
@@ -861,16 +904,46 @@ viewServerActions context project model server =
                         server.osProps.details.lockStatus
                     )
 
-            Just _ ->
-                []
+        ( attribs, icon ) =
+            if model.showActionsDropdown then
+                ( [ Element.below contents ], FeatherIcons.chevronUp )
+
+            else
+                ( [], FeatherIcons.chevronDown )
+    in
+    case server.exoProps.targetOpenstackStatus of
+        Nothing ->
+            Element.column
+                attribs
+                [ Widget.iconButton
+                    (SH.materialStyle context.palette).button
+                    { text = "Actions"
+                    , icon =
+                        Element.row
+                            [ Element.spacing 5 ]
+                            [ Element.text "Actions"
+                            , Element.el []
+                                (icon
+                                    |> FeatherIcons.withSize 18
+                                    |> FeatherIcons.toHtml []
+                                    |> Element.html
+                                )
+                            ]
+                    , onPress = Just (GotShowActionsDropdown (not model.showActionsDropdown))
+                    }
+                ]
+
+        Just _ ->
+            Element.none
 
 
 serverEventHistory :
     View.Types.Context
+    -> Model
     -> Time.Posix
     -> RemoteData.WebData (List OSTypes.ServerEvent)
     -> Element.Element Msg
-serverEventHistory context currentTime serverEventsWebData =
+serverEventHistory context model currentTime serverEventsWebData =
     case serverEventsWebData of
         RemoteData.Success serverEvents ->
             let
@@ -898,36 +971,41 @@ serverEventHistory context currentTime serverEventsWebData =
                                 let
                                     relativeTime =
                                         DateFormat.Relative.relativeTime currentTime event.startTime
-                                in
-                                Element.text <|
-                                    relativeTime
-                      }
-                    , { header = Element.none
-                      , width = Element.px 200
-                      , view =
-                            \event ->
-                                let
+
                                     absoluteTime =
-                                        Helpers.Time.humanReadableTime event.startTime
+                                        let
+                                            shown =
+                                                model.activeEventHistoryAbsoluteTimeToggleTip
+                                                    == Just event.startTime
+
+                                            showHideMsg =
+                                                if shown then
+                                                    GotActiveEventHistoryAbsoluteTimeToggleTip Nothing
+
+                                                else
+                                                    GotActiveEventHistoryAbsoluteTimeToggleTip
+                                                        (Just event.startTime)
+                                        in
+                                        Style.Widgets.ToggleTip.toggleTip context.palette
+                                            (Element.text (Helpers.Time.humanReadableTime event.startTime))
+                                            shown
+                                            showHideMsg
                                 in
-                                Element.text <|
-                                    "("
-                                        ++ absoluteTime
-                                        ++ ")"
+                                Element.row []
+                                    [ Element.text relativeTime
+                                    , absoluteTime
+                                    ]
                       }
                     ]
             in
-            Element.column [ Element.paddingXY 0 10, Element.spacing 10, Element.width Element.fill ]
-                [ Element.el VH.heading4 <| Element.text "Action History"
-                , Element.table
-                    (VH.formContainer
-                        ++ [ Element.spacingXY 0 7
-                           , Border.widthEach { top = 1, bottom = 1, left = 0, right = 0 }
-                           , Border.color (context.palette.muted |> SH.toElementColor)
-                           ]
-                    )
-                    { data = serverEvents, columns = columns }
-                ]
+            Element.table
+                (VH.formContainer
+                    ++ [ Element.spacingXY 0 7
+                       , Element.width Element.fill
+                       , Border.color (context.palette.muted |> SH.toElementColor)
+                       ]
+                )
+                { data = serverEvents, columns = columns }
 
         _ ->
             Element.none
@@ -1004,7 +1082,7 @@ renderServerActionButton context project model server serverAction =
             -- This is ugly, we should have an explicit custom type for server actions and match on that
             if String.toLower serverAction.name == String.toLower context.localization.staticRepresentationOfBlockDeviceContents then
                 -- Overriding button for image, because we just want to navigate to another page
-                Element.link []
+                Element.link [ Element.width Element.fill ]
                     { url =
                         Route.toUrl context.urlPathPrefix
                             (Route.ProjectRoute project.auth.project.uuid <|
@@ -1039,35 +1117,48 @@ confirmationMessage serverAction =
 
 serverActionSelectModButton : View.Types.Context -> ServerActions.SelectMod -> (Widget.TextButton Msg -> Element.Element Msg)
 serverActionSelectModButton context selectMod =
-    case selectMod of
-        ServerActions.NoMod ->
-            Widget.textButton (SH.materialStyle context.palette).button
+    let
+        buttonPalette =
+            case selectMod of
+                ServerActions.NoMod ->
+                    (SH.materialStyle context.palette).button
 
-        ServerActions.Primary ->
-            Widget.textButton (SH.materialStyle context.palette).primaryButton
+                ServerActions.Primary ->
+                    (SH.materialStyle context.palette).primaryButton
 
-        ServerActions.Warning ->
-            Widget.textButton (SH.materialStyle context.palette).warningButton
+                ServerActions.Warning ->
+                    (SH.materialStyle context.palette).warningButton
 
-        ServerActions.Danger ->
-            Widget.textButton (SH.materialStyle context.palette).dangerButton
+                ServerActions.Danger ->
+                    (SH.materialStyle context.palette).dangerButton
+    in
+    Widget.textButton
+        { buttonPalette
+            | container =
+                buttonPalette.container
+                    ++ [ Element.width Element.fill ]
+            , labelRow =
+                buttonPalette.labelRow
+                    ++ [ Element.centerX ]
+            , text =
+                buttonPalette.text
+                    ++ [ Element.centerX ]
+        }
 
 
 renderActionButton : View.Types.Context -> ServerActions.ServerAction -> Maybe Msg -> String -> Element.Element Msg
 renderActionButton context serverAction actionMsg title =
     Element.row
-        [ Element.spacing 10 ]
-        [ Element.el
-            [ Element.width <| Element.px 120 ]
+        [ Element.spacing 10, Element.width Element.fill ]
+        [ Element.text serverAction.description
+        , Element.el
+            [ Element.width <| Element.px 100, Element.alignRight ]
           <|
             serverActionSelectModButton context
                 serverAction.selectMod
                 { text = title
                 , onPress = actionMsg
                 }
-        , Element.text serverAction.description
-
-        -- TODO hover text with description
         ]
 
 
@@ -1096,11 +1187,25 @@ renderConfirmationButton context serverAction actionMsg cancelMsg title =
         ]
 
 
-resourceUsageCharts : View.Types.Context -> Int -> ( Time.Posix, Time.Zone ) -> Server -> Element.Element Msg
-resourceUsageCharts context chartsWidthPx currentTimeAndZone server =
+resourceUsageCharts : View.Types.Context -> ( Time.Posix, Time.Zone ) -> Server -> Element.Element Msg
+resourceUsageCharts context currentTimeAndZone server =
     let
+        containerWidth =
+            context.windowSize.width - 76
+
+        chartsWidth =
+            max 1075 containerWidth
+
         thirtyMinMillis =
             1000 * 60 * 30
+
+        charts_ : Types.ServerResourceUsage.TimeSeries -> Element.Element SharedMsg.SharedMsg
+        charts_ timeSeries =
+            Element.column
+                [ Element.width (Element.px containerWidth) ]
+                [ Page.ServerResourceUsageAlerts.view context (Tuple.first currentTimeAndZone) timeSeries
+                , Page.ServerResourceUsageCharts.view context chartsWidth currentTimeAndZone timeSeries
+                ]
 
         charts =
             case server.exoProps.serverOrigin of
@@ -1128,10 +1233,7 @@ resourceUsageCharts context chartsWidthPx currentTimeAndZone server =
                                     Element.text "No chart data to show."
 
                             else
-                                Element.column [ Element.width Element.fill ]
-                                    [ Page.ServerResourceUsageAlerts.view context (Tuple.first currentTimeAndZone) history.timeSeries
-                                    , Page.ServerResourceUsageCharts.view context chartsWidthPx currentTimeAndZone history.timeSeries
-                                    ]
+                                charts_ history.timeSeries
 
                         _ ->
                             if exoOriginProps.exoServerVersion < 2 then
@@ -1207,7 +1309,7 @@ renderIpAddresses context project server model =
                         (\ipAddress ->
                             VH.compactKVSubRow
                                 (Helpers.String.toTitleCase context.localization.floatingIpAddress)
-                                (Element.column VH.exoColumnAttributes
+                                (Element.row [ Element.spacing 15 ]
                                     [ copyableText context.palette [] ipAddress.address
                                     , Widget.textButton
                                         (SH.materialStyle context.palette).button
@@ -1250,7 +1352,7 @@ renderIpAddresses context project server model =
                         |> Element.html
             in
             Element.column
-                (VH.exoColumnAttributes ++ [ Element.padding 0 ])
+                []
                 (floatingIpAddressRows
                     ++ ipButton icon "IP Details" IpSummary
                     :: fixedIpAddressRows
@@ -1265,7 +1367,7 @@ renderIpAddresses context project server model =
                         |> Element.html
             in
             Element.column
-                (VH.exoColumnAttributes ++ [ Element.padding 0 ])
+                []
                 (floatingIpAddressRows ++ [ ipButton icon "IP Details" IpDetails ])
 
 
@@ -1348,7 +1450,7 @@ serverVolumes context project server =
                       , width = Element.fill
                       , view = \v -> Element.text v.device
                       }
-                    , { header = Element.el [ Font.heavy ] <| Element.text "Mount point *"
+                    , { header = Element.el [ Font.heavy ] <| Element.text "Mount point"
                       , width = Element.fill
                       , view = \v -> Element.text v.mountpoint
                       }

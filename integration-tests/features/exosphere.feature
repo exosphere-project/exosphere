@@ -82,6 +82,7 @@ Feature: Text presence
         Then I should see the unique instance name within 30 seconds
         When I press on the unique instance name
         Then I should see an element with xpath "//h2[contains(string(),'Instance')]" within 2 seconds
+        When I click the "Actions" button
         When I click the "Delete" button
         Then I should see "Are you sure you want to delete?" within 5 seconds
         When I click the "Yes" button

@@ -2,7 +2,8 @@ module View.Helpers exposing
     ( compactKVRow
     , compactKVSubRow
     , contentContainer
-    , createdAgoByFrom
+    , createdAgoByFromSize
+    , dropdownAttributes
     , edges
     , ellipsizedText
     , exoColumnAttributes
@@ -67,7 +68,7 @@ import Markdown.Renderer
 import OpenStack.Types as OSTypes
 import Regex
 import RemoteData
-import Style.Helpers as SH
+import Style.Helpers as SH exposing (shadowDefaults)
 import Style.Types exposing (ExoPalette)
 import Style.Widgets.StatusBadge as StatusBadge
 import Style.Widgets.ToggleTip
@@ -185,7 +186,7 @@ compactKVSubRow key value =
     Element.row
         (exoRowAttributes ++ [ Element.padding 0, Element.spacing 10, Font.size 14 ])
         [ Element.paragraph [ Element.width (Element.px 175), Font.bold ] [ Element.text key ]
-        , Element.el [] value
+        , Element.el [ Element.width Element.fill ] value
         ]
 
 
@@ -204,6 +205,28 @@ edges =
     , bottom = 0
     , left = 0
     }
+
+
+dropdownAttributes : View.Types.Context -> List (Element.Attribute msg)
+dropdownAttributes context =
+    [ Element.alignRight
+    , Element.moveDown 5
+    , Element.spacing 5
+    , Element.paddingEach
+        { top = 5
+        , right = 6
+        , bottom = 5
+        , left = 6
+        }
+    , Background.color <| SH.toElementColor context.palette.background
+    , Border.shadow
+        { shadowDefaults
+            | color = SH.toElementColorWithOpacity context.palette.muted 0.2
+        }
+    , Border.width 1
+    , Border.color <| SH.toElementColor context.palette.muted
+    , Border.rounded 4
+    ]
 
 
 ellipsizedText : String -> Element.Element msg
@@ -937,16 +960,17 @@ friendlyProjectTitle model project =
         providerTitle
 
 
-createdAgoByFrom :
+createdAgoByFromSize :
     View.Types.Context
     -> Time.Posix
     -> Time.Posix
     -> Maybe ( String, String )
     -> Maybe ( String, String )
+    -> Maybe ( String, String )
     -> Bool
     -> msg
     -> Element.Element msg
-createdAgoByFrom context currentTime createdTime maybeWhoCreatedTuple maybeFromTuple showToggleTip showHideTipMsg =
+createdAgoByFromSize context currentTime createdTime maybeWhoCreatedTuple maybeFromTuple maybeSizeTuple showToggleTip showHideTipMsg =
     let
         timeDistanceStr =
             DateFormat.Relative.relativeTime currentTime createdTime
@@ -956,17 +980,12 @@ createdAgoByFrom context currentTime createdTime maybeWhoCreatedTuple maybeFromT
 
         muted =
             Font.color (context.palette.muted |> SH.toElementColor)
-
-        separator =
-            Element.el
-                [ Element.paddingXY 10 0
-                , muted
-                ]
-                (Element.text "/")
     in
-    Element.wrappedRow [ Element.spacingXY 0 10 ] <|
-        [ Element.row []
-            [ Element.el [ muted ] (Element.text "Created ")
+    Element.wrappedRow
+        [ Element.width Element.fill, Element.spaceEvenly ]
+    <|
+        [ Element.row [ Element.paddingXY 5 6 ]
+            [ Element.el [ muted ] (Element.text "created ")
             , Element.text timeDistanceStr
             , Style.Widgets.ToggleTip.toggleTip
                 context.palette
@@ -976,9 +995,8 @@ createdAgoByFrom context currentTime createdTime maybeWhoCreatedTuple maybeFromT
             ]
         , case maybeWhoCreatedTuple of
             Just ( creatorAdjective, whoCreated ) ->
-                Element.row []
-                    [ separator
-                    , Element.el [ muted ] (Element.text <| "by " ++ creatorAdjective ++ " ")
+                Element.row [ Element.paddingXY 5 6 ]
+                    [ Element.el [ muted ] (Element.text <| "by " ++ creatorAdjective ++ " ")
                     , Element.text whoCreated
                     ]
 
@@ -986,10 +1004,18 @@ createdAgoByFrom context currentTime createdTime maybeWhoCreatedTuple maybeFromT
                 Element.none
         , case maybeFromTuple of
             Just ( fromAdjective, whereFrom ) ->
-                Element.row []
-                    [ separator
-                    , Element.el [ muted ] (Element.text <| "from " ++ fromAdjective ++ " ")
+                Element.row [ Element.paddingXY 5 6 ]
+                    [ Element.el [ muted ] (Element.text <| "from " ++ fromAdjective ++ " ")
                     , Element.text whereFrom
+                    ]
+
+            Nothing ->
+                Element.none
+        , case maybeSizeTuple of
+            Just ( sizeAdjective, size ) ->
+                Element.row [ Element.paddingXY 5 6 ]
+                    [ Element.el [ muted ] (Element.text <| sizeAdjective ++ " ")
+                    , Element.text size
                     ]
 
             Nothing ->
