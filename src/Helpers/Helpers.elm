@@ -639,13 +639,25 @@ encodeCustomWorkflowSource customWorkflowSource =
 parseConsoleLogForWorkflowToken : String -> Maybe CustomWorkflowAuthToken
 parseConsoleLogForWorkflowToken consoleLog =
     let
+        stripTimeSinceBootFromLogLine : String -> String
+        stripTimeSinceBootFromLogLine line =
+            -- Remove everything before first open curly brace
+            -- This accommodates lines written to /dev/kmsg which begin with, e.g., `[ 2915.727779]`
+            case String.indices "{" line |> List.head of
+                Just index ->
+                    String.dropLeft index line
+
+                Nothing ->
+                    line
+
         loglines =
             String.split "\n" consoleLog
 
         decodedData =
-            List.filterMap
-                (\l -> Decode.decodeString decodeWorkflowToken l |> Result.toMaybe)
-                loglines
+            loglines
+                |> List.map stripTimeSinceBootFromLogLine
+                |> List.filterMap
+                    (\l -> Decode.decodeString decodeWorkflowToken l |> Result.toMaybe)
 
         maybeLastToken =
             List.reverse decodedData
