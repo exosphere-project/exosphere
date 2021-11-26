@@ -1096,7 +1096,7 @@ processProjectSpecificMsg outerModel project msg =
                     { name = pageModel.serverName
                     , count = pageModel.count
                     , imageUuid = pageModel.imageUuid
-                    , flavorUuid = pageModel.flavorUuid
+                    , flavorId = pageModel.flavorId
                     , volBackedSizeGb =
                         pageModel.volSizeTextInput
                             |> Maybe.andThen Style.Widgets.NumericTextInput.NumericTextInput.toMaybe

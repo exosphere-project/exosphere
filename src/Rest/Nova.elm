@@ -320,7 +320,7 @@ requestCreateServer project createServerRequest =
             List.append
                 maybeKeypairJson
                 [ ( "name", Encode.string instanceName )
-                , ( "flavorRef", Encode.string innerCreateServerRequest.flavorUuid )
+                , ( "flavorRef", Encode.string innerCreateServerRequest.flavorId )
                 , if innerCreateServerRequest.networkUuid == "auto" then
                     ( "networks", Encode.string "auto" )
 

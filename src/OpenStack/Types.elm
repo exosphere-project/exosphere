@@ -11,7 +11,7 @@ module OpenStack.Types exposing
     , Endpoint
     , EndpointInterface(..)
     , Flavor
-    , FlavorUuid
+    , FlavorId
     , FloatingIp
     , Image
     , ImageStatus(..)
@@ -294,7 +294,7 @@ type alias KeypairFingerprint =
 
 
 type alias Flavor =
-    { uuid : FlavorUuid
+    { uuid : FlavorId
     , name : String
     , vcpu : Int
     , ram_mb : Int
@@ -303,8 +303,8 @@ type alias Flavor =
     }
 
 
-type alias FlavorUuid =
-    HelperTypes.Uuid
+type alias FlavorId =
+    String
 
 
 type alias Server =
@@ -433,7 +433,7 @@ type alias ServerDetails =
     , created : Time.Posix
     , powerState : ServerPowerState
     , imageUuid : ImageUuid
-    , flavorUuid : FlavorUuid
+    , flavorId : FlavorId
     , keypairName : Maybe String
     , metadata : List MetadataItem
     , userUuid : UserUuid
@@ -466,7 +466,7 @@ type alias CreateServerRequest =
     { name : String
     , count : Int
     , imageUuid : ImageUuid
-    , flavorUuid : FlavorUuid
+    , flavorId : FlavorId
     , volBackedSizeGb : Maybe VolumeSize
     , networkUuid : NetworkUuid
     , keypairName : Maybe String

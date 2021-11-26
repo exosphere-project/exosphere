@@ -49,8 +49,8 @@ type alias Model =
 type Msg
     = GotServerName String
     | GotCount Int
-    | GotFlavorUuid OSTypes.FlavorUuid
-    | GotDefaultFlavor OSTypes.FlavorUuid
+    | GotFlavorId OSTypes.FlavorId
+    | GotDefaultFlavor OSTypes.FlavorId
     | GotVolSizeTextInput (Maybe NumericTextInput)
     | GotUserDataTemplate String
     | GotNetworks
@@ -79,7 +79,7 @@ init imageUuid imageName deployGuacamole =
     , imageUuid = imageUuid
     , imageName = imageName
     , count = 1
-    , flavorUuid = ""
+    , flavorId = ""
     , volSizeTextInput = Nothing
     , userDataTemplate = cloudInitUserDataTemplate
     , networkUuid = Nothing
@@ -108,18 +108,18 @@ update msg project model =
         GotCount count ->
             ( enforceQuotaCompliance project { model | count = count }, Cmd.none, SharedMsg.NoOp )
 
-        GotFlavorUuid flavorUuid ->
-            ( enforceQuotaCompliance project { model | flavorUuid = flavorUuid }, Cmd.none, SharedMsg.NoOp )
+        GotFlavorId flavorId ->
+            ( enforceQuotaCompliance project { model | flavorId = flavorId }, Cmd.none, SharedMsg.NoOp )
 
-        GotDefaultFlavor flavorUuid ->
+        GotDefaultFlavor flavorId ->
             ( enforceQuotaCompliance project
                 { model
-                    | flavorUuid =
-                        if model.flavorUuid == "" then
-                            flavorUuid
+                    | flavorId =
+                        if model.flavorId == "" then
+                            flavorId
 
                         else
-                            model.flavorUuid
+                            model.flavorId
                 }
             , Cmd.none
             , SharedMsg.NoOp
@@ -277,7 +277,7 @@ enforceQuotaCompliance project model =
     -- If user is trying to choose a combination of flavor, volume-backed disk size, and count
     -- that would exceed quota, reduce count to comply with quota.
     case
-        ( GetterSetters.flavorLookup project model.flavorUuid
+        ( GetterSetters.flavorLookup project model.flavorId
         , project.computeQuota
         , project.volumeQuota
         )
@@ -589,7 +589,7 @@ view context project model =
             ]
           <|
             case
-                ( GetterSetters.flavorLookup project model.flavorUuid
+                ( GetterSetters.flavorLookup project model.flavorId
                 , project.computeQuota
                 , project.volumeQuota
                 )
@@ -637,10 +637,10 @@ flavorPicker context project model computeQuota =
                     Input.radio
                         []
                         { label = Input.labelHidden flavor.name
-                        , onChange = GotFlavorUuid
+                        , onChange = GotFlavorId
                         , options = [ Input.option flavor.uuid (Element.text " ") ]
                         , selected =
-                            if flavor.uuid == model.flavorUuid then
+                            if flavor.uuid == model.flavorId then
                                 Just flavor.uuid
 
                             else
@@ -730,7 +730,7 @@ flavorPicker context project model computeQuota =
                     ""
 
         flavorEmptyHint =
-            if model.flavorUuid == "" then
+            if model.flavorId == "" then
                 [ VH.hint context <|
                     String.join
                         " "
@@ -1203,7 +1203,7 @@ desktopEnvironmentPicker context project model =
               in
               case model.volSizeTextInput of
                 Nothing ->
-                    case GetterSetters.flavorLookup project model.flavorUuid of
+                    case GetterSetters.flavorLookup project model.flavorId of
                         Just flavor ->
                             if flavor.disk_root < warningMaxGB then
                                 Just <| Element.text rootDiskWarnText

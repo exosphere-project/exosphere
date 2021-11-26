@@ -188,7 +188,7 @@ serverDetail_ context project currentTimeAndZone model server =
                     "unknown user"
 
         flavorText =
-            GetterSetters.flavorLookup project details.flavorUuid
+            GetterSetters.flavorLookup project details.flavorId
                 |> Maybe.map .name
                 |> Maybe.withDefault ("Unknown " ++ context.localization.virtualComputerHardwareConfig)
 
