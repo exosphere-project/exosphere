@@ -295,7 +295,7 @@ decodeCloudSpecificConfig =
         (Decode.field "userAppProxy" (Decode.nullable Decode.string))
         (Decode.field "imageExcludeFilter" (Decode.nullable metadataFilterDecoder))
         (Decode.field "featuredImageNamePrefix" (Decode.nullable Decode.string))
-        (Decode.field "operatingSystemChoices" (Decode.list operatingSystemChoiceDecoder))
+        (Decode.field "instanceTypes" (Decode.list instanceTypeDecoder))
         |> Decode.andThen
             (\cloudSpecificConfig ->
                 Decode.field "keystoneHostname" Decode.string
@@ -310,26 +310,26 @@ metadataFilterDecoder =
         (Decode.field "filterValue" Decode.string)
 
 
-operatingSystemChoiceDecoder : Decode.Decoder HelperTypes.OperatingSystemChoice
-operatingSystemChoiceDecoder =
-    Decode.map4 HelperTypes.OperatingSystemChoice
+instanceTypeDecoder : Decode.Decoder HelperTypes.InstanceType
+instanceTypeDecoder =
+    Decode.map4 HelperTypes.InstanceType
         (Decode.field "friendlyName" Decode.string)
         (Decode.field "description" Decode.string)
         (Decode.field "logo" Decode.string)
-        (Decode.field "versions" (Decode.list operatingSystemChoiceVersionDecoder))
+        (Decode.field "versions" (Decode.list instanceTypeVersionDecoder))
 
 
-operatingSystemChoiceVersionDecoder : Decode.Decoder HelperTypes.OperatingSystemChoiceVersion
-operatingSystemChoiceVersionDecoder =
-    Decode.map3 HelperTypes.OperatingSystemChoiceVersion
+instanceTypeVersionDecoder : Decode.Decoder HelperTypes.InstanceTypeVersion
+instanceTypeVersionDecoder =
+    Decode.map3 HelperTypes.InstanceTypeVersion
         (Decode.field "friendlyName" Decode.string)
         (Decode.field "isPrimary" Decode.bool)
-        (Decode.field "filters" imageFiltersDecoder)
+        (Decode.field "imageFilters" imageFiltersDecoder)
 
 
-imageFiltersDecoder : Decode.Decoder HelperTypes.OperatingSystemImageFilters
+imageFiltersDecoder : Decode.Decoder HelperTypes.InstanceTypeImageFilters
 imageFiltersDecoder =
-    Decode.map6 HelperTypes.OperatingSystemImageFilters
+    Decode.map6 HelperTypes.InstanceTypeImageFilters
         (Decode.maybe (Decode.field "name" Decode.string))
         (Decode.maybe (Decode.field "uuid" Decode.string))
         (Decode.maybe

@@ -4,7 +4,7 @@ import Element
 import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import Page.ImageList
-import Page.OperatingSystemList
+import Page.InstanceTypeList
 import Style.Helpers as SH
 import Types.HelperTypes
 import Types.Project exposing (Project)
@@ -23,7 +23,7 @@ type alias Model =
 type Msg
     = SetTab Int
     | ImageListMsg Page.ImageList.Msg
-    | OperatingSystemListMsg Page.OperatingSystemList.Msg
+    | InstanceTypeListMsg Page.InstanceTypeList.Msg
     | NoOp
 
 
@@ -48,7 +48,7 @@ update msg project model =
             , sharedMsg
             )
 
-        OperatingSystemListMsg _ ->
+        InstanceTypeListMsg _ ->
             -- This page doesn't currently have a model or update function. Dummy NoOp Msg is only used so that
             -- buttons don't look disabled.
             ( model, Cmd.none, SharedMsg.NoOp )
@@ -73,9 +73,9 @@ view context project model =
 
     else
         let
-            maybeOperatingSystemChoices =
+            maybeInstanceTypes =
                 GetterSetters.cloudSpecificConfigLookup context.cloudSpecificConfigs project
-                    |> Maybe.map .operatingSystemChoices
+                    |> Maybe.map .instanceTypes
 
             viewImageList =
                 Page.ImageList.view context project model.imageListModel
@@ -98,7 +98,7 @@ view context project model =
                     , viewImageList
                     ]
 
-            tabbedView : List Types.HelperTypes.OperatingSystemChoice -> Element.Element Msg
+            tabbedView : List Types.HelperTypes.InstanceType -> Element.Element Msg
             tabbedView opSysChoices =
                 Element.column
                     (VH.exoColumnAttributes
@@ -118,7 +118,7 @@ view context project model =
                         { tabs =
                             Widget.Select
                                 model.tab
-                                [ { text = "By Operating System", icon = Element.none }
+                                [ { text = "By Type", icon = Element.none }
                                 , { text = "By Image", icon = Element.none }
                                 ]
                                 (\i -> Just <| SetTab i)
@@ -126,8 +126,8 @@ view context project model =
                             \maybeTabInt ->
                                 case maybeTabInt of
                                     Just 0 ->
-                                        Page.OperatingSystemList.view context project opSysChoices
-                                            |> Element.map OperatingSystemListMsg
+                                        Page.InstanceTypeList.view context project opSysChoices
+                                            |> Element.map InstanceTypeListMsg
 
                                     Just 1 ->
                                         viewImageList
@@ -137,9 +137,9 @@ view context project model =
                         }
                     ]
         in
-        -- At least one operating system choice + version must be defined to show the operating system choices tab.
+        -- At least one instance type + version must be defined to show the instance types tab.
         -- Otherwise we just show a list of images.
-        case maybeOperatingSystemChoices of
+        case maybeInstanceTypes of
             Just choices ->
                 if List.isEmpty choices then
                     imageListOnlyView
