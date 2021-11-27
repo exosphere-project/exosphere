@@ -769,6 +769,20 @@ flavorPicker context project model computeQuota =
             { data = GetterSetters.sortedFlavors allowedFlavors
             , columns = columns
             }
+        , case model.restrictFlavorIds of
+            Nothing ->
+                Element.none
+
+            Just _ ->
+                Element.text <|
+                    String.join " "
+                        [ "Only showing"
+                        , context.localization.virtualComputerHardwareConfig
+                            |> Helpers.String.pluralize
+                        , "that are compatible with selected"
+                        , context.localization.virtualComputer
+                        , "type"
+                        ]
         , if anyFlavorsTooLarge then
             Element.text <|
                 String.join " "
