@@ -31,10 +31,10 @@ Each array element in `versions` is an object with the following members:
 - `friendlyName` (string) defines the label for the button. Users will click on this text.
 - `isPrimary` (boolean) determines whether the button is highlighted with the primary application color. Use this to emphasize or de-emphasize a version choice.
 - `imageFilters` is an object containing image filters, explained below. These filters determine which Glance image should be used when the user selects this version.
-- `flavorIds` is an array containing flavor IDs (string) that the user should be allowed to choose from when selecting this version.
-  - If this array is empty, the user will be allowed to choose from all visible flavors.
-  - If this array is non-empty and there are no matching visible flavors, the instance type version will not be shown on the menu. This allows a deployer to hide choices for flavors that a user doesn't have access to (e.g. GPU flavors). In the future, there will be a way to guide the user to request access to private flavors.
-  - Note that in OpenStack, flavor IDs are strings that can look like numbers or UUIDs. Exosphere matches on an exact string, so hyphenation matters here.
+- `restrictFlavorIds` (array or null) may contain flavor IDs (string) that the user should be allowed to choose from when selecting this version.
+  - If the value is null, no flavor restriction is applied. The user will be allowed to choose from all visible flavors.
+  - If the value is an array and there are no matching visible flavors, the instance type version will not be shown on the menu. This allows a deployer to hide choices for flavors that a user doesn't have access to (e.g. GPU flavors). In the future, there will be a way to guide the user to request access to private flavors.
+  - Note that in OpenStack, flavor IDs are strings that can look like numbers or UUIDs. Exosphere matches on an exact string, so hyphenation matters if your flavor IDs look like UUIDs.
 
 
 ## imageFilters
@@ -87,9 +87,7 @@ var config = {
                 "name":"JS-API-Featured-Ubuntu20-Latest",
                 "visibility":"public"
               },
-              "flavorIds":[
-
-              ]
+              "restrictFlavorIds":null
             },
             {
               "friendlyName":"20.04 with GPU",
@@ -98,7 +96,7 @@ var config = {
                 "name":"JS-API-Featured-Ubuntu20-NVIDIA-Latest",
                 "visibility":"public"
               },
-              "flavorIds":[
+              "restrictFlavorIds":[
                 "24",
                 "25",
                 "26",
@@ -116,9 +114,7 @@ var config = {
                 "name":"JS-API-Featured-Ubuntu18-Latest",
                 "visibility":"public"
               },
-              "flavorIds":[
-
-              ]
+              "restrictFlavorIds":null
             },
             {
               "friendlyName":"18.04 with MATLAB",
@@ -127,9 +123,7 @@ var config = {
                 "name":"JS-API-Featured-Ubuntu18-MATLAB-Latest",
                 "visibility":"public"
               },
-              "flavorIds":[
-
-              ]
+              "restrictFlavorIds":null
             }
           ]
         },
@@ -145,9 +139,7 @@ var config = {
                 "name":"JS-API-Featured-CentOS8-Latest",
                 "visibility":"public"
               },
-              "flavorIds":[
-
-              ]
+              "restrictFlavorIds":null
 
             },
             {
@@ -157,9 +149,7 @@ var config = {
                 "name":"JS-API-Featured-CentOS7-Latest",
                 "visibility":"public"
               },
-              "flavorIds":[
-
-              ]
+              "restrictFlavorIds":null
             },
             {
               "friendlyName":"7 with GPU",
@@ -168,7 +158,7 @@ var config = {
                 "name":"JS-API-Featured-CentOS7-NVIDIA-Latest",
                 "visibility":"public"
               },
-              "flavorIds":[
+              "restrictFlavorIds":[
                 "24",
                 "25",
                 "26",
@@ -186,9 +176,7 @@ var config = {
                 "name":"JS-API-Featured-CentOS7-Intel-Developer-Latest",
                 "visibility":"public"
               },
-              "flavorIds":[
-
-              ]
+              "restrictFlavorIds":null
             }
           ]
         }

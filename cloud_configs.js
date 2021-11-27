@@ -25,9 +25,7 @@ var cloud_configs = {
                 "name":"JS-API-Featured-Ubuntu20-Latest",
                 "visibility":"public"
               },
-              "flavorIds":[
-
-              ]
+              "restrictFlavorIds":null
             },
             {
               "friendlyName":"20.04 with GPU",
@@ -36,7 +34,7 @@ var cloud_configs = {
                 "name":"JS-API-Featured-Ubuntu20-NVIDIA-Latest",
                 "visibility":"public"
               },
-              "flavorIds":[
+              "restrictFlavorIds":[
                 "24",
                 "25",
                 "26",
@@ -54,9 +52,7 @@ var cloud_configs = {
                 "name":"JS-API-Featured-Ubuntu18-Latest",
                 "visibility":"public"
               },
-              "flavorIds":[
-
-              ]
+              "restrictFlavorIds":null
             },
             {
               "friendlyName":"18.04 with MATLAB",
@@ -65,9 +61,7 @@ var cloud_configs = {
                 "name":"JS-API-Featured-Ubuntu18-MATLAB-Latest",
                 "visibility":"public"
               },
-              "flavorIds":[
-
-              ]
+              "restrictFlavorIds":null
             }
           ]
         },
@@ -83,9 +77,7 @@ var cloud_configs = {
                 "name":"JS-API-Featured-CentOS8-Latest",
                 "visibility":"public"
               },
-              "flavorIds":[
-
-              ]
+              "restrictFlavorIds":null
             },
             {
               "friendlyName":"7",
@@ -94,9 +86,7 @@ var cloud_configs = {
                 "name":"JS-API-Featured-CentOS7-Latest",
                 "visibility":"public"
               },
-              "flavorIds":[
-
-              ]
+              "restrictFlavorIds":null
             },
             {
               "friendlyName":"7 with GPU",
@@ -105,7 +95,7 @@ var cloud_configs = {
                 "name":"JS-API-Featured-CentOS7-NVIDIA-Latest",
                 "visibility":"public"
               },
-              "flavorIds":[
+              "restrictFlavorIds":[
                 "24",
                 "25",
                 "26",
@@ -123,9 +113,7 @@ var cloud_configs = {
                 "name":"JS-API-Featured-CentOS7-Intel-Developer-Latest",
                 "visibility":"public"
               },
-              "flavorIds":[
-
-              ]
+              "restrictFlavorIds":null
             }
           ]
         }
@@ -154,9 +142,7 @@ var cloud_configs = {
                 "name":"JS-API-Featured-Ubuntu20-Latest",
                 "visibility":"public"
               },
-              "flavorIds":[
-
-              ]
+              "restrictFlavorIds":null
             },
             {
               "friendlyName":"18.04",
@@ -165,9 +151,7 @@ var cloud_configs = {
                 "name":"JS-API-Featured-Ubuntu18-Latest",
                 "visibility":"public"
               },
-              "flavorIds":[
-
-              ]
+              "restrictFlavorIds":null
             },
             {
               "friendlyName":"16.04 with MATLAB",
@@ -176,9 +160,7 @@ var cloud_configs = {
                 "name":"JS-API-Featured-Ubuntu16-MATLAB-Latest",
                 "visibility":"public"
               },
-              "flavorIds":[
-
-              ]
+              "restrictFlavorIds":null
             }
           ]
         },
@@ -194,9 +176,7 @@ var cloud_configs = {
                 "name":"JS-API-Featured-CentOS8-Latest",
                 "visibility":"public"
               },
-              "flavorIds":[
-
-              ]
+              "restrictFlavorIds":null
             },
             {
               "friendlyName":"7",
@@ -205,9 +185,7 @@ var cloud_configs = {
                 "name":"JS-API-Featured-CentOS7-Latest",
                 "visibility":"public"
               },
-              "flavorIds":[
-
-              ]
+              "restrictFlavorIds":null
             },
             {
               "friendlyName":"7 with Intel compiler",
@@ -216,9 +194,7 @@ var cloud_configs = {
                 "name":"JS-API-Featured-CentOS7-Intel-Developer-Latest",
                 "visibility":"public"
               },
-              "flavorIds":[
-
-              ]
+              "restrictFlavorIds":null
             }
           ]
         }

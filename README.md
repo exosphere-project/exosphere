@@ -300,9 +300,7 @@ var cloud_configs = {
                 "name":"JS-API-Featured-Ubuntu20-Latest",
                 "visibility":"public"
               },
-              "flavorIds":[
-
-              ]
+              "restrictFlavorIds":null
             }
           ]
         }
