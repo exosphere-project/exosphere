@@ -754,8 +754,8 @@ flavorPicker context project model computeQuota =
 
         anyFlavorsTooLarge =
             allowedFlavors
-                |> List.map (OSQuotas.computeQuotaFlavorAvailServers computeQuota)
-                |> List.filterMap (Maybe.map (\x -> x < 1))
+                |> List.filterMap (OSQuotas.computeQuotaFlavorAvailServers computeQuota)
+                |> List.filter (\x -> x < 1)
                 |> List.isEmpty
                 |> not
     in
