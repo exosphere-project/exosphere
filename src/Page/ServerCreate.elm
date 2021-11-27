@@ -73,11 +73,12 @@ type Msg
     | NoOp
 
 
-init : OSTypes.ImageUuid -> String -> Maybe Bool -> Model
-init imageUuid imageName deployGuacamole =
+init : OSTypes.ImageUuid -> String -> Maybe (List OSTypes.FlavorId) -> Maybe Bool -> Model
+init imageUuid imageName restrictFlavorIds deployGuacamole =
     { serverName = imageName
     , imageUuid = imageUuid
     , imageName = imageName
+    , restrictFlavorIds = restrictFlavorIds
     , count = 1
     , flavorId = ""
     , volSizeTextInput = Nothing
@@ -627,6 +628,15 @@ flavorPicker context project model computeQuota =
         { locale } =
             context
 
+        allowedFlavors =
+            case model.restrictFlavorIds of
+                Nothing ->
+                    project.flavors
+
+                Just restrictedFlavorIds ->
+                    restrictedFlavorIds
+                        |> List.filterMap (GetterSetters.flavorLookup project)
+
         -- This is a kludge. Input.radio is intended to display a group of multiple radio buttons,
         -- but we want to embed a button in each table row, so we define several Input.radios,
         -- each containing just a single option.
@@ -716,7 +726,7 @@ flavorPicker context project model computeQuota =
             ]
 
         zeroRootDiskExplainText =
-            case List.Extra.find (\f -> f.disk_root == 0) project.flavors of
+            case List.Extra.find (\f -> f.disk_root == 0) allowedFlavors of
                 Just _ ->
                     String.concat
                         [ "* No default root disk size is defined for this "
@@ -743,7 +753,7 @@ flavorPicker context project model computeQuota =
                 []
 
         anyFlavorsTooLarge =
-            project.flavors
+            allowedFlavors
                 |> List.map (OSQuotas.computeQuotaFlavorAvailServers computeQuota)
                 |> List.filterMap (Maybe.map (\x -> x < 1))
                 |> List.isEmpty
@@ -756,7 +766,7 @@ flavorPicker context project model computeQuota =
             (Element.text <| Helpers.String.toTitleCase context.localization.virtualComputerHardwareConfig)
         , Element.table
             flavorEmptyHint
-            { data = GetterSetters.sortedFlavors project.flavors
+            { data = GetterSetters.sortedFlavors allowedFlavors
             , columns = columns
             }
         , if anyFlavorsTooLarge then

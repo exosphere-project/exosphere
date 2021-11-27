@@ -257,7 +257,7 @@ routeToViewStateModelCmd sharedModel route =
                                 ]
                             )
 
-                        Route.ServerCreate imageId imageName _ maybeDeployGuac ->
+                        Route.ServerCreate imageId imageName maybeRestrictFlavorIds maybeDeployGuac ->
                             let
                                 cmd =
                                     Cmd.batch
@@ -276,7 +276,14 @@ routeToViewStateModelCmd sharedModel route =
                                         |> Helpers.pipelineCmd (ApiModelHelpers.requestComputeQuota project.auth.project.uuid)
                                         |> Helpers.pipelineCmd (ApiModelHelpers.requestVolumeQuota project.auth.project.uuid)
                             in
-                            ( projectViewProto <| ServerCreate (Page.ServerCreate.init imageId imageName maybeDeployGuac)
+                            ( projectViewProto <|
+                                ServerCreate
+                                    (Page.ServerCreate.init
+                                        imageId
+                                        imageName
+                                        maybeRestrictFlavorIds
+                                        maybeDeployGuac
+                                    )
                             , newSharedModel
                             , newCmd
                             )

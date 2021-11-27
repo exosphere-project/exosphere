@@ -235,10 +235,10 @@ type SupportableItemType
 
 
 type alias CreateServerPageModel =
-    -- TODO model allowed flavor IDs per instance type version
     { serverName : String
     , imageUuid : OSTypes.ImageUuid
     , imageName : String
+    , restrictFlavorIds : Maybe (List OSTypes.FlavorId)
     , count : Int
     , flavorId : OSTypes.FlavorId
     , volSizeTextInput : Maybe NumericTextInput
