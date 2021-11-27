@@ -6,10 +6,9 @@ Instance types can express:
 - Operating systems and versions
 - GPU instances, which must be launched with certain images and flavors
 
-TODO update this screenshot?
 ![screenshot of instance type choices](assets/screenshot-instance-types.png)
 
-OpenStack gives its administrators wide flexibility to choose which images and flavors you offer your users, which names and metadata those options bear, and how they are organized. Thus, Exosphere cannot _automagically_ determine what your menu of instance types should look like, or how each type should map to Glance images and flavors. In order for this nice menu to appear, you need to write it, using structured JSON. This doc will teach you how.
+OpenStack gives its administrators wide flexibility to choose which images and flavors you offer your users, which names and metadata those options bear, and how they are organized. Thus, Exosphere cannot _automagically_ determine what your menu of instance types should look like, or how each type should map to Glance images and Nova flavors. In order for this nice menu to appear, you need to write it, using structured JSON. This doc will teach you how.
 
 The instance types are defined in `config.js`, within each cloud of the `clouds` array, as an `instanceTypes` array. (See the "Runtime configuration options" section of README.md for an overview of how this works.) The overall structure of `instanceTypes` is a list of instance types, each of which contains a list of version choices. Scroll to the bottom for an example of this JSON.
 
