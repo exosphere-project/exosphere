@@ -321,10 +321,11 @@ instanceTypeDecoder =
 
 instanceTypeVersionDecoder : Decode.Decoder HelperTypes.InstanceTypeVersion
 instanceTypeVersionDecoder =
-    Decode.map3 HelperTypes.InstanceTypeVersion
+    Decode.map4 HelperTypes.InstanceTypeVersion
         (Decode.field "friendlyName" Decode.string)
         (Decode.field "isPrimary" Decode.bool)
         (Decode.field "imageFilters" imageFiltersDecoder)
+        (Decode.field "restrictFlavorIds" (Decode.list Decode.string |> Decode.nullable))
 
 
 imageFiltersDecoder : Decode.Decoder HelperTypes.InstanceTypeImageFilters

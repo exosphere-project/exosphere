@@ -53,7 +53,7 @@ type ProjectRouteConstructor
     | InstanceSourcePicker
     | KeypairCreate
     | KeypairList
-    | ServerCreate OSTypes.ImageUuid String (Maybe Bool)
+    | ServerCreate OSTypes.ImageUuid String (Maybe (List OSTypes.FlavorId)) (Maybe Bool)
     | ServerCreateImage OSTypes.ServerUuid (Maybe String)
     | ServerDetail OSTypes.ServerUuid
     | ServerList
@@ -184,11 +184,21 @@ toUrl maybePathPrefix route =
                             , []
                             )
 
-                        ServerCreate imageUuid imageName maybeDeployGuac ->
+                        ServerCreate imageUuid imageName restrictFlavorIds maybeDeployGuac ->
                             ( [ "createserver"
                               ]
                             , [ UB.string "imageuuid" imageUuid
                               , UB.string "imagename" imageName
+                              , UB.string "restrictflavorids"
+                                    (case restrictFlavorIds of
+                                        Nothing ->
+                                            "false"
+
+                                        Just flavorIds ->
+                                            -- OpenStack doesn't allow flavor IDs to contain the @ symbol,
+                                            -- so use it to separate them in this query parameter value
+                                            String.join "@" ("true" :: flavorIds)
+                                    )
                               , UB.string "deployguac"
                                     (case maybeDeployGuac of
                                         Just bool ->
@@ -544,13 +554,37 @@ projectRouteParsers =
                     ]
 
             queryParser =
-                Query.map3
+                Query.map4
                     ServerCreate
                     (Query.string "imageuuid"
                         |> Query.map (Maybe.withDefault "")
                     )
                     (Query.string "imagename"
                         |> Query.map (Maybe.withDefault "")
+                    )
+                    (Query.string "restrictflavorids"
+                        |> Query.map
+                            (\value ->
+                                -- Nothing if this query parameter doesn't exist. Sorry for ugly factoring.
+                                -- elm-analyse doesn't let you map Nothing to Nothing in a case statement.
+                                value
+                                    |> Maybe.andThen
+                                        (\value_ ->
+                                            if value_ == "false" then
+                                                Nothing
+
+                                            else
+                                                let
+                                                    -- The beginning of the value will be "true@";
+                                                    -- this is not to be interpreted as a flavor ID,
+                                                    -- it just indicates we are passing flavor IDs
+                                                    flavorIds =
+                                                        String.dropLeft 5 value_
+                                                in
+                                                Just
+                                                    (String.split "@" flavorIds)
+                                        )
+                            )
                     )
                     (Query.enum "deployguac" maybeBoolEnumDict
                         |> Query.map (Maybe.withDefault Nothing)

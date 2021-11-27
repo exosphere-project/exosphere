@@ -257,7 +257,7 @@ routeToViewStateModelCmd sharedModel route =
                                 ]
                             )
 
-                        Route.ServerCreate imageId imageName maybeDeployGuac ->
+                        Route.ServerCreate imageId imageName _ maybeDeployGuac ->
                             let
                                 cmd =
                                     Cmd.batch

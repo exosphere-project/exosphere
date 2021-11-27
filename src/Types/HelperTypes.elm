@@ -141,6 +141,7 @@ type alias InstanceTypeVersion =
     { friendlyName : String
     , isPrimary : Bool
     , imageFilters : InstanceTypeImageFilters
+    , restrictFlavorIds : Maybe (List OSTypes.FlavorId)
     }
 
 
@@ -234,6 +235,7 @@ type SupportableItemType
 
 
 type alias CreateServerPageModel =
+    -- TODO model allowed flavor IDs per instance type version
     { serverName : String
     , imageUuid : OSTypes.ImageUuid
     , imageName : String

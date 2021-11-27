@@ -3,6 +3,7 @@ module Page.InstanceTypeList exposing (Msg(..), view)
 import Dict
 import Element
 import Element.Font as Font
+import Helpers.GetterSetters as GetterSetters
 import Html.Attributes as HtmlA
 import OpenStack.Types as OSTypes
 import Route
@@ -19,22 +20,57 @@ type Msg
     = NoOp
 
 
+type HaveUsableFlavors
+    = NoUsableFlavors
+    | YesUsableFlavors FlavorRestriction
+
+
+type FlavorRestriction
+    = NoFlavorRestriction
+    | FlavorRestrictionValidFlavors
+
+
 view : View.Types.Context -> Project -> List HelperTypes.InstanceType -> Element.Element Msg
 view context project instanceTypes =
     let
         renderVersion : HelperTypes.InstanceTypeVersion -> Element.Element Msg
         renderVersion instanceTypeVersion =
-            case getImageforInstanceTypeVersion project.images instanceTypeVersion.imageFilters of
-                Nothing ->
+            let
+                maybeImage =
+                    getImageforInstanceTypeVersion project.images instanceTypeVersion.imageFilters
+
+                haveUsableFlavors =
+                    case instanceTypeVersion.restrictFlavorIds of
+                        Nothing ->
+                            YesUsableFlavors NoFlavorRestriction
+
+                        Just validFlavorIds ->
+                            let
+                                validFlavors =
+                                    validFlavorIds
+                                        |> List.filterMap (GetterSetters.flavorLookup project)
+                            in
+                            if List.isEmpty validFlavors then
+                                NoUsableFlavors
+
+                            else
+                                YesUsableFlavors FlavorRestrictionValidFlavors
+            in
+            case ( maybeImage, haveUsableFlavors ) of
+                ( Nothing, _ ) ->
                     Element.none
 
-                Just image ->
+                ( _, NoUsableFlavors ) ->
+                    Element.none
+
+                ( Just image, _ ) ->
                     let
                         chooseRoute =
                             Route.ProjectRoute project.auth.project.uuid <|
                                 Route.ServerCreate
                                     image.uuid
                                     image.name
+                                    instanceTypeVersion.restrictFlavorIds
                                     (VH.userAppProxyLookup context project
                                         |> Maybe.map (\_ -> True)
                                     )
