@@ -238,7 +238,10 @@ routeToViewStateModelCmd sharedModel route =
                         Route.InstanceSourcePicker ->
                             ( projectViewProto <| InstanceSourcePicker <| Page.InstanceSourcePicker.init
                             , sharedModel
-                            , Rest.Glance.requestImages sharedModel project
+                            , Cmd.batch
+                                [ Rest.Glance.requestImages sharedModel project
+                                , Rest.Nova.requestFlavors project
+                                ]
                             )
 
                         Route.KeypairCreate ->
