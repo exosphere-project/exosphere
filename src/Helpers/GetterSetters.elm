@@ -82,7 +82,7 @@ projectLookup model projectIdentifier =
 flavorLookup : Project -> OSTypes.FlavorId -> Maybe OSTypes.Flavor
 flavorLookup project flavorId =
     project.flavors
-        |> List.Extra.find (\f -> f.uuid == flavorId)
+        |> List.Extra.find (\f -> f.id == flavorId)
 
 
 imageLookup : Project -> OSTypes.ImageUuid -> Maybe OSTypes.Image

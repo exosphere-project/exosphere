@@ -126,7 +126,7 @@ update msg project model =
                         { model
                             | flavorId =
                                 if model.flavorId == "" then
-                                    smallestFlavor.uuid
+                                    smallestFlavor.id
 
                                 else
                                     model.flavorId
@@ -654,10 +654,10 @@ flavorPicker context project model computeQuota =
                         []
                         { label = Input.labelHidden flavor.name
                         , onChange = GotFlavorId
-                        , options = [ Input.option flavor.uuid (Element.text " ") ]
+                        , options = [ Input.option flavor.id (Element.text " ") ]
                         , selected =
-                            if flavor.uuid == model.flavorId then
-                                Just flavor.uuid
+                            if flavor.id == model.flavorId then
+                                Just flavor.id
 
                             else
                                 Nothing
