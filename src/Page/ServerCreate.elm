@@ -50,7 +50,7 @@ type Msg
     = GotServerName String
     | GotCount Int
     | GotFlavorId OSTypes.FlavorId
-    | GotDefaultFlavor OSTypes.FlavorId
+    | GotFlavorList
     | GotVolSizeTextInput (Maybe NumericTextInput)
     | GotUserDataTemplate String
     | GotNetworks
@@ -112,19 +112,31 @@ update msg project model =
         GotFlavorId flavorId ->
             ( enforceQuotaCompliance project { model | flavorId = flavorId }, Cmd.none, SharedMsg.NoOp )
 
-        GotDefaultFlavor flavorId ->
-            ( enforceQuotaCompliance project
-                { model
-                    | flavorId =
-                        if model.flavorId == "" then
-                            flavorId
+        GotFlavorList ->
+            let
+                allowedFlavors =
+                    getAllowedFlavors model project
 
-                        else
-                            model.flavorId
-                }
-            , Cmd.none
-            , SharedMsg.NoOp
-            )
+                maybeSmallestFlavor =
+                    GetterSetters.sortedFlavors allowedFlavors |> List.head
+            in
+            case maybeSmallestFlavor of
+                Just smallestFlavor ->
+                    ( enforceQuotaCompliance project
+                        { model
+                            | flavorId =
+                                if model.flavorId == "" then
+                                    smallestFlavor.uuid
+
+                                else
+                                    model.flavorId
+                        }
+                    , Cmd.none
+                    , SharedMsg.NoOp
+                    )
+
+                Nothing ->
+                    ( model, Cmd.none, SharedMsg.NoOp )
 
         GotVolSizeTextInput maybeVolSizeInput ->
             ( enforceQuotaCompliance project { model | volSizeTextInput = maybeVolSizeInput }, Cmd.none, SharedMsg.NoOp )
@@ -396,6 +408,7 @@ view context project model =
                     invalidVolSizeTextInput || invalidWorkflowTextInput
             in
             case ( invalidNameReasons, invalidInputs, model.networkUuid ) of
+                -- TODO require a choice of flavor
                 ( Nothing, False, Just netUuid ) ->
                     ( Just <| SharedMsg (SharedMsg.ProjectMsg project.auth.project.uuid (SharedMsg.RequestCreateServer model netUuid))
                     , Nothing
@@ -629,13 +642,7 @@ flavorPicker context project model computeQuota =
             context
 
         allowedFlavors =
-            case model.restrictFlavorIds of
-                Nothing ->
-                    project.flavors
-
-                Just restrictedFlavorIds ->
-                    restrictedFlavorIds
-                        |> List.filterMap (GetterSetters.flavorLookup project)
+            getAllowedFlavors model project
 
         -- This is a kludge. Input.radio is intended to display a group of multiple radio buttons,
         -- but we want to embed a button in each table row, so we define several Input.radios,
@@ -1626,3 +1633,14 @@ userDataInput context model =
             , spellcheck = False
             }
         ]
+
+
+getAllowedFlavors : Model -> Project -> List OSTypes.Flavor
+getAllowedFlavors model project =
+    case model.restrictFlavorIds of
+        Nothing ->
+            project.flavors
+
+        Just restrictedFlavorIds ->
+            restrictedFlavorIds
+                |> List.filterMap (GetterSetters.flavorLookup project)
