@@ -408,7 +408,6 @@ view context project model =
                     invalidVolSizeTextInput || invalidWorkflowTextInput
             in
             case ( invalidNameReasons, invalidInputs, model.networkUuid ) of
-                -- TODO require a choice of flavor
                 ( Nothing, False, Just netUuid ) ->
                     ( Just <| SharedMsg (SharedMsg.ProjectMsg project.auth.project.uuid (SharedMsg.RequestCreateServer model netUuid))
                     , Nothing
