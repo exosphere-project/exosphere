@@ -40,6 +40,8 @@
   lineinfile:
     line: '{{ item }}'
     path: '/etc/dconf/profile/user'
+    create: 'yes'
+    state: 'present'
   loop:
     - 'user-db:user'
     - 'system-db:local'
