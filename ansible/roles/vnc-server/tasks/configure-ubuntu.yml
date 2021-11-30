@@ -5,6 +5,7 @@
     src: 'xstartup.j2'
     dest: '/home/{{ vnc_server_user }}/.vnc/xstartup'
     owner: '{{ vnc_server_user }}'
+    mode: 'u+x'
 
 - name: 'systemd unit file templated'
   template:

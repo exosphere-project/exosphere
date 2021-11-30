@@ -1,6 +1,6 @@
-#!/bin/bash
+#!/bin/sh
 
-PATH=/usr/bin:/usr/sbin
-unset SESSION_MANAGER
-unset DBUS_SESSION_BUS_ADDRESS
-exec /usr/bin/gnome-session --session=gnome
+[ -x /etc/vnc/xstartup ] && exec /etc/vnc/xstartup
+[ -r $HOME/.Xresources ] && xrdb $HOME/.Xresources
+vncconfig -iconic &
+dbus-launch --exit-with-session gnome-session &
