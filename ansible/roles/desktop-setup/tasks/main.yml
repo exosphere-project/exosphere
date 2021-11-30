@@ -46,6 +46,10 @@
     - 'user-db:user'
     - 'system-db:local'
 
+- name: 'dconf local.d directory created'
+  file:
+    path: '/etc/dconf/db/local.d'
+    state: 'directory'
 
 - name: 'Screen lock disabled'
   template:
