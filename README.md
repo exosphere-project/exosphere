@@ -60,7 +60,7 @@ We discuss project progress and priorities on a **weekly video call** Mondays at
 
 - [User Application Proxy (UAP)](docs/user-app-proxy.md)
 - [Solving the CORS Problem (Cloud CORS Proxy)](docs/solving-cors-problem.md)
-- [Configuring Operating System Choices](docs/operating-system-choices.md)
+- [Configuring Instance Types](docs/instance-types.md)
 - [Federated Login Support](docs/federated-login.md)
 
 ### For Exosphere Contributors
@@ -261,7 +261,7 @@ Each of these JSON objects contains the following properties:
 - `userAppProxy` (null, string): The hostname of the User Application proxy (UAP), e.g. `uap.openstack.example.cloud`. See `docs/user-app-proxy.md` for more information. This _must_ be set for Guacamole support (in-browser shell and desktop) to work on a given cloud.
 - `imageExcludeFilter` (null, JSON object): A key:value property to exclude images from UI, see example below
 - `featuredImageNamePrefix` (null, string): A (public) image is 'featured' if the name starts with this string
-- `operatingSystemChoices` (array): An array of operating system choices specific to this cloud, can be left empty. See `docs/operating-system-choices.md` for more information.
+- `instanceTypes` (array): An array of instance types specific to this cloud, can be left empty. See `docs/instance-types.md` for more information.
 
 ```javascript
 var cloud_configs = {
@@ -273,7 +273,7 @@ var cloud_configs = {
       "userAppProxy":"uap.openstack.example.cloud",
       "imageExcludeFilter":null,
       "featuredImageNamePrefix":null,
-      "operatingSystemChoices":[
+      "instanceTypes":[
         
       ]
     },
@@ -287,7 +287,7 @@ var cloud_configs = {
         "filterValue":"true"
       },
       "featuredImageNamePrefix":"JS-API-Featured",
-      "operatingSystemChoices":[
+      "instanceTypes":[
         {
           "friendlyName":"Ubuntu",
           "description":"Wide compatibility with community software packages, good choice for new users",
@@ -296,10 +296,11 @@ var cloud_configs = {
             {
               "friendlyName":"20.04 (latest)",
               "isPrimary":true,
-              "filters":{
+              "imageFilters":{
                 "name":"JS-API-Featured-Ubuntu20-Latest",
                 "visibility":"public"
-              }
+              },
+              "restrictFlavorIds":null
             }
           ]
         }

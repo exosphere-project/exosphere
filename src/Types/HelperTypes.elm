@@ -9,15 +9,15 @@ module Types.HelperTypes exposing
     , Hostname
     , HttpRequestMethod(..)
     , IPv4AddressPublicRoutability(..)
+    , InstanceType
+    , InstanceTypeImageFilters
+    , InstanceTypeVersion
     , JetstreamCreds
     , JetstreamProvider(..)
     , KeystoneHostname
     , Localization
     , MetadataFilter
     , OpenIdConnectLoginConfig
-    , OperatingSystemChoice
-    , OperatingSystemChoiceVersion
-    , OperatingSystemImageFilters
     , Password
     , ProjectIdentifier
     , SupportableItemType(..)
@@ -121,7 +121,7 @@ type alias CloudSpecificConfig =
     , userAppProxy : Maybe UserAppProxyHostname
     , imageExcludeFilter : Maybe MetadataFilter
     , featuredImageNamePrefix : Maybe String
-    , operatingSystemChoices : List OperatingSystemChoice
+    , instanceTypes : List InstanceType
     }
 
 
@@ -129,22 +129,23 @@ type alias CloudSpecificConfigMap =
     Dict KeystoneHostname CloudSpecificConfig
 
 
-type alias OperatingSystemChoice =
+type alias InstanceType =
     { friendlyName : String
     , description : String
     , logo : Url
-    , versions : List OperatingSystemChoiceVersion
+    , versions : List InstanceTypeVersion
     }
 
 
-type alias OperatingSystemChoiceVersion =
+type alias InstanceTypeVersion =
     { friendlyName : String
     , isPrimary : Bool
-    , filters : OperatingSystemImageFilters
+    , imageFilters : InstanceTypeImageFilters
+    , restrictFlavorIds : Maybe (List OSTypes.FlavorId)
     }
 
 
-type alias OperatingSystemImageFilters =
+type alias InstanceTypeImageFilters =
     { nameFilter : Maybe String
     , uuidFilter : Maybe OSTypes.ImageUuid
     , visibilityFilter : Maybe OSTypes.ImageVisibility
@@ -237,8 +238,9 @@ type alias CreateServerPageModel =
     { serverName : String
     , imageUuid : OSTypes.ImageUuid
     , imageName : String
+    , restrictFlavorIds : Maybe (List OSTypes.FlavorId)
     , count : Int
-    , flavorUuid : OSTypes.FlavorUuid
+    , flavorId : OSTypes.FlavorId
     , volSizeTextInput : Maybe NumericTextInput
     , userDataTemplate : String
     , networkUuid : Maybe OSTypes.NetworkUuid

@@ -12,7 +12,7 @@ var cloud_configs = {
         "filterValue":"true"
       },
       "featuredImageNamePrefix":"JS-API-Featured",
-      "operatingSystemChoices":[
+      "instanceTypes":[
         {
           "friendlyName":"Ubuntu",
           "description":"- Wide compatibility with community software packages\n\n- Good choice for new users",
@@ -21,34 +21,47 @@ var cloud_configs = {
             {
               "friendlyName":"20.04 (latest)",
               "isPrimary":true,
-              "filters":{
+              "imageFilters":{
                 "name":"JS-API-Featured-Ubuntu20-Latest",
                 "visibility":"public"
-              }
+              },
+              "restrictFlavorIds":null
             },
             {
-              "friendlyName":"20.04 with NVIDIA drivers",
+              "friendlyName":"20.04 with GPU",
               "isPrimary":false,
-              "filters":{
+              "imageFilters":{
                 "name":"JS-API-Featured-Ubuntu20-NVIDIA-Latest",
                 "visibility":"public"
-              }
+              },
+              "restrictFlavorIds":[
+                "24",
+                "25",
+                "26",
+                "27",
+                "28",
+                "29",
+                "30",
+                "31"
+              ]
             },
             {
               "friendlyName":"18.04",
               "isPrimary":false,
-              "filters":{
+              "imageFilters":{
                 "name":"JS-API-Featured-Ubuntu18-Latest",
                 "visibility":"public"
-              }
+              },
+              "restrictFlavorIds":null
             },
             {
               "friendlyName":"18.04 with MATLAB",
               "isPrimary":false,
-              "filters":{
+              "imageFilters":{
                 "name":"JS-API-Featured-Ubuntu18-MATLAB-Latest",
                 "visibility":"public"
-              }
+              },
+              "restrictFlavorIds":null
             }
           ]
         },
@@ -60,34 +73,47 @@ var cloud_configs = {
             {
               "friendlyName":"8 (latest)",
               "isPrimary":true,
-              "filters":{
+              "imageFilters":{
                 "name":"JS-API-Featured-CentOS8-Latest",
                 "visibility":"public"
-              }
+              },
+              "restrictFlavorIds":null
             },
             {
               "friendlyName":"7",
               "isPrimary":false,
-              "filters":{
+              "imageFilters":{
                 "name":"JS-API-Featured-CentOS7-Latest",
                 "visibility":"public"
-              }
+              },
+              "restrictFlavorIds":null
             },
             {
-              "friendlyName":"7 with NVIDIA drivers",
+              "friendlyName":"7 with GPU",
               "isPrimary":false,
-              "filters":{
+              "imageFilters":{
                 "name":"JS-API-Featured-CentOS7-NVIDIA-Latest",
                 "visibility":"public"
-              }
+              },
+              "restrictFlavorIds":[
+                "24",
+                "25",
+                "26",
+                "27",
+                "28",
+                "29",
+                "30",
+                "31"
+              ]
             },
             {
               "friendlyName":"7 with Intel compiler",
               "isPrimary":false,
-              "filters":{
+              "imageFilters":{
                 "name":"JS-API-Featured-CentOS7-Intel-Developer-Latest",
                 "visibility":"public"
-              }
+              },
+              "restrictFlavorIds":null
             }
           ]
         }
@@ -103,7 +129,7 @@ var cloud_configs = {
         "filterValue":"true"
       },
       "featuredImageNamePrefix":"JS-API-Featured",
-      "operatingSystemChoices":[
+      "instanceTypes":[
         {
           "friendlyName":"Ubuntu",
           "description":"- Wide compatibility with community software packages\n\n- Good choice for new users",
@@ -112,26 +138,29 @@ var cloud_configs = {
             {
               "friendlyName":"20.04 (latest)",
               "isPrimary":true,
-              "filters":{
+              "imageFilters":{
                 "name":"JS-API-Featured-Ubuntu20-Latest",
                 "visibility":"public"
-              }
+              },
+              "restrictFlavorIds":null
             },
             {
               "friendlyName":"18.04",
               "isPrimary":false,
-              "filters":{
+              "imageFilters":{
                 "name":"JS-API-Featured-Ubuntu18-Latest",
                 "visibility":"public"
-              }
+              },
+              "restrictFlavorIds":null
             },
             {
               "friendlyName":"16.04 with MATLAB",
               "isPrimary":false,
-              "filters":{
+              "imageFilters":{
                 "name":"JS-API-Featured-Ubuntu16-MATLAB-Latest",
                 "visibility":"public"
-              }
+              },
+              "restrictFlavorIds":null
             }
           ]
         },
@@ -143,26 +172,29 @@ var cloud_configs = {
             {
               "friendlyName":"8 (latest)",
               "isPrimary":true,
-              "filters":{
+              "imageFilters":{
                 "name":"JS-API-Featured-CentOS8-Latest",
                 "visibility":"public"
-              }
+              },
+              "restrictFlavorIds":null
             },
             {
               "friendlyName":"7",
               "isPrimary":false,
-              "filters":{
+              "imageFilters":{
                 "name":"JS-API-Featured-CentOS7-Latest",
                 "visibility":"public"
-              }
+              },
+              "restrictFlavorIds":null
             },
             {
               "friendlyName":"7 with Intel compiler",
               "isPrimary":false,
-              "filters":{
+              "imageFilters":{
                 "name":"JS-API-Featured-CentOS7-Intel-Developer-Latest",
                 "visibility":"public"
-              }
+              },
+              "restrictFlavorIds":null
             }
           ]
         }
@@ -175,7 +207,7 @@ var cloud_configs = {
       "userAppProxy":null,
       "imageExcludeFilter":null,
       "featuredImageNamePrefix":null,
-      "operatingSystemChoices":[]
+      "instanceTypes":[]
     }
   ]
 }

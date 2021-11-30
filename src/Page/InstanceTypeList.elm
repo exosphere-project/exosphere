@@ -1,8 +1,9 @@
-module Page.OperatingSystemList exposing (Msg(..), view)
+module Page.InstanceTypeList exposing (Msg(..), view)
 
 import Dict
 import Element
 import Element.Font as Font
+import Helpers.GetterSetters as GetterSetters
 import Html.Attributes as HtmlA
 import OpenStack.Types as OSTypes
 import Route
@@ -19,28 +20,63 @@ type Msg
     = NoOp
 
 
-view : View.Types.Context -> Project -> List HelperTypes.OperatingSystemChoice -> Element.Element Msg
-view context project opSysChoices =
+type HaveUsableFlavors
+    = NoUsableFlavors
+    | YesUsableFlavors FlavorRestriction
+
+
+type FlavorRestriction
+    = NoFlavorRestriction
+    | FlavorRestrictionValidFlavors
+
+
+view : View.Types.Context -> Project -> List HelperTypes.InstanceType -> Element.Element Msg
+view context project instanceTypes =
     let
-        renderOpSysChoiceVersion : HelperTypes.OperatingSystemChoiceVersion -> Element.Element Msg
-        renderOpSysChoiceVersion opSysChoiceVersion =
-            case getImageforOpSysChoiceVersion project.images opSysChoiceVersion.filters of
-                Nothing ->
+        renderVersion : HelperTypes.InstanceTypeVersion -> Element.Element Msg
+        renderVersion instanceTypeVersion =
+            let
+                maybeImage =
+                    getImageforInstanceTypeVersion project.images instanceTypeVersion.imageFilters
+
+                haveUsableFlavors =
+                    case instanceTypeVersion.restrictFlavorIds of
+                        Nothing ->
+                            YesUsableFlavors NoFlavorRestriction
+
+                        Just validFlavorIds ->
+                            let
+                                validFlavors =
+                                    validFlavorIds
+                                        |> List.filterMap (GetterSetters.flavorLookup project)
+                            in
+                            if List.isEmpty validFlavors then
+                                NoUsableFlavors
+
+                            else
+                                YesUsableFlavors FlavorRestrictionValidFlavors
+            in
+            case ( maybeImage, haveUsableFlavors ) of
+                ( Nothing, _ ) ->
                     Element.none
 
-                Just image ->
+                ( _, NoUsableFlavors ) ->
+                    Element.none
+
+                ( Just image, _ ) ->
                     let
                         chooseRoute =
                             Route.ProjectRoute project.auth.project.uuid <|
                                 Route.ServerCreate
                                     image.uuid
                                     image.name
+                                    instanceTypeVersion.restrictFlavorIds
                                     (VH.userAppProxyLookup context project
                                         |> Maybe.map (\_ -> True)
                                     )
 
                         buttonStyleProto =
-                            if opSysChoiceVersion.isPrimary then
+                            if instanceTypeVersion.isPrimary then
                                 (SH.materialStyle context.palette).primaryButton
 
                             else
@@ -64,14 +100,14 @@ view context project opSysChoices =
                             Widget.textButton
                                 buttonStyle
                                 { text =
-                                    opSysChoiceVersion.friendlyName
+                                    instanceTypeVersion.friendlyName
                                 , onPress =
                                     Just NoOp
                                 }
                         }
 
-        renderOpSysChoice : HelperTypes.OperatingSystemChoice -> Element.Element Msg
-        renderOpSysChoice opSysChoice =
+        renderInstanceType : HelperTypes.InstanceType -> Element.Element Msg
+        renderInstanceType instanceType =
             Element.el
                 [ Element.width <| Element.px 350, Element.alignTop ]
             <|
@@ -90,40 +126,40 @@ view context project opSysChoices =
                             , Element.htmlAttribute <| HtmlA.style "color" "blue"
                             , Font.color <| SH.toElementColor context.palette.primary
                             ]
-                            { src = opSysChoice.logo
-                            , description = opSysChoice.friendlyName ++ " logo"
+                            { src = instanceType.logo
+                            , description = instanceType.friendlyName ++ " logo"
                             }
                         , Element.el
                             [ Element.centerX
                             , Font.bold
                             ]
                           <|
-                            Element.text opSysChoice.friendlyName
+                            Element.text instanceType.friendlyName
                         , Element.paragraph [ Element.width Element.fill ] <|
-                            VH.renderMarkdown context opSysChoice.description
+                            VH.renderMarkdown context instanceType.description
                         ]
                     , Element.column
                         [ Element.padding 10
                         , Element.spacing 10
                         , Element.centerX
                         ]
-                        (opSysChoice.versions
-                            |> List.map renderOpSysChoiceVersion
+                        (instanceType.versions
+                            |> List.map renderVersion
                         )
                     ]
     in
     Element.column VH.contentContainer
         [ Element.wrappedRow [ Element.width Element.fill, Element.spacing 40, Element.alignTop ]
-            (List.map renderOpSysChoice opSysChoices)
+            (List.map renderInstanceType instanceTypes)
         ]
 
 
-getImageforOpSysChoiceVersion : List OSTypes.Image -> HelperTypes.OperatingSystemImageFilters -> Maybe OSTypes.Image
-getImageforOpSysChoiceVersion images_ filters =
+getImageforInstanceTypeVersion : List OSTypes.Image -> HelperTypes.InstanceTypeImageFilters -> Maybe OSTypes.Image
+getImageforInstanceTypeVersion images_ imageFilters =
     let
         applyNameFilter : OSTypes.Image -> Bool
         applyNameFilter image =
-            case filters.nameFilter of
+            case imageFilters.nameFilter of
                 Just name ->
                     image.name == name
 
@@ -132,7 +168,7 @@ getImageforOpSysChoiceVersion images_ filters =
 
         applyUuidFilter : OSTypes.Image -> Bool
         applyUuidFilter image =
-            case filters.uuidFilter of
+            case imageFilters.uuidFilter of
                 Just uuid ->
                     let
                         lowerCaseNoHyphens : String -> String
@@ -148,7 +184,7 @@ getImageforOpSysChoiceVersion images_ filters =
 
         applyVisibilityFilter : OSTypes.Image -> Bool
         applyVisibilityFilter image =
-            case filters.visibilityFilter of
+            case imageFilters.visibilityFilter of
                 Just visibility ->
                     image.visibility == visibility
 
@@ -157,7 +193,7 @@ getImageforOpSysChoiceVersion images_ filters =
 
         applyOsDistroFilter : OSTypes.Image -> Bool
         applyOsDistroFilter image =
-            case filters.osDistroFilter of
+            case imageFilters.osDistroFilter of
                 Just filterOsDistro ->
                     case image.osDistro of
                         Just imageOsDistro ->
@@ -171,7 +207,7 @@ getImageforOpSysChoiceVersion images_ filters =
 
         applyOsVersionFilter : OSTypes.Image -> Bool
         applyOsVersionFilter image =
-            case filters.osVersionFilter of
+            case imageFilters.osVersionFilter of
                 Just filterOsVersion ->
                     case image.osVersion of
                         Just imageOsVersion ->
@@ -185,7 +221,7 @@ getImageforOpSysChoiceVersion images_ filters =
 
         applyMetadataFilter : OSTypes.Image -> Bool
         applyMetadataFilter image =
-            case filters.metadataFilter of
+            case imageFilters.metadataFilter of
                 Just filterMetadata ->
                     case Dict.get filterMetadata.filterKey image.additionalProperties of
                         Just val ->

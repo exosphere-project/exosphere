@@ -49,8 +49,8 @@ type alias Model =
 type Msg
     = GotServerName String
     | GotCount Int
-    | GotFlavorUuid OSTypes.FlavorUuid
-    | GotDefaultFlavor OSTypes.FlavorUuid
+    | GotFlavorId OSTypes.FlavorId
+    | GotFlavorList
     | GotVolSizeTextInput (Maybe NumericTextInput)
     | GotUserDataTemplate String
     | GotNetworks
@@ -73,13 +73,14 @@ type Msg
     | NoOp
 
 
-init : OSTypes.ImageUuid -> String -> Maybe Bool -> Model
-init imageUuid imageName deployGuacamole =
+init : OSTypes.ImageUuid -> String -> Maybe (List OSTypes.FlavorId) -> Maybe Bool -> Model
+init imageUuid imageName restrictFlavorIds deployGuacamole =
     { serverName = imageName
     , imageUuid = imageUuid
     , imageName = imageName
+    , restrictFlavorIds = restrictFlavorIds
     , count = 1
-    , flavorUuid = ""
+    , flavorId = ""
     , volSizeTextInput = Nothing
     , userDataTemplate = cloudInitUserDataTemplate
     , networkUuid = Nothing
@@ -108,22 +109,34 @@ update msg project model =
         GotCount count ->
             ( enforceQuotaCompliance project { model | count = count }, Cmd.none, SharedMsg.NoOp )
 
-        GotFlavorUuid flavorUuid ->
-            ( enforceQuotaCompliance project { model | flavorUuid = flavorUuid }, Cmd.none, SharedMsg.NoOp )
+        GotFlavorId flavorId ->
+            ( enforceQuotaCompliance project { model | flavorId = flavorId }, Cmd.none, SharedMsg.NoOp )
 
-        GotDefaultFlavor flavorUuid ->
-            ( enforceQuotaCompliance project
-                { model
-                    | flavorUuid =
-                        if model.flavorUuid == "" then
-                            flavorUuid
+        GotFlavorList ->
+            let
+                allowedFlavors =
+                    getAllowedFlavors model project
 
-                        else
-                            model.flavorUuid
-                }
-            , Cmd.none
-            , SharedMsg.NoOp
-            )
+                maybeSmallestFlavor =
+                    GetterSetters.sortedFlavors allowedFlavors |> List.head
+            in
+            case maybeSmallestFlavor of
+                Just smallestFlavor ->
+                    ( enforceQuotaCompliance project
+                        { model
+                            | flavorId =
+                                if model.flavorId == "" then
+                                    smallestFlavor.id
+
+                                else
+                                    model.flavorId
+                        }
+                    , Cmd.none
+                    , SharedMsg.NoOp
+                    )
+
+                Nothing ->
+                    ( model, Cmd.none, SharedMsg.NoOp )
 
         GotVolSizeTextInput maybeVolSizeInput ->
             ( enforceQuotaCompliance project { model | volSizeTextInput = maybeVolSizeInput }, Cmd.none, SharedMsg.NoOp )
@@ -277,7 +290,7 @@ enforceQuotaCompliance project model =
     -- If user is trying to choose a combination of flavor, volume-backed disk size, and count
     -- that would exceed quota, reduce count to comply with quota.
     case
-        ( GetterSetters.flavorLookup project model.flavorUuid
+        ( GetterSetters.flavorLookup project model.flavorId
         , project.computeQuota
         , project.volumeQuota
         )
@@ -589,7 +602,7 @@ view context project model =
             ]
           <|
             case
-                ( GetterSetters.flavorLookup project model.flavorUuid
+                ( GetterSetters.flavorLookup project model.flavorId
                 , project.computeQuota
                 , project.volumeQuota
                 )
@@ -627,6 +640,9 @@ flavorPicker context project model computeQuota =
         { locale } =
             context
 
+        allowedFlavors =
+            getAllowedFlavors model project
+
         -- This is a kludge. Input.radio is intended to display a group of multiple radio buttons,
         -- but we want to embed a button in each table row, so we define several Input.radios,
         -- each containing just a single option.
@@ -637,11 +653,11 @@ flavorPicker context project model computeQuota =
                     Input.radio
                         []
                         { label = Input.labelHidden flavor.name
-                        , onChange = GotFlavorUuid
-                        , options = [ Input.option flavor.uuid (Element.text " ") ]
+                        , onChange = GotFlavorId
+                        , options = [ Input.option flavor.id (Element.text " ") ]
                         , selected =
-                            if flavor.uuid == model.flavorUuid then
-                                Just flavor.uuid
+                            if flavor.id == model.flavorId then
+                                Just flavor.id
 
                             else
                                 Nothing
@@ -716,7 +732,7 @@ flavorPicker context project model computeQuota =
             ]
 
         zeroRootDiskExplainText =
-            case List.Extra.find (\f -> f.disk_root == 0) project.flavors of
+            case List.Extra.find (\f -> f.disk_root == 0) allowedFlavors of
                 Just _ ->
                     String.concat
                         [ "* No default root disk size is defined for this "
@@ -730,7 +746,7 @@ flavorPicker context project model computeQuota =
                     ""
 
         flavorEmptyHint =
-            if model.flavorUuid == "" then
+            if model.flavorId == "" then
                 [ VH.hint context <|
                     String.join
                         " "
@@ -743,9 +759,9 @@ flavorPicker context project model computeQuota =
                 []
 
         anyFlavorsTooLarge =
-            project.flavors
-                |> List.map (OSQuotas.computeQuotaFlavorAvailServers computeQuota)
-                |> List.filterMap (Maybe.map (\x -> x < 1))
+            allowedFlavors
+                |> List.filterMap (OSQuotas.computeQuotaFlavorAvailServers computeQuota)
+                |> List.filter (\x -> x < 1)
                 |> List.isEmpty
                 |> not
     in
@@ -756,9 +772,23 @@ flavorPicker context project model computeQuota =
             (Element.text <| Helpers.String.toTitleCase context.localization.virtualComputerHardwareConfig)
         , Element.table
             flavorEmptyHint
-            { data = GetterSetters.sortedFlavors project.flavors
+            { data = GetterSetters.sortedFlavors allowedFlavors
             , columns = columns
             }
+        , case model.restrictFlavorIds of
+            Nothing ->
+                Element.none
+
+            Just _ ->
+                Element.text <|
+                    String.join " "
+                        [ "Only showing"
+                        , context.localization.virtualComputerHardwareConfig
+                            |> Helpers.String.pluralize
+                        , "that are compatible with selected"
+                        , context.localization.virtualComputer
+                        , "type"
+                        ]
         , if anyFlavorsTooLarge then
             Element.text <|
                 String.join " "
@@ -1203,7 +1233,7 @@ desktopEnvironmentPicker context project model =
               in
               case model.volSizeTextInput of
                 Nothing ->
-                    case GetterSetters.flavorLookup project model.flavorUuid of
+                    case GetterSetters.flavorLookup project model.flavorId of
                         Just flavor ->
                             if flavor.disk_root < warningMaxGB then
                                 Just <| Element.text rootDiskWarnText
@@ -1602,3 +1632,14 @@ userDataInput context model =
             , spellcheck = False
             }
         ]
+
+
+getAllowedFlavors : Model -> Project -> List OSTypes.Flavor
+getAllowedFlavors model project =
+    case model.restrictFlavorIds of
+        Nothing ->
+            project.flavors
+
+        Just restrictedFlavorIds ->
+            restrictedFlavorIds
+                |> List.filterMap (GetterSetters.flavorLookup project)

@@ -375,6 +375,7 @@ renderImage context project model image =
                 Route.ServerCreate
                     image.uuid
                     image.name
+                    Nothing
                     (VH.userAppProxyLookup context project
                         |> Maybe.map (\_ -> True)
                     )

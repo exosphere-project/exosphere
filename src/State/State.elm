@@ -1096,7 +1096,7 @@ processProjectSpecificMsg outerModel project msg =
                     { name = pageModel.serverName
                     , count = pageModel.count
                     , imageUuid = pageModel.imageUuid
-                    , flavorUuid = pageModel.flavorUuid
+                    , flavorId = pageModel.flavorId
                     , volBackedSizeGb =
                         pageModel.volSizeTextInput
                             |> Maybe.andThen Style.Widgets.NumericTextInput.NumericTextInput.toMaybe
@@ -1316,23 +1316,14 @@ processProjectSpecificMsg outerModel project msg =
 
         ReceiveFlavors flavors ->
             let
-                -- If we are creating a server and no flavor is selected, select the smallest flavor
-                maybeSmallestFlavor =
-                    GetterSetters.sortedFlavors flavors |> List.head
-
                 ( newOuterModel, newCmd ) =
                     Rest.Nova.receiveFlavors sharedModel project flavors
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
             in
-            case maybeSmallestFlavor of
-                Just smallestFlavor ->
-                    ( newOuterModel, newCmd )
-                        |> pipelineCmdOuterModelMsg
-                            (updateUnderlying (ServerCreateMsg <| Page.ServerCreate.GotDefaultFlavor smallestFlavor.uuid))
-
-                Nothing ->
-                    ( newOuterModel, newCmd )
+            ( newOuterModel, newCmd )
+                |> pipelineCmdOuterModelMsg
+                    (updateUnderlying (ServerCreateMsg <| Page.ServerCreate.GotFlavorList))
 
         RequestKeypairs ->
             let

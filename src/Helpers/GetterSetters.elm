@@ -79,10 +79,10 @@ projectLookup model projectIdentifier =
         |> List.Extra.find (\p -> p.auth.project.uuid == projectIdentifier)
 
 
-flavorLookup : Project -> OSTypes.FlavorUuid -> Maybe OSTypes.Flavor
-flavorLookup project flavorUuid =
+flavorLookup : Project -> OSTypes.FlavorId -> Maybe OSTypes.Flavor
+flavorLookup project flavorId =
     project.flavors
-        |> List.Extra.find (\f -> f.uuid == flavorUuid)
+        |> List.Extra.find (\f -> f.id == flavorId)
 
 
 imageLookup : Project -> OSTypes.ImageUuid -> Maybe OSTypes.Image
