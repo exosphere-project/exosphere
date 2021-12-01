@@ -46,10 +46,13 @@
     - 'user-db:user'
     - 'system-db:local'
 
-- name: 'dconf local.d directory created'
+- name: 'dconf directories created'
   file:
-    path: '/etc/dconf/db/local.d'
+    path: '{{ item }}'
     state: 'directory'
+  with_items:
+    - '/etc/dconf/db/local.d'
+    - '/etc/dconf/db/local.d/locks'
 
 - name: 'Screen lock disabled'
   template:
