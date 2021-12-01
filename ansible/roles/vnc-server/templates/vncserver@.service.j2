@@ -1,6 +1,6 @@
 [Unit]
 Description=TigerVNC Server
-After=syslog.target network.target
+After=syslog.target network.target sys-devices-virtual-net-docker0.device
 
 [Service]
 Type=simple
