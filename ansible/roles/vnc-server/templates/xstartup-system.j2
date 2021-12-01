@@ -1,0 +1,12 @@
+#!/bin/sh
+
+test x"$SHELL" = x"" && SHELL=/bin/bash
+test x"$1"     = x"" && set -- default
+
+vncconfig -iconic &
+"$SHELL" -l << EOF
+export XDG_SESSION_TYPE=x11
+export GNOME_SHELL_SESSION_MODE=ubuntu
+dbus-launch --exit-with-session gnome-session --session=ubuntu
+EOF
+vncserver -kill $DISPLAY

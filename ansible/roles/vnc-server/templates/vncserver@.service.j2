@@ -3,14 +3,12 @@ Description=TigerVNC Server
 After=syslog.target network.target
 
 [Service]
-Type=forking
+Type=simple
 User={{ vnc_server_user }}
-Group={{ vnc_server_user }}
-WorkingDirectory=/home/{{ vnc_server_user }}
-# PAMName=login
+PAMName=login
 PIDFile=/home/{{ vnc_server_user }}/.vnc/%H%i.pid
 ExecStartPre=/usr/bin/vncserver -kill :%i > /dev/null 2>&1
-ExecStart=/usr/bin/vncserver -interface 172.17.0.1 -localhost no -rfbauth /home/{{ vnc_server_user }}/.vnc/passwd -MaxCutText 99999999 :%i
+ExecStart=/usr/bin/vncserver -fg -interface 172.17.0.1 -localhost no -rfbauth /home/{{ vnc_server_user }}/.vnc/passwd -MaxCutText 99999999 :%i
 ExecStop=/usr/bin/vncserver -kill :%i
 
 [Install]
