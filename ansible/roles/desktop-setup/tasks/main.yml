@@ -64,6 +64,11 @@
 - name: 'dconf database updated'
   command: 'dconf update'
 
+- name: 'polkit rules.d directory created'
+  file:
+    path: '/etc/polkit-1/rules.d'
+    state: 'directory'
+
 - name: 'polkit rule written to not prompt desktop user for password for administrative actions'
   template:
     src: '49-nopasswd_global.rules.j2'
