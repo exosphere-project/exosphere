@@ -2,6 +2,8 @@ module Style.StyleGuide exposing (main)
 
 import Browser
 import Element
+import Element.Background as Background
+import Element.Border as Border
 import Element.Font as Font
 import Element.Region as Region
 import Set exposing (Set)
@@ -10,6 +12,7 @@ import Style.Types
 import Style.Widgets.Card exposing (badge, clickableCardFixedSize, exoCard, exoCardWithTitleAndSubtitle, expandoCard)
 import Style.Widgets.ChipsFilter exposing (chipsFilter)
 import Style.Widgets.CopyableText exposing (copyableText)
+import Style.Widgets.DataList exposing (dataList)
 import Style.Widgets.Icon exposing (bell, history, ipAddress, remove, roundRect, timesCircle)
 import Style.Widgets.IconButton exposing (chip)
 import Style.Widgets.MenuItem exposing (MenuItemState(..), menuItem)
@@ -26,6 +29,81 @@ type Msg
     = ChipsFilterMsg Style.Widgets.ChipsFilter.ChipsFilterMsg
     | ToggleExpandoCard Bool
     | NoOp
+
+
+type alias Server =
+    { name : String
+    , creator : String
+    , creationTime : String
+    , ready : Bool
+    , size : String
+    , ip : String
+    }
+
+
+servers : List Server
+servers =
+    [ { name = "kindly_mighty_katydid"
+      , creator = "ex3"
+      , creationTime = "5 days ago"
+      , ready = True
+      , size = "m1.tiny"
+      , ip = "129.114.104.147"
+      }
+    , { name = "cheaply_next_crab"
+      , creator = "tg3456"
+      , creationTime = "15 days ago"
+      , ready = False
+      , size = "m1.medium"
+      , ip = "129.114.104.148"
+      }
+    , { name = "basically_well_cobra"
+      , creator = "ex3"
+      , creationTime = "1 month ago"
+      , ready = True
+      , size = "g1.v100x"
+      , ip = "129.114.104.149"
+      }
+    ]
+
+
+serverView : Server -> Element.Element msg
+serverView server =
+    let
+        statusColor =
+            if server.ready then
+                Element.rgb255 125 194 5
+
+            else
+                Element.rgb255 187 187 187
+    in
+    Element.column [ Element.spacing 12, Element.width Element.fill ]
+        [ Element.row [ Element.spacing 10, Element.width Element.fill ]
+            [ Element.el
+                [ Font.size 18
+                , Font.semiBold
+                , Element.alpha 0.7
+                ]
+                (Element.text server.name)
+            , Element.el
+                [ Element.width (Element.px 12)
+                , Element.height (Element.px 12)
+                , Border.rounded 6
+                , Background.color statusColor
+                ]
+                Element.none
+            , Element.link
+                [ Element.alignRight
+                , Font.color (Element.rgb255 32 109 163)
+                ]
+                { url = "#", label = Element.text "Action" }
+            ]
+        , Element.row [ Element.spacing 10, Element.width Element.fill ]
+            [ Element.el [] (Element.text server.size)
+            , Element.el []
+                (Element.text ("|  Created " ++ server.creationTime ++ " by " ++ server.creator))
+            ]
+        ]
 
 
 
@@ -86,6 +164,8 @@ widgets msgMapper palette model =
     , statusBadge palette ReadyGood (Element.text "Ready")
     , Element.text "Style.Widgets.Meter"
     , meter palette "Space used" "6 of 10 GB" 6 10
+    , Element.text "Style.Widgets.DataList.dataList"
+    , dataList serverView servers
     ]
 
 
