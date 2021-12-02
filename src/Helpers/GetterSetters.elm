@@ -301,8 +301,10 @@ projectUpdateServer project server =
                     server :: otherServers
 
                 newServersSorted =
-                    -- Default sort order is by created timestamp, most recent first
+                    -- Default sort order is by created timestamp, most recent first.
+                    -- If those match, sort by name.
                     newServers
+                        |> List.sortBy (\s -> s.osProps.name)
                         |> List.sortBy
                             (\s ->
                                 Time.posixToMillis s.osProps.details.created
