@@ -40,10 +40,19 @@
   lineinfile:
     line: '{{ item }}'
     path: '/etc/dconf/profile/user'
+    create: 'yes'
+    state: 'present'
   loop:
     - 'user-db:user'
     - 'system-db:local'
 
+- name: 'dconf directories created'
+  file:
+    path: '{{ item }}'
+    state: 'directory'
+  with_items:
+    - '/etc/dconf/db/local.d'
+    - '/etc/dconf/db/local.d/locks'
 
 - name: 'Screen lock disabled'
   template:
@@ -57,6 +66,11 @@
 
 - name: 'dconf database updated'
   command: 'dconf update'
+
+- name: 'polkit rules.d directory created'
+  file:
+    path: '/etc/polkit-1/rules.d'
+    state: 'directory'
 
 - name: 'polkit rule written to not prompt desktop user for password for administrative actions'
   template:

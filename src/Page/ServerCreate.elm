@@ -1206,10 +1206,10 @@ desktopEnvironmentPicker context project model =
             [ Just <|
                 Element.text <|
                     String.concat
-                        [ "Warning: this is an alpha feature that currently only supports "
+                        [ "Warning: this feature currently only supports "
                         , context.localization.staticRepresentationOfBlockDeviceContents
                             |> Helpers.String.pluralize
-                        , " based on CentOS 8. Support for other operating systems is coming soon, but if you choose "
+                        , " based on Ubuntu 20.04 and CentOS 8. Support for other operating systems is coming soon, but if you choose "
                         , context.localization.staticRepresentationOfBlockDeviceContents
                             |> Helpers.String.indefiniteArticle
                         , " "
