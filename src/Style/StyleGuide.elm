@@ -77,12 +77,15 @@ serverView server =
             else
                 Element.rgb255 187 187 187
     in
-    Element.column [ Element.spacing 12, Element.width Element.fill ]
+    Element.column
+        [ Element.spacing 12
+        , Element.width Element.fill
+        , Font.size 16
+        ]
         [ Element.row [ Element.spacing 10, Element.width Element.fill ]
             [ Element.el
                 [ Font.size 18
-                , Font.semiBold
-                , Element.alpha 0.7
+                , Font.color (Element.rgb255 32 109 163)
                 ]
                 (Element.text server.name)
             , Element.el
@@ -96,12 +99,23 @@ serverView server =
                 [ Element.alignRight
                 , Font.color (Element.rgb255 32 109 163)
                 ]
-                { url = "#", label = Element.text "Action" }
+                { url = "#", label = Element.text "Action1 | Action2" }
             ]
-        , Element.row [ Element.spacing 10, Element.width Element.fill ]
+        , Element.row
+            [ Element.spacing 8
+            , Element.width Element.fill
+            , Font.color (Element.rgb255 96 96 96)
+            ]
             [ Element.el [] (Element.text server.size)
-            , Element.el []
-                (Element.text ("|  Created " ++ server.creationTime ++ " by " ++ server.creator))
+            , Element.text "·"
+            , Element.paragraph []
+                [ Element.text "created "
+                , Element.el [ Font.color (Element.rgb255 0 0 0) ] (Element.text server.creationTime)
+                , Element.text " by "
+                , Element.el [ Font.color (Element.rgb255 0 0 0) ] (Element.text server.creator)
+                ]
+            , Style.Widgets.Icon.ipAddress (Element.rgb255 96 96 96) 16
+            , Element.el [] (Element.text server.ip)
             ]
         ]
 
@@ -165,7 +179,9 @@ widgets msgMapper palette model =
     , Element.text "Style.Widgets.Meter"
     , meter palette "Space used" "6 of 10 GB" 6 10
     , Element.text "Style.Widgets.DataList.dataList"
-    , dataList serverView servers
+    , dataList [ Element.width (Element.maximum 900 Element.fill) ]
+        serverView
+        servers
     ]
 
 
