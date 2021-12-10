@@ -2,48 +2,76 @@ module Style.Widgets.DataList exposing (init, view)
 
 import Element
 import Element.Border as Border
+import Element.Input as Input
+import Set
 
 
 type alias DataListModel =
-    { selectedRowIndices : List Int
+    { selectedRowIndices : Set.Set Int
     }
 
 
 init : DataListModel
 init =
-    { selectedRowIndices = [] }
+    { selectedRowIndices = Set.empty }
+
+
+type Msg
+    = ChangeRowSelection Int Bool
+
+
+update : Msg -> DataListModel -> DataListModel
+update msg model =
+    case msg of
+        ChangeRowSelection rowIndex isSelected ->
+            if isSelected then
+                { model | selectedRowIndices = Set.insert rowIndex model.selectedRowIndices }
+
+            else
+                { model | selectedRowIndices = Set.remove rowIndex model.selectedRowIndices }
 
 
 view :
     List (Element.Attribute msg)
-    -> (dataRecord -> Element.Element msg)
+    -> (dataRecord -> Element.Element Msg)
     -> List dataRecord
     -> DataListModel
-    -> Element.Element msg
+    -> Element.Element Msg
 view styleAttrs listItemView data model =
     let
-        rowStyle =
+        defaultRowStyle =
             [ Element.padding 24
             , Border.widthEach { top = 0, bottom = 1, left = 0, right = 0 }
             , Border.color <| Element.rgba255 0 0 0 0.16
             , Element.width Element.fill
             ]
 
-        rowView i dataRecord =
+        rowStyle i =
             if i == List.length data - 1 then
                 -- Don't show divider (bottom border) for last row
-                Element.row
-                    (rowStyle ++ [ Border.width 0 ])
-                    [ listItemView dataRecord ]
+                defaultRowStyle ++ [ Border.width 0 ]
 
             else
-                Element.row rowStyle [ listItemView dataRecord ]
+                defaultRowStyle
 
-        toolbar =
-            Element.row rowStyle
+        rowView : Int -> dataRecord -> Element.Element Msg
+        rowView i dataRecord_ =
+            Element.row (rowStyle i)
+                [ Input.checkbox []
+                    { checked = False
+                    , onChange = \isChecked -> ChangeRowSelection i isChecked
+                    , icon = Input.defaultCheckbox
+                    , label = Input.labelHidden ("select row " ++ String.fromInt i)
+                    }
+                , Element.el [] (listItemView dataRecord_)
+                ]
+
+        toolbar : Bool -> Element.Element Msg
+        toolbar _ =
+            Element.row (rowStyle -1)
                 [ --- Some action button that corresponds model-view-update handling by user
                   Element.text
-                    (String.fromInt (List.length model.selectedRowIndices)
+                    (String.fromInt (Set.size model.selectedRowIndices)
                         ++ " row(s) selected"
                     )
                 ]
@@ -57,4 +85,4 @@ view styleAttrs listItemView data model =
             -- Add or override default style with passed style attributes
             ++ styleAttrs
         )
-        (toolbar :: List.indexedMap rowView data)
+        (toolbar True :: List.indexedMap rowView data)
