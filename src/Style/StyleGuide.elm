@@ -12,7 +12,7 @@ import Style.Types
 import Style.Widgets.Card exposing (badge, clickableCardFixedSize, exoCard, exoCardWithTitleAndSubtitle, expandoCard)
 import Style.Widgets.ChipsFilter exposing (chipsFilter)
 import Style.Widgets.CopyableText exposing (copyableText)
-import Style.Widgets.DataList exposing (dataList)
+import Style.Widgets.DataList as DataList
 import Style.Widgets.Icon exposing (bell, history, ipAddress, remove, roundRect, timesCircle)
 import Style.Widgets.IconButton exposing (chip)
 import Style.Widgets.MenuItem exposing (MenuItemState(..), menuItem)
@@ -179,9 +179,10 @@ widgets palette model =
     , Element.text "Style.Widgets.Meter"
     , meter palette "Space used" "6 of 10 GB" 6 10
     , Element.text "Style.Widgets.DataList.dataList"
-    , dataList [ Element.width (Element.maximum 900 Element.fill) ]
+    , DataList.view [ Element.width (Element.maximum 900 Element.fill) ]
         serverView
         servers
+        DataList.init
     ]
 
 

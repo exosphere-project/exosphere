@@ -1,15 +1,26 @@
-module Style.Widgets.DataList exposing (dataList)
+module Style.Widgets.DataList exposing (init, view)
 
 import Element
 import Element.Border as Border
 
 
-dataList :
+type alias DataListModel =
+    { selectedRowIndices : List Int
+    }
+
+
+init : DataListModel
+init =
+    { selectedRowIndices = [] }
+
+
+view :
     List (Element.Attribute msg)
     -> (dataRecord -> Element.Element msg)
     -> List dataRecord
+    -> DataListModel
     -> Element.Element msg
-dataList styleAttrs view data =
+view styleAttrs listItemView data model =
     let
         rowStyle =
             [ Element.padding 24
@@ -23,10 +34,19 @@ dataList styleAttrs view data =
                 -- Don't show divider (bottom border) for last row
                 Element.row
                     (rowStyle ++ [ Border.width 0 ])
-                    [ view dataRecord ]
+                    [ listItemView dataRecord ]
 
             else
-                Element.row rowStyle [ view dataRecord ]
+                Element.row rowStyle [ listItemView dataRecord ]
+
+        toolbar =
+            Element.row rowStyle
+                [ --- Some action button that corresponds model-view-update handling by user
+                  Element.text
+                    (String.fromInt (List.length model.selectedRowIndices)
+                        ++ " row(s) selected"
+                    )
+                ]
     in
     Element.column
         ([ Element.width Element.fill
@@ -37,4 +57,4 @@ dataList styleAttrs view data =
             -- Add or override default style with passed style attributes
             ++ styleAttrs
         )
-        (List.indexedMap rowView data)
+        (toolbar :: List.indexedMap rowView data)
