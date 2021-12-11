@@ -573,6 +573,15 @@ view context project model =
             , Element.el [ Element.alignRight ] <|
                 createButton
             ]
+
+        loading =
+            [ Element.row [ Element.spacing 15 ]
+                [ Widget.circularProgressIndicator
+                    (SH.materialStyle context.palette).progressIndicator
+                    Nothing
+                , Element.text "Loading..."
+                ]
+            ]
     in
     Element.column
         [ Element.spacing 24
@@ -611,26 +620,13 @@ view context project model =
                     contents flavor computeQuota volumeQuota
 
                 ( _, _, RemoteData.Loading ) ->
-                    -- TODO deduplicate this with code below
-                    [ Element.row [ Element.spacing 15 ]
-                        [ Widget.circularProgressIndicator
-                            (SH.materialStyle context.palette).progressIndicator
-                            Nothing
-                        , Element.text "Loading..."
-                        ]
-                    ]
+                    loading
 
                 ( _, RemoteData.Loading, _ ) ->
-                    [ Element.row [ Element.spacing 15 ]
-                        [ Widget.circularProgressIndicator
-                            (SH.materialStyle context.palette).progressIndicator
-                            Nothing
-                        , Element.text "Loading..."
-                        ]
-                    ]
+                    loading
 
                 ( _, _, _ ) ->
-                    [ Element.text "oops, we shouldn't be here" ]
+                    loading
         ]
 
 
