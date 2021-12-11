@@ -28,6 +28,7 @@ import Widget
 type Msg
     = ChipsFilterMsg Style.Widgets.ChipsFilter.ChipsFilterMsg
     | ToggleExpandoCard Bool
+    | DataListMsg DataList.Msg
     | NoOp
 
 
@@ -180,6 +181,7 @@ widgets palette model =
     , meter palette "Space used" "6 of 10 GB" 6 10
     , Element.text "Style.Widgets.DataList.dataList"
     , DataList.view [ Element.width (Element.maximum 900 Element.fill) ]
+        (\dataListMsg -> msgMapper (DataListMsg dataListMsg))
         serverView
         servers
         DataList.init
@@ -231,6 +233,7 @@ type alias ChipFilterModel =
 type alias Model =
     { chipFilterModel : ChipFilterModel
     , expandoCardExpanded : Bool
+    , dataListModel : DataList.DataListModel
     }
 
 
@@ -242,6 +245,7 @@ init =
             , options = options
             }
       , expandoCardExpanded = False
+      , dataListModel = DataList.init
       }
     , Cmd.none
     )
@@ -289,6 +293,9 @@ update msg model =
               }
             , Cmd.none
             )
+
+        DataListMsg dataListMsg ->
+            ( { model | dataListModel = DataList.update dataListMsg model.dataListModel }, Cmd.none )
 
         NoOp ->
             ( model, Cmd.none )

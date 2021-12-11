@@ -1,4 +1,4 @@
-module Style.Widgets.DataList exposing (init, view)
+module Style.Widgets.DataList exposing (DataListModel, Msg, init, update, view)
 
 import Element
 import Element.Border as Border
@@ -33,11 +33,12 @@ update msg model =
 
 view :
     List (Element.Attribute msg)
+    -> (Msg -> msg)
     -> (dataRecord -> Element.Element Msg)
     -> List dataRecord
     -> DataListModel
-    -> Element.Element Msg
-view styleAttrs listItemView data model =
+    -> Element.Element msg
+view styleAttrs msgMapper listItemView data model =
     let
         defaultRowStyle =
             [ Element.padding 24
@@ -85,4 +86,7 @@ view styleAttrs listItemView data model =
             -- Add or override default style with passed style attributes
             ++ styleAttrs
         )
-        (toolbar True :: List.indexedMap rowView data)
+        (toolbar True
+            :: List.indexedMap rowView data
+            |> List.map (\element -> Element.map msgMapper element)
+        )
