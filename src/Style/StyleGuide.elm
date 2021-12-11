@@ -181,7 +181,7 @@ widgets palette model =
     , meter palette "Space used" "6 of 10 GB" 6 10
     , Element.text "Style.Widgets.DataList.dataList"
     , DataList.view [ Element.width (Element.maximum 900 Element.fill) ]
-        (\dataListMsg -> msgMapper (DataListMsg dataListMsg))
+        DataListMsg
         serverView
         servers
         DataList.init
