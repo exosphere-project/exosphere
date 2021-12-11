@@ -22,10 +22,40 @@ var cloud_configs = {
               "friendlyName":"20.04 (latest)",
               "isPrimary":true,
               "imageFilters":{
-                "name":"JS-API-Featured-Ubuntu20-Latest",
-                "visibility":"public"
+                "uuid":"f0d43d1c-c022-4079-812c-3dd3dbee45cf"
               },
-              "restrictFlavorIds":null
+              "restrictFlavorIds":[
+                "10",
+                "101",
+                "102",
+                "103",
+                "104",
+                "106",
+                "14",
+                "15",
+                "16",
+                "18",
+                "19",
+                "1908387c-eb82-4ee3-9bd6-1541a431c323",
+                "2",
+                "20",
+                "21",
+                "22",
+                "23",
+                "24",
+                "25",
+                "26",
+                "27",
+                "28",
+                "29",
+                "3",
+                "30",
+                "31",
+                "4",
+                "5",
+                "6",
+                "9e4f43f5-a622-4901-ae05-dbbfaec24ae0"
+              ]
             },
             {
               "friendlyName":"20.04 with GPU",
@@ -49,10 +79,40 @@ var cloud_configs = {
               "friendlyName":"18.04",
               "isPrimary":false,
               "imageFilters":{
-                "name":"JS-API-Featured-Ubuntu18-Latest",
-                "visibility":"public"
+                "uuid":"2f286590-357b-4ee6-9879-59f5f232507a"
               },
-              "restrictFlavorIds":null
+              "restrictFlavorIds":[
+                "10",
+                "101",
+                "102",
+                "103",
+                "104",
+                "106",
+                "14",
+                "15",
+                "16",
+                "18",
+                "19",
+                "1908387c-eb82-4ee3-9bd6-1541a431c323",
+                "2",
+                "20",
+                "21",
+                "22",
+                "23",
+                "24",
+                "25",
+                "26",
+                "27",
+                "28",
+                "29",
+                "3",
+                "30",
+                "31",
+                "4",
+                "5",
+                "6",
+                "9e4f43f5-a622-4901-ae05-dbbfaec24ae0"
+              ]
             },
             {
               "friendlyName":"18.04 with MATLAB",
@@ -66,30 +126,168 @@ var cloud_configs = {
           ]
         },
         {
-          "friendlyName":"CentOS",
+          "friendlyName":"Red Hat-like",
           "description":"- Based on Red Hat Enterprise Linux (RHEL)\n\n- Compatible with RPM-based software",
           "logo":"assets/img/centos.svg",
           "versions":[
             {
-              "friendlyName":"8 (latest)",
+              "friendlyName":"CentOS 8",
               "isPrimary":true,
               "imageFilters":{
-                "name":"JS-API-Featured-CentOS8-Latest",
-                "visibility":"public"
+                "uuid":"db2f462d-81a4-4702-99b8-49771ad0fa1f"
               },
-              "restrictFlavorIds":null
+              "restrictFlavorIds":[
+                "10",
+                "101",
+                "102",
+                "103",
+                "104",
+                "106",
+                "14",
+                "15",
+                "16",
+                "18",
+                "19",
+                "1908387c-eb82-4ee3-9bd6-1541a431c323",
+                "2",
+                "20",
+                "21",
+                "22",
+                "23",
+                "24",
+                "25",
+                "26",
+                "27",
+                "28",
+                "29",
+                "3",
+                "30",
+                "31",
+                "4",
+                "5",
+                "6",
+                "9e4f43f5-a622-4901-ae05-dbbfaec24ae0"
+              ]
             },
             {
-              "friendlyName":"7",
+              "friendlyName":"AlmaLinux 8",
               "isPrimary":false,
               "imageFilters":{
-                "name":"JS-API-Featured-CentOS7-Latest",
-                "visibility":"public"
+                "uuid":"60ab9277-28a4-42e4-b33d-2b911d6290cc"
               },
-              "restrictFlavorIds":null
+              "restrictFlavorIds":[
+                "10",
+                "101",
+                "102",
+                "103",
+                "104",
+                "106",
+                "14",
+                "15",
+                "16",
+                "18",
+                "19",
+                "1908387c-eb82-4ee3-9bd6-1541a431c323",
+                "2",
+                "20",
+                "21",
+                "22",
+                "23",
+                "24",
+                "25",
+                "26",
+                "27",
+                "28",
+                "29",
+                "3",
+                "30",
+                "31",
+                "4",
+                "5",
+                "6",
+                "9e4f43f5-a622-4901-ae05-dbbfaec24ae0"
+              ]
             },
             {
-              "friendlyName":"7 with GPU",
+              "friendlyName":"Rocky Linux 8",
+              "isPrimary":false,
+              "imageFilters":{
+                "uuid":"d4b66a94-177f-4e5b-9ab3-b7725efcdba1"
+              },
+              "restrictFlavorIds":[
+                "10",
+                "101",
+                "102",
+                "103",
+                "104",
+                "106",
+                "14",
+                "15",
+                "16",
+                "18",
+                "19",
+                "1908387c-eb82-4ee3-9bd6-1541a431c323",
+                "2",
+                "20",
+                "21",
+                "22",
+                "23",
+                "24",
+                "25",
+                "26",
+                "27",
+                "28",
+                "29",
+                "3",
+                "30",
+                "31",
+                "4",
+                "5",
+                "6",
+                "9e4f43f5-a622-4901-ae05-dbbfaec24ae0"
+              ]
+            },
+            {
+              "friendlyName":"CentOS 7",
+              "isPrimary":false,
+              "imageFilters":{
+                "uuid":"0a6c9ae5-deaf-4f0b-b66b-4cc36fea021e"
+              },
+              "restrictFlavorIds":[
+                "10",
+                "101",
+                "102",
+                "103",
+                "104",
+                "106",
+                "14",
+                "15",
+                "16",
+                "18",
+                "19",
+                "1908387c-eb82-4ee3-9bd6-1541a431c323",
+                "2",
+                "20",
+                "21",
+                "22",
+                "23",
+                "24",
+                "25",
+                "26",
+                "27",
+                "28",
+                "29",
+                "3",
+                "30",
+                "31",
+                "4",
+                "5",
+                "6",
+                "9e4f43f5-a622-4901-ae05-dbbfaec24ae0"
+              ]
+            },
+            {
+              "friendlyName":"CentOS 7 with GPU",
               "isPrimary":false,
               "imageFilters":{
                 "name":"JS-API-Featured-CentOS7-NVIDIA-Latest",
@@ -107,7 +305,7 @@ var cloud_configs = {
               ]
             },
             {
-              "friendlyName":"7 with Intel compiler",
+              "friendlyName":"CentOS 7 with Intel compiler",
               "isPrimary":false,
               "imageFilters":{
                 "name":"JS-API-Featured-CentOS7-Intel-Developer-Latest",
