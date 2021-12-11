@@ -171,7 +171,7 @@ widgets msgMapper palette model =
     , chip palette Nothing (Element.row [ Element.spacing 5 ] [ Element.text "ubuntu", badge "10" ])
     , Element.text "chipsFilter"
     , chipsFilter
-        (ChipsFilterMsg >> msgMapper)
+        (\msg -> msgMapper (ChipsFilterMsg msg))
         (SH.materialStyle palette)
         model.chipFilterModel
     , Element.text "Style.Widgets.StatusBadge.statusBadge"
@@ -318,7 +318,7 @@ main : Program () Model Msg
 main =
     Browser.element
         { init = always init
-        , view = view identity >> Element.layout []
+        , view = \model -> Element.layout [] (view identity model)
         , update = update
         , subscriptions = subscriptions
         }
