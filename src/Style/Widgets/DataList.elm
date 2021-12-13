@@ -41,6 +41,7 @@ view styleAttrs listItemView data model =
     let
         defaultRowStyle =
             [ Element.padding 24
+            , Element.spacing 20
             , Border.widthEach { top = 0, bottom = 1, left = 0, right = 0 }
             , Border.color <| Element.rgba255 0 0 0 0.16
             , Element.width Element.fill
@@ -57,17 +58,16 @@ view styleAttrs listItemView data model =
         rowView : Int -> dataRecord -> Element.Element Msg
         rowView i dataRecord_ =
             Element.row (rowStyle i)
-                [ Input.checkbox []
+                [ Input.checkbox [ Element.width Element.shrink ]
                     { checked = False
                     , onChange = \isChecked -> ChangeRowSelection i isChecked
                     , icon = Input.defaultCheckbox
                     , label = Input.labelHidden ("select row " ++ String.fromInt i)
                     }
-                , Element.el [] (listItemView dataRecord_)
+                , listItemView dataRecord_
                 ]
 
-        toolbar : Bool -> Element.Element Msg
-        toolbar _ =
+        toolbar =
             Element.row (rowStyle -1)
                 [ --- Some action button that corresponds model-view-update handling by user
                   Element.text
@@ -85,6 +85,6 @@ view styleAttrs listItemView data model =
             -- Add or override default style with passed style attributes
             ++ styleAttrs
         )
-        (toolbar True
+        (toolbar
             :: List.indexedMap rowView data
         )
