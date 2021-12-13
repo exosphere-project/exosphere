@@ -234,7 +234,7 @@ type alias ChipFilterModel =
 type alias Model =
     { chipFilterModel : ChipFilterModel
     , expandoCardExpanded : Bool
-    , dataListModel : DataList.DataListModel
+    , dataListModel : DataList.Model
     }
 
 

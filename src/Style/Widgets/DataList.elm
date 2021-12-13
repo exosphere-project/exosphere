@@ -1,4 +1,4 @@
-module Style.Widgets.DataList exposing (DataListModel, Msg, init, update, view)
+module Style.Widgets.DataList exposing (Model, Msg, init, update, view)
 
 import Element
 import Element.Border as Border
@@ -6,12 +6,12 @@ import Element.Input as Input
 import Set
 
 
-type alias DataListModel =
+type alias Model =
     { selectedRowIndices : Set.Set Int
     }
 
 
-init : DataListModel
+init : Model
 init =
     { selectedRowIndices = Set.empty }
 
@@ -20,7 +20,7 @@ type Msg
     = ChangeRowSelection Int Bool
 
 
-update : Msg -> DataListModel -> DataListModel
+update : Msg -> Model -> Model
 update msg model =
     case msg of
         ChangeRowSelection rowIndex isSelected ->
@@ -35,7 +35,7 @@ view :
     List (Element.Attribute Msg)
     -> (dataRecord -> Element.Element Msg)
     -> List dataRecord
-    -> DataListModel
+    -> Model
     -> Element.Element Msg
 view styleAttrs listItemView data model =
     let
