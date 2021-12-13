@@ -32,13 +32,12 @@ update msg model =
 
 
 view :
-    List (Element.Attribute msg)
-    -> (Msg -> msg)
+    List (Element.Attribute Msg)
     -> (dataRecord -> Element.Element Msg)
     -> List dataRecord
     -> DataListModel
-    -> Element.Element msg
-view styleAttrs msgMapper listItemView data model =
+    -> Element.Element Msg
+view styleAttrs listItemView data model =
     let
         defaultRowStyle =
             [ Element.padding 24
@@ -88,5 +87,4 @@ view styleAttrs msgMapper listItemView data model =
         )
         (toolbar True
             :: List.indexedMap rowView data
-            |> List.map (\element -> Element.map msgMapper element)
         )
