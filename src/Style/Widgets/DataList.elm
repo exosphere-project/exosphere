@@ -59,7 +59,7 @@ view styleAttrs listItemView data model =
         rowView i dataRecord_ =
             Element.row (rowStyle i)
                 [ Input.checkbox [ Element.width Element.shrink ]
-                    { checked = False
+                    { checked = Set.member i model.selectedRowIndices
                     , onChange = \isChecked -> ChangeRowSelection i isChecked
                     , icon = Input.defaultCheckbox
                     , label = Input.labelHidden ("select row " ++ String.fromInt i)
@@ -69,7 +69,7 @@ view styleAttrs listItemView data model =
 
         toolbar =
             Element.row (rowStyle -1)
-                [ --- Some action button that corresponds model-view-update handling by user
+                [ -- Some action button that corresponds model-view-update handling by user
                   Element.text
                     (String.fromInt (Set.size model.selectedRowIndices)
                         ++ " row(s) selected"

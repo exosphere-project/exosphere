@@ -184,7 +184,7 @@ widgets palette model =
         [ Element.width (Element.maximum 900 Element.fill) ]
         serverView
         servers
-        DataList.init
+        model.dataListModel
         |> Element.map (\msg -> msgMapper (DataListMsg msg))
     ]
 
