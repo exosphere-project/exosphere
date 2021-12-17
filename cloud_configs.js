@@ -399,6 +399,15 @@ var cloud_configs = {
       ]
     },
     {
+      "keystoneHostname":"js2.jetstream-cloud.org",
+      "friendlyName":"Jetstream2",
+      "friendlySubName":"",
+      "userAppProxy":"proxy-j2-iu.exosphere.app",
+      "imageExcludeFilter":null,
+      "featuredImageNamePrefix":"JS-API-Next",
+      "instanceTypes":[]
+    },
+    {
       "keystoneHostname":"keystone.rc.nectar.org.au",
       "friendlyName":"Nectar Cloud",
       "friendlySubName":null,
