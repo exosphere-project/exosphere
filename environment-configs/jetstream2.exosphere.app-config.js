@@ -43,7 +43,7 @@ var config = {
     "webssoKeystoneEndpoint":"/auth/OS-FEDERATION/websso/openid?origin=https://exosphere.jetstream-cloud.org/exosphere/oidc-redirector",
     "oidcLoginIcon":"assets/img/XSEDE_Logo_Black_INF.png",
     "oidcLoginButtonLabel":"Add XSEDE Account",
-    "oidcLoginButtonDescription":""
+    "oidcLoginButtonDescription":"Recommended login method for Jetstream2"
   },
   "localization":{
     "openstackWithOwnKeystone":"cloud",
