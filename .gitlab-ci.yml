@@ -85,6 +85,7 @@ build_with_kaniko_e2e_chrome:
 elm_make:
   stage: build
   before_script:
+    - 'which rsync || ( apt-get update -y && apt-get install rsync -y )'
     # https://gitlab.com/gitlab-org/gitlab-runner/-/issues/327#note_225643576
     - if [ -d home/.elm ]; then echo "Restoring ~/.elm"; rsync -a home/.elm ~/; fi
     - if [ -d home/.npm ]; then echo "Restoring ~/.npm"; rsync -a home/.npm ~/; fi
@@ -115,6 +116,7 @@ minify:
   needs:
     - elm_make
   before_script:
+    - 'which rsync || ( apt-get update -y && apt-get install rsync -y )'
     - if [ -d home/.elm ]; then echo "Restoring ~/.elm"; rsync -a home/.elm ~/; fi
     - if [ -d home/.npm ]; then echo "Restoring ~/.npm"; rsync -a home/.npm ~/; fi
     - npm install
@@ -138,6 +140,7 @@ build_style_guide:
   needs:
     - elm_make
   before_script:
+    - 'which rsync || ( apt-get update -y && apt-get install rsync -y )'
     - if [ -d home/.elm ]; then echo "Restoring ~/.elm"; rsync -a home/.elm ~/; fi
     - if [ -d home/.npm ]; then echo "Restoring ~/.npm"; rsync -a home/.npm ~/; fi
     - npm install
@@ -152,6 +155,7 @@ elm_analyse:
   needs:
     - elm_make
   before_script:
+    - 'which rsync || ( apt-get update -y && apt-get install rsync -y )'
     - if [ -d home/.elm ]; then echo "Restoring ~/.elm"; rsync -a home/.elm ~/; fi
     - if [ -d home/.npm ]; then echo "Restoring ~/.npm"; rsync -a home/.npm ~/; fi
     - npm install
@@ -168,6 +172,7 @@ elm_test:
   needs:
     - elm_make
   before_script:
+    - 'which rsync || ( apt-get update -y && apt-get install rsync -y )'
     - if [ -d home/.elm ]; then echo "Restoring ~/.elm"; rsync -a home/.elm ~/; fi
     - if [ -d home/.npm ]; then echo "Restoring ~/.npm"; rsync -a home/.npm ~/; fi
     - npm install
