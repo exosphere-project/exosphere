@@ -18,6 +18,7 @@ init =
 
 type Msg
     = ChangeRowSelection Int Bool
+    | ChangeAllRowSelection Int Bool
 
 
 update : Msg -> Model -> Model
@@ -30,12 +31,23 @@ update msg model =
             else
                 { model | selectedRowIndices = Set.remove rowIndex model.selectedRowIndices }
 
+        ChangeAllRowSelection numOfRows isSelected ->
+            { model
+                | selectedRowIndices =
+                    if isSelected then
+                        Set.fromList <| List.range 0 (numOfRows - 1)
+
+                    else
+                        Set.empty
+            }
+
 
 view :
     List (Element.Attribute Msg)
     -> (dataRecord -> Element.Element Msg)
-    -> List dataRecord
+    -> List dataRecord -- view will auto rerender (reflect deletion/addition) as this changes
     -> Model
+    -- -> Maybe (List (Element.Element Msg )) - bulkActions (views that emit msgs)
     -> Element.Element Msg
 view styleAttrs listItemView data model =
     let
@@ -47,8 +59,11 @@ view styleAttrs listItemView data model =
             , Element.width Element.fill
             ]
 
+        numOfRows =
+            List.length data
+
         rowStyle i =
-            if i == List.length data - 1 then
+            if i == numOfRows - 1 then
                 -- Don't show divider (bottom border) for last row
                 defaultRowStyle ++ [ Border.width 0 ]
 
@@ -58,6 +73,7 @@ view styleAttrs listItemView data model =
         rowView : Int -> dataRecord -> Element.Element Msg
         rowView i dataRecord_ =
             Element.row (rowStyle i)
+                -- add condition: only when bulkActions is something
                 [ Input.checkbox [ Element.width Element.shrink ]
                     { checked = Set.member i model.selectedRowIndices
                     , onChange = \isChecked -> ChangeRowSelection i isChecked
@@ -69,11 +85,19 @@ view styleAttrs listItemView data model =
 
         toolbar =
             Element.row (rowStyle -1)
-                [ -- Some action button that corresponds model-view-update handling by user
-                  Element.text
+                [ -- Checkbox to select all rows
+                  Input.checkbox [ Element.width Element.shrink ]
+                    { checked = Set.size model.selectedRowIndices == numOfRows
+                    , onChange = ChangeAllRowSelection numOfRows
+                    , icon = Input.defaultCheckbox
+                    , label = Input.labelRight [] (Element.text "Select All")
+                    }
+                , Element.text
                     (String.fromInt (Set.size model.selectedRowIndices)
                         ++ " row(s) selected"
                     )
+
+                -- TODO: actionButtons views add
                 ]
     in
     Element.column
