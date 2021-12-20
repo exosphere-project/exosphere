@@ -43,13 +43,14 @@ update msg model =
 
 
 view :
-    List (Element.Attribute Msg)
-    -> (dataRecord -> Element.Element Msg)
+    Model
+    -> (Msg -> msg) -- convert local Msg to a consumer's msg
+    -> List (Element.Attribute msg)
+    -> (dataRecord -> Element.Element msg)
     -> List dataRecord -- view will auto rerender (reflect deletion/addition) as this changes
-    -> Model
     -- -> Maybe (List (Element.Element Msg )) - bulkActions (views that emit msgs)
-    -> Element.Element Msg
-view styleAttrs listItemView data model =
+    -> Element.Element msg
+view model toMsg styleAttrs listItemView data =
     let
         defaultRowStyle =
             [ Element.padding 24
@@ -70,17 +71,19 @@ view styleAttrs listItemView data model =
             else
                 defaultRowStyle
 
-        rowView : Int -> dataRecord -> Element.Element Msg
+        rowView : Int -> dataRecord -> Element.Element msg
         rowView i dataRecord_ =
             Element.row (rowStyle i)
-                -- add condition: only when bulkActions is something
+                -- TODO: add condition: only when bulkActions is something
+                -- TODO: option to specify if a row is selectable or locked
                 [ Input.checkbox [ Element.width Element.shrink ]
                     { checked = Set.member i model.selectedRowIndices
                     , onChange = \isChecked -> ChangeRowSelection i isChecked
                     , icon = Input.defaultCheckbox
                     , label = Input.labelHidden ("select row " ++ String.fromInt i)
                     }
-                , listItemView dataRecord_
+                    |> Element.map toMsg
+                , listItemView dataRecord_ -- consumer-provided view already returns consumer's msg
                 ]
 
         toolbar =
@@ -92,6 +95,7 @@ view styleAttrs listItemView data model =
                     , icon = Input.defaultCheckbox
                     , label = Input.labelRight [] (Element.text "Select All")
                     }
+                    |> Element.map toMsg
                 , Element.text
                     (String.fromInt (Set.size model.selectedRowIndices)
                         ++ " row(s) selected"

@@ -21,14 +21,11 @@ import Style.Widgets.StatusBadge exposing (StatusBadgeState(..), statusBadge)
 import Widget
 
 
-
-{- When you create a new widget, add example usages to the `widgets` list here! -}
-
-
 type Msg
     = ChipsFilterMsg Style.Widgets.ChipsFilter.ChipsFilterMsg
     | ToggleExpandoCard Bool
     | DataListMsg DataList.Msg
+    | DeleteServer String
     | NoOp
 
 
@@ -39,17 +36,19 @@ type alias Server =
     , ready : Bool
     , size : String
     , ip : String
+    , id : String
     }
 
 
-servers : List Server
-servers =
+initServers : List Server
+initServers =
     [ { name = "kindly_mighty_katydid"
       , creator = "ex3"
       , creationTime = "5 days ago"
       , ready = True
       , size = "m1.tiny"
       , ip = "129.114.104.147"
+      , id = "rtbdf"
       }
     , { name = "cheaply_next_crab"
       , creator = "tg3456"
@@ -57,6 +56,7 @@ servers =
       , ready = False
       , size = "m1.medium"
       , ip = "129.114.104.148"
+      , id = "tyh43d"
       }
     , { name = "basically_well_cobra"
       , creator = "ex3"
@@ -64,12 +64,13 @@ servers =
       , ready = True
       , size = "g1.v100x"
       , ip = "129.114.104.149"
+      , id = "vcb543f"
       }
     ]
 
 
-serverView : Server -> Element.Element msg
-serverView server =
+serverView : Style.Types.ExoPalette -> Server -> Element.Element Msg
+serverView palette server =
     let
         statusColor =
             if server.ready then
@@ -81,7 +82,6 @@ serverView server =
     Element.column
         [ Element.spacing 12
         , Element.width Element.fill
-        , Font.size 16
         ]
         [ Element.row [ Element.spacing 10, Element.width Element.fill ]
             [ Element.el
@@ -96,11 +96,14 @@ serverView server =
                 , Background.color statusColor
                 ]
                 Element.none
-            , Element.link
-                [ Element.alignRight
-                , Font.color (Element.rgb255 32 109 163)
-                ]
-                { url = "#", label = Element.text "Action1 | Action2" }
+            , Element.el [ Element.alignRight ] <|
+                Widget.iconButton
+                    (SH.materialStyle palette).dangerButton
+                    { icon = remove (SH.toElementColor palette.on.error) 16
+                    , text = "Delete"
+                    , onPress =
+                        Just <| DeleteServer server.id
+                    }
             ]
         , Element.row
             [ Element.spacing 8
@@ -123,6 +126,7 @@ serverView server =
 
 
 --noinspection ElmUnresolvedReference
+{- When you create a new widget, add example usages to the `widgets` list here! -}
 
 
 widgets : Style.Types.ExoPalette -> Model -> List (Element.Element Msg)
@@ -181,11 +185,14 @@ widgets palette model =
     , meter palette "Space used" "6 of 10 GB" 6 10
     , Element.text "Style.Widgets.DataList.dataList"
     , DataList.view
-        [ Element.width (Element.maximum 900 Element.fill) ]
-        serverView
-        servers
         model.dataListModel
-        |> Element.map (\msg -> msgMapper (DataListMsg msg))
+        DataListMsg
+        [ Element.width (Element.maximum 900 Element.fill)
+        , Font.size 16
+        ]
+        (serverView palette)
+        model.servers
+        |> Element.map msgMapper
     ]
 
 
@@ -235,6 +242,7 @@ type alias Model =
     { chipFilterModel : ChipFilterModel
     , expandoCardExpanded : Bool
     , dataListModel : DataList.Model
+    , servers : List Server
     }
 
 
@@ -247,6 +255,7 @@ init =
             }
       , expandoCardExpanded = False
       , dataListModel = DataList.init
+      , servers = initServers
       }
     , Cmd.none
     )
@@ -297,6 +306,16 @@ update msg model =
 
         DataListMsg dataListMsg ->
             ( { model | dataListModel = DataList.update dataListMsg model.dataListModel }, Cmd.none )
+
+        DeleteServer serverId ->
+            ( { model
+                | servers =
+                    List.filter
+                        (\server -> not (server.id == serverId))
+                        model.servers
+              }
+            , Cmd.none
+            )
 
         NoOp ->
             ( model, Cmd.none )
