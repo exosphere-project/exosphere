@@ -85,9 +85,10 @@ build_with_kaniko_e2e_chrome:
 elm_make:
   stage: build
   before_script:
+    - 'which rsync || ( apt-get update -y && apt-get install rsync -y )'
     # https://gitlab.com/gitlab-org/gitlab-runner/-/issues/327#note_225643576
-    - if [ -d home/.elm ]; then echo "Restoring ~/.elm"; mv home/.elm ~/; fi
-    - if [ -d home/.npm ]; then echo "Restoring ~/.npm"; mv home/.npm ~/; fi
+    - if [ -d home/.elm ]; then echo "Restoring ~/.elm"; rsync -a home/.elm ~/; fi
+    - if [ -d home/.npm ]; then echo "Restoring ~/.npm"; rsync -a home/.npm ~/; fi
     - npm install
   script:
     - mkdir -p public
@@ -103,8 +104,8 @@ elm_make:
     - cp service-worker.js public
     - md5sum public/index.html public/elm-web.js public/ports.js public/config.js
   after_script:
-    - mkdir -p home && mv ~/.elm home
-    - mkdir -p home && mv ~/.npm home
+    - mkdir -p home && rsync -a ~/.elm home
+    - mkdir -p home && rsync -a ~/.npm home
   artifacts:
     paths:
       - public
@@ -115,16 +116,17 @@ minify:
   needs:
     - elm_make
   before_script:
-    - if [ -d home/.elm ]; then echo "Restoring ~/.elm"; mv home/.elm ~/; fi
-    - if [ -d home/.npm ]; then echo "Restoring ~/.npm"; mv home/.npm ~/; fi
+    - 'which rsync || ( apt-get update -y && apt-get install rsync -y )'
+    - if [ -d home/.elm ]; then echo "Restoring ~/.elm"; rsync -a home/.elm ~/; fi
+    - if [ -d home/.npm ]; then echo "Restoring ~/.npm"; rsync -a home/.npm ~/; fi
     - npm install
   script:
     - cp --force public/elm-web.js elm-web.js
     - npm run minify
     - cp --force elm-web.js public/elm-web.js
   after_script:
-    - mkdir -p home && mv ~/.elm home
-    - mkdir -p home && mv ~/.npm home
+    - mkdir -p home && rsync -a ~/.elm home
+    - mkdir -p home && rsync -a ~/.npm home
   artifacts:
     paths:
       - public
@@ -138,45 +140,48 @@ build_style_guide:
   needs:
     - elm_make
   before_script:
-    - if [ -d home/.elm ]; then echo "Restoring ~/.elm"; mv home/.elm ~/; fi
-    - if [ -d home/.npm ]; then echo "Restoring ~/.npm"; mv home/.npm ~/; fi
+    - 'which rsync || ( apt-get update -y && apt-get install rsync -y )'
+    - if [ -d home/.elm ]; then echo "Restoring ~/.elm"; rsync -a home/.elm ~/; fi
+    - if [ -d home/.npm ]; then echo "Restoring ~/.npm"; rsync -a home/.npm ~/; fi
     - npm install
   script:
     - npx elm make --optimize src/Style/StyleGuide.elm --output=styleguide.html
   after_script:
-    - mkdir -p home && mv ~/.elm home
-    - mkdir -p home && mv ~/.npm home
+    - mkdir -p home && rsync -a ~/.elm home
+    - mkdir -p home && rsync -a ~/.npm home
 
 elm_analyse:
   stage: test
   needs:
     - elm_make
   before_script:
-    - if [ -d home/.elm ]; then echo "Restoring ~/.elm"; mv home/.elm ~/; fi
-    - if [ -d home/.npm ]; then echo "Restoring ~/.npm"; mv home/.npm ~/; fi
+    - 'which rsync || ( apt-get update -y && apt-get install rsync -y )'
+    - if [ -d home/.elm ]; then echo "Restoring ~/.elm"; rsync -a home/.elm ~/; fi
+    - if [ -d home/.npm ]; then echo "Restoring ~/.npm"; rsync -a home/.npm ~/; fi
     - npm install
     - npm install --no-save elm-analyse
   script:
     - npx elm-analyse
     - npx elm-format --validate src
   after_script:
-    - mkdir -p home && mv ~/.elm home
-    - mkdir -p home && mv ~/.npm home
+    - mkdir -p home && rsync -a ~/.elm home
+    - mkdir -p home && rsync -a ~/.npm home
 
 elm_test:
   stage: test
   needs:
     - elm_make
   before_script:
-    - if [ -d home/.elm ]; then echo "Restoring ~/.elm"; mv home/.elm ~/; fi
-    - if [ -d home/.npm ]; then echo "Restoring ~/.npm"; mv home/.npm ~/; fi
+    - 'which rsync || ( apt-get update -y && apt-get install rsync -y )'
+    - if [ -d home/.elm ]; then echo "Restoring ~/.elm"; rsync -a home/.elm ~/; fi
+    - if [ -d home/.npm ]; then echo "Restoring ~/.npm"; rsync -a home/.npm ~/; fi
     - npm install
   script:
     - npx elm-test-rs
     - npx elm-test-rs --report junit > elm-test-report.xml
   after_script:
-    - mkdir -p home && mv ~/.elm home
-    - mkdir -p home && mv ~/.npm home
+    - mkdir -p home && rsync -a ~/.elm home
+    - mkdir -p home && rsync -a ~/.npm home
   artifacts:
     when: always
     reports:
@@ -247,6 +252,34 @@ deploy_jetstream:
   environment:
     name: jetstream
     url: https://exosphere.jetstream-cloud.org/exosphere
+  only:
+    - master
+
+deploy_jetstream2:
+  stage: deploy
+  resource_group: deploy_jetstream2
+  dependencies:
+    - elm_make
+    - minify
+  before_script:
+    # See https://docs.gitlab.com/ee/ci/ssh_keys/README.html
+    - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
+    - eval $(ssh-agent -s)
+    - echo "$DOGFOOD_SSH_PRIV_KEY" | tr -d '\r' | ssh-add - > /dev/null
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    # https://docs.gitlab.com/ee/ci/ssh_keys/README.html#verifying-the-ssh-host-keys
+    - echo "$DOGFOOD_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+    - 'which rsync || ( apt-get update -y && apt-get install rsync -y )'
+  script:
+    - 'cp environment-configs/jetstream2.exosphere.app-config.js public/config.js'
+    - 'sed -i -e "s/instanceConfigMgtRepoCheckout:.*/instanceConfigMgtRepoCheckout: \"${CI_COMMIT_SHA}\"/g" public/config.js'
+    - 'sed -i -e ''s/<base href="\/">/<base href="\/exosphere\/">/g'' public/index.html'
+    - 'rsync -av --delete public exouser@dogfood.exosphere.app:jetstream2-deploy/'
+  environment:
+    name: jetstream2
+    url: https://jetstream2.exosphere.app/exosphere
   only:
     - master
 
@@ -385,6 +418,17 @@ mr_e2e_chrome:
   only:
     - master
 
+.jetstream2_post_deploy:
+  stage: postdeploy
+  variables:
+    EXOSPHERE_BASE_URL: "https://jetstream2.exosphere.app/exosphere/loginpicker"
+    ENV_NAME: "j7m2"
+  needs:
+    - deploy_jetstream2
+  only:
+    - master
+
+
 dev_post_deploy_e2e_chrome:
   extends:
     - .e2e_chrome
@@ -414,6 +458,17 @@ jetstream_post_deploy_e2e_firefox:
   extends:
     - .e2e_firefox
     - .jetstream_post_deploy
+
+
+jetstream2_post_deploy_e2e_chrome:
+  extends:
+    - .e2e_chrome
+    - .jetstream2_post_deploy
+
+jetstream2_post_deploy_e2e_firefox:
+  extends:
+    - .e2e_firefox
+    - .jetstream2_post_deploy
 
 
 include:

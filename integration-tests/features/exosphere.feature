@@ -6,8 +6,8 @@ Feature: Text presence
         When I go to Exosphere
         Then I should see "Add project" within 60 seconds
         When I click the "Add project" card
-        Then I should see "Add Jetstream Account" within 60 seconds
-        When I click the "Add Jetstream Account" button
+        Then I should see "Add Jetstream1 Account" within 60 seconds
+        When I click the "Add Jetstream1 Account" button
         Then I should see "Add a Jetstream Cloud Account" within 15 seconds
         When I enter TACC credentials
         And I click the "IU Cloud" radio button
