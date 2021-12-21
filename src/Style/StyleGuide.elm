@@ -124,8 +124,8 @@ serverView server =
 --noinspection ElmUnresolvedReference
 
 
-widgets : (Msg -> msg) -> Style.Types.ExoPalette -> Model -> List (Element.Element msg)
-widgets msgMapper palette model =
+widgets : Style.Types.ExoPalette -> Model -> List (Element.Element Msg)
+widgets palette model =
     [ Element.text "Style.Widgets.MenuItem.menuItem"
     , menuItem palette Active Nothing "Active menu item" "https://try.exosphere.app"
     , menuItem palette Inactive Nothing "Inactive menu item" "https://try.exosphere.app"
@@ -149,7 +149,7 @@ widgets msgMapper palette model =
     , Element.text "Style.Widgets.Card.expandoCard"
     , expandoCard palette
         model.expandoCardExpanded
-        (\new -> msgMapper (ToggleExpandoCard new))
+        (\new -> ToggleExpandoCard new)
         (Element.text "Title")
         (Element.text "Subtitle")
         (Element.text "contents")
@@ -158,11 +158,11 @@ widgets msgMapper palette model =
     , Element.text "Widgets.textButton (dangerButton)"
     , Widget.textButton
         (SH.materialStyle palette).dangerButton
-        { text = "Danger button", onPress = Just (msgMapper NoOp) }
+        { text = "Danger button", onPress = Just NoOp }
     , Element.text "Widgets.textButton (warningButton)"
     , Widget.textButton
         (SH.materialStyle palette).warningButton
-        { text = "Warning button", onPress = Just (msgMapper NoOp) }
+        { text = "Warning button", onPress = Just NoOp }
     , Element.text "Style.Widgets.CopyableText.CopyableText"
     , copyableText palette [] "foobar"
     , Element.text "Style.Widgets.IconButton.chip"
@@ -171,9 +171,9 @@ widgets msgMapper palette model =
     , chip palette Nothing (Element.row [ Element.spacing 5 ] [ Element.text "ubuntu", badge "10" ])
     , Element.text "chipsFilter"
     , chipsFilter
-        (\msg -> msgMapper (ChipsFilterMsg msg))
         (SH.materialStyle palette)
         model.chipFilterModel
+        |> Element.map ChipsFilterMsg
     , Element.text "Style.Widgets.StatusBadge.statusBadge"
     , statusBadge palette ReadyGood (Element.text "Ready")
     , Element.text "Style.Widgets.Meter"
@@ -298,8 +298,8 @@ subscriptions _ =
     Sub.none
 
 
-view : (Msg -> msg) -> Model -> Element.Element msg
-view msgMapper model =
+view : Model -> Element.Element Msg
+view model =
     let
         palette =
             SH.toExoPalette
@@ -307,7 +307,7 @@ view msgMapper model =
                 { theme = Style.Types.Override Style.Types.Light, systemPreference = Nothing }
     in
     intro
-        ++ widgets msgMapper palette model
+        ++ widgets palette model
         |> Element.column
             [ Element.padding 10
             , Element.spacing 20
@@ -318,7 +318,7 @@ main : Program () Model Msg
 main =
     Browser.element
         { init = always init
-        , view = \model -> Element.layout [] (view identity model)
+        , view = \model -> Element.layout [] (view model)
         , update = update
         , subscriptions = subscriptions
         }

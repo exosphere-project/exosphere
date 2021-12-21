@@ -25,8 +25,8 @@ type ChipsFilterMsg
     | SetTextInput String
 
 
-chipsFilter : (ChipsFilterMsg -> msg) -> ChipsFilterStyle style msg -> ChipsFilterModel -> Element.Element msg
-chipsFilter msgMapper style model =
+chipsFilter : ChipsFilterStyle style ChipsFilterMsg -> ChipsFilterModel -> Element.Element ChipsFilterMsg
+chipsFilter style model =
     [ { chips =
             model.selected
                 |> Set.toList
@@ -37,14 +37,13 @@ chipsFilter msgMapper style model =
                         , onPress =
                             string
                                 |> ToggleSelection
-                                |> msgMapper
                                 |> Just
                         }
                     )
       , text = model.textInput
       , placeholder = Nothing
       , label = "Chips"
-      , onChange = SetTextInput >> msgMapper
+      , onChange = SetTextInput
       }
         |> Widget.textInput style.textInput
     , model.selected
@@ -58,7 +57,6 @@ chipsFilter msgMapper style model =
                     { onPress =
                         string
                             |> ToggleSelection
-                            |> msgMapper
                             |> Just
                     , text = string
                     , icon = Element.none
