@@ -7,50 +7,48 @@ import Set
 
 
 type alias Model =
-    { selectedRowIndices : Set.Set Int
-    }
+    { selectedRowIds : Set.Set String }
 
 
 init : Model
 init =
-    { selectedRowIndices = Set.empty }
+    { selectedRowIds = Set.empty }
 
 
 type Msg
-    = ChangeRowSelection Int Bool
-    | ChangeAllRowSelection Int Bool
+    = ChangeRowSelection String Bool
+    | ChangeAllRowsSelection (Set.Set String)
 
 
 update : Msg -> Model -> Model
 update msg model =
     case msg of
-        ChangeRowSelection rowIndex isSelected ->
+        ChangeRowSelection rowId isSelected ->
             if isSelected then
-                { model | selectedRowIndices = Set.insert rowIndex model.selectedRowIndices }
+                { model | selectedRowIds = Set.insert rowId model.selectedRowIds }
 
             else
-                { model | selectedRowIndices = Set.remove rowIndex model.selectedRowIndices }
+                { model | selectedRowIds = Set.remove rowId model.selectedRowIds }
 
-        ChangeAllRowSelection numOfRows isSelected ->
+        ChangeAllRowsSelection newSelectedRowIds ->
             { model
-                | selectedRowIndices =
-                    if isSelected then
-                        Set.fromList <| List.range 0 (numOfRows - 1)
-
-                    else
-                        Set.empty
+                | selectedRowIds = newSelectedRowIds
             }
+
+
+type alias DataRecord record =
+    { record | id : String }
 
 
 view :
     Model
     -> (Msg -> msg) -- convert local Msg to a consumer's msg
     -> List (Element.Attribute msg)
-    -> (dataRecord -> Element.Element msg)
-    -> List dataRecord -- view will auto rerender (reflect deletion/addition) as this changes
-    -- -> Maybe (List (Element.Element Msg )) - bulkActions (views that emit msgs)
+    -> (DataRecord record -> Element.Element msg)
+    -> List (DataRecord record)
+    -> (Set.Set String -> Element.Element msg)
     -> Element.Element msg
-view model toMsg styleAttrs listItemView data =
+view model toMsg styleAttrs listItemView data bulkAction =
     let
         defaultRowStyle =
             [ Element.padding 24
@@ -71,37 +69,46 @@ view model toMsg styleAttrs listItemView data =
             else
                 defaultRowStyle
 
-        rowView : Int -> dataRecord -> Element.Element msg
-        rowView i dataRecord_ =
+        rowView : Int -> DataRecord record -> Element.Element msg
+        rowView i dataRecord =
             Element.row (rowStyle i)
                 -- TODO: add condition: only when bulkActions is something
                 -- TODO: option to specify if a row is selectable or locked
                 [ Input.checkbox [ Element.width Element.shrink ]
-                    { checked = Set.member i model.selectedRowIndices
-                    , onChange = \isChecked -> ChangeRowSelection i isChecked
+                    { checked = Set.member dataRecord.id model.selectedRowIds
+                    , onChange = \isChecked -> ChangeRowSelection dataRecord.id isChecked
                     , icon = Input.defaultCheckbox
                     , label = Input.labelHidden ("select row " ++ String.fromInt i)
                     }
                     |> Element.map toMsg
-                , listItemView dataRecord_ -- consumer-provided view already returns consumer's msg
+                , listItemView dataRecord -- consumer-provided view already returns consumer's msg
                 ]
 
-        toolbar =
+        toolbar dataRecords =
             Element.row (rowStyle -1)
                 [ -- Checkbox to select all rows
                   Input.checkbox [ Element.width Element.shrink ]
-                    { checked = Set.size model.selectedRowIndices == numOfRows
-                    , onChange = ChangeAllRowSelection numOfRows
+                    { checked = Set.size model.selectedRowIds == numOfRows
+                    , onChange =
+                        \isChecked ->
+                            if isChecked then
+                                ChangeAllRowsSelection <|
+                                    Set.fromList <|
+                                        List.map
+                                            (\dataRecord -> dataRecord.id)
+                                            dataRecords
+
+                            else
+                                ChangeAllRowsSelection Set.empty
                     , icon = Input.defaultCheckbox
                     , label = Input.labelRight [] (Element.text "Select All")
                     }
                     |> Element.map toMsg
                 , Element.text
-                    (String.fromInt (Set.size model.selectedRowIndices)
+                    (String.fromInt (Set.size model.selectedRowIds)
                         ++ " row(s) selected"
                     )
-
-                -- TODO: actionButtons views add
+                , bulkAction model.selectedRowIds -- make type be the same
                 ]
     in
     Element.column
@@ -113,6 +120,6 @@ view model toMsg styleAttrs listItemView data =
             -- Add or override default style with passed style attributes
             ++ styleAttrs
         )
-        (toolbar
+        (toolbar data
             :: List.indexedMap rowView data
         )

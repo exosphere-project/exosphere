@@ -26,6 +26,7 @@ type Msg
     | ToggleExpandoCard Bool
     | DataListMsg DataList.Msg
     | DeleteServer String
+    | DeleteSelectedServers (Set String)
     | NoOp
 
 
@@ -192,6 +193,17 @@ widgets palette model =
         ]
         (serverView palette)
         model.servers
+        (\serverIds ->
+            Element.el [ Element.alignRight ]
+                (Widget.iconButton
+                    (SH.materialStyle palette).dangerButton
+                    { icon = remove (SH.toElementColor palette.on.error) 16
+                    , text = "Delete"
+                    , onPress =
+                        Just <| DeleteSelectedServers serverIds
+                    }
+                )
+        )
         |> Element.map msgMapper
     ]
 
@@ -312,6 +324,16 @@ update msg model =
                 | servers =
                     List.filter
                         (\server -> not (server.id == serverId))
+                        model.servers
+              }
+            , Cmd.none
+            )
+
+        DeleteSelectedServers serverIds ->
+            ( { model
+                | servers =
+                    List.filter
+                        (\server -> not (Set.member server.id serverIds))
                         model.servers
               }
             , Cmd.none
