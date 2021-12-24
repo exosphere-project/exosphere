@@ -40,6 +40,11 @@ type alias DataRecord record =
     { record | id : String }
 
 
+idsSet : List (DataRecord record) -> Set.Set String
+idsSet dataRecords =
+    Set.fromList <| List.map (\dataRecord -> dataRecord.id) dataRecords
+
+
 view :
     Model
     -> (Msg -> msg) -- convert local Msg to a consumer's msg
@@ -84,19 +89,24 @@ view model toMsg styleAttrs listItemView data bulkAction =
                 , listItemView dataRecord -- consumer-provided view already returns consumer's msg
                 ]
 
+        selectedRowIds dataRecords =
+            -- Remove those records' Ids that were deleted after being selected
+            -- (This is because there seems no direct way to update the model
+            -- as the data passed to the view changes)
+            Set.filter
+                (\selectedRowId -> Set.member selectedRowId (idsSet dataRecords))
+                model.selectedRowIds
+
+        toolbar : List (DataRecord record) -> Element.Element msg
         toolbar dataRecords =
             Element.row (rowStyle -1)
                 [ -- Checkbox to select all rows
                   Input.checkbox [ Element.width Element.shrink ]
-                    { checked = Set.size model.selectedRowIds == numOfRows
+                    { checked = selectedRowIds dataRecords == idsSet dataRecords
                     , onChange =
                         \isChecked ->
                             if isChecked then
-                                ChangeAllRowsSelection <|
-                                    Set.fromList <|
-                                        List.map
-                                            (\dataRecord -> dataRecord.id)
-                                            dataRecords
+                                ChangeAllRowsSelection <| idsSet dataRecords
 
                             else
                                 ChangeAllRowsSelection Set.empty
@@ -105,7 +115,7 @@ view model toMsg styleAttrs listItemView data bulkAction =
                     }
                     |> Element.map toMsg
                 , Element.text
-                    (String.fromInt (Set.size model.selectedRowIds)
+                    (String.fromInt (Set.size (selectedRowIds dataRecords))
                         ++ " row(s) selected"
                     )
                 , bulkAction model.selectedRowIds -- make type be the same
