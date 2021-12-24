@@ -204,7 +204,6 @@ widgets palette model =
                     }
                 )
         )
-        |> Element.map msgMapper
     ]
 
 
