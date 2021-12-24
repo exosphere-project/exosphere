@@ -1,6 +1,9 @@
 module Page.ServerList exposing (Model, Msg, init, update, view)
 
+import DateFormat.Relative
 import Element
+import Element.Background as Background
+import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons
@@ -15,7 +18,10 @@ import Route
 import Set
 import Style.Helpers as SH
 import Style.Widgets.Card
+import Style.Widgets.DataList as DataList
 import Style.Widgets.Icon as Icon
+import Style.Widgets.StatusBadge as StatusBadge
+import Time
 import Types.HelperTypes exposing (ProjectIdentifier)
 import Types.Project exposing (Project)
 import Types.Server exposing (Server, ServerOrigin(..))
@@ -30,6 +36,7 @@ type alias Model =
     , onlyOwnServers : Bool
     , selectedServers : Set.Set ServerSelection
     , deleteConfirmations : Set.Set DeleteConfirmation
+    , dataListModel : DataList.Model
     }
 
 
@@ -49,12 +56,13 @@ type Msg
     | GotDeleteConfirm DeleteConfirmation
     | GotDeleteCancel DeleteConfirmation
     | SharedMsg SharedMsg.SharedMsg
+    | DataListMsg DataList.Msg
     | NoOp
 
 
 init : Bool -> Model
 init showHeading =
-    Model showHeading True Set.empty Set.empty
+    Model showHeading True Set.empty Set.empty DataList.init
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
@@ -111,6 +119,15 @@ update msg project model =
             , SharedMsg.NoOp
             )
 
+        DataListMsg dataListMsg ->
+            ( { model
+                | dataListModel =
+                    DataList.update dataListMsg model.dataListModel
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
+
         SharedMsg sharedMsg ->
             ( model, Cmd.none, sharedMsg )
 
@@ -118,8 +135,8 @@ update msg project model =
             ( model, Cmd.none, SharedMsg.NoOp )
 
 
-view : View.Types.Context -> Project -> Model -> Element.Element Msg
-view context project model =
+view : View.Types.Context -> Project -> Time.Posix -> Model -> Element.Element Msg
+view context project currentTime model =
     let
         serverListContents =
             {- Resolve whether we have a loaded list of servers to display; if so, call rendering function serverList_ -}
@@ -166,12 +183,35 @@ view context project model =
                             ]
 
                     else
-                        serverList_
-                            context
-                            (GetterSetters.projectIdentifier project)
-                            project.auth.user.uuid
-                            model
-                            servers
+                        let
+                            deletionAction : Set.Set String -> Element.Element Msg
+                            deletionAction =
+                                \serverIds ->
+                                    Element.el [ Element.alignRight ]
+                                        (Widget.iconButton
+                                            (SH.materialStyle context.palette).dangerButton
+                                            { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
+                                            , text = "Delete"
+                                            , onPress =
+                                                Just <|
+                                                    SharedMsg
+                                                        (SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project)
+                                                            (SharedMsg.RequestDeleteServers
+                                                                (List.map stringToUuid
+                                                                    (Set.toList serverIds)
+                                                                )
+                                                            )
+                                                        )
+                                            }
+                                        )
+                        in
+                        DataList.view
+                            model.dataListModel
+                            DataListMsg
+                            []
+                            (serverView context project)
+                            (serverRecords context currentTime project servers)
+                            [ deletionAction ]
     in
     Element.column [ Element.width Element.fill ]
         [ if model.showHeading then
@@ -193,345 +233,135 @@ view context project model =
         ]
 
 
-serverList_ :
+stringToUuid : String -> OSTypes.ServerUuid
+stringToUuid =
+    identity
+
+
+type alias ServerRecord =
+    DataList.DataRecord
+        { name : String
+        , statusColor : Element.Color
+        , size : String
+        , floatingIpAddress : String
+        , creationTime : String
+        , creator : String
+        }
+
+
+serverRecords :
     View.Types.Context
-    -> ProjectIdentifier
-    -> OSTypes.UserUuid
-    -> Model
+    -> Time.Posix
+    -> Project
     -> List Server
-    -> Element.Element Msg
-serverList_ context projectId userUuid model servers =
-    {- Render a list of servers -}
+    -> List ServerRecord
+serverRecords context currentTime project servers =
     let
-        ( ownServers, otherUsersServers ) =
-            List.partition (ownServer userUuid) servers
+        serverStatusColors server =
+            server
+                |> VH.getServerUiStatus
+                |> VH.getServerUiStatusBadgeState
+                |> StatusBadge.toColors context.palette
 
-        shownServers =
-            if model.onlyOwnServers then
-                ownServers
-
-            else
-                servers
-
-        selectableServers =
-            shownServers
-                |> List.filter (\s -> s.osProps.details.lockStatus == OSTypes.ServerUnlocked)
-
-        selectedServers =
-            List.filter (serverIsSelected model.selectedServers) shownServers
-
-        allServersSelected =
-            if List.isEmpty selectableServers then
-                False
-
-            else
-                selectableServers == selectedServers
-    in
-    Element.column [ Element.paddingXY 10 0, Element.spacing 10, Element.width Element.fill ] <|
-        List.concat
-            [ [ renderTableHead
-                    context
-                    projectId
-                    allServersSelected
-                    ( selectableServers, selectedServers )
-              ]
-            , List.map (renderServer context projectId model True) ownServers
-            , [ onlyOwnExpander context model otherUsersServers ]
-            , if model.onlyOwnServers then
-                []
-
-              else
-                List.map (renderServer context projectId model False) otherUsersServers
-            ]
-
-
-renderTableHead :
-    View.Types.Context
-    -> ProjectIdentifier
-    -> Bool
-    -> ( List Server, List Server )
-    -> Element.Element Msg
-renderTableHead context projectId allServersSelected ( selectableServers, selectedServers ) =
-    let
-        deleteButtonOnPress =
-            case List.map (\s -> s.osProps.uuid) selectedServers of
-                [] ->
-                    Nothing
-
-                uuidsToDelete ->
-                    Just <| SharedMsg (SharedMsg.ProjectMsg projectId (SharedMsg.RequestDeleteServers uuidsToDelete))
-
-        onChecked new =
-            let
-                newSelection =
-                    if new {- == true -} then
-                        selectableServers
-                            |> List.map (\s -> s.osProps.uuid)
-                            |> Set.fromList
-
-                    else
-                        Set.empty
-            in
-            GotNewServerSelection newSelection
-
-        extraRowAttrs =
-            [ Element.paddingXY 5 0
-            , Element.width Element.fill
-            ]
-    in
-    Element.row (VH.exoRowAttributes ++ extraRowAttrs) <|
-        [ Element.el [] <|
-            Input.checkbox []
-                { checked = allServersSelected
-                , onChange = onChecked
-                , icon = Input.defaultCheckbox
-                , label = Input.labelRight [] (Element.text "Select All")
-                }
-        , Element.el [ Element.alignRight ] <|
-            Widget.iconButton
-                (SH.materialStyle context.palette).dangerButton
-                { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
-                , text = "Delete"
-                , onPress = deleteButtonOnPress
-                }
-        ]
-
-
-renderServer :
-    View.Types.Context
-    -> ProjectIdentifier
-    -> Model
-    -> Bool
-    -> Server
-    -> Element.Element Msg
-renderServer context projectId model isMyServer server =
-    let
-        creatorNameView =
-            case ( isMyServer, server.exoProps.serverOrigin ) of
-                ( False, ServerFromExo exoOriginProps ) ->
+        creatorName server =
+            case server.exoProps.serverOrigin of
+                ServerFromExo exoOriginProps ->
                     case exoOriginProps.exoCreatorUsername of
                         Just creatorUsername ->
-                            Element.el
-                                [ Element.width Element.shrink
-                                , Font.size 12
-                                ]
-                                (Element.text ("(creator: " ++ creatorUsername ++ ")"))
+                            creatorUsername
 
-                        _ ->
-                            Element.none
+                        Nothing ->
+                            "unknown user"
 
-                ( _, _ ) ->
-                    Element.none
+                _ ->
+                    "unknown user"
 
-        checkbox =
-            case server.osProps.details.lockStatus of
-                OSTypes.ServerUnlocked ->
-                    Input.checkbox [ Element.width Element.shrink ]
-                        { checked = serverIsSelected model.selectedServers server
-                        , onChange =
-                            GotSelectServer server.osProps.uuid
-                        , icon = Input.defaultCheckbox
-                        , label = Input.labelHidden server.osProps.name
-                        }
+        creationTimeStr server =
+            DateFormat.Relative.relativeTime currentTime
+                server.osProps.details.created
 
-                OSTypes.ServerLocked ->
-                    Input.checkbox [ Element.width Element.shrink ]
-                        { checked = False
-                        , onChange = \_ -> NoOp
-                        , icon = \_ -> Icon.lock (SH.toElementColor context.palette.on.surface) 14
-                        , label = Input.labelHidden server.osProps.name
-                        }
+        floatingIpAddress server =
+            case List.head (GetterSetters.getServerFloatingIps project server.osProps.uuid) of
+                Nothing ->
+                    "unknown " ++ context.localization.floatingIpAddress
 
-        serverLabelName : Server -> Element.Element Msg
-        serverLabelName aServer =
-            Element.row
-                [ Element.width Element.fill
-                , Element.spacing 10
+                Just floatingIp ->
+                    floatingIp.address
 
-                -- Overriding Font.bold in ancestor element
-                , Font.regular
-                ]
-                [ VH.serverStatusBadge context.palette aServer
-                , Element.el [ Font.bold ] (Element.text aServer.osProps.name)
-                ]
+        flavor server =
+            GetterSetters.flavorLookup project server.osProps.details.flavorId
+                |> Maybe.map .name
+                |> Maybe.withDefault ("unknown " ++ context.localization.virtualComputerHardwareConfig)
+    in
+    List.map
+        (\server ->
+            { id = server.osProps.uuid
+            , selectable = server.osProps.details.lockStatus == OSTypes.ServerUnlocked
+            , name = server.osProps.name
+            , statusColor = Tuple.first <| serverStatusColors server
+            , size = flavor server
+            , floatingIpAddress = floatingIpAddress server
+            , creationTime = creationTimeStr server
+            , creator = creatorName server
+            }
+        )
+        servers
 
-        serverLabel : Server -> Element.Element Msg
-        serverLabel aServer =
+
+serverView : View.Types.Context -> Project -> ServerRecord -> Element.Element Msg
+serverView context project serverRecord =
+    let
+        serverLink =
             Element.link []
                 { url =
                     Route.toUrl context.urlPathPrefix
-                        (Route.ProjectRoute projectId <| Route.ServerDetail server.osProps.uuid)
+                        (Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
+                            Route.ServerDetail serverRecord.id
+                        )
                 , label =
-                    Element.row
-                        [ Element.width Element.fill
-                        , Element.pointer
-                        , Element.spacing 10
+                    Element.el
+                        [ Font.size 18
+                        , Font.color (Element.rgb255 32 109 163)
                         ]
-                        [ serverLabelName aServer
-                        , creatorNameView
-                        ]
-                }
-
-        deletionAttempted =
-            server.exoProps.deletionAttempted
-
-        confirmationNeeded =
-            Set.member server.osProps.uuid model.deleteConfirmations
-
-        deleteWidget =
-            case ( deletionAttempted, server.osProps.details.lockStatus, confirmationNeeded ) of
-                ( True, _, _ ) ->
-                    []
-
-                ( False, OSTypes.ServerUnlocked, True ) ->
-                    [ Element.text "Confirm delete?"
-                    , Widget.iconButton
-                        (SH.materialStyle context.palette).dangerButton
-                        { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
-                        , text = "Delete"
-                        , onPress =
-                            Just <| GotDeleteConfirm server.osProps.uuid
-                        }
-                    , Widget.iconButton
-                        (SH.materialStyle context.palette).button
-                        { icon = Icon.windowClose (SH.toElementColor context.palette.on.surface) 16
-                        , text = "Cancel"
-                        , onPress =
-                            Just <| GotDeleteCancel server.osProps.uuid
-                        }
-                    ]
-
-                ( False, OSTypes.ServerUnlocked, False ) ->
-                    [ Widget.iconButton
-                        (SH.materialStyle context.palette).dangerButton
-                        { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
-                        , text = "Delete"
-                        , onPress =
-                            Just <| GotDeleteNeedsConfirm server.osProps.uuid
-                        }
-                    ]
-
-                ( False, OSTypes.ServerLocked, _ ) ->
-                    [ Widget.iconButton
-                        (SH.materialStyle context.palette).dangerButton
-                        { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
-                        , text = "Delete"
-                        , onPress = Nothing
-                        }
-                    ]
-    in
-    Style.Widgets.Card.exoCardWithTitleAndSubtitle
-        context.palette
-        (Element.row [ Element.spacing 8 ] [ checkbox, serverLabel server ])
-        (Element.row [ Element.spacing 8 ] deleteWidget)
-        Element.none
-
-
-
--- TODO factor this out with ipsAssignedToServersExpander in FloatingIpList.elm
-
-
-onlyOwnExpander :
-    View.Types.Context
-    -> Model
-    -> List Server
-    -> Element.Element Msg
-onlyOwnExpander context model otherUsersServers =
-    let
-        numOtherUsersServers =
-            List.length otherUsersServers
-
-        statusText =
-            let
-                ( serversPluralization, usersPluralization ) =
-                    if numOtherUsersServers == 1 then
-                        ( context.localization.virtualComputer
-                        , "another user"
-                        )
-
-                    else
-                        ( Helpers.String.pluralize context.localization.virtualComputer
-                        , "other users"
-                        )
-            in
-            if model.onlyOwnServers then
-                String.concat
-                    [ "Hiding "
-                    , humanCount context.locale numOtherUsersServers
-                    , " "
-                    , serversPluralization
-                    , " created by "
-                    , usersPluralization
-                    ]
-
-            else
-                String.join " "
-                    [ context.localization.virtualComputer
-                        |> Helpers.String.pluralize
-                        |> Helpers.String.toTitleCase
-                    , "created by other users"
-                    ]
-
-        ( ( changeActionVerb, changeActionIcon ), ( newOnlyOwnServers, newSelectedServers ) ) =
-            if model.onlyOwnServers then
-                ( ( "Show", FeatherIcons.chevronDown )
-                , ( False, model.selectedServers )
-                )
-
-            else
-                -- When hiding other users' servers, ensure that they are de-selected!
-                let
-                    serverUuidsToDeselect =
-                        List.map (\s -> s.osProps.uuid) otherUsersServers
-
-                    selectedServers =
-                        Set.filter
-                            (\u -> not <| List.member u serverUuidsToDeselect)
-                            model.selectedServers
-                in
-                ( ( "Hide", FeatherIcons.chevronUp )
-                , ( True, selectedServers )
-                )
-
-        changeOnlyOwnMsg : Msg
-        changeOnlyOwnMsg =
-            GotShowOnlyOwnServers newOnlyOwnServers newSelectedServers
-
-        changeButton =
-            Widget.iconButton
-                (SH.materialStyle context.palette).button
-                { onPress = Just changeOnlyOwnMsg
-                , icon =
-                    Element.row [ Element.spacing 5 ]
-                        [ Element.text changeActionVerb
-                        , changeActionIcon
-                            |> FeatherIcons.withSize 18
-                            |> FeatherIcons.toHtml []
-                            |> Element.html
-                            |> Element.el []
-                        ]
-                , text = changeActionVerb
+                        (Element.text serverRecord.name)
                 }
     in
-    if numOtherUsersServers == 0 then
-        Element.none
-
-    else
-        Element.column [ Element.spacing 3, Element.padding 0, Element.width Element.fill ]
-            [ Element.el
-                [ Element.centerX, Font.size 14 ]
-                (Element.text statusText)
+    Element.column
+        [ Element.spacing 12
+        , Element.width Element.fill
+        ]
+        [ Element.row [ Element.spacing 10, Element.width Element.fill ]
+            [ serverLink
             , Element.el
-                [ Element.centerX ]
-                changeButton
+                [ Element.width (Element.px 12)
+                , Element.height (Element.px 12)
+                , Border.rounded 6
+                , Background.color serverRecord.statusColor
+                ]
+                Element.none
+            , Element.el [ Element.alignRight ] <|
+                Widget.iconButton
+                    (SH.materialStyle context.palette).dangerButton
+                    { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
+                    , text = "Delete"
+                    , onPress =
+                        Just <| GotDeleteConfirm serverRecord.id
+                    }
             ]
-
-
-ownServer : OSTypes.UserUuid -> Server -> Bool
-ownServer userUuid server =
-    server.osProps.details.userUuid == userUuid
-
-
-serverIsSelected : Set.Set ServerSelection -> Server -> Bool
-serverIsSelected selectedUuids server =
-    Set.member server.osProps.uuid selectedUuids
+        , Element.row
+            [ Element.spacing 8
+            , Element.width Element.fill
+            , Font.color (Element.rgb255 96 96 96)
+            ]
+            [ Element.el [] (Element.text serverRecord.size)
+            , Element.text "·"
+            , Element.paragraph []
+                [ Element.text "created "
+                , Element.el [ Font.color (Element.rgb255 0 0 0) ] (Element.text serverRecord.creationTime)
+                , Element.text " by "
+                , Element.el [ Font.color (Element.rgb255 0 0 0) ] (Element.text serverRecord.creator)
+                ]
+            , Icon.ipAddress (Element.rgb255 96 96 96) 16
+            , Element.el [] (Element.text serverRecord.floatingIpAddress)
+            ]
+        ]

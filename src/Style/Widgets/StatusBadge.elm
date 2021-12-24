@@ -1,4 +1,4 @@
-module Style.Widgets.StatusBadge exposing (StatusBadgeState(..), statusBadge)
+module Style.Widgets.StatusBadge exposing (StatusBadgeState(..), statusBadge, toColors)
 
 import Element
 import Element.Background as Background
