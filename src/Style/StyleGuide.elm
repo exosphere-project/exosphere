@@ -31,14 +31,14 @@ type Msg
 
 
 type alias Server =
-    { name : String
-    , creator : String
-    , creationTime : String
-    , ready : Bool
-    , size : String
-    , ip : String
-    , id : String
-    }
+    DataList.DataRecord
+        { name : String
+        , creator : String
+        , creationTime : String
+        , ready : Bool
+        , size : String
+        , ip : String
+        }
 
 
 initServers : List Server
@@ -50,6 +50,7 @@ initServers =
       , size = "m1.tiny"
       , ip = "129.114.104.147"
       , id = "rtbdf"
+      , selectable = True
       }
     , { name = "cheaply_next_crab"
       , creator = "tg3456"
@@ -58,6 +59,7 @@ initServers =
       , size = "m1.medium"
       , ip = "129.114.104.148"
       , id = "tyh43d"
+      , selectable = False
       }
     , { name = "basically_well_cobra"
       , creator = "ex3"
@@ -66,6 +68,7 @@ initServers =
       , size = "g1.v100x"
       , ip = "129.114.104.149"
       , id = "vcb543f"
+      , selectable = True
       }
     ]
 
@@ -193,7 +196,7 @@ widgets palette model =
         ]
         (serverView palette)
         model.servers
-        (\serverIds ->
+        [ \serverIds ->
             Element.el [ Element.alignRight ]
                 (Widget.iconButton
                     (SH.materialStyle palette).dangerButton
@@ -203,7 +206,7 @@ widgets palette model =
                         Just <| DeleteSelectedServers serverIds
                     }
                 )
-        )
+        ]
     ]
 
 
