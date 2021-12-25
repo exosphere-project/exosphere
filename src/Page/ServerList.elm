@@ -325,6 +325,38 @@ serverView context project serverRecord =
                         ]
                         (Element.text serverRecord.name)
                 }
+
+        interactionButton =
+            Widget.iconButton
+                (SH.materialStyle context.palette).button
+                { text = "Connect to"
+                , icon =
+                    Element.row
+                        [ Element.spacing 5 ]
+                        [ Element.text "Connect to"
+                        , Element.el []
+                            (FeatherIcons.chevronDown
+                                |> FeatherIcons.withSize 18
+                                |> FeatherIcons.toHtml []
+                                |> Element.html
+                            )
+                        ]
+                , onPress = Just NoOp
+                }
+
+        deleteServerButton =
+            Widget.iconButton
+                (SH.materialStyle context.palette).dangerButton
+                { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
+                , text = "Delete"
+                , onPress =
+                    if serverRecord.selectable then
+                        Just <| GotDeleteConfirm serverRecord.id
+
+                    else
+                        -- to disable it
+                        Nothing
+                }
     in
     Element.column
         [ Element.spacing 12
@@ -339,14 +371,8 @@ serverView context project serverRecord =
                 , Background.color serverRecord.statusColor
                 ]
                 Element.none
-            , Element.el [ Element.alignRight ] <|
-                Widget.iconButton
-                    (SH.materialStyle context.palette).dangerButton
-                    { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
-                    , text = "Delete"
-                    , onPress =
-                        Just <| GotDeleteConfirm serverRecord.id
-                    }
+            , Element.el [ Element.alignRight ] interactionButton
+            , Element.el [ Element.alignRight ] deleteServerButton
             ]
         , Element.row
             [ Element.spacing 8
