@@ -79,6 +79,9 @@ view model toMsg styleAttrs listItemView data bulkActions =
 
             else
                 defaultRowStyle
+
+        showRowCheckbox =
+            not (List.isEmpty bulkActions)
     in
     Element.column
         ([ Element.width Element.fill
@@ -90,7 +93,9 @@ view model toMsg styleAttrs listItemView data bulkActions =
             ++ styleAttrs
         )
         (toolbarView model toMsg defaultRowStyle data bulkActions
-            :: List.indexedMap (rowView model toMsg rowStyle listItemView) data
+            :: List.indexedMap
+                (rowView model toMsg rowStyle listItemView showRowCheckbox)
+                data
         )
 
 
@@ -99,30 +104,34 @@ rowView :
     -> (Msg -> msg) -- convert local Msg to a consumer's msg
     -> (Int -> List (Element.Attribute msg))
     -> (DataRecord record -> Element.Element msg)
+    -> Bool
     -> Int
     -> DataRecord record
     -> Element.Element msg
-rowView model toMsg rowStyle listItemView i dataRecord =
+rowView model toMsg rowStyle listItemView showRowCheckbox i dataRecord =
     let
         rowCheckbox =
-            if dataRecord.selectable then
-                Input.checkbox [ Element.width Element.shrink ]
-                    { checked = Set.member dataRecord.id model.selectedRowIds
-                    , onChange = \isChecked -> ChangeRowSelection dataRecord.id isChecked
-                    , icon = Input.defaultCheckbox
-                    , label = Input.labelHidden ("select row " ++ String.fromInt i)
-                    }
+            if showRowCheckbox then
+                if dataRecord.selectable then
+                    Input.checkbox [ Element.width Element.shrink ]
+                        { checked = Set.member dataRecord.id model.selectedRowIds
+                        , onChange = \isChecked -> ChangeRowSelection dataRecord.id isChecked
+                        , icon = Input.defaultCheckbox
+                        , label = Input.labelHidden ("select row " ++ String.fromInt i)
+                        }
+
+                else
+                    Input.checkbox [ Element.width Element.shrink ]
+                        { checked = False
+                        , onChange = \_ -> NoOp
+                        , icon = \_ -> Icon.lock (Element.rgb255 42 42 42) 14 -- TODO: use color from context
+                        , label = Input.labelHidden "locked row cannot be selected"
+                        }
 
             else
-                Input.checkbox [ Element.width Element.shrink ]
-                    { checked = False
-                    , onChange = \_ -> NoOp
-                    , icon = \_ -> Icon.lock (Element.rgb255 42 42 42) 14 -- TODO: use color from context
-                    , label = Input.labelHidden "locked row cannot be selected"
-                    }
+                Element.none
     in
     Element.row (rowStyle i)
-        -- TODO: show rowCheckbox only when bulkActions is something
         [ rowCheckbox |> Element.map toMsg
         , listItemView dataRecord -- consumer-provided view already returns consumer's msg
         ]
@@ -155,27 +164,34 @@ toolbarView model toMsg rowStyle data bulkActions =
 
             else
                 selectedRowIds selectableRecords == idsSet selectableRecords
-    in
-    Element.row rowStyle
-        ([ -- Checkbox to select all rows
-           Input.checkbox [ Element.width Element.shrink ]
-            { checked = areAllRowsSelected
-            , onChange =
-                \isChecked ->
-                    if isChecked then
-                        ChangeAllRowsSelection <| idsSet selectableRecords
 
-                    else
-                        ChangeAllRowsSelection Set.empty
-            , icon = Input.defaultCheckbox
-            , label = Input.labelRight [] (Element.text "Select All")
-            }
-            |> Element.map toMsg
-         , Element.text
-            (String.fromInt (Set.size (selectedRowIds selectableRecords))
-                ++ " row(s) selected"
-            )
-         ]
-            ++ List.map (\bulkAction -> bulkAction model.selectedRowIds)
+        selectAllCheckbox =
+            Input.checkbox [ Element.width Element.shrink ]
+                { checked = areAllRowsSelected
+                , onChange =
+                    \isChecked ->
+                        if isChecked then
+                            ChangeAllRowsSelection <| idsSet selectableRecords
+
+                        else
+                            ChangeAllRowsSelection Set.empty
+                , icon = Input.defaultCheckbox
+                , label = Input.labelRight [] (Element.text "Select All")
+                }
+                |> Element.map toMsg
+    in
+    Element.row rowStyle <|
+        List.concat
+            [ if List.isEmpty bulkActions then
+                []
+
+              else
+                [ selectAllCheckbox
+                , Element.text
+                    (String.fromInt (Set.size (selectedRowIds selectableRecords))
+                        ++ " row(s) selected"
+                    )
+                ]
+            , List.map (\bulkAction -> bulkAction model.selectedRowIds)
                 bulkActions
-        )
+            ]
