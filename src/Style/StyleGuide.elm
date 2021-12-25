@@ -6,6 +6,7 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Region as Region
+import FeatherIcons
 import Set exposing (Set)
 import Style.Helpers as SH
 import Style.Types
@@ -82,6 +83,38 @@ serverView palette server =
 
             else
                 Element.rgb255 187 187 187
+
+        interactionButton =
+            Widget.iconButton
+                (SH.materialStyle palette).button
+                { text = "Connect to"
+                , icon =
+                    Element.row
+                        [ Element.spacing 5 ]
+                        [ Element.text "Connect to"
+                        , Element.el []
+                            (FeatherIcons.chevronDown
+                                |> FeatherIcons.withSize 18
+                                |> FeatherIcons.toHtml []
+                                |> Element.html
+                            )
+                        ]
+                , onPress = Just NoOp
+                }
+
+        deleteServerButton =
+            Widget.iconButton
+                (SH.materialStyle palette).dangerButton
+                { icon = remove (SH.toElementColor palette.on.error) 16
+                , text = "Delete"
+                , onPress =
+                    if server.selectable then
+                        Just <| DeleteServer server.id
+
+                    else
+                        -- to disable it
+                        Nothing
+                }
     in
     Element.column
         [ Element.spacing 12
@@ -100,14 +133,10 @@ serverView palette server =
                 , Background.color statusColor
                 ]
                 Element.none
-            , Element.el [ Element.alignRight ] <|
-                Widget.iconButton
-                    (SH.materialStyle palette).dangerButton
-                    { icon = remove (SH.toElementColor palette.on.error) 16
-                    , text = "Delete"
-                    , onPress =
-                        Just <| DeleteServer server.id
-                    }
+            , Element.el [ Element.alignRight ]
+                interactionButton
+            , Element.el [ Element.alignRight ]
+                deleteServerButton
             ]
         , Element.row
             [ Element.spacing 8

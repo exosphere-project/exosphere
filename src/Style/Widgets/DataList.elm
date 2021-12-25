@@ -92,6 +92,7 @@ view model toMsg styleAttrs listItemView data bulkActions =
             -- Add or override default style with passed style attributes
             ++ styleAttrs
         )
+        -- TODO: Use context.palette instead of hard coded colors to create dark-theme version
         (toolbarView model toMsg defaultRowStyle data bulkActions
             :: List.indexedMap
                 (rowView model toMsg rowStyle listItemView showRowCheckbox)
