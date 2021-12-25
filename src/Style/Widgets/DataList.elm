@@ -146,52 +146,66 @@ toolbarView :
     -> Element.Element msg
 toolbarView model toMsg rowStyle data bulkActions =
     let
-        selectedRowIds : List (DataRecord record) -> Set.Set String
-        selectedRowIds dataRecords =
+        selectableRecords =
+            List.filter (\record -> record.selectable) data
+
+        selectedRowIds =
             -- Remove those records' Ids that were deleted after being selected
             -- (This is because there seems no direct way to update the model
             -- as the data passed to the view changes)
             Set.filter
-                (\selectedRowId -> Set.member selectedRowId (idsSet dataRecords))
+                (\selectedRowId -> Set.member selectedRowId (idsSet selectableRecords))
                 model.selectedRowIds
-
-        selectableRecords =
-            List.filter (\record -> record.selectable) data
 
         areAllRowsSelected =
             if List.isEmpty selectableRecords then
                 False
 
             else
-                selectedRowIds selectableRecords == idsSet selectableRecords
+                selectedRowIds == idsSet selectableRecords
 
         selectAllCheckbox =
-            Input.checkbox [ Element.width Element.shrink ]
-                { checked = areAllRowsSelected
-                , onChange =
-                    \isChecked ->
-                        if isChecked then
-                            ChangeAllRowsSelection <| idsSet selectableRecords
+            if List.isEmpty bulkActions then
+                -- don't show select all checkbox if no bulkActions are passed
+                Element.none
 
-                        else
-                            ChangeAllRowsSelection Set.empty
-                , icon = Input.defaultCheckbox
-                , label = Input.labelRight [] (Element.text "Select All")
-                }
-                |> Element.map toMsg
+            else
+                Input.checkbox [ Element.width Element.shrink ]
+                    { checked = areAllRowsSelected
+                    , onChange =
+                        \isChecked ->
+                            if isChecked then
+                                ChangeAllRowsSelection <| idsSet selectableRecords
+
+                            else
+                                ChangeAllRowsSelection Set.empty
+                    , icon = Input.defaultCheckbox
+                    , label =
+                        Input.labelRight [ Element.paddingXY 14 0 ]
+                            (Element.text "Select All")
+                    }
+                    |> Element.map toMsg
+
+        bulkActionsView =
+            -- show only when bulkActions are passed and atleast 1 row is selected
+            if List.isEmpty bulkActions || Set.isEmpty selectedRowIds then
+                []
+
+            else
+                (Element.el [ Element.alignRight ] <|
+                    Element.text
+                        ("Apply action to "
+                            ++ String.fromInt (Set.size selectedRowIds)
+                            ++ " row(s):"
+                        )
+                )
+                    :: List.map (\bulkAction -> bulkAction selectedRowIds)
+                        bulkActions
     in
     Element.row rowStyle <|
         List.concat
-            [ if List.isEmpty bulkActions then
-                []
+            [ [ selectAllCheckbox ]
 
-              else
-                [ selectAllCheckbox
-                , Element.text
-                    (String.fromInt (Set.size (selectedRowIds selectableRecords))
-                        ++ " row(s) selected"
-                    )
-                ]
-            , List.map (\bulkAction -> bulkAction model.selectedRowIds)
-                bulkActions
+            --, other controls like filters, sort
+            , bulkActionsView
             ]
