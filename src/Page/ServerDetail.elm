@@ -44,6 +44,7 @@ import Widget.Style.Material
 type alias Model =
     { serverUuid : OSTypes.ServerUuid
     , showCreatedTimeToggleTip : Bool
+    , showFlavorToggleTip : Bool
     , verboseStatus : VerboseStatus
     , passwordVisibility : PasswordVisibility
     , ipInfoLevel : IpInfoLevel
@@ -72,6 +73,7 @@ type PasswordVisibility
 
 type Msg
     = GotShowCreatedTimeToggleTip Bool
+    | GotShowFlavorToggleTip Bool
     | GotShowVerboseStatus Bool
     | GotPasswordVisibility PasswordVisibility
     | GotIpInfoLevel IpInfoLevel
@@ -90,6 +92,7 @@ init : OSTypes.ServerUuid -> Model
 init serverUuid =
     { serverUuid = serverUuid
     , showCreatedTimeToggleTip = False
+    , showFlavorToggleTip = False
     , verboseStatus = False
     , passwordVisibility = PasswordHidden
     , ipInfoLevel = IpSummary
@@ -107,6 +110,9 @@ update msg project model =
     case msg of
         GotShowCreatedTimeToggleTip shown ->
             ( { model | showCreatedTimeToggleTip = shown }, Cmd.none, SharedMsg.NoOp )
+
+        GotShowFlavorToggleTip shown ->
+            ( { model | showFlavorToggleTip = shown }, Cmd.none, SharedMsg.NoOp )
 
         GotShowVerboseStatus shown ->
             ( { model | verboseStatus = shown }, Cmd.none, SharedMsg.NoOp )
@@ -187,10 +193,43 @@ serverDetail_ context project currentTimeAndZone model server =
                 _ ->
                     "unknown user"
 
-        flavorText =
-            GetterSetters.flavorLookup project details.flavorId
-                |> Maybe.map .name
-                |> Maybe.withDefault ("Unknown " ++ context.localization.virtualComputerHardwareConfig)
+        flavorContents =
+            case GetterSetters.flavorLookup project details.flavorId of
+                Just flavor ->
+                    let
+                        toggleTipContents =
+                            Element.column
+                                []
+                                [ Element.text (String.fromInt flavor.vcpu ++ " CPU cores")
+                                , let
+                                    ram_gb =
+                                        flavor.ram_mb // 1024
+                                  in
+                                  Element.text (String.fromInt ram_gb ++ " GB RAM")
+
+                                -- TODO if instance is volume-backed then don't show this
+                                , if flavor.disk_root > 0 then
+                                    Element.text (String.fromInt flavor.disk_root ++ " GB root disk")
+
+                                  else
+                                    Element.none
+                                ]
+
+                        toggleTip =
+                            Style.Widgets.ToggleTip.toggleTip
+                                context.palette
+                                toggleTipContents
+                                model.showFlavorToggleTip
+                                (GotShowFlavorToggleTip (not model.showFlavorToggleTip))
+                    in
+                    Element.row
+                        [ Element.spacing 5 ]
+                        [ Element.text flavor.name
+                        , toggleTip
+                        ]
+
+                Nothing ->
+                    Element.text ("Unknown " ++ context.localization.virtualComputerHardwareConfig)
 
         imageText =
             let
@@ -381,7 +420,7 @@ serverDetail_ context project currentTimeAndZone model server =
                 details.created
                 (Just ( "user", creatorName ))
                 (Just ( context.localization.staticRepresentationOfBlockDeviceContents, imageText ))
-                (Just ( context.localization.virtualComputerHardwareConfig, Element.text flavorText ))
+                (Just ( context.localization.virtualComputerHardwareConfig, flavorContents ))
                 model.showCreatedTimeToggleTip
                 (GotShowCreatedTimeToggleTip (not model.showCreatedTimeToggleTip))
             ]
