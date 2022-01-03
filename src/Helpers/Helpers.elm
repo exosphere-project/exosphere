@@ -1,11 +1,9 @@
 module Helpers.Helpers exposing
     ( alwaysRegex
     , decodeFloatingIpOption
-    , getBootVol
     , getNewFloatingIpOption
     , httpErrorToString
     , httpErrorWithBodyToString
-    , isBootVol
     , naiveUuidParser
     , newServerMetadata
     , newServerNetworkOptions
@@ -19,7 +17,6 @@ module Helpers.Helpers exposing
     , serviceCatalogToEndpoints
     , stringIsUuidOrDefault
     , stripTimeSinceBootFromLogLine
-    , volDeviceToMountpoint
     )
 
 -- Many functions which get and set things in the data model have been moved from here to GetterSetters.elm.
@@ -469,45 +466,6 @@ newServerNetworkOptions project =
                                     ManualNetworkSelection
                             )
                     )
-
-
-isBootVol : Maybe OSTypes.ServerUuid -> OSTypes.Volume -> Bool
-isBootVol maybeServerUuid volume =
-    -- If a serverUuid is passed, determines whether volume backs that server; otherwise just determines whether volume backs any server
-    volume.attachments
-        |> List.filter
-            (\a ->
-                case maybeServerUuid of
-                    Just serverUuid ->
-                        a.serverUuid == serverUuid
-
-                    Nothing ->
-                        True
-            )
-        |> List.filter
-            (\a ->
-                List.member
-                    a.device
-                    [ "/dev/sda", "/dev/vda" ]
-            )
-        |> List.isEmpty
-        |> not
-
-
-getBootVol : List OSTypes.Volume -> OSTypes.ServerUuid -> Maybe OSTypes.Volume
-getBootVol vols serverUuid =
-    vols
-        |> List.Extra.find (isBootVol <| Just serverUuid)
-
-
-volDeviceToMountpoint : OSTypes.VolumeAttachmentDevice -> Maybe String
-volDeviceToMountpoint device =
-    -- Converts e.g. "/dev/sdc" to "/media/volume/sdc"
-    device
-        |> String.split "/"
-        |> List.reverse
-        |> List.head
-        |> Maybe.map (String.append "/media/volume/")
 
 
 serverOrigin : OSTypes.ServerDetails -> ServerOrigin

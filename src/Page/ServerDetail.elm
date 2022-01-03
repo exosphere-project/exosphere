@@ -14,7 +14,6 @@ import Helpers.Interaction as IHelpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import Helpers.Time
-import List.Extra
 import OpenStack.ServerActions as ServerActions
 import OpenStack.ServerNameValidator exposing (serverNameValidator)
 import OpenStack.Types as OSTypes
@@ -206,9 +205,13 @@ serverDetail_ context project currentTimeAndZone model server =
                                         flavor.ram_mb // 1024
                                   in
                                   Element.text (String.fromInt ram_gb ++ " GB RAM")
-                                , case serverIsVolumeBacked project server of
-                                    Just backingVolumeSize ->
-                                        Element.text (String.fromInt backingVolumeSize ++ " GB root volume")
+                                , case
+                                    GetterSetters.getBootVolume
+                                        (RemoteData.withDefault [] project.volumes)
+                                        server.osProps.uuid
+                                  of
+                                    Just backingVolume ->
+                                        Element.text (String.fromInt backingVolume.size ++ " GB root volume")
 
                                     Nothing ->
                                         if flavor.disk_root > 0 then
@@ -247,7 +250,7 @@ serverDetail_ context project currentTimeAndZone model server =
                         vols =
                             RemoteData.withDefault [] project.volumes
                     in
-                    Helpers.getBootVol vols server.osProps.uuid
+                    GetterSetters.getBootVolume vols server.osProps.uuid
                         |> Maybe.andThen .imageMetadata
                         |> Maybe.map .name
             in
@@ -1438,7 +1441,7 @@ serverVolumes context project server =
                 volumeRow v =
                     let
                         ( device, mountpoint ) =
-                            if isBootVolume server v then
+                            if GetterSetters.isBootVolume (Just server.osProps.uuid) v then
                                 ( String.join " "
                                     [ "Boot"
                                     , context.localization.blockDevice
@@ -1447,10 +1450,10 @@ serverVolumes context project server =
                                 )
 
                             else
-                                case deviceRawName server v of
+                                case GetterSetters.volumeDeviceRawName server v of
                                     Just device_ ->
                                         ( device_
-                                        , case Helpers.volDeviceToMountpoint device_ of
+                                        , case GetterSetters.volDeviceToMountpoint device_ of
                                             Just mountpoint_ ->
                                                 mountpoint_
 
@@ -1492,30 +1495,3 @@ serverVolumes context project server =
                       }
                     ]
                 }
-
-
-deviceRawName : Server -> OSTypes.Volume -> Maybe OSTypes.VolumeAttachmentDevice
-deviceRawName server volume =
-    volume.attachments
-        |> List.Extra.find (\a -> a.serverUuid == server.osProps.uuid)
-        |> Maybe.map .device
-
-
-isBootVolume : Server -> OSTypes.Volume -> Bool
-isBootVolume server volume =
-    deviceRawName server volume
-        |> Maybe.map (\d -> List.member d [ "/dev/vda", "/dev/sda" ])
-        |> Maybe.withDefault False
-
-
-serverIsVolumeBacked : Project -> Server -> Maybe Int
-serverIsVolumeBacked project server =
-    -- If server is volume-backed, returns size of backing volume in GB
-    let
-        vols =
-            GetterSetters.getVolsAttachedToServer project server
-    in
-    vols
-        |> List.filter (isBootVolume server)
-        |> List.head
-        |> Maybe.map .size

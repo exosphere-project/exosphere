@@ -2,6 +2,7 @@ module Helpers.GetterSetters exposing
     ( cloudSpecificConfigLookup
     , flavorLookup
     , floatingIpLookup
+    , getBootVolume
     , getExternalNetwork
     , getFloatingIpServer
     , getServerExouserPassword
@@ -12,6 +13,7 @@ module Helpers.GetterSetters exposing
     , getServicePublicUrl
     , getVolsAttachedToServer
     , imageLookup
+    , isBootVolume
     , modelUpdateProject
     , modelUpdateUnscopedProvider
     , projectDeleteServer
@@ -31,6 +33,8 @@ module Helpers.GetterSetters exposing
     , sortedFlavors
     , unscopedProjectLookup
     , unscopedProviderLookup
+    , volDeviceToMountpoint
+    , volumeDeviceRawName
     , volumeIsAttachedToServer
     , volumeLookup
     )
@@ -245,6 +249,52 @@ volumeIsAttachedToServer volumeUuid server =
 getServersWithVolAttached : Project -> OSTypes.Volume -> List OSTypes.ServerUuid
 getServersWithVolAttached _ volume =
     volume.attachments |> List.map .serverUuid
+
+
+volumeDeviceRawName : Server -> OSTypes.Volume -> Maybe OSTypes.VolumeAttachmentDevice
+volumeDeviceRawName server volume =
+    volume.attachments
+        |> List.Extra.find (\a -> a.serverUuid == server.osProps.uuid)
+        |> Maybe.map .device
+
+
+isBootVolume : Maybe OSTypes.ServerUuid -> OSTypes.Volume -> Bool
+isBootVolume maybeServerUuid volume =
+    -- If a serverUuid is passed, determines whether volume backs that server; otherwise just determines whether volume backs any server
+    volume.attachments
+        |> List.filter
+            (\a ->
+                case maybeServerUuid of
+                    Just serverUuid ->
+                        a.serverUuid == serverUuid
+
+                    Nothing ->
+                        True
+            )
+        |> List.filter
+            (\a ->
+                List.member
+                    a.device
+                    [ "/dev/sda", "/dev/vda" ]
+            )
+        |> List.isEmpty
+        |> not
+
+
+getBootVolume : List OSTypes.Volume -> OSTypes.ServerUuid -> Maybe OSTypes.Volume
+getBootVolume vols serverUuid =
+    vols
+        |> List.Extra.find (isBootVolume <| Just serverUuid)
+
+
+volDeviceToMountpoint : OSTypes.VolumeAttachmentDevice -> Maybe String
+volDeviceToMountpoint device =
+    -- Converts e.g. "/dev/sdc" to "/media/volume/sdc"
+    device
+        |> String.split "/"
+        |> List.reverse
+        |> List.head
+        |> Maybe.map (String.append "/media/volume/")
 
 
 serverPresentNotDeleting : SharedModel -> OSTypes.ServerUuid -> Bool
