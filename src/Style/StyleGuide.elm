@@ -6,13 +6,14 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Region as Region
+import FeatherIcons
 import Set exposing (Set)
 import Style.Helpers as SH
 import Style.Types
 import Style.Widgets.Card exposing (badge, clickableCardFixedSize, exoCard, exoCardWithTitleAndSubtitle, expandoCard)
 import Style.Widgets.ChipsFilter exposing (chipsFilter)
 import Style.Widgets.CopyableText exposing (copyableText)
-import Style.Widgets.DataList exposing (dataList)
+import Style.Widgets.DataList as DataList
 import Style.Widgets.Icon exposing (bell, history, ipAddress, remove, roundRect, timesCircle)
 import Style.Widgets.IconButton exposing (chip)
 import Style.Widgets.MenuItem exposing (MenuItemState(..), menuItem)
@@ -21,34 +22,36 @@ import Style.Widgets.StatusBadge exposing (StatusBadgeState(..), statusBadge)
 import Widget
 
 
-
-{- When you create a new widget, add example usages to the `widgets` list here! -}
-
-
 type Msg
     = ChipsFilterMsg Style.Widgets.ChipsFilter.ChipsFilterMsg
     | ToggleExpandoCard Bool
+    | DataListMsg DataList.Msg
+    | DeleteServer String
+    | DeleteSelectedServers (Set String)
     | NoOp
 
 
 type alias Server =
-    { name : String
-    , creator : String
-    , creationTime : String
-    , ready : Bool
-    , size : String
-    , ip : String
-    }
+    DataList.DataRecord
+        { name : String
+        , creator : String
+        , creationTime : String
+        , ready : Bool
+        , size : String
+        , ip : String
+        }
 
 
-servers : List Server
-servers =
+initServers : List Server
+initServers =
     [ { name = "kindly_mighty_katydid"
       , creator = "ex3"
       , creationTime = "5 days ago"
       , ready = True
       , size = "m1.tiny"
       , ip = "129.114.104.147"
+      , id = "rtbdf"
+      , selectable = True
       }
     , { name = "cheaply_next_crab"
       , creator = "tg3456"
@@ -56,6 +59,8 @@ servers =
       , ready = False
       , size = "m1.medium"
       , ip = "129.114.104.148"
+      , id = "tyh43d"
+      , selectable = False
       }
     , { name = "basically_well_cobra"
       , creator = "ex3"
@@ -63,12 +68,14 @@ servers =
       , ready = True
       , size = "g1.v100x"
       , ip = "129.114.104.149"
+      , id = "vcb543f"
+      , selectable = True
       }
     ]
 
 
-serverView : Server -> Element.Element msg
-serverView server =
+serverView : Style.Types.ExoPalette -> Server -> Element.Element Msg
+serverView palette server =
     let
         statusColor =
             if server.ready then
@@ -76,11 +83,42 @@ serverView server =
 
             else
                 Element.rgb255 187 187 187
+
+        interactionButton =
+            Widget.iconButton
+                (SH.materialStyle palette).button
+                { text = "Connect to"
+                , icon =
+                    Element.row
+                        [ Element.spacing 5 ]
+                        [ Element.text "Connect to"
+                        , Element.el []
+                            (FeatherIcons.chevronDown
+                                |> FeatherIcons.withSize 18
+                                |> FeatherIcons.toHtml []
+                                |> Element.html
+                            )
+                        ]
+                , onPress = Just NoOp
+                }
+
+        deleteServerButton =
+            Widget.iconButton
+                (SH.materialStyle palette).dangerButton
+                { icon = remove (SH.toElementColor palette.on.error) 16
+                , text = "Delete"
+                , onPress =
+                    if server.selectable then
+                        Just <| DeleteServer server.id
+
+                    else
+                        -- to disable it
+                        Nothing
+                }
     in
     Element.column
         [ Element.spacing 12
         , Element.width Element.fill
-        , Font.size 16
         ]
         [ Element.row [ Element.spacing 10, Element.width Element.fill ]
             [ Element.el
@@ -95,11 +133,10 @@ serverView server =
                 , Background.color statusColor
                 ]
                 Element.none
-            , Element.link
-                [ Element.alignRight
-                , Font.color (Element.rgb255 32 109 163)
-                ]
-                { url = "#", label = Element.text "Action1 | Action2" }
+            , Element.el [ Element.alignRight ]
+                interactionButton
+            , Element.el [ Element.alignRight ]
+                deleteServerButton
             ]
         , Element.row
             [ Element.spacing 8
@@ -122,6 +159,7 @@ serverView server =
 
 
 --noinspection ElmUnresolvedReference
+{- When you create a new widget, add example usages to the `widgets` list here! -}
 
 
 widgets : Style.Types.ExoPalette -> Model -> List (Element.Element Msg)
@@ -179,9 +217,25 @@ widgets palette model =
     , Element.text "Style.Widgets.Meter"
     , meter palette "Space used" "6 of 10 GB" 6 10
     , Element.text "Style.Widgets.DataList.dataList"
-    , dataList [ Element.width (Element.maximum 900 Element.fill) ]
-        serverView
-        servers
+    , DataList.view
+        model.dataListModel
+        DataListMsg
+        [ Element.width (Element.maximum 900 Element.fill)
+        , Font.size 16
+        ]
+        (serverView palette)
+        model.servers
+        [ \serverIds ->
+            Element.el [ Element.alignRight ]
+                (Widget.iconButton
+                    (SH.materialStyle palette).dangerButton
+                    { icon = remove (SH.toElementColor palette.on.error) 16
+                    , text = "Delete"
+                    , onPress =
+                        Just <| DeleteSelectedServers serverIds
+                    }
+                )
+        ]
     ]
 
 
@@ -230,6 +284,8 @@ type alias ChipFilterModel =
 type alias Model =
     { chipFilterModel : ChipFilterModel
     , expandoCardExpanded : Bool
+    , dataListModel : DataList.Model
+    , servers : List Server
     }
 
 
@@ -241,6 +297,8 @@ init =
             , options = options
             }
       , expandoCardExpanded = False
+      , dataListModel = DataList.init
+      , servers = initServers
       }
     , Cmd.none
     )
@@ -285,6 +343,29 @@ update msg model =
         ToggleExpandoCard new ->
             ( { model
                 | expandoCardExpanded = new
+              }
+            , Cmd.none
+            )
+
+        DataListMsg dataListMsg ->
+            ( { model | dataListModel = DataList.update dataListMsg model.dataListModel }, Cmd.none )
+
+        DeleteServer serverId ->
+            ( { model
+                | servers =
+                    List.filter
+                        (\server -> not (server.id == serverId))
+                        model.servers
+              }
+            , Cmd.none
+            )
+
+        DeleteSelectedServers serverIds ->
+            ( { model
+                | servers =
+                    List.filter
+                        (\server -> not (Set.member server.id serverIds))
+                        model.servers
               }
             , Cmd.none
             )
