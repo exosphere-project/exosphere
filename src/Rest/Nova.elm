@@ -196,7 +196,7 @@ requestFlavors project =
     openstackCredentialedRequest
         project.auth.project.uuid
         Get
-        Nothing
+        (Just "compute 2.61")
         (project.endpoints.nova ++ "/flavors/detail")
         Http.emptyBody
         (expectJsonWithErrorBody
