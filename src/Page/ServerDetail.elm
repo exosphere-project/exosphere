@@ -211,7 +211,11 @@ serverDetail_ context project currentTimeAndZone model server =
                                         server.osProps.uuid
                                   of
                                     Just backingVolume ->
-                                        Element.text (String.fromInt backingVolume.size ++ " GB root volume")
+                                        Element.text
+                                            (String.fromInt backingVolume.size
+                                                ++ " GB root "
+                                                ++ context.localization.blockDevice
+                                            )
 
                                     Nothing ->
                                         if flavor.disk_root > 0 then
