@@ -381,7 +381,7 @@ serverDetail_ context project currentTimeAndZone model server =
                 details.created
                 (Just ( "user", creatorName ))
                 (Just ( context.localization.staticRepresentationOfBlockDeviceContents, imageText ))
-                (Just ( context.localization.virtualComputerHardwareConfig, flavorText ))
+                (Just ( context.localization.virtualComputerHardwareConfig, Element.text flavorText ))
                 model.showCreatedTimeToggleTip
                 (GotShowCreatedTimeToggleTip (not model.showCreatedTimeToggleTip))
             ]
