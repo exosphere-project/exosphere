@@ -1042,13 +1042,18 @@ decodeFlavors =
 
 flavorDecoder : Decode.Decoder OSTypes.Flavor
 flavorDecoder =
-    Decode.map6 OSTypes.Flavor
+    Decode.map7 OSTypes.Flavor
         (Decode.field "id" Decode.string)
         (Decode.field "name" Decode.string)
         (Decode.field "vcpus" Decode.int)
         (Decode.field "ram" Decode.int)
         (Decode.field "disk" Decode.int)
         (Decode.field "OS-FLV-EXT-DATA:ephemeral" Decode.int)
+        (Decode.oneOf
+            [ Decode.field "extra_specs" metadataDecoder
+            , Decode.succeed []
+            ]
+        )
 
 
 decodeKeypairs : Decode.Decoder (List OSTypes.Keypair)
