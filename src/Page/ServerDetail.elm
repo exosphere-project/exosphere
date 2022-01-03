@@ -206,13 +206,16 @@ serverDetail_ context project currentTimeAndZone model server =
                                         flavor.ram_mb // 1024
                                   in
                                   Element.text (String.fromInt ram_gb ++ " GB RAM")
+                                , case serverIsVolumeBacked project server of
+                                    Just backingVolumeSize ->
+                                        Element.text (String.fromInt backingVolumeSize ++ " GB root volume")
 
-                                -- TODO if instance is volume-backed then don't show this
-                                , if flavor.disk_root > 0 then
-                                    Element.text (String.fromInt flavor.disk_root ++ " GB root disk")
+                                    Nothing ->
+                                        if flavor.disk_root > 0 then
+                                            Element.text (String.fromInt flavor.disk_root ++ " GB root disk")
 
-                                  else
-                                    Element.none
+                                        else
+                                            Element.none
                                 ]
 
                         toggleTip =
@@ -1415,16 +1418,6 @@ serverVolumes context project server =
     let
         vols =
             GetterSetters.getVolsAttachedToServer project server
-
-        deviceRawName vol =
-            vol.attachments
-                |> List.Extra.find (\a -> a.serverUuid == server.osProps.uuid)
-                |> Maybe.map .device
-
-        isBootVol vol =
-            deviceRawName vol
-                |> Maybe.map (\d -> List.member d [ "/dev/vda", "/dev/sda" ])
-                |> Maybe.withDefault False
     in
     case List.length vols of
         0 ->
@@ -1445,7 +1438,7 @@ serverVolumes context project server =
                 volumeRow v =
                     let
                         ( device, mountpoint ) =
-                            if isBootVol v then
+                            if isBootVolume server v then
                                 ( String.join " "
                                     [ "Boot"
                                     , context.localization.blockDevice
@@ -1454,7 +1447,7 @@ serverVolumes context project server =
                                 )
 
                             else
-                                case deviceRawName v of
+                                case deviceRawName server v of
                                     Just device_ ->
                                         ( device_
                                         , case Helpers.volDeviceToMountpoint device_ of
@@ -1499,3 +1492,30 @@ serverVolumes context project server =
                       }
                     ]
                 }
+
+
+deviceRawName : Server -> OSTypes.Volume -> Maybe OSTypes.VolumeAttachmentDevice
+deviceRawName server volume =
+    volume.attachments
+        |> List.Extra.find (\a -> a.serverUuid == server.osProps.uuid)
+        |> Maybe.map .device
+
+
+isBootVolume : Server -> OSTypes.Volume -> Bool
+isBootVolume server volume =
+    deviceRawName server volume
+        |> Maybe.map (\d -> List.member d [ "/dev/vda", "/dev/sda" ])
+        |> Maybe.withDefault False
+
+
+serverIsVolumeBacked : Project -> Server -> Maybe Int
+serverIsVolumeBacked project server =
+    -- If server is volume-backed, returns size of backing volume in GB
+    let
+        vols =
+            GetterSetters.getVolsAttachedToServer project server
+    in
+    vols
+        |> List.filter (isBootVolume server)
+        |> List.head
+        |> Maybe.map .size
