@@ -222,7 +222,7 @@ serverDetail_ context project currentTimeAndZone model server =
                                             Element.text (String.fromInt flavor.disk_root ++ " GB root disk")
 
                                         else
-                                            Element.none
+                                            Element.text "unknown root disk size"
                                 ]
 
                         toggleTip =
