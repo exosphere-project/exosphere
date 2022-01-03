@@ -201,6 +201,29 @@ serverDetail_ context project currentTimeAndZone model server =
                                 []
                                 [ Element.text (String.fromInt flavor.vcpu ++ " CPU cores")
                                 , let
+                                    maybeVgpuQty =
+                                        -- Matching on `resources{group}:VGPU` per
+                                        -- https://docs.openstack.org/nova/ussuri/configuration/extra-specs.html#resources
+                                        flavor.extra_specs
+                                            |> List.filter (\{ key } -> String.startsWith "resources" key && String.endsWith ":VGPU" key)
+                                            |> List.head
+                                            |> Maybe.map .value
+                                  in
+                                  case maybeVgpuQty of
+                                    Just vgpuQty ->
+                                        let
+                                            desc =
+                                                if vgpuQty == "1" then
+                                                    "virtual GPU"
+
+                                                else
+                                                    "virtual GPUs"
+                                        in
+                                        Element.text (vgpuQty ++ " " ++ desc)
+
+                                    Nothing ->
+                                        Element.none
+                                , let
                                     ram_gb =
                                         flavor.ram_mb // 1024
                                   in
