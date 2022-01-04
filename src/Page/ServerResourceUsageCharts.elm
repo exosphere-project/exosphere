@@ -165,7 +165,7 @@ view context widthPx ( currentTime, timeZone ) timeSeriesDict cpuHeading memHead
         chartConfig getYData =
             { y = percentRange getYData
             , x = timeRange getTime
-            , container = Container.spaced "line-chart-1" 25 25 25 50
+            , container = Container.spaced "line-chart-1" 20 25 25 50
             , interpolation = Interpolation.monotone
             , intersection = Intersection.default
             , legends = Legends.none
