@@ -196,56 +196,39 @@ serverDetail_ context project currentTimeAndZone model server =
             case GetterSetters.flavorLookup project details.flavorId of
                 Just flavor ->
                     let
+                        serverResourceQtys =
+                            Helpers.serverResourceQtys project flavor server
+
                         toggleTipContents =
                             Element.column
                                 []
-                                [ Element.text (String.fromInt flavor.vcpu ++ " CPU cores")
-                                , let
-                                    maybeVgpuQty =
-                                        -- Matching on `resources{group}:VGPU` per
-                                        -- https://docs.openstack.org/nova/ussuri/configuration/extra-specs.html#resources
-                                        flavor.extra_specs
-                                            |> List.filter (\{ key } -> String.startsWith "resources" key && String.endsWith ":VGPU" key)
-                                            |> List.head
-                                            |> Maybe.map .value
-                                  in
-                                  case maybeVgpuQty of
+                                [ Element.text (String.fromInt serverResourceQtys.cores ++ " CPU cores")
+                                , case serverResourceQtys.vgpus of
                                     Just vgpuQty ->
                                         let
                                             desc =
-                                                if vgpuQty == "1" then
+                                                if vgpuQty == 1 then
                                                     "virtual GPU"
 
                                                 else
                                                     "virtual GPUs"
                                         in
-                                        Element.text (vgpuQty ++ " " ++ desc)
+                                        Element.text
+                                            (String.fromInt vgpuQty ++ " " ++ desc)
 
                                     Nothing ->
                                         Element.none
-                                , let
-                                    ram_gb =
-                                        flavor.ram_mb // 1024
-                                  in
-                                  Element.text (String.fromInt ram_gb ++ " GB RAM")
-                                , case
-                                    GetterSetters.getBootVolume
-                                        (RemoteData.withDefault [] project.volumes)
-                                        server.osProps.uuid
-                                  of
-                                    Just backingVolume ->
+                                , Element.text
+                                    (String.fromInt serverResourceQtys.ramGb ++ " GB RAM")
+                                , case serverResourceQtys.rootDiskGb of
+                                    Just rootDiskGb ->
                                         Element.text
-                                            (String.fromInt backingVolume.size
-                                                ++ " GB root "
-                                                ++ context.localization.blockDevice
+                                            (String.fromInt rootDiskGb
+                                                ++ " GB root disk"
                                             )
 
                                     Nothing ->
-                                        if flavor.disk_root > 0 then
-                                            Element.text (String.fromInt flavor.disk_root ++ " GB root disk")
-
-                                        else
-                                            Element.text "unknown root disk size"
+                                        Element.text "unknown root disk size"
                                 ]
 
                         toggleTip =

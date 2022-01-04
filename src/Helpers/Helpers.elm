@@ -14,6 +14,7 @@ module Helpers.Helpers exposing
     , serverLessThanThisOld
     , serverNeedsFrequentPoll
     , serverOrigin
+    , serverResourceQtys
     , serviceCatalogToEndpoints
     , stringIsUuidOrDefault
     , stripTimeSinceBootFromLogLine
@@ -680,6 +681,36 @@ serverLessThanThisOld server currentTime maxServerAgeMillis =
             Time.posixToMillis currentTime
     in
     (curTimeMillis - Time.posixToMillis server.osProps.details.created) < maxServerAgeMillis
+
+
+serverResourceQtys : Project -> OSTypes.Flavor -> Server -> HelperTypes.ServerResourceQtys
+serverResourceQtys project flavor server =
+    { cores = flavor.vcpu
+    , vgpus =
+        -- Matching on `resources{group}:VGPU` per
+        -- https://docs.openstack.org/nova/ussuri/configuration/extra-specs.html#resources
+        flavor.extra_specs
+            |> List.filter (\{ key } -> String.startsWith "resources" key && String.endsWith ":VGPU" key)
+            |> List.head
+            |> Maybe.map .value
+            |> Maybe.andThen String.toInt
+    , ramGb = flavor.ram_mb // 1024
+    , rootDiskGb =
+        case
+            GetterSetters.getBootVolume
+                (RemoteData.withDefault [] project.volumes)
+                server.osProps.uuid
+        of
+            Just backingVolume ->
+                Just backingVolume.size
+
+            Nothing ->
+                if flavor.disk_root > 0 then
+                    Just flavor.disk_root
+
+                else
+                    Nothing
+    }
 
 
 {-| This one helps string functions together in Rest.ApiModelHelpers and other places

@@ -20,6 +20,7 @@ module Types.HelperTypes exposing
     , OpenIdConnectLoginConfig
     , Password
     , ProjectIdentifier
+    , ServerResourceQtys
     , SupportableItemType(..)
     , UnscopedProvider
     , UnscopedProviderProject
@@ -176,6 +177,14 @@ type alias OpenIdConnectLoginConfig =
     , oidcLoginIcon : String
     , oidcLoginButtonLabel : String
     , oidcLoginButtonDescription : String
+    }
+
+
+type alias ServerResourceQtys =
+    { cores : Int
+    , vgpus : Maybe Int
+    , ramGb : Int
+    , rootDiskGb : Maybe Int
     }
 
 
