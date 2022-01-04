@@ -28,7 +28,7 @@ import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton
 import Style.Widgets.ToggleTip
 import Time
-import Types.HelperTypes exposing (FloatingIpOption(..), UserAppProxyHostname)
+import Types.HelperTypes exposing (FloatingIpOption(..), ServerResourceQtys, UserAppProxyHostname)
 import Types.Interaction as ITypes exposing (Interaction)
 import Types.Project exposing (Project)
 import Types.Server exposing (Server, ServerOrigin(..))
@@ -192,8 +192,11 @@ serverDetail_ context project currentTimeAndZone model server =
                 _ ->
                     "unknown user"
 
+        maybeFlavor =
+            GetterSetters.flavorLookup project details.flavorId
+
         flavorContents =
-            case GetterSetters.flavorLookup project details.flavorId of
+            case maybeFlavor of
                 Just flavor ->
                     let
                         serverResourceQtys =
@@ -441,7 +444,10 @@ serverDetail_ context project currentTimeAndZone model server =
                 (GotShowCreatedTimeToggleTip (not model.showCreatedTimeToggleTip))
             ]
         , if details.openstackStatus == OSTypes.ServerActive then
-            resourceUsageCharts context currentTimeAndZone server
+            resourceUsageCharts context
+                currentTimeAndZone
+                server
+                (maybeFlavor |> Maybe.map (\flavor -> Helpers.serverResourceQtys project flavor server))
 
           else
             Element.none
@@ -1242,8 +1248,8 @@ renderConfirmationButton context serverAction actionMsg cancelMsg title =
         ]
 
 
-resourceUsageCharts : View.Types.Context -> ( Time.Posix, Time.Zone ) -> Server -> Element.Element Msg
-resourceUsageCharts context currentTimeAndZone server =
+resourceUsageCharts : View.Types.Context -> ( Time.Posix, Time.Zone ) -> Server -> Maybe ServerResourceQtys -> Element.Element Msg
+resourceUsageCharts context currentTimeAndZone server maybeServerResourceQtys =
     let
         containerWidth =
             context.windowSize.width - 76
@@ -1268,15 +1274,59 @@ resourceUsageCharts context currentTimeAndZone server =
 
         cpuHeading : Element.Element Msg
         cpuHeading =
-            toChartHeading "CPU" "of X total cores"
+            toChartHeading
+                "CPU"
+                (maybeServerResourceQtys
+                    |> Maybe.map .cores
+                    |> Maybe.map
+                        (\x ->
+                            String.join " "
+                                [ "of"
+                                , String.fromInt x
+                                , "total"
+                                , if x == 1 then
+                                    "core"
+
+                                  else
+                                    "cores"
+                                ]
+                        )
+                    |> Maybe.withDefault ""
+                )
 
         memHeading : Element.Element Msg
         memHeading =
-            toChartHeading "RAM" "of X total GB"
+            toChartHeading
+                "RAM"
+                (maybeServerResourceQtys
+                    |> Maybe.map .ramGb
+                    |> Maybe.map
+                        (\x ->
+                            String.join " "
+                                [ "of"
+                                , String.fromInt x
+                                , "total GB"
+                                ]
+                        )
+                    |> Maybe.withDefault ""
+                )
 
         diskHeading : Element.Element Msg
         diskHeading =
-            toChartHeading "Disk" "of X total GB"
+            toChartHeading
+                "Disk"
+                (maybeServerResourceQtys
+                    |> Maybe.andThen .rootDiskGb
+                    |> Maybe.map
+                        (\x ->
+                            String.join " "
+                                [ "of"
+                                , String.fromInt x
+                                , "total GB"
+                                ]
+                        )
+                    |> Maybe.withDefault ""
+                )
 
         charts_ : Types.ServerResourceUsage.TimeSeries -> Element.Element Msg
         charts_ timeSeries =
