@@ -1271,12 +1271,43 @@ resourceUsageCharts context currentTimeAndZone server =
         thirtyMinMillis =
             1000 * 60 * 30
 
-        charts_ : Types.ServerResourceUsage.TimeSeries -> Element.Element SharedMsg.SharedMsg
+        toChartHeading : String -> String -> Element.Element Msg
+        toChartHeading title subtitle =
+            Element.row
+                [ Element.width Element.fill, Element.paddingEach { top = 0, bottom = 0, left = 0, right = 25 } ]
+                [ Element.el [ Font.bold ] (Element.text title)
+                , Element.el
+                    [ Font.color (context.palette.muted |> SH.toElementColor)
+                    , Element.alignRight
+                    ]
+                    (Element.text subtitle)
+                ]
+
+        cpuHeading : Element.Element Msg
+        cpuHeading =
+            toChartHeading "CPU" "of X total cores"
+
+        memHeading : Element.Element Msg
+        memHeading =
+            toChartHeading "RAM" "of X total GB"
+
+        diskHeading : Element.Element Msg
+        diskHeading =
+            toChartHeading "Disk" "of X total GB"
+
+        charts_ : Types.ServerResourceUsage.TimeSeries -> Element.Element Msg
         charts_ timeSeries =
             Element.column
                 [ Element.width (Element.px containerWidth) ]
                 [ Page.ServerResourceUsageAlerts.view context (Tuple.first currentTimeAndZone) timeSeries
-                , Page.ServerResourceUsageCharts.view context chartsWidth currentTimeAndZone timeSeries
+                , Page.ServerResourceUsageCharts.view
+                    context
+                    chartsWidth
+                    currentTimeAndZone
+                    timeSeries
+                    cpuHeading
+                    memHeading
+                    diskHeading
                 ]
 
         charts =
@@ -1324,7 +1355,7 @@ resourceUsageCharts context currentTimeAndZone server =
                                         , "console log, charts not available."
                                         ]
     in
-    Element.map SharedMsg charts
+    charts
 
 
 renderIpAddresses : View.Types.Context -> Project -> Server -> Model -> Element.Element Msg

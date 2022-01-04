@@ -25,12 +25,19 @@ import Svg
 import Time
 import Tuple
 import Types.ServerResourceUsage exposing (AlertLevel(..), DataPoint, TimeSeries)
-import Types.SharedMsg exposing (SharedMsg(..))
 import View.Types
 
 
-view : View.Types.Context -> Int -> ( Time.Posix, Time.Zone ) -> TimeSeries -> Element.Element SharedMsg
-view context widthPx ( currentTime, timeZone ) timeSeriesDict =
+view :
+    View.Types.Context
+    -> Int
+    -> ( Time.Posix, Time.Zone )
+    -> TimeSeries
+    -> Element.Element msg
+    -> Element.Element msg
+    -> Element.Element msg
+    -> Element.Element msg
+view context widthPx ( currentTime, timeZone ) timeSeriesDict cpuHeading memHeading diskHeading =
     let
         thirtyMinMillis =
             30 * 60 * 1000
@@ -81,7 +88,7 @@ view context widthPx ( currentTime, timeZone ) timeSeriesDict =
             Axis.custom
                 { title = Title.default ""
                 , variable = Just << getDataFunc
-                , pixels = 220
+                , pixels = 210
                 , range = Range.window 0 100
                 , axisLine = AxisLine.full context.palette.on.background
                 , ticks = percentRangeCustomTicks
@@ -154,34 +161,16 @@ view context widthPx ( currentTime, timeZone ) timeSeriesDict =
             in
             (modBy 12 hours |> String.fromInt) ++ ":" ++ string_and_pad minutes
 
-        junk : String -> Junk.Config ( Int, DataPoint ) msg
-        junk title =
-            Junk.custom
-                (\system ->
-                    { below = []
-                    , above =
-                        [ Junk.placed
-                            system
-                            system.x.min
-                            system.y.max
-                            0
-                            -15
-                            [ Junk.label context.palette.on.background title ]
-                        ]
-                    , html = []
-                    }
-                )
-
-        chartConfig : (( Int, DataPoint ) -> Float) -> String -> LineChart.Config ( Int, DataPoint ) msg
-        chartConfig getYData title =
+        chartConfig : (( Int, DataPoint ) -> Float) -> LineChart.Config ( Int, DataPoint ) msg
+        chartConfig getYData =
             { y = percentRange getYData
             , x = timeRange getTime
-            , container = Container.spaced "line-chart-1" 35 25 25 50
+            , container = Container.spaced "line-chart-1" 25 25 25 50
             , interpolation = Interpolation.monotone
             , intersection = Intersection.default
             , legends = Legends.none
             , events = Events.default
-            , junk = junk title
+            , junk = Junk.default
             , grid = Grid.default
             , area = Area.default
             , line = Line.wider 2
@@ -204,16 +193,25 @@ view context widthPx ( currentTime, timeZone ) timeSeriesDict =
         -- This is needed to avoid showing a vertical scroll bar
         , Element.paddingXY 0 1
         ]
-        ([ LineChart.viewCustom
-            (chartConfig (getMetricUsedPct .cpuPctUsed) "CPU")
-            series
-         , LineChart.viewCustom
-            (chartConfig (getMetricUsedPct .memPctUsed) "Memory")
-            series
-         , LineChart.viewCustom
-            (chartConfig (getMetricUsedPct .rootfsPctUsed) "Root Disk")
-            series
-         ]
-            |> List.map Element.html
-            |> List.map (\e -> Element.el [] e)
-        )
+        [ Element.column []
+            [ cpuHeading
+            , LineChart.viewCustom
+                (chartConfig (getMetricUsedPct .cpuPctUsed))
+                series
+                |> Element.html
+            ]
+        , Element.column []
+            [ memHeading
+            , LineChart.viewCustom
+                (chartConfig (getMetricUsedPct .memPctUsed))
+                series
+                |> Element.html
+            ]
+        , Element.column []
+            [ diskHeading
+            , LineChart.viewCustom
+                (chartConfig (getMetricUsedPct .rootfsPctUsed))
+                series
+                |> Element.html
+            ]
+        ]
