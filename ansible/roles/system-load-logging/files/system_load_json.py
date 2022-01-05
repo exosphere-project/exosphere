@@ -5,6 +5,7 @@
 # Requires "top", "free", and "df" installed.
 
 import json
+import re
 import subprocess
 import sys
 import time
@@ -61,11 +62,36 @@ def disk():
     return int(rootfs_used_pct)
 
 
+def gpu():
+    try:
+        cmd = ["dnvidia-smi", "--query", "--display=UTILIZATION"]
+        output = cmd_stdout_lines(cmd)
+        output_stripped_whitespace = [line.strip() for line in output]
+        in_utilization_section = False
+        for line in output_stripped_whitespace:
+            if in_utilization_section:
+                if line.startswith("Gpu"):
+                    match = re.search(":\s*(\d+)\s*%", line)
+                    if match:
+                        gpu_used_percent = int(match.group(1))
+                        return gpu_used_percent
+
+            elif line.startswith("Utilization"):
+                in_utilization_section = True
+            else:
+               pass
+
+        return output
+    except FileNotFoundError:
+        return -1
+
+
 json_dict = {
     "epoch": round(time.time()),
     "cpuPctUsed": cpu(),
     "memPctUsed": mem(),
-    "rootfsPctUsed": disk()
+    "rootfsPctUsed": disk(),
+    "gpuPctUsed": gpu()
 }
 output_line = json.dumps(json_dict) + "\n"
 sys.stdout.buffer.write(output_line.encode())
