@@ -1,11 +1,9 @@
 module Helpers.Helpers exposing
     ( alwaysRegex
     , decodeFloatingIpOption
-    , getBootVol
     , getNewFloatingIpOption
     , httpErrorToString
     , httpErrorWithBodyToString
-    , isBootVol
     , naiveUuidParser
     , newServerMetadata
     , newServerNetworkOptions
@@ -16,10 +14,10 @@ module Helpers.Helpers exposing
     , serverLessThanThisOld
     , serverNeedsFrequentPoll
     , serverOrigin
+    , serverResourceQtys
     , serviceCatalogToEndpoints
     , stringIsUuidOrDefault
     , stripTimeSinceBootFromLogLine
-    , volDeviceToMountpoint
     )
 
 -- Many functions which get and set things in the data model have been moved from here to GetterSetters.elm.
@@ -471,45 +469,6 @@ newServerNetworkOptions project =
                     )
 
 
-isBootVol : Maybe OSTypes.ServerUuid -> OSTypes.Volume -> Bool
-isBootVol maybeServerUuid volume =
-    -- If a serverUuid is passed, determines whether volume backs that server; otherwise just determines whether volume backs any server
-    volume.attachments
-        |> List.filter
-            (\a ->
-                case maybeServerUuid of
-                    Just serverUuid ->
-                        a.serverUuid == serverUuid
-
-                    Nothing ->
-                        True
-            )
-        |> List.filter
-            (\a ->
-                List.member
-                    a.device
-                    [ "/dev/sda", "/dev/vda" ]
-            )
-        |> List.isEmpty
-        |> not
-
-
-getBootVol : List OSTypes.Volume -> OSTypes.ServerUuid -> Maybe OSTypes.Volume
-getBootVol vols serverUuid =
-    vols
-        |> List.Extra.find (isBootVol <| Just serverUuid)
-
-
-volDeviceToMountpoint : OSTypes.VolumeAttachmentDevice -> Maybe String
-volDeviceToMountpoint device =
-    -- Converts e.g. "/dev/sdc" to "/media/volume/sdc"
-    device
-        |> String.split "/"
-        |> List.reverse
-        |> List.head
-        |> Maybe.map (String.append "/media/volume/")
-
-
 serverOrigin : OSTypes.ServerDetails -> ServerOrigin
 serverOrigin serverDetails =
     let
@@ -722,6 +681,36 @@ serverLessThanThisOld server currentTime maxServerAgeMillis =
             Time.posixToMillis currentTime
     in
     (curTimeMillis - Time.posixToMillis server.osProps.details.created) < maxServerAgeMillis
+
+
+serverResourceQtys : Project -> OSTypes.Flavor -> Server -> HelperTypes.ServerResourceQtys
+serverResourceQtys project flavor server =
+    { cores = flavor.vcpu
+    , vgpus =
+        -- Matching on `resources{group}:VGPU` per
+        -- https://docs.openstack.org/nova/ussuri/configuration/extra-specs.html#resources
+        flavor.extra_specs
+            |> List.filter (\{ key } -> String.startsWith "resources" key && String.endsWith ":VGPU" key)
+            |> List.head
+            |> Maybe.map .value
+            |> Maybe.andThen String.toInt
+    , ramGb = flavor.ram_mb // 1024
+    , rootDiskGb =
+        case
+            GetterSetters.getBootVolume
+                (RemoteData.withDefault [] project.volumes)
+                server.osProps.uuid
+        of
+            Just backingVolume ->
+                Just backingVolume.size
+
+            Nothing ->
+                if flavor.disk_root > 0 then
+                    Just flavor.disk_root
+
+                else
+                    Nothing
+    }
 
 
 {-| This one helps string functions together in Rest.ApiModelHelpers and other places

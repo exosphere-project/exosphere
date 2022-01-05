@@ -3,7 +3,6 @@ module Page.VolumeDetail exposing (Model, Msg(..), init, update, view)
 import Element
 import Element.Font as Font
 import Helpers.GetterSetters as GetterSetters
-import Helpers.Helpers as Helpers
 import Helpers.String
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes
@@ -174,7 +173,7 @@ renderAttachment context project attachment =
         , Element.el [ Font.bold ] <| Element.text "Device:"
         , Element.text attachment.device
         , Element.el [ Font.bold ] <| Element.text "Mount point*:"
-        , Helpers.volDeviceToMountpoint attachment.device |> Maybe.withDefault "" |> Element.text
+        , GetterSetters.volDeviceToMountpoint attachment.device |> Maybe.withDefault "" |> Element.text
         , Element.el [ Font.size 11 ] <|
             Element.text <|
                 String.join " "
@@ -210,7 +209,7 @@ volumeActionButtons :
 volumeActionButtons context project model volume =
     let
         volDetachDeleteWarning =
-            if Helpers.isBootVol Nothing volume then
+            if GetterSetters.isBootVolume Nothing volume then
                 Element.text <|
                     String.concat
                         [ "This "
@@ -251,7 +250,7 @@ volumeActionButtons context project model volume =
                         }
 
                 OSTypes.InUse ->
-                    if Helpers.isBootVol Nothing volume then
+                    if GetterSetters.isBootVolume Nothing volume then
                         Widget.textButton
                             (SH.materialStyle context.palette).button
                             { text = "Detach"

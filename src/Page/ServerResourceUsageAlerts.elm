@@ -11,11 +11,10 @@ import Style.Helpers as SH
 import Time
 import Tuple
 import Types.ServerResourceUsage exposing (Alert, AlertLevel(..), DataPoint, TimeSeries)
-import Types.SharedMsg exposing (SharedMsg(..))
 import View.Types
 
 
-view : View.Types.Context -> Time.Posix -> TimeSeries -> Element.Element SharedMsg
+view : View.Types.Context -> Time.Posix -> TimeSeries -> Element.Element msg
 view context currentTime timeSeries =
     let
         -- Get most recent data point, it must be <60 minutes old
@@ -80,7 +79,7 @@ dataPointToAlerts context dataPoint =
     List.concat [ diskAlerts, memAlerts, cpuAlerts ]
 
 
-renderAlert : View.Types.Context -> Alert -> Element.Element SharedMsg
+renderAlert : View.Types.Context -> Alert -> Element.Element msg
 renderAlert context alert =
     let
         ( icon, color, onColor ) =

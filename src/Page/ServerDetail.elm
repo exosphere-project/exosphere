@@ -14,7 +14,6 @@ import Helpers.Interaction as IHelpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import Helpers.Time
-import List.Extra
 import OpenStack.ServerActions as ServerActions
 import OpenStack.ServerNameValidator exposing (serverNameValidator)
 import OpenStack.Types as OSTypes
@@ -29,7 +28,7 @@ import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton
 import Style.Widgets.ToggleTip
 import Time
-import Types.HelperTypes exposing (FloatingIpOption(..), UserAppProxyHostname)
+import Types.HelperTypes exposing (FloatingIpOption(..), ServerResourceQtys, UserAppProxyHostname)
 import Types.Interaction as ITypes exposing (Interaction)
 import Types.Project exposing (Project)
 import Types.Server exposing (Server, ServerOrigin(..))
@@ -44,6 +43,7 @@ import Widget.Style.Material
 type alias Model =
     { serverUuid : OSTypes.ServerUuid
     , showCreatedTimeToggleTip : Bool
+    , showFlavorToggleTip : Bool
     , verboseStatus : VerboseStatus
     , passwordVisibility : PasswordVisibility
     , ipInfoLevel : IpInfoLevel
@@ -72,6 +72,7 @@ type PasswordVisibility
 
 type Msg
     = GotShowCreatedTimeToggleTip Bool
+    | GotShowFlavorToggleTip Bool
     | GotShowVerboseStatus Bool
     | GotPasswordVisibility PasswordVisibility
     | GotIpInfoLevel IpInfoLevel
@@ -90,6 +91,7 @@ init : OSTypes.ServerUuid -> Model
 init serverUuid =
     { serverUuid = serverUuid
     , showCreatedTimeToggleTip = False
+    , showFlavorToggleTip = False
     , verboseStatus = False
     , passwordVisibility = PasswordHidden
     , ipInfoLevel = IpSummary
@@ -107,6 +109,9 @@ update msg project model =
     case msg of
         GotShowCreatedTimeToggleTip shown ->
             ( { model | showCreatedTimeToggleTip = shown }, Cmd.none, SharedMsg.NoOp )
+
+        GotShowFlavorToggleTip shown ->
+            ( { model | showFlavorToggleTip = shown }, Cmd.none, SharedMsg.NoOp )
 
         GotShowVerboseStatus shown ->
             ( { model | verboseStatus = shown }, Cmd.none, SharedMsg.NoOp )
@@ -187,10 +192,63 @@ serverDetail_ context project currentTimeAndZone model server =
                 _ ->
                     "unknown user"
 
-        flavorText =
+        maybeFlavor =
             GetterSetters.flavorLookup project details.flavorId
-                |> Maybe.map .name
-                |> Maybe.withDefault ("Unknown " ++ context.localization.virtualComputerHardwareConfig)
+
+        flavorContents =
+            case maybeFlavor of
+                Just flavor ->
+                    let
+                        serverResourceQtys =
+                            Helpers.serverResourceQtys project flavor server
+
+                        toggleTipContents =
+                            Element.column
+                                []
+                                [ Element.text (String.fromInt serverResourceQtys.cores ++ " CPU cores")
+                                , case serverResourceQtys.vgpus of
+                                    Just vgpuQty ->
+                                        let
+                                            desc =
+                                                if vgpuQty == 1 then
+                                                    "virtual GPU"
+
+                                                else
+                                                    "virtual GPUs"
+                                        in
+                                        Element.text
+                                            (String.fromInt vgpuQty ++ " " ++ desc)
+
+                                    Nothing ->
+                                        Element.none
+                                , Element.text
+                                    (String.fromInt serverResourceQtys.ramGb ++ " GB RAM")
+                                , case serverResourceQtys.rootDiskGb of
+                                    Just rootDiskGb ->
+                                        Element.text
+                                            (String.fromInt rootDiskGb
+                                                ++ " GB root disk"
+                                            )
+
+                                    Nothing ->
+                                        Element.text "unknown root disk size"
+                                ]
+
+                        toggleTip =
+                            Style.Widgets.ToggleTip.toggleTip
+                                context.palette
+                                toggleTipContents
+                                model.showFlavorToggleTip
+                                (GotShowFlavorToggleTip (not model.showFlavorToggleTip))
+                    in
+                    Element.row
+                        [ Element.spacing 5 ]
+                        [ Element.text flavor.name
+                        , toggleTip
+                        ]
+
+                Nothing ->
+                    Element.text ("Unknown " ++ context.localization.virtualComputerHardwareConfig)
 
         imageText =
             let
@@ -205,7 +263,7 @@ serverDetail_ context project currentTimeAndZone model server =
                         vols =
                             RemoteData.withDefault [] project.volumes
                     in
-                    Helpers.getBootVol vols server.osProps.uuid
+                    GetterSetters.getBootVolume vols server.osProps.uuid
                         |> Maybe.andThen .imageMetadata
                         |> Maybe.map .name
             in
@@ -381,12 +439,15 @@ serverDetail_ context project currentTimeAndZone model server =
                 details.created
                 (Just ( "user", creatorName ))
                 (Just ( context.localization.staticRepresentationOfBlockDeviceContents, imageText ))
-                (Just ( context.localization.virtualComputerHardwareConfig, flavorText ))
+                (Just ( context.localization.virtualComputerHardwareConfig, flavorContents ))
                 model.showCreatedTimeToggleTip
                 (GotShowCreatedTimeToggleTip (not model.showCreatedTimeToggleTip))
             ]
         , if details.openstackStatus == OSTypes.ServerActive then
-            resourceUsageCharts context currentTimeAndZone server
+            resourceUsageCharts context
+                currentTimeAndZone
+                server
+                (maybeFlavor |> Maybe.map (\flavor -> Helpers.serverResourceQtys project flavor server))
 
           else
             Element.none
@@ -1187,8 +1248,8 @@ renderConfirmationButton context serverAction actionMsg cancelMsg title =
         ]
 
 
-resourceUsageCharts : View.Types.Context -> ( Time.Posix, Time.Zone ) -> Server -> Element.Element Msg
-resourceUsageCharts context currentTimeAndZone server =
+resourceUsageCharts : View.Types.Context -> ( Time.Posix, Time.Zone ) -> Server -> Maybe ServerResourceQtys -> Element.Element Msg
+resourceUsageCharts context currentTimeAndZone server maybeServerResourceQtys =
     let
         containerWidth =
             context.windowSize.width - 76
@@ -1199,12 +1260,87 @@ resourceUsageCharts context currentTimeAndZone server =
         thirtyMinMillis =
             1000 * 60 * 30
 
-        charts_ : Types.ServerResourceUsage.TimeSeries -> Element.Element SharedMsg.SharedMsg
+        toChartHeading : String -> String -> Element.Element Msg
+        toChartHeading title subtitle =
+            Element.row
+                [ Element.width Element.fill, Element.paddingEach { top = 0, bottom = 0, left = 0, right = 25 } ]
+                [ Element.el [ Font.bold ] (Element.text title)
+                , Element.el
+                    [ Font.color (context.palette.muted |> SH.toElementColor)
+                    , Element.alignRight
+                    ]
+                    (Element.text subtitle)
+                ]
+
+        cpuHeading : Element.Element Msg
+        cpuHeading =
+            toChartHeading
+                "CPU"
+                (maybeServerResourceQtys
+                    |> Maybe.map .cores
+                    |> Maybe.map
+                        (\x ->
+                            String.join " "
+                                [ "of"
+                                , String.fromInt x
+                                , "total"
+                                , if x == 1 then
+                                    "core"
+
+                                  else
+                                    "cores"
+                                ]
+                        )
+                    |> Maybe.withDefault ""
+                )
+
+        memHeading : Element.Element Msg
+        memHeading =
+            toChartHeading
+                "RAM"
+                (maybeServerResourceQtys
+                    |> Maybe.map .ramGb
+                    |> Maybe.map
+                        (\x ->
+                            String.join " "
+                                [ "of"
+                                , String.fromInt x
+                                , "total GB"
+                                ]
+                        )
+                    |> Maybe.withDefault ""
+                )
+
+        diskHeading : Element.Element Msg
+        diskHeading =
+            toChartHeading
+                "Root Disk"
+                (maybeServerResourceQtys
+                    |> Maybe.andThen .rootDiskGb
+                    |> Maybe.map
+                        (\x ->
+                            String.join " "
+                                [ "of"
+                                , String.fromInt x
+                                , "total GB"
+                                ]
+                        )
+                    |> Maybe.withDefault ""
+                )
+
+        charts_ : Types.ServerResourceUsage.TimeSeries -> Element.Element Msg
         charts_ timeSeries =
             Element.column
                 [ Element.width (Element.px containerWidth) ]
                 [ Page.ServerResourceUsageAlerts.view context (Tuple.first currentTimeAndZone) timeSeries
-                , Page.ServerResourceUsageCharts.view context chartsWidth currentTimeAndZone timeSeries
+                , Page.ServerResourceUsageCharts.view
+                    context
+                    chartsWidth
+                    currentTimeAndZone
+                    timeSeries
+                    cpuHeading
+                    memHeading
+                    diskHeading
                 ]
 
         charts =
@@ -1252,7 +1388,7 @@ resourceUsageCharts context currentTimeAndZone server =
                                         , "console log, charts not available."
                                         ]
     in
-    Element.map SharedMsg charts
+    charts
 
 
 renderIpAddresses : View.Types.Context -> Project -> Server -> Model -> Element.Element Msg
@@ -1376,16 +1512,6 @@ serverVolumes context project server =
     let
         vols =
             GetterSetters.getVolsAttachedToServer project server
-
-        deviceRawName vol =
-            vol.attachments
-                |> List.Extra.find (\a -> a.serverUuid == server.osProps.uuid)
-                |> Maybe.map .device
-
-        isBootVol vol =
-            deviceRawName vol
-                |> Maybe.map (\d -> List.member d [ "/dev/vda", "/dev/sda" ])
-                |> Maybe.withDefault False
     in
     case List.length vols of
         0 ->
@@ -1406,7 +1532,7 @@ serverVolumes context project server =
                 volumeRow v =
                     let
                         ( device, mountpoint ) =
-                            if isBootVol v then
+                            if GetterSetters.isBootVolume (Just server.osProps.uuid) v then
                                 ( String.join " "
                                     [ "Boot"
                                     , context.localization.blockDevice
@@ -1415,10 +1541,10 @@ serverVolumes context project server =
                                 )
 
                             else
-                                case deviceRawName v of
+                                case GetterSetters.volumeDeviceRawName server v of
                                     Just device_ ->
                                         ( device_
-                                        , case Helpers.volDeviceToMountpoint device_ of
+                                        , case GetterSetters.volDeviceToMountpoint device_ of
                                             Just mountpoint_ ->
                                                 mountpoint_
 

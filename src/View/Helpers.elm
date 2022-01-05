@@ -966,7 +966,7 @@ createdAgoByFromSize :
     -> Time.Posix
     -> Maybe ( String, String )
     -> Maybe ( String, String )
-    -> Maybe ( String, String )
+    -> Maybe ( String, Element.Element msg )
     -> Bool
     -> msg
     -> Element.Element msg
@@ -1015,7 +1015,7 @@ createdAgoByFromSize context currentTime createdTime maybeWhoCreatedTuple maybeF
             Just ( sizeAdjective, size ) ->
                 Element.row [ Element.paddingXY 5 6 ]
                     [ Element.el [ muted ] (Element.text <| sizeAdjective ++ " ")
-                    , Element.text size
+                    , size
                     ]
 
             Nothing ->

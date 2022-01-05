@@ -1,7 +1,7 @@
 module Page.VolumeMountInstructions exposing (Model, Msg, init, update, view)
 
 import Element
-import Helpers.Helpers as Helpers
+import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import OpenStack.Types as OSTypes
 import Route
@@ -45,14 +45,14 @@ view context project model =
                     ]
         , Element.column VH.contentContainer
             [ Element.text ("Device: " ++ model.device)
-            , case Helpers.volDeviceToMountpoint model.device of
+            , case GetterSetters.volDeviceToMountpoint model.device of
                 Just mountpoint ->
                     Element.text ("Mount point: " ++ mountpoint)
 
                 Nothing ->
                     Element.none
             , Element.paragraph []
-                [ case Helpers.volDeviceToMountpoint model.device of
+                [ case GetterSetters.volDeviceToMountpoint model.device of
                     Just mountpoint ->
                         Element.text <|
                             String.join " "

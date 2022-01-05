@@ -1602,7 +1602,7 @@ processProjectSpecificMsg outerModel project msg =
                         |> List.map
                             (\s ->
                                 ( s
-                                , Helpers.getBootVol
+                                , GetterSetters.getBootVolume
                                     (RemoteData.withDefault
                                         []
                                         project.volumes

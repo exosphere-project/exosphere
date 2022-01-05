@@ -300,6 +300,7 @@ type alias Flavor =
     , ram_mb : Int
     , disk_root : Int
     , disk_ephemeral : Int
+    , extra_specs : List MetadataItem
     }
 
 
