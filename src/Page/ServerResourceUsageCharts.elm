@@ -201,7 +201,7 @@ view context widthPx ( currentTime, timeZone ) maybeServerResourceQtys timeSerie
                 , case maybeGetSecondaryData of
                     Just getSecondaryData ->
                         [ LineChart.line
-                            context.palette.secondary
+                            context.palette.warn
                             Dots.none
                             ""
                             (timeSeriesListLast30m
@@ -281,7 +281,7 @@ toCpuHeading context maybeServerResourceQtys haveGpuData =
                 [ Element.text "CPU"
                 , Icon.roundRect (context.palette.primary |> SH.toElementColor) 16
                 , Element.text "and GPU"
-                , Icon.roundRect (context.palette.secondary |> SH.toElementColor) 16
+                , Icon.roundRect (context.palette.warn |> SH.toElementColor) 16
                 ]
 
          else
