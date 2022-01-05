@@ -33,6 +33,7 @@ type alias DataPoint =
     { cpuPctUsed : Int
     , memPctUsed : Int
     , rootfsPctUsed : Int
+    , gpuPctUsed : Maybe Int
     }
 
 

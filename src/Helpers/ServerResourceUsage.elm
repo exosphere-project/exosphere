@@ -56,11 +56,17 @@ decodeLogLine =
             -- This gets us milliseconds
             |> Json.Decode.map (\epoch -> epoch * 1000)
         )
-        (Json.Decode.map3
+        (Json.Decode.map4
             DataPoint
             (Json.Decode.field "cpuPctUsed" Json.Decode.int)
             (Json.Decode.field "memPctUsed" Json.Decode.int)
             (Json.Decode.field "rootfsPctUsed" Json.Decode.int)
+            (Json.Decode.oneOf
+                [ Json.Decode.field "gpuPctUsed" Json.Decode.int
+                    |> Json.Decode.map Just
+                , Json.Decode.succeed Nothing
+                ]
+            )
         )
 
 
