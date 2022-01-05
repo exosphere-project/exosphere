@@ -1314,7 +1314,7 @@ resourceUsageCharts context currentTimeAndZone server maybeServerResourceQtys =
         diskHeading : Element.Element Msg
         diskHeading =
             toChartHeading
-                "Disk"
+                "Root Disk"
                 (maybeServerResourceQtys
                     |> Maybe.andThen .rootDiskGb
                     |> Maybe.map
