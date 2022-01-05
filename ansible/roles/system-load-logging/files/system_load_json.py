@@ -64,7 +64,7 @@ def disk():
 
 def gpu():
     try:
-        cmd = ["dnvidia-smi", "--query", "--display=UTILIZATION"]
+        cmd = ["nvidia-smi", "--query", "--display=UTILIZATION"]
         output = cmd_stdout_lines(cmd)
         output_stripped_whitespace = [line.strip() for line in output]
         in_utilization_section = False
@@ -80,10 +80,9 @@ def gpu():
                 in_utilization_section = True
             else:
                pass
-
-        return output
     except FileNotFoundError:
-        return -1
+        return None
+    return None
 
 
 json_dict = {
