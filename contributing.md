@@ -55,7 +55,7 @@ Our CI pipeline also runs end-to-end tests with real browsers.  If you are a reg
 
 For these tests to work, you will need:
 
-1. Access to a Jetstream allocation
+1. Access to a Jetstream1 allocation
 2. Valid TACC (Texas Advanced Computing Center) credentials
 3. Set `taccusername` and `taccpass` environment variables in the GitLab CI/CD settings of your own fork of Exosphere
 

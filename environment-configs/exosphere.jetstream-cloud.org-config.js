@@ -30,11 +30,11 @@ var config = {
       }
     }
   },
-  "logo":"assets/img/jetstream-logo-white.svg",
-  "favicon":"assets/img/jetstream-favicon.ico",
+  "logo":"assets/img/jetstream1-logo-white.svg",
+  "favicon":"assets/img/jetstream1-favicon.ico",
   "appTitle":"Exosphere for Jetstream Cloud",
   "topBarShowAppTitle":false,
-  "defaultLoginView":"jetstream",
+  "defaultLoginView":"jetstream1",
   "aboutAppMarkdown":"This is the Exosphere interface for [Jetstream Cloud](https://jetstream-cloud.org), currently in beta. If you require assistance, please email help@jetstream-cloud.org and specify you are using Exosphere.\\\n\\\nUse of this site is subject to the Exosphere hosted sites [Privacy Policy](https://gitlab.com/exosphere/exosphere/-/blob/master/docs/privacy-policy.md) and [Acceptable Use Policy](https://gitlab.com/exosphere/exosphere/-/blob/master/docs/acceptable-use-policy.md).",
   "supportInfoMarkdown":"Please read about [using instances](https://iujetstream.atlassian.net/wiki/display/JWT/Jetstream+Public+Wiki) or [troubleshooting instances](https://wiki.jetstream-cloud.org/Troubleshooting+and+FAQ) for answers to common problems before submitting a request to support staff.",
   "userSupportEmail":"help@jetstream-cloud.org",

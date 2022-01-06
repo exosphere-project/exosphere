@@ -12,8 +12,8 @@ module Types.HelperTypes exposing
     , InstanceType
     , InstanceTypeImageFilters
     , InstanceTypeVersion
-    , JetstreamCreds
-    , JetstreamProvider(..)
+    , Jetstream1Creds
+    , Jetstream1Provider(..)
     , KeystoneHostname
     , Localization
     , MetadataFilter
@@ -82,7 +82,7 @@ type HttpRequestMethod
 
 type DefaultLoginView
     = DefaultLoginOpenstack
-    | DefaultLoginJetstream
+    | DefaultLoginJetstream1
 
 
 type alias Localization =
@@ -223,17 +223,17 @@ type FloatingIpAssignmentStatus
 {- Stuff that should move somewhere else -}
 
 
-type alias JetstreamCreds =
-    { jetstreamProviderChoice : JetstreamProvider
+type alias Jetstream1Creds =
+    { jetstream1ProviderChoice : Jetstream1Provider
     , taccUsername : String
     , taccPassword : String
     }
 
 
-type JetstreamProvider
+type Jetstream1Provider
     = IUCloud
     | TACCCloud
-    | BothJetstreamClouds
+    | BothJetstream1Clouds
 
 
 type SupportableItemType

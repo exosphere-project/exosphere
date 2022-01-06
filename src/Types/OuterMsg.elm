@@ -7,7 +7,7 @@ import Page.Home
 import Page.InstanceSourcePicker
 import Page.KeypairCreate
 import Page.KeypairList
-import Page.LoginJetstream
+import Page.LoginJetstream1
 import Page.LoginOpenstack
 import Page.LoginPicker
 import Page.MessageLog
@@ -36,7 +36,7 @@ type OuterMsg
     | InstanceSourcePickerMsg Page.InstanceSourcePicker.Msg
     | KeypairCreateMsg Page.KeypairCreate.Msg
     | KeypairListMsg Page.KeypairList.Msg
-    | LoginJetstreamMsg Page.LoginJetstream.Msg
+    | LoginJetstream1Msg Page.LoginJetstream1.Msg
     | LoginOpenstackMsg Page.LoginOpenstack.Msg
     | LoginPickerMsg Page.LoginPicker.Msg
     | MessageLogMsg Page.MessageLog.Msg

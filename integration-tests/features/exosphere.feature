@@ -1,14 +1,14 @@
 Feature: Text presence
 
     @add-allocation
-    Scenario: Adding a Jetstream cloud account
+    Scenario: Adding a Jetstream1 account
         Given a browser
         When I go to Exosphere
         Then I should see "Add project" within 60 seconds
         When I click the "Add project" card
         Then I should see "Add Jetstream1 Account" within 60 seconds
         When I click the "Add Jetstream1 Account" button
-        Then I should see "Add a Jetstream Cloud Account" within 15 seconds
+        Then I should see "Add a Jetstream1 Account" within 15 seconds
         When I enter TACC credentials
         And I click the "IU Cloud" radio button
         And I click the "Log In" button
@@ -28,7 +28,7 @@ Feature: Text presence
         Then I should see "Add project" within 60 seconds
         When I click the "Add project" card
         Then I should see "Choose a Login Method" within 60 seconds
-        When I add a Jetstream Cloud Account for allocation "TG-INI210003"
+        When I add a Jetstream1 Account for allocation "TG-INI210003"
         Then I should see "TG-INI210003" within 5 seconds
         When I click the "TG-INI210003" card
         Then I should see "iu.jetstream-cloud.org - TG-INI210003" within 15 seconds
@@ -69,7 +69,7 @@ Feature: Text presence
         Then I should see "Add project" within 60 seconds
         When I click the "Add project" card
         Then I should see "Choose a Login Method" within 60 seconds
-        When I add a Jetstream Cloud Account for allocation "TG-INI210003"
+        When I add a Jetstream1 Account for allocation "TG-INI210003"
         Then I should see "TG-INI210003" within 5 seconds
         When I click the "TG-INI210003" card
         Then I should see "iu.jetstream-cloud.org - TG-INI210003" within 15 seconds

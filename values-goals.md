@@ -122,4 +122,4 @@
 - \* Sync user settings between devices
 - \* Support for cloud providers other than OpenStack
     - \* Either other open cloud computing APIs or to help users control/limit their spending on commercial clouds
-- \* On-demand import of images from Atmosphere side of Jetstream Cloud
+- \* On-demand import of images from Atmosphere side of Jetstream1

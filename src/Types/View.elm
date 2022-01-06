@@ -13,7 +13,7 @@ import Page.Home
 import Page.InstanceSourcePicker
 import Page.KeypairCreate
 import Page.KeypairList
-import Page.LoginJetstream
+import Page.LoginJetstream1
 import Page.LoginOpenstack
 import Page.MessageLog
 import Page.ProjectOverview
@@ -53,7 +53,7 @@ type NonProjectViewConstructor
 
 type LoginView
     = LoginOpenstack Page.LoginOpenstack.Model
-    | LoginJetstream Page.LoginJetstream.Model
+    | LoginJetstream1 Page.LoginJetstream1.Model
 
 
 type ProjectViewConstructor

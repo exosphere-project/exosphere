@@ -39,8 +39,8 @@ pageTitle outerModel =
                         LoginOpenstack _ ->
                             "OpenStack Login"
 
-                        LoginJetstream _ ->
-                            "Jetstream Cloud Login"
+                        LoginJetstream1 _ ->
+                            "Jetstream1 Login"
 
                 LoginPicker ->
                     "Log in"
