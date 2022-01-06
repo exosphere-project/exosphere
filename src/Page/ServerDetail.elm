@@ -1260,74 +1260,6 @@ resourceUsageCharts context currentTimeAndZone server maybeServerResourceQtys =
         thirtyMinMillis =
             1000 * 60 * 30
 
-        toChartHeading : String -> String -> Element.Element Msg
-        toChartHeading title subtitle =
-            Element.row
-                [ Element.width Element.fill, Element.paddingEach { top = 0, bottom = 0, left = 0, right = 25 } ]
-                [ Element.el [ Font.bold ] (Element.text title)
-                , Element.el
-                    [ Font.color (context.palette.muted |> SH.toElementColor)
-                    , Element.alignRight
-                    ]
-                    (Element.text subtitle)
-                ]
-
-        cpuHeading : Element.Element Msg
-        cpuHeading =
-            toChartHeading
-                "CPU"
-                (maybeServerResourceQtys
-                    |> Maybe.map .cores
-                    |> Maybe.map
-                        (\x ->
-                            String.join " "
-                                [ "of"
-                                , String.fromInt x
-                                , "total"
-                                , if x == 1 then
-                                    "core"
-
-                                  else
-                                    "cores"
-                                ]
-                        )
-                    |> Maybe.withDefault ""
-                )
-
-        memHeading : Element.Element Msg
-        memHeading =
-            toChartHeading
-                "RAM"
-                (maybeServerResourceQtys
-                    |> Maybe.map .ramGb
-                    |> Maybe.map
-                        (\x ->
-                            String.join " "
-                                [ "of"
-                                , String.fromInt x
-                                , "total GB"
-                                ]
-                        )
-                    |> Maybe.withDefault ""
-                )
-
-        diskHeading : Element.Element Msg
-        diskHeading =
-            toChartHeading
-                "Root Disk"
-                (maybeServerResourceQtys
-                    |> Maybe.andThen .rootDiskGb
-                    |> Maybe.map
-                        (\x ->
-                            String.join " "
-                                [ "of"
-                                , String.fromInt x
-                                , "total GB"
-                                ]
-                        )
-                    |> Maybe.withDefault ""
-                )
-
         charts_ : Types.ServerResourceUsage.TimeSeries -> Element.Element Msg
         charts_ timeSeries =
             Element.column
@@ -1337,10 +1269,8 @@ resourceUsageCharts context currentTimeAndZone server maybeServerResourceQtys =
                     context
                     chartsWidth
                     currentTimeAndZone
+                    maybeServerResourceQtys
                     timeSeries
-                    cpuHeading
-                    memHeading
-                    diskHeading
                 ]
 
         charts =

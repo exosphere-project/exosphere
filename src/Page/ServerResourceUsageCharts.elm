@@ -2,6 +2,7 @@ module Page.ServerResourceUsageCharts exposing (view)
 
 import Dict
 import Element
+import Element.Font as Font
 import Helpers.ServerResourceUsage exposing (timeSeriesRecentDataPoints)
 import LineChart
 import LineChart.Area as Area
@@ -21,23 +22,28 @@ import LineChart.Interpolation as Interpolation
 import LineChart.Junk as Junk
 import LineChart.Legends as Legends
 import LineChart.Line as Line
+import Style.Helpers as SH
+import Style.Widgets.Icon as Icon
 import Svg
 import Time
 import Tuple
+import Types.HelperTypes as HelperTypes
 import Types.ServerResourceUsage exposing (AlertLevel(..), DataPoint, TimeSeries)
 import View.Types
+
+
+type alias TimeAndSingleMetric =
+    ( Int, Int )
 
 
 view :
     View.Types.Context
     -> Int
     -> ( Time.Posix, Time.Zone )
+    -> Maybe HelperTypes.ServerResourceQtys
     -> TimeSeries
     -> Element.Element msg
-    -> Element.Element msg
-    -> Element.Element msg
-    -> Element.Element msg
-view context widthPx ( currentTime, timeZone ) timeSeriesDict cpuHeading memHeading diskHeading =
+view context widthPx ( currentTime, timeZone ) maybeServerResourceQtys timeSeriesDict =
     let
         thirtyMinMillis =
             30 * 60 * 1000
@@ -45,16 +51,19 @@ view context widthPx ( currentTime, timeZone ) timeSeriesDict cpuHeading memHead
         timeSeriesListLast30m =
             timeSeriesRecentDataPoints timeSeriesDict currentTime thirtyMinMillis
 
-        getTime : ( Int, DataPoint ) -> Float
-        getTime dataPointTuple =
-            Tuple.first dataPointTuple
-                |> toFloat
+        haveGpuData =
+            -- See if we have _any_ GPU usage data
+            timeSeriesListLast30m
+                |> Dict.toList
+                |> List.any
+                    (\( _, dataPoint ) ->
+                        case dataPoint.gpuPctUsed of
+                            Just _ ->
+                                True
 
-        getMetricUsedPct : (DataPoint -> Int) -> ( Int, DataPoint ) -> Float
-        getMetricUsedPct accessor dataPointTuple =
-            Tuple.second dataPointTuple
-                |> accessor
-                |> toFloat
+                            Nothing ->
+                                False
+                    )
 
         percentRangeCustomTick : Int -> Tick.Config msg
         percentRangeCustomTick percent =
@@ -83,11 +92,11 @@ view context widthPx ( currentTime, timeZone ) timeSeriesDict cpuHeading memHead
                     , percentRangeCustomTick 100
                     ]
 
-        percentRange : (( Int, DataPoint ) -> Float) -> Axis.Config ( Int, DataPoint ) msg
+        percentRange : (TimeAndSingleMetric -> Int) -> Axis.Config TimeAndSingleMetric msg
         percentRange getDataFunc =
             Axis.custom
                 { title = Title.default ""
-                , variable = Just << getDataFunc
+                , variable = Just << toFloat << getDataFunc
                 , pixels = 210
                 , range = Range.window 0 100
                 , axisLine = AxisLine.full context.palette.on.background
@@ -130,11 +139,11 @@ view context widthPx ( currentTime, timeZone ) timeSeriesDict cpuHeading memHead
                 |> List.map round
                 |> List.map timeRangeCustomTick
 
-        timeRange : (( Int, DataPoint ) -> Float) -> Axis.Config ( Int, DataPoint ) msg
+        timeRange : (TimeAndSingleMetric -> Int) -> Axis.Config TimeAndSingleMetric msg
         timeRange getDataFunc =
             Axis.custom
                 { title = Title.default ""
-                , variable = Just << getDataFunc
+                , variable = Just << toFloat << getDataFunc
                 , pixels = widthPx // 3
                 , range =
                     Range.window
@@ -161,10 +170,10 @@ view context widthPx ( currentTime, timeZone ) timeSeriesDict cpuHeading memHead
             in
             (modBy 12 hours |> String.fromInt) ++ ":" ++ string_and_pad minutes
 
-        chartConfig : (( Int, DataPoint ) -> Float) -> LineChart.Config ( Int, DataPoint ) msg
-        chartConfig getYData =
-            { y = percentRange getYData
-            , x = timeRange getTime
+        chartConfig : LineChart.Config TimeAndSingleMetric msg
+        chartConfig =
+            { y = percentRange Tuple.second
+            , x = timeRange Tuple.first
             , container = Container.spaced "line-chart-1" 20 25 25 50
             , interpolation = Interpolation.monotone
             , intersection = Intersection.default
@@ -177,14 +186,33 @@ view context widthPx ( currentTime, timeZone ) timeSeriesDict cpuHeading memHead
             , dots = Dots.default
             }
 
-        series : List (LineChart.Series ( Int, DataPoint ))
-        series =
-            [ LineChart.line
-                context.palette.primary
-                Dots.none
-                ""
-                (Dict.toList timeSeriesListLast30m)
-            ]
+        series : (DataPoint -> Int) -> Maybe (DataPoint -> Int) -> List (LineChart.Series TimeAndSingleMetric)
+        series getPrimaryData maybeGetSecondaryData =
+            List.concat
+                [ [ LineChart.line
+                        context.palette.primary
+                        Dots.none
+                        ""
+                        (timeSeriesListLast30m
+                            |> Dict.toList
+                            |> List.map (Tuple.mapSecond getPrimaryData)
+                        )
+                  ]
+                , case maybeGetSecondaryData of
+                    Just getSecondaryData ->
+                        [ LineChart.line
+                            context.palette.warn
+                            Dots.none
+                            ""
+                            (timeSeriesListLast30m
+                                |> Dict.toList
+                                |> List.map (Tuple.mapSecond getSecondaryData)
+                            )
+                        ]
+
+                    Nothing ->
+                        []
+                ]
     in
     Element.row
         [ Element.width Element.fill
@@ -194,24 +222,123 @@ view context widthPx ( currentTime, timeZone ) timeSeriesDict cpuHeading memHead
         , Element.paddingXY 0 1
         ]
         [ Element.column []
-            [ cpuHeading
+            [ toCpuHeading context maybeServerResourceQtys haveGpuData
             , LineChart.viewCustom
-                (chartConfig (getMetricUsedPct .cpuPctUsed))
-                series
+                chartConfig
+                (series
+                    .cpuPctUsed
+                    (if haveGpuData then
+                        Just (\datapoint -> Maybe.withDefault 0 datapoint.gpuPctUsed)
+
+                     else
+                        Nothing
+                    )
+                )
                 |> Element.html
             ]
         , Element.column []
-            [ memHeading
+            [ toMemHeading context maybeServerResourceQtys
             , LineChart.viewCustom
-                (chartConfig (getMetricUsedPct .memPctUsed))
-                series
+                chartConfig
+                (series
+                    .memPctUsed
+                    Nothing
+                )
                 |> Element.html
             ]
         , Element.column []
-            [ diskHeading
+            [ toDiskHeading context maybeServerResourceQtys
             , LineChart.viewCustom
-                (chartConfig (getMetricUsedPct .rootfsPctUsed))
-                series
+                chartConfig
+                (series
+                    .rootfsPctUsed
+                    Nothing
+                )
                 |> Element.html
             ]
         ]
+
+
+toChartHeading : View.Types.Context -> Element.Element msg -> String -> Element.Element msg
+toChartHeading context title subtitle =
+    Element.row
+        [ Element.width Element.fill, Element.paddingEach { top = 0, bottom = 0, left = 0, right = 25 } ]
+        [ Element.el [ Font.bold ] title
+        , Element.el
+            [ Font.color (context.palette.muted |> SH.toElementColor)
+            , Element.alignRight
+            ]
+            (Element.text subtitle)
+        ]
+
+
+toCpuHeading : View.Types.Context -> Maybe HelperTypes.ServerResourceQtys -> Bool -> Element.Element msg
+toCpuHeading context maybeServerResourceQtys haveGpuData =
+    toChartHeading
+        context
+        (if haveGpuData then
+            Element.row [ Element.spacing 5 ]
+                [ Element.text "CPU"
+                , Icon.roundRect (context.palette.primary |> SH.toElementColor) 16
+                , Element.text "and GPU"
+                , Icon.roundRect (context.palette.warn |> SH.toElementColor) 16
+                ]
+
+         else
+            Element.text "CPU"
+        )
+        (maybeServerResourceQtys
+            |> Maybe.map .cores
+            |> Maybe.map
+                (\x ->
+                    String.join " "
+                        [ "of"
+                        , String.fromInt x
+                        , "total"
+                        , if x == 1 then
+                            "core"
+
+                          else
+                            "cores"
+                        ]
+                )
+            |> Maybe.withDefault ""
+        )
+
+
+toMemHeading : View.Types.Context -> Maybe HelperTypes.ServerResourceQtys -> Element.Element msg
+toMemHeading context maybeServerResourceQtys =
+    toChartHeading
+        context
+        (Element.text "RAM")
+        (maybeServerResourceQtys
+            |> Maybe.map .ramGb
+            |> Maybe.map
+                (\x ->
+                    String.join " "
+                        [ "of"
+                        , String.fromInt x
+                        , "total GB"
+                        ]
+                )
+            |> Maybe.withDefault ""
+        )
+
+
+toDiskHeading : View.Types.Context -> Maybe HelperTypes.ServerResourceQtys -> Element.Element msg
+toDiskHeading context maybeServerResourceQtys =
+    toChartHeading
+        context
+        (Element.text "Root Disk")
+        (maybeServerResourceQtys
+            |> Maybe.andThen .rootDiskGb
+            |> Maybe.map
+                (\x ->
+                    String.join " "
+                        [ "of"
+                        , String.fromInt x
+                        , "total GB"
+                        ]
+                )
+            |> Maybe.withDefault ""
+        )
