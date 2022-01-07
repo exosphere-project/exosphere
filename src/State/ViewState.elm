@@ -17,6 +17,7 @@ import Page.InstanceSourcePicker
 import Page.KeypairCreate
 import Page.KeypairList
 import Page.LoginJetstream1
+import Page.LoginOpenIdConnect
 import Page.LoginOpenstack
 import Page.MessageLog
 import Page.ProjectOverview
@@ -157,6 +158,18 @@ routeToViewStateModelCmd sharedModel route =
             , sharedModel
             , Cmd.none
             )
+
+        Route.LoginOpenIdConnect ->
+            case sharedModel.openIdConnectLoginConfig of
+                Just openIdConnectLoginConfig ->
+                    ( NonProjectView <| Login <| LoginOpenIdConnect <| Page.LoginOpenIdConnect.init openIdConnectLoginConfig
+                    , sharedModel
+                    , Cmd.none
+                    )
+
+                Nothing ->
+                    -- App is not set up for OIDC login, so just show login picker
+                    ( NonProjectView <| LoginPicker, sharedModel, Cmd.none )
 
         Route.LoginPicker ->
             ( NonProjectView LoginPicker

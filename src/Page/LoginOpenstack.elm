@@ -5,7 +5,6 @@ import Element.Font as Font
 import Element.Input as Input
 import OpenStack.OpenRc
 import OpenStack.Types as OSTypes
-import Route
 import Style.Helpers as SH
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
@@ -136,7 +135,10 @@ view context _ model =
             , Element.row (VH.exoRowAttributes ++ [ Element.width Element.fill ])
                 (case model.entryType of
                     CredsEntry ->
-                        [ Element.el [] (loginPickerButton context)
+                        [ Element.el []
+                            (VH.loginPickerButton context
+                                |> Element.map SharedMsg
+                            )
                         , Widget.textButton
                             (SH.materialStyle context.palette).button
                             { text = "Use OpenRC File"
@@ -258,17 +260,3 @@ loginOpenstackOpenRcEntry context model =
             , spellcheck = False
             }
         ]
-
-
-loginPickerButton : View.Types.Context -> Element.Element Msg
-loginPickerButton context =
-    Element.link []
-        { url = Route.toUrl context.urlPathPrefix Route.LoginPicker
-        , label =
-            Widget.textButton
-                (SH.materialStyle context.palette).button
-                { text = "Other Login Methods"
-                , onPress =
-                    Just <| SharedMsg <| SharedMsg.NoOp
-                }
-        }

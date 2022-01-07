@@ -3,7 +3,6 @@ module Page.LoginJetstream1 exposing (Model, Msg(..), init, update, view)
 import Element
 import Element.Font as Font
 import Element.Input as Input
-import Route
 import Style.Helpers as SH
 import Types.HelperTypes exposing (Jetstream1Creds, Jetstream1Provider(..))
 import Types.SharedModel exposing (SharedModel)
@@ -89,7 +88,10 @@ view context _ model =
                     , selected = Just model.jetstream1ProviderChoice
                     }
                 , Element.row [ Element.width Element.fill ]
-                    [ Element.el [] (loginPickerButton context)
+                    [ Element.el []
+                        (VH.loginPickerButton context
+                            |> Element.map SharedMsg
+                        )
                     , Element.el [ Element.alignRight ]
                         (Widget.textButton
                             (SH.materialStyle context.palette).primaryButton
@@ -169,17 +171,3 @@ helpText context =
                 "set your TACC password"
             ]
         ]
-
-
-loginPickerButton : View.Types.Context -> Element.Element Msg
-loginPickerButton context =
-    Element.link []
-        { url = Route.toUrl context.urlPathPrefix Route.LoginPicker
-        , label =
-            Widget.textButton
-                (SH.materialStyle context.palette).button
-                { text = "Other Login Methods"
-                , onPress =
-                    Just <| SharedMsg <| SharedMsg.NoOp
-                }
-        }

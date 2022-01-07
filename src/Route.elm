@@ -38,6 +38,7 @@ type Route
     | LoadingUnscopedProjects OSTypes.AuthTokenString
     | LoginJetstream1 (Maybe HelperTypes.Jetstream1Creds)
     | LoginOpenstack (Maybe OSTypes.OpenstackLogin)
+    | LoginOpenIdConnect
     | LoginPicker
     | MessageLog Bool
     | PageNotFound
@@ -103,6 +104,13 @@ toUrl maybePathPrefix route =
             buildUrlFunc
                 [ "login"
                 , "openstack"
+                ]
+                []
+
+        LoginOpenIdConnect ->
+            buildUrlFunc
+                [ "login"
+                , "openidconnect"
                 ]
                 []
 
@@ -443,6 +451,9 @@ pathParsers defaultRoute_ =
         (\creds -> LoginJetstream1 (Just creds))
         (s "login" </> s "jetstream" <?> jetstream1LoginQueryParser)
     , map
+        LoginOpenIdConnect
+        (s "login" </> s "openidconnect")
+    , map
         LoginPicker
         (s "loginpicker")
     , map
@@ -651,3 +662,6 @@ defaultLoginPage maybeDefaultLoginView =
 
                 HelperTypes.DefaultLoginJetstream1 ->
                     LoginJetstream1 Nothing
+
+                HelperTypes.DefaultLoginOpenIdConnect ->
+                    LoginOpenIdConnect

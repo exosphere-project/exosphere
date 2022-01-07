@@ -102,6 +102,9 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
                             "jetstream1" ->
                                 Just DefaultLoginJetstream1
 
+                            "oidc" ->
+                                Just DefaultLoginOpenIdConnect
+
                             _ ->
                                 Nothing
                     )

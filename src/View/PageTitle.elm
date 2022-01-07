@@ -42,6 +42,9 @@ pageTitle outerModel =
                         LoginJetstream1 _ ->
                             "Jetstream1 Login"
 
+                        LoginOpenIdConnect pageModel ->
+                            pageModel.oidcLoginButtonLabel
+
                 LoginPicker ->
                     "Log in"
 

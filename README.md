@@ -238,7 +238,7 @@ These options are primarily intended for cloud operators who wish to offer a cus
 | favicon                       | null, string                      | Path to custom favicon                                                 |
 | appTitle                      | null, string                      | Title to show throughout the app                                       |
 | topBarShowAppTitle            | true (default), false             | Whether to show or hide appTitle in the top navigation bar             |
-| defaultLoginView              | null, openstack, jetstream1       | Which login view to display by default                                 |
+| defaultLoginView              | null, openstack, jetstream1, oidc | Which login view to display by default                                 |
 | aboutAppMarkdown              | null, string (markdown)           | What to show in the "About the app" section of Help/About view         |
 | supportInfoMarkdown           | null, string (markdown)           | What to show when user clicks "Get support" button                     |
 | userSupportEmail              | null, string (markdown)           | Email address to ask users to send problem report                      |

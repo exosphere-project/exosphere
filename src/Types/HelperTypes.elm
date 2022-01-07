@@ -83,6 +83,7 @@ type HttpRequestMethod
 type DefaultLoginView
     = DefaultLoginOpenstack
     | DefaultLoginJetstream1
+    | DefaultLoginOpenIdConnect
 
 
 type alias Localization =

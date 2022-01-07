@@ -19,6 +19,7 @@ import Page.InstanceSourcePicker
 import Page.KeypairCreate
 import Page.KeypairList
 import Page.LoginJetstream1
+import Page.LoginOpenIdConnect
 import Page.LoginOpenstack
 import Page.LoginPicker
 import Page.MessageLog
@@ -146,6 +147,10 @@ elementView windowSize outerModel context =
                                     LoginJetstream1 pageModel ->
                                         Page.LoginJetstream1.view context outerModel.sharedModel pageModel
                                             |> Element.map LoginJetstream1Msg
+
+                                    LoginOpenIdConnect pageModel ->
+                                        Page.LoginOpenIdConnect.view context outerModel.sharedModel pageModel
+                                            |> Element.map SharedMsg
 
                             LoginPicker ->
                                 Page.LoginPicker.view context outerModel.sharedModel
