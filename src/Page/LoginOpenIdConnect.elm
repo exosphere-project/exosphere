@@ -55,7 +55,7 @@ view context _ model =
                             )
                         , Element.el [ Element.centerX ]
                             (Widget.textButton
-                                (SH.materialStyle context.palette).button
+                                (SH.materialStyle context.palette).primaryButton
                                 { text = model.oidcLoginButtonLabel
                                 , onPress =
                                     let
