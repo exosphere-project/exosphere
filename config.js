@@ -12,17 +12,11 @@ var config = {
   "favicon":null,
   "appTitle":null,
   "topBarShowAppTitle":true,
-  "defaultLoginView":"oidc",
+  "defaultLoginView":null,
   "aboutAppMarkdown":null,
   "supportInfoMarkdown":null,
   "userSupportEmail":null,
-  "openIdConnectLoginConfig":{
-    "keystoneAuthUrl":"https://js2.jetstream-cloud.org:5000/identity/v3",
-    "webssoKeystoneEndpoint":"/auth/OS-FEDERATION/websso/openid?origin=https://try-dev.exosphere.app/exosphere/oidc-redirector",
-    "oidcLoginIcon":"assets/img/XSEDE_Logo_Black_INF.png",
-    "oidcLoginButtonLabel":"Add XSEDE Account",
-    "oidcLoginButtonDescription":"Jetstream 2 only"
-  },
+  "openIdConnectLoginConfig":null,
   "localization":null,
   "instanceConfigMgtRepoUrl":null,
   "instanceConfigMgtRepoCheckout":null
