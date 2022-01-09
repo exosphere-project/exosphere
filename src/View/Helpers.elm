@@ -26,6 +26,7 @@ module View.Helpers exposing
     , invalidInputAttributes
     , invalidInputHelperText
     , linkAttribs
+    , loginPickerButton
     , possiblyUntitledResource
     , renderIf
     , renderMarkdown
@@ -68,6 +69,7 @@ import Markdown.Renderer
 import OpenStack.Types as OSTypes
 import Regex
 import RemoteData
+import Route
 import Style.Helpers as SH exposing (shadowDefaults)
 import Style.Types exposing (ExoPalette)
 import Style.Widgets.StatusBadge as StatusBadge
@@ -78,6 +80,7 @@ import Types.HelperTypes
 import Types.Project exposing (Project)
 import Types.Server exposing (ExoSetupStatus(..), Server, ServerOrigin(..), ServerUiStatus(..))
 import Types.SharedModel exposing (LogMessage, SharedModel, Style)
+import Types.SharedMsg as SharedMsg
 import View.Types
 import Widget
 
@@ -460,6 +463,20 @@ renderRDPP context remoteData resourceWord renderSuccessCase =
 
                         Nothing ->
                             loadingStuff context resourceWord
+
+
+loginPickerButton : View.Types.Context -> Element.Element SharedMsg.SharedMsg
+loginPickerButton context =
+    Element.link []
+        { url = Route.toUrl context.urlPathPrefix Route.LoginPicker
+        , label =
+            Widget.textButton
+                (SH.materialStyle context.palette).button
+                { text = "Other Login Methods"
+                , onPress =
+                    Just SharedMsg.NoOp
+                }
+        }
 
 
 serverStatusBadge : Style.Types.ExoPalette -> Server -> Element.Element msg

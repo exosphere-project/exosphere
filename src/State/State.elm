@@ -23,7 +23,7 @@ import Page.Home
 import Page.InstanceSourcePicker
 import Page.KeypairCreate
 import Page.KeypairList
-import Page.LoginJetstream
+import Page.LoginJetstream1
 import Page.LoginOpenstack
 import Page.LoginPicker
 import Page.MessageLog
@@ -183,15 +183,15 @@ updateUnderlying outerMsg outerModel =
                 |> pipelineCmdOuterModelMsg
                     (processSharedMsg sharedMsg)
 
-        ( LoginJetstreamMsg pageMsg, NonProjectView (Login (LoginJetstream pageModel)) ) ->
+        ( LoginJetstream1Msg pageMsg, NonProjectView (Login (LoginJetstream1 pageModel)) ) ->
             let
                 ( newPageModel, cmd, sharedMsg ) =
-                    Page.LoginJetstream.update pageMsg sharedModel pageModel
+                    Page.LoginJetstream1.update pageMsg sharedModel pageModel
             in
             ( { outerModel
-                | viewState = NonProjectView <| Login <| LoginJetstream newPageModel
+                | viewState = NonProjectView <| Login <| LoginJetstream1 newPageModel
               }
-            , Cmd.map LoginJetstreamMsg cmd
+            , Cmd.map LoginJetstream1Msg cmd
             )
                 |> pipelineCmdOuterModelMsg
                     (processSharedMsg sharedMsg)
@@ -572,10 +572,10 @@ processSharedMsg sharedMsg outerModel =
             ( outerModel, Rest.Keystone.requestUnscopedAuthToken sharedModel.cloudCorsProxyUrl creds )
                 |> mapToOuterMsg
 
-        JetstreamLogin jetstreamCreds ->
+        Jetstream1Login jetstream1Creds ->
             let
                 openstackCredsList =
-                    State.Auth.jetstreamToOpenstackCreds jetstreamCreds
+                    State.Auth.jetstream1ToOpenstackCreds jetstream1Creds
 
                 cmds =
                     List.map

@@ -1,6 +1,6 @@
 module State.Auth exposing
     ( authUrlWithPortAndVersion
-    , jetstreamToOpenstackCreds
+    , jetstream1ToOpenstackCreds
     , projectUpdateAuthToken
     , requestAuthToken
     , unscopedProviderUpdateAuthToken
@@ -12,8 +12,8 @@ import Rest.Keystone
 import Types.HelperTypes as HelperTypes
     exposing
         ( HttpRequestMethod(..)
-        , JetstreamCreds
-        , JetstreamProvider(..)
+        , Jetstream1Creds
+        , Jetstream1Provider(..)
         , UnscopedProvider
         )
 import Types.OuterModel exposing (OuterModel)
@@ -92,11 +92,11 @@ requestAuthToken model project =
                     OSTypes.AppCreds project.endpoints.keystone project.auth.project.name appCred
 
 
-jetstreamToOpenstackCreds : JetstreamCreds -> List OSTypes.OpenstackLogin
-jetstreamToOpenstackCreds jetstreamCreds =
+jetstream1ToOpenstackCreds : Jetstream1Creds -> List OSTypes.OpenstackLogin
+jetstream1ToOpenstackCreds jetstream1Creds =
     let
         authUrlBases =
-            case jetstreamCreds.jetstreamProviderChoice of
+            case jetstream1Creds.jetstream1ProviderChoice of
                 {- TODO should we hard-code these elsewhere? -}
                 IUCloud ->
                     [ "iu.jetstream-cloud.org" ]
@@ -104,7 +104,7 @@ jetstreamToOpenstackCreds jetstreamCreds =
                 TACCCloud ->
                     [ "tacc.jetstream-cloud.org" ]
 
-                BothJetstreamClouds ->
+                BothJetstream1Clouds ->
                     [ "iu.jetstream-cloud.org"
                     , "tacc.jetstream-cloud.org"
                     ]
@@ -119,8 +119,8 @@ jetstreamToOpenstackCreds jetstreamCreds =
             OSTypes.OpenstackLogin
                 authUrl
                 "tacc"
-                jetstreamCreds.taccUsername
-                jetstreamCreds.taccPassword
+                jetstream1Creds.taccUsername
+                jetstream1Creds.taccPassword
         )
         authUrls
 

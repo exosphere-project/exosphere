@@ -55,8 +55,8 @@ view context sharedModel =
                     ""
               }
             , { logo =
-                    Element.image [ Element.centerX, Element.width (Element.px 150), Element.height (Element.px 100) ] { src = "assets/img/jetstream-logo.svg", description = "" }
-              , button = renderLinkButton (Route.LoginJetstream Nothing) "Add Jetstream1 Account"
+                    Element.image [ Element.centerX, Element.width (Element.px 150), Element.height (Element.px 100) ] { src = "assets/img/jetstream1-logo.svg", description = "" }
+              , button = renderLinkButton (Route.LoginJetstream1 Nothing) "Add Jetstream1 Account"
               , description =
                     "Recommended login method for Jetstream1"
               }

@@ -1,11 +1,10 @@
-module Page.LoginJetstream exposing (Model, Msg(..), init, update, view)
+module Page.LoginJetstream1 exposing (Model, Msg(..), init, update, view)
 
 import Element
 import Element.Font as Font
 import Element.Input as Input
-import Route
 import Style.Helpers as SH
-import Types.HelperTypes exposing (JetstreamCreds, JetstreamProvider(..))
+import Types.HelperTypes exposing (Jetstream1Creds, Jetstream1Provider(..))
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
@@ -14,26 +13,26 @@ import Widget
 
 
 type alias Model =
-    JetstreamCreds
+    Jetstream1Creds
 
 
 type Msg
     = GotUsername String
     | GotPassword String
-    | GotProviderChoice JetstreamProvider
+    | GotProviderChoice Jetstream1Provider
     | SharedMsg SharedMsg.SharedMsg
 
 
-init : Maybe JetstreamCreds -> Model
+init : Maybe Jetstream1Creds -> Model
 init maybeCreds =
     Maybe.withDefault
-        defaultJetstreamCreds
+        defaultJetstream1Creds
         maybeCreds
 
 
-defaultJetstreamCreds : JetstreamCreds
-defaultJetstreamCreds =
-    { jetstreamProviderChoice = BothJetstreamClouds
+defaultJetstream1Creds : Jetstream1Creds
+defaultJetstream1Creds =
+    { jetstream1ProviderChoice = BothJetstream1Clouds
     , taccUsername = ""
     , taccPassword = ""
     }
@@ -49,7 +48,7 @@ update msg _ model =
             ( { model | taccPassword = password }, Cmd.none, SharedMsg.NoOp )
 
         GotProviderChoice choice ->
-            ( { model | jetstreamProviderChoice = choice }, Cmd.none, SharedMsg.NoOp )
+            ( { model | jetstream1ProviderChoice = choice }, Cmd.none, SharedMsg.NoOp )
 
         SharedMsg sharedMsg ->
             ( model, Cmd.none, sharedMsg )
@@ -59,7 +58,7 @@ view : View.Types.Context -> SharedModel -> Model -> Element.Element Msg
 view context _ model =
     Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
         [ Element.el (VH.heading2 context.palette)
-            (Element.text "Add a Jetstream Cloud Account")
+            (Element.text "Add a Jetstream1 Account")
         , Element.column VH.contentContainer
             [ helpText context
             , Element.column VH.formContainer
@@ -84,18 +83,21 @@ view context _ model =
                     , options =
                         [ Input.option IUCloud (Element.text "IU Cloud")
                         , Input.option TACCCloud (Element.text "TACC Cloud")
-                        , Input.option BothJetstreamClouds (Element.text "Both Clouds")
+                        , Input.option BothJetstream1Clouds (Element.text "Both Clouds")
                         ]
-                    , selected = Just model.jetstreamProviderChoice
+                    , selected = Just model.jetstream1ProviderChoice
                     }
                 , Element.row [ Element.width Element.fill ]
-                    [ Element.el [] (loginPickerButton context)
+                    [ Element.el []
+                        (VH.loginPickerButton context
+                            |> Element.map SharedMsg
+                        )
                     , Element.el [ Element.alignRight ]
                         (Widget.textButton
                             (SH.materialStyle context.palette).primaryButton
                             { text = "Log In"
                             , onPress =
-                                Just <| SharedMsg <| SharedMsg.JetstreamLogin model
+                                Just <| SharedMsg <| SharedMsg.Jetstream1Login model
                             }
                         )
                     ]
@@ -113,8 +115,8 @@ helpText context =
             , VH.externalLink
                 context
                 "https://jetstream-cloud.org"
-                "Jetstream Cloud"
-            , Element.text ", you need access to a Jetstream allocation. Possible ways to get this:"
+                "Jetstream1"
+            , Element.text ", you need access to a Jetstream1 allocation. Possible ways to get this:"
             ]
         , Element.paragraph
             []
@@ -169,17 +171,3 @@ helpText context =
                 "set your TACC password"
             ]
         ]
-
-
-loginPickerButton : View.Types.Context -> Element.Element Msg
-loginPickerButton context =
-    Element.link []
-        { url = Route.toUrl context.urlPathPrefix Route.LoginPicker
-        , label =
-            Widget.textButton
-                (SH.materialStyle context.palette).button
-                { text = "Other Login Methods"
-                , onPress =
-                    Just <| SharedMsg <| SharedMsg.NoOp
-                }
-        }

@@ -149,12 +149,12 @@ def i_login_to_exosphere(context):
     """)
 
 
-@step('I add a Jetstream Cloud Account for allocation "{allocation}"')
+@step('I add a Jetstream1 Account for allocation "{allocation}"')
 @persona_vars
-def i_add_jetstream_cloud_account_for_allocation(context, allocation):
+def i_add_jetstream1_account_for_allocation(context, allocation):
     context.execute_steps(f"""
     When I click the "Add Jetstream1 Account" button
-    Then I should see "Add a Jetstream Cloud Account" within 15 seconds
+    Then I should see "Add a Jetstream1 Account" within 15 seconds
     When I enter TACC credentials
     And I click the "IU Cloud" radio button
     And I click the "Log In" button
