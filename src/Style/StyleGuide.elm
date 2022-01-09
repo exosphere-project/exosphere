@@ -71,6 +71,15 @@ initServers =
       , id = "vcb543f"
       , selectable = True
       }
+    , { name = "adorably_grumpy_cat"
+      , creator = "tg3456"
+      , creationTime = "2 month ago"
+      , ready = True
+      , size = "g1.v100x"
+      , ip = "129.114.104.139"
+      , id = "werfdse"
+      , selectable = True
+      }
     ]
 
 
@@ -236,6 +245,14 @@ widgets palette model =
                     }
                 )
         ]
+        [ { label = "Creator"
+          , filterOptions = [ { text = "ex3", value = "ex3" }, { text = "tg3456", value = "tg3456" } ]
+          , multipleSelection = True
+          , onFilter =
+                \optionValue server ->
+                    server.creator == optionValue
+          }
+        ]
     ]
 
 
@@ -297,7 +314,7 @@ init =
             , options = options
             }
       , expandoCardExpanded = False
-      , dataListModel = DataList.init
+      , dataListModel = DataList.init [ Set.fromList [ "ex3" ] ]
       , servers = initServers
       }
     , Cmd.none

@@ -3,17 +3,22 @@ module Style.Widgets.DataList exposing (DataRecord, Model, Msg, init, update, vi
 import Element
 import Element.Border as Border
 import Element.Input as Input
+import List.Extra
 import Set
 import Style.Widgets.Icon as Icon
 
 
 type alias Model =
-    { selectedRowIds : Set.Set String }
+    { selectedRowIds : Set.Set String
+    , selectedFilters : List (Set.Set String)
+    }
 
 
-init : Model
-init =
-    { selectedRowIds = Set.empty }
+init : List (Set.Set String) -> Model
+init selectedFilters =
+    { selectedRowIds = Set.empty
+    , selectedFilters = selectedFilters
+    }
 
 
 type Msg
@@ -53,6 +58,14 @@ idsSet dataRecords =
     Set.fromList <| List.map (\dataRecord -> dataRecord.id) dataRecords
 
 
+type alias Filter record =
+    { label : String
+    , filterOptions : List { text : String, value : String }
+    , multipleSelection : Bool
+    , onFilter : String -> DataRecord record -> Bool
+    }
+
+
 view :
     Model
     -> (Msg -> msg) -- convert local Msg to a consumer's msg
@@ -60,8 +73,9 @@ view :
     -> (DataRecord record -> Element.Element msg)
     -> List (DataRecord record)
     -> List (Set.Set String -> Element.Element msg)
+    -> List (Filter record)
     -> Element.Element msg
-view model toMsg styleAttrs listItemView data bulkActions =
+view model toMsg styleAttrs listItemView data bulkActions filters =
     let
         defaultRowStyle =
             [ Element.padding 24
@@ -82,6 +96,35 @@ view model toMsg styleAttrs listItemView data bulkActions =
 
         showRowCheckbox =
             not (List.isEmpty bulkActions)
+
+        filterRecord : Int -> Filter record -> DataRecord record -> Bool
+        filterRecord filterIndex filter dataRecord =
+            let
+                selectedOptions =
+                    Maybe.withDefault Set.empty
+                        (List.Extra.getAt filterIndex model.selectedFilters)
+                        |> Set.toList
+            in
+            if List.isEmpty selectedOptions then
+                True
+
+            else
+                List.foldl
+                    (\selectedOption isFiltered ->
+                        filter.onFilter selectedOption dataRecord
+                            || isFiltered
+                    )
+                    -- False is identity element for OR operation
+                    False
+                    selectedOptions
+
+        filteredData =
+            List.Extra.indexedFoldl
+                (\i filter dataRecords ->
+                    List.filter (filterRecord i filter) dataRecords
+                )
+                data
+                filters
     in
     Element.column
         ([ Element.width Element.fill
@@ -93,10 +136,10 @@ view model toMsg styleAttrs listItemView data bulkActions =
             ++ styleAttrs
         )
         -- TODO: Use context.palette instead of hard coded colors to create dark-theme version
-        (toolbarView model toMsg defaultRowStyle data bulkActions
+        (toolbarView model toMsg defaultRowStyle filteredData bulkActions
             :: List.indexedMap
                 (rowView model toMsg rowStyle listItemView showRowCheckbox)
-                data
+                filteredData
         )
 
 
