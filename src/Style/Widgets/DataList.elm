@@ -16,6 +16,8 @@ type alias Model =
 
 init : List (Set.Set String) -> Model
 init selectedFilters =
+    -- TODO: Figure if selectedFilters can be enforced to be of same length as view's filters argument
+    -- and if multipleSelection = False can enforce one element in set
     { selectedRowIds = Set.empty
     , selectedFilters = selectedFilters
     }
@@ -24,6 +26,7 @@ init selectedFilters =
 type Msg
     = ChangeRowSelection String Bool
     | ChangeAllRowsSelection (Set.Set String)
+    | ChangeFilterOptionSelection Int String Bool
     | NoOp
 
 
@@ -40,6 +43,24 @@ update msg model =
         ChangeAllRowsSelection newSelectedRowIds ->
             { model
                 | selectedRowIds = newSelectedRowIds
+            }
+
+        ChangeFilterOptionSelection filterIndex option isSelected ->
+            let
+                selectedFilterOptions =
+                    List.Extra.getAt filterIndex model.selectedFilters
+                        |> Maybe.withDefault Set.empty
+            in
+            { model
+                | selectedFilters =
+                    List.Extra.setAt filterIndex
+                        (if isSelected then
+                            Set.insert option selectedFilterOptions
+
+                         else
+                            Set.remove option selectedFilterOptions
+                        )
+                        model.selectedFilters
             }
 
         NoOp ->
@@ -136,7 +157,7 @@ view model toMsg styleAttrs listItemView data bulkActions filters =
             ++ styleAttrs
         )
         -- TODO: Use context.palette instead of hard coded colors to create dark-theme version
-        (toolbarView model toMsg defaultRowStyle filteredData bulkActions
+        (toolbarView model toMsg defaultRowStyle filteredData bulkActions filters
             :: List.indexedMap
                 (rowView model toMsg rowStyle listItemView showRowCheckbox)
                 filteredData
@@ -187,8 +208,9 @@ toolbarView :
     -> List (Element.Attribute msg)
     -> List (DataRecord record)
     -> List (Set.Set String -> Element.Element msg)
+    -> List (Filter record)
     -> Element.Element msg
-toolbarView model toMsg rowStyle data bulkActions =
+toolbarView model toMsg rowStyle data bulkActions filters =
     let
         selectableRecords =
             List.filter (\record -> record.selectable) data
@@ -214,7 +236,7 @@ toolbarView model toMsg rowStyle data bulkActions =
                 Element.none
 
             else
-                Input.checkbox [ Element.width Element.shrink ]
+                Input.checkbox [ Element.width Element.shrink, Element.alignTop ]
                     { checked = areAllRowsSelected
                     , onChange =
                         \isChecked ->
@@ -233,23 +255,55 @@ toolbarView model toMsg rowStyle data bulkActions =
         bulkActionsView =
             -- show only when bulkActions are passed and atleast 1 row is selected
             if List.isEmpty bulkActions || Set.isEmpty selectedRowIds then
-                []
+                Element.none
 
             else
-                (Element.el [ Element.alignRight ] <|
-                    Element.text
+                Element.row
+                    [ Element.alignRight
+                    , Element.alignTop
+                    , Element.spacing 15
+                    ]
+                    (Element.text
                         ("Apply action to "
                             ++ String.fromInt (Set.size selectedRowIds)
                             ++ " row(s):"
                         )
+                        :: List.map (\bulkAction -> bulkAction selectedRowIds)
+                            bulkActions
+                    )
+
+        filtOptSelector filterIndex filterOption =
+            -- TODO: radio button if multiselect false
+            Input.checkbox [ Element.width Element.shrink ]
+                { checked =
+                    Set.member
+                        filterOption.value
+                        (List.Extra.getAt filterIndex model.selectedFilters
+                            |> Maybe.withDefault Set.empty
+                        )
+                , onChange = ChangeFilterOptionSelection filterIndex filterOption.value
+                , icon = Input.defaultCheckbox
+                , label =
+                    Input.labelRight []
+                        (Element.text filterOption.text)
+                }
+                |> Element.map toMsg
+
+        filtersView =
+            -- TODO: make it a dropdown, show filter chips
+            Element.column [ Element.spacing 10, Element.paddingEach { top = 0, right = 0, bottom = 0, left = 150 } ]
+                (Element.el [ Element.centerX ] (Element.text "Apply filters:")
+                    :: List.indexedMap
+                        (\index filter ->
+                            Element.row [ Element.spacing 15 ]
+                                (Element.text (filter.label ++ ":")
+                                    :: List.map
+                                        (filtOptSelector index)
+                                        filter.filterOptions
+                                )
+                        )
+                        filters
                 )
-                    :: List.map (\bulkAction -> bulkAction selectedRowIds)
-                        bulkActions
     in
     Element.row rowStyle <|
-        List.concat
-            [ [ selectAllCheckbox ]
-
-            --, other controls like filters, sort
-            , bulkActionsView
-            ]
+        [ selectAllCheckbox, filtersView, bulkActionsView ]
