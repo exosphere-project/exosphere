@@ -81,7 +81,11 @@ idsSet dataRecords =
 
 type alias Filter record =
     { label : String
-    , filterOptions : List { text : String, value : String }
+    , filterOptions :
+        List
+            { text : String
+            , value : String
+            }
     , multipleSelection : Bool
     , onFilter : String -> DataRecord record -> Bool
     }
