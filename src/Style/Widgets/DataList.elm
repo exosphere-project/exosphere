@@ -23,10 +23,17 @@ init selectedFilters =
     }
 
 
+selectedFiltOpts : Int -> Model -> Set.Set String
+selectedFiltOpts filterIndex model =
+    List.Extra.getAt filterIndex model.selectedFilters
+        |> Maybe.withDefault Set.empty
+
+
 type Msg
     = ChangeRowSelection String Bool
     | ChangeAllRowsSelection (Set.Set String)
-    | ChangeFilterOptionSelection Int String Bool
+    | ChangeFiltOptCheckboxSelection Int String Bool
+    | ChangeFiltOptRadioSelection Int String
     | NoOp
 
 
@@ -45,21 +52,28 @@ update msg model =
                 | selectedRowIds = newSelectedRowIds
             }
 
-        ChangeFilterOptionSelection filterIndex option isSelected ->
+        ChangeFiltOptCheckboxSelection filterIndex option isSelected ->
             let
-                selectedFilterOptions =
-                    List.Extra.getAt filterIndex model.selectedFilters
-                        |> Maybe.withDefault Set.empty
+                selectedOptions =
+                    selectedFiltOpts filterIndex model
             in
             { model
                 | selectedFilters =
                     List.Extra.setAt filterIndex
                         (if isSelected then
-                            Set.insert option selectedFilterOptions
+                            Set.insert option selectedOptions
 
                          else
-                            Set.remove option selectedFilterOptions
+                            Set.remove option selectedOptions
                         )
+                        model.selectedFilters
+            }
+
+        ChangeFiltOptRadioSelection filterIndex option ->
+            { model
+                | selectedFilters =
+                    List.Extra.setAt filterIndex
+                        (Set.singleton option)
                         model.selectedFilters
             }
 
@@ -126,9 +140,7 @@ view model toMsg styleAttrs listItemView data bulkActions filters =
         filterRecord filterIndex filter dataRecord =
             let
                 selectedOptions =
-                    Maybe.withDefault Set.empty
-                        (List.Extra.getAt filterIndex model.selectedFilters)
-                        |> Set.toList
+                    Set.toList (selectedFiltOpts filterIndex model)
             in
             if List.isEmpty selectedOptions then
                 True
@@ -276,16 +288,13 @@ toolbarView model toMsg rowStyle data bulkActions filters =
                             bulkActions
                     )
 
-        filtOptSelector filterIndex filterOption =
-            -- TODO: radio button if multiselect false
+        filtOptCheckbox filterIndex filterOption =
             Input.checkbox [ Element.width Element.shrink ]
                 { checked =
                     Set.member
                         filterOption.value
-                        (List.Extra.getAt filterIndex model.selectedFilters
-                            |> Maybe.withDefault Set.empty
-                        )
-                , onChange = ChangeFilterOptionSelection filterIndex filterOption.value
+                        (selectedFiltOpts filterIndex model)
+                , onChange = ChangeFiltOptCheckboxSelection filterIndex filterOption.value
                 , icon = Input.defaultCheckbox
                 , label =
                     Input.labelRight []
@@ -293,18 +302,51 @@ toolbarView model toMsg rowStyle data bulkActions filters =
                 }
                 |> Element.map toMsg
 
+        filtOptsRadioSelector filterLabel filterIndex filterOptions =
+            Input.radioRow [ Element.spacing 18 ]
+                { onChange = ChangeFiltOptRadioSelection filterIndex
+                , selected =
+                    List.head <|
+                        Set.toList
+                            (selectedFiltOpts filterIndex model)
+                , label =
+                    Input.labelLeft
+                        [ Element.paddingEach
+                            { left = 0, right = 18, top = 0, bottom = 0 }
+                        ]
+                        (Element.text <| filterLabel ++ ":")
+                , options =
+                    List.map
+                        (\filterOption ->
+                            Input.option filterOption.value
+                                (Element.text filterOption.text)
+                        )
+                        filterOptions
+                }
+                |> Element.map toMsg
+
         filtersView =
             -- TODO: make it a dropdown, show filter chips
-            Element.column [ Element.spacing 10, Element.paddingEach { top = 0, right = 0, bottom = 0, left = 150 } ]
+            Element.column
+                [ Element.spacing 10
+                , Element.paddingEach
+                    { top = 0, right = 0, bottom = 0, left = 150 }
+                ]
                 (Element.el [ Element.centerX ] (Element.text "Apply filters:")
                     :: List.indexedMap
                         (\index filter ->
-                            Element.row [ Element.spacing 15 ]
-                                (Element.text (filter.label ++ ":")
-                                    :: List.map
-                                        (filtOptSelector index)
-                                        filter.filterOptions
-                                )
+                            if filter.multipleSelection then
+                                Element.row [ Element.spacing 15 ]
+                                    (Element.text (filter.label ++ ":")
+                                        :: List.map
+                                            (filtOptCheckbox index)
+                                            filter.filterOptions
+                                    )
+
+                            else
+                                filtOptsRadioSelector filter.label
+                                    index
+                                    filter.filterOptions
                         )
                         filters
                 )
