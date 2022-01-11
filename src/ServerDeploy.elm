@@ -38,17 +38,12 @@ runcmd:
   - sleep 1  # Ensures that console log output from any previous command completes before the following command begins
   - echo '{"exoSetup":"running"}' | tee --append /dev/console > /dev/kmsg || true
   - chmod 640 /var/log/cloud-init-output.log
+  - su - centos -c "git clone --branch cluster-create-local --single-branch https://github.com/julianpistorius/CRI_Jetstream_Cluster.git; cd CRI_Jetstream_Cluster; ./cluster_create_local.sh"
   - |
     (which virtualenv && virtualenv /opt/ansible-venv) || (which virtualenv-3 && virtualenv-3 /opt/ansible-venv) || python3 -m virtualenv /opt/ansible-venv
     . /opt/ansible-venv/bin/activate
     pip install ansible-core
     ansible-pull --url "{instance-config-mgt-repo-url}" --checkout "{instance-config-mgt-repo-checkout}" --directory /opt/instance-config-mgt -i /opt/instance-config-mgt/ansible/hosts -e "{ansible-extra-vars}" /opt/instance-config-mgt/ansible/playbook.yml
-    pip install python-openstackclient
-    cd /opt
-    git clone --branch cluster-create-local --single-branch https://github.com/julianpistorius/CRI_Jetstream_Cluster.git
-    cd CRI_Jetstream_Cluster
-    ssh-keygen -q -N "" -f /root/.ssh/id_rsa
-    ./cluster_create_local.sh -n "$(hostname --short)" -o /root/openrc.sh
   - sleep 1  # Ensures that console log output from previous command completes before the following command begins
   - echo '{"exoSetup":"complete"}' | tee --append /dev/console > /dev/kmsg || true
 mount_default_fields: [None, None, "ext4", "user,exec,rw,auto,nofail,x-systemd.makefs,x-systemd.automount", "0", "2"]
