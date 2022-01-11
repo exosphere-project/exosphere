@@ -29,6 +29,7 @@ type alias Project =
     , securityGroups : List OSTypes.SecurityGroup
     , computeQuota : WebData OSTypes.ComputeQuota
     , volumeQuota : WebData OSTypes.VolumeQuota
+    , networkQuota : WebData OSTypes.NetworkQuota
     }
 
 

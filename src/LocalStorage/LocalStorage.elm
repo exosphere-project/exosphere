@@ -104,6 +104,7 @@ hydrateProjectFromStoredProject storedProject =
     , securityGroups = []
     , computeQuota = RemoteData.NotAsked
     , volumeQuota = RemoteData.NotAsked
+    , networkQuota = RemoteData.NotAsked
     }
 
 

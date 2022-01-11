@@ -87,6 +87,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveDetachVolume
     | ReceiveComputeQuota OSTypes.ComputeQuota
     | ReceiveVolumeQuota OSTypes.VolumeQuota
+    | ReceiveNetworkQuota OSTypes.NetworkQuota
     | ReceiveRandomServerName String
 
 
