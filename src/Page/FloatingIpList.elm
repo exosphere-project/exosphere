@@ -6,7 +6,6 @@ import Element.Font as Font
 import FeatherIcons
 import Helpers.Formatting exposing (humanCount)
 import Helpers.GetterSetters as GetterSetters
-import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import OpenStack.Types as OSTypes
 import Page.QuotaUsage
@@ -156,12 +155,6 @@ view context project model =
                           else
                             List.map (renderFloatingIpCard context project model) ipsAssignedToResources
                         ]
-
-        floatingIpsUsedCount =
-            project.floatingIps
-                -- Defaulting to 0 if not loaded yet, not the greatest factoring
-                |> RDPP.withDefault []
-                |> List.length
     in
     Element.column
         [ Element.spacing 15, Element.width Element.fill ]
@@ -178,7 +171,7 @@ view context project model =
           else
             Element.none
         , Element.column VH.contentContainer
-            [ Page.QuotaUsage.view context Page.QuotaUsage.Full (Page.QuotaUsage.FloatingIp project.computeQuota floatingIpsUsedCount)
+            [ Page.QuotaUsage.view context Page.QuotaUsage.Full (Page.QuotaUsage.FloatingIp project.networkQuota)
             , VH.renderRDPP
                 context
                 project.floatingIps

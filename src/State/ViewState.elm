@@ -206,6 +206,7 @@ routeToViewStateModelCmd sharedModel route =
                                         , Rest.Nova.requestKeypairs project
                                         , OSQuotas.requestComputeQuota project
                                         , OSQuotas.requestVolumeQuota project
+                                        , OSQuotas.requestNetworkQuota project
                                         , Ports.instantiateClipboardJs ()
                                         ]
                                     )
@@ -239,7 +240,7 @@ routeToViewStateModelCmd sharedModel route =
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestFloatingIps project.auth.project.uuid)
                                         |> Helpers.pipelineCmd
-                                            (ApiModelHelpers.requestComputeQuota project.auth.project.uuid)
+                                            (ApiModelHelpers.requestNetworkQuota project.auth.project.uuid)
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestServers project.auth.project.uuid)
                             in
@@ -291,6 +292,7 @@ routeToViewStateModelCmd sharedModel route =
                                         |> Helpers.pipelineCmd (ApiModelHelpers.requestAutoAllocatedNetwork project.auth.project.uuid)
                                         |> Helpers.pipelineCmd (ApiModelHelpers.requestComputeQuota project.auth.project.uuid)
                                         |> Helpers.pipelineCmd (ApiModelHelpers.requestVolumeQuota project.auth.project.uuid)
+                                        |> Helpers.pipelineCmd (ApiModelHelpers.requestNetworkQuota project.auth.project.uuid)
                             in
                             ( projectViewProto <|
                                 ServerCreate

@@ -1715,6 +1715,14 @@ processProjectSpecificMsg outerModel project msg =
             ( GetterSetters.modelUpdateProject sharedModel newProject, Cmd.none )
                 |> mapToOuterModel outerModel
 
+        ReceiveNetworkQuota quota ->
+            let
+                newProject =
+                    { project | networkQuota = RemoteData.Success quota }
+            in
+            ( GetterSetters.modelUpdateProject sharedModel newProject, Cmd.none )
+                |> mapToOuterModel outerModel
+
         ReceiveRandomServerName serverName ->
             updateUnderlying (ServerCreateMsg <| Page.ServerCreate.GotServerName serverName) outerModel
 
@@ -2274,6 +2282,7 @@ createProject outerModel description authToken endpoints =
             , securityGroups = []
             , computeQuota = RemoteData.NotAsked
             , volumeQuota = RemoteData.NotAsked
+            , networkQuota = RemoteData.NotAsked
             }
 
         newProjects =

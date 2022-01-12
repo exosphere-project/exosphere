@@ -4,7 +4,6 @@ import Element
 import Element.Border as Border
 import Element.Font as Font
 import FeatherIcons
-import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import Html.Attributes
 import OpenStack.Types as OSTypes
@@ -73,12 +72,6 @@ view context project _ =
             Element.el VH.contentContainer <|
                 Element.paragraph [ Font.italic ] [ Element.text description ]
 
-        floatingIpsUsedCount =
-            project.floatingIps
-                -- Defaulting to 0 if not loaded yet, not the greatest factoring
-                |> RDPP.withDefault []
-                |> List.length
-
         keypairsUsedCount =
             project.keypairs
                 |> RemoteData.withDefault []
@@ -121,7 +114,7 @@ view context project _ =
                     |> Helpers.String.toTitleCase
                 )
                 Route.FloatingIpList
-                (Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.FloatingIp project.computeQuota floatingIpsUsedCount))
+                (Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.FloatingIp project.networkQuota))
                 (floatingIpTileContents context project)
             , renderTile
                 (FeatherIcons.key

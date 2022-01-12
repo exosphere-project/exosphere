@@ -3,6 +3,7 @@ module OpenStack.Quotas exposing
     , computeQuotaFlavorAvailServers
     , overallQuotaAvailServers
     , requestComputeQuota
+    , requestNetworkQuota
     , requestVolumeQuota
     , volumeQuotaAvail
     , volumeQuotaDecoder
@@ -54,7 +55,7 @@ requestComputeQuota project =
 
 computeQuotaDecoder : Decode.Decoder OSTypes.ComputeQuota
 computeQuotaDecoder =
-    Decode.map5 OSTypes.ComputeQuota
+    Decode.map4 OSTypes.ComputeQuota
         (Decode.map2 OSTypes.QuotaItemDetail
             (Decode.at [ "absolute", "totalCoresUsed" ] Decode.int)
             (Decode.at [ "absolute", "maxTotalCores" ] specialIntToMaybe)
@@ -66,10 +67,6 @@ computeQuotaDecoder =
         (Decode.map2 OSTypes.QuotaItemDetail
             (Decode.at [ "absolute", "totalRAMUsed" ] Decode.int)
             (Decode.at [ "absolute", "maxTotalRAMSize" ] specialIntToMaybe)
-        )
-        (Decode.map2 OSTypes.QuotaItemDetail
-            (Decode.at [ "absolute", "totalFloatingIpsUsed" ] Decode.int)
-            (Decode.at [ "absolute", "maxTotalFloatingIps" ] specialIntToMaybe)
         )
         (Decode.at [ "absolute", "maxTotalKeypairs" ] Decode.int)
 
@@ -118,6 +115,49 @@ volumeQuotaDecoder =
         (Decode.map2 OSTypes.QuotaItemDetail
             (Decode.at [ "absolute", "totalGigabytesUsed" ] Decode.int)
             (Decode.at [ "absolute", "maxTotalVolumeGigabytes" ] specialIntToMaybe)
+        )
+
+
+
+-- Network quota
+
+
+requestNetworkQuota : Project -> Cmd SharedMsg
+requestNetworkQuota project =
+    let
+        errorContext =
+            ErrorContext
+                "get details of network quota"
+                ErrorCrit
+                Nothing
+
+        resultToMsg_ =
+            resultToMsgErrorBody
+                errorContext
+                (\quota ->
+                    ProjectMsg
+                        project.auth.project.uuid
+                        (ReceiveNetworkQuota quota)
+                )
+    in
+    openstackCredentialedRequest
+        project.auth.project.uuid
+        Get
+        Nothing
+        (project.endpoints.neutron ++ "/v2.0/quotas/" ++ project.auth.project.uuid ++ "/details.json")
+        Http.emptyBody
+        (expectJsonWithErrorBody
+            resultToMsg_
+            (Decode.field "quota" networkQuotaDecoder)
+        )
+
+
+networkQuotaDecoder : Decode.Decoder OSTypes.NetworkQuota
+networkQuotaDecoder =
+    Decode.map OSTypes.NetworkQuota
+        (Decode.map2 OSTypes.QuotaItemDetail
+            (Decode.at [ "floatingip", "used" ] Decode.int)
+            (Decode.at [ "floatingip", "limit" ] specialIntToMaybe)
         )
 
 

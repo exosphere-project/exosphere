@@ -2,6 +2,7 @@ module Rest.ApiModelHelpers exposing
     ( requestAutoAllocatedNetwork
     , requestComputeQuota
     , requestFloatingIps
+    , requestNetworkQuota
     , requestNetworks
     , requestPorts
     , requestServer
@@ -120,6 +121,21 @@ requestVolumeQuota projectUuid model =
               }
                 |> GetterSetters.modelUpdateProject model
             , OpenStack.Quotas.requestVolumeQuota project
+            )
+
+        Nothing ->
+            ( model, Cmd.none )
+
+
+requestNetworkQuota : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd SharedMsg )
+requestNetworkQuota projectUuid model =
+    case GetterSetters.projectLookup model projectUuid of
+        Just project ->
+            ( { project
+                | networkQuota = RemoteData.Loading
+              }
+                |> GetterSetters.modelUpdateProject model
+            , OpenStack.Quotas.requestNetworkQuota project
             )
 
         Nothing ->

@@ -30,6 +30,7 @@ module OpenStack.Types exposing
     , MetadataValue
     , NameAndUuid
     , Network
+    , NetworkQuota
     , NetworkUuid
     , OpenstackLogin
     , Port
@@ -448,7 +449,6 @@ type alias ComputeQuota =
     { cores : QuotaItemDetail
     , instances : QuotaItemDetail
     , ram : QuotaItemDetail
-    , floatingIps : QuotaItemDetail
 
     -- OpenStack doesn't tell us a quantity of keypairs in use, only the limit
     , keypairsLimit : Int
@@ -692,3 +692,8 @@ type alias SecurityGroup =
 
 type alias SecurityGroupUuid =
     HelperTypes.Uuid
+
+
+type alias NetworkQuota =
+    { floatingIps : QuotaItemDetail
+    }
