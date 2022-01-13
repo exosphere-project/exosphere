@@ -166,6 +166,19 @@ serverView palette server =
         ]
 
 
+filters : List (DataList.Filter { record | creator : String })
+filters =
+    [ { label = "Creator"
+      , filterOptions = [ { text = "ex3", value = "ex3" }, { text = "tg3456", value = "tg3456" } ]
+      , multipleSelection = True
+      , defaultFilterOptions = Set.fromList [ "ex3" ]
+      , onFilter =
+            \optionValue server ->
+                server.creator == optionValue
+      }
+    ]
+
+
 
 --noinspection ElmUnresolvedReference
 {- When you create a new widget, add example usages to the `widgets` list here! -}
@@ -245,14 +258,7 @@ widgets palette model =
                     }
                 )
         ]
-        [ { label = "Creator"
-          , filterOptions = [ { text = "ex3", value = "ex3" }, { text = "tg3456", value = "tg3456" } ]
-          , multipleSelection = True
-          , onFilter =
-                \optionValue server ->
-                    server.creator == optionValue
-          }
-        ]
+        filters
     ]
 
 
@@ -314,7 +320,7 @@ init =
             , options = options
             }
       , expandoCardExpanded = False
-      , dataListModel = DataList.init [ Set.fromList [ "ex3" ] ]
+      , dataListModel = DataList.init (DataList.getDefaultFiltOpts filters)
       , servers = initServers
       }
     , Cmd.none

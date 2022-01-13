@@ -1,4 +1,13 @@
-module Style.Widgets.DataList exposing (DataRecord, Model, Msg, init, update, view)
+module Style.Widgets.DataList exposing
+    ( DataRecord
+    , Filter
+    , Model
+    , Msg
+    , getDefaultFiltOpts
+    , init
+    , update
+    , view
+    )
 
 import Element
 import Element.Border as Border
@@ -8,16 +17,39 @@ import Set
 import Style.Widgets.Icon as Icon
 
 
+type FiltOpts
+    = FiltOpts (List (Set.Set String))
+
+
 type alias Model =
     { selectedRowIds : Set.Set String
-    , selectedFilters : List (Set.Set String)
+    , selectedFilters : FiltOpts
     }
 
 
-init : List (Set.Set String) -> Model
+getDefaultFiltOpts : List (Filter record) -> FiltOpts
+getDefaultFiltOpts filters =
+    FiltOpts
+        (List.map
+            (\filter ->
+                if filter.multipleSelection then
+                    filter.defaultFilterOptions
+
+                else
+                    -- enforce one element in set
+                    case filter.defaultFilterOptions |> Set.toList |> List.head of
+                        Just oneFilterOption ->
+                            Set.fromList [ oneFilterOption ]
+
+                        Nothing ->
+                            Set.empty
+            )
+            filters
+        )
+
+
+init : FiltOpts -> Model
 init selectedFilters =
-    -- TODO: Figure if selectedFilters can be enforced to be of same length as view's filters argument
-    -- and if multipleSelection = False can enforce one element in set
     { selectedRowIds = Set.empty
     , selectedFilters = selectedFilters
     }
@@ -25,8 +57,10 @@ init selectedFilters =
 
 selectedFiltOpts : Int -> Model -> Set.Set String
 selectedFiltOpts filterIndex model =
-    List.Extra.getAt filterIndex model.selectedFilters
-        |> Maybe.withDefault Set.empty
+    case model.selectedFilters of
+        FiltOpts selectedFiltOpts_ ->
+            List.Extra.getAt filterIndex selectedFiltOpts_
+                |> Maybe.withDefault Set.empty
 
 
 type Msg
@@ -59,22 +93,28 @@ update msg model =
             in
             { model
                 | selectedFilters =
-                    List.Extra.setAt filterIndex
-                        (if isSelected then
-                            Set.insert option selectedOptions
+                    case model.selectedFilters of
+                        FiltOpts selectedFiltOpts_ ->
+                            FiltOpts <|
+                                List.Extra.setAt filterIndex
+                                    (if isSelected then
+                                        Set.insert option selectedOptions
 
-                         else
-                            Set.remove option selectedOptions
-                        )
-                        model.selectedFilters
+                                     else
+                                        Set.remove option selectedOptions
+                                    )
+                                    selectedFiltOpts_
             }
 
         ChangeFiltOptRadioSelection filterIndex option ->
             { model
                 | selectedFilters =
-                    List.Extra.setAt filterIndex
-                        (Set.singleton option)
-                        model.selectedFilters
+                    case model.selectedFilters of
+                        FiltOpts selectedFiltOpts_ ->
+                            FiltOpts <|
+                                List.Extra.setAt filterIndex
+                                    (Set.singleton option)
+                                    selectedFiltOpts_
             }
 
         NoOp ->
@@ -100,6 +140,7 @@ type alias Filter record =
             { text : String
             , value : String
             }
+    , defaultFilterOptions : Set.Set String
     , multipleSelection : Bool
     , onFilter : String -> DataRecord record -> Bool
     }
