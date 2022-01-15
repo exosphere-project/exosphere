@@ -168,7 +168,8 @@ serverView palette server =
 
 filters : List (DataList.Filter { record | creator : String })
 filters =
-    [ { label = "Creator"
+    [ { id = "creator"
+      , label = "Creator"
       , filterOptions = [ { text = "ex3", value = "ex3" }, { text = "tg3456", value = "tg3456" } ]
       , multipleSelection = True
       , defaultFilterOptions = Set.fromList [ "ex3" ]

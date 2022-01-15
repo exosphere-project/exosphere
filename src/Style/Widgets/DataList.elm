@@ -9,16 +9,16 @@ module Style.Widgets.DataList exposing
     , view
     )
 
+import Dict
 import Element
 import Element.Border as Border
 import Element.Input as Input
-import List.Extra
 import Set
 import Style.Widgets.Icon as Icon
 
 
 type FiltOpts
-    = FiltOpts (List (Set.Set String))
+    = FiltOpts (Dict.Dict String (Set.Set String))
 
 
 type alias Model =
@@ -30,20 +30,29 @@ type alias Model =
 getDefaultFiltOpts : List (Filter record) -> FiltOpts
 getDefaultFiltOpts filters =
     FiltOpts
-        (List.map
-            (\filter ->
-                if filter.multipleSelection then
-                    filter.defaultFilterOptions
+        (List.foldl
+            (\filter filtOptsDict ->
+                let
+                    filtOpts =
+                        if filter.multipleSelection then
+                            filter.defaultFilterOptions
 
-                else
-                    -- enforce one element in set
-                    case filter.defaultFilterOptions |> Set.toList |> List.head of
-                        Just oneFilterOption ->
-                            Set.fromList [ oneFilterOption ]
+                        else
+                            -- enforce one element in set
+                            case
+                                filter.defaultFilterOptions
+                                    |> Set.toList
+                                    |> List.head
+                            of
+                                Just oneFilterOption ->
+                                    Set.fromList [ oneFilterOption ]
 
-                        Nothing ->
-                            Set.empty
+                                Nothing ->
+                                    Set.empty
+                in
+                Dict.insert filter.id filtOpts filtOptsDict
             )
+            Dict.empty
             filters
         )
 
@@ -55,19 +64,19 @@ init selectedFilters =
     }
 
 
-selectedFiltOpts : Int -> Model -> Set.Set String
-selectedFiltOpts filterIndex model =
+selectedFiltOpts : String -> Model -> Set.Set String
+selectedFiltOpts filterId model =
     case model.selectedFilters of
         FiltOpts selectedFiltOpts_ ->
-            List.Extra.getAt filterIndex selectedFiltOpts_
+            Dict.get filterId selectedFiltOpts_
                 |> Maybe.withDefault Set.empty
 
 
 type Msg
     = ChangeRowSelection String Bool
     | ChangeAllRowsSelection (Set.Set String)
-    | ChangeFiltOptCheckboxSelection Int String Bool
-    | ChangeFiltOptRadioSelection Int String
+    | ChangeFiltOptCheckboxSelection String String Bool
+    | ChangeFiltOptRadioSelection String String
     | NoOp
 
 
@@ -86,17 +95,17 @@ update msg model =
                 | selectedRowIds = newSelectedRowIds
             }
 
-        ChangeFiltOptCheckboxSelection filterIndex option isSelected ->
+        ChangeFiltOptCheckboxSelection filterId option isSelected ->
             let
                 selectedOptions =
-                    selectedFiltOpts filterIndex model
+                    selectedFiltOpts filterId model
             in
             { model
                 | selectedFilters =
                     case model.selectedFilters of
                         FiltOpts selectedFiltOpts_ ->
                             FiltOpts <|
-                                List.Extra.setAt filterIndex
+                                Dict.insert filterId
                                     (if isSelected then
                                         Set.insert option selectedOptions
 
@@ -106,13 +115,13 @@ update msg model =
                                     selectedFiltOpts_
             }
 
-        ChangeFiltOptRadioSelection filterIndex option ->
+        ChangeFiltOptRadioSelection filterId option ->
             { model
                 | selectedFilters =
                     case model.selectedFilters of
                         FiltOpts selectedFiltOpts_ ->
                             FiltOpts <|
-                                List.Extra.setAt filterIndex
+                                Dict.insert filterId
                                     (Set.singleton option)
                                     selectedFiltOpts_
             }
@@ -134,7 +143,8 @@ idsSet dataRecords =
 
 
 type alias Filter record =
-    { label : String
+    { id : String
+    , label : String
     , filterOptions :
         List
             { text : String
@@ -177,11 +187,11 @@ view model toMsg styleAttrs listItemView data bulkActions filters =
         showRowCheckbox =
             not (List.isEmpty bulkActions)
 
-        filterRecord : Int -> Filter record -> DataRecord record -> Bool
-        filterRecord filterIndex filter dataRecord =
+        filterARecord : Filter record -> DataRecord record -> Bool
+        filterARecord filter dataRecord =
             let
                 selectedOptions =
-                    Set.toList (selectedFiltOpts filterIndex model)
+                    Set.toList (selectedFiltOpts filter.id model)
             in
             if List.isEmpty selectedOptions then
                 True
@@ -197,9 +207,9 @@ view model toMsg styleAttrs listItemView data bulkActions filters =
                     selectedOptions
 
         filteredData =
-            List.Extra.indexedFoldl
-                (\i filter dataRecords ->
-                    List.filter (filterRecord i filter) dataRecords
+            List.foldl
+                (\filter dataRecords ->
+                    List.filter (filterARecord filter) dataRecords
                 )
                 data
                 filters
@@ -329,13 +339,13 @@ toolbarView model toMsg rowStyle data bulkActions filters =
                             bulkActions
                     )
 
-        filtOptCheckbox filterIndex filterOption =
+        filtOptCheckbox filterId filterOption =
             Input.checkbox [ Element.width Element.shrink ]
                 { checked =
                     Set.member
                         filterOption.value
-                        (selectedFiltOpts filterIndex model)
-                , onChange = ChangeFiltOptCheckboxSelection filterIndex filterOption.value
+                        (selectedFiltOpts filterId model)
+                , onChange = ChangeFiltOptCheckboxSelection filterId filterOption.value
                 , icon = Input.defaultCheckbox
                 , label =
                     Input.labelRight []
@@ -343,13 +353,13 @@ toolbarView model toMsg rowStyle data bulkActions filters =
                 }
                 |> Element.map toMsg
 
-        filtOptsRadioSelector filterLabel filterIndex filterOptions =
+        filtOptsRadioSelector filterLabel filterId filterOptions =
             Input.radioRow [ Element.spacing 18 ]
-                { onChange = ChangeFiltOptRadioSelection filterIndex
+                { onChange = ChangeFiltOptRadioSelection filterId
                 , selected =
                     List.head <|
                         Set.toList
-                            (selectedFiltOpts filterIndex model)
+                            (selectedFiltOpts filterId model)
                 , label =
                     Input.labelLeft
                         [ Element.paddingEach
@@ -374,19 +384,19 @@ toolbarView model toMsg rowStyle data bulkActions filters =
                     { top = 0, right = 0, bottom = 0, left = 150 }
                 ]
                 (Element.el [ Element.centerX ] (Element.text "Apply filters:")
-                    :: List.indexedMap
-                        (\index filter ->
+                    :: List.map
+                        (\filter ->
                             if filter.multipleSelection then
                                 Element.row [ Element.spacing 15 ]
                                     (Element.text (filter.label ++ ":")
                                         :: List.map
-                                            (filtOptCheckbox index)
+                                            (filtOptCheckbox filter.id)
                                             filter.filterOptions
                                     )
 
                             else
                                 filtOptsRadioSelector filter.label
-                                    index
+                                    filter.id
                                     filter.filterOptions
                         )
                         filters
