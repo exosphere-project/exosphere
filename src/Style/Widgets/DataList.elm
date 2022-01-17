@@ -13,10 +13,16 @@ import Dict
 import Element
 import Element.Border as Border
 import Element.Input as Input
+import FeatherIcons
 import Set
+import Style.Helpers as SH
+import Style.Types
 import Style.Widgets.Icon as Icon
+import Widget
 
 
+{-| Opaque type representing options of all filters
+-}
 type FiltOpts
     = FiltOpts (Dict.Dict String (Set.Set String))
 
@@ -24,6 +30,7 @@ type FiltOpts
 type alias Model =
     { selectedRowIds : Set.Set String
     , selectedFilters : FiltOpts
+    , showFiltersDropdown : Bool
     }
 
 
@@ -61,6 +68,7 @@ init : FiltOpts -> Model
 init selectedFilters =
     { selectedRowIds = Set.empty
     , selectedFilters = selectedFilters
+    , showFiltersDropdown = False
     }
 
 
@@ -77,6 +85,9 @@ type Msg
     | ChangeAllRowsSelection (Set.Set String)
     | ChangeFiltOptCheckboxSelection String String Bool
     | ChangeFiltOptRadioSelection String String
+    | ToggleFiltersDropdownVisiblity
+    | ClearFilter String String
+    | ClearAllFilters
     | NoOp
 
 
@@ -126,6 +137,33 @@ update msg model =
                                     selectedFiltOpts_
             }
 
+        ToggleFiltersDropdownVisiblity ->
+            { model | showFiltersDropdown = not model.showFiltersDropdown }
+
+        ClearFilter filterId option ->
+            { model
+                | selectedFilters =
+                    case model.selectedFilters of
+                        FiltOpts selectedFiltOpts_ ->
+                            FiltOpts <|
+                                Dict.insert filterId
+                                    (Set.remove
+                                        option
+                                        (selectedFiltOpts filterId model)
+                                    )
+                                    selectedFiltOpts_
+            }
+
+        ClearAllFilters ->
+            { model
+                | selectedFilters =
+                    case model.selectedFilters of
+                        FiltOpts selectedFiltOpts_ ->
+                            FiltOpts <|
+                                Dict.map (\_ _ -> Set.empty)
+                                    selectedFiltOpts_
+            }
+
         NoOp ->
             model
 
@@ -145,6 +183,9 @@ idsSet dataRecords =
 type alias Filter record =
     { id : String
     , label : String
+
+    -- TODO: Can create a union type to better express interdependence of following 4
+    -- will also allow to add more ways of filtering other than multiselect and uniselect
     , filterOptions :
         List
             { text : String
@@ -159,13 +200,14 @@ type alias Filter record =
 view :
     Model
     -> (Msg -> msg) -- convert local Msg to a consumer's msg
+    -> Style.Types.ExoPalette
     -> List (Element.Attribute msg)
     -> (DataRecord record -> Element.Element msg)
     -> List (DataRecord record)
     -> List (Set.Set String -> Element.Element msg)
     -> List (Filter record)
     -> Element.Element msg
-view model toMsg styleAttrs listItemView data bulkActions filters =
+view model toMsg palette styleAttrs listItemView data bulkActions filters =
     let
         defaultRowStyle =
             [ Element.padding 24
@@ -224,7 +266,7 @@ view model toMsg styleAttrs listItemView data bulkActions filters =
             ++ styleAttrs
         )
         -- TODO: Use context.palette instead of hard coded colors to create dark-theme version
-        (toolbarView model toMsg defaultRowStyle filteredData bulkActions filters
+        (toolbarView model toMsg palette defaultRowStyle filteredData bulkActions filters
             :: List.indexedMap
                 (rowView model toMsg rowStyle listItemView showRowCheckbox)
                 filteredData
@@ -272,12 +314,13 @@ rowView model toMsg rowStyle listItemView showRowCheckbox i dataRecord =
 toolbarView :
     Model
     -> (Msg -> msg) -- convert local Msg to a consumer's msg
+    -> Style.Types.ExoPalette
     -> List (Element.Attribute msg)
     -> List (DataRecord record)
     -> List (Set.Set String -> Element.Element msg)
     -> List (Filter record)
     -> Element.Element msg
-toolbarView model toMsg rowStyle data bulkActions filters =
+toolbarView model toMsg palette rowStyle data bulkActions filters =
     let
         selectableRecords =
             List.filter (\record -> record.selectable) data
@@ -314,8 +357,7 @@ toolbarView model toMsg rowStyle data bulkActions filters =
                                 ChangeAllRowsSelection Set.empty
                     , icon = Input.defaultCheckbox
                     , label =
-                        Input.labelRight [ Element.paddingXY 14 0 ]
-                            (Element.text "Select All")
+                        Input.labelHidden "Select all rows"
                     }
                     |> Element.map toMsg
 
@@ -338,7 +380,22 @@ toolbarView model toMsg rowStyle data bulkActions filters =
                         :: List.map (\bulkAction -> bulkAction selectedRowIds)
                             bulkActions
                     )
+    in
+    Element.row rowStyle <|
+        [ selectAllCheckbox
+        , filtersView model toMsg palette filters
+        , bulkActionsView
+        ]
 
+
+filtersView :
+    Model
+    -> (Msg -> msg)
+    -> Style.Types.ExoPalette
+    -> List (Filter record)
+    -> Element.Element msg
+filtersView model toMsg palette filters =
+    let
         filtOptCheckbox filterId filterOption =
             Input.checkbox [ Element.width Element.shrink ]
                 { checked =
@@ -376,15 +433,10 @@ toolbarView model toMsg rowStyle data bulkActions filters =
                 }
                 |> Element.map toMsg
 
-        filtersView =
-            -- TODO: make it a dropdown, show filter chips
-            Element.column
-                [ Element.spacing 10
-                , Element.paddingEach
-                    { top = 0, right = 0, bottom = 0, left = 150 }
-                ]
-                (Element.el [ Element.centerX ] (Element.text "Apply filters:")
-                    :: List.map
+        filtersDropdown =
+            Element.el [ Element.paddingXY 0 12 ] <|
+                Element.column [ Border.width 1 ]
+                    (List.map
                         (\filter ->
                             if filter.multipleSelection then
                                 Element.row [ Element.spacing 15 ]
@@ -400,7 +452,123 @@ toolbarView model toMsg rowStyle data bulkActions filters =
                                     filter.filterOptions
                         )
                         filters
+                    )
+
+        addFilterBtn =
+            let
+                attribs =
+                    if model.showFiltersDropdown then
+                        [ Element.below filtersDropdown ]
+
+                    else
+                        []
+
+                buttonStyleDefaults =
+                    (SH.materialStyle palette).button
+
+                buttonStyle =
+                    { buttonStyleDefaults
+                        | container =
+                            buttonStyleDefaults.container
+                                ++ [ Element.padding 4
+                                   , Element.height Element.shrink
+                                   ]
+                        , labelRow =
+                            buttonStyleDefaults.labelRow
+                                ++ [ Element.padding 0
+                                   , Element.spacing 0
+                                   , Element.width Element.shrink
+                                   ]
+                    }
+            in
+            Element.el
+                attribs
+                (Widget.iconButton
+                    buttonStyle
+                    { icon =
+                        Element.el []
+                            (FeatherIcons.plus
+                                |> FeatherIcons.withSize 20
+                                |> FeatherIcons.toHtml []
+                                |> Element.html
+                            )
+                    , text = "Add Filters"
+                    , onPress = Just <| ToggleFiltersDropdownVisiblity
+                    }
+                    |> Element.map toMsg
                 )
+
+        filterChipView filter selectedOpt =
+            Element.row [ Border.width 1 ]
+                [ Element.text <| filter.label ++ " is " ++ selectedOpt.text
+                , Widget.iconButton (SH.materialStyle palette).iconButton
+                    { text = "Clear filter"
+                    , icon =
+                        Element.el []
+                            (FeatherIcons.x
+                                |> FeatherIcons.withSize 20
+                                |> FeatherIcons.toHtml []
+                                |> Element.html
+                            )
+                    , onPress = Just <| ClearFilter filter.id selectedOpt.value
+                    }
+                    |> Element.map toMsg
+                ]
+
+        selectedFiltersChips =
+            let
+                filtOptsValueTextMap filtOpts =
+                    List.foldl
+                        (\filtOpt valTextMap ->
+                            Dict.insert
+                                filtOpt.value
+                                filtOpt.text
+                                valTextMap
+                        )
+                        Dict.empty
+                        filtOpts
+            in
+            List.foldl
+                (\filter filtChipsList ->
+                    let
+                        optsValTextMap =
+                            filtOptsValueTextMap filter.filterOptions
+
+                        selectedOptVals =
+                            selectedFiltOpts filter.id model |> Set.toList
+
+                        filterChip selectedOptVal =
+                            case Dict.get selectedOptVal optsValTextMap of
+                                Just selectedOptText ->
+                                    filterChipView filter
+                                        { text = selectedOptText
+                                        , value = selectedOptVal
+                                        }
+
+                                Nothing ->
+                                    Element.none
+                    in
+                    filtChipsList
+                        ++ List.map filterChip selectedOptVals
+                )
+                []
+                filters
+
+        clearAllBtn =
+            Widget.textButton
+                (SH.materialStyle palette).textButton
+                { text = "Clear All"
+                , onPress = Just <| ClearAllFilters
+                }
+                |> Element.map toMsg
     in
-    Element.row rowStyle <|
-        [ selectAllCheckbox, filtersView, bulkActionsView ]
+    Element.wrappedRow
+        [ Element.spacing 10
+        , Element.width Element.fill
+        ]
+        (List.concat
+            [ [ Element.text "Filters: " ]
+            , selectedFiltersChips
+            , [ addFilterBtn, clearAllBtn ]
+            ]
+        )

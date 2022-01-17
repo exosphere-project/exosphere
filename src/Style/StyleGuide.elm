@@ -243,6 +243,7 @@ widgets palette model =
     , DataList.view
         model.dataListModel
         DataListMsg
+        palette
         [ Element.width (Element.maximum 900 Element.fill)
         , Font.size 16
         ]
