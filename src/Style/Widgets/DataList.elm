@@ -11,7 +11,9 @@ module Style.Widgets.DataList exposing
 
 import Dict
 import Element
+import Element.Background as Background
 import Element.Border as Border
+import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons
 import Set
@@ -346,7 +348,7 @@ toolbarView model toMsg palette rowStyle data bulkActions filters =
                 Element.none
 
             else
-                Input.checkbox [ Element.width Element.shrink, Element.alignTop ]
+                Input.checkbox [ Element.width Element.shrink ]
                     { checked = areAllRowsSelected
                     , onChange =
                         \isChecked ->
@@ -369,7 +371,6 @@ toolbarView model toMsg palette rowStyle data bulkActions filters =
             else
                 Element.row
                     [ Element.alignRight
-                    , Element.alignTop
                     , Element.spacing 15
                     ]
                     (Element.text
@@ -381,7 +382,8 @@ toolbarView model toMsg palette rowStyle data bulkActions filters =
                             bulkActions
                     )
     in
-    Element.row rowStyle <|
+    Element.row
+        (rowStyle ++ [ Element.height (Element.minimum 85 Element.fill) ])
         [ selectAllCheckbox
         , filtersView model toMsg palette filters
         , bulkActionsView
@@ -434,24 +436,32 @@ filtersView model toMsg palette filters =
                 |> Element.map toMsg
 
         filtersDropdown =
-            Element.el [ Element.paddingXY 0 12 ] <|
-                Element.column [ Border.width 1 ]
-                    (List.map
-                        (\filter ->
-                            if filter.multipleSelection then
-                                Element.row [ Element.spacing 15 ]
-                                    (Element.text (filter.label ++ ":")
-                                        :: List.map
-                                            (filtOptCheckbox filter.id)
-                                            filter.filterOptions
-                                    )
+            Element.el [ Element.paddingXY 0 6 ] <|
+                Element.column
+                    [ Element.padding 24
+                    , Element.spacingXY 0 24
+                    , Background.color <| SH.toElementColor palette.background
+                    , Border.width 1
+                    , Border.color <| Element.rgba255 0 0 0 0.16
+                    , Border.shadow SH.shadowDefaults
+                    ]
+                    (Element.el [ Font.size 18 ] (Element.text "Apply Filters")
+                        :: List.map
+                            (\filter ->
+                                if filter.multipleSelection then
+                                    Element.row [ Element.spacing 15 ]
+                                        (Element.text (filter.label ++ ":")
+                                            :: List.map
+                                                (filtOptCheckbox filter.id)
+                                                filter.filterOptions
+                                        )
 
-                            else
-                                filtOptsRadioSelector filter.label
-                                    filter.id
-                                    filter.filterOptions
-                        )
-                        filters
+                                else
+                                    filtOptsRadioSelector filter.label
+                                        filter.id
+                                        filter.filterOptions
+                            )
+                            filters
                     )
 
         addFilterBtn =
@@ -499,14 +509,35 @@ filtersView model toMsg palette filters =
                 )
 
         filterChipView filter selectedOpt =
-            Element.row [ Border.width 1 ]
-                [ Element.text <| filter.label ++ " is " ++ selectedOpt.text
-                , Widget.iconButton (SH.materialStyle palette).iconButton
+            let
+                iconButtonStyleDefaults =
+                    (SH.materialStyle palette).iconButton
+
+                iconButtonStyle =
+                    { iconButtonStyleDefaults
+                        | container =
+                            iconButtonStyleDefaults.container
+                                ++ [ Element.padding 6
+                                   , Element.height Element.shrink
+                                   ]
+                    }
+            in
+            Element.row
+                [ Border.width 1
+                , Border.color <| Element.rgba255 0 0 0 0.16
+                , Border.rounded 4
+                ]
+                [ Element.el
+                    [ Font.size 14
+                    , Element.paddingEach { top = 0, bottom = 0, left = 6, right = 0 }
+                    ]
+                    (Element.text <| filter.label ++ " is " ++ selectedOpt.text)
+                , Widget.iconButton iconButtonStyle
                     { text = "Clear filter"
                     , icon =
                         Element.el []
                             (FeatherIcons.x
-                                |> FeatherIcons.withSize 20
+                                |> FeatherIcons.withSize 16
                                 |> FeatherIcons.toHtml []
                                 |> Element.html
                             )
@@ -555,15 +586,29 @@ filtersView model toMsg palette filters =
                 filters
 
         clearAllBtn =
+            let
+                textBtnStyleDefaults =
+                    (SH.materialStyle palette).textButton
+
+                textBtnStyle =
+                    { textBtnStyleDefaults
+                        | container =
+                            textBtnStyleDefaults.container
+                                ++ [ Font.medium
+                                   , Element.padding 6
+                                   , Element.height Element.shrink
+                                   ]
+                    }
+            in
             Widget.textButton
-                (SH.materialStyle palette).textButton
+                textBtnStyle
                 { text = "Clear All"
                 , onPress = Just <| ClearAllFilters
                 }
                 |> Element.map toMsg
     in
     Element.wrappedRow
-        [ Element.spacing 10
+        [ Element.spacingXY 10 0
         , Element.width Element.fill
         ]
         (List.concat
