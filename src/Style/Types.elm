@@ -31,6 +31,8 @@ type alias ElmUiWidgetStyle style msg =
         , warningButton : ButtonStyle msg
         , dangerButton : ButtonStyle msg
         , chipButton : ButtonStyle msg
+        , iconButton : ButtonStyle msg
+        , textButton : ButtonStyle msg
         , row : RowStyle msg
         , progressIndicator : ProgressIndicatorStyle msg
         , tab : TabStyle msg

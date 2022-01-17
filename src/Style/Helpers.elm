@@ -131,6 +131,28 @@ materialStyle exoPalette =
                         ++ exoButtonAttributes
             }
 
+        textButton palette_ =
+            let
+                tb =
+                    Material.textButton palette_
+            in
+            { tb
+                | container =
+                    tb.container
+                        ++ exoButtonAttributes
+            }
+
+        iconButton palette_ =
+            let
+                tb =
+                    Material.iconButton palette_
+            in
+            { tb
+                | container =
+                    tb.container
+                        ++ [ Font.color (toElementColor palette_.primary) ]
+            }
+
         tab =
             let
                 defaultTab =
@@ -171,6 +193,8 @@ materialStyle exoPalette =
     , warningButton = containedButton warningPalette
     , dangerButton = containedButton dangerPalette
     , chipButton = Material.chip regularPalette
+    , iconButton = iconButton regularPalette
+    , textButton = textButton regularPalette
     , row = Material.row
     , progressIndicator = Material.progressIndicator regularPalette
     , tab = tab
