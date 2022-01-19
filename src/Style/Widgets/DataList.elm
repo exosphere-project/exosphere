@@ -352,7 +352,12 @@ toolbarView model toMsg palette rowStyle data bulkActions filters =
                 Element.none
 
             else
-                Input.checkbox [ Element.width Element.shrink ]
+                Input.checkbox
+                    [ Element.width Element.shrink
+                    , Element.alignTop
+                    , Element.paddingEach
+                        { top = 8, left = 0, right = 0, bottom = 0 }
+                    ]
                     { checked = areAllRowsSelected
                     , onChange =
                         \isChecked ->
@@ -376,6 +381,7 @@ toolbarView model toMsg palette rowStyle data bulkActions filters =
                 Element.row
                     [ Element.alignRight
                     , Element.spacing 15
+                    , Element.alignTop
                     ]
                     (Element.text
                         ("Apply action to "
@@ -387,10 +393,7 @@ toolbarView model toMsg palette rowStyle data bulkActions filters =
                     )
     in
     Element.row
-        -- FIXME: The toolbar's min-height shouldn't be hardcoded because
-        -- bulkActionsView comes from consumer. Perhaps there's a better way to
-        -- keep selectAllCheckbox vertical position fixed
-        (rowStyle ++ [ Element.height (Element.minimum 85 Element.fill) ])
+        rowStyle
         [ selectAllCheckbox
         , filtersView model toMsg palette filters
         , bulkActionsView
@@ -627,6 +630,7 @@ filtersView model toMsg palette filters =
     Element.wrappedRow
         [ Element.spacing 10
         , Element.width Element.fill
+        , Element.alignTop
         ]
         (List.concat
             [ [ Element.text "Filters: " ]
