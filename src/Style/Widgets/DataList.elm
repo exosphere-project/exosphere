@@ -451,6 +451,18 @@ filtersView model toMsg palette filters =
                 }
                 |> Element.map toMsg
 
+        iconButtonStyleDefaults =
+            (SH.materialStyle palette).iconButton
+
+        iconButtonStyle padding =
+            { iconButtonStyleDefaults
+                | container =
+                    iconButtonStyleDefaults.container
+                        ++ [ Element.padding padding
+                           , Element.height Element.shrink
+                           ]
+            }
+
         filtersDropdown =
             Element.el [ Element.paddingXY 0 6 ] <|
                 Element.column
@@ -461,7 +473,23 @@ filtersView model toMsg palette filters =
                     , Border.color <| Element.rgba255 0 0 0 0.16
                     , Border.shadow SH.shadowDefaults
                     ]
-                    (Element.el [ Font.size 18 ] (Element.text "Apply Filters")
+                    (Element.row [ Element.width Element.fill ]
+                        [ Element.el [ Font.size 18 ]
+                            (Element.text "Apply Filters")
+                        , Element.el [ Element.alignRight ]
+                            (Widget.iconButton
+                                (iconButtonStyle 0)
+                                { icon =
+                                    FeatherIcons.x
+                                        |> FeatherIcons.withSize 16
+                                        |> FeatherIcons.toHtml []
+                                        |> Element.html
+                                , text = "Close"
+                                , onPress = Just <| ToggleFiltersDropdownVisiblity
+                                }
+                                |> Element.map toMsg
+                            )
+                        ]
                         :: List.map
                             (\filter ->
                                 if filter.multipleSelection then
@@ -524,19 +552,6 @@ filtersView model toMsg palette filters =
 
         filterChipView : Filter record -> FilterOption -> Element.Element msg
         filterChipView filter selectedOpt =
-            let
-                iconButtonStyleDefaults =
-                    (SH.materialStyle palette).iconButton
-
-                iconButtonStyle =
-                    { iconButtonStyleDefaults
-                        | container =
-                            iconButtonStyleDefaults.container
-                                ++ [ Element.padding 6
-                                   , Element.height Element.shrink
-                                   ]
-                    }
-            in
             Element.row
                 [ Border.width 1
                 , Border.color <| Element.rgba255 0 0 0 0.16
@@ -550,7 +565,7 @@ filtersView model toMsg palette filters =
                         (Element.text filter.chipPrefix)
                     , Element.text selectedOpt.text
                     ]
-                , Widget.iconButton iconButtonStyle
+                , Widget.iconButton (iconButtonStyle 6)
                     { text = "Clear filter"
                     , icon =
                         Element.el []
