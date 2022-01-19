@@ -68,6 +68,8 @@ type Msg
     | GotWorkflowPath String
     | GotWorkflowInputLoseFocus
     | GotShowWorkFlowExplanationToggleTip
+    | GotBuildCluster Bool
+    | GotShowClusterExplanationToggleTip
     | GotDisabledCreateButtonPressed
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
@@ -96,6 +98,8 @@ init imageUuid imageName restrictFlavorIds deployGuacamole =
     , workflowInputPath = ""
     , workflowInputIsValid = Nothing
     , showWorkflowExplanationToggleTip = False
+    , buildCluster = False
+    , showClusterExplanationToggleTip = False
     , showFormInvalidToggleTip = False
     }
 
@@ -265,6 +269,22 @@ update msg project model =
         GotShowWorkFlowExplanationToggleTip ->
             ( { model
                 | showWorkflowExplanationToggleTip = not model.showWorkflowExplanationToggleTip
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
+
+        GotBuildCluster buildCluster ->
+            ( { model
+                | buildCluster = buildCluster
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
+
+        GotShowClusterExplanationToggleTip ->
+            ( { model
+                | showClusterExplanationToggleTip = not model.showClusterExplanationToggleTip
               }
             , Cmd.none
             , SharedMsg.NoOp
@@ -542,6 +562,7 @@ view context project model =
             , countPicker context model computeQuota volumeQuota flavor
             , desktopEnvironmentPicker context project model
             , customWorkflowInput context model
+            , clusterInput context project model
             , Element.column
                 [ Element.spacing 24 ]
               <|
@@ -1189,6 +1210,78 @@ customWorkflowInputExperimental context model =
 
                 else
                     [ workflowInput
+                    ]
+               )
+        )
+
+
+clusterInput : View.Types.Context -> Project -> Model -> Element.Element Msg
+clusterInput context project model =
+    if context.experimentalFeaturesEnabled then
+        clusterInputExperimental context project model
+
+    else
+        Element.none
+
+
+clusterInputExperimental : View.Types.Context -> Project -> Model -> Element.Element Msg
+clusterInputExperimental context project model =
+    let
+        clusterDetailsInput =
+            Element.text "Cluster stuff"
+
+        clusterExplanationToggleTip =
+            Style.Widgets.ToggleTip.toggleTip
+                context.palette
+                (Element.column
+                    [ Element.width
+                        (Element.fill
+                            |> Element.minimum 100
+                        )
+                    , Element.spacing 7
+                    ]
+                    [ Element.text "TODO"
+                    , Element.paragraph []
+                        [ Element.text "TODO"
+                        ]
+                    ]
+                )
+                model.showClusterExplanationToggleTip
+                GotShowClusterExplanationToggleTip
+
+        experimentalBadge =
+            badge "Experimental"
+    in
+    Element.column
+        [ Element.width Element.fill
+        , Element.spacing 24
+        ]
+    <|
+        (Input.radioRow [ Element.spacing 10 ]
+            { label =
+                Input.labelAbove [ Element.paddingXY 0 12 ]
+                    (Element.row [ Element.spacingXY 10 0 ]
+                        [ Element.el
+                            (VH.heading4 ++ [ Font.size 17 ])
+                            (Element.text ("Create your own Slurm cluster with this " ++ context.localization.virtualComputer ++ " as the head node"))
+                        , experimentalBadge
+                        , clusterExplanationToggleTip
+                        ]
+                    )
+            , onChange = GotBuildCluster
+            , options =
+                [ Input.option False (Element.text "No")
+                , Input.option True (Element.text "Yes")
+
+                {- -}
+                ]
+            , selected = Just model.buildCluster
+            }
+            :: (if not model.buildCluster then
+                    [ Element.none ]
+
+                else
+                    [ clusterDetailsInput
                     ]
                )
         )
