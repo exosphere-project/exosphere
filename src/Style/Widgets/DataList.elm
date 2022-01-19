@@ -185,17 +185,21 @@ idsSet dataRecords =
 type alias Filter record =
     { id : String
     , label : String
+    , chipPrefix : String
 
     -- TODO: Can create a union type to better express interdependence of following 4
     -- will also allow to add more ways of filtering other than multiselect and uniselect
     , filterOptions :
-        List
-            { text : String
-            , value : String
-            }
+        List FilterOption
     , defaultFilterOptions : Set.Set String
     , multipleSelection : Bool
     , onFilter : String -> DataRecord record -> Bool
+    }
+
+
+type alias FilterOption =
+    { text : String
+    , value : String
     }
 
 
@@ -401,6 +405,7 @@ filtersView :
     -> Element.Element msg
 filtersView model toMsg palette filters =
     let
+        filtOptCheckbox : String -> FilterOption -> Element.Element msg
         filtOptCheckbox filterId filterOption =
             Input.checkbox [ Element.width Element.shrink ]
                 { checked =
@@ -415,26 +420,27 @@ filtersView model toMsg palette filters =
                 }
                 |> Element.map toMsg
 
-        filtOptsRadioSelector filterLabel filterId filterOptions =
+        filtOptsRadioSelector : Filter record -> Element.Element msg
+        filtOptsRadioSelector filter =
             Input.radioRow [ Element.spacing 18 ]
-                { onChange = ChangeFiltOptRadioSelection filterId
+                { onChange = ChangeFiltOptRadioSelection filter.id
                 , selected =
                     List.head <|
                         Set.toList
-                            (selectedFiltOpts filterId model)
+                            (selectedFiltOpts filter.id model)
                 , label =
                     Input.labelLeft
                         [ Element.paddingEach
                             { left = 0, right = 18, top = 0, bottom = 0 }
                         ]
-                        (Element.text <| filterLabel ++ ":")
+                        (Element.text <| filter.label ++ ":")
                 , options =
                     List.map
                         (\filterOption ->
                             Input.option filterOption.value
                                 (Element.text filterOption.text)
                         )
-                        filterOptions
+                        filter.filterOptions
                         -- TODO: Let consumer control it. With custom type,
                         -- ensure that they pass a noChoice option value becuase
                         -- it doesn't render a filter chip
@@ -464,9 +470,7 @@ filtersView model toMsg palette filters =
                                         )
 
                                 else
-                                    filtOptsRadioSelector filter.label
-                                        filter.id
-                                        filter.filterOptions
+                                    filtOptsRadioSelector filter
                             )
                             filters
                     )
@@ -515,6 +519,7 @@ filtersView model toMsg palette filters =
                     |> Element.map toMsg
                 )
 
+        filterChipView : Filter record -> FilterOption -> Element.Element msg
         filterChipView filter selectedOpt =
             let
                 iconButtonStyleDefaults =
@@ -534,11 +539,14 @@ filtersView model toMsg palette filters =
                 , Border.color <| Element.rgba255 0 0 0 0.16
                 , Border.rounded 4
                 ]
-                [ Element.el
+                [ Element.row
                     [ Font.size 14
                     , Element.paddingEach { top = 0, bottom = 0, left = 6, right = 0 }
                     ]
-                    (Element.text <| filter.label ++ " is " ++ selectedOpt.text)
+                    [ Element.el [ Font.color (Element.rgb255 96 96 96) ]
+                        (Element.text filter.chipPrefix)
+                    , Element.text selectedOpt.text
+                    ]
                 , Widget.iconButton iconButtonStyle
                     { text = "Clear filter"
                     , icon =
@@ -617,7 +625,7 @@ filtersView model toMsg palette filters =
                 |> Element.map toMsg
     in
     Element.wrappedRow
-        [ Element.spacingXY 10 0
+        [ Element.spacing 10
         , Element.width Element.fill
         ]
         (List.concat
