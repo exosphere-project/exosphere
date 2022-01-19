@@ -35,7 +35,10 @@ type alias Server =
     DataList.DataRecord
         { name : String
         , creator : String
-        , creationTime : String
+        , creationTime :
+            { timestamp : Int
+            , relativeTime : String
+            }
         , ready : Bool
         , size : String
         , ip : String
@@ -46,7 +49,7 @@ initServers : List Server
 initServers =
     [ { name = "kindly_mighty_katydid"
       , creator = "ex3"
-      , creationTime = "5 days ago"
+      , creationTime = { timestamp = 1642544403000, relativeTime = "12 hours ago" }
       , ready = True
       , size = "m1.tiny"
       , ip = "129.114.104.147"
@@ -55,7 +58,7 @@ initServers =
       }
     , { name = "cheaply_next_crab"
       , creator = "tg3456"
-      , creationTime = "15 days ago"
+      , creationTime = { timestamp = 1642155016000, relativeTime = "5 days ago" }
       , ready = False
       , size = "m1.medium"
       , ip = "129.114.104.148"
@@ -64,7 +67,7 @@ initServers =
       }
     , { name = "basically_well_cobra"
       , creator = "ex3"
-      , creationTime = "1 month ago"
+      , creationTime = { timestamp = 1639909203000, relativeTime = "1 month ago" }
       , ready = True
       , size = "g1.v100x"
       , ip = "129.114.104.149"
@@ -73,7 +76,7 @@ initServers =
       }
     , { name = "adorably_grumpy_cat"
       , creator = "tg3456"
-      , creationTime = "2 month ago"
+      , creationTime = { timestamp = 1637317203000, relativeTime = "2 months ago" }
       , ready = True
       , size = "g1.v100x"
       , ip = "129.114.104.139"
@@ -156,7 +159,7 @@ serverView palette server =
             , Element.text "·"
             , Element.paragraph []
                 [ Element.text "created "
-                , Element.el [ Font.color (Element.rgb255 0 0 0) ] (Element.text server.creationTime)
+                , Element.el [ Font.color (Element.rgb255 0 0 0) ] (Element.text server.creationTime.relativeTime)
                 , Element.text " by "
                 , Element.el [ Font.color (Element.rgb255 0 0 0) ] (Element.text server.creator)
                 ]
@@ -166,16 +169,43 @@ serverView palette server =
         ]
 
 
-filters : List (DataList.Filter { record | creator : String })
+filters :
+    List
+        (DataList.Filter
+            { record
+                | creator : String
+                , creationTime : { a | timestamp : Int }
+            }
+        )
 filters =
     [ { id = "creator"
       , label = "Creator"
-      , filterOptions = [ { text = "ex3", value = "ex3" }, { text = "tg3456", value = "tg3456" } ]
+      , filterOptions =
+            [ { text = "ex3", value = "ex3" }
+            , { text = "tg3456", value = "tg3456" }
+            ]
       , multipleSelection = True
       , defaultFilterOptions = Set.fromList [ "ex3" ]
       , onFilter =
             \optionValue server ->
                 server.creator == optionValue
+      }
+    , { id = "creationTime"
+      , label = "Created within"
+      , filterOptions =
+            [ { text = "past day", value = "1642501203000" }
+            , { text = "past 7 days", value = "1641982803000" }
+            , { text = "past 30 days", value = "1639909203000" }
+            ]
+      , multipleSelection = False
+      , defaultFilterOptions = Set.fromList []
+      , onFilter =
+            \optionValue server ->
+                let
+                    optionInTimestamp =
+                        Maybe.withDefault 0 (String.toInt optionValue)
+                in
+                server.creationTime.timestamp >= optionInTimestamp
       }
     ]
 

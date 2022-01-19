@@ -383,6 +383,9 @@ toolbarView model toMsg palette rowStyle data bulkActions filters =
                     )
     in
     Element.row
+        -- FIXME: The toolbar's min-height shouldn't be hardcoded because
+        -- bulkActionsView comes from consumer. Perhaps there's a better way to
+        -- keep selectAllCheckbox vertical position fixed
         (rowStyle ++ [ Element.height (Element.minimum 85 Element.fill) ])
         [ selectAllCheckbox
         , filtersView model toMsg palette filters
@@ -432,6 +435,10 @@ filtersView model toMsg palette filters =
                                 (Element.text filterOption.text)
                         )
                         filterOptions
+                        -- TODO: Let consumer control it. With custom type,
+                        -- ensure that they pass a noChoice option value becuase
+                        -- it doesn't render a filter chip
+                        ++ [ Input.option "noChoice" (Element.text "No choice") ]
                 }
                 |> Element.map toMsg
 
@@ -577,6 +584,8 @@ filtersView model toMsg palette filters =
                                         }
 
                                 Nothing ->
+                                    -- when the selected option was added internally,
+                                    -- for e.g. "noChoice" in radio selector
                                     Element.none
                     in
                     filtChipsList
