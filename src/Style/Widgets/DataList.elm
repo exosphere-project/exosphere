@@ -634,13 +634,27 @@ filtersView model toMsg palette filters =
                                    , Element.height Element.shrink
                                    ]
                     }
+
+                isAnyFilterApplied =
+                    case model.selectedFilters of
+                        FiltOpts selectedFiltOpts_ ->
+                            Dict.foldl
+                                (\_ selectedOpts anyOptsSelected ->
+                                    not (Set.isEmpty selectedOpts) || anyOptsSelected
+                                )
+                                False
+                                selectedFiltOpts_
             in
-            Widget.textButton
-                textBtnStyle
-                { text = "Clear All"
-                , onPress = Just <| ClearAllFilters
-                }
-                |> Element.map toMsg
+            if isAnyFilterApplied then
+                Widget.textButton
+                    textBtnStyle
+                    { text = "Clear filters"
+                    , onPress = Just <| ClearAllFilters
+                    }
+                    |> Element.map toMsg
+
+            else
+                Element.none
     in
     Element.wrappedRow
         [ Element.spacing 10

@@ -182,7 +182,7 @@ filters =
       , label = "Creator"
       , chipPrefix = "Created by "
       , filterOptions =
-            [ { text = "ex3", value = "ex3" }
+            [ { text = "me (ex3)", value = "ex3" }
             , { text = "tg3456", value = "tg3456" }
             ]
       , multipleSelection = True
