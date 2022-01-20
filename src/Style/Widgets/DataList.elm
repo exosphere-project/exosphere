@@ -235,8 +235,8 @@ view model toMsg palette styleAttrs listItemView data bulkActions filters =
         showRowCheckbox =
             not (List.isEmpty bulkActions)
 
-        filterARecord : Filter record -> DataRecord record -> Bool
-        filterARecord filter dataRecord =
+        keepARecord : Filter record -> DataRecord record -> Bool
+        keepARecord filter dataRecord =
             let
                 selectedOptions =
                     Set.toList (selectedFiltOpts filter.id model)
@@ -246,9 +246,14 @@ view model toMsg palette styleAttrs listItemView data bulkActions filters =
 
             else
                 List.foldl
-                    (\selectedOption isFiltered ->
-                        filter.onFilter selectedOption dataRecord
-                            || isFiltered
+                    (\selectedOption isKeepable ->
+                        (if selectedOption == "noChoice" then
+                            True
+
+                         else
+                            filter.onFilter selectedOption dataRecord
+                        )
+                            || isKeepable
                     )
                     -- False is identity element for OR operation
                     False
@@ -257,7 +262,7 @@ view model toMsg palette styleAttrs listItemView data bulkActions filters =
         filteredData =
             List.foldl
                 (\filter dataRecords ->
-                    List.filter (filterARecord filter) dataRecords
+                    List.filter (keepARecord filter) dataRecords
                 )
                 data
                 filters
@@ -635,12 +640,21 @@ filtersView model toMsg palette filters =
                                    ]
                     }
 
+                isNotEmpty selectedOpts =
+                    not
+                        (Set.isEmpty selectedOpts
+                            || (Set.size selectedOpts
+                                    == 1
+                                    && Set.member "noChoice" selectedOpts
+                               )
+                        )
+
                 isAnyFilterApplied =
                     case model.selectedFilters of
                         FiltOpts selectedFiltOpts_ ->
                             Dict.foldl
                                 (\_ selectedOpts anyOptsSelected ->
-                                    not (Set.isEmpty selectedOpts) || anyOptsSelected
+                                    isNotEmpty selectedOpts || anyOptsSelected
                                 )
                                 False
                                 selectedFiltOpts_
