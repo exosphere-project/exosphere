@@ -587,6 +587,7 @@ view context project model =
                             , networkPicker context project model
                             , floatingIpPicker context project model
                             , keypairPicker context project model
+                            , clusterInput context project model
                             , userDataInput context model
                             ]
                        )
