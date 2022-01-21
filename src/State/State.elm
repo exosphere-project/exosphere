@@ -2329,6 +2329,7 @@ createUnscopedProvider model authToken authUrl =
             { authUrl = authUrl
             , token = authToken
             , projectsAvailable = RemoteData.Loading
+            , regionsAvailable = RemoteData.Loading
             }
 
         newProviders =
@@ -2336,6 +2337,7 @@ createUnscopedProvider model authToken authUrl =
     in
     ( { model | unscopedProviders = newProviders }
     , Rest.Keystone.requestUnscopedProjects newProvider model.cloudCorsProxyUrl
+      -- TODO request regions
     )
 
 

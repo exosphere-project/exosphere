@@ -161,6 +161,7 @@ type alias UnscopedProvider =
     { authUrl : OSTypes.KeystoneUrl
     , token : OSTypes.UnscopedAuthToken
     , projectsAvailable : WebData (List UnscopedProviderProject)
+    , regionsAvailable : WebData (List UnscopedProviderRegion)
     }
 
 
@@ -169,6 +170,12 @@ type alias UnscopedProviderProject =
     , description : Maybe String
     , domainId : Uuid
     , enabled : Bool
+    }
+
+
+type alias UnscopedProviderRegion =
+    { id : String
+    , description : String
     }
 
 

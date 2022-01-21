@@ -134,12 +134,14 @@ routeToViewStateModelCmd sharedModel route =
                                             authTokenString
                                         )
                                         RemoteData.NotAsked
+                                        RemoteData.NotAsked
 
                                 newUnscopedProviders =
                                     unscopedProvider :: sharedModel.unscopedProviders
                             in
                             ( { sharedModel | unscopedProviders = newUnscopedProviders }
                             , Rest.Keystone.requestUnscopedProjects unscopedProvider sharedModel.cloudCorsProxyUrl
+                              -- TODO request regions
                             )
             in
             ( NonProjectView <| LoadingUnscopedProjects authTokenString
