@@ -28,6 +28,7 @@ type SharedMsg
     | ReceiveScopedAuthToken (Maybe OSTypes.ProjectDescription) ( Http.Metadata, String )
     | ReceiveUnscopedAuthToken OSTypes.KeystoneUrl ( Http.Metadata, String )
     | ReceiveUnscopedProjects OSTypes.KeystoneUrl (List HelperTypes.UnscopedProviderProject)
+    | ReceiveUnscopedRegions OSTypes.KeystoneUrl (List HelperTypes.UnscopedProviderRegion)
     | RequestProjectLoginFromProvider OSTypes.KeystoneUrl (List HelperTypes.UnscopedProviderProject)
     | ProjectMsg HelperTypes.ProjectIdentifier ProjectSpecificMsgConstructor
     | OpenNewWindow String

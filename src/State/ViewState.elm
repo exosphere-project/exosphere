@@ -140,8 +140,10 @@ routeToViewStateModelCmd sharedModel route =
                                     unscopedProvider :: sharedModel.unscopedProviders
                             in
                             ( { sharedModel | unscopedProviders = newUnscopedProviders }
-                            , Rest.Keystone.requestUnscopedProjects unscopedProvider sharedModel.cloudCorsProxyUrl
-                              -- TODO request regions
+                            , Cmd.batch
+                                [ Rest.Keystone.requestUnscopedProjects unscopedProvider sharedModel.cloudCorsProxyUrl
+                                , Rest.Keystone.requestUnscopedRegions unscopedProvider sharedModel.cloudCorsProxyUrl
+                                ]
                             )
             in
             ( NonProjectView <| LoadingUnscopedProjects authTokenString

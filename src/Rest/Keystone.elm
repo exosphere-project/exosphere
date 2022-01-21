@@ -5,6 +5,7 @@ module Rest.Keystone exposing
     , requestScopedAuthToken
     , requestUnscopedAuthToken
     , requestUnscopedProjects
+    , requestUnscopedRegions
     )
 
 import Dict
@@ -25,7 +26,7 @@ import Rest.Helpers
         )
 import Time
 import Types.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
-import Types.HelperTypes as HelperTypes exposing (HttpRequestMethod(..), UnscopedProvider, UnscopedProviderProject)
+import Types.HelperTypes as HelperTypes exposing (HttpRequestMethod(..), UnscopedProvider, UnscopedProviderProject, UnscopedProviderRegion)
 import Types.Project exposing (Project)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import UUID
@@ -321,6 +322,59 @@ requestUnscopedProjects provider maybeProxyUrl =
         }
 
 
+requestUnscopedRegions : UnscopedProvider -> Maybe HelperTypes.Url -> Cmd SharedMsg
+requestUnscopedRegions provider maybeProxyUrl =
+    let
+        -- TODO DRY with requestUnscopedProjects above
+        correctedUrl =
+            let
+                maybeUrl =
+                    Url.fromString provider.authUrl
+            in
+            case maybeUrl of
+                -- Cannot parse URL, so uh, don't make changes to it. We should never be here
+                Nothing ->
+                    provider.authUrl
+
+                Just url_ ->
+                    { url_ | path = "/v3/regions" } |> Url.toString
+
+        ( url, headers ) =
+            case maybeProxyUrl of
+                Just proxyUrl ->
+                    proxyifyRequest proxyUrl correctedUrl
+
+                Nothing ->
+                    ( correctedUrl, [] )
+
+        errorContext =
+            ErrorContext
+                ("get a list of regions for provider \""
+                    ++ Helpers.Url.hostnameFromUrl provider.authUrl
+                    ++ "\""
+                )
+                ErrorCrit
+                Nothing
+
+        resultToMsg_ =
+            resultToMsgErrorBody
+                errorContext
+                (ReceiveUnscopedRegions provider.authUrl)
+    in
+    Http.request
+        { method = "GET"
+        , headers = Http.header "X-Auth-Token" provider.token.tokenValue :: headers
+        , url = url
+        , body = Http.emptyBody
+        , expect =
+            expectJsonWithErrorBody
+                resultToMsg_
+                decodeUnscopedRegions
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
 
 {- JSON Decoders -}
 
@@ -473,3 +527,16 @@ unscopedProjectDecoder =
         (Decode.field "description" Decode.string |> Decode.nullable)
         (Decode.field "domain_id" Decode.string)
         (Decode.field "enabled" Decode.bool)
+
+
+decodeUnscopedRegions : Decode.Decoder (List UnscopedProviderRegion)
+decodeUnscopedRegions =
+    Decode.field "regions" <|
+        Decode.list unscopedRegionDecoder
+
+
+unscopedRegionDecoder : Decode.Decoder UnscopedProviderRegion
+unscopedRegionDecoder =
+    Decode.map2 UnscopedProviderRegion
+        (Decode.field "id" Decode.string)
+        (Decode.field "description" Decode.string)

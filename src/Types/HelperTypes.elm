@@ -24,6 +24,7 @@ module Types.HelperTypes exposing
     , SupportableItemType(..)
     , UnscopedProvider
     , UnscopedProviderProject
+    , UnscopedProviderRegion
     , Url
     , UserAppProxyHostname
     , Uuid

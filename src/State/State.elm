@@ -708,6 +708,27 @@ processSharedMsg sharedMsg outerModel =
                     -- Provider not found, may have been removed, nothing to do
                     ( outerModel, Cmd.none )
 
+        ReceiveUnscopedRegions keystoneUrl unscopedRegions ->
+            case
+                GetterSetters.providerLookup sharedModel keystoneUrl
+            of
+                Just provider ->
+                    let
+                        newProvider =
+                            { provider | regionsAvailable = RemoteData.Success unscopedRegions }
+
+                        newSharedModel =
+                            GetterSetters.modelUpdateUnscopedProvider sharedModel newProvider
+
+                        newOuterModel =
+                            { outerModel | sharedModel = newSharedModel }
+                    in
+                    ( newOuterModel, Cmd.none )
+
+                Nothing ->
+                    -- Provider not found, may have been removed, nothing to do
+                    ( outerModel, Cmd.none )
+
         RequestProjectLoginFromProvider keystoneUrl unscopedProjects ->
             case GetterSetters.providerLookup sharedModel keystoneUrl of
                 Just provider ->
@@ -2336,8 +2357,10 @@ createUnscopedProvider model authToken authUrl =
             newProvider :: model.unscopedProviders
     in
     ( { model | unscopedProviders = newProviders }
-    , Rest.Keystone.requestUnscopedProjects newProvider model.cloudCorsProxyUrl
-      -- TODO request regions
+    , Cmd.batch
+        [ Rest.Keystone.requestUnscopedProjects newProvider model.cloudCorsProxyUrl
+        , Rest.Keystone.requestUnscopedRegions newProvider model.cloudCorsProxyUrl
+        ]
     )
 
 
