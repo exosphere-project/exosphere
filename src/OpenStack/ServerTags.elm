@@ -1,5 +1,6 @@
 module OpenStack.ServerTags exposing (requestCreateServerTag)
 
+import Helpers.GetterSetters as GetterSetters
 import Http
 import OpenStack.Types as OSTypes
 import Rest.Helpers exposing (expectStringWithErrorBody, openstackCredentialedRequest, resultToMsgErrorBody)
@@ -19,7 +20,7 @@ requestCreateServerTag project serverUuid tag =
                 Nothing
     in
     openstackCredentialedRequest
-        project.auth.project.uuid
+        (GetterSetters.projectIdentifier project)
         Put
         (Just "compute 2.26")
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/tags/" ++ tag)

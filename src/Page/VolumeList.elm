@@ -2,6 +2,7 @@ module Page.VolumeList exposing (Model, Msg, init, update, view)
 
 import Element
 import FeatherIcons
+import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import OpenStack.Types as OSTypes
 import Page.QuotaUsage
@@ -64,7 +65,7 @@ update msg project model =
                 Page.VolumeDetail.GotDeleteConfirm ->
                     ( model
                     , Cmd.none
-                    , SharedMsg.ProjectMsg project.auth.project.uuid <| SharedMsg.RequestDeleteVolume uuid
+                    , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <| SharedMsg.RequestDeleteVolume uuid
                     )
 
                 Page.VolumeDetail.GotDeleteCancel ->

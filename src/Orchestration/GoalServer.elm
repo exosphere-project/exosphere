@@ -536,7 +536,7 @@ stepServerGuacamoleAuth time maybeUserAppProxy project server =
                 "exouser"
                 password
                 (\result ->
-                    ProjectMsg project.auth.project.uuid <|
+                    ProjectMsg (GetterSetters.projectIdentifier project) <|
                         ServerMsg server.osProps.uuid <|
                             ReceiveGuacamoleAuthToken result
                 )

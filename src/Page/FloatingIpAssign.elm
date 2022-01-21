@@ -42,7 +42,7 @@ update msg { viewContext } project model =
             Route.withReplaceUrl
                 viewContext
                 (Route.ProjectRoute
-                    project.auth.project.uuid
+                    (GetterSetters.projectIdentifier project)
                     (Route.FloatingIpAssign model_.ipUuid model_.serverUuid)
                 )
                 ( model, cmd, sharedMsg )
@@ -203,7 +203,7 @@ view context project model =
                                         ( False, Just port_ ) ->
                                             -- Conditions are perfect
                                             { onPress =
-                                                Just <| SharedMsg <| SharedMsg.ProjectMsg project.auth.project.uuid (SharedMsg.RequestAssignFloatingIp port_ ipUuid)
+                                                Just <| SharedMsg <| SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) (SharedMsg.RequestAssignFloatingIp port_ ipUuid)
                                             , warnText = Nothing
                                             }
 

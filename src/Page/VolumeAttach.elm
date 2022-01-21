@@ -42,7 +42,7 @@ update msg { viewContext } project model =
             Route.withReplaceUrl
                 viewContext
                 (Route.ProjectRoute
-                    project.auth.project.uuid
+                    (GetterSetters.projectIdentifier project)
                     (Route.VolumeAttach
                         model_.maybeServerUuid
                         model_.maybeVolumeUuid
@@ -62,7 +62,7 @@ update msg { viewContext } project model =
         GotSubmit serverUuid volumeUuid ->
             ( model
             , Cmd.none
-            , SharedMsg.ProjectMsg project.auth.project.uuid <|
+            , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
                 ServerMsg serverUuid <|
                     RequestAttachVolume volumeUuid
             )

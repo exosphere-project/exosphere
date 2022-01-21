@@ -61,7 +61,7 @@ update msg project model =
         GotUnassign ipUuid ->
             ( model
             , Cmd.none
-            , SharedMsg.ProjectMsg project.auth.project.uuid <| SharedMsg.RequestUnassignFloatingIp ipUuid
+            , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <| SharedMsg.RequestUnassignFloatingIp ipUuid
             )
 
         GotDeleteNeedsConfirm ipUuid ->
@@ -74,7 +74,7 @@ update msg project model =
         GotDeleteConfirm ipUuid ->
             ( model
             , Cmd.none
-            , SharedMsg.ProjectMsg project.auth.project.uuid (SharedMsg.RequestDeleteFloatingIp ipUuid)
+            , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) (SharedMsg.RequestDeleteFloatingIp ipUuid)
             )
 
         GotDeleteCancel ipUuid ->
@@ -227,7 +227,7 @@ renderFloatingIpCard context project model ip =
                                 , Element.link []
                                     { url =
                                         Route.toUrl context.urlPathPrefix
-                                            (Route.ProjectRoute project.auth.project.uuid <|
+                                            (Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
                                                 Route.ServerDetail server.osProps.uuid
                                             )
                                     , label =
@@ -263,7 +263,7 @@ actionButtons context project model ip =
                     Element.link []
                         { url =
                             Route.toUrl context.urlPathPrefix
-                                (Route.ProjectRoute project.auth.project.uuid <|
+                                (Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
                                     Route.FloatingIpAssign (Just ip.uuid) Nothing
                                 )
                         , label =

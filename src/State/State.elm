@@ -615,8 +615,9 @@ processSharedMsg sharedMsg outerModel =
 
                         Ok endpoints ->
                             let
+                                -- TODO include region if region was specified
                                 projectId =
-                                    authToken.project.uuid
+                                    HelperTypes.ProjectIdentifier authToken.project.uuid Nothing
                             in
                             -- If we don't have a project with same name + authUrl then create one, if we do then update its OSTypes.AuthToken
                             -- This code ensures we don't end up with duplicate projects on the same provider in our model.
@@ -765,7 +766,7 @@ processSharedMsg sharedMsg outerModel =
                                     case List.head sharedModel.projects of
                                         Just project ->
                                             Route.pushUrl viewContext <|
-                                                Route.ProjectRoute project.auth.project.uuid <|
+                                                Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
                                                     Route.ProjectOverview
 
                                         Nothing ->
@@ -1004,7 +1005,8 @@ processProjectSpecificMsg outerModel project msg =
                 -- Token is expired (or nearly expired) so we add request to list of pending requests and refresh that token
                 let
                     newPQRs =
-                        ( project.auth.project.uuid, requestNeedingToken ) :: outerModel.pendingCredentialedRequests
+                        ( GetterSetters.projectIdentifier project, requestNeedingToken )
+                            :: outerModel.pendingCredentialedRequests
 
                     cmdResult =
                         State.Auth.requestAuthToken sharedModel project
@@ -1059,7 +1061,7 @@ processProjectSpecificMsg outerModel project msg =
                     -- if we are in a view specific to this project then navigate to the home page
                     case outerModel.viewState of
                         ProjectView projectId _ _ ->
-                            if projectId == project.auth.project.uuid then
+                            if projectId == GetterSetters.projectIdentifier project then
                                 Route.pushUrl sharedModel.viewContext Route.Home
 
                             else
@@ -1096,7 +1098,7 @@ processProjectSpecificMsg outerModel project msg =
                     processServerSpecificMsg outerModel project server serverMsgConstructor
 
         RequestServers ->
-            ApiModelHelpers.requestServers project.auth.project.uuid sharedModel
+            ApiModelHelpers.requestServers (GetterSetters.projectIdentifier project) sharedModel
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
@@ -1197,7 +1199,7 @@ processProjectSpecificMsg outerModel project msg =
             let
                 setViewCmd =
                     Route.pushUrl sharedModel.viewContext
-                        (Route.ProjectRoute project.auth.project.uuid <| Route.FloatingIpList)
+                        (Route.ProjectRoute (GetterSetters.projectIdentifier project) <| Route.FloatingIpList)
             in
             ( outerModel
             , Cmd.batch
@@ -1386,7 +1388,7 @@ processProjectSpecificMsg outerModel project msg =
                     GetterSetters.modelUpdateProject sharedModel newProject
             in
             ( { outerModel | sharedModel = newSharedModel }
-            , Route.pushUrl sharedModel.viewContext (Route.ProjectRoute newProject.auth.project.uuid Route.KeypairList)
+            , Route.pushUrl sharedModel.viewContext (Route.ProjectRoute (GetterSetters.projectIdentifier project) Route.KeypairList)
             )
 
         RequestDeleteKeypair keypairId ->
@@ -1425,17 +1427,17 @@ processProjectSpecificMsg outerModel project msg =
             let
                 newRoute =
                     Route.ProjectRoute
-                        project.auth.project.uuid
+                        (GetterSetters.projectIdentifier project)
                         Route.ProjectOverview
 
                 ( newSharedModel, newCmd ) =
                     ( sharedModel, Cmd.none )
                         |> Helpers.pipelineCmd
-                            (ApiModelHelpers.requestServers project.auth.project.uuid)
+                            (ApiModelHelpers.requestServers (GetterSetters.projectIdentifier project))
                         |> Helpers.pipelineCmd
-                            (ApiModelHelpers.requestNetworks project.auth.project.uuid)
+                            (ApiModelHelpers.requestNetworks (GetterSetters.projectIdentifier project))
                         |> Helpers.pipelineCmd
-                            (ApiModelHelpers.requestPorts project.auth.project.uuid)
+                            (ApiModelHelpers.requestPorts (GetterSetters.projectIdentifier project))
             in
             ( { outerModel | sharedModel = newSharedModel }
             , Cmd.batch
@@ -1513,11 +1515,11 @@ processProjectSpecificMsg outerModel project msg =
                 ( newNewSharedModel, newCmd ) =
                     case result of
                         Ok _ ->
-                            ApiModelHelpers.requestNetworks project.auth.project.uuid newSharedModel
+                            ApiModelHelpers.requestNetworks (GetterSetters.projectIdentifier project) newSharedModel
 
                         Err httpError ->
                             State.Error.processSynchronousApiError newSharedModel errorContext httpError
-                                |> Helpers.pipelineCmd (ApiModelHelpers.requestNetworks project.auth.project.uuid)
+                                |> Helpers.pipelineCmd (ApiModelHelpers.requestNetworks (GetterSetters.projectIdentifier project))
 
                 ( newOuterModel, underlyingCmd ) =
                     case Helpers.newServerNetworkOptions newProject of
@@ -1610,7 +1612,7 @@ processProjectSpecificMsg outerModel project msg =
         ReceiveCreateVolume ->
             {- Should we add new volume to model now? -}
             ( outerModel
-            , Route.pushUrl sharedModel.viewContext (Route.ProjectRoute project.auth.project.uuid Route.VolumeList)
+            , Route.pushUrl sharedModel.viewContext (Route.ProjectRoute (GetterSetters.projectIdentifier project) Route.VolumeList)
             )
 
         ReceiveVolumes volumes ->
@@ -1704,12 +1706,12 @@ processProjectSpecificMsg outerModel project msg =
 
         ReceiveAttachVolume attachment ->
             ( outerModel
-            , Route.pushUrl sharedModel.viewContext (Route.ProjectRoute project.auth.project.uuid <| Route.VolumeMountInstructions attachment)
+            , Route.pushUrl sharedModel.viewContext (Route.ProjectRoute (GetterSetters.projectIdentifier project) <| Route.VolumeMountInstructions attachment)
             )
 
         ReceiveDetachVolume ->
             ( outerModel
-            , Route.pushUrl sharedModel.viewContext (Route.ProjectRoute project.auth.project.uuid Route.VolumeList)
+            , Route.pushUrl sharedModel.viewContext (Route.ProjectRoute (GetterSetters.projectIdentifier project) Route.VolumeList)
             )
 
         ReceiveAppCredential appCredential ->
@@ -1756,7 +1758,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
     in
     case serverMsgConstructor of
         RequestServer ->
-            ApiModelHelpers.requestServer project.auth.project.uuid server.osProps.uuid sharedModel
+            ApiModelHelpers.requestServer (GetterSetters.projectIdentifier project) server.osProps.uuid sharedModel
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
@@ -1777,7 +1779,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
             let
                 newRoute =
                     Route.ProjectRoute
-                        project.auth.project.uuid
+                        (GetterSetters.projectIdentifier project)
                         Route.ProjectOverview
 
                 createImageCmd =
@@ -2288,6 +2290,9 @@ createProject outerModel description authToken endpoints =
             { secret = NoProjectSecret
             , auth = authToken
 
+            -- TODO populate region if specified
+            , region = Nothing
+
             -- Maybe todo, eliminate parallel data structures in auth and endpoints?
             , endpoints = endpoints
             , description = description
@@ -2332,11 +2337,11 @@ createProject outerModel description authToken endpoints =
                 |> Cmd.batch
             )
                 |> Helpers.pipelineCmd
-                    (ApiModelHelpers.requestVolumes newProject.auth.project.uuid)
+                    (ApiModelHelpers.requestVolumes (GetterSetters.projectIdentifier newProject))
                 |> Helpers.pipelineCmd
-                    (ApiModelHelpers.requestFloatingIps newProject.auth.project.uuid)
+                    (ApiModelHelpers.requestFloatingIps (GetterSetters.projectIdentifier newProject))
                 |> Helpers.pipelineCmd
-                    (ApiModelHelpers.requestPorts newProject.auth.project.uuid)
+                    (ApiModelHelpers.requestPorts (GetterSetters.projectIdentifier newProject))
     in
     ( { outerModel | sharedModel = newSharedModel }
     , Cmd.batch [ newViewStateCmd, Cmd.map SharedMsg newCmd ]
@@ -2394,7 +2399,7 @@ requestDeleteServer project serverUuid retainFloatingIps =
             ( newProject
             , Cmd.batch
                 [ Rest.Nova.requestDeleteServer
-                    newProject.auth.project.uuid
+                    (GetterSetters.projectIdentifier newProject)
                     newProject.endpoints.nova
                     newServer.osProps.uuid
                 , Cmd.batch deleteFloatingIpCmds

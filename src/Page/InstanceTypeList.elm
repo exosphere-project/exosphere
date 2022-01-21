@@ -66,7 +66,7 @@ view context project instanceTypes =
                 ( Just image, _ ) ->
                     let
                         chooseRoute =
-                            Route.ProjectRoute project.auth.project.uuid <|
+                            Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
                                 Route.ServerCreate
                                     image.uuid
                                     image.name

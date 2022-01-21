@@ -3,6 +3,7 @@ module Page.VolumeCreate exposing (Model, Msg(..), init, update, view)
 import Element
 import Element.Font as Font
 import Element.Input as Input
+import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import OpenStack.Quotas as OSQuotas
 import RemoteData
@@ -43,7 +44,7 @@ update msg project model =
             ( { model | sizeInput = sizeInput }, Cmd.none, NoOp )
 
         GotSubmit validSizeGb ->
-            ( model, Cmd.none, ProjectMsg project.auth.project.uuid (RequestCreateVolume model.name validSizeGb) )
+            ( model, Cmd.none, ProjectMsg (GetterSetters.projectIdentifier project) (RequestCreateVolume model.name validSizeGb) )
 
 
 view : View.Types.Context -> Project -> Model -> Element.Element Msg

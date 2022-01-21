@@ -85,7 +85,7 @@ view context project model =
             , Element.link []
                 { url =
                     Route.toUrl context.urlPathPrefix
-                        (Route.ProjectRoute project.auth.project.uuid <|
+                        (Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
                             Route.ServerDetail model.serverUuid
                         )
                 , label =

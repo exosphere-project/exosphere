@@ -6,6 +6,7 @@ module OpenStack.Volumes exposing
     , volumeLookup
     )
 
+import Helpers.GetterSetters as GetterSetters
 import Http
 import Json.Decode as Decode
 import Json.Encode
@@ -49,12 +50,12 @@ requestCreateVolume project createVolumeRequest =
                 errorContext
                 (\_ ->
                     ProjectMsg
-                        project.auth.project.uuid
+                        (GetterSetters.projectIdentifier project)
                         ReceiveCreateVolume
                 )
     in
     openstackCredentialedRequest
-        project.auth.project.uuid
+        (GetterSetters.projectIdentifier project)
         Post
         Nothing
         (project.endpoints.cinder ++ "/volumes")
@@ -79,12 +80,12 @@ requestVolumes project =
                 errorContext
                 (\vols ->
                     ProjectMsg
-                        project.auth.project.uuid
+                        (GetterSetters.projectIdentifier project)
                         (ReceiveVolumes vols)
                 )
     in
     openstackCredentialedRequest
-        project.auth.project.uuid
+        (GetterSetters.projectIdentifier project)
         Get
         Nothing
         (project.endpoints.cinder ++ "/volumes/detail")
@@ -107,10 +108,10 @@ requestDeleteVolume project volumeUuid =
         resultToMsg_ =
             resultToMsgErrorBody
                 errorContext
-                (\_ -> ProjectMsg project.auth.project.uuid ReceiveDeleteVolume)
+                (\_ -> ProjectMsg (GetterSetters.projectIdentifier project) ReceiveDeleteVolume)
     in
     openstackCredentialedRequest
-        project.auth.project.uuid
+        (GetterSetters.projectIdentifier project)
         Delete
         Nothing
         (project.endpoints.cinder ++ "/volumes/" ++ volumeUuid)
@@ -139,10 +140,10 @@ requestUpdateVolumeName project volumeUuid name =
         resultToMsg_ =
             resultToMsgErrorBody
                 errorContext
-                (\_ -> ProjectMsg project.auth.project.uuid ReceiveUpdateVolumeName)
+                (\_ -> ProjectMsg (GetterSetters.projectIdentifier project) ReceiveUpdateVolumeName)
     in
     openstackCredentialedRequest
-        project.auth.project.uuid
+        (GetterSetters.projectIdentifier project)
         Put
         Nothing
         (project.endpoints.cinder ++ "/volumes/" ++ volumeUuid)

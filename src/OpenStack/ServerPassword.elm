@@ -1,5 +1,6 @@
 module OpenStack.ServerPassword exposing (requestClearServerPassword, requestServerPassword)
 
+import Helpers.GetterSetters as GetterSetters
 import Http
 import Json.Decode as Decode
 import OpenStack.Types as OSTypes
@@ -30,12 +31,12 @@ requestServerPassword project serverUuid =
                 errorContext
             <|
                 \serverPassword ->
-                    ProjectMsg project.auth.project.uuid <|
+                    ProjectMsg (GetterSetters.projectIdentifier project) <|
                         ServerMsg serverUuid <|
                             ReceiveServerPassword serverPassword
     in
     openstackCredentialedRequest
-        project.auth.project.uuid
+        (GetterSetters.projectIdentifier project)
         Get
         Nothing
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/os-server-password")
@@ -53,7 +54,7 @@ requestClearServerPassword project serverUuid =
                 Nothing
     in
     openstackCredentialedRequest
-        project.auth.project.uuid
+        (GetterSetters.projectIdentifier project)
         Delete
         Nothing
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/os-server-password")

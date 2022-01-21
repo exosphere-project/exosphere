@@ -139,9 +139,17 @@ toUrl maybePathPrefix route =
         ProjectRoute projectIdentifier projectRouteConstructor ->
             let
                 projectIdentifierPath =
-                    [ "projects"
-                    , projectIdentifier
-                    ]
+                    List.concat
+                        [ [ "projects"
+                          , projectIdentifier.projectUuid
+                          ]
+                        , case projectIdentifier.regionId of
+                            Just regionId ->
+                                [ "region", regionId ]
+
+                            Nothing ->
+                                []
+                        ]
 
                 ( projectSpecificPath, projectSpecificQuery ) =
                     case projectRouteConstructor of
@@ -492,7 +500,20 @@ pathParsers defaultRoute_ =
         PageNotFound
         (s "pagenotfound")
     , map
-        (\uuid projectRoute -> ProjectRoute uuid <| projectRoute)
+        (\projectUuid regionId projectRoute ->
+            ProjectRoute
+                { projectUuid = projectUuid
+                , regionId = Just regionId
+                }
+                projectRoute
+        )
+        (s "projects" </> string </> s "region" </> string </> oneOf projectRouteParsers)
+    , map
+        (\uuid projectRoute ->
+            ProjectRoute
+                { projectUuid = uuid, regionId = Nothing }
+                projectRoute
+        )
         (s "projects" </> string </> oneOf projectRouteParsers)
     ]
 

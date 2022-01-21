@@ -5,6 +5,7 @@ import Element.Background as Background
 import Element.Font as Font
 import FeatherIcons
 import Helpers.Boolean as HB
+import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import Route
 import State.ViewState
@@ -44,7 +45,7 @@ navMenu outerModel context =
                 status =
                     case outerModel.viewState of
                         ProjectView p _ _ ->
-                            if p == project.auth.project.uuid then
+                            if p == GetterSetters.projectIdentifier project then
                                 MenuItem.Active
 
                             else
@@ -58,7 +59,7 @@ navMenu outerModel context =
                 status
                 (FeatherIcons.cloud |> FeatherIcons.toHtml [] |> Element.html |> Element.el [] |> Just)
                 projectTitle
-                (Route.toUrl context.urlPathPrefix (Route.ProjectRoute project.auth.project.uuid Route.ProjectOverview))
+                (Route.toUrl context.urlPathPrefix (Route.ProjectRoute (GetterSetters.projectIdentifier project) Route.ProjectOverview))
 
         projectMenuItems : List Project -> List (Element.Element OuterMsg)
         projectMenuItems projects =

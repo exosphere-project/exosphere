@@ -281,7 +281,7 @@ renderProject context project =
 
         route =
             Route.toUrl context.urlPathPrefix
-                (Route.ProjectRoute project.auth.project.uuid
+                (Route.ProjectRoute (GetterSetters.projectIdentifier project)
                     Route.ProjectOverview
                 )
     in

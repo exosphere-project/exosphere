@@ -143,7 +143,7 @@ update msg project model =
         GotSetServerName validName ->
             ( model
             , Cmd.none
-            , SharedMsg.ProjectMsg project.auth.project.uuid <|
+            , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
                 SharedMsg.ServerMsg model.serverUuid <|
                     SharedMsg.RequestSetServerName validName
             )
@@ -358,7 +358,7 @@ serverDetail_ context project currentTimeAndZone model server =
                         Element.link []
                             { url =
                                 Route.toUrl context.urlPathPrefix
-                                    (Route.ProjectRoute project.auth.project.uuid <|
+                                    (Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
                                         Route.VolumeAttach (Just server.osProps.uuid) Nothing
                                     )
                             , label =
@@ -1123,7 +1123,7 @@ renderServerActionButton context project model server serverAction =
                         []
 
                 actionMsg =
-                    Just <| serverAction.action project.auth.project.uuid server model.retainFloatingIpsWhenDeleting
+                    Just <| serverAction.action (GetterSetters.projectIdentifier project) server model.retainFloatingIpsWhenDeleting
 
                 cancelMsg =
                     Just <| GotServerActionNamePendingConfirmation Nothing
@@ -1146,7 +1146,7 @@ renderServerActionButton context project model server serverAction =
                 Element.link [ Element.width Element.fill ]
                     { url =
                         Route.toUrl context.urlPathPrefix
-                            (Route.ProjectRoute project.auth.project.uuid <|
+                            (Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
                                 Route.ServerCreateImage server.osProps.uuid <|
                                     Just <|
                                         server.osProps.name
@@ -1163,7 +1163,7 @@ renderServerActionButton context project model server serverAction =
             else
                 let
                     actionMsg =
-                        Just <| SharedMsg <| serverAction.action project.auth.project.uuid server model.retainFloatingIpsWhenDeleting
+                        Just <| SharedMsg <| serverAction.action (GetterSetters.projectIdentifier project) server model.retainFloatingIpsWhenDeleting
 
                     title =
                         serverAction.name
@@ -1346,7 +1346,7 @@ renderIpAddresses context project server model =
                     , Element.link []
                         { url =
                             Route.toUrl context.urlPathPrefix <|
-                                Route.ProjectRoute project.auth.project.uuid <|
+                                Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
                                     Route.FloatingIpAssign Nothing (Just server.osProps.uuid)
                         , label =
                             Widget.textButton
@@ -1384,7 +1384,7 @@ renderIpAddresses context project server model =
                                         , onPress =
                                             Just <|
                                                 SharedMsg <|
-                                                    SharedMsg.ProjectMsg project.auth.project.uuid <|
+                                                    SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
                                                         SharedMsg.RequestUnassignFloatingIp ipAddress.uuid
                                         }
                                     ]
@@ -1453,7 +1453,7 @@ serverVolumes context project server =
                     Element.link []
                         { url =
                             Route.toUrl context.urlPathPrefix <|
-                                Route.ProjectRoute project.auth.project.uuid <|
+                                Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
                                     Route.VolumeDetail v.uuid
                         , label =
                             Style.Widgets.IconButton.goToButton context.palette (Just NoOp)

@@ -15,6 +15,7 @@ import Types.Server exposing (Server)
 type alias Project =
     { secret : ProjectSecret
     , auth : OSTypes.ScopedAuthToken
+    , region : Maybe OSTypes.Region
     , endpoints : Endpoints
     , description : Maybe String
     , images : List OSTypes.Image

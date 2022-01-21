@@ -4,6 +4,7 @@ import Browser.Navigation
 import Color
 import Dict
 import FormatNumber.Locales
+import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Json.Decode as Decode
 import LocalStorage.LocalStorage as LocalStorage
@@ -261,10 +262,10 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
                         |> Helpers.pipelineCmd (ApiModelHelpers.requestPorts projectId)
             in
             hydratedModel.projects
-                |> List.map (\p -> p.auth.project.uuid)
+                |> List.map GetterSetters.projectIdentifier
                 |> List.foldl
-                    (\uuid modelCmdTuple ->
-                        Helpers.pipelineCmd (applyRequestsToProject uuid) modelCmdTuple
+                    (\projectId modelCmdTuple ->
+                        Helpers.pipelineCmd (applyRequestsToProject projectId) modelCmdTuple
                     )
                     ( hydratedModel, Cmd.none )
 

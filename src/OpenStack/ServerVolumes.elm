@@ -1,5 +1,6 @@
 module OpenStack.ServerVolumes exposing (requestAttachVolume, requestDetachVolume)
 
+import Helpers.GetterSetters as GetterSetters
 import Http
 import Json.Decode as Decode
 import Json.Encode
@@ -40,12 +41,12 @@ requestAttachVolume project serverUuid volumeUuid =
                 errorContext
                 (\attachment ->
                     ProjectMsg
-                        project.auth.project.uuid
+                        (GetterSetters.projectIdentifier project)
                         (ReceiveAttachVolume attachment)
                 )
     in
     openstackCredentialedRequest
-        project.auth.project.uuid
+        (GetterSetters.projectIdentifier project)
         Post
         Nothing
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/os-volume_attachments")
@@ -70,12 +71,12 @@ requestDetachVolume project serverUuid volumeUuid =
                 errorContext
                 (\_ ->
                     ProjectMsg
-                        project.auth.project.uuid
+                        (GetterSetters.projectIdentifier project)
                         ReceiveDetachVolume
                 )
     in
     openstackCredentialedRequest
-        project.auth.project.uuid
+        (GetterSetters.projectIdentifier project)
         Delete
         Nothing
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/os-volume_attachments/" ++ volumeUuid)

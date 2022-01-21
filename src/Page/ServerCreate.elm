@@ -409,7 +409,7 @@ view context project model =
             in
             case ( invalidNameReasons, invalidInputs, model.networkUuid ) of
                 ( Nothing, False, Just netUuid ) ->
-                    ( Just <| SharedMsg (SharedMsg.ProjectMsg project.auth.project.uuid (SharedMsg.RequestCreateServer model netUuid))
+                    ( Just <| SharedMsg (SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) (SharedMsg.RequestCreateServer model netUuid))
                     , Nothing
                     )
 
@@ -1570,7 +1570,7 @@ keypairPicker context project model =
                 String.concat [ "Upload a new ", context.localization.pkiPublicKeyForSsh ]
           in
           Element.link []
-            { url = Route.toUrl context.urlPathPrefix (Route.ProjectRoute project.auth.project.uuid <| Route.KeypairCreate)
+            { url = Route.toUrl context.urlPathPrefix (Route.ProjectRoute (GetterSetters.projectIdentifier project) <| Route.KeypairCreate)
             , label =
                 Widget.iconButton
                     (SH.materialStyle context.palette).button

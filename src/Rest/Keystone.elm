@@ -9,6 +9,7 @@ module Rest.Keystone exposing
     )
 
 import Dict
+import Helpers.GetterSetters as GetterSetters
 import Helpers.Url
 import Http
 import Json.Decode as Decode
@@ -257,12 +258,12 @@ requestAppCredential clientUuid posixTime project =
                 errorContext
                 (\appCred ->
                     ProjectMsg
-                        project.auth.project.uuid
+                        (GetterSetters.projectIdentifier project)
                         (ReceiveAppCredential appCred)
                 )
     in
     openstackCredentialedRequest
-        project.auth.project.uuid
+        (GetterSetters.projectIdentifier project)
         Post
         Nothing
         (urlWithVersion ++ "/users/" ++ project.auth.user.uuid ++ "/application_credentials")
@@ -537,6 +538,6 @@ decodeUnscopedRegions =
 
 unscopedRegionDecoder : Decode.Decoder UnscopedProviderRegion
 unscopedRegionDecoder =
-    Decode.map2 UnscopedProviderRegion
+    Decode.map2 OSTypes.Region
         (Decode.field "id" Decode.string)
         (Decode.field "description" Decode.string)

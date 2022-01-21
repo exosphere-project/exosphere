@@ -17,6 +17,7 @@ module Helpers.GetterSetters exposing
     , modelUpdateProject
     , modelUpdateUnscopedProvider
     , projectDeleteServer
+    , projectIdentifier
     , projectLookup
     , projectSetAutoAllocatedNetworkUuidLoading
     , projectSetFloatingIpsLoading
@@ -65,10 +66,10 @@ unscopedProviderLookup sharedModel keystoneUrl =
 
 
 unscopedProjectLookup : HelperTypes.UnscopedProvider -> HelperTypes.ProjectIdentifier -> Maybe HelperTypes.UnscopedProviderProject
-unscopedProjectLookup provider projectIdentifier =
+unscopedProjectLookup provider projectIdentifier_ =
     provider.projectsAvailable
         |> RemoteData.withDefault []
-        |> List.Extra.find (\project -> project.project.uuid == projectIdentifier)
+        |> List.Extra.find (\project -> project.project.uuid == projectIdentifier_.projectUuid)
 
 
 serverLookup : Project -> OSTypes.ServerUuid -> Maybe Server
@@ -78,9 +79,20 @@ serverLookup project serverUuid =
 
 
 projectLookup : SharedModel -> HelperTypes.ProjectIdentifier -> Maybe Project
-projectLookup model projectIdentifier =
+projectLookup model projectIdentifier_ =
     model.projects
-        |> List.Extra.find (\p -> p.auth.project.uuid == projectIdentifier)
+        |> List.Extra.find
+            (\p ->
+                p.auth.project.uuid
+                    == projectIdentifier_.projectUuid
+                    && Maybe.map .id p.region
+                    == projectIdentifier_.regionId
+            )
+
+
+projectIdentifier : Project -> HelperTypes.ProjectIdentifier
+projectIdentifier project =
+    HelperTypes.ProjectIdentifier project.auth.project.uuid (Maybe.map .id project.region)
 
 
 flavorLookup : Project -> OSTypes.FlavorId -> Maybe OSTypes.Flavor

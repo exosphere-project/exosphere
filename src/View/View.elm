@@ -362,7 +362,7 @@ projectNav context p projectViewModel =
                         ]
                 , text = removeText
                 , onPress =
-                    Just <| SharedMsg <| SharedMsg.ProjectMsg p.auth.project.uuid SharedMsg.RemoveProject
+                    Just <| SharedMsg <| SharedMsg.ProjectMsg (GetterSetters.projectIdentifier p) SharedMsg.RemoveProject
                 }
         , Element.el
             [ Element.alignRight
@@ -373,7 +373,7 @@ projectNav context p projectViewModel =
                 , left = 0
                 }
             ]
-            (createButton context p.auth.project.uuid projectViewModel.createPopup)
+            (createButton context (GetterSetters.projectIdentifier p) projectViewModel.createPopup)
         ]
 
 

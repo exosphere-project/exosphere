@@ -8,7 +8,7 @@ import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Json.Decode as Decode
 import Json.Encode as Encode
-import LocalStorage.Types exposing (StoredProject, StoredProject2, StoredProject3, StoredState)
+import LocalStorage.Types exposing (StoredProject, StoredProject2, StoredProject3, StoredProject4, StoredState)
 import OpenStack.Types as OSTypes
 import RemoteData
 import Style.Types as ST
@@ -32,6 +32,7 @@ generateStoredProject : Types.Project.Project -> StoredProject
 generateStoredProject project =
     { secret = project.secret
     , auth = project.auth
+    , region = project.region
     , endpoints = project.endpoints
     , description = project.description
     }
@@ -90,6 +91,7 @@ hydrateProjectFromStoredProject : StoredProject -> Types.Project.Project
 hydrateProjectFromStoredProject storedProject =
     { secret = storedProject.secret
     , auth = storedProject.auth
+    , region = storedProject.region
     , endpoints = storedProject.endpoints
     , description = storedProject.description
     , images = []
@@ -134,6 +136,7 @@ encodeStoredState projects clientUuid styleMode experimentalFeaturesEnabled =
             Encode.object
                 [ ( "secret", secretEncode storedProject.secret )
                 , ( "auth", encodeAuthToken storedProject.auth )
+                , ( "region", encodeRegion storedProject.region )
                 , ( "endpoints", encodeExoEndpoints storedProject.endpoints )
                 , ( "description"
                   , storedProject.description
@@ -143,7 +146,7 @@ encodeStoredState projects clientUuid styleMode experimentalFeaturesEnabled =
                 ]
     in
     Encode.object
-        [ ( "7"
+        [ ( "8"
           , Encode.object
                 [ ( "projects", Encode.list storedProjectEncode projects )
                 , ( "clientUuid", Encode.string (UUID.toString clientUuid) )
@@ -185,6 +188,19 @@ encodeAuthToken authToken =
         , ( "expiresAt", Encode.int (Time.posixToMillis authToken.expiresAt) )
         , ( "tokenValue", Encode.string authToken.tokenValue )
         ]
+
+
+encodeRegion : Maybe OSTypes.Region -> Encode.Value
+encodeRegion maybeRegion =
+    case maybeRegion of
+        Nothing ->
+            Encode.null
+
+        Just region ->
+            Encode.object
+                [ ( "id", Encode.string region.id )
+                , ( "description", Encode.string region.description )
+                ]
 
 
 encodeCatalog : OSTypes.ServiceCatalog -> Encode.Value
@@ -279,7 +295,10 @@ decodeStoredState =
                 , Decode.at [ "6", "projects" ] (Decode.list storedProjectDecode3)
 
                 -- Added project description field
-                , Decode.at [ "7", "projects" ] (Decode.list storedProjectDecode)
+                , Decode.at [ "7", "projects" ] (Decode.list storedProjectDecode4)
+
+                -- Added region
+                , Decode.at [ "8", "projects" ] (Decode.list storedProjectDecode)
                 ]
 
         clientUuid =
@@ -291,6 +310,7 @@ decodeStoredState =
                     , Decode.at [ "5", "clientUuid" ] Decode.string
                     , Decode.at [ "6", "clientUuid" ] Decode.string
                     , Decode.at [ "7", "clientUuid" ] Decode.string
+                    , Decode.at [ "8", "clientUuid" ] Decode.string
                     ]
                     |> Decode.map UUID.fromString
                     |> Decode.andThen
@@ -310,6 +330,7 @@ decodeStoredState =
                     [ Decode.at [ "5", "styleMode" ] Decode.string
                     , Decode.at [ "6", "styleMode" ] Decode.string
                     , Decode.at [ "7", "styleMode" ] Decode.string
+                    , Decode.at [ "8", "styleMode" ] Decode.string
                     ]
                     |> Decode.andThen decodeStyleMode
                 )
@@ -319,6 +340,7 @@ decodeStoredState =
                 (Decode.oneOf
                     [ Decode.at [ "6", "experimentalFeaturesEnabled" ] Decode.bool
                     , Decode.at [ "7", "experimentalFeaturesEnabled" ] Decode.bool
+                    , Decode.at [ "8", "experimentalFeaturesEnabled" ] Decode.bool
                     ]
                 )
     in
@@ -338,6 +360,7 @@ storedProject2ToStoredProject sp =
                 StoredProject
                     sp.secret
                     sp.auth
+                    Nothing
                     endpoints
                     Nothing
 
@@ -359,6 +382,7 @@ storedProject3ToStoredProject sp =
         StoredProject
             sp.secret
             sp.auth
+            Nothing
             sp.endpoints
             Nothing
 
@@ -395,11 +419,33 @@ decodeProjectSecret =
     Decode.field "secretType" Decode.string |> Decode.andThen projectSecretFromType
 
 
-storedProjectDecode : Decode.Decoder StoredProject
-storedProjectDecode =
-    Decode.map4 StoredProject
+storedProjectDecode4 : Decode.Decoder StoredProject
+storedProjectDecode4 =
+    Decode.map4 StoredProject4
         (Decode.field "secret" decodeProjectSecret)
         (Decode.field "auth" decodeStoredAuthTokenDetails)
+        (Decode.field "endpoints" decodeEndpoints)
+        (Decode.field "description" (Decode.nullable Decode.string))
+        |> Decode.andThen storedProject4ToStoredProject
+
+
+storedProject4ToStoredProject : StoredProject4 -> Decode.Decoder StoredProject
+storedProject4ToStoredProject sp =
+    Decode.succeed <|
+        StoredProject
+            sp.secret
+            sp.auth
+            Nothing
+            sp.endpoints
+            sp.description
+
+
+storedProjectDecode : Decode.Decoder StoredProject
+storedProjectDecode =
+    Decode.map5 StoredProject
+        (Decode.field "secret" decodeProjectSecret)
+        (Decode.field "auth" decodeStoredAuthTokenDetails)
+        (Decode.field "region" decodeRegion)
         (Decode.field "endpoints" decodeEndpoints)
         (Decode.field "description" (Decode.nullable Decode.string))
 
@@ -416,6 +462,14 @@ decodeStoredAuthTokenDetails =
             |> Decode.map Time.millisToPosix
         )
         (Decode.field "tokenValue" Decode.string)
+
+
+decodeRegion : Decode.Decoder (Maybe OSTypes.Region)
+decodeRegion =
+    Decode.nullable <|
+        Decode.map2 OSTypes.Region
+            (Decode.field "id" Decode.string)
+            (Decode.field "description" Decode.string)
 
 
 decodeEndpoints : Decode.Decoder Types.Project.Endpoints

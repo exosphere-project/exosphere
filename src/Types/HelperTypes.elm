@@ -63,7 +63,7 @@ type alias Uuid =
 
 type alias ProjectIdentifier =
     -- We use this when referencing a Project in a Msg (or otherwise passing through the runtime)
-    Uuid
+    { projectUuid : Uuid, regionId : Maybe OSTypes.RegionId }
 
 
 type alias Password =
@@ -175,9 +175,7 @@ type alias UnscopedProviderProject =
 
 
 type alias UnscopedProviderRegion =
-    { id : String
-    , description : String
-    }
+    OSTypes.Region
 
 
 type alias OpenIdConnectLoginConfig =

@@ -6,7 +6,6 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import Helpers.Url as UrlHelpers
 import OpenStack.Types as OSTypes
-import Set
 import Style.Helpers as SH
 import Types.HelperTypes exposing (ProjectIdentifier, UnscopedProviderProject)
 import Types.SharedModel exposing (SharedModel)
@@ -18,7 +17,7 @@ import Widget
 
 type alias Model =
     { providerKeystoneUrl : OSTypes.KeystoneUrl
-    , selectedProjects : Set.Set ProjectIdentifier
+    , selectedProjects : List ProjectIdentifier
     }
 
 
@@ -30,7 +29,7 @@ type Msg
 init : OSTypes.KeystoneUrl -> Model
 init keystoneUrl =
     { providerKeystoneUrl = keystoneUrl
-    , selectedProjects = Set.empty
+    , selectedProjects = []
     }
 
 
@@ -42,10 +41,10 @@ update msg sharedModel model =
                 newSelectedProjects =
                     model.selectedProjects
                         |> (if checked then
-                                Set.insert projectId
+                                List.append [ projectId ]
 
                             else
-                                Set.remove projectId
+                                List.append [ projectId ]
                            )
             in
             ( { model | selectedProjects = newSelectedProjects }, Cmd.none, SharedMsg.NoOp )
@@ -59,7 +58,6 @@ update msg sharedModel model =
 
                         Just unscopedProvider ->
                             model.selectedProjects
-                                |> Set.toList
                                 |> List.filterMap (\projectIdentifier -> GetterSetters.unscopedProjectLookup unscopedProvider projectIdentifier)
             in
             ( model
@@ -117,11 +115,12 @@ view context sharedModel model =
             Element.text "Provider not found"
 
 
-renderProject : Set.Set ProjectIdentifier -> UnscopedProviderProject -> Element.Element Msg
+renderProject : List ProjectIdentifier -> UnscopedProviderProject -> Element.Element Msg
 renderProject selectedProjects project =
     let
         selected =
-            Set.member project.project.uuid selectedProjects
+            -- TODO handle region
+            List.member { projectUuid = project.project.uuid, regionId = Nothing } selectedProjects
 
         renderProjectLabel : UnscopedProviderProject -> Element.Element Msg
         renderProjectLabel p =
@@ -163,7 +162,9 @@ renderProject selectedProjects project =
     in
     Input.checkbox []
         { checked = selected
-        , onChange = GotBoxChecked project.project.uuid
+
+        -- TODO pass region
+        , onChange = GotBoxChecked { projectUuid = project.project.uuid, regionId = Nothing }
         , icon =
             if project.enabled then
                 Input.defaultCheckbox
