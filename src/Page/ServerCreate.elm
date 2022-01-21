@@ -68,7 +68,7 @@ type Msg
     | GotWorkflowPath String
     | GotWorkflowInputLoseFocus
     | GotShowWorkFlowExplanationToggleTip
-    | GotBuildCluster Bool
+    | GotCreateCluster Bool
     | GotShowClusterExplanationToggleTip
     | GotDisabledCreateButtonPressed
     | SharedMsg SharedMsg.SharedMsg
@@ -98,7 +98,7 @@ init imageUuid imageName restrictFlavorIds deployGuacamole =
     , workflowInputPath = ""
     , workflowInputIsValid = Nothing
     , showWorkflowExplanationToggleTip = False
-    , buildCluster = False
+    , createCluster = False
     , showClusterExplanationToggleTip = False
     , showFormInvalidToggleTip = False
     }
@@ -274,9 +274,9 @@ update msg project model =
             , SharedMsg.NoOp
             )
 
-        GotBuildCluster buildCluster ->
+        GotCreateCluster createCluster ->
             ( { model
-                | buildCluster = buildCluster
+                | createCluster = createCluster
               }
             , Cmd.none
             , SharedMsg.NoOp
@@ -1281,16 +1281,16 @@ clusterInputExperimental context project model =
                         , clusterExplanationToggleTip
                         ]
                     )
-            , onChange = GotBuildCluster
+            , onChange = GotCreateCluster
             , options =
                 [ Input.option False (Element.text "No")
                 , Input.option True (Element.text "Yes")
 
                 {- -}
                 ]
-            , selected = Just model.buildCluster
+            , selected = Just model.createCluster
             }
-        , if model.buildCluster then
+        , if model.createCluster then
             Element.column
                 ([ Background.color (SH.toElementColor context.palette.warn), Font.color (SH.toElementColor context.palette.on.warn) ]
                     ++ VH.exoElementAttributes

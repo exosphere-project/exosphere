@@ -25,7 +25,7 @@ runcmd:
   - sleep 1  # Ensures that console log output from any previous command completes before the following command begins
   - echo '{"exoSetup":"running"}' | tee --append /dev/console > /dev/kmsg || true
   - chmod 640 /var/log/cloud-init-output.log
-  - {build-cluster-command}
+  - {create-cluster-command}
   - |
     (which virtualenv && virtualenv /opt/ansible-venv) || (which virtualenv-3 && virtualenv-3 /opt/ansible-venv) || python3 -m virtualenv /opt/ansible-venv
     . /opt/ansible-venv/bin/activate

@@ -301,7 +301,7 @@ renderUserDataTemplate :
     -> String
     -> Bool
     -> String
-renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole deployDesktopEnvironment maybeCustomWorkflowSource installOperatingSystemUpdates instanceConfigMgtRepoUrl instanceConfigMgtRepoCheckout buildCluster =
+renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole deployDesktopEnvironment maybeCustomWorkflowSource installOperatingSystemUpdates instanceConfigMgtRepoUrl instanceConfigMgtRepoCheckout createCluster =
     -- Configure cloud-init user data based on user's choice for SSH keypair and Guacamole
     let
         getPublicKeyFromKeypairName : String -> Maybe String
@@ -372,13 +372,13 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
                 Types.Project.NoProjectSecret ->
                     ( "", "" )
 
-        buildClusterYaml : String
-        buildClusterYaml =
-            if buildCluster then
+        createClusterYaml : String
+        createClusterYaml =
+            if createCluster then
                 """su - centos -c "git clone --branch cluster-create-local --single-branch https://github.com/julianpistorius/CRI_Jetstream_Cluster.git; cd CRI_Jetstream_Cluster; ./cluster_create_local.sh" """
 
             else
-                """echo "Not building a cluster, moving along..." """
+                """echo "Not creating a cluster, moving along..." """
 
         openrcFileYamlTemplate : String
         openrcFileYamlTemplate =
@@ -398,7 +398,7 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
 
         includeOpenrcFile : Bool
         includeOpenrcFile =
-            buildCluster
+            createCluster
 
         openrcFileYaml : Maybe String
         openrcFileYaml =
@@ -435,7 +435,7 @@ write_files:"""
     , ( "{install-os-updates}", installOperatingSystemUpatesYaml )
     , ( "{instance-config-mgt-repo-url}", instanceConfigMgtRepoUrl )
     , ( "{instance-config-mgt-repo-checkout}", instanceConfigMgtRepoCheckout )
-    , ( "{build-cluster-command}", buildClusterYaml )
+    , ( "{create-cluster-command}", createClusterYaml )
     , ( "{write-files}", writeFilesYaml )
     ]
         |> List.foldl (\t -> String.replace (Tuple.first t) (Tuple.second t)) userDataTemplate
