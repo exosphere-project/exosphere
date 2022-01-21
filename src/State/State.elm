@@ -1113,6 +1113,7 @@ processProjectSpecificMsg outerModel project msg =
                             pageModel.installOperatingSystemUpdates
                             sharedModel.instanceConfigMgtRepoUrl
                             sharedModel.instanceConfigMgtRepoCheckout
+                            pageModel.buildCluster
                     , metadata =
                         Helpers.newServerMetadata
                             currentExoServerVersion

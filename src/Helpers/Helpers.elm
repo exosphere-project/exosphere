@@ -299,8 +299,9 @@ renderUserDataTemplate :
     -> Bool
     -> String
     -> String
+    -> Bool
     -> String
-renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole deployDesktopEnvironment maybeCustomWorkflowSource installOperatingSystemUpdates instanceConfigMgtRepoUrl instanceConfigMgtRepoCheckout =
+renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole deployDesktopEnvironment maybeCustomWorkflowSource installOperatingSystemUpdates instanceConfigMgtRepoUrl instanceConfigMgtRepoCheckout buildCluster =
     -- Configure cloud-init user data based on user's choice for SSH keypair and Guacamole
     let
         getPublicKeyFromKeypairName : String -> Maybe String
@@ -370,6 +371,14 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
 
                 Types.Project.NoProjectSecret ->
                     ( "", "" )
+
+        buildClusterYaml : String
+        buildClusterYaml =
+            if buildCluster then
+                """su - centos -c "git clone --branch cluster-create-local --single-branch https://github.com/julianpistorius/CRI_Jetstream_Cluster.git; cd CRI_Jetstream_Cluster; ./cluster_create_local.sh" """
+
+            else
+                """echo "Not building a cluster, moving along..." """
     in
     [ ( "{ssh-authorized-keys}\n", authorizedKeysYaml )
     , ( "{ansible-extra-vars}", ansibleExtraVars )
@@ -379,6 +388,7 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
     , ( "{os-auth-url}", project.endpoints.keystone )
     , ( "{os-ac-id}", appCredentialUuid )
     , ( "{os-ac-secret}", appCredentialSecret )
+    , ( "{build-cluster-command}", buildClusterYaml )
     ]
         |> List.foldl (\t -> String.replace (Tuple.first t) (Tuple.second t)) userDataTemplate
 
