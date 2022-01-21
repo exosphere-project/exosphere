@@ -1227,8 +1227,21 @@ clusterInput context project model =
 clusterInputExperimental : View.Types.Context -> Project -> Model -> Element.Element Msg
 clusterInputExperimental context project model =
     let
-        clusterDetailsInput =
-            Element.text "Cluster stuff"
+        warnings =
+            [ Element.text "Warning: It can take 30 minutes or longer to set up a cluster."
+            , Element.text <|
+                String.concat
+                    [ "Warning: This feature currently only supports "
+                    , context.localization.staticRepresentationOfBlockDeviceContents
+                        |> Helpers.String.pluralize
+                    , " based on CentOS 8. If you choose "
+                    , context.localization.staticRepresentationOfBlockDeviceContents
+                        |> Helpers.String.indefiniteArticle
+                    , " "
+                    , context.localization.staticRepresentationOfBlockDeviceContents
+                    , " based on a different operating system it is unlikely to work."
+                    ]
+            ]
 
         clusterExplanationToggleTip =
             Style.Widgets.ToggleTip.toggleTip
@@ -1256,8 +1269,7 @@ clusterInputExperimental context project model =
         [ Element.width Element.fill
         , Element.spacing 24
         ]
-    <|
-        (Input.radioRow [ Element.spacing 10 ]
+        [ Input.radioRow [ Element.spacing 10 ]
             { label =
                 Input.labelAbove [ Element.paddingXY 0 12 ]
                     (Element.row [ Element.spacingXY 10 0 ]
@@ -1277,14 +1289,16 @@ clusterInputExperimental context project model =
                 ]
             , selected = Just model.buildCluster
             }
-            :: (if not model.buildCluster then
-                    [ Element.none ]
+        , if model.buildCluster then
+            Element.column
+                ([ Background.color (SH.toElementColor context.palette.warn), Font.color (SH.toElementColor context.palette.on.warn) ]
+                    ++ VH.exoElementAttributes
+                )
+                (List.map (\warning -> Element.paragraph [] [ warning ]) warnings)
 
-                else
-                    [ clusterDetailsInput
-                    ]
-               )
-        )
+          else
+            Element.none
+        ]
 
 
 desktopEnvironmentPicker : View.Types.Context -> Project -> Model -> Element.Element Msg
