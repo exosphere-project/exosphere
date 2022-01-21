@@ -19,20 +19,7 @@ package_update: true
 package_upgrade: {install-os-updates}
 packages:
   - python3-virtualenv
-  - git
-write_files:
-- path: /home/centos/openrc.sh
-  content: |
-    export OS_AUTH_TYPE=v3applicationcredential
-    export OS_AUTH_URL={os-auth-url}
-    export OS_IDENTITY_API_VERSION=3
-    export OS_REGION_NAME="RegionOne"
-    export OS_INTERFACE=public
-    export OS_APPLICATION_CREDENTIAL_ID="{os-ac-id}"
-    export OS_APPLICATION_CREDENTIAL_SECRET="{os-ac-secret}"
-  owner: centos:centos
-  permissions: '0400'
-  defer: true
+  - git{write-files}
 runcmd:
   - echo on > /proc/sys/kernel/printk_devkmsg || true  # Disable console rate limiting for distros that use kmsg
   - sleep 1  # Ensures that console log output from any previous command completes before the following command begins

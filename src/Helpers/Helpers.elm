@@ -379,16 +379,64 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
 
             else
                 """echo "Not building a cluster, moving along..." """
+
+        openrcFileYamlTemplate : String
+        openrcFileYamlTemplate =
+            """
+- path: /home/centos/openrc.sh
+  content: |
+    export OS_AUTH_TYPE=v3applicationcredential
+    export OS_AUTH_URL={os-auth-url}
+    export OS_IDENTITY_API_VERSION=3
+    export OS_REGION_NAME="RegionOne"
+    export OS_INTERFACE=public
+    export OS_APPLICATION_CREDENTIAL_ID="{os-ac-id}"
+    export OS_APPLICATION_CREDENTIAL_SECRET="{os-ac-secret}"
+  owner: centos:centos
+  permissions: '0400'
+  defer: true"""
+
+        includeOpenrcFile : Bool
+        includeOpenrcFile =
+            buildCluster
+
+        openrcFileYaml : Maybe String
+        openrcFileYaml =
+            if includeOpenrcFile then
+                [ ( "{os-auth-url}", project.endpoints.keystone )
+                , ( "{os-ac-id}", appCredentialUuid )
+                , ( "{os-ac-secret}", appCredentialSecret )
+                ]
+                    |> List.foldl (\t -> String.replace (Tuple.first t) (Tuple.second t)) openrcFileYamlTemplate
+                    |> Just
+
+            else
+                Nothing
+
+        filesToWrite =
+            [ openrcFileYaml ]
+                |> List.filterMap identity
+
+        writeFilesYaml : String
+        writeFilesYaml =
+            let
+                writeFilesHeader =
+                    """
+write_files:"""
+            in
+            if List.isEmpty filesToWrite then
+                ""
+
+            else
+                writeFilesHeader ++ String.join "" filesToWrite
     in
     [ ( "{ssh-authorized-keys}\n", authorizedKeysYaml )
     , ( "{ansible-extra-vars}", ansibleExtraVars )
     , ( "{install-os-updates}", installOperatingSystemUpatesYaml )
     , ( "{instance-config-mgt-repo-url}", instanceConfigMgtRepoUrl )
     , ( "{instance-config-mgt-repo-checkout}", instanceConfigMgtRepoCheckout )
-    , ( "{os-auth-url}", project.endpoints.keystone )
-    , ( "{os-ac-id}", appCredentialUuid )
-    , ( "{os-ac-secret}", appCredentialSecret )
     , ( "{build-cluster-command}", buildClusterYaml )
+    , ( "{write-files}", writeFilesYaml )
     ]
         |> List.foldl (\t -> String.replace (Tuple.first t) (Tuple.second t)) userDataTemplate
 
