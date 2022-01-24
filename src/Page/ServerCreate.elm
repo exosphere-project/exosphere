@@ -1220,10 +1220,10 @@ clusterInputExperimental : View.Types.Context -> Project -> Model -> Element.Ele
 clusterInputExperimental context project model =
     let
         warnings =
-            [ Element.text "Warning: It can take 30 minutes or longer to set up a cluster."
+            [ Element.text "Warning: This will only work on Jetstream Cloud, and can take 30 minutes or longer to set up a cluster."
             , Element.text <|
                 String.concat
-                    [ "Warning: This feature currently only supports "
+                    [ "This feature currently only supports "
                     , context.localization.staticRepresentationOfBlockDeviceContents
                         |> Helpers.String.pluralize
                     , " based on CentOS 8. If you choose "
