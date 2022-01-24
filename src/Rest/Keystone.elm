@@ -437,11 +437,12 @@ openstackServiceDecoder =
 
 openstackEndpointDecoder : Decode.Decoder OSTypes.Endpoint
 openstackEndpointDecoder =
-    Decode.map2 OSTypes.Endpoint
+    Decode.map3 OSTypes.Endpoint
         (Decode.field "interface" Decode.string
             |> Decode.andThen openstackEndpointInterfaceDecoder
         )
         (Decode.field "url" Decode.string)
+        (Decode.field "region_id" Decode.string)
 
 
 openstackEndpointInterfaceDecoder : String -> Decode.Decoder OSTypes.EndpointInterface

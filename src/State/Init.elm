@@ -173,6 +173,7 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
         emptyModel showDebugMsgs uuid =
             { logMessages = logMessages
             , unscopedProviders = []
+            , scopedAuthTokensWaitingRegionSelection = []
             , projects = []
             , toasties = Toasty.initialState
             , cloudCorsProxyUrl = flags.cloudCorsProxyUrl

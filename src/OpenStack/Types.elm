@@ -36,6 +36,7 @@ module OpenStack.Types exposing
     , Port
     , PortUuid
     , ProjectDescription
+    , ProjectUuid
     , PublicKey
     , QuotaItemDetail
     , Region
@@ -189,6 +190,7 @@ type alias Service =
 type alias Endpoint =
     { interface : EndpointInterface
     , url : HelperTypes.Url
+    , regionId : RegionId
     }
 
 

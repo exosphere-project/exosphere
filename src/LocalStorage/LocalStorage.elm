@@ -222,6 +222,7 @@ encodeCatalogEndpoint endpoint =
     Encode.object
         [ ( "interface", encodeCatalogEndpointInterface endpoint.interface )
         , ( "url", Encode.string endpoint.url )
+        , ( "region_id", Encode.string endpoint.regionId )
         ]
 
 
@@ -499,11 +500,18 @@ openstackStoredServiceDecoder =
 
 openstackStoredEndpointDecoder : Decode.Decoder OSTypes.Endpoint
 openstackStoredEndpointDecoder =
-    Decode.map2 OSTypes.Endpoint
+    Decode.map3 OSTypes.Endpoint
         (Decode.field "interface" Decode.string
             |> Decode.andThen openstackStoredEndpointInterfaceDecoder
         )
         (Decode.field "url" Decode.string)
+        -- Older stored projects had no region ID for endpoints, so this defaults to a placeholder value.
+        -- cmart does not expect this to have any logic implications because we store endpoint URLs separately.
+        (Decode.oneOf
+            [ Decode.field "region_id" Decode.string
+            , Decode.succeed "unknown-region"
+            ]
+        )
 
 
 openstackStoredEndpointInterfaceDecoder : String -> Decode.Decoder OSTypes.EndpointInterface

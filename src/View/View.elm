@@ -24,6 +24,7 @@ import Page.LoginOpenstack
 import Page.LoginPicker
 import Page.MessageLog
 import Page.ProjectOverview
+import Page.SelectProjectRegions
 import Page.SelectProjects
 import Page.ServerCreate
 import Page.ServerCreateImage
@@ -166,6 +167,10 @@ elementView windowSize outerModel context =
                             SelectProjects pageModel ->
                                 Page.SelectProjects.view context outerModel.sharedModel pageModel
                                     |> Element.map SelectProjectsMsg
+
+                            SelectProjectRegions pageModel ->
+                                Page.SelectProjectRegions.view context outerModel.sharedModel pageModel
+                                    |> Element.map SelectProjectRegionsMsg
 
                             Settings pageModel ->
                                 Page.Settings.view context outerModel.sharedModel pageModel

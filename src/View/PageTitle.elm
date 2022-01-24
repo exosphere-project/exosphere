@@ -70,6 +70,17 @@ pageTitle outerModel =
                         , providerTitle
                         ]
 
+                SelectProjectRegions _ ->
+                    String.join " "
+                        [ "Select"
+                        , localization.openstackSharingKeystoneWithAnother
+                            |> Helpers.String.pluralize
+                            |> Helpers.String.toTitleCase
+                        , "for"
+                        , localization.unitOfTenancy
+                            |> Helpers.String.toTitleCase
+                        ]
+
                 Settings _ ->
                     "Settings"
 

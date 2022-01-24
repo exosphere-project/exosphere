@@ -21,6 +21,7 @@ import Page.LoginOpenIdConnect
 import Page.LoginOpenstack
 import Page.MessageLog
 import Page.ProjectOverview
+import Page.SelectProjectRegions
 import Page.SelectProjects
 import Page.ServerCreate
 import Page.ServerCreateImage
@@ -405,6 +406,12 @@ routeToViewStateModelCmd sharedModel route =
 
         Route.SelectProjects keystoneUrl ->
             ( NonProjectView <| SelectProjects <| Page.SelectProjects.init keystoneUrl
+            , sharedModel
+            , Cmd.none
+            )
+
+        Route.SelectProjectRegions keystoneUrl projectUuid ->
+            ( NonProjectView <| SelectProjectRegions <| Page.SelectProjectRegions.init keystoneUrl projectUuid
             , sharedModel
             , Cmd.none
             )

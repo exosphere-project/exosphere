@@ -44,6 +44,7 @@ type Route
     | PageNotFound
     | ProjectRoute HelperTypes.ProjectIdentifier ProjectRouteConstructor
     | SelectProjects OSTypes.KeystoneUrl
+    | SelectProjectRegions OSTypes.KeystoneUrl OSTypes.ProjectUuid
     | Settings
 
 
@@ -314,6 +315,13 @@ toUrl maybePathPrefix route =
                 [ UB.string "keystoneurl" keystoneUrl
                 ]
 
+        SelectProjectRegions keystoneUrl projectUuid ->
+            buildUrlFunc
+                [ "selectprojectregions" ]
+                [ UB.string "keystoneurl" keystoneUrl
+                , UB.string "projectuuid" projectUuid
+                ]
+
         Settings ->
             buildUrlFunc
                 [ "settings" ]
@@ -484,6 +492,16 @@ pathParsers defaultRoute_ =
                     PageNotFound
         )
         (s "selectprojs" <?> Query.string "keystoneurl")
+    , map
+        (\maybeKeystoneUrl maybeProjectUuid ->
+            case ( maybeKeystoneUrl, maybeProjectUuid ) of
+                ( Just keystoneUrl, Just projectUuid ) ->
+                    SelectProjectRegions keystoneUrl projectUuid
+
+                _ ->
+                    PageNotFound
+        )
+        (s "selectprojectregions" <?> Query.string "keystoneurl" <?> Query.string "projectuuid")
     , map
         (\maybeShowDebugMsgs -> MessageLog (maybeShowDebugMsgs == Just "true"))
         (s "msglog" <?> Query.string "showdebug")

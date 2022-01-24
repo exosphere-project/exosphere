@@ -3,6 +3,7 @@ module Helpers.GetterSetters exposing
     , flavorLookup
     , floatingIpLookup
     , getBootVolume
+    , getCatalogRegions
     , getExternalNetwork
     , getFloatingIpServer
     , getServerExouserPassword
@@ -129,6 +130,15 @@ floatingIpLookup project ipUuid =
 
 
 -- Slightly smarter getters
+
+
+getCatalogRegions : OSTypes.ServiceCatalog -> List OSTypes.RegionId
+getCatalogRegions catalog =
+    -- Given a service catalog, get a list of all region IDs that appear for at least one endpoint
+    -- This allows administrators to restrict access to regions using the [OS-EP-FILTER](https://docs.openstack.org/api-ref/identity/v3-ext/#os-ep-filter-api) API.
+    catalog
+        |> List.concatMap .endpoints
+        |> List.map .regionId
 
 
 getServicePublicUrl : String -> OSTypes.ServiceCatalog -> Maybe HelperTypes.Url

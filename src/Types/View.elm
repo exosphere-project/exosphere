@@ -18,6 +18,7 @@ import Page.LoginOpenIdConnect
 import Page.LoginOpenstack
 import Page.MessageLog
 import Page.ProjectOverview
+import Page.SelectProjectRegions
 import Page.SelectProjects
 import Page.ServerCreateImage
 import Page.ServerDetail
@@ -49,6 +50,7 @@ type NonProjectViewConstructor
     | MessageLog Page.MessageLog.Model
     | PageNotFound
     | SelectProjects Page.SelectProjects.Model
+    | SelectProjectRegions Page.SelectProjectRegions.Model
     | Settings Page.Settings.Model
 
 

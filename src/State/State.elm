@@ -28,6 +28,7 @@ import Page.LoginOpenstack
 import Page.LoginPicker
 import Page.MessageLog
 import Page.ProjectOverview
+import Page.SelectProjectRegions
 import Page.SelectProjects
 import Page.ServerCreate
 import Page.ServerCreateImage
@@ -244,6 +245,19 @@ updateUnderlying outerMsg outerModel =
                 | viewState = NonProjectView <| SelectProjects newPageModel
               }
             , Cmd.map SelectProjectsMsg cmd
+            )
+                |> pipelineCmdOuterModelMsg
+                    (processSharedMsg sharedMsg)
+
+        ( SelectProjectRegionsMsg pageMsg, NonProjectView (SelectProjectRegions pageModel) ) ->
+            let
+                ( newPageModel, cmd, sharedMsg ) =
+                    Page.SelectProjectRegions.update pageMsg sharedModel pageModel
+            in
+            ( { outerModel
+                | viewState = NonProjectView <| SelectProjectRegions newPageModel
+              }
+            , Cmd.map SelectProjectRegionsMsg cmd
             )
                 |> pipelineCmdOuterModelMsg
                     (processSharedMsg sharedMsg)
@@ -600,6 +614,7 @@ processSharedMsg sharedMsg outerModel =
                         |> mapToOuterModel outerModel
 
                 Ok authToken ->
+                    -- TODO see if there are multiple regions. If so, send user to the SelectProjectRegions page. If not, continue as before.
                     case Helpers.serviceCatalogToEndpoints authToken.catalog of
                         Err e ->
                             State.Error.processStringError
