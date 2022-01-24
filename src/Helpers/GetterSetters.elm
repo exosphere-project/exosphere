@@ -65,11 +65,11 @@ unscopedProviderLookup sharedModel keystoneUrl =
         |> List.Extra.find (\provider -> provider.authUrl == keystoneUrl)
 
 
-unscopedProjectLookup : HelperTypes.UnscopedProvider -> HelperTypes.ProjectIdentifier -> Maybe HelperTypes.UnscopedProviderProject
-unscopedProjectLookup provider projectIdentifier_ =
+unscopedProjectLookup : HelperTypes.UnscopedProvider -> OSTypes.ProjectUuid -> Maybe HelperTypes.UnscopedProviderProject
+unscopedProjectLookup provider projectUuid =
     provider.projectsAvailable
         |> RemoteData.withDefault []
-        |> List.Extra.find (\project -> project.project.uuid == projectIdentifier_.projectUuid)
+        |> List.Extra.find (\project -> project.project.uuid == projectUuid)
 
 
 serverLookup : Project -> OSTypes.ServerUuid -> Maybe Server
