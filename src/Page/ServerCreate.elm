@@ -69,7 +69,6 @@ type Msg
     | GotWorkflowInputLoseFocus
     | GotShowWorkFlowExplanationToggleTip
     | GotCreateCluster Bool
-    | GotShowClusterExplanationToggleTip
     | GotDisabledCreateButtonPressed
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
@@ -277,14 +276,6 @@ update msg project model =
         GotCreateCluster createCluster ->
             ( { model
                 | createCluster = createCluster
-              }
-            , Cmd.none
-            , SharedMsg.NoOp
-            )
-
-        GotShowClusterExplanationToggleTip ->
-            ( { model
-                | showClusterExplanationToggleTip = not model.showClusterExplanationToggleTip
               }
             , Cmd.none
             , SharedMsg.NoOp
@@ -1244,25 +1235,6 @@ clusterInputExperimental context project model =
                     ]
             ]
 
-        clusterExplanationToggleTip =
-            Style.Widgets.ToggleTip.toggleTip
-                context.palette
-                (Element.column
-                    [ Element.width
-                        (Element.fill
-                            |> Element.minimum 100
-                        )
-                    , Element.spacing 7
-                    ]
-                    [ Element.text "TODO"
-                    , Element.paragraph []
-                        [ Element.text "TODO"
-                        ]
-                    ]
-                )
-                model.showClusterExplanationToggleTip
-                GotShowClusterExplanationToggleTip
-
         experimentalBadge =
             badge "Experimental"
     in
@@ -1278,7 +1250,6 @@ clusterInputExperimental context project model =
                             (VH.heading4 ++ [ Font.size 17 ])
                             (Element.text ("Create your own Slurm cluster with this " ++ context.localization.virtualComputer ++ " as the head node"))
                         , experimentalBadge
-                        , clusterExplanationToggleTip
                         ]
                     )
             , onChange = GotCreateCluster
