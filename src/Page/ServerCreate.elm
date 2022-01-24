@@ -553,7 +553,7 @@ view context project model =
             , countPicker context model computeQuota volumeQuota flavor
             , desktopEnvironmentPicker context project model
             , customWorkflowInput context model
-            , clusterInput context project model
+            , clusterInput context model
             , Element.column
                 [ Element.spacing 24 ]
               <|
@@ -578,7 +578,7 @@ view context project model =
                             , networkPicker context project model
                             , floatingIpPicker context project model
                             , keypairPicker context project model
-                            , clusterInput context project model
+                            , clusterInput context model
                             , userDataInput context model
                             ]
                        )
@@ -1207,17 +1207,17 @@ customWorkflowInputExperimental context model =
         )
 
 
-clusterInput : View.Types.Context -> Project -> Model -> Element.Element Msg
-clusterInput context project model =
+clusterInput : View.Types.Context -> Model -> Element.Element Msg
+clusterInput context model =
     if context.experimentalFeaturesEnabled then
-        clusterInputExperimental context project model
+        clusterInputExperimental context model
 
     else
         Element.none
 
 
-clusterInputExperimental : View.Types.Context -> Project -> Model -> Element.Element Msg
-clusterInputExperimental context project model =
+clusterInputExperimental : View.Types.Context -> Model -> Element.Element Msg
+clusterInputExperimental context model =
     let
         warnings =
             [ Element.text "Warning: This will only work on Jetstream Cloud, and can take 30 minutes or longer to set up a cluster."
