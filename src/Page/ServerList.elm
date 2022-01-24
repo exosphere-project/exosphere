@@ -62,7 +62,11 @@ type Msg
 
 init : Bool -> Model
 init showHeading =
-    Model showHeading True Set.empty Set.empty DataList.init
+    Model showHeading
+        True
+        Set.empty
+        Set.empty
+        (DataList.init <| DataList.getDefaultFiltOpts (filters []))
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
@@ -204,14 +208,19 @@ view context project currentTime model =
                                                         )
                                             }
                                         )
+
+                            serversList =
+                                serverRecords context currentTime project servers
                         in
                         DataList.view
                             model.dataListModel
                             DataListMsg
+                            context.palette
                             []
                             (serverView context project)
-                            (serverRecords context currentTime project servers)
+                            serversList
                             [ deletionAction ]
+                            (filters serversList)
     in
     Element.column [ Element.width Element.fill ]
         [ if model.showHeading then
@@ -391,3 +400,35 @@ serverView context project serverRecord =
             , Element.el [] (Element.text serverRecord.floatingIpAddress)
             ]
         ]
+
+
+filters :
+    List ServerRecord
+    ->
+        List
+            (DataList.Filter
+                { record
+                    | creator : String
+                    , creationTime : String
+                }
+            )
+filters serversList =
+    [ { id = "creator"
+      , label = "Creator"
+      , chipPrefix = "Created by "
+      , filterOptions =
+            -- TODO: set text of logged in user as "me (user)"
+            List.map
+                (\creator ->
+                    { text = creator
+                    , value = creator
+                    }
+                )
+                (List.map .creator serversList |> Set.fromList |> Set.toList)
+      , multipleSelection = True
+      , defaultFilterOptions = Set.fromList [ "ex3" ]
+      , onFilter =
+            \optionValue server ->
+                server.creator == optionValue
+      }
+    ]
