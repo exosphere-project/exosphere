@@ -25,7 +25,7 @@ type SharedMsg
     | Logout
     | RequestUnscopedToken OSTypes.OpenstackLogin
     | Jetstream1Login HelperTypes.Jetstream1Creds
-    | ReceiveScopedAuthToken OSTypes.KeystoneUrl (Maybe OSTypes.ProjectDescription) ( Http.Metadata, String )
+    | ReceiveProjectScopedToken OSTypes.KeystoneUrl (Maybe OSTypes.ProjectDescription) ( Http.Metadata, String )
     | ReceiveUnscopedAuthToken OSTypes.KeystoneUrl ( Http.Metadata, String )
     | ReceiveUnscopedProjects OSTypes.KeystoneUrl (List HelperTypes.UnscopedProviderProject)
     | ReceiveUnscopedRegions OSTypes.KeystoneUrl (List HelperTypes.UnscopedProviderRegion)

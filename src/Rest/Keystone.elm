@@ -162,7 +162,7 @@ requestScopedAuthToken maybeProxyUrl projectDescription input =
         requestBody
         inputUrl
         maybeProxyUrl
-        (resultToMsgErrorBody errorContext (ReceiveScopedAuthToken inputUrl projectDescription))
+        (resultToMsgErrorBody errorContext (ReceiveProjectScopedToken inputUrl projectDescription))
 
 
 requestAuthTokenHelper : Encode.Value -> HelperTypes.Url -> Maybe HelperTypes.Url -> (Result HttpErrorWithBody ( Http.Metadata, String ) -> SharedMsg) -> Cmd SharedMsg
