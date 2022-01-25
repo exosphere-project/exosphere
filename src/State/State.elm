@@ -757,7 +757,7 @@ processSharedMsg sharedMsg outerModel =
                     -- Provider not found, may have been removed, nothing to do
                     ( outerModel, Cmd.none )
 
-        RequestProjectLoginFromProvider keystoneUrl unscopedProjects ->
+        RequestProjectScopedToken keystoneUrl unscopedProjects ->
             case GetterSetters.providerLookup sharedModel keystoneUrl of
                 Just provider ->
                     let

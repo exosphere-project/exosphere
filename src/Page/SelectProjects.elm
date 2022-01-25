@@ -64,7 +64,7 @@ update msg sharedModel model =
             in
             ( model
             , Cmd.none
-            , SharedMsg.RequestProjectLoginFromProvider model.providerKeystoneUrl unscopedProjects
+            , SharedMsg.RequestProjectScopedToken model.providerKeystoneUrl unscopedProjects
             )
 
 
