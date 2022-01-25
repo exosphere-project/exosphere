@@ -615,6 +615,7 @@ processSharedMsg sharedMsg outerModel =
                         |> mapToOuterModel outerModel
 
                 Ok authToken ->
+                    -- TODO if there are existing projects in the model that can use this token, update them
                     case GetterSetters.getCatalogRegionIds authToken.catalog of
                         [] ->
                             State.Error.processStringError
