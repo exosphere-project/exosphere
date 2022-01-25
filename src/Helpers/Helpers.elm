@@ -107,11 +107,11 @@ naiveUuidParser =
             |. Parser.chompWhile isUuidChar
 
 
-serviceCatalogToEndpoints : OSTypes.ServiceCatalog -> Result String Endpoints
-serviceCatalogToEndpoints catalog =
+serviceCatalogToEndpoints : OSTypes.ServiceCatalog -> Maybe OSTypes.RegionId -> Result String Endpoints
+serviceCatalogToEndpoints catalog maybeRegionId =
     let
         getService =
-            GetterSetters.getServicePublicUrl catalog
+            GetterSetters.getServicePublicUrl catalog maybeRegionId
 
         -- Future optimization, use a real URL parser
         novaUrlWithMicroversionSupport : String -> String

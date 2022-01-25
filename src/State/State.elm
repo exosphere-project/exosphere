@@ -8,6 +8,7 @@ import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.ServerResourceUsage
 import Http
+import List.Extra
 import LocalStorage.LocalStorage as LocalStorage
 import Maybe
 import OpenStack.ServerPassword as OSServerPassword
@@ -614,66 +615,116 @@ processSharedMsg sharedMsg outerModel =
                         |> mapToOuterModel outerModel
 
                 Ok authToken ->
-                    if (GetterSetters.getCatalogRegions authToken.catalog |> List.length) > 1 then
-                        let
-                            newUnscopedTokens =
-                                authToken :: sharedModel.scopedAuthTokensWaitingRegionSelection
+                    case GetterSetters.getCatalogRegionIds authToken.catalog of
+                        [] ->
+                            State.Error.processStringError
+                                sharedModel
+                                (ErrorContext
+                                    "Get project regions"
+                                    ErrorCrit
+                                    (Just "Please check with your cloud administrator or the Exosphere developers.")
+                                )
+                                "Could not find any endpoints with a region ID."
+                                |> mapToOuterMsg
+                                |> mapToOuterModel outerModel
 
-                            newModel =
-                                { sharedModel | scopedAuthTokensWaitingRegionSelection = newUnscopedTokens }
-                        in
-                        ( newModel, Route.pushUrl viewContext (Route.SelectProjectRegions keystoneUrl authToken.project.uuid) )
-                            |> mapToOuterMsg
-                            |> mapToOuterModel outerModel
+                        [ singleRegionId ] ->
+                            -- Single region, create the project right now
+                            case Helpers.serviceCatalogToEndpoints authToken.catalog (Just singleRegionId) of
+                                Err e ->
+                                    State.Error.processStringError
+                                        sharedModel
+                                        (ErrorContext
+                                            "Decode project endpoints"
+                                            ErrorCrit
+                                            (Just "Please check with your cloud administrator or the Exosphere developers.")
+                                        )
+                                        e
+                                        |> mapToOuterMsg
+                                        |> mapToOuterModel outerModel
 
-                    else
-                        case Helpers.serviceCatalogToEndpoints authToken.catalog of
-                            Err e ->
-                                State.Error.processStringError
-                                    sharedModel
-                                    (ErrorContext
-                                        "Decode project endpoints"
-                                        ErrorCrit
-                                        (Just "Please check with your cloud administrator or the Exosphere developers.")
-                                    )
-                                    e
-                                    |> mapToOuterMsg
-                                    |> mapToOuterModel outerModel
+                                Ok endpoints ->
+                                    let
+                                        -- TODO include region if region was specified
+                                        projectId =
+                                            HelperTypes.ProjectIdentifier authToken.project.uuid (Just singleRegionId)
+                                    in
+                                    -- If we don't have a project with same name + authUrl then create one, if we do then update its OSTypes.AuthToken
+                                    -- This code ensures we don't end up with duplicate projects on the same provider in our model.
+                                    case
+                                        GetterSetters.projectLookup sharedModel <| projectId
+                                    of
+                                        Nothing ->
+                                            let
+                                                maybeRegion =
+                                                    sharedModel.unscopedProviders
+                                                        |> List.Extra.find (\p -> p.authUrl == keystoneUrl)
+                                                        |> Maybe.map .regionsAvailable
+                                                        |> Maybe.map (RemoteData.withDefault [])
+                                                        |> Maybe.andThen
+                                                            (List.Extra.find (\region -> region.id == singleRegionId))
+                                            in
+                                            case maybeRegion of
+                                                Just region ->
+                                                    createProject outerModel projectDescription authToken region endpoints
 
-                            Ok endpoints ->
-                                let
-                                    -- TODO include region if region was specified
-                                    projectId =
-                                        HelperTypes.ProjectIdentifier authToken.project.uuid Nothing
-                                in
-                                -- If we don't have a project with same name + authUrl then create one, if we do then update its OSTypes.AuthToken
-                                -- This code ensures we don't end up with duplicate projects on the same provider in our model.
-                                case
-                                    GetterSetters.projectLookup sharedModel <| projectId
-                                of
-                                    Nothing ->
-                                        createProject outerModel projectDescription authToken endpoints
+                                                Nothing ->
+                                                    -- Region lookup failed
+                                                    State.Error.processStringError
+                                                        sharedModel
+                                                        (ErrorContext
+                                                            "Find region for region ID"
+                                                            ErrorCrit
+                                                            (Just "Please check with your cloud administrator or the Exosphere developers.")
+                                                        )
+                                                        "Could not find any regions with matching region ID."
+                                                        |> mapToOuterMsg
+                                                        |> mapToOuterModel outerModel
 
-                                    Just project ->
-                                        -- If we don't have an application credential for this project yet, then get one
-                                        let
-                                            appCredCmd =
-                                                case project.secret of
-                                                    ApplicationCredential _ ->
-                                                        Cmd.none
+                                        Just project ->
+                                            -- If we don't have an application credential for this project yet, then get one
+                                            let
+                                                appCredCmd =
+                                                    case project.secret of
+                                                        ApplicationCredential _ ->
+                                                            Cmd.none
 
-                                                    _ ->
-                                                        Rest.Keystone.requestAppCredential
-                                                            sharedModel.clientUuid
-                                                            sharedModel.clientCurrentTime
-                                                            project
+                                                        _ ->
+                                                            Rest.Keystone.requestAppCredential
+                                                                sharedModel.clientUuid
+                                                                sharedModel.clientCurrentTime
+                                                                project
 
-                                            ( newOuterModel, updateTokenCmd ) =
-                                                State.Auth.projectUpdateAuthToken outerModel project authToken
-                                        in
-                                        ( newOuterModel, Cmd.batch [ appCredCmd, updateTokenCmd ] )
-                                            |> mapToOuterMsg
+                                                ( newOuterModel, updateTokenCmd ) =
+                                                    State.Auth.projectUpdateAuthToken outerModel project authToken
+                                            in
+                                            ( newOuterModel, Cmd.batch [ appCredCmd, updateTokenCmd ] )
+                                                |> mapToOuterMsg
 
+                        _ :: _ ->
+                            -- Multiple regions, ask the user to choose from among them
+                            let
+                                newUnscopedTokens =
+                                    authToken :: sharedModel.scopedAuthTokensWaitingRegionSelection
+
+                                newModel =
+                                    { sharedModel | scopedAuthTokensWaitingRegionSelection = newUnscopedTokens }
+                            in
+                            ( newModel, Route.pushUrl viewContext (Route.SelectProjectRegions keystoneUrl authToken.project.uuid) )
+                                |> mapToOuterMsg
+                                |> mapToOuterModel outerModel
+
+        {-
+           CreateProjects regions ->
+               let
+                   endpoints =
+                       ()
+
+                   newProjects =
+                       ()
+               in
+               ( outerModel, Cmd.none )
+        -}
         ReceiveUnscopedAuthToken keystoneUrl ( metadata, response ) ->
             case Rest.Keystone.decodeUnscopedAuthToken <| Http.GoodStatus_ metadata response of
                 Err error ->
@@ -2313,8 +2364,8 @@ processNewFloatingIp time project floatingIp =
     }
 
 
-createProject : OuterModel -> Maybe OSTypes.ProjectDescription -> OSTypes.ScopedAuthToken -> Endpoints -> ( OuterModel, Cmd OuterMsg )
-createProject outerModel description authToken endpoints =
+createProject : OuterModel -> Maybe OSTypes.ProjectDescription -> OSTypes.ScopedAuthToken -> OSTypes.Region -> Endpoints -> ( OuterModel, Cmd OuterMsg )
+createProject outerModel description authToken region endpoints =
     let
         sharedModel =
             outerModel.sharedModel
@@ -2322,9 +2373,7 @@ createProject outerModel description authToken endpoints =
         newProject =
             { secret = NoProjectSecret
             , auth = authToken
-
-            -- TODO populate region if specified
-            , region = Nothing
+            , region = Just region
 
             -- Maybe todo, eliminate parallel data structures in auth and endpoints?
             , endpoints = endpoints

@@ -355,7 +355,7 @@ storedProjectDecode1 =
 
 storedProject2ToStoredProject : StoredProject2 -> Decode.Decoder StoredProject
 storedProject2ToStoredProject sp =
-    case Helpers.serviceCatalogToEndpoints sp.auth.catalog of
+    case Helpers.serviceCatalogToEndpoints sp.auth.catalog Nothing of
         Ok endpoints ->
             Decode.succeed <|
                 StoredProject

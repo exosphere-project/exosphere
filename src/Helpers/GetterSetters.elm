@@ -3,7 +3,7 @@ module Helpers.GetterSetters exposing
     , flavorLookup
     , floatingIpLookup
     , getBootVolume
-    , getCatalogRegions
+    , getCatalogRegionIds
     , getExternalNetwork
     , getFloatingIpServer
     , getServerExouserPassword
@@ -132,8 +132,8 @@ floatingIpLookup project ipUuid =
 -- Slightly smarter getters
 
 
-getCatalogRegions : OSTypes.ServiceCatalog -> List OSTypes.RegionId
-getCatalogRegions catalog =
+getCatalogRegionIds : OSTypes.ServiceCatalog -> List OSTypes.RegionId
+getCatalogRegionIds catalog =
     -- Given a service catalog, get a list of all region IDs that appear for at least one endpoint
     -- This allows administrators to restrict access to regions using the [OS-EP-FILTER](https://docs.openstack.org/api-ref/identity/v3-ext/#os-ep-filter-api) API.
     catalog
@@ -141,10 +141,10 @@ getCatalogRegions catalog =
         |> List.map .regionId
 
 
-getServicePublicUrl : OSTypes.ServiceCatalog -> String -> Maybe HelperTypes.Url
-getServicePublicUrl catalog serviceType =
+getServicePublicUrl : OSTypes.ServiceCatalog -> Maybe OSTypes.RegionId -> String -> Maybe HelperTypes.Url
+getServicePublicUrl catalog maybeRegionId serviceType =
     getServiceFromCatalog serviceType catalog
-        |> Maybe.andThen getPublicEndpointFromService
+        |> Maybe.andThen (getPublicEndpointFromService maybeRegionId)
         |> Maybe.map .url
 
 
@@ -154,10 +154,21 @@ getServiceFromCatalog serviceType catalog =
         |> List.Extra.find (\s -> s.type_ == serviceType)
 
 
-getPublicEndpointFromService : OSTypes.Service -> Maybe OSTypes.Endpoint
-getPublicEndpointFromService service =
+getPublicEndpointFromService : Maybe OSTypes.RegionId -> OSTypes.Service -> Maybe OSTypes.Endpoint
+getPublicEndpointFromService maybeRegionId service =
     service.endpoints
-        |> List.Extra.find (\e -> e.interface == OSTypes.Public)
+        |> List.Extra.find
+            (\e ->
+                e.interface
+                    == OSTypes.Public
+                    && (case maybeRegionId of
+                            Just regionId ->
+                                e.regionId == regionId
+
+                            Nothing ->
+                                True
+                       )
+            )
 
 
 getExternalNetwork : Project -> Maybe OSTypes.Network
