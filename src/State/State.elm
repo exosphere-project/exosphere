@@ -645,7 +645,6 @@ processSharedMsg sharedMsg outerModel =
 
                                 Ok endpoints ->
                                     let
-                                        -- TODO include region if region was specified
                                         projectId =
                                             HelperTypes.ProjectIdentifier authToken.project.uuid (Just singleRegionId)
                                     in
@@ -666,7 +665,7 @@ processSharedMsg sharedMsg outerModel =
                                             in
                                             case maybeRegion of
                                                 Just region ->
-                                                    createProject outerModel projectDescription authToken region endpoints
+                                                    createProject_ outerModel projectDescription authToken region endpoints
 
                                                 Nothing ->
                                                     -- Region lookup failed
@@ -715,54 +714,20 @@ processSharedMsg sharedMsg outerModel =
                                 |> mapToOuterModel outerModel
 
         CreateProjects keystoneUrl projectUuid regionIds ->
-            let
-                processError : String -> OuterModel -> ( OuterModel, Cmd OuterMsg )
-                processError error outerModel_ =
-                    State.Error.processStringError
-                        sharedModel
-                        (ErrorContext
-                            "Create projects"
-                            ErrorCrit
-                            Nothing
-                        )
-                        error
-                        |> mapToOuterMsg
-                        |> mapToOuterModel outerModel_
-            in
+            -- TODO remove auth token from sharedModel.scopedAuthTokensWaitingRegionSelection, now that we no longer need it
             case
-                ( sharedModel.unscopedProviders
-                    |> List.Extra.find (\p -> p.authUrl == keystoneUrl)
-                , List.Extra.find
+                List.Extra.find
                     (\token -> token.project.uuid == projectUuid)
                     sharedModel.scopedAuthTokensWaitingRegionSelection
-                )
             of
-                ( Just provider, Just authToken ) ->
-                    case GetterSetters.unscopedProjectLookup provider projectUuid of
-                        Just unscopedProject ->
-                            let
-                                attemptToCreateProject region outerModel_ =
-                                    case Helpers.serviceCatalogToEndpoints authToken.catalog (Just region.id) of
-                                        Ok endpoints ->
-                                            createProject outerModel_ unscopedProject.description authToken region endpoints
+                Just authToken ->
+                    regionIds
+                        |> List.map (createProject keystoneUrl authToken)
+                        |> List.foldl pipelineCmdOuterModelMsg ( outerModel, Cmd.none )
 
-                                        -- TODO remove auth token from sharedModel.scopedAuthTokensWaitingRegionSelection, now that we no longer need it
-                                        Err e ->
-                                            processError e outerModel_
-                            in
-                            regionIds
-                                |> List.filterMap (GetterSetters.unscopedRegionLookup provider)
-                                |> List.map attemptToCreateProject
-                                |> List.foldl pipelineCmdOuterModelMsg ( outerModel, Cmd.none )
-
-                        Nothing ->
-                            processError "Unable to look up project" outerModel
-
-                ( _, Nothing ) ->
-                    processError "Unable to look up auth token" outerModel
-
-                ( Nothing, _ ) ->
-                    processError "Unable to look up unscoped provider" outerModel
+                Nothing ->
+                    -- Could not find auth token, nothing to do
+                    ( outerModel, Cmd.none )
 
         ReceiveUnscopedAuthToken keystoneUrl ( metadata, response ) ->
             case Rest.Keystone.decodeUnscopedAuthToken <| Http.GoodStatus_ metadata response of
@@ -2403,8 +2368,54 @@ processNewFloatingIp time project floatingIp =
     }
 
 
-createProject : OuterModel -> Maybe OSTypes.ProjectDescription -> OSTypes.ScopedAuthToken -> OSTypes.Region -> Endpoints -> ( OuterModel, Cmd OuterMsg )
-createProject outerModel description authToken region endpoints =
+createProject : OSTypes.KeystoneUrl -> OSTypes.ScopedAuthToken -> OSTypes.RegionId -> OuterModel -> ( OuterModel, Cmd OuterMsg )
+createProject keystoneUrl token regionId outerModel =
+    -- TODO ensure we aren't creating a project with a duplicate ProjectIdentifier.. if we are, just update auth token for existing project in the model
+    let
+        processError : String -> ( OuterModel, Cmd OuterMsg )
+        processError error =
+            State.Error.processStringError
+                outerModel.sharedModel
+                (ErrorContext
+                    "Create project"
+                    ErrorCrit
+                    Nothing
+                )
+                error
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
+        endpointsResult =
+            Helpers.serviceCatalogToEndpoints token.catalog (Just regionId)
+
+        maybeUnscopedProvider =
+            GetterSetters.unscopedProviderLookup outerModel.sharedModel keystoneUrl
+
+        maybeRegion =
+            maybeUnscopedProvider
+                |> Maybe.andThen (\provider -> GetterSetters.unscopedRegionLookup provider regionId)
+
+        maybeDescription =
+            maybeUnscopedProvider
+                |> Maybe.andThen (\provider -> GetterSetters.unscopedProjectLookup provider token.project.uuid)
+                |> Maybe.map .description
+    in
+    case ( endpointsResult, maybeRegion, maybeDescription ) of
+        ( Ok endpoints, Just region, Just description ) ->
+            createProject_ outerModel description token region endpoints
+
+        ( Err e, _, _ ) ->
+            processError e
+
+        ( _, Nothing, _ ) ->
+            processError ("Could not look up Keystone region with ID " ++ regionId)
+
+        ( _, _, Nothing ) ->
+            processError ("Could not look up description of project with ID " ++ token.project.uuid)
+
+
+createProject_ : OuterModel -> Maybe OSTypes.ProjectDescription -> OSTypes.ScopedAuthToken -> OSTypes.Region -> Endpoints -> ( OuterModel, Cmd OuterMsg )
+createProject_ outerModel description authToken region endpoints =
     let
         sharedModel =
             outerModel.sharedModel
