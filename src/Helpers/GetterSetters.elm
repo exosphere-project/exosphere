@@ -141,8 +141,8 @@ getCatalogRegions catalog =
         |> List.map .regionId
 
 
-getServicePublicUrl : String -> OSTypes.ServiceCatalog -> Maybe HelperTypes.Url
-getServicePublicUrl serviceType catalog =
+getServicePublicUrl : OSTypes.ServiceCatalog -> String -> Maybe HelperTypes.Url
+getServicePublicUrl catalog serviceType =
     getServiceFromCatalog serviceType catalog
         |> Maybe.andThen getPublicEndpointFromService
         |> Maybe.map .url
