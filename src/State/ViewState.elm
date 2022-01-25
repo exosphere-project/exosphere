@@ -209,6 +209,7 @@ routeToViewStateModelCmd sharedModel route =
                                     , Cmd.batch
                                         [ OSVolumes.requestVolumes project
                                         , Rest.Nova.requestKeypairs project
+                                        , Rest.Glance.requestImages sharedModel project
                                         , OSQuotas.requestComputeQuota project
                                         , OSQuotas.requestVolumeQuota project
                                         , OSQuotas.requestNetworkQuota project
@@ -398,6 +399,15 @@ routeToViewStateModelCmd sharedModel route =
                             ( projectViewProto <| VolumeMountInstructions <| Page.VolumeMountInstructions.init attachment
                             , sharedModel
                             , Cmd.none
+                            )
+
+                        Route.ImageList ->
+                            ( projectViewProto <| InstanceSourcePicker <| Page.InstanceSourcePicker.init
+                            , sharedModel
+                            , Cmd.batch
+                                [ Rest.Glance.requestImages sharedModel project
+                                , Rest.Nova.requestFlavors project
+                                ]
                             )
 
                 Nothing ->

@@ -64,6 +64,7 @@ type ProjectRouteConstructor
     | VolumeDetail OSTypes.VolumeUuid
     | VolumeList
     | VolumeMountInstructions OSTypes.VolumeAttachment
+    | ImageList
 
 
 toUrl : Maybe String -> Route -> String
@@ -304,6 +305,11 @@ toUrl maybePathPrefix route =
                               , UB.string "attachmentuuid" attachment.attachmentUuid
                               , UB.string "device" attachment.device
                               ]
+                            )
+
+                        ImageList ->
+                            ( [ "images" ]
+                            , []
                             )
             in
             buildUrlFunc (projectIdentifierPath ++ projectSpecificPath) projectSpecificQuery
