@@ -616,6 +616,7 @@ processSharedMsg sharedMsg outerModel =
 
                 Ok authToken ->
                     -- TODO if there are existing projects in the model that can use this token, update them
+                    -- TODO IFF we have an unscoped project then create new project (or show region picker UI)
                     case GetterSetters.getCatalogRegionIds authToken.catalog of
                         [] ->
                             State.Error.processStringError
@@ -715,7 +716,48 @@ processSharedMsg sharedMsg outerModel =
                                 |> mapToOuterModel outerModel
 
         CreateProjects keystoneUrl projectUuid regionIds ->
-            -- TODO remove auth token from sharedModel.scopedAuthTokensWaitingRegionSelection, now that we no longer need it
+            let
+                removeUnscopedProject : OuterModel -> ( OuterModel, Cmd OuterMsg )
+                removeUnscopedProject outerModel_ =
+                    case GetterSetters.unscopedProviderLookup outerModel_.sharedModel keystoneUrl of
+                        Nothing ->
+                            ( outerModel_, Cmd.none )
+
+                        Just unscopedProvider ->
+                            case unscopedProvider.projectsAvailable of
+                                RemoteData.Success projectsAvailable ->
+                                    let
+                                        newProjectsAvailable =
+                                            projectsAvailable
+                                                |> List.filter (\p -> p.project.uuid /= projectUuid)
+                                                |> RemoteData.Success
+
+                                        newUnscopedProvider =
+                                            { unscopedProvider | projectsAvailable = newProjectsAvailable }
+
+                                        newSharedModel =
+                                            GetterSetters.modelUpdateUnscopedProvider outerModel_.sharedModel newUnscopedProvider
+                                    in
+                                    ( { outerModel | sharedModel = newSharedModel }, Cmd.none )
+
+                                _ ->
+                                    ( outerModel, Cmd.none )
+
+                removeScopedAuthTokenWaitingRegionSelection : OuterModel -> ( OuterModel, Cmd OuterMsg )
+                removeScopedAuthTokenWaitingRegionSelection outerModel_ =
+                    let
+                        newScopedAuthTokensWaitingRegionSelection =
+                            outerModel_.sharedModel.scopedAuthTokensWaitingRegionSelection
+                                |> List.filter (\t -> t.project.uuid /= projectUuid)
+
+                        oldSharedModel =
+                            outerModel_.sharedModel
+
+                        newSharedModel =
+                            { oldSharedModel | scopedAuthTokensWaitingRegionSelection = newScopedAuthTokensWaitingRegionSelection }
+                    in
+                    ( { outerModel_ | sharedModel = newSharedModel }, Cmd.none )
+            in
             case
                 List.Extra.find
                     (\token -> token.project.uuid == projectUuid)
@@ -725,6 +767,8 @@ processSharedMsg sharedMsg outerModel =
                     regionIds
                         |> List.map (createProject keystoneUrl authToken)
                         |> List.foldl pipelineCmdOuterModelMsg ( outerModel, Cmd.none )
+                        |> pipelineCmdOuterModelMsg removeUnscopedProject
+                        |> pipelineCmdOuterModelMsg removeScopedAuthTokenWaitingRegionSelection
 
                 Nothing ->
                     -- Could not find auth token, nothing to do
