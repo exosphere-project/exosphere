@@ -52,6 +52,7 @@ type ProjectRouteConstructor
     = ProjectOverview
     | FloatingIpAssign (Maybe OSTypes.IpAddressUuid) (Maybe OSTypes.ServerUuid)
     | FloatingIpList
+    | ImageList
     | InstanceSourcePicker
     | KeypairCreate
     | KeypairList
@@ -64,7 +65,6 @@ type ProjectRouteConstructor
     | VolumeDetail OSTypes.VolumeUuid
     | VolumeList
     | VolumeMountInstructions OSTypes.VolumeAttachment
-    | ImageList
 
 
 toUrl : Maybe String -> Route -> String
@@ -187,6 +187,11 @@ toUrl maybePathPrefix route =
                             , []
                             )
 
+                        ImageList ->
+                            ( [ "images" ]
+                            , []
+                            )
+
                         InstanceSourcePicker ->
                             ( [ "instancesource" ]
                             , []
@@ -305,11 +310,6 @@ toUrl maybePathPrefix route =
                               , UB.string "attachmentuuid" attachment.attachmentUuid
                               , UB.string "device" attachment.device
                               ]
-                            )
-
-                        ImageList ->
-                            ( [ "images" ]
-                            , []
                             )
             in
             buildUrlFunc (projectIdentifierPath ++ projectSpecificPath) projectSpecificQuery
@@ -550,9 +550,6 @@ projectRouteParsers =
 
     -- Legacy URLs, keeping parsers around to handle any old links
     , map
-        InstanceSourcePicker
-        (s "images")
-    , map
         ProjectOverview
         (s "resources")
 
@@ -686,6 +683,9 @@ projectRouteParsers =
          in
          s "attachvolinstructions" <?> queryParser
         )
+    , map
+        ImageList
+        (s "images")
     ]
 
 

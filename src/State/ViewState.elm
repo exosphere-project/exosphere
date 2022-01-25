@@ -13,6 +13,7 @@ import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.GetSupport
 import Page.Home
+import Page.ImageList
 import Page.InstanceSourcePicker
 import Page.KeypairCreate
 import Page.KeypairList
@@ -255,6 +256,14 @@ routeToViewStateModelCmd sharedModel route =
                             , newCmd
                             )
 
+                        Route.ImageList ->
+                            ( projectViewProto <| ImageList <| Page.ImageList.init
+                            , sharedModel
+                            , Cmd.batch
+                                [ Rest.Glance.requestImages sharedModel project
+                                ]
+                            )
+
                         Route.InstanceSourcePicker ->
                             ( projectViewProto <| InstanceSourcePicker <| Page.InstanceSourcePicker.init
                             , sharedModel
@@ -399,15 +408,6 @@ routeToViewStateModelCmd sharedModel route =
                             ( projectViewProto <| VolumeMountInstructions <| Page.VolumeMountInstructions.init attachment
                             , sharedModel
                             , Cmd.none
-                            )
-
-                        Route.ImageList ->
-                            ( projectViewProto <| InstanceSourcePicker <| Page.InstanceSourcePicker.init
-                            , sharedModel
-                            , Cmd.batch
-                                [ Rest.Glance.requestImages sharedModel project
-                                , Rest.Nova.requestFlavors project
-                                ]
                             )
 
                 Nothing ->
