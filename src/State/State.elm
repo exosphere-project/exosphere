@@ -683,23 +683,11 @@ processSharedMsg sharedMsg outerModel =
                                                         |> mapToOuterModel outerModel
 
                                         Just project ->
-                                            -- If we don't have an application credential for this project yet, then get one
                                             let
-                                                appCredCmd =
-                                                    case project.secret of
-                                                        ApplicationCredential _ ->
-                                                            Cmd.none
-
-                                                        _ ->
-                                                            Rest.Keystone.requestAppCredential
-                                                                sharedModel.clientUuid
-                                                                sharedModel.clientCurrentTime
-                                                                project
-
                                                 ( newOuterModel, updateTokenCmd ) =
                                                     State.Auth.projectUpdateAuthToken outerModel project authToken
                                             in
-                                            ( newOuterModel, Cmd.batch [ appCredCmd, updateTokenCmd ] )
+                                            ( newOuterModel, updateTokenCmd )
                                                 |> mapToOuterMsg
 
                         _ ->
