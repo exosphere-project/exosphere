@@ -30,6 +30,7 @@ type alias Model =
     , onlyOwnImages : Bool
     , expandImageDetails : Set.Set OSTypes.ImageUuid
     , visibilityFilter : ImageListVisibilityFilter
+    , deleteConfirmations : Set.Set DeleteConfirmation
     }
 
 
@@ -41,6 +42,10 @@ type alias ImageListVisibilityFilter =
     }
 
 
+type alias DeleteConfirmation =
+    OSTypes.ImageUuid
+
+
 type Msg
     = GotSearchText String
     | GotTagSelection String Bool
@@ -48,16 +53,19 @@ type Msg
     | GotExpandImage OSTypes.ImageUuid Bool
     | GotVisibilityFilter ImageListVisibilityFilter
     | GotClearFilters
+    | GotDeleteNeedsConfirm DeleteConfirmation
+    | GotDeleteConfirm DeleteConfirmation
+    | GotDeleteCancel DeleteConfirmation
     | NoOp
 
 
 init : Model
 init =
-    Model "" Set.empty False Set.empty (ImageListVisibilityFilter True True True True)
+    Model "" Set.empty False Set.empty (ImageListVisibilityFilter True True True True) Set.empty
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
-update msg _ model =
+update msg project model =
     case msg of
         GotSearchText searchText ->
             ( { model | searchText = searchText }, Cmd.none, SharedMsg.NoOp )
@@ -98,6 +106,31 @@ update msg _ model =
 
         GotClearFilters ->
             ( init, Cmd.none, SharedMsg.NoOp )
+
+        GotDeleteNeedsConfirm imageId ->
+            ( { model
+                | deleteConfirmations =
+                    Set.insert imageId model.deleteConfirmations
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
+
+        GotDeleteConfirm imageId ->
+            ( model
+            , Cmd.none
+            , SharedMsg.ProjectMsg project.auth.project.uuid <|
+                SharedMsg.RequestDeleteImage imageId
+            )
+
+        GotDeleteCancel imageId ->
+            ( { model
+                | deleteConfirmations =
+                    Set.remove imageId model.deleteConfirmations
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
 
         NoOp ->
             ( model, Cmd.none, SharedMsg.NoOp )
@@ -409,6 +442,54 @@ renderImage context project model image =
                         }
                 }
 
+        confirmationNeeded =
+            Set.member image.uuid model.deleteConfirmations
+
+        deleteButton =
+            if projectOwnsImage project image then
+                case ( image.status, confirmationNeeded ) of
+                    ( OSTypes.ImagePendingDelete, _ ) ->
+                        Widget.circularProgressIndicator (SH.materialStyle context.palette).progressIndicator Nothing
+
+                    ( _, True ) ->
+                        Element.row [ Element.spacing 10 ]
+                            [ Element.text "Confirm delete?"
+                            , Widget.iconButton
+                                (SH.materialStyle context.palette).dangerButton
+                                { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
+                                , text = "Delete"
+                                , onPress =
+                                    Just <| GotDeleteConfirm image.uuid
+                                }
+                            , Widget.textButton
+                                (SH.materialStyle context.palette).button
+                                { text = "Cancel"
+                                , onPress =
+                                    Just <| GotDeleteCancel image.uuid
+                                }
+                            ]
+
+                    ( _, False ) ->
+                        if image.protected == True then
+                            Widget.iconButton
+                                (SH.materialStyle context.palette).button
+                                { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
+                                , text = "Delete"
+                                , onPress = Nothing
+                                }
+
+                        else
+                            Widget.iconButton
+                                (SH.materialStyle context.palette).dangerButton
+                                { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
+                                , text = "Delete"
+                                , onPress =
+                                    Just <| GotDeleteNeedsConfirm image.uuid
+                                }
+
+            else
+                Element.none
+
         featuredImageNamePrefix =
             VH.featuredImageNamePrefixLookup context project
 
@@ -479,9 +560,10 @@ renderImage context project model image =
                             tagChip
                             image.tags
                     )
-                , Element.el
-                    [ Element.alignRight ]
-                    chooseButton
+                , Element.row [ Element.width Element.fill, Element.spacing 10 ]
+                    [ chooseButton
+                    , Element.el [ Element.alignRight ] deleteButton
+                    ]
                 ]
     in
     ExoCard.expandoCard

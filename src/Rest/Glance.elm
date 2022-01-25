@@ -1,5 +1,7 @@
 module Rest.Glance exposing
-    ( receiveImages
+    ( receiveDeleteImage
+    , receiveImages
+    , requestDeleteImage
     , requestImages
     )
 
@@ -57,6 +59,35 @@ requestImages model project =
         )
 
 
+requestDeleteImage : Project -> OSTypes.ImageUuid -> Cmd SharedMsg
+requestDeleteImage project imageUuid =
+    let
+        errorContext =
+            ErrorContext
+                ("delete image with UUID " ++ imageUuid)
+                ErrorCrit
+                Nothing
+
+        resultToMsg_ =
+            resultToMsgErrorBody
+                errorContext
+                (\_ ->
+                    ProjectMsg
+                        project.auth.project.uuid
+                        (ReceiveDeleteImage imageUuid)
+                )
+    in
+    openstackCredentialedRequest
+        project.auth.project.uuid
+        Delete
+        Nothing
+        (project.endpoints.glance ++ "/v2/images/" ++ imageUuid)
+        Http.emptyBody
+        (Rest.Helpers.expectStringWithErrorBody
+            resultToMsg_
+        )
+
+
 
 {- HTTP Response Handling -}
 
@@ -76,6 +107,31 @@ receiveImages model project images =
             GetterSetters.modelUpdateProject model newProject
     in
     ( newModel, Cmd.none )
+
+
+receiveDeleteImage : SharedModel -> Project -> OSTypes.IpAddressUuid -> ( SharedModel, Cmd SharedMsg )
+receiveDeleteImage model project imageUuid =
+    case project.images.data of
+        RDPP.DoHave images _ ->
+            let
+                newImages =
+                    List.filter (\i -> i.uuid /= imageUuid) images
+
+                newProject =
+                    { project
+                        | images =
+                            RDPP.RemoteDataPlusPlus
+                                (RDPP.DoHave newImages model.clientCurrentTime)
+                                (RDPP.NotLoading Nothing)
+                    }
+
+                newModel =
+                    GetterSetters.modelUpdateProject model newProject
+            in
+            ( newModel, Cmd.none )
+
+        _ ->
+            ( model, Cmd.none )
 
 
 
@@ -196,6 +252,7 @@ imageDecoderHelper =
         |> Pipeline.required "created_at" (Decode.string |> Decode.andThen Rest.Helpers.iso8601StringToPosixDecodeError)
         |> Pipeline.optional "os_distro" (Decode.string |> Decode.andThen (\s -> Decode.succeed <| Just s)) Nothing
         |> Pipeline.optional "os_version" (Decode.string |> Decode.andThen (\s -> Decode.succeed <| Just s)) Nothing
+        |> Pipeline.required "protected" Decode.bool
 
 
 imageVisibilityDecoder : String -> Decode.Decoder OSTypes.ImageVisibility

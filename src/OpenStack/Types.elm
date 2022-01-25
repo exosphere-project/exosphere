@@ -246,6 +246,7 @@ type alias Image =
     , createdAt : Time.Posix
     , osDistro : Maybe String
     , osVersion : Maybe String
+    , protected : Bool
     }
 
 
