@@ -4,6 +4,7 @@ import Dict
 import Element
 import Element.Font as Font
 import Helpers.GetterSetters as GetterSetters
+import Helpers.RemoteDataPlusPlus as RDPP
 import Html.Attributes as HtmlA
 import OpenStack.Types as OSTypes
 import Route
@@ -37,7 +38,7 @@ view context project instanceTypes =
         renderVersion instanceTypeVersion =
             let
                 maybeImage =
-                    getImageforInstanceTypeVersion project.images instanceTypeVersion.imageFilters
+                    getImageforInstanceTypeVersion (RDPP.withDefault [] project.images) instanceTypeVersion.imageFilters
 
                 haveUsableFlavors =
                     case instanceTypeVersion.restrictFlavorIds of

@@ -2,6 +2,7 @@ module Page.InstanceSourcePicker exposing (Model, Msg, init, update, view)
 
 import Element
 import Helpers.GetterSetters as GetterSetters
+import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import Page.ImageList
 import Page.InstanceTypeList
@@ -59,7 +60,8 @@ update msg project model =
 
 view : View.Types.Context -> Project -> Model -> Element.Element Msg
 view context project model =
-    if List.isEmpty project.images then
+    -- TODO: Render this properly
+    if List.isEmpty (RDPP.withDefault [] project.images) then
         Element.row [ Element.spacing 15 ]
             [ Widget.circularProgressIndicator (SH.materialStyle context.palette).progressIndicator Nothing
             , Element.text <|

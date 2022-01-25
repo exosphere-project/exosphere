@@ -5,6 +5,7 @@ module Rest.Glance exposing
 
 import Dict
 import Helpers.GetterSetters as GetterSetters
+import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.Url as UrlHelpers
 import Http
 import Json.Decode as Decode
@@ -64,7 +65,12 @@ receiveImages : SharedModel -> Project -> List OSTypes.Image -> ( SharedModel, C
 receiveImages model project images =
     let
         newProject =
-            { project | images = images }
+            { project
+                | images =
+                    RDPP.RemoteDataPlusPlus
+                        (RDPP.DoHave images model.clientCurrentTime)
+                        (RDPP.NotLoading Nothing)
+            }
 
         newModel =
             GetterSetters.modelUpdateProject model newProject

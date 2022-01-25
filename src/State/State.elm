@@ -2491,7 +2491,7 @@ createProject_ outerModel description authToken region endpoints =
             -- Maybe todo, eliminate parallel data structures in auth and endpoints?
             , endpoints = endpoints
             , description = description
-            , images = []
+            , images = RDPP.RemoteDataPlusPlus RDPP.DontHave RDPP.Loading
             , servers = RDPP.RemoteDataPlusPlus RDPP.DontHave RDPP.Loading
             , flavors = []
             , keypairs = RemoteData.NotAsked

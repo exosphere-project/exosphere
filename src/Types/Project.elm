@@ -18,7 +18,7 @@ type alias Project =
     , region : Maybe OSTypes.Region
     , endpoints : Endpoints
     , description : Maybe String
-    , images : List OSTypes.Image
+    , images : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Image)
     , servers : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List Server)
     , flavors : List OSTypes.Flavor
     , keypairs : WebData (List OSTypes.Keypair)

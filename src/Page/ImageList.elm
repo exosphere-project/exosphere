@@ -6,6 +6,7 @@ import Element.Input as Input
 import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (Unit(..), humanNumber)
 import Helpers.GetterSetters as GetterSetters
+import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import List.Extra
 import OpenStack.Types as OSTypes
@@ -116,7 +117,7 @@ view context project model =
                 |> List.reverse
 
         filteredImages =
-            project.images |> filterImages model project
+            project.images |> RDPP.withDefault [] |> filterImages model project
 
         tagsAfterFilteringImages =
             generateAllTags filteredImages

@@ -111,7 +111,7 @@ flavorLookup project flavorId =
 
 imageLookup : Project -> OSTypes.ImageUuid -> Maybe OSTypes.Image
 imageLookup project imageUuid =
-    project.images
+    RDPP.withDefault [] project.images
         |> List.Extra.find (\i -> i.uuid == imageUuid)
 
 
