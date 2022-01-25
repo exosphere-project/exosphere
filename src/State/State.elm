@@ -21,6 +21,7 @@ import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.GetSupport
 import Page.Home
+import Page.ImageList
 import Page.InstanceSourcePicker
 import Page.KeypairCreate
 import Page.KeypairList
@@ -323,6 +324,21 @@ updateUnderlying outerMsg outerModel =
                                         FloatingIpList newSharedModel
                               }
                             , Cmd.map FloatingIpListMsg cmd
+                            )
+                                |> pipelineCmdOuterModelMsg
+                                    (processSharedMsg sharedMsg)
+
+                        ( ImageListMsg pageMsg, ImageList pageModel ) ->
+                            let
+                                ( newSharedModel, cmd, sharedMsg ) =
+                                    Page.ImageList.update pageMsg project pageModel
+                            in
+                            ( { outerModel
+                                | viewState =
+                                    ProjectView projectId projectViewModel <|
+                                        ImageList newSharedModel
+                              }
+                            , Cmd.map ImageListMsg cmd
                             )
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
