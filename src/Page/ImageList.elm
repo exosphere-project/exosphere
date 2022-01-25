@@ -398,7 +398,7 @@ renderImage context project model image =
                 , label =
                     Widget.textButton
                         (SH.materialStyle context.palette).primaryButton
-                        { text = "Choose"
+                        { text = "Launch"
                         , onPress =
                             case image.status of
                                 OSTypes.ImageActive ->
