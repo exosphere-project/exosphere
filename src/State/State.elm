@@ -599,7 +599,7 @@ processSharedMsg sharedMsg outerModel =
             ( outerModel, Cmd.batch cmds )
                 |> mapToOuterMsg
 
-        ReceiveScopedAuthToken projectDescription ( metadata, response ) ->
+        ReceiveScopedAuthToken keystoneUrl projectDescription ( metadata, response ) ->
             case Rest.Keystone.decodeScopedAuthToken <| Http.GoodStatus_ metadata response of
                 Err error ->
                     State.Error.processStringError
@@ -614,53 +614,65 @@ processSharedMsg sharedMsg outerModel =
                         |> mapToOuterModel outerModel
 
                 Ok authToken ->
-                    -- TODO see if there are multiple regions. If so, send user to the SelectProjectRegions page. If not, continue as before.
-                    case Helpers.serviceCatalogToEndpoints authToken.catalog of
-                        Err e ->
-                            State.Error.processStringError
-                                sharedModel
-                                (ErrorContext
-                                    "Decode project endpoints"
-                                    ErrorCrit
-                                    (Just "Please check with your cloud administrator or the Exosphere developers.")
-                                )
-                                e
-                                |> mapToOuterMsg
-                                |> mapToOuterModel outerModel
+                    if (GetterSetters.getCatalogRegions authToken.catalog |> List.length) > 1 then
+                        let
+                            newUnscopedTokens =
+                                authToken :: sharedModel.scopedAuthTokensWaitingRegionSelection
 
-                        Ok endpoints ->
-                            let
-                                -- TODO include region if region was specified
-                                projectId =
-                                    HelperTypes.ProjectIdentifier authToken.project.uuid Nothing
-                            in
-                            -- If we don't have a project with same name + authUrl then create one, if we do then update its OSTypes.AuthToken
-                            -- This code ensures we don't end up with duplicate projects on the same provider in our model.
-                            case
-                                GetterSetters.projectLookup sharedModel <| projectId
-                            of
-                                Nothing ->
-                                    createProject outerModel projectDescription authToken endpoints
+                            newModel =
+                                { sharedModel | scopedAuthTokensWaitingRegionSelection = newUnscopedTokens }
+                        in
+                        ( newModel, Route.pushUrl viewContext (Route.SelectProjectRegions keystoneUrl authToken.project.uuid) )
+                            |> mapToOuterMsg
+                            |> mapToOuterModel outerModel
 
-                                Just project ->
-                                    -- If we don't have an application credential for this project yet, then get one
-                                    let
-                                        appCredCmd =
-                                            case project.secret of
-                                                ApplicationCredential _ ->
-                                                    Cmd.none
+                    else
+                        case Helpers.serviceCatalogToEndpoints authToken.catalog of
+                            Err e ->
+                                State.Error.processStringError
+                                    sharedModel
+                                    (ErrorContext
+                                        "Decode project endpoints"
+                                        ErrorCrit
+                                        (Just "Please check with your cloud administrator or the Exosphere developers.")
+                                    )
+                                    e
+                                    |> mapToOuterMsg
+                                    |> mapToOuterModel outerModel
 
-                                                _ ->
-                                                    Rest.Keystone.requestAppCredential
-                                                        sharedModel.clientUuid
-                                                        sharedModel.clientCurrentTime
-                                                        project
+                            Ok endpoints ->
+                                let
+                                    -- TODO include region if region was specified
+                                    projectId =
+                                        HelperTypes.ProjectIdentifier authToken.project.uuid Nothing
+                                in
+                                -- If we don't have a project with same name + authUrl then create one, if we do then update its OSTypes.AuthToken
+                                -- This code ensures we don't end up with duplicate projects on the same provider in our model.
+                                case
+                                    GetterSetters.projectLookup sharedModel <| projectId
+                                of
+                                    Nothing ->
+                                        createProject outerModel projectDescription authToken endpoints
 
-                                        ( newOuterModel, updateTokenCmd ) =
-                                            State.Auth.projectUpdateAuthToken outerModel project authToken
-                                    in
-                                    ( newOuterModel, Cmd.batch [ appCredCmd, updateTokenCmd ] )
-                                        |> mapToOuterMsg
+                                    Just project ->
+                                        -- If we don't have an application credential for this project yet, then get one
+                                        let
+                                            appCredCmd =
+                                                case project.secret of
+                                                    ApplicationCredential _ ->
+                                                        Cmd.none
+
+                                                    _ ->
+                                                        Rest.Keystone.requestAppCredential
+                                                            sharedModel.clientUuid
+                                                            sharedModel.clientCurrentTime
+                                                            project
+
+                                            ( newOuterModel, updateTokenCmd ) =
+                                                State.Auth.projectUpdateAuthToken outerModel project authToken
+                                        in
+                                        ( newOuterModel, Cmd.batch [ appCredCmd, updateTokenCmd ] )
+                                            |> mapToOuterMsg
 
         ReceiveUnscopedAuthToken keystoneUrl ( metadata, response ) ->
             case Rest.Keystone.decodeUnscopedAuthToken <| Http.GoodStatus_ metadata response of
@@ -765,33 +777,39 @@ processSharedMsg sharedMsg outerModel =
                                 |> Cmd.batch
 
                         -- Remove unscoped provider from model now that we have selected projects from it
-                        newUnscopedProviders =
-                            List.filter
-                                (\p -> p.authUrl /= keystoneUrl)
-                                sharedModel.unscopedProviders
+                        -- TODO move this logic to after we create a project
+                        {-
+                              newUnscopedProviders =
+                                  List.filter
+                                      (\p -> p.authUrl /= keystoneUrl)
+                                      sharedModel.unscopedProviders
+                               -- If we still have at least one unscoped provider in the model then ask the user to choose projects from it
+                               newViewStateCmd =
+                                   case List.head newUnscopedProviders of
+                                       Just unscopedProvider ->
+                                           Route.pushUrl viewContext (Route.SelectProjects unscopedProvider.authUrl)
 
-                        -- If we still have at least one unscoped provider in the model then ask the user to choose projects from it
-                        newViewStateCmd =
-                            case List.head newUnscopedProviders of
-                                Just unscopedProvider ->
-                                    Route.pushUrl viewContext (Route.SelectProjects unscopedProvider.authUrl)
+                                       Nothing ->
+                                           -- If we have at least one project then show it, else show the login page
+                                           case List.head sharedModel.projects of
+                                               Just project ->
+                                                   Route.pushUrl viewContext <|
+                                                       Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
+                                                           Route.ProjectOverview
 
-                                Nothing ->
-                                    -- If we have at least one project then show it, else show the login page
-                                    case List.head sharedModel.projects of
-                                        Just project ->
-                                            Route.pushUrl viewContext <|
-                                                Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
-                                                    Route.ProjectOverview
+                                               Nothing ->
+                                                   Route.pushUrl viewContext Route.LoginPicker
 
-                                        Nothing ->
-                                            Route.pushUrl viewContext Route.LoginPicker
-
-                        sharedModelUpdatedUnscopedProviders =
-                            { sharedModel | unscopedProviders = newUnscopedProviders }
+                               sharedModelUpdatedUnscopedProviders =
+                                   { sharedModel | unscopedProviders = newUnscopedProviders }
+                           in
+                           ( { outerModel | sharedModel = sharedModelUpdatedUnscopedProviders }
+                           , Cmd.batch [ Cmd.map SharedMsg loginRequests, newViewStateCmd ]
+                           )
+                        -}
                     in
-                    ( { outerModel | sharedModel = sharedModelUpdatedUnscopedProviders }
-                    , Cmd.batch [ Cmd.map SharedMsg loginRequests, newViewStateCmd ]
+                    ( outerModel
+                    , Cmd.map SharedMsg loginRequests
                     )
 
                 Nothing ->
