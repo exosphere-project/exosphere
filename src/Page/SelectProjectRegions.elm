@@ -49,8 +49,12 @@ update msg sharedModel model =
             ( { model | selectedRegions = newSelectedRegions }, Cmd.none, SharedMsg.NoOp )
 
         GotSubmit ->
-            -- TODO create projects using selected regions
-            ( model, Cmd.none, SharedMsg.NoOp )
+            ( model
+            , Cmd.none
+            , SharedMsg.CreateProjects model.providerKeystoneUrl
+                model.projectUuid
+                (Set.toList model.selectedRegions)
+            )
 
 
 view : View.Types.Context -> SharedModel -> Model -> Element.Element Msg

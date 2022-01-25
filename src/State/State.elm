@@ -659,10 +659,10 @@ processSharedMsg sharedMsg outerModel =
                                                 maybeRegion =
                                                     sharedModel.unscopedProviders
                                                         |> List.Extra.find (\p -> p.authUrl == keystoneUrl)
-                                                        |> Maybe.map .regionsAvailable
-                                                        |> Maybe.map (RemoteData.withDefault [])
                                                         |> Maybe.andThen
-                                                            (List.Extra.find (\region -> region.id == singleRegionId))
+                                                            (\provider ->
+                                                                GetterSetters.unscopedRegionLookup provider singleRegionId
+                                                            )
                                             in
                                             case maybeRegion of
                                                 Just region ->
@@ -701,7 +701,7 @@ processSharedMsg sharedMsg outerModel =
                                             ( newOuterModel, Cmd.batch [ appCredCmd, updateTokenCmd ] )
                                                 |> mapToOuterMsg
 
-                        _ :: _ ->
+                        _ ->
                             -- Multiple regions, ask the user to choose from among them
                             let
                                 newUnscopedTokens =
@@ -714,17 +714,56 @@ processSharedMsg sharedMsg outerModel =
                                 |> mapToOuterMsg
                                 |> mapToOuterModel outerModel
 
-        {-
-           CreateProjects regions ->
-               let
-                   endpoints =
-                       ()
+        CreateProjects keystoneUrl projectUuid regionIds ->
+            let
+                processError : String -> OuterModel -> ( OuterModel, Cmd OuterMsg )
+                processError error outerModel_ =
+                    State.Error.processStringError
+                        sharedModel
+                        (ErrorContext
+                            "Create projects"
+                            ErrorCrit
+                            Nothing
+                        )
+                        error
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel_
+            in
+            case
+                ( sharedModel.unscopedProviders
+                    |> List.Extra.find (\p -> p.authUrl == keystoneUrl)
+                , List.Extra.find
+                    (\token -> token.project.uuid == projectUuid)
+                    sharedModel.scopedAuthTokensWaitingRegionSelection
+                )
+            of
+                ( Just provider, Just authToken ) ->
+                    case GetterSetters.unscopedProjectLookup provider projectUuid of
+                        Just unscopedProject ->
+                            let
+                                attemptToCreateProject region outerModel_ =
+                                    case Helpers.serviceCatalogToEndpoints authToken.catalog (Just region.id) of
+                                        Ok endpoints ->
+                                            createProject outerModel_ unscopedProject.description authToken region endpoints
 
-                   newProjects =
-                       ()
-               in
-               ( outerModel, Cmd.none )
-        -}
+                                        -- TODO remove auth token from sharedModel.scopedAuthTokensWaitingRegionSelection, now that we no longer need it
+                                        Err e ->
+                                            processError e outerModel_
+                            in
+                            regionIds
+                                |> List.filterMap (GetterSetters.unscopedRegionLookup provider)
+                                |> List.map attemptToCreateProject
+                                |> List.foldl pipelineCmdOuterModelMsg ( outerModel, Cmd.none )
+
+                        Nothing ->
+                            processError "Unable to look up project" outerModel
+
+                ( _, Nothing ) ->
+                    processError "Unable to look up auth token" outerModel
+
+                ( Nothing, _ ) ->
+                    processError "Unable to look up unscoped provider" outerModel
+
         ReceiveUnscopedAuthToken keystoneUrl ( metadata, response ) ->
             case Rest.Keystone.decodeUnscopedAuthToken <| Http.GoodStatus_ metadata response of
                 Err error ->

@@ -35,6 +35,7 @@ module Helpers.GetterSetters exposing
     , sortedFlavors
     , unscopedProjectLookup
     , unscopedProviderLookup
+    , unscopedRegionLookup
     , volDeviceToMountpoint
     , volumeDeviceRawName
     , volumeIsAttachedToServer
@@ -71,6 +72,13 @@ unscopedProjectLookup provider projectUuid =
     provider.projectsAvailable
         |> RemoteData.withDefault []
         |> List.Extra.find (\project -> project.project.uuid == projectUuid)
+
+
+unscopedRegionLookup : HelperTypes.UnscopedProvider -> OSTypes.RegionId -> Maybe OSTypes.Region
+unscopedRegionLookup provider regionId =
+    provider.regionsAvailable
+        |> RemoteData.withDefault []
+        |> List.Extra.find (\region -> region.id == regionId)
 
 
 serverLookup : Project -> OSTypes.ServerUuid -> Maybe Server
@@ -139,6 +147,7 @@ getCatalogRegionIds catalog =
     catalog
         |> List.concatMap .endpoints
         |> List.map .regionId
+        |> List.Extra.unique
 
 
 getServicePublicUrl : OSTypes.ServiceCatalog -> Maybe OSTypes.RegionId -> String -> Maybe HelperTypes.Url
