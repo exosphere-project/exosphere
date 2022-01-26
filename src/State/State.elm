@@ -2411,7 +2411,6 @@ removeUnscopedProject keystoneUrl projectUuid outerModel =
 
 createProject : OSTypes.KeystoneUrl -> OSTypes.ScopedAuthToken -> OSTypes.RegionId -> OuterModel -> ( OuterModel, Cmd OuterMsg )
 createProject keystoneUrl token regionId outerModel =
-    -- TODO ensure we aren't creating a project with a duplicate ProjectIdentifier.. if we are, just update auth token for existing project in the model
     let
         processError : String -> ( OuterModel, Cmd OuterMsg )
         processError error =
@@ -2484,8 +2483,8 @@ createProject_ outerModel description authToken region endpoints =
             , networkQuota = RemoteData.NotAsked
             }
 
-        newProjects =
-            newProject :: outerModel.sharedModel.projects
+        newSharedModel =
+            GetterSetters.modelUpdateProject outerModel.sharedModel newProject
 
         newViewStateCmd =
             -- If the user is selecting projects from an unscoped provider then don't interrupt them
@@ -2498,10 +2497,8 @@ createProject_ outerModel description authToken region endpoints =
                     Route.pushUrl sharedModel.viewContext <|
                         Route.Home
 
-        ( newSharedModel, newCmd ) =
-            ( { sharedModel
-                | projects = newProjects
-              }
+        ( newNewSharedModel, newCmd ) =
+            ( newSharedModel
             , [ Rest.Nova.requestServers
               , Rest.Neutron.requestSecurityGroups
               , Rest.Keystone.requestAppCredential sharedModel.clientUuid sharedModel.clientCurrentTime
@@ -2516,7 +2513,7 @@ createProject_ outerModel description authToken region endpoints =
                 |> Helpers.pipelineCmd
                     (ApiModelHelpers.requestPorts (GetterSetters.projectIdentifier newProject))
     in
-    ( { outerModel | sharedModel = newSharedModel }
+    ( { outerModel | sharedModel = newNewSharedModel }
     , Cmd.batch [ newViewStateCmd, Cmd.map SharedMsg newCmd ]
     )
 
