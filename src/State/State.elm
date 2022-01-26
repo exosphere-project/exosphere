@@ -722,13 +722,13 @@ processSharedMsg sharedMsg outerModel =
                             -- user to choose regions for next unscoped project
                             ( outerModel_
                             , Route.pushUrl
-                                viewContext
+                                outerModel_.sharedModel.viewContext
                                 (Route.SelectProjectRegions keystoneUrl nextUnscopedProject.project.uuid)
                             )
 
                         Nothing ->
                             -- no more unscoped projects to choose regions for, go to home page
-                            ( outerModel_, Route.pushUrl viewContext Route.Home )
+                            ( outerModel_, Route.pushUrl outerModel_.sharedModel.viewContext Route.Home )
                                 |> pipelineCmdOuterModelMsg (removeScopedAuthTokenWaitingRegionSelection projectUuid)
             in
             case
