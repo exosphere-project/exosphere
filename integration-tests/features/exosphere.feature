@@ -37,7 +37,7 @@ Feature: Text presence
         And I should not see the unique instance name within 30 seconds
         When I click the "Create" button
         And I click the "Instance" button
-        Then the browser's URL should contain "/projects/285529556e524028aae29f9c8b0f8017/region/RegionOne/instancesource"
+        Then the browser's URL should contain "/projects/285529556e524028aae29f9c8b0f8017/regions/RegionOne/instancesource"
         And I should see "Images loading..."
         And I should see an element with xpath "//h2[contains(string(),'Choose an Instance Source')]" within 120 seconds
         When I click the "20.04 (latest)" button
@@ -53,7 +53,7 @@ Feature: Text presence
         Then I should see an element with xpath "//h3[contains(string(),'Instances')]" within 5 seconds
         When I press the last element with xpath "//h3[contains(string(),'Instances')]"
         Then I should see the unique instance name within 5 seconds
-        And the browser's URL should contain "/projects/285529556e524028aae29f9c8b0f8017/region/RegionOne/servers"
+        And the browser's URL should contain "/projects/285529556e524028aae29f9c8b0f8017/regions/RegionOne/servers"
         When I press on the unique instance name
         Then I should see an element with xpath "//h2[contains(string(),'Instance')]" within 2 seconds
         And I should see an element with xpath "//div[contains(string(),'Building')]" within 10 seconds

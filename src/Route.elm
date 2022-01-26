@@ -146,7 +146,7 @@ toUrl maybePathPrefix route =
                           ]
                         , case projectIdentifier.regionId of
                             Just regionId ->
-                                [ "region", regionId ]
+                                [ "regions", regionId ]
 
                             Nothing ->
                                 []
@@ -525,7 +525,7 @@ pathParsers defaultRoute_ =
                 }
                 projectRoute
         )
-        (s "projects" </> string </> s "region" </> string </> oneOf projectRouteParsers)
+        (s "projects" </> string </> s "regions" </> string </> oneOf projectRouteParsers)
     , map
         (\uuid projectRoute ->
             ProjectRoute
