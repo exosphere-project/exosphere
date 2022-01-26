@@ -49,8 +49,8 @@ type NonProjectViewConstructor
     | LoginPicker
     | MessageLog Page.MessageLog.Model
     | PageNotFound
-    | SelectProjects Page.SelectProjects.Model
     | SelectProjectRegions Page.SelectProjectRegions.Model
+    | SelectProjects Page.SelectProjects.Model
     | Settings Page.Settings.Model
 
 

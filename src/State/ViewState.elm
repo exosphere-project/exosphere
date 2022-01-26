@@ -404,14 +404,14 @@ routeToViewStateModelCmd sharedModel route =
                     -- Default view for non-matching project
                     ( NonProjectView <| LoginPicker, sharedModel, Cmd.none )
 
-        Route.SelectProjects keystoneUrl ->
-            ( NonProjectView <| SelectProjects <| Page.SelectProjects.init keystoneUrl
+        Route.SelectProjectRegions keystoneUrl projectUuid ->
+            ( NonProjectView <| SelectProjectRegions <| Page.SelectProjectRegions.init keystoneUrl projectUuid
             , sharedModel
             , Cmd.none
             )
 
-        Route.SelectProjectRegions keystoneUrl projectUuid ->
-            ( NonProjectView <| SelectProjectRegions <| Page.SelectProjectRegions.init keystoneUrl projectUuid
+        Route.SelectProjects keystoneUrl ->
+            ( NonProjectView <| SelectProjects <| Page.SelectProjects.init keystoneUrl
             , sharedModel
             , Cmd.none
             )

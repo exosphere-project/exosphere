@@ -163,13 +163,13 @@ elementView windowSize outerModel context =
                             PageNotFound ->
                                 Element.text "Error: page not found. Perhaps you are trying to reach an invalid URL."
 
-                            SelectProjects pageModel ->
-                                Page.SelectProjects.view context outerModel.sharedModel pageModel
-                                    |> Element.map SelectProjectsMsg
-
                             SelectProjectRegions pageModel ->
                                 Page.SelectProjectRegions.view context outerModel.sharedModel pageModel
                                     |> Element.map SelectProjectRegionsMsg
+
+                            SelectProjects pageModel ->
+                                Page.SelectProjects.view context outerModel.sharedModel pageModel
+                                    |> Element.map SelectProjectsMsg
 
                             Settings pageModel ->
                                 Page.Settings.view context outerModel.sharedModel pageModel

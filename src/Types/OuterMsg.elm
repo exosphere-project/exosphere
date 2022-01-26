@@ -41,8 +41,8 @@ type OuterMsg
     | LoginOpenstackMsg Page.LoginOpenstack.Msg
     | LoginPickerMsg Page.LoginPicker.Msg
     | MessageLogMsg Page.MessageLog.Msg
-    | SelectProjectsMsg Page.SelectProjects.Msg
     | SelectProjectRegionsMsg Page.SelectProjectRegions.Msg
+    | SelectProjectsMsg Page.SelectProjects.Msg
     | SettingsMsg Page.Settings.Msg
     | VolumeAttachMsg Page.VolumeAttach.Msg
     | VolumeCreateMsg Page.VolumeCreate.Msg

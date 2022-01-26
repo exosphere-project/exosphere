@@ -237,19 +237,6 @@ updateUnderlying outerMsg outerModel =
                 |> pipelineCmdOuterModelMsg
                     (processSharedMsg sharedMsg)
 
-        ( SelectProjectsMsg pageMsg, NonProjectView (SelectProjects pageModel) ) ->
-            let
-                ( newPageModel, cmd, sharedMsg ) =
-                    Page.SelectProjects.update pageMsg sharedModel pageModel
-            in
-            ( { outerModel
-                | viewState = NonProjectView <| SelectProjects newPageModel
-              }
-            , Cmd.map SelectProjectsMsg cmd
-            )
-                |> pipelineCmdOuterModelMsg
-                    (processSharedMsg sharedMsg)
-
         ( SelectProjectRegionsMsg pageMsg, NonProjectView (SelectProjectRegions pageModel) ) ->
             let
                 ( newPageModel, cmd, sharedMsg ) =
@@ -259,6 +246,19 @@ updateUnderlying outerMsg outerModel =
                 | viewState = NonProjectView <| SelectProjectRegions newPageModel
               }
             , Cmd.map SelectProjectRegionsMsg cmd
+            )
+                |> pipelineCmdOuterModelMsg
+                    (processSharedMsg sharedMsg)
+
+        ( SelectProjectsMsg pageMsg, NonProjectView (SelectProjects pageModel) ) ->
+            let
+                ( newPageModel, cmd, sharedMsg ) =
+                    Page.SelectProjects.update pageMsg sharedModel pageModel
+            in
+            ( { outerModel
+                | viewState = NonProjectView <| SelectProjects newPageModel
+              }
+            , Cmd.map SelectProjectsMsg cmd
             )
                 |> pipelineCmdOuterModelMsg
                     (processSharedMsg sharedMsg)

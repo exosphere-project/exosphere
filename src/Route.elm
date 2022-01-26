@@ -43,8 +43,8 @@ type Route
     | MessageLog Bool
     | PageNotFound
     | ProjectRoute HelperTypes.ProjectIdentifier ProjectRouteConstructor
-    | SelectProjects OSTypes.KeystoneUrl
     | SelectProjectRegions OSTypes.KeystoneUrl OSTypes.ProjectUuid
+    | SelectProjects OSTypes.KeystoneUrl
     | Settings
 
 
@@ -308,18 +308,18 @@ toUrl maybePathPrefix route =
             in
             buildUrlFunc (projectIdentifierPath ++ projectSpecificPath) projectSpecificQuery
 
-        SelectProjects keystoneUrl ->
-            buildUrlFunc
-                [ "selectprojs"
-                ]
-                [ UB.string "keystoneurl" keystoneUrl
-                ]
-
         SelectProjectRegions keystoneUrl projectUuid ->
             buildUrlFunc
                 [ "selectprojectregions" ]
                 [ UB.string "keystoneurl" keystoneUrl
                 , UB.string "projectuuid" projectUuid
+                ]
+
+        SelectProjects keystoneUrl ->
+            buildUrlFunc
+                [ "selectprojs"
+                ]
+                [ UB.string "keystoneurl" keystoneUrl
                 ]
 
         Settings ->
@@ -483,16 +483,6 @@ pathParsers defaultRoute_ =
         )
         (s "auth" </> s "oidc-login" <?> Query.string "token")
     , map
-        (\maybeKeystoneUrl ->
-            case maybeKeystoneUrl of
-                Just keystoneUrl ->
-                    SelectProjects keystoneUrl
-
-                Nothing ->
-                    PageNotFound
-        )
-        (s "selectprojs" <?> Query.string "keystoneurl")
-    , map
         (\maybeKeystoneUrl maybeProjectUuid ->
             case ( maybeKeystoneUrl, maybeProjectUuid ) of
                 ( Just keystoneUrl, Just projectUuid ) ->
@@ -502,6 +492,16 @@ pathParsers defaultRoute_ =
                     PageNotFound
         )
         (s "selectprojectregions" <?> Query.string "keystoneurl" <?> Query.string "projectuuid")
+    , map
+        (\maybeKeystoneUrl ->
+            case maybeKeystoneUrl of
+                Just keystoneUrl ->
+                    SelectProjects keystoneUrl
+
+                Nothing ->
+                    PageNotFound
+        )
+        (s "selectprojs" <?> Query.string "keystoneurl")
     , map
         (\maybeShowDebugMsgs -> MessageLog (maybeShowDebugMsgs == Just "true"))
         (s "msglog" <?> Query.string "showdebug")
