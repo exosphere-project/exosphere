@@ -600,7 +600,7 @@ processSharedMsg sharedMsg outerModel =
             ( outerModel, Cmd.batch cmds )
                 |> mapToOuterMsg
 
-        ReceiveProjectScopedToken keystoneUrl projectDescription ( metadata, response ) ->
+        ReceiveProjectScopedToken keystoneUrl ( metadata, response ) ->
             case Rest.Keystone.decodeScopedAuthToken <| Http.GoodStatus_ metadata response of
                 Err error ->
                     State.Error.processStringError
