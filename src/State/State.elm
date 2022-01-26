@@ -798,7 +798,20 @@ processSharedMsg sharedMsg outerModel =
                             List.map buildLoginRequest unscopedProjects
                                 |> Cmd.batch
 
-                        -- Remove unscoped provider from model now that we have selected projects from it
+                        selectedProjectUuids =
+                            List.map (\p -> p.project.uuid) unscopedProjects
+
+                        notSelectedProjectUuids =
+                            unscopedProjects
+                                |> List.map (\p -> p.project.uuid)
+                                |> List.filter (\uuid -> not (List.member uuid selectedProjectUuids))
+
+                        removeNotSelectedUnscopedProjects : OuterModel -> ( OuterModel, Cmd OuterMsg )
+                        removeNotSelectedUnscopedProjects outerModel_ =
+                            notSelectedProjectUuids
+                                |> List.map (removeUnscopedProject keystoneUrl)
+                                |> List.foldl pipelineCmdOuterModelMsg ( outerModel_, Cmd.none )
+
                         -- TODO move this logic to after we create a project
                         {-
                               newUnscopedProviders =
@@ -833,6 +846,7 @@ processSharedMsg sharedMsg outerModel =
                     ( outerModel
                     , Cmd.map SharedMsg loginRequests
                     )
+                        |> pipelineCmdOuterModelMsg removeNotSelectedUnscopedProjects
 
                 Nothing ->
                     State.Error.processStringError
