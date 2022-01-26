@@ -553,7 +553,6 @@ view context project model =
             , countPicker context model computeQuota volumeQuota flavor
             , desktopEnvironmentPicker context project model
             , customWorkflowInput context model
-            , clusterInput context model
             , Element.column
                 [ Element.spacing 24 ]
               <|
