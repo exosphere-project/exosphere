@@ -37,7 +37,6 @@ import Page.VolumeMountInstructions
 import Ports
 import RemoteData
 import Rest.ApiModelHelpers as ApiModelHelpers
-import Rest.Glance
 import Rest.Keystone
 import Rest.Nova
 import Route
