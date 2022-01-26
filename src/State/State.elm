@@ -654,13 +654,36 @@ processSharedMsg sharedMsg outerModel =
 
                                         [ singleRegionId ] ->
                                             -- Only one region in the catalog so create the project right now
-                                            -- TODO send user to home page unless there are unscoped providers remaining to choose projects for
+                                            let
+                                                navigateToCorrectPage : OuterModel -> ( OuterModel, Cmd OuterMsg )
+                                                navigateToCorrectPage outerModel__ =
+                                                    -- send user to Home page, except if there are unscoped providers remaining to choose projects for, then send user to SelectProjects page
+                                                    -- This can likely go away after Jetstream1 is decommissioned.
+                                                    case outerModel__.sharedModel.unscopedProviders of
+                                                        [] ->
+                                                            ( outerModel__
+                                                            , case outerModel__.viewState of
+                                                                NonProjectView (Home _) ->
+                                                                    Cmd.none
+
+                                                                _ ->
+                                                                    Route.pushUrl outerModel__.sharedModel.viewContext Route.Home
+                                                            )
+
+                                                        firstUnscopedProvider :: _ ->
+                                                            ( outerModel__
+                                                            , Route.pushUrl
+                                                                outerModel__.sharedModel.viewContext
+                                                                (Route.SelectProjects firstUnscopedProvider.authUrl)
+                                                            )
+                                            in
                                             createProject keystoneUrl authToken singleRegionId outerModel_
                                                 |> pipelineCmdOuterModelMsg
                                                     (removeUnscopedProject
                                                         keystoneUrl
                                                         unscopedProject.project.uuid
                                                     )
+                                                |> pipelineCmdOuterModelMsg navigateToCorrectPage
 
                                         _ ->
                                             -- Multiple regions, ask the user to choose from among them
