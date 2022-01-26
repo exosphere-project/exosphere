@@ -654,7 +654,7 @@ processSharedMsg sharedMsg outerModel =
 
                                         [ singleRegionId ] ->
                                             -- Only one region in the catalog so create the project right now
-                                            -- TODO send user to home page
+                                            -- TODO send user to home page unless there are unscoped providers remaining to choose projects for
                                             createProject keystoneUrl authToken singleRegionId outerModel_
                                                 |> pipelineCmdOuterModelMsg
                                                     (removeUnscopedProject
@@ -811,37 +811,6 @@ processSharedMsg sharedMsg outerModel =
                             notSelectedProjectUuids
                                 |> List.map (removeUnscopedProject keystoneUrl)
                                 |> List.foldl pipelineCmdOuterModelMsg ( outerModel_, Cmd.none )
-
-                        -- TODO move this logic to after we create a project
-                        {-
-                              newUnscopedProviders =
-                                  List.filter
-                                      (\p -> p.authUrl /= keystoneUrl)
-                                      sharedModel.unscopedProviders
-                               -- If we still have at least one unscoped provider in the model then ask the user to choose projects from it
-                               newViewStateCmd =
-                                   case List.head newUnscopedProviders of
-                                       Just unscopedProvider ->
-                                           Route.pushUrl viewContext (Route.SelectProjects unscopedProvider.authUrl)
-
-                                       Nothing ->
-                                           -- If we have at least one project then show it, else show the login page
-                                           case List.head sharedModel.projects of
-                                               Just project ->
-                                                   Route.pushUrl viewContext <|
-                                                       Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
-                                                           Route.ProjectOverview
-
-                                               Nothing ->
-                                                   Route.pushUrl viewContext Route.LoginPicker
-
-                               sharedModelUpdatedUnscopedProviders =
-                                   { sharedModel | unscopedProviders = newUnscopedProviders }
-                           in
-                           ( { outerModel | sharedModel = sharedModelUpdatedUnscopedProviders }
-                           , Cmd.batch [ Cmd.map SharedMsg loginRequests, newViewStateCmd ]
-                           )
-                        -}
                     in
                     ( outerModel
                     , Cmd.map SharedMsg loginRequests
