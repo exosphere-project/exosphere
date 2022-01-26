@@ -254,15 +254,21 @@ imageTileContents context project =
     let
         renderImage : OSTypes.Image -> List (Element.Element Msg)
         renderImage image =
-            [ Element.el [ Element.centerY ] (Element.text image.name)
-            , Element.el
-                [ Element.centerY
-                , Element.width Element.fill
-                , Element.htmlAttribute <| Html.Attributes.style "min-width" "0"
-                , Font.family [ Font.monospace ]
-                , Font.size 14
-                ]
-                (VH.ellipsizedText (OSTypes.imageVisibilityToString image.visibility))
+            [ VH.possiblyUntitledResource image.name context.localization.staticRepresentationOfBlockDeviceContents
+                |> VH.ellipsizedText
+                |> Element.el
+                    [ Element.centerY
+                    , Element.width Element.fill
+                    , Element.htmlAttribute <| Html.Attributes.style "min-width" "0"
+                    ]
+            , OSTypes.imageVisibilityToString image.visibility
+                |> Element.text
+                |> Element.el
+                    [ Element.centerY
+                    , context.palette.muted
+                        |> SH.toElementColor
+                        |> Font.color
+                    ]
             ]
     in
     tileContents
