@@ -1141,7 +1141,7 @@ processProjectSpecificMsg outerModel project msg =
         RemoveProject ->
             let
                 newProjects =
-                    List.filter (\p -> p.auth.project.uuid /= project.auth.project.uuid) sharedModel.projects
+                    List.filter (\p -> p.auth.project.uuid /= project.auth.project.uuid || p.region /= project.region) sharedModel.projects
 
                 newOuterModel =
                     { outerModel | sharedModel = { sharedModel | projects = newProjects } }
