@@ -341,53 +341,57 @@ view context project model =
                             Element.text "Private"
                     }
                 ]
-    in
-    Element.column VH.contentContainer
-        [ Input.text (VH.inputItemAttributes context.palette.background)
-            { text = model.searchText
-            , placeholder = Just (Input.placeholder [] (Element.text "try \"Ubuntu\""))
-            , onChange = GotSearchText
-            , label =
-                Input.labelAbove []
-                    (Element.text <|
-                        String.join " "
-                            [ "Filter on"
-                            , context.localization.staticRepresentationOfBlockDeviceContents
-                            , "name:"
-                            ]
-                    )
-            }
-        , visibilityFilters
-        , tagsView
-        , Input.checkbox []
-            { checked = model.onlyOwnImages
-            , onChange = GotOnlyOwnImages
-            , icon = Input.defaultCheckbox
-            , label =
-                Input.labelRight [] <|
-                    Element.text <|
-                        String.join
-                            " "
-                            [ "Show only"
-                            , context.localization.staticRepresentationOfBlockDeviceContents
-                                |> Helpers.String.pluralize
-                            , "owned by this"
-                            , context.localization.unitOfTenancy
-                            ]
-            }
-        , Widget.textButton
-            (SH.materialStyle context.palette).button
-            { text = "Clear filters (show all)"
-            , onPress = Just GotClearFilters
-            }
-        , if noMatchWarning then
-            Element.text "No matches found. Broaden your search terms, or clear the search filter."
 
-          else
-            Element.none
-        , List.map (renderImage context project model) combinedImages
-            |> imagesColumnView
-        ]
+        loadedView : List OSTypes.Image -> Element.Element Msg
+        loadedView _ =
+            Element.column VH.contentContainer
+                [ Input.text (VH.inputItemAttributes context.palette.background)
+                    { text = model.searchText
+                    , placeholder = Just (Input.placeholder [] (Element.text "try \"Ubuntu\""))
+                    , onChange = GotSearchText
+                    , label =
+                        Input.labelAbove []
+                            (Element.text <|
+                                String.join " "
+                                    [ "Filter on"
+                                    , context.localization.staticRepresentationOfBlockDeviceContents
+                                    , "name:"
+                                    ]
+                            )
+                    }
+                , visibilityFilters
+                , tagsView
+                , Input.checkbox []
+                    { checked = model.onlyOwnImages
+                    , onChange = GotOnlyOwnImages
+                    , icon = Input.defaultCheckbox
+                    , label =
+                        Input.labelRight [] <|
+                            Element.text <|
+                                String.join
+                                    " "
+                                    [ "Show only"
+                                    , context.localization.staticRepresentationOfBlockDeviceContents
+                                        |> Helpers.String.pluralize
+                                    , "owned by this"
+                                    , context.localization.unitOfTenancy
+                                    ]
+                    }
+                , Widget.textButton
+                    (SH.materialStyle context.palette).button
+                    { text = "Clear filters (show all)"
+                    , onPress = Just GotClearFilters
+                    }
+                , if noMatchWarning then
+                    Element.text "No matches found. Broaden your search terms, or clear the search filter."
+
+                  else
+                    Element.none
+                , List.map (renderImage context project model) combinedImages
+                    |> imagesColumnView
+                ]
+    in
+    VH.renderRDPP context project.images (Helpers.String.pluralize context.localization.staticRepresentationOfBlockDeviceContents) loadedView
 
 
 renderImage : View.Types.Context -> Project -> Model -> OSTypes.Image -> Element.Element Msg
