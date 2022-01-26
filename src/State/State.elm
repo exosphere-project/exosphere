@@ -671,7 +671,11 @@ processSharedMsg sharedMsg outerModel =
                                                 newModel =
                                                     { sharedModel | scopedAuthTokensWaitingRegionSelection = newUnscopedTokens }
                                             in
-                                            ( newModel, Route.pushUrl viewContext (Route.SelectProjectRegions keystoneUrl authToken.project.uuid) )
+                                            ( newModel
+                                            , Route.pushUrl
+                                                viewContext
+                                                (Route.SelectProjectRegions keystoneUrl authToken.project.uuid)
+                                            )
                                                 |> mapToOuterMsg
                                                 |> mapToOuterModel outerModel_
                     in
@@ -680,6 +684,10 @@ processSharedMsg sharedMsg outerModel =
                         |> pipelineCmdOuterModelMsg handleCaseOfNewProject
 
         CreateProjects keystoneUrl projectUuid regionIds ->
+            let
+                toHomePageCmd =
+                    Route.pushUrl viewContext Route.Home
+            in
             case
                 List.Extra.find
                     (\token -> token.project.uuid == projectUuid)
@@ -688,7 +696,7 @@ processSharedMsg sharedMsg outerModel =
                 Just authToken ->
                     regionIds
                         |> List.map (createProject keystoneUrl authToken)
-                        |> List.foldl pipelineCmdOuterModelMsg ( outerModel, Cmd.none )
+                        |> List.foldl pipelineCmdOuterModelMsg ( outerModel, toHomePageCmd )
                         |> pipelineCmdOuterModelMsg (removeUnscopedProject keystoneUrl projectUuid)
                         |> pipelineCmdOuterModelMsg (removeScopedAuthTokenWaitingRegionSelection projectUuid)
 
