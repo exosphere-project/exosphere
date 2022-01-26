@@ -654,6 +654,7 @@ processSharedMsg sharedMsg outerModel =
 
                                         [ singleRegionId ] ->
                                             -- Only one region in the catalog so create the project right now
+                                            -- TODO send user to home page
                                             createProject keystoneUrl authToken singleRegionId outerModel_
                                                 |> pipelineCmdOuterModelMsg
                                                     (removeUnscopedProject
@@ -2368,8 +2369,25 @@ removeUnscopedProject keystoneUrl projectUuid outerModel =
                         newUnscopedProvider =
                             { unscopedProvider | projectsAvailable = newProjectsAvailable }
 
+                        oldSharedModel =
+                            outerModel.sharedModel
+
                         newSharedModel =
-                            GetterSetters.modelUpdateUnscopedProvider outerModel.sharedModel newUnscopedProvider
+                            -- Remove unscoped provider if there are no projects left in it
+                            if
+                                newUnscopedProvider.projectsAvailable
+                                    |> RemoteData.withDefault []
+                                    |> List.isEmpty
+                            then
+                                { oldSharedModel
+                                    | unscopedProviders =
+                                        List.filter
+                                            (\p -> p.authUrl /= unscopedProvider.authUrl)
+                                            outerModel.sharedModel.unscopedProviders
+                                }
+
+                            else
+                                GetterSetters.modelUpdateUnscopedProvider oldSharedModel newUnscopedProvider
                     in
                     ( { outerModel | sharedModel = newSharedModel }, Cmd.none )
 
