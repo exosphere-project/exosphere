@@ -708,8 +708,28 @@ processSharedMsg sharedMsg outerModel =
 
         CreateProjects keystoneUrl projectUuid regionIds ->
             let
-                toHomePageCmd =
-                    Route.pushUrl viewContext Route.Home
+                dealWithNextProject : OuterModel -> ( OuterModel, Cmd OuterMsg )
+                dealWithNextProject outerModel_ =
+                    let
+                        maybeNextUnscopedProject =
+                            GetterSetters.unscopedProviderLookup outerModel_.sharedModel keystoneUrl
+                                |> Maybe.map .projectsAvailable
+                                |> Maybe.map (RemoteData.withDefault [])
+                                |> Maybe.andThen List.head
+                    in
+                    case maybeNextUnscopedProject of
+                        Just nextUnscopedProject ->
+                            -- user to choose regions for next unscoped project
+                            ( outerModel_
+                            , Route.pushUrl
+                                viewContext
+                                (Route.SelectProjectRegions keystoneUrl nextUnscopedProject.project.uuid)
+                            )
+
+                        Nothing ->
+                            -- no more unscoped projects to choose regions for, go to home page
+                            ( outerModel_, Route.pushUrl viewContext Route.Home )
+                                |> pipelineCmdOuterModelMsg (removeScopedAuthTokenWaitingRegionSelection projectUuid)
             in
             case
                 List.Extra.find
@@ -719,9 +739,9 @@ processSharedMsg sharedMsg outerModel =
                 Just authToken ->
                     regionIds
                         |> List.map (createProject keystoneUrl authToken)
-                        |> List.foldl pipelineCmdOuterModelMsg ( outerModel, toHomePageCmd )
+                        |> List.foldl pipelineCmdOuterModelMsg ( outerModel, Cmd.none )
                         |> pipelineCmdOuterModelMsg (removeUnscopedProject keystoneUrl projectUuid)
-                        |> pipelineCmdOuterModelMsg (removeScopedAuthTokenWaitingRegionSelection projectUuid)
+                        |> pipelineCmdOuterModelMsg dealWithNextProject
 
                 Nothing ->
                     -- Could not find auth token, nothing to do
@@ -2487,17 +2507,6 @@ createProject_ outerModel description authToken region endpoints =
         newSharedModel =
             GetterSetters.modelUpdateProject outerModel.sharedModel newProject
 
-        newViewStateCmd =
-            -- If the user is selecting projects from an unscoped provider then don't interrupt them
-            case outerModel.viewState of
-                NonProjectView (SelectProjects _) ->
-                    Cmd.none
-
-                -- Otherwise take them to home page
-                _ ->
-                    Route.pushUrl sharedModel.viewContext <|
-                        Route.Home
-
         ( newNewSharedModel, newCmd ) =
             ( newSharedModel
             , [ Rest.Nova.requestServers
@@ -2515,7 +2524,7 @@ createProject_ outerModel description authToken region endpoints =
                     (ApiModelHelpers.requestPorts (GetterSetters.projectIdentifier newProject))
     in
     ( { outerModel | sharedModel = newNewSharedModel }
-    , Cmd.batch [ newViewStateCmd, Cmd.map SharedMsg newCmd ]
+    , Cmd.map SharedMsg newCmd
     )
 
 
