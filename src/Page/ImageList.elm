@@ -3,6 +3,7 @@ module Page.ImageList exposing (Model, Msg(..), init, update, view)
 import Element
 import Element.Font as Font
 import Element.Input as Input
+import FeatherIcons
 import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (Unit(..), humanNumber)
 import Helpers.GetterSetters as GetterSetters
@@ -31,6 +32,8 @@ type alias Model =
     , expandImageDetails : Set.Set OSTypes.ImageUuid
     , visibilityFilter : ImageListVisibilityFilter
     , deleteConfirmations : Set.Set DeleteConfirmation
+    , showDeleteButtons : Bool
+    , showHeading : Bool
     }
 
 
@@ -59,14 +62,16 @@ type Msg
     | NoOp
 
 
-init : Model
-init =
+init : Bool -> Bool -> Model
+init showDeleteButtons showHeading =
     { searchText = ""
     , tags = Set.empty
     , onlyOwnImages = False
     , expandImageDetails = Set.empty
     , visibilityFilter = ImageListVisibilityFilter True True True True
     , deleteConfirmations = Set.empty
+    , showDeleteButtons = showDeleteButtons
+    , showHeading = showHeading
     }
 
 
@@ -111,7 +116,7 @@ update msg project model =
             ( { model | visibilityFilter = filter }, Cmd.none, SharedMsg.NoOp )
 
         GotClearFilters ->
-            ( init, Cmd.none, SharedMsg.NoOp )
+            ( init model.showDeleteButtons model.showHeading, Cmd.none, SharedMsg.NoOp )
 
         GotDeleteNeedsConfirm imageId ->
             ( { model
@@ -345,7 +350,19 @@ view context project model =
         loadedView : List OSTypes.Image -> Element.Element Msg
         loadedView _ =
             Element.column VH.contentContainer
-                [ Input.text (VH.inputItemAttributes context.palette.background)
+                [ if model.showHeading then
+                    Element.row (VH.heading2 context.palette ++ [ Element.spacing 15 ])
+                        [ FeatherIcons.package |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
+                        , Element.text
+                            (context.localization.staticRepresentationOfBlockDeviceContents
+                                |> Helpers.String.pluralize
+                                |> Helpers.String.toTitleCase
+                            )
+                        ]
+
+                  else
+                    Element.none
+                , Input.text (VH.inputItemAttributes context.palette.background)
                     { text = model.searchText
                     , placeholder = Just (Input.placeholder [] (Element.text "try \"Ubuntu\""))
                     , onChange = GotSearchText
@@ -572,7 +589,11 @@ renderImage context project model image =
                     )
                 , Element.row [ Element.width Element.fill, Element.spacing 10 ]
                     [ chooseButton
-                    , Element.el [ Element.alignRight ] deleteButton
+                    , if model.showDeleteButtons then
+                        Element.el [ Element.alignRight ] deleteButton
+
+                      else
+                        Element.none
                     ]
                 ]
     in

@@ -257,7 +257,7 @@ routeToViewStateModelCmd sharedModel route =
                             )
 
                         Route.ImageList ->
-                            ( projectViewProto <| ImageList <| Page.ImageList.init
+                            ( projectViewProto <| ImageList <| Page.ImageList.init True True
                             , sharedModel
                             , Cmd.batch
                                 [ Rest.Glance.requestImages sharedModel project

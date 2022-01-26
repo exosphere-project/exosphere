@@ -29,7 +29,7 @@ type Msg
 
 init : Model
 init =
-    Model (Just 0) Page.ImageList.init
+    Model (Just 0) (Page.ImageList.init False False)
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
