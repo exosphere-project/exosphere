@@ -197,13 +197,30 @@ renderProject context project =
         cloudSpecificConfig =
             GetterSetters.cloudSpecificConfigLookup context.cloudSpecificConfigs project
 
-        ( friendlyName, friendlySubName ) =
-            case cloudSpecificConfig of
-                Nothing ->
-                    ( UrlHelpers.hostnameFromUrl project.endpoints.keystone, Nothing )
+        friendlyName =
+            let
+                cloudPart =
+                    case cloudSpecificConfig of
+                        Nothing ->
+                            UrlHelpers.hostnameFromUrl project.endpoints.keystone
 
-                Just config ->
-                    ( config.friendlyName, config.friendlySubName )
+                        Just config ->
+                            config.friendlyName
+
+                regionPart =
+                    project.region |> Maybe.map .id
+            in
+            cloudPart
+                ++ (case regionPart of
+                        Just regionId ->
+                            " " ++ regionId
+
+                        Nothing ->
+                            ""
+                   )
+
+        friendlySubName =
+            cloudSpecificConfig |> Maybe.andThen .friendlySubName
 
         renderCloudName =
             Element.wrappedRow
