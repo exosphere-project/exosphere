@@ -787,7 +787,7 @@ processSharedMsg sharedMsg outerModel =
                     -- Provider not found, may have been removed, nothing to do
                     ( outerModel, Cmd.none )
 
-        RequestProjectScopedToken keystoneUrl unscopedProjects ->
+        RequestProjectScopedToken keystoneUrl selectedUnscopedProjects ->
             case GetterSetters.providerLookup sharedModel keystoneUrl of
                 Just provider ->
                     let
@@ -803,14 +803,15 @@ processSharedMsg sharedMsg outerModel =
                                     project.project.uuid
 
                         loginRequests =
-                            List.map buildLoginRequest unscopedProjects
+                            List.map buildLoginRequest selectedUnscopedProjects
                                 |> Cmd.batch
 
                         selectedProjectUuids =
-                            List.map (\p -> p.project.uuid) unscopedProjects
+                            List.map (\p -> p.project.uuid) selectedUnscopedProjects
 
                         notSelectedProjectUuids =
-                            unscopedProjects
+                            provider.projectsAvailable
+                                |> RemoteData.withDefault []
                                 |> List.map (\p -> p.project.uuid)
                                 |> List.filter (\uuid -> not (List.member uuid selectedProjectUuids))
 
