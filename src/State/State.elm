@@ -2549,6 +2549,8 @@ createProject_ outerModel description authToken region endpoints =
                     (ApiModelHelpers.requestFloatingIps (GetterSetters.projectIdentifier newProject))
                 |> Helpers.pipelineCmd
                     (ApiModelHelpers.requestPorts (GetterSetters.projectIdentifier newProject))
+                |> Helpers.pipelineCmd
+                    (ApiModelHelpers.requestImages newProject.auth.project.uuid)
     in
     ( { outerModel | sharedModel = newNewSharedModel }
     , Cmd.map SharedMsg newCmd
