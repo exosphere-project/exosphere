@@ -29,7 +29,6 @@ module Helpers.GetterSetters exposing
     , projectSetVolumesLoading
     , projectUpdateKeypair
     , projectUpdateServer
-    , providerLookup
     , serverLookup
     , serverPresentNotDeleting
     , sortedFlavors
@@ -121,12 +120,6 @@ volumeLookup project volumeUuid =
     project.volumes
         |> RemoteData.withDefault []
         |> List.Extra.find (\v -> v.uuid == volumeUuid)
-
-
-providerLookup : SharedModel -> OSTypes.KeystoneUrl -> Maybe HelperTypes.UnscopedProvider
-providerLookup model keystoneUrl =
-    model.unscopedProviders
-        |> List.Extra.find (\uP -> uP.authUrl == keystoneUrl)
 
 
 floatingIpLookup : Project -> OSTypes.IpAddressUuid -> Maybe OSTypes.FloatingIp

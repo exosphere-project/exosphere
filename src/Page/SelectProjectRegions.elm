@@ -64,7 +64,7 @@ view context sharedModel model =
                 |> List.filter (\t -> t.project.uuid == model.projectUuid)
                 |> List.head
     in
-    case ( GetterSetters.providerLookup sharedModel model.providerKeystoneUrl, maybeScopedAuthToken ) of
+    case ( GetterSetters.unscopedProviderLookup sharedModel model.providerKeystoneUrl, maybeScopedAuthToken ) of
         ( Just provider, Just scopedAuthToken ) ->
             let
                 renderSuccessCase : List OSTypes.Region -> Element.Element Msg

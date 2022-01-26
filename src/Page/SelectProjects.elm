@@ -70,7 +70,7 @@ update msg sharedModel model =
 
 view : View.Types.Context -> SharedModel -> Model -> Element.Element Msg
 view context sharedModel model =
-    case GetterSetters.providerLookup sharedModel model.providerKeystoneUrl of
+    case GetterSetters.unscopedProviderLookup sharedModel model.providerKeystoneUrl of
         Just provider ->
             let
                 urlLabel =

@@ -763,7 +763,7 @@ processSharedMsg sharedMsg outerModel =
 
                 Ok authToken ->
                     case
-                        GetterSetters.providerLookup sharedModel keystoneUrl
+                        GetterSetters.unscopedProviderLookup sharedModel keystoneUrl
                     of
                         Just unscopedProvider ->
                             -- We already have an unscoped provider in the model with the same auth URL, update its token
@@ -782,7 +782,7 @@ processSharedMsg sharedMsg outerModel =
 
         ReceiveUnscopedProjects keystoneUrl unscopedProjects ->
             case
-                GetterSetters.providerLookup sharedModel keystoneUrl
+                GetterSetters.unscopedProviderLookup sharedModel keystoneUrl
             of
                 Just provider ->
                     let
@@ -811,7 +811,7 @@ processSharedMsg sharedMsg outerModel =
 
         ReceiveUnscopedRegions keystoneUrl unscopedRegions ->
             case
-                GetterSetters.providerLookup sharedModel keystoneUrl
+                GetterSetters.unscopedProviderLookup sharedModel keystoneUrl
             of
                 Just provider ->
                     let
@@ -831,7 +831,7 @@ processSharedMsg sharedMsg outerModel =
                     ( outerModel, Cmd.none )
 
         RequestProjectScopedToken keystoneUrl selectedUnscopedProjects ->
-            case GetterSetters.providerLookup sharedModel keystoneUrl of
+            case GetterSetters.unscopedProviderLookup sharedModel keystoneUrl of
                 Just provider ->
                     let
                         buildLoginRequest : UnscopedProviderProject -> Cmd SharedMsg
