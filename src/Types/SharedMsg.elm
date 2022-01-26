@@ -30,7 +30,7 @@ type SharedMsg
     | ReceiveUnscopedProjects OSTypes.KeystoneUrl (List HelperTypes.UnscopedProviderProject)
     | ReceiveUnscopedRegions OSTypes.KeystoneUrl (List HelperTypes.UnscopedProviderRegion)
     | RequestProjectScopedToken OSTypes.KeystoneUrl (List HelperTypes.UnscopedProviderProject)
-    | CreateProjects OSTypes.KeystoneUrl OSTypes.ProjectUuid (List OSTypes.RegionId)
+    | CreateProjectsFromRegionSelections OSTypes.KeystoneUrl OSTypes.ProjectUuid (List OSTypes.RegionId)
     | ProjectMsg HelperTypes.ProjectIdentifier ProjectSpecificMsgConstructor
     | OpenNewWindow String
     | LinkClicked Browser.UrlRequest

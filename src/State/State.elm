@@ -706,7 +706,7 @@ processSharedMsg sharedMsg outerModel =
                         |> pipelineCmdOuterModelMsg updateTokenForExistingProjects
                         |> pipelineCmdOuterModelMsg handleCaseOfNewProject
 
-        CreateProjects keystoneUrl projectUuid regionIds ->
+        CreateProjectsFromRegionSelections keystoneUrl projectUuid regionIds ->
             let
                 dealWithNextProject : OuterModel -> ( OuterModel, Cmd OuterMsg )
                 dealWithNextProject outerModel_ =

@@ -50,7 +50,7 @@ update msg _ model =
         GotSubmit ->
             ( model
             , Cmd.none
-            , SharedMsg.CreateProjects model.providerKeystoneUrl
+            , SharedMsg.CreateProjectsFromRegionSelections model.providerKeystoneUrl
                 model.projectUuid
                 (Set.toList model.selectedRegions)
             )
