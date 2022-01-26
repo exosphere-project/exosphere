@@ -642,7 +642,7 @@ processSharedMsg sharedMsg outerModel =
                                     case GetterSetters.getCatalogRegionIds authToken.catalog of
                                         [] ->
                                             State.Error.processStringError
-                                                sharedModel
+                                                outerModel_.sharedModel
                                                 (ErrorContext
                                                     "Get project regions"
                                                     ErrorCrit
@@ -696,7 +696,7 @@ processSharedMsg sharedMsg outerModel =
                                             in
                                             ( newModel
                                             , Route.pushUrl
-                                                viewContext
+                                                outerModel_.sharedModel.viewContext
                                                 (Route.SelectProjectRegions keystoneUrl authToken.project.uuid)
                                             )
                                                 |> mapToOuterMsg
@@ -2351,19 +2351,19 @@ processNewFloatingIp time project floatingIp =
 
 
 removeScopedAuthTokenWaitingRegionSelection : OSTypes.ProjectUuid -> OuterModel -> ( OuterModel, Cmd OuterMsg )
-removeScopedAuthTokenWaitingRegionSelection projectUuid outerModel_ =
+removeScopedAuthTokenWaitingRegionSelection projectUuid outerModel =
     let
         newScopedAuthTokensWaitingRegionSelection =
-            outerModel_.sharedModel.scopedAuthTokensWaitingRegionSelection
+            outerModel.sharedModel.scopedAuthTokensWaitingRegionSelection
                 |> List.filter (\t -> t.project.uuid /= projectUuid)
 
         oldSharedModel =
-            outerModel_.sharedModel
+            outerModel.sharedModel
 
         newSharedModel =
             { oldSharedModel | scopedAuthTokensWaitingRegionSelection = newScopedAuthTokensWaitingRegionSelection }
     in
-    ( { outerModel_ | sharedModel = newSharedModel }, Cmd.none )
+    ( { outerModel | sharedModel = newSharedModel }, Cmd.none )
 
 
 removeUnscopedProject : OSTypes.KeystoneUrl -> OSTypes.ProjectUuid -> OuterModel -> ( OuterModel, Cmd OuterMsg )
