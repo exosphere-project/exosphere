@@ -22,6 +22,7 @@ module Helpers.GetterSetters exposing
     , projectLookup
     , projectSetAutoAllocatedNetworkUuidLoading
     , projectSetFloatingIpsLoading
+    , projectSetImagesLoading
     , projectSetNetworksLoading
     , projectSetPortsLoading
     , projectSetServerLoading
@@ -494,6 +495,11 @@ projectSetPortsLoading project =
 projectSetAutoAllocatedNetworkUuidLoading : Project -> Project
 projectSetAutoAllocatedNetworkUuidLoading project =
     { project | autoAllocatedNetworkUuid = RDPP.setLoading project.autoAllocatedNetworkUuid }
+
+
+projectSetImagesLoading : Project -> Project
+projectSetImagesLoading project =
+    { project | images = RDPP.setLoading project.images }
 
 
 modelUpdateUnscopedProvider : SharedModel -> HelperTypes.UnscopedProvider -> SharedModel

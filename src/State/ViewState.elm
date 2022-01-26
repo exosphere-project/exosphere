@@ -210,7 +210,6 @@ routeToViewStateModelCmd sharedModel route =
                                     , Cmd.batch
                                         [ OSVolumes.requestVolumes project
                                         , Rest.Nova.requestKeypairs project
-                                        , Rest.Glance.requestImages sharedModel project
                                         , OSQuotas.requestComputeQuota project
                                         , OSQuotas.requestVolumeQuota project
                                         , OSQuotas.requestNetworkQuota project
@@ -221,6 +220,8 @@ routeToViewStateModelCmd sharedModel route =
                                             (ApiModelHelpers.requestFloatingIps (GetterSetters.projectIdentifier project))
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestServers (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestImages project.auth.project.uuid)
                             in
                             ( projectViewProto <| ProjectOverview <| Page.ProjectOverview.init
                             , newSharedModel
@@ -257,20 +258,25 @@ routeToViewStateModelCmd sharedModel route =
                             )
 
                         Route.ImageList ->
+                            let
+                                ( newSharedModel, newCmd ) =
+                                    ApiModelHelpers.requestImages project.auth.project.uuid sharedModel
+                            in
                             ( projectViewProto <| ImageList <| Page.ImageList.init True True
-                            , sharedModel
-                            , Cmd.batch
-                                [ Rest.Glance.requestImages sharedModel project
-                                ]
+                            , newSharedModel
+                            , newCmd
                             )
 
                         Route.InstanceSourcePicker ->
+                            let
+                                ( newSharedModel, newCmd ) =
+                                    ( sharedModel, Rest.Nova.requestFlavors project )
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestImages project.auth.project.uuid)
+                            in
                             ( projectViewProto <| InstanceSourcePicker <| Page.InstanceSourcePicker.init
-                            , sharedModel
-                            , Cmd.batch
-                                [ Rest.Glance.requestImages sharedModel project
-                                , Rest.Nova.requestFlavors project
-                                ]
+                            , newSharedModel
+                            , newCmd
                             )
 
                         Route.KeypairCreate ->
@@ -336,7 +342,6 @@ routeToViewStateModelCmd sharedModel route =
                                 cmd =
                                     Cmd.batch
                                         [ Rest.Nova.requestFlavors project
-                                        , Rest.Glance.requestImages sharedModel project
                                         , OSVolumes.requestVolumes project
                                         , Ports.instantiateClipboardJs ()
                                         ]
@@ -345,6 +350,8 @@ routeToViewStateModelCmd sharedModel route =
                                     ( newSharedModel, cmd )
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestServer (GetterSetters.projectIdentifier project) serverId)
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestImages project.auth.project.uuid)
                             in
                             ( projectViewProto <| ServerDetail (Page.ServerDetail.init serverId)
                             , newNewSharedModel

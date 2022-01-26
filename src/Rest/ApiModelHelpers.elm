@@ -2,6 +2,7 @@ module Rest.ApiModelHelpers exposing
     ( requestAutoAllocatedNetwork
     , requestComputeQuota
     , requestFloatingIps
+    , requestImages
     , requestNetworkQuota
     , requestNetworks
     , requestPorts
@@ -16,6 +17,7 @@ import OpenStack.Quotas
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes
 import RemoteData
+import Rest.Glance
 import Rest.Neutron
 import Rest.Nova
 import Types.HelperTypes exposing (ProjectIdentifier)
@@ -162,6 +164,20 @@ requestPorts projectUuid model =
             ( GetterSetters.projectSetPortsLoading project
                 |> GetterSetters.modelUpdateProject model
             , Rest.Neutron.requestPorts project
+            )
+
+        Nothing ->
+            ( model, Cmd.none )
+
+
+requestImages : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd SharedMsg )
+requestImages projectUuid model =
+    case GetterSetters.projectLookup model projectUuid of
+        Just project ->
+            ( project
+                |> GetterSetters.projectSetImagesLoading
+                |> GetterSetters.modelUpdateProject model
+            , Rest.Glance.requestImages model project
             )
 
         Nothing ->
