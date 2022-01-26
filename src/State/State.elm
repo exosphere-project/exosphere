@@ -838,7 +838,6 @@ processSharedMsg sharedMsg outerModel =
                         buildLoginRequest project =
                             Rest.Keystone.requestScopedAuthToken
                                 sharedModel.cloudCorsProxyUrl
-                                project.description
                             <|
                                 OSTypes.TokenCreds
                                     keystoneUrl

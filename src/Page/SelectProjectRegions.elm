@@ -7,7 +7,6 @@ import Helpers.String
 import OpenStack.Types as OSTypes
 import Set
 import Style.Helpers as SH
-import Types.HelperTypes exposing (UnscopedProviderProject)
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
@@ -33,7 +32,7 @@ init keystoneUrl projectUuid =
 
 
 update : Msg -> SharedModel -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
-update msg sharedModel model =
+update msg _ model =
     case msg of
         GotBoxChecked regionId checked ->
             let

@@ -8,7 +8,7 @@ import Helpers.Url as UrlHelpers
 import OpenStack.Types as OSTypes
 import Set
 import Style.Helpers as SH
-import Types.HelperTypes exposing (ProjectIdentifier, UnscopedProviderProject)
+import Types.HelperTypes exposing (UnscopedProviderProject)
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH

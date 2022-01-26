@@ -63,7 +63,9 @@ type alias Uuid =
 
 type alias ProjectIdentifier =
     -- We use this when referencing a Project in a Msg (or otherwise passing through the runtime)
-    { projectUuid : Uuid, regionId : Maybe OSTypes.RegionId }
+    { projectUuid : Uuid
+    , regionId : Maybe OSTypes.RegionId
+    }
 
 
 type alias Password =
