@@ -359,17 +359,29 @@ modelUpdateProject : SharedModel -> Project -> SharedModel
 modelUpdateProject model newProject =
     let
         otherProjects =
-            List.filter (\p -> p.auth.project.uuid /= newProject.auth.project.uuid) model.projects
+            List.filter (\p -> projectIdentifier p /= projectIdentifier newProject) model.projects
 
         newProjects =
             newProject :: otherProjects
+
+        newProjectsSortedByRegion =
+            List.sortBy
+                (\p ->
+                    case p.region of
+                        Nothing ->
+                            ""
+
+                        Just region ->
+                            region.id
+                )
+                newProjects
 
         newProjectsSorted =
             multiSortBy
                 [ \p -> UrlHelpers.hostnameFromUrl p.endpoints.keystone
                 , \p -> p.auth.project.name
                 ]
-                newProjects
+                newProjectsSortedByRegion
     in
     { model | projects = newProjectsSorted }
 
