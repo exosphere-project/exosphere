@@ -61,7 +61,13 @@ type Msg
 
 init : Model
 init =
-    Model "" Set.empty False Set.empty (ImageListVisibilityFilter True True True True) Set.empty
+    { searchText = ""
+    , tags = Set.empty
+    , onlyOwnImages = False
+    , expandImageDetails = Set.empty
+    , visibilityFilter = ImageListVisibilityFilter True True True True
+    , deleteConfirmations = Set.empty
+    }
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
