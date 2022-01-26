@@ -13,6 +13,7 @@ module View.Helpers exposing
     , externalLink
     , featuredImageNamePrefixLookup
     , formContainer
+    , friendlyCloudName
     , friendlyProjectTitle
     , getExoSetupStatusStr
     , getServerUiStatus
@@ -55,6 +56,7 @@ import Element.Font as Font
 import Element.Input
 import Element.Region as Region
 import FeatherIcons
+import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.Time exposing (humanReadableTime)
@@ -946,6 +948,38 @@ sortProjects projects =
     in
     projects
         |> List.sortWith projectComparator
+
+
+friendlyCloudName : View.Types.Context -> Project -> String
+friendlyCloudName context project =
+    let
+        cloudPart =
+            case GetterSetters.cloudSpecificConfigLookup context.cloudSpecificConfigs project of
+                Nothing ->
+                    UrlHelpers.hostnameFromUrl project.endpoints.keystone
+
+                Just cloudSpecificConfig ->
+                    cloudSpecificConfig.friendlyName
+                        -- TODO deprecate friendlySubName after Jetstream1 is decommissioned
+                        ++ (case cloudSpecificConfig.friendlySubName of
+                                Nothing ->
+                                    ""
+
+                                Just friendlySubName ->
+                                    " " ++ friendlySubName
+                           )
+
+        regionPart =
+            project.region |> Maybe.map .id
+    in
+    cloudPart
+        ++ (case regionPart of
+                Just regionId ->
+                    " " ++ regionId
+
+                Nothing ->
+                    ""
+           )
 
 
 friendlyProjectTitle : SharedModel -> Project -> String

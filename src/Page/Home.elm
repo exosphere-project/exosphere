@@ -191,36 +191,14 @@ renderProject context project =
                 [ Element.height (Element.px 25)
                 , Element.centerX
                 , Element.width Element.fill
+                , context.palette.muted
+                    |> SH.toElementColor
+                    |> Font.color
                 ]
                 (VH.ellipsizedText description)
 
-        cloudSpecificConfig =
-            GetterSetters.cloudSpecificConfigLookup context.cloudSpecificConfigs project
-
         friendlyName =
-            let
-                cloudPart =
-                    case cloudSpecificConfig of
-                        Nothing ->
-                            UrlHelpers.hostnameFromUrl project.endpoints.keystone
-
-                        Just config ->
-                            config.friendlyName
-
-                regionPart =
-                    project.region |> Maybe.map .id
-            in
-            cloudPart
-                ++ (case regionPart of
-                        Just regionId ->
-                            " " ++ regionId
-
-                        Nothing ->
-                            ""
-                   )
-
-        friendlySubName =
-            cloudSpecificConfig |> Maybe.andThen .friendlySubName
+            VH.friendlyCloudName context project
 
         renderCloudName =
             Element.wrappedRow
@@ -229,20 +207,7 @@ renderProject context project =
                 , Element.alignBottom
                 ]
             <|
-                case friendlySubName of
-                    Just subName ->
-                        [ Element.el
-                            [ context.palette.muted
-                                |> SH.toElementColor
-                                |> Font.color
-                            ]
-                          <|
-                            Element.text friendlyName
-                        , Element.text subName
-                        ]
-
-                    Nothing ->
-                        [ Element.text friendlyName ]
+                [ Element.text friendlyName ]
 
         title =
             Element.column

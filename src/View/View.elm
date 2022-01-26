@@ -8,7 +8,6 @@ import Element.Font as Font
 import FeatherIcons
 import Helpers.GetterSetters as GetterSetters
 import Helpers.String
-import Helpers.Url as UrlHelpers
 import Html
 import Page.FloatingIpAssign
 import Page.FloatingIpList
@@ -343,7 +342,7 @@ projectNav context p projectViewModel =
             )
           <|
             Element.text <|
-                UrlHelpers.hostnameFromUrl p.endpoints.keystone
+                VH.friendlyCloudName context p
                     ++ " - "
                     ++ p.auth.project.name
         , Element.paragraph
