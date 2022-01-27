@@ -273,60 +273,17 @@ requestAppCredential clientUuid posixTime project =
 
 requestUnscopedProjects : UnscopedProvider -> Maybe HelperTypes.Url -> Cmd SharedMsg
 requestUnscopedProjects provider maybeProxyUrl =
-    let
-        correctedUrl =
-            let
-                maybeUrl =
-                    Url.fromString provider.authUrl
-            in
-            case maybeUrl of
-                -- Cannot parse URL, so uh, don't make changes to it. We should never be here
-                Nothing ->
-                    provider.authUrl
-
-                Just url_ ->
-                    { url_ | path = "/v3/auth/projects" } |> Url.toString
-
-        ( url, headers ) =
-            case maybeProxyUrl of
-                Just proxyUrl ->
-                    proxyifyRequest proxyUrl correctedUrl
-
-                Nothing ->
-                    ( correctedUrl, [] )
-
-        errorContext =
-            ErrorContext
-                ("get a list of projects for provider \""
-                    ++ Helpers.Url.hostnameFromUrl provider.authUrl
-                    ++ "\""
-                )
-                ErrorCrit
-                Nothing
-
-        resultToMsg_ =
-            resultToMsgErrorBody
-                errorContext
-                (ReceiveUnscopedProjects provider.authUrl)
-    in
-    Http.request
-        { method = "GET"
-        , headers = Http.header "X-Auth-Token" provider.token.tokenValue :: headers
-        , url = url
-        , body = Http.emptyBody
-        , expect =
-            expectJsonWithErrorBody
-                resultToMsg_
-                decodeUnscopedProjects
-        , timeout = Nothing
-        , tracker = Nothing
-        }
+    requestUnscoped_ provider maybeProxyUrl "auth/projects" "projects" decodeUnscopedProjects ReceiveUnscopedProjects
 
 
 requestUnscopedRegions : UnscopedProvider -> Maybe HelperTypes.Url -> Cmd SharedMsg
 requestUnscopedRegions provider maybeProxyUrl =
+    requestUnscoped_ provider maybeProxyUrl "regions" "regions" decodeUnscopedRegions ReceiveUnscopedRegions
+
+
+requestUnscoped_ : UnscopedProvider -> Maybe HelperTypes.Url -> String -> String -> Decode.Decoder a -> (OSTypes.KeystoneUrl -> a -> SharedMsg) -> Cmd SharedMsg
+requestUnscoped_ provider maybeProxyUrl resourcePathFragment resourceStr decoder toSharedMsg =
     let
-        -- TODO DRY with requestUnscopedProjects above
         correctedUrl =
             let
                 maybeUrl =
@@ -338,7 +295,7 @@ requestUnscopedRegions provider maybeProxyUrl =
                     provider.authUrl
 
                 Just url_ ->
-                    { url_ | path = "/v3/regions" } |> Url.toString
+                    { url_ | path = "/v3/" ++ resourcePathFragment } |> Url.toString
 
         ( url, headers ) =
             case maybeProxyUrl of
@@ -350,7 +307,9 @@ requestUnscopedRegions provider maybeProxyUrl =
 
         errorContext =
             ErrorContext
-                ("get a list of regions for provider \""
+                ("get a list of "
+                    ++ resourceStr
+                    ++ " for provider \""
                     ++ Helpers.Url.hostnameFromUrl provider.authUrl
                     ++ "\""
                 )
@@ -360,7 +319,7 @@ requestUnscopedRegions provider maybeProxyUrl =
         resultToMsg_ =
             resultToMsgErrorBody
                 errorContext
-                (ReceiveUnscopedRegions provider.authUrl)
+                (toSharedMsg provider.authUrl)
     in
     Http.request
         { method = "GET"
@@ -370,7 +329,7 @@ requestUnscopedRegions provider maybeProxyUrl =
         , expect =
             expectJsonWithErrorBody
                 resultToMsg_
-                decodeUnscopedRegions
+                decoder
         , timeout = Nothing
         , tracker = Nothing
         }
