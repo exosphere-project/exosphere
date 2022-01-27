@@ -688,11 +688,11 @@ processSharedMsg sharedMsg outerModel =
                                         _ ->
                                             -- Multiple regions, ask the user to choose from among them
                                             let
-                                                newUnscopedTokens =
+                                                newTokens =
                                                     authToken :: sharedModel.scopedAuthTokensWaitingRegionSelection
 
                                                 newModel =
-                                                    { sharedModel | scopedAuthTokensWaitingRegionSelection = newUnscopedTokens }
+                                                    { sharedModel | scopedAuthTokensWaitingRegionSelection = newTokens }
                                             in
                                             ( newModel
                                             , Route.pushUrl
