@@ -54,6 +54,17 @@ pageTitle outerModel =
                 PageNotFound ->
                     "Error: page not found"
 
+                SelectProjectRegions _ ->
+                    String.join " "
+                        [ "Select"
+                        , localization.openstackSharingKeystoneWithAnother
+                            |> Helpers.String.pluralize
+                            |> Helpers.String.toTitleCase
+                        , "for"
+                        , localization.unitOfTenancy
+                            |> Helpers.String.toTitleCase
+                        ]
+
                 SelectProjects pageModel ->
                     let
                         providerTitle =

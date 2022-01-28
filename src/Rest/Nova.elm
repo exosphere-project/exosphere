@@ -61,11 +61,11 @@ requestServers project =
 
         resultToMsg result =
             ProjectMsg
-                project.auth.project.uuid
+                (GetterSetters.projectIdentifier project)
                 (ReceiveServers errorContext result)
     in
     openstackCredentialedRequest
-        project.auth.project.uuid
+        (GetterSetters.projectIdentifier project)
         Get
         (Just "compute 2.27")
         (project.endpoints.nova ++ "/servers/detail")
@@ -87,12 +87,12 @@ requestServer project serverUuid =
 
         resultToMsg result =
             ProjectMsg
-                project.auth.project.uuid
+                (GetterSetters.projectIdentifier project)
                 (ReceiveServer serverUuid errorContext result)
 
         requestServerCmd =
             openstackCredentialedRequest
-                project.auth.project.uuid
+                (GetterSetters.projectIdentifier project)
                 Get
                 (Just "compute 2.27")
                 (project.endpoints.nova ++ "/servers/" ++ serverUuid)
@@ -119,12 +119,12 @@ requestServerEvents project serverUuid =
                 Nothing
 
         resultToMsg result =
-            ProjectMsg project.auth.project.uuid <|
+            ProjectMsg (GetterSetters.projectIdentifier project) <|
                 ServerMsg serverUuid <|
                     ReceiveServerEvents errorContext result
     in
     openstackCredentialedRequest
-        project.auth.project.uuid
+        (GetterSetters.projectIdentifier project)
         Get
         (Just "compute 2.27")
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/os-instance-actions")
@@ -161,14 +161,14 @@ requestConsoleUrls project serverUuid =
                         ]
             in
             openstackCredentialedRequest
-                project.auth.project.uuid
+                (GetterSetters.projectIdentifier project)
                 Post
                 Nothing
                 (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/action")
                 (Http.jsonBody reqBody)
                 (expectJsonWithErrorBody
                     (\result ->
-                        ProjectMsg project.auth.project.uuid <|
+                        ProjectMsg (GetterSetters.projectIdentifier project) <|
                             ServerMsg serverUuid <|
                                 ReceiveConsoleUrl result
                     )
@@ -191,10 +191,10 @@ requestFlavors project =
         resultToMsg_ =
             resultToMsgErrorBody
                 errorContext
-                (\flavors -> ProjectMsg project.auth.project.uuid <| ReceiveFlavors flavors)
+                (\flavors -> ProjectMsg (GetterSetters.projectIdentifier project) <| ReceiveFlavors flavors)
     in
     openstackCredentialedRequest
-        project.auth.project.uuid
+        (GetterSetters.projectIdentifier project)
         Get
         (Just "compute 2.61")
         (project.endpoints.nova ++ "/flavors/detail")
@@ -217,10 +217,10 @@ requestKeypairs project =
         resultToMsg_ =
             resultToMsgErrorBody
                 errorContext
-                (\keypairs -> ProjectMsg project.auth.project.uuid <| ReceiveKeypairs keypairs)
+                (\keypairs -> ProjectMsg (GetterSetters.projectIdentifier project) <| ReceiveKeypairs keypairs)
     in
     openstackCredentialedRequest
-        project.auth.project.uuid
+        (GetterSetters.projectIdentifier project)
         Get
         Nothing
         (project.endpoints.nova ++ "/os-keypairs")
@@ -253,12 +253,12 @@ requestCreateKeypair project keypairName publicKey =
         resultToMsg_ =
             resultToMsgErrorBody errorContext
                 (\keypair ->
-                    ProjectMsg project.auth.project.uuid <|
+                    ProjectMsg (GetterSetters.projectIdentifier project) <|
                         ReceiveCreateKeypair keypair
                 )
     in
     openstackCredentialedRequest
-        project.auth.project.uuid
+        (GetterSetters.projectIdentifier project)
         Post
         Nothing
         (project.endpoints.nova ++ "/os-keypairs")
@@ -279,13 +279,13 @@ requestDeleteKeypair project keypairId =
                 Nothing
     in
     openstackCredentialedRequest
-        project.auth.project.uuid
+        (GetterSetters.projectIdentifier project)
         Delete
         Nothing
         (project.endpoints.nova ++ "/os-keypairs/" ++ Tuple.first keypairId)
         Http.emptyBody
         (Http.expectWhatever
-            (\result -> ProjectMsg project.auth.project.uuid <| ReceiveDeleteKeypair errorContext (Tuple.first keypairId) result)
+            (\result -> ProjectMsg (GetterSetters.projectIdentifier project) <| ReceiveDeleteKeypair errorContext (Tuple.first keypairId) result)
         )
 
 
@@ -389,7 +389,7 @@ requestCreateServer project createServerRequest =
                 errorContext
                 (\serverUuid ->
                     ProjectMsg
-                        project.auth.project.uuid
+                        (GetterSetters.projectIdentifier project)
                         (ReceiveCreateServer serverUuid)
                 )
     in
@@ -398,7 +398,7 @@ requestCreateServer project createServerRequest =
             |> List.map
                 (\requestBody ->
                     openstackCredentialedRequest
-                        project.auth.project.uuid
+                        (GetterSetters.projectIdentifier project)
                         Post
                         Nothing
                         (project.endpoints.nova ++ "/servers")
@@ -472,7 +472,7 @@ requestCreateServerImage project serverUuid imageName =
                 Nothing
     in
     openstackCredentialedRequest
-        project.auth.project.uuid
+        (GetterSetters.projectIdentifier project)
         Post
         Nothing
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/action")
@@ -503,12 +503,12 @@ requestSetServerName project serverUuid newServerName =
                 Nothing
 
         resultToMsg result =
-            ProjectMsg project.auth.project.uuid <|
+            ProjectMsg (GetterSetters.projectIdentifier project) <|
                 ServerMsg serverUuid <|
                     ReceiveSetServerName newServerName errorContext result
     in
     openstackCredentialedRequest
-        project.auth.project.uuid
+        (GetterSetters.projectIdentifier project)
         Put
         Nothing
         (project.endpoints.nova ++ "/servers/" ++ serverUuid)
@@ -544,12 +544,12 @@ requestSetServerMetadata project serverUuid metadataItem =
                 Nothing
 
         resultToMsg result =
-            ProjectMsg project.auth.project.uuid <|
+            ProjectMsg (GetterSetters.projectIdentifier project) <|
                 ServerMsg serverUuid <|
                     ReceiveSetServerMetadata metadataItem errorContext result
     in
     openstackCredentialedRequest
-        project.auth.project.uuid
+        (GetterSetters.projectIdentifier project)
         Post
         Nothing
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/metadata")
@@ -576,12 +576,12 @@ requestDeleteServerMetadata project serverUuid metadataKey =
                 Nothing
 
         resultToMsg result =
-            ProjectMsg project.auth.project.uuid <|
+            ProjectMsg (GetterSetters.projectIdentifier project) <|
                 ServerMsg serverUuid <|
                     ReceiveDeleteServerMetadata metadataKey errorContext result
     in
     openstackCredentialedRequest
-        project.auth.project.uuid
+        (GetterSetters.projectIdentifier project)
         Delete
         Nothing
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/metadata/" ++ metadataKey)

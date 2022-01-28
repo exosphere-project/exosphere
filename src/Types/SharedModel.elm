@@ -1,5 +1,6 @@
 module Types.SharedModel exposing (LogMessage, SharedModel, Style)
 
+import OpenStack.Types as OSTypes
 import Style.Types
 import Time
 import Toasty
@@ -13,6 +14,7 @@ import View.Types
 type alias SharedModel =
     { logMessages : List LogMessage
     , unscopedProviders : List HelperTypes.UnscopedProvider
+    , scopedAuthTokensWaitingRegionSelection : List OSTypes.ScopedAuthToken
     , projects : List Project
     , toasties : Toasty.Stack Toast
     , cloudCorsProxyUrl : Maybe CloudCorsProxyUrl

@@ -5,6 +5,7 @@ import Element.Font as Font
 import Element.Input as Input
 import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (Unit(..), humanNumber)
+import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import List.Extra
 import OpenStack.Types as OSTypes
@@ -371,7 +372,7 @@ renderImage context project model image =
                     "size unknown"
 
         chooseRoute =
-            Route.ProjectRoute project.auth.project.uuid <|
+            Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
                 Route.ServerCreate
                     image.uuid
                     image.name

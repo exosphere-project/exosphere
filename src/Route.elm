@@ -43,6 +43,7 @@ type Route
     | MessageLog Bool
     | PageNotFound
     | ProjectRoute HelperTypes.ProjectIdentifier ProjectRouteConstructor
+    | SelectProjectRegions OSTypes.KeystoneUrl OSTypes.ProjectUuid
     | SelectProjects OSTypes.KeystoneUrl
     | Settings
 
@@ -139,9 +140,17 @@ toUrl maybePathPrefix route =
         ProjectRoute projectIdentifier projectRouteConstructor ->
             let
                 projectIdentifierPath =
-                    [ "projects"
-                    , projectIdentifier
-                    ]
+                    List.concat
+                        [ [ "projects"
+                          , projectIdentifier.projectUuid
+                          ]
+                        , case projectIdentifier.regionId of
+                            Just regionId ->
+                                [ "regions", regionId ]
+
+                            Nothing ->
+                                []
+                        ]
 
                 ( projectSpecificPath, projectSpecificQuery ) =
                     case projectRouteConstructor of
@@ -298,6 +307,13 @@ toUrl maybePathPrefix route =
                             )
             in
             buildUrlFunc (projectIdentifierPath ++ projectSpecificPath) projectSpecificQuery
+
+        SelectProjectRegions keystoneUrl projectUuid ->
+            buildUrlFunc
+                [ "selectprojectregions" ]
+                [ UB.string "keystoneurl" keystoneUrl
+                , UB.string "projectuuid" projectUuid
+                ]
 
         SelectProjects keystoneUrl ->
             buildUrlFunc
@@ -467,6 +483,16 @@ pathParsers defaultRoute_ =
         )
         (s "auth" </> s "oidc-login" <?> Query.string "token")
     , map
+        (\maybeKeystoneUrl maybeProjectUuid ->
+            case ( maybeKeystoneUrl, maybeProjectUuid ) of
+                ( Just keystoneUrl, Just projectUuid ) ->
+                    SelectProjectRegions keystoneUrl projectUuid
+
+                _ ->
+                    PageNotFound
+        )
+        (s "selectprojectregions" <?> Query.string "keystoneurl" <?> Query.string "projectuuid")
+    , map
         (\maybeKeystoneUrl ->
             case maybeKeystoneUrl of
                 Just keystoneUrl ->
@@ -492,7 +518,20 @@ pathParsers defaultRoute_ =
         PageNotFound
         (s "pagenotfound")
     , map
-        (\uuid projectRoute -> ProjectRoute uuid <| projectRoute)
+        (\projectUuid regionId projectRoute ->
+            ProjectRoute
+                { projectUuid = projectUuid
+                , regionId = Just regionId
+                }
+                projectRoute
+        )
+        (s "projects" </> string </> s "regions" </> string </> oneOf projectRouteParsers)
+    , map
+        (\uuid projectRoute ->
+            ProjectRoute
+                { projectUuid = uuid, regionId = Nothing }
+                projectRoute
+        )
         (s "projects" </> string </> oneOf projectRouteParsers)
     ]
 

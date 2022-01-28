@@ -191,19 +191,14 @@ renderProject context project =
                 [ Element.height (Element.px 25)
                 , Element.centerX
                 , Element.width Element.fill
+                , context.palette.muted
+                    |> SH.toElementColor
+                    |> Font.color
                 ]
                 (VH.ellipsizedText description)
 
-        cloudSpecificConfig =
-            GetterSetters.cloudSpecificConfigLookup context.cloudSpecificConfigs project
-
-        ( friendlyName, friendlySubName ) =
-            case cloudSpecificConfig of
-                Nothing ->
-                    ( UrlHelpers.hostnameFromUrl project.endpoints.keystone, Nothing )
-
-                Just config ->
-                    ( config.friendlyName, config.friendlySubName )
+        friendlyName =
+            VH.friendlyCloudName context project
 
         renderCloudName =
             Element.wrappedRow
@@ -212,20 +207,7 @@ renderProject context project =
                 , Element.alignBottom
                 ]
             <|
-                case friendlySubName of
-                    Just subName ->
-                        [ Element.el
-                            [ context.palette.muted
-                                |> SH.toElementColor
-                                |> Font.color
-                            ]
-                          <|
-                            Element.text friendlyName
-                        , Element.text subName
-                        ]
-
-                    Nothing ->
-                        [ Element.text friendlyName ]
+                [ Element.text friendlyName ]
 
         title =
             Element.column
@@ -281,7 +263,7 @@ renderProject context project =
 
         route =
             Route.toUrl context.urlPathPrefix
-                (Route.ProjectRoute project.auth.project.uuid
+                (Route.ProjectRoute (GetterSetters.projectIdentifier project)
                     Route.ProjectOverview
                 )
     in

@@ -21,6 +21,7 @@ import Page.LoginOpenIdConnect
 import Page.LoginOpenstack
 import Page.MessageLog
 import Page.ProjectOverview
+import Page.SelectProjectRegions
 import Page.SelectProjects
 import Page.ServerCreate
 import Page.ServerCreateImage
@@ -134,12 +135,16 @@ routeToViewStateModelCmd sharedModel route =
                                             authTokenString
                                         )
                                         RemoteData.NotAsked
+                                        RemoteData.NotAsked
 
                                 newUnscopedProviders =
                                     unscopedProvider :: sharedModel.unscopedProviders
                             in
                             ( { sharedModel | unscopedProviders = newUnscopedProviders }
-                            , Rest.Keystone.requestUnscopedProjects unscopedProvider sharedModel.cloudCorsProxyUrl
+                            , Cmd.batch
+                                [ Rest.Keystone.requestUnscopedProjects unscopedProvider sharedModel.cloudCorsProxyUrl
+                                , Rest.Keystone.requestUnscopedRegions unscopedProvider sharedModel.cloudCorsProxyUrl
+                                ]
                             )
             in
             ( NonProjectView <| LoadingUnscopedProjects authTokenString
@@ -211,9 +216,9 @@ routeToViewStateModelCmd sharedModel route =
                                         ]
                                     )
                                         |> Helpers.pipelineCmd
-                                            (ApiModelHelpers.requestFloatingIps project.auth.project.uuid)
+                                            (ApiModelHelpers.requestFloatingIps (GetterSetters.projectIdentifier project))
                                         |> Helpers.pipelineCmd
-                                            (ApiModelHelpers.requestServers project.auth.project.uuid)
+                                            (ApiModelHelpers.requestServers (GetterSetters.projectIdentifier project))
                             in
                             ( projectViewProto <| ProjectOverview <| Page.ProjectOverview.init
                             , newSharedModel
@@ -225,8 +230,8 @@ routeToViewStateModelCmd sharedModel route =
                                 ( newSharedModel, newCmd ) =
                                     ( sharedModel, Cmd.none )
                                         |> Helpers.pipelineCmd
-                                            (ApiModelHelpers.requestFloatingIps project.auth.project.uuid)
-                                        |> Helpers.pipelineCmd (ApiModelHelpers.requestPorts project.auth.project.uuid)
+                                            (ApiModelHelpers.requestFloatingIps (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd (ApiModelHelpers.requestPorts (GetterSetters.projectIdentifier project))
                             in
                             ( projectViewProto <| FloatingIpAssign <| Page.FloatingIpAssign.init maybeIpUuid maybeServerUuid
                             , newSharedModel
@@ -238,11 +243,11 @@ routeToViewStateModelCmd sharedModel route =
                                 ( newSharedModel, newCmd ) =
                                     ( sharedModel, Ports.instantiateClipboardJs () )
                                         |> Helpers.pipelineCmd
-                                            (ApiModelHelpers.requestFloatingIps project.auth.project.uuid)
+                                            (ApiModelHelpers.requestFloatingIps (GetterSetters.projectIdentifier project))
                                         |> Helpers.pipelineCmd
-                                            (ApiModelHelpers.requestNetworkQuota project.auth.project.uuid)
+                                            (ApiModelHelpers.requestNetworkQuota (GetterSetters.projectIdentifier project))
                                         |> Helpers.pipelineCmd
-                                            (ApiModelHelpers.requestServers project.auth.project.uuid)
+                                            (ApiModelHelpers.requestServers (GetterSetters.projectIdentifier project))
                             in
                             ( projectViewProto <| FloatingIpList <| Page.FloatingIpList.init True
                             , newSharedModel
@@ -282,17 +287,17 @@ routeToViewStateModelCmd sharedModel route =
                                         , Rest.Nova.requestKeypairs project
                                         , RandomHelpers.generateServerName
                                             (\serverName ->
-                                                ProjectMsg project.auth.project.uuid <|
+                                                ProjectMsg (GetterSetters.projectIdentifier project) <|
                                                     ReceiveRandomServerName serverName
                                             )
                                         ]
 
                                 ( newSharedModel, newCmd ) =
                                     ( sharedModel, cmd )
-                                        |> Helpers.pipelineCmd (ApiModelHelpers.requestAutoAllocatedNetwork project.auth.project.uuid)
-                                        |> Helpers.pipelineCmd (ApiModelHelpers.requestComputeQuota project.auth.project.uuid)
-                                        |> Helpers.pipelineCmd (ApiModelHelpers.requestVolumeQuota project.auth.project.uuid)
-                                        |> Helpers.pipelineCmd (ApiModelHelpers.requestNetworkQuota project.auth.project.uuid)
+                                        |> Helpers.pipelineCmd (ApiModelHelpers.requestAutoAllocatedNetwork (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd (ApiModelHelpers.requestComputeQuota (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd (ApiModelHelpers.requestVolumeQuota (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd (ApiModelHelpers.requestNetworkQuota (GetterSetters.projectIdentifier project))
                             in
                             ( projectViewProto <|
                                 ServerCreate
@@ -329,7 +334,7 @@ routeToViewStateModelCmd sharedModel route =
                                 ( newNewSharedModel, newCmd ) =
                                     ( newSharedModel, cmd )
                                         |> Helpers.pipelineCmd
-                                            (ApiModelHelpers.requestServer project.auth.project.uuid serverId)
+                                            (ApiModelHelpers.requestServer (GetterSetters.projectIdentifier project) serverId)
                             in
                             ( projectViewProto <| ServerDetail (Page.ServerDetail.init serverId)
                             , newNewSharedModel
@@ -340,11 +345,11 @@ routeToViewStateModelCmd sharedModel route =
                             let
                                 ( newSharedModel, cmd ) =
                                     ApiModelHelpers.requestServers
-                                        project.auth.project.uuid
+                                        (GetterSetters.projectIdentifier project)
                                         sharedModel
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestFloatingIps
-                                                project.auth.project.uuid
+                                                (GetterSetters.projectIdentifier project)
                                             )
                             in
                             ( projectViewProto <| ServerList <| Page.ServerList.init True
@@ -359,7 +364,7 @@ routeToViewStateModelCmd sharedModel route =
                             let
                                 ( newSharedModel, newCmd ) =
                                     ( sharedModel, OSVolumes.requestVolumes project )
-                                        |> Helpers.pipelineCmd (ApiModelHelpers.requestServers project.auth.project.uuid)
+                                        |> Helpers.pipelineCmd (ApiModelHelpers.requestServers (GetterSetters.projectIdentifier project))
                             in
                             ( projectViewProto <|
                                 VolumeAttach (Page.VolumeAttach.init maybeServerUuid maybeVolumeUuid)
@@ -399,6 +404,12 @@ routeToViewStateModelCmd sharedModel route =
                     -- Default view for non-matching project
                     ( NonProjectView <| LoginPicker, sharedModel, Cmd.none )
 
+        Route.SelectProjectRegions keystoneUrl projectUuid ->
+            ( NonProjectView <| SelectProjectRegions <| Page.SelectProjectRegions.init keystoneUrl projectUuid
+            , sharedModel
+            , Cmd.none
+            )
+
         Route.SelectProjects keystoneUrl ->
             ( NonProjectView <| SelectProjects <| Page.SelectProjects.init keystoneUrl
             , sharedModel
@@ -421,7 +432,7 @@ viewStateToSupportableItem viewState =
             HelperTypes.ProjectIdentifier
             -> ProjectViewConstructor
             -> ( HelperTypes.SupportableItemType, Maybe HelperTypes.Uuid )
-        supportableProjectItem projectUuid projectViewConstructor =
+        supportableProjectItem projectIdentifier projectViewConstructor =
             case projectViewConstructor of
                 ServerCreate pageModel ->
                     ( HelperTypes.SupportableImage, Just pageModel.imageUuid )
@@ -438,13 +449,13 @@ viewStateToSupportableItem viewState =
                 VolumeAttach pageModel ->
                     pageModel.maybeVolumeUuid
                         |> Maybe.map (\uuid -> ( HelperTypes.SupportableVolume, Just uuid ))
-                        |> Maybe.withDefault ( HelperTypes.SupportableProject, Just projectUuid )
+                        |> Maybe.withDefault ( HelperTypes.SupportableProject, Just projectIdentifier.projectUuid )
 
                 VolumeMountInstructions pageModel ->
                     ( HelperTypes.SupportableServer, Just pageModel.serverUuid )
 
                 _ ->
-                    ( HelperTypes.SupportableProject, Just projectUuid )
+                    ( HelperTypes.SupportableProject, Just projectIdentifier.projectUuid )
     in
     case viewState of
         NonProjectView _ ->

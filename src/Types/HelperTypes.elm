@@ -24,6 +24,7 @@ module Types.HelperTypes exposing
     , SupportableItemType(..)
     , UnscopedProvider
     , UnscopedProviderProject
+    , UnscopedProviderRegion
     , Url
     , UserAppProxyHostname
     , Uuid
@@ -62,7 +63,9 @@ type alias Uuid =
 
 type alias ProjectIdentifier =
     -- We use this when referencing a Project in a Msg (or otherwise passing through the runtime)
-    Uuid
+    { projectUuid : Uuid
+    , regionId : Maybe OSTypes.RegionId
+    }
 
 
 type alias Password =
@@ -161,6 +164,7 @@ type alias UnscopedProvider =
     { authUrl : OSTypes.KeystoneUrl
     , token : OSTypes.UnscopedAuthToken
     , projectsAvailable : WebData (List UnscopedProviderProject)
+    , regionsAvailable : WebData (List UnscopedProviderRegion)
     }
 
 
@@ -170,6 +174,10 @@ type alias UnscopedProviderProject =
     , domainId : Uuid
     , enabled : Bool
     }
+
+
+type alias UnscopedProviderRegion =
+    OSTypes.Region
 
 
 type alias OpenIdConnectLoginConfig =

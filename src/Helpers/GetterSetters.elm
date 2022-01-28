@@ -3,6 +3,7 @@ module Helpers.GetterSetters exposing
     , flavorLookup
     , floatingIpLookup
     , getBootVolume
+    , getCatalogRegionIds
     , getExternalNetwork
     , getFloatingIpServer
     , getServerExouserPassword
@@ -17,6 +18,7 @@ module Helpers.GetterSetters exposing
     , modelUpdateProject
     , modelUpdateUnscopedProvider
     , projectDeleteServer
+    , projectIdentifier
     , projectLookup
     , projectSetAutoAllocatedNetworkUuidLoading
     , projectSetFloatingIpsLoading
@@ -27,12 +29,12 @@ module Helpers.GetterSetters exposing
     , projectSetVolumesLoading
     , projectUpdateKeypair
     , projectUpdateServer
-    , providerLookup
     , serverLookup
     , serverPresentNotDeleting
     , sortedFlavors
     , unscopedProjectLookup
     , unscopedProviderLookup
+    , unscopedRegionLookup
     , volDeviceToMountpoint
     , volumeDeviceRawName
     , volumeIsAttachedToServer
@@ -64,11 +66,18 @@ unscopedProviderLookup sharedModel keystoneUrl =
         |> List.Extra.find (\provider -> provider.authUrl == keystoneUrl)
 
 
-unscopedProjectLookup : HelperTypes.UnscopedProvider -> HelperTypes.ProjectIdentifier -> Maybe HelperTypes.UnscopedProviderProject
-unscopedProjectLookup provider projectIdentifier =
+unscopedProjectLookup : HelperTypes.UnscopedProvider -> OSTypes.ProjectUuid -> Maybe HelperTypes.UnscopedProviderProject
+unscopedProjectLookup provider projectUuid =
     provider.projectsAvailable
         |> RemoteData.withDefault []
-        |> List.Extra.find (\project -> project.project.uuid == projectIdentifier)
+        |> List.Extra.find (\project -> project.project.uuid == projectUuid)
+
+
+unscopedRegionLookup : HelperTypes.UnscopedProvider -> OSTypes.RegionId -> Maybe OSTypes.Region
+unscopedRegionLookup provider regionId =
+    provider.regionsAvailable
+        |> RemoteData.withDefault []
+        |> List.Extra.find (\region -> region.id == regionId)
 
 
 serverLookup : Project -> OSTypes.ServerUuid -> Maybe Server
@@ -78,9 +87,20 @@ serverLookup project serverUuid =
 
 
 projectLookup : SharedModel -> HelperTypes.ProjectIdentifier -> Maybe Project
-projectLookup model projectIdentifier =
+projectLookup model projectIdentifier_ =
     model.projects
-        |> List.Extra.find (\p -> p.auth.project.uuid == projectIdentifier)
+        |> List.Extra.find
+            (\p ->
+                p.auth.project.uuid
+                    == projectIdentifier_.projectUuid
+                    && Maybe.map .id p.region
+                    == projectIdentifier_.regionId
+            )
+
+
+projectIdentifier : Project -> HelperTypes.ProjectIdentifier
+projectIdentifier project =
+    HelperTypes.ProjectIdentifier project.auth.project.uuid (Maybe.map .id project.region)
 
 
 flavorLookup : Project -> OSTypes.FlavorId -> Maybe OSTypes.Flavor
@@ -102,12 +122,6 @@ volumeLookup project volumeUuid =
         |> List.Extra.find (\v -> v.uuid == volumeUuid)
 
 
-providerLookup : SharedModel -> OSTypes.KeystoneUrl -> Maybe HelperTypes.UnscopedProvider
-providerLookup model keystoneUrl =
-    model.unscopedProviders
-        |> List.Extra.find (\uP -> uP.authUrl == keystoneUrl)
-
-
 floatingIpLookup : Project -> OSTypes.IpAddressUuid -> Maybe OSTypes.FloatingIp
 floatingIpLookup project ipUuid =
     project.floatingIps
@@ -119,10 +133,20 @@ floatingIpLookup project ipUuid =
 -- Slightly smarter getters
 
 
-getServicePublicUrl : String -> OSTypes.ServiceCatalog -> Maybe HelperTypes.Url
-getServicePublicUrl serviceType catalog =
+getCatalogRegionIds : OSTypes.ServiceCatalog -> List OSTypes.RegionId
+getCatalogRegionIds catalog =
+    -- Given a service catalog, get a list of all region IDs that appear for at least one endpoint
+    -- This allows administrators to restrict access to regions using the [OS-EP-FILTER](https://docs.openstack.org/api-ref/identity/v3-ext/#os-ep-filter-api) API.
+    catalog
+        |> List.concatMap .endpoints
+        |> List.map .regionId
+        |> List.Extra.unique
+
+
+getServicePublicUrl : OSTypes.ServiceCatalog -> Maybe OSTypes.RegionId -> String -> Maybe HelperTypes.Url
+getServicePublicUrl catalog maybeRegionId serviceType =
     getServiceFromCatalog serviceType catalog
-        |> Maybe.andThen getPublicEndpointFromService
+        |> Maybe.andThen (getPublicEndpointFromService maybeRegionId)
         |> Maybe.map .url
 
 
@@ -132,10 +156,21 @@ getServiceFromCatalog serviceType catalog =
         |> List.Extra.find (\s -> s.type_ == serviceType)
 
 
-getPublicEndpointFromService : OSTypes.Service -> Maybe OSTypes.Endpoint
-getPublicEndpointFromService service =
+getPublicEndpointFromService : Maybe OSTypes.RegionId -> OSTypes.Service -> Maybe OSTypes.Endpoint
+getPublicEndpointFromService maybeRegionId service =
     service.endpoints
-        |> List.Extra.find (\e -> e.interface == OSTypes.Public)
+        |> List.Extra.find
+            (\e ->
+                e.interface
+                    == OSTypes.Public
+                    && (case maybeRegionId of
+                            Just regionId ->
+                                e.regionId == regionId
+
+                            Nothing ->
+                                True
+                       )
+            )
 
 
 getExternalNetwork : Project -> Maybe OSTypes.Network
@@ -317,17 +352,29 @@ modelUpdateProject : SharedModel -> Project -> SharedModel
 modelUpdateProject model newProject =
     let
         otherProjects =
-            List.filter (\p -> p.auth.project.uuid /= newProject.auth.project.uuid) model.projects
+            List.filter (\p -> projectIdentifier p /= projectIdentifier newProject) model.projects
 
         newProjects =
             newProject :: otherProjects
+
+        newProjectsSortedByRegion =
+            List.sortBy
+                (\p ->
+                    case p.region of
+                        Nothing ->
+                            ""
+
+                        Just region ->
+                            region.id
+                )
+                newProjects
 
         newProjectsSorted =
             multiSortBy
                 [ \p -> UrlHelpers.hostnameFromUrl p.endpoints.keystone
                 , \p -> p.auth.project.name
                 ]
-                newProjects
+                newProjectsSortedByRegion
     in
     { model | projects = newProjectsSorted }
 

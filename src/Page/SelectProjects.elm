@@ -8,7 +8,7 @@ import Helpers.Url as UrlHelpers
 import OpenStack.Types as OSTypes
 import Set
 import Style.Helpers as SH
-import Types.HelperTypes exposing (ProjectIdentifier, UnscopedProviderProject)
+import Types.HelperTypes exposing (UnscopedProviderProject)
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
@@ -18,12 +18,12 @@ import Widget
 
 type alias Model =
     { providerKeystoneUrl : OSTypes.KeystoneUrl
-    , selectedProjects : Set.Set ProjectIdentifier
+    , selectedProjects : Set.Set OSTypes.ProjectUuid
     }
 
 
 type Msg
-    = GotBoxChecked ProjectIdentifier Bool
+    = GotBoxChecked OSTypes.ProjectUuid Bool
     | GotSubmit
 
 
@@ -60,17 +60,17 @@ update msg sharedModel model =
                         Just unscopedProvider ->
                             model.selectedProjects
                                 |> Set.toList
-                                |> List.filterMap (\projectIdentifier -> GetterSetters.unscopedProjectLookup unscopedProvider projectIdentifier)
+                                |> List.filterMap (\projectUuid -> GetterSetters.unscopedProjectLookup unscopedProvider projectUuid)
             in
             ( model
             , Cmd.none
-            , SharedMsg.RequestProjectLoginFromProvider model.providerKeystoneUrl unscopedProjects
+            , SharedMsg.RequestProjectScopedToken model.providerKeystoneUrl unscopedProjects
             )
 
 
 view : View.Types.Context -> SharedModel -> Model -> Element.Element Msg
 view context sharedModel model =
-    case GetterSetters.providerLookup sharedModel model.providerKeystoneUrl of
+    case GetterSetters.unscopedProviderLookup sharedModel model.providerKeystoneUrl of
         Just provider ->
             let
                 urlLabel =
@@ -117,7 +117,7 @@ view context sharedModel model =
             Element.text "Provider not found"
 
 
-renderProject : Set.Set ProjectIdentifier -> UnscopedProviderProject -> Element.Element Msg
+renderProject : Set.Set OSTypes.ProjectUuid -> UnscopedProviderProject -> Element.Element Msg
 renderProject selectedProjects project =
     let
         selected =

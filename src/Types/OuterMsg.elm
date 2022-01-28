@@ -12,6 +12,7 @@ import Page.LoginOpenstack
 import Page.LoginPicker
 import Page.MessageLog
 import Page.ProjectOverview
+import Page.SelectProjectRegions
 import Page.SelectProjects
 import Page.ServerCreate
 import Page.ServerCreateImage
@@ -40,6 +41,7 @@ type OuterMsg
     | LoginOpenstackMsg Page.LoginOpenstack.Msg
     | LoginPickerMsg Page.LoginPicker.Msg
     | MessageLogMsg Page.MessageLog.Msg
+    | SelectProjectRegionsMsg Page.SelectProjectRegions.Msg
     | SelectProjectsMsg Page.SelectProjects.Msg
     | SettingsMsg Page.Settings.Msg
     | VolumeAttachMsg Page.VolumeAttach.Msg

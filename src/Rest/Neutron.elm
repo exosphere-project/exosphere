@@ -54,11 +54,11 @@ requestNetworks project =
 
         resultToMsg result =
             ProjectMsg
-                project.auth.project.uuid
+                (GetterSetters.projectIdentifier project)
                 (ReceiveNetworks errorContext result)
     in
     openstackCredentialedRequest
-        project.auth.project.uuid
+        (GetterSetters.projectIdentifier project)
         Get
         Nothing
         (project.endpoints.neutron ++ "/v2.0/networks")
@@ -80,11 +80,11 @@ requestAutoAllocatedNetwork project =
 
         resultToMsg result =
             ProjectMsg
-                project.auth.project.uuid
+                (GetterSetters.projectIdentifier project)
                 (ReceiveAutoAllocatedNetwork errorContext result)
     in
     openstackCredentialedRequest
-        project.auth.project.uuid
+        (GetterSetters.projectIdentifier project)
         Get
         Nothing
         (project.endpoints.neutron ++ "/v2.0/auto-allocated-topology/" ++ project.auth.project.uuid)
@@ -109,12 +109,12 @@ requestFloatingIps project =
                 errorContext
                 (\ips ->
                     ProjectMsg
-                        project.auth.project.uuid
+                        (GetterSetters.projectIdentifier project)
                         (ReceiveFloatingIps ips)
                 )
     in
     openstackCredentialedRequest
-        project.auth.project.uuid
+        (GetterSetters.projectIdentifier project)
         Get
         Nothing
         (project.endpoints.neutron ++ "/v2.0/floatingips")
@@ -136,11 +136,11 @@ requestPorts project =
 
         resultToMsg result =
             ProjectMsg
-                project.auth.project.uuid
+                (GetterSetters.projectIdentifier project)
                 (ReceivePorts errorContext result)
     in
     openstackCredentialedRequest
-        project.auth.project.uuid
+        (GetterSetters.projectIdentifier project)
         Get
         Nothing
         (project.endpoints.neutron ++ "/v2.0/ports")
@@ -172,13 +172,13 @@ requestCreateFloatingIp project network port_ server =
 
         resultToMsg_ =
             \result ->
-                ProjectMsg project.auth.project.uuid <|
+                ProjectMsg (GetterSetters.projectIdentifier project) <|
                     ServerMsg server.osProps.uuid <|
                         ReceiveCreateFloatingIp errorContext result
 
         requestCmd =
             openstackCredentialedRequest
-                project.auth.project.uuid
+                (GetterSetters.projectIdentifier project)
                 Post
                 Nothing
                 (project.endpoints.neutron ++ "/v2.0/floatingips")
@@ -205,12 +205,12 @@ requestDeleteFloatingIp project uuid =
                 errorContext
                 (\_ ->
                     ProjectMsg
-                        project.auth.project.uuid
+                        (GetterSetters.projectIdentifier project)
                         (ReceiveDeleteFloatingIp uuid)
                 )
     in
     openstackCredentialedRequest
-        project.auth.project.uuid
+        (GetterSetters.projectIdentifier project)
         Delete
         Nothing
         (project.endpoints.neutron ++ "/v2.0/floatingips/" ++ uuid)
@@ -243,13 +243,13 @@ requestAssignFloatingIp project port_ floatingIpUuid =
                 errorContext
                 (\ip ->
                     ProjectMsg
-                        project.auth.project.uuid
+                        (GetterSetters.projectIdentifier project)
                         (ReceiveAssignFloatingIp ip)
                 )
 
         requestCmd =
             openstackCredentialedRequest
-                project.auth.project.uuid
+                (GetterSetters.projectIdentifier project)
                 Put
                 Nothing
                 (project.endpoints.neutron ++ "/v2.0/floatingips/" ++ floatingIpUuid)
@@ -285,13 +285,13 @@ requestUnassignFloatingIp project floatingIpUuid =
                 errorContext
                 (\ip ->
                     ProjectMsg
-                        project.auth.project.uuid
+                        (GetterSetters.projectIdentifier project)
                         (ReceiveUnassignFloatingIp ip)
                 )
 
         requestCmd =
             openstackCredentialedRequest
-                project.auth.project.uuid
+                (GetterSetters.projectIdentifier project)
                 Put
                 Nothing
                 (project.endpoints.neutron ++ "/v2.0/floatingips/" ++ floatingIpUuid)
@@ -318,12 +318,12 @@ requestSecurityGroups project =
                 errorContext
                 (\groups ->
                     ProjectMsg
-                        project.auth.project.uuid
+                        (GetterSetters.projectIdentifier project)
                         (ReceiveSecurityGroups groups)
                 )
     in
     openstackCredentialedRequest
-        project.auth.project.uuid
+        (GetterSetters.projectIdentifier project)
         Get
         Nothing
         (project.endpoints.neutron ++ "/v2.0/security-groups")
@@ -361,12 +361,12 @@ requestCreateExoSecurityGroup project =
                 errorContext
                 (\group ->
                     ProjectMsg
-                        project.auth.project.uuid
+                        (GetterSetters.projectIdentifier project)
                         (ReceiveCreateExoSecurityGroup group)
                 )
     in
     openstackCredentialedRequest
-        project.auth.project.uuid
+        (GetterSetters.projectIdentifier project)
         Post
         Nothing
         (project.endpoints.neutron ++ "/v2.0/security-groups")
@@ -413,7 +413,7 @@ requestCreateSecurityGroupRules project group rules errorMessage =
 
         buildRequestCmd body =
             openstackCredentialedRequest
-                project.auth.project.uuid
+                (GetterSetters.projectIdentifier project)
                 Post
                 Nothing
                 (project.endpoints.neutron ++ "/v2.0/security-group-rules")

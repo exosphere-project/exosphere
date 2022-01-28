@@ -5,6 +5,7 @@ import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons
 import Helpers.Formatting exposing (humanCount)
+import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
@@ -96,7 +97,7 @@ update msg project model =
         GotDeleteConfirm serverId ->
             ( model
             , Cmd.none
-            , SharedMsg.ProjectMsg project.auth.project.uuid <|
+            , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
                 SharedMsg.ServerMsg serverId <|
                     SharedMsg.RequestDeleteServer False
             )
@@ -167,7 +168,7 @@ view context project model =
                     else
                         serverList_
                             context
-                            project.auth.project.uuid
+                            (GetterSetters.projectIdentifier project)
                             project.auth.user.uuid
                             model
                             servers

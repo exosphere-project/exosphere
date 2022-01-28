@@ -9,6 +9,7 @@ module OpenStack.Quotas exposing
     , volumeQuotaDecoder
     )
 
+import Helpers.GetterSetters as GetterSetters
 import Http
 import Json.Decode as Decode
 import OpenStack.Types as OSTypes
@@ -37,12 +38,12 @@ requestComputeQuota project =
                 errorContext
                 (\quota ->
                     ProjectMsg
-                        project.auth.project.uuid
+                        (GetterSetters.projectIdentifier project)
                         (ReceiveComputeQuota quota)
                 )
     in
     openstackCredentialedRequest
-        project.auth.project.uuid
+        (GetterSetters.projectIdentifier project)
         Get
         Nothing
         (project.endpoints.nova ++ "/limits")
@@ -89,12 +90,12 @@ requestVolumeQuota project =
                 errorContext
                 (\quota ->
                     ProjectMsg
-                        project.auth.project.uuid
+                        (GetterSetters.projectIdentifier project)
                         (ReceiveVolumeQuota quota)
                 )
     in
     openstackCredentialedRequest
-        project.auth.project.uuid
+        (GetterSetters.projectIdentifier project)
         Get
         Nothing
         (project.endpoints.cinder ++ "/limits")
@@ -136,12 +137,12 @@ requestNetworkQuota project =
                 errorContext
                 (\quota ->
                     ProjectMsg
-                        project.auth.project.uuid
+                        (GetterSetters.projectIdentifier project)
                         (ReceiveNetworkQuota quota)
                 )
     in
     openstackCredentialedRequest
-        project.auth.project.uuid
+        (GetterSetters.projectIdentifier project)
         Get
         Nothing
         (project.endpoints.neutron ++ "/v2.0/quotas/" ++ project.auth.project.uuid ++ "/details.json")

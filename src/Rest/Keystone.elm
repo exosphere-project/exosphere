@@ -5,9 +5,11 @@ module Rest.Keystone exposing
     , requestScopedAuthToken
     , requestUnscopedAuthToken
     , requestUnscopedProjects
+    , requestUnscopedRegions
     )
 
 import Dict
+import Helpers.GetterSetters as GetterSetters
 import Helpers.Url
 import Http
 import Json.Decode as Decode
@@ -25,7 +27,7 @@ import Rest.Helpers
         )
 import Time
 import Types.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
-import Types.HelperTypes as HelperTypes exposing (HttpRequestMethod(..), UnscopedProvider, UnscopedProviderProject)
+import Types.HelperTypes as HelperTypes exposing (HttpRequestMethod(..), UnscopedProvider, UnscopedProviderProject, UnscopedProviderRegion)
 import Types.Project exposing (Project)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import UUID
@@ -80,8 +82,8 @@ requestUnscopedAuthToken maybeProxyUrl creds =
         (resultToMsgErrorBody errorContext (ReceiveUnscopedAuthToken creds.authUrl))
 
 
-requestScopedAuthToken : Maybe HelperTypes.Url -> Maybe OSTypes.ProjectDescription -> OSTypes.CredentialsForAuthToken -> Cmd SharedMsg
-requestScopedAuthToken maybeProxyUrl projectDescription input =
+requestScopedAuthToken : Maybe HelperTypes.Url -> OSTypes.CredentialsForAuthToken -> Cmd SharedMsg
+requestScopedAuthToken maybeProxyUrl input =
     let
         requestBody =
             case input of
@@ -160,7 +162,7 @@ requestScopedAuthToken maybeProxyUrl projectDescription input =
         requestBody
         inputUrl
         maybeProxyUrl
-        (resultToMsgErrorBody errorContext (ReceiveScopedAuthToken projectDescription))
+        (resultToMsgErrorBody errorContext (ReceiveProjectScopedToken inputUrl))
 
 
 requestAuthTokenHelper : Encode.Value -> HelperTypes.Url -> Maybe HelperTypes.Url -> (Result HttpErrorWithBody ( Http.Metadata, String ) -> SharedMsg) -> Cmd SharedMsg
@@ -256,12 +258,12 @@ requestAppCredential clientUuid posixTime project =
                 errorContext
                 (\appCred ->
                     ProjectMsg
-                        project.auth.project.uuid
+                        (GetterSetters.projectIdentifier project)
                         (ReceiveAppCredential appCred)
                 )
     in
     openstackCredentialedRequest
-        project.auth.project.uuid
+        (GetterSetters.projectIdentifier project)
         Post
         Nothing
         (urlWithVersion ++ "/users/" ++ project.auth.user.uuid ++ "/application_credentials")
@@ -271,6 +273,16 @@ requestAppCredential clientUuid posixTime project =
 
 requestUnscopedProjects : UnscopedProvider -> Maybe HelperTypes.Url -> Cmd SharedMsg
 requestUnscopedProjects provider maybeProxyUrl =
+    requestUnscoped_ provider maybeProxyUrl "auth/projects" "projects" decodeUnscopedProjects ReceiveUnscopedProjects
+
+
+requestUnscopedRegions : UnscopedProvider -> Maybe HelperTypes.Url -> Cmd SharedMsg
+requestUnscopedRegions provider maybeProxyUrl =
+    requestUnscoped_ provider maybeProxyUrl "regions" "regions" decodeUnscopedRegions ReceiveUnscopedRegions
+
+
+requestUnscoped_ : UnscopedProvider -> Maybe HelperTypes.Url -> String -> String -> Decode.Decoder a -> (OSTypes.KeystoneUrl -> a -> SharedMsg) -> Cmd SharedMsg
+requestUnscoped_ provider maybeProxyUrl resourcePathFragment resourceStr decoder toSharedMsg =
     let
         correctedUrl =
             let
@@ -283,7 +295,7 @@ requestUnscopedProjects provider maybeProxyUrl =
                     provider.authUrl
 
                 Just url_ ->
-                    { url_ | path = "/v3/auth/projects" } |> Url.toString
+                    { url_ | path = "/v3/" ++ resourcePathFragment } |> Url.toString
 
         ( url, headers ) =
             case maybeProxyUrl of
@@ -295,7 +307,9 @@ requestUnscopedProjects provider maybeProxyUrl =
 
         errorContext =
             ErrorContext
-                ("get a list of projects for provider \""
+                ("get a list of "
+                    ++ resourceStr
+                    ++ " for provider \""
                     ++ Helpers.Url.hostnameFromUrl provider.authUrl
                     ++ "\""
                 )
@@ -305,7 +319,7 @@ requestUnscopedProjects provider maybeProxyUrl =
         resultToMsg_ =
             resultToMsgErrorBody
                 errorContext
-                (ReceiveUnscopedProjects provider.authUrl)
+                (toSharedMsg provider.authUrl)
     in
     Http.request
         { method = "GET"
@@ -315,7 +329,7 @@ requestUnscopedProjects provider maybeProxyUrl =
         , expect =
             expectJsonWithErrorBody
                 resultToMsg_
-                decodeUnscopedProjects
+                decoder
         , timeout = Nothing
         , tracker = Nothing
         }
@@ -382,11 +396,12 @@ openstackServiceDecoder =
 
 openstackEndpointDecoder : Decode.Decoder OSTypes.Endpoint
 openstackEndpointDecoder =
-    Decode.map2 OSTypes.Endpoint
+    Decode.map3 OSTypes.Endpoint
         (Decode.field "interface" Decode.string
             |> Decode.andThen openstackEndpointInterfaceDecoder
         )
         (Decode.field "url" Decode.string)
+        (Decode.field "region_id" Decode.string)
 
 
 openstackEndpointInterfaceDecoder : String -> Decode.Decoder OSTypes.EndpointInterface
@@ -473,3 +488,16 @@ unscopedProjectDecoder =
         (Decode.field "description" Decode.string |> Decode.nullable)
         (Decode.field "domain_id" Decode.string)
         (Decode.field "enabled" Decode.bool)
+
+
+decodeUnscopedRegions : Decode.Decoder (List UnscopedProviderRegion)
+decodeUnscopedRegions =
+    Decode.field "regions" <|
+        Decode.list unscopedRegionDecoder
+
+
+unscopedRegionDecoder : Decode.Decoder UnscopedProviderRegion
+unscopedRegionDecoder =
+    Decode.map2 OSTypes.Region
+        (Decode.field "id" Decode.string)
+        (Decode.field "description" Decode.string)

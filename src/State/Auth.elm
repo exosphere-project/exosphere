@@ -58,12 +58,12 @@ sendPendingRequests outerModel project =
     let
         pendingRequestsForProject =
             outerModel.pendingCredentialedRequests
-                |> List.filter (\pr -> Tuple.first pr == project.auth.project.uuid)
+                |> List.filter (\pr -> Tuple.first pr == GetterSetters.projectIdentifier project)
                 |> List.map Tuple.second
 
         pendingRequestsForOtherProjects =
             outerModel.pendingCredentialedRequests
-                |> List.filter (\pr -> Tuple.first pr /= project.auth.project.uuid)
+                |> List.filter (\pr -> Tuple.first pr /= GetterSetters.projectIdentifier project)
 
         -- Hydrate cmds with auth token
         cmds =
@@ -88,7 +88,7 @@ requestAuthToken model project =
 
         ApplicationCredential appCred ->
             Ok <|
-                Rest.Keystone.requestScopedAuthToken model.cloudCorsProxyUrl project.description <|
+                Rest.Keystone.requestScopedAuthToken model.cloudCorsProxyUrl <|
                     OSTypes.AppCreds project.endpoints.keystone project.auth.project.name appCred
 
 

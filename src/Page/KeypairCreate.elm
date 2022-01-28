@@ -3,6 +3,7 @@ module Page.KeypairCreate exposing (Model, Msg(..), createKeyPairButton, init, u
 import Element
 import Element.Font as Font
 import Element.Input as Input
+import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import Html.Attributes
 import Style.Helpers as SH
@@ -43,7 +44,7 @@ update msg project model =
         GotSubmit ->
             ( model
             , Cmd.none
-            , SharedMsg.ProjectMsg project.auth.project.uuid <|
+            , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
                 SharedMsg.RequestCreateKeypair model.name model.publicKey
             )
 

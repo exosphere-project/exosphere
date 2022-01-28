@@ -1,5 +1,6 @@
 module OpenStack.ConsoleLog exposing (requestConsoleLog)
 
+import Helpers.GetterSetters as GetterSetters
 import Http
 import Json.Decode
 import Json.Encode
@@ -40,12 +41,12 @@ requestConsoleLog project server maybeLength =
                 Nothing
 
         resultToMsg result =
-            ProjectMsg project.auth.project.uuid <|
+            ProjectMsg (GetterSetters.projectIdentifier project) <|
                 ServerMsg server.osProps.uuid <|
                     ReceiveConsoleLog errorContext result
     in
     openstackCredentialedRequest
-        project.auth.project.uuid
+        (GetterSetters.projectIdentifier project)
         Post
         Nothing
         (project.endpoints.nova ++ "/servers/" ++ server.osProps.uuid ++ "/action")

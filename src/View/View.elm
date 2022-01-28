@@ -8,7 +8,6 @@ import Element.Font as Font
 import FeatherIcons
 import Helpers.GetterSetters as GetterSetters
 import Helpers.String
-import Helpers.Url as UrlHelpers
 import Html
 import Page.FloatingIpAssign
 import Page.FloatingIpList
@@ -24,6 +23,7 @@ import Page.LoginOpenstack
 import Page.LoginPicker
 import Page.MessageLog
 import Page.ProjectOverview
+import Page.SelectProjectRegions
 import Page.SelectProjects
 import Page.ServerCreate
 import Page.ServerCreateImage
@@ -162,6 +162,10 @@ elementView windowSize outerModel context =
 
                             PageNotFound ->
                                 Element.text "Error: page not found. Perhaps you are trying to reach an invalid URL."
+
+                            SelectProjectRegions pageModel ->
+                                Page.SelectProjectRegions.view context outerModel.sharedModel pageModel
+                                    |> Element.map SelectProjectRegionsMsg
 
                             SelectProjects pageModel ->
                                 Page.SelectProjects.view context outerModel.sharedModel pageModel
@@ -338,7 +342,7 @@ projectNav context p projectViewModel =
             )
           <|
             Element.text <|
-                UrlHelpers.hostnameFromUrl p.endpoints.keystone
+                VH.friendlyCloudName context p
                     ++ " - "
                     ++ p.auth.project.name
         , Element.paragraph
@@ -362,7 +366,7 @@ projectNav context p projectViewModel =
                         ]
                 , text = removeText
                 , onPress =
-                    Just <| SharedMsg <| SharedMsg.ProjectMsg p.auth.project.uuid SharedMsg.RemoveProject
+                    Just <| SharedMsg <| SharedMsg.ProjectMsg (GetterSetters.projectIdentifier p) SharedMsg.RemoveProject
                 }
         , Element.el
             [ Element.alignRight
@@ -373,7 +377,7 @@ projectNav context p projectViewModel =
                 , left = 0
                 }
             ]
-            (createButton context p.auth.project.uuid projectViewModel.createPopup)
+            (createButton context (GetterSetters.projectIdentifier p) projectViewModel.createPopup)
         ]
 
 

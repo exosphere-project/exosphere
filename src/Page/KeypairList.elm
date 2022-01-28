@@ -3,6 +3,7 @@ module Page.KeypairList exposing (Model, Msg(..), init, update, view)
 import Element
 import Element.Font as Font
 import FeatherIcons
+import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import Html.Attributes
 import OpenStack.Types as OSTypes
@@ -72,7 +73,7 @@ update msg project model =
         GotDeleteConfirm keypairId ->
             ( model
             , Cmd.none
-            , SharedMsg.ProjectMsg project.auth.project.uuid <| SharedMsg.RequestDeleteKeypair keypairId
+            , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <| SharedMsg.RequestDeleteKeypair keypairId
             )
 
         GotDeleteCancel keypairId ->
@@ -115,7 +116,7 @@ view context project model =
                       Element.link []
                         { url =
                             Route.toUrl context.urlPathPrefix <|
-                                Route.ProjectRoute project.auth.project.uuid <|
+                                Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
                                     Route.KeypairCreate
                         , label =
                             Widget.iconButton

@@ -2,6 +2,7 @@ module Page.ServerCreateImage exposing (Model, Msg, init, update, view)
 
 import Element
 import Element.Input as Input
+import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import OpenStack.Types as OSTypes
 import Route
@@ -40,7 +41,7 @@ update msg { viewContext } project model =
             in
             ( newModel
             , Route.replaceUrl viewContext <|
-                Route.ProjectRoute project.auth.project.uuid <|
+                Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
                     Route.ServerCreateImage newModel.serverUuid (Just newModel.imageName)
             , SharedMsg.NoOp
             )
@@ -48,7 +49,7 @@ update msg { viewContext } project model =
         GotSubmit ->
             ( model
             , Cmd.none
-            , SharedMsg.ProjectMsg project.auth.project.uuid <|
+            , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
                 ServerMsg model.serverUuid <|
                     RequestCreateServerImage model.imageName
             )

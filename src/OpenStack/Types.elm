@@ -36,8 +36,12 @@ module OpenStack.Types exposing
     , Port
     , PortUuid
     , ProjectDescription
+    , ProjectUuid
     , PublicKey
     , QuotaItemDetail
+    , Region
+    , RegionDescription
+    , RegionId
     , ScopedAuthToken
     , SecurityGroup
     , Server
@@ -186,6 +190,7 @@ type alias Service =
 type alias Endpoint =
     { interface : EndpointInterface
     , url : HelperTypes.Url
+    , regionId : RegionId
     }
 
 
@@ -206,6 +211,20 @@ type alias OpenstackLogin =
 type CredentialsForAuthToken
     = TokenCreds KeystoneUrl UnscopedAuthToken ProjectUuid
     | AppCreds KeystoneUrl String ApplicationCredential
+
+
+type alias Region =
+    { id : RegionId
+    , description : RegionDescription
+    }
+
+
+type alias RegionId =
+    String
+
+
+type alias RegionDescription =
+    String
 
 
 

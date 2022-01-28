@@ -4,6 +4,7 @@ import Element
 import Element.Border as Border
 import Element.Font as Font
 import FeatherIcons
+import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import Html.Attributes
 import OpenStack.Types as OSTypes
@@ -46,7 +47,7 @@ view context project _ =
         renderTile : Element.Element Msg -> String -> Route.ProjectRouteConstructor -> Element.Element Msg -> Element.Element Msg -> Element.Element Msg
         renderTile icon str projRouteConstructor quotaMeter contents =
             Element.link []
-                { url = Route.toUrl context.urlPathPrefix (Route.ProjectRoute project.auth.project.uuid projRouteConstructor)
+                { url = Route.toUrl context.urlPathPrefix (Route.ProjectRoute (GetterSetters.projectIdentifier project) projRouteConstructor)
                 , label =
                     tile context
                         [ Element.column [ Element.padding 18, Element.width Element.fill, Element.spacing 20 ]

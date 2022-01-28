@@ -8,6 +8,7 @@ import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.ServerResourceUsage
 import Http
+import List.Extra
 import LocalStorage.LocalStorage as LocalStorage
 import Maybe
 import OpenStack.ServerPassword as OSServerPassword
@@ -28,6 +29,7 @@ import Page.LoginOpenstack
 import Page.LoginPicker
 import Page.MessageLog
 import Page.ProjectOverview
+import Page.SelectProjectRegions
 import Page.SelectProjects
 import Page.ServerCreate
 import Page.ServerCreateImage
@@ -231,6 +233,19 @@ updateUnderlying outerMsg outerModel =
                 | viewState = NonProjectView <| MessageLog newPageModel
               }
             , Cmd.map MessageLogMsg cmd
+            )
+                |> pipelineCmdOuterModelMsg
+                    (processSharedMsg sharedMsg)
+
+        ( SelectProjectRegionsMsg pageMsg, NonProjectView (SelectProjectRegions pageModel) ) ->
+            let
+                ( newPageModel, cmd, sharedMsg ) =
+                    Page.SelectProjectRegions.update pageMsg sharedModel pageModel
+            in
+            ( { outerModel
+                | viewState = NonProjectView <| SelectProjectRegions newPageModel
+              }
+            , Cmd.map SelectProjectRegionsMsg cmd
             )
                 |> pipelineCmdOuterModelMsg
                     (processSharedMsg sharedMsg)
@@ -585,7 +600,7 @@ processSharedMsg sharedMsg outerModel =
             ( outerModel, Cmd.batch cmds )
                 |> mapToOuterMsg
 
-        ReceiveScopedAuthToken projectDescription ( metadata, response ) ->
+        ReceiveProjectScopedToken keystoneUrl ( metadata, response ) ->
             case Rest.Keystone.decodeScopedAuthToken <| Http.GoodStatus_ metadata response of
                 Err error ->
                     State.Error.processStringError
@@ -600,51 +615,140 @@ processSharedMsg sharedMsg outerModel =
                         |> mapToOuterModel outerModel
 
                 Ok authToken ->
-                    case Helpers.serviceCatalogToEndpoints authToken.catalog of
-                        Err e ->
-                            State.Error.processStringError
-                                sharedModel
-                                (ErrorContext
-                                    "Decode project endpoints"
-                                    ErrorCrit
-                                    (Just "Please check with your cloud administrator or the Exosphere developers.")
-                                )
-                                e
-                                |> mapToOuterMsg
-                                |> mapToOuterModel outerModel
+                    let
+                        updateTokenForExistingProjects : OuterModel -> ( OuterModel, Cmd OuterMsg )
+                        updateTokenForExistingProjects outerModel_ =
+                            sharedModel.projects
+                                |> List.filter (\p -> p.auth.project.uuid == authToken.project.uuid)
+                                |> List.map
+                                    (\p ->
+                                        \outerModel__ ->
+                                            State.Auth.projectUpdateAuthToken outerModel__ p authToken
+                                                |> mapToOuterMsg
+                                    )
+                                |> List.foldl pipelineCmdOuterModelMsg ( outerModel_, Cmd.none )
 
-                        Ok endpoints ->
-                            let
-                                projectId =
-                                    authToken.project.uuid
-                            in
-                            -- If we don't have a project with same name + authUrl then create one, if we do then update its OSTypes.AuthToken
-                            -- This code ensures we don't end up with duplicate projects on the same provider in our model.
+                        handleCaseOfNewProject : OuterModel -> ( OuterModel, Cmd OuterMsg )
+                        handleCaseOfNewProject outerModel_ =
+                            -- If there is an unscoped provider project in the model, we either create the full project right away (if there is only one region) or direct user to the SelectProjectRegions page
                             case
-                                GetterSetters.projectLookup sharedModel <| projectId
+                                GetterSetters.unscopedProviderLookup outerModel_.sharedModel keystoneUrl
+                                    |> Maybe.andThen (\provider -> GetterSetters.unscopedProjectLookup provider authToken.project.uuid)
                             of
                                 Nothing ->
-                                    createProject outerModel projectDescription authToken endpoints
+                                    ( outerModel_, Cmd.none )
 
-                                Just project ->
-                                    -- If we don't have an application credential for this project yet, then get one
-                                    let
-                                        appCredCmd =
-                                            case project.secret of
-                                                ApplicationCredential _ ->
-                                                    Cmd.none
+                                Just unscopedProject ->
+                                    case GetterSetters.getCatalogRegionIds authToken.catalog of
+                                        [] ->
+                                            State.Error.processStringError
+                                                outerModel_.sharedModel
+                                                (ErrorContext
+                                                    "Get project regions"
+                                                    ErrorCrit
+                                                    (Just "Please check with your cloud administrator or the Exosphere developers.")
+                                                )
+                                                "Could not find any endpoints with a region ID."
+                                                |> mapToOuterMsg
+                                                |> mapToOuterModel outerModel_
 
-                                                _ ->
-                                                    Rest.Keystone.requestAppCredential
-                                                        sharedModel.clientUuid
-                                                        sharedModel.clientCurrentTime
-                                                        project
+                                        [ singleRegionId ] ->
+                                            -- Only one region in the catalog so create the project right now
+                                            let
+                                                navigateToCorrectPage : OuterModel -> ( OuterModel, Cmd OuterMsg )
+                                                navigateToCorrectPage outerModel__ =
+                                                    -- send user to Home page, except if there are unscoped providers remaining to choose projects for, then send user to SelectProjects page
+                                                    -- This can likely go away after Jetstream1 is decommissioned.
+                                                    case outerModel__.sharedModel.unscopedProviders of
+                                                        [] ->
+                                                            ( outerModel__
+                                                            , case outerModel__.viewState of
+                                                                NonProjectView (Home _) ->
+                                                                    Cmd.none
 
-                                        ( newOuterModel, updateTokenCmd ) =
-                                            State.Auth.projectUpdateAuthToken outerModel project authToken
-                                    in
-                                    ( newOuterModel, Cmd.batch [ appCredCmd, updateTokenCmd ] )
-                                        |> mapToOuterMsg
+                                                                _ ->
+                                                                    Route.pushUrl outerModel__.sharedModel.viewContext Route.Home
+                                                            )
+
+                                                        firstUnscopedProvider :: _ ->
+                                                            ( outerModel__
+                                                            , Route.pushUrl
+                                                                outerModel__.sharedModel.viewContext
+                                                                (Route.SelectProjects firstUnscopedProvider.authUrl)
+                                                            )
+                                            in
+                                            createProject keystoneUrl authToken singleRegionId outerModel_
+                                                |> pipelineCmdOuterModelMsg
+                                                    (removeUnscopedProject
+                                                        keystoneUrl
+                                                        unscopedProject.project.uuid
+                                                    )
+                                                |> pipelineCmdOuterModelMsg navigateToCorrectPage
+
+                                        _ ->
+                                            -- Multiple regions, ask the user to choose from among them
+                                            let
+                                                newTokens =
+                                                    authToken :: outerModel_.sharedModel.scopedAuthTokensWaitingRegionSelection
+
+                                                oldSharedmodel =
+                                                    outerModel_.sharedModel
+
+                                                newModel =
+                                                    { oldSharedmodel | scopedAuthTokensWaitingRegionSelection = newTokens }
+                                            in
+                                            ( newModel
+                                            , Route.pushUrl
+                                                outerModel_.sharedModel.viewContext
+                                                (Route.SelectProjectRegions keystoneUrl authToken.project.uuid)
+                                            )
+                                                |> mapToOuterMsg
+                                                |> mapToOuterModel outerModel_
+                    in
+                    ( outerModel, Cmd.none )
+                        |> pipelineCmdOuterModelMsg updateTokenForExistingProjects
+                        |> pipelineCmdOuterModelMsg handleCaseOfNewProject
+
+        CreateProjectsFromRegionSelections keystoneUrl projectUuid regionIds ->
+            let
+                dealWithNextProject : OuterModel -> ( OuterModel, Cmd OuterMsg )
+                dealWithNextProject outerModel_ =
+                    let
+                        maybeNextUnscopedProject =
+                            GetterSetters.unscopedProviderLookup outerModel_.sharedModel keystoneUrl
+                                |> Maybe.map .projectsAvailable
+                                |> Maybe.map (RemoteData.withDefault [])
+                                |> Maybe.andThen List.head
+                    in
+                    case maybeNextUnscopedProject of
+                        Just nextUnscopedProject ->
+                            -- user to choose regions for next unscoped project
+                            ( outerModel_
+                            , Route.pushUrl
+                                outerModel_.sharedModel.viewContext
+                                (Route.SelectProjectRegions keystoneUrl nextUnscopedProject.project.uuid)
+                            )
+
+                        Nothing ->
+                            -- no more unscoped projects to choose regions for, go to home page
+                            ( outerModel_, Route.pushUrl outerModel_.sharedModel.viewContext Route.Home )
+                                |> pipelineCmdOuterModelMsg (removeScopedAuthTokenWaitingRegionSelection projectUuid)
+            in
+            case
+                List.Extra.find
+                    (\token -> token.project.uuid == projectUuid)
+                    sharedModel.scopedAuthTokensWaitingRegionSelection
+            of
+                Just authToken ->
+                    regionIds
+                        |> List.map (createProject keystoneUrl authToken)
+                        |> List.foldl pipelineCmdOuterModelMsg ( outerModel, Cmd.none )
+                        |> pipelineCmdOuterModelMsg (removeUnscopedProject keystoneUrl projectUuid)
+                        |> pipelineCmdOuterModelMsg dealWithNextProject
+
+                Nothing ->
+                    -- Could not find auth token, nothing to do
+                    ( outerModel, Cmd.none )
 
         ReceiveUnscopedAuthToken keystoneUrl ( metadata, response ) ->
             case Rest.Keystone.decodeUnscopedAuthToken <| Http.GoodStatus_ metadata response of
@@ -662,7 +766,7 @@ processSharedMsg sharedMsg outerModel =
 
                 Ok authToken ->
                     case
-                        GetterSetters.providerLookup sharedModel keystoneUrl
+                        GetterSetters.unscopedProviderLookup sharedModel keystoneUrl
                     of
                         Just unscopedProvider ->
                             -- We already have an unscoped provider in the model with the same auth URL, update its token
@@ -681,7 +785,7 @@ processSharedMsg sharedMsg outerModel =
 
         ReceiveUnscopedProjects keystoneUrl unscopedProjects ->
             case
-                GetterSetters.providerLookup sharedModel keystoneUrl
+                GetterSetters.unscopedProviderLookup sharedModel keystoneUrl
             of
                 Just provider ->
                     let
@@ -708,15 +812,35 @@ processSharedMsg sharedMsg outerModel =
                     -- Provider not found, may have been removed, nothing to do
                     ( outerModel, Cmd.none )
 
-        RequestProjectLoginFromProvider keystoneUrl unscopedProjects ->
-            case GetterSetters.providerLookup sharedModel keystoneUrl of
+        ReceiveUnscopedRegions keystoneUrl unscopedRegions ->
+            case
+                GetterSetters.unscopedProviderLookup sharedModel keystoneUrl
+            of
+                Just provider ->
+                    let
+                        newProvider =
+                            { provider | regionsAvailable = RemoteData.Success unscopedRegions }
+
+                        newSharedModel =
+                            GetterSetters.modelUpdateUnscopedProvider sharedModel newProvider
+
+                        newOuterModel =
+                            { outerModel | sharedModel = newSharedModel }
+                    in
+                    ( newOuterModel, Cmd.none )
+
+                Nothing ->
+                    -- Provider not found, may have been removed, nothing to do
+                    ( outerModel, Cmd.none )
+
+        RequestProjectScopedToken keystoneUrl selectedUnscopedProjects ->
+            case GetterSetters.unscopedProviderLookup sharedModel keystoneUrl of
                 Just provider ->
                     let
                         buildLoginRequest : UnscopedProviderProject -> Cmd SharedMsg
                         buildLoginRequest project =
                             Rest.Keystone.requestScopedAuthToken
                                 sharedModel.cloudCorsProxyUrl
-                                project.description
                             <|
                                 OSTypes.TokenCreds
                                     keystoneUrl
@@ -724,38 +848,28 @@ processSharedMsg sharedMsg outerModel =
                                     project.project.uuid
 
                         loginRequests =
-                            List.map buildLoginRequest unscopedProjects
+                            List.map buildLoginRequest selectedUnscopedProjects
                                 |> Cmd.batch
 
-                        -- Remove unscoped provider from model now that we have selected projects from it
-                        newUnscopedProviders =
-                            List.filter
-                                (\p -> p.authUrl /= keystoneUrl)
-                                sharedModel.unscopedProviders
+                        selectedProjectUuids =
+                            List.map (\p -> p.project.uuid) selectedUnscopedProjects
 
-                        -- If we still have at least one unscoped provider in the model then ask the user to choose projects from it
-                        newViewStateCmd =
-                            case List.head newUnscopedProviders of
-                                Just unscopedProvider ->
-                                    Route.pushUrl viewContext (Route.SelectProjects unscopedProvider.authUrl)
+                        notSelectedProjectUuids =
+                            provider.projectsAvailable
+                                |> RemoteData.withDefault []
+                                |> List.map (\p -> p.project.uuid)
+                                |> List.filter (\uuid -> not (List.member uuid selectedProjectUuids))
 
-                                Nothing ->
-                                    -- If we have at least one project then show it, else show the login page
-                                    case List.head sharedModel.projects of
-                                        Just project ->
-                                            Route.pushUrl viewContext <|
-                                                Route.ProjectRoute project.auth.project.uuid <|
-                                                    Route.ProjectOverview
-
-                                        Nothing ->
-                                            Route.pushUrl viewContext Route.LoginPicker
-
-                        sharedModelUpdatedUnscopedProviders =
-                            { sharedModel | unscopedProviders = newUnscopedProviders }
+                        removeNotSelectedUnscopedProjects : OuterModel -> ( OuterModel, Cmd OuterMsg )
+                        removeNotSelectedUnscopedProjects outerModel_ =
+                            notSelectedProjectUuids
+                                |> List.map (removeUnscopedProject keystoneUrl)
+                                |> List.foldl pipelineCmdOuterModelMsg ( outerModel_, Cmd.none )
                     in
-                    ( { outerModel | sharedModel = sharedModelUpdatedUnscopedProviders }
-                    , Cmd.batch [ Cmd.map SharedMsg loginRequests, newViewStateCmd ]
+                    ( outerModel
+                    , Cmd.map SharedMsg loginRequests
                     )
+                        |> pipelineCmdOuterModelMsg removeNotSelectedUnscopedProjects
 
                 Nothing ->
                     State.Error.processStringError
@@ -983,7 +1097,8 @@ processProjectSpecificMsg outerModel project msg =
                 -- Token is expired (or nearly expired) so we add request to list of pending requests and refresh that token
                 let
                     newPQRs =
-                        ( project.auth.project.uuid, requestNeedingToken ) :: outerModel.pendingCredentialedRequests
+                        ( GetterSetters.projectIdentifier project, requestNeedingToken )
+                            :: outerModel.pendingCredentialedRequests
 
                     cmdResult =
                         State.Auth.requestAuthToken sharedModel project
@@ -1029,7 +1144,7 @@ processProjectSpecificMsg outerModel project msg =
         RemoveProject ->
             let
                 newProjects =
-                    List.filter (\p -> p.auth.project.uuid /= project.auth.project.uuid) sharedModel.projects
+                    List.filter (\p -> p.auth.project.uuid /= project.auth.project.uuid || p.region /= project.region) sharedModel.projects
 
                 newOuterModel =
                     { outerModel | sharedModel = { sharedModel | projects = newProjects } }
@@ -1038,7 +1153,7 @@ processProjectSpecificMsg outerModel project msg =
                     -- if we are in a view specific to this project then navigate to the home page
                     case outerModel.viewState of
                         ProjectView projectId _ _ ->
-                            if projectId == project.auth.project.uuid then
+                            if projectId == GetterSetters.projectIdentifier project then
                                 Route.pushUrl sharedModel.viewContext Route.Home
 
                             else
@@ -1075,7 +1190,7 @@ processProjectSpecificMsg outerModel project msg =
                     processServerSpecificMsg outerModel project server serverMsgConstructor
 
         RequestServers ->
-            ApiModelHelpers.requestServers project.auth.project.uuid sharedModel
+            ApiModelHelpers.requestServers (GetterSetters.projectIdentifier project) sharedModel
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
@@ -1176,7 +1291,7 @@ processProjectSpecificMsg outerModel project msg =
             let
                 setViewCmd =
                     Route.pushUrl sharedModel.viewContext
-                        (Route.ProjectRoute project.auth.project.uuid <| Route.FloatingIpList)
+                        (Route.ProjectRoute (GetterSetters.projectIdentifier project) <| Route.FloatingIpList)
             in
             ( outerModel
             , Cmd.batch
@@ -1365,7 +1480,7 @@ processProjectSpecificMsg outerModel project msg =
                     GetterSetters.modelUpdateProject sharedModel newProject
             in
             ( { outerModel | sharedModel = newSharedModel }
-            , Route.pushUrl sharedModel.viewContext (Route.ProjectRoute newProject.auth.project.uuid Route.KeypairList)
+            , Route.pushUrl sharedModel.viewContext (Route.ProjectRoute (GetterSetters.projectIdentifier project) Route.KeypairList)
             )
 
         RequestDeleteKeypair keypairId ->
@@ -1404,17 +1519,17 @@ processProjectSpecificMsg outerModel project msg =
             let
                 newRoute =
                     Route.ProjectRoute
-                        project.auth.project.uuid
+                        (GetterSetters.projectIdentifier project)
                         Route.ProjectOverview
 
                 ( newSharedModel, newCmd ) =
                     ( sharedModel, Cmd.none )
                         |> Helpers.pipelineCmd
-                            (ApiModelHelpers.requestServers project.auth.project.uuid)
+                            (ApiModelHelpers.requestServers (GetterSetters.projectIdentifier project))
                         |> Helpers.pipelineCmd
-                            (ApiModelHelpers.requestNetworks project.auth.project.uuid)
+                            (ApiModelHelpers.requestNetworks (GetterSetters.projectIdentifier project))
                         |> Helpers.pipelineCmd
-                            (ApiModelHelpers.requestPorts project.auth.project.uuid)
+                            (ApiModelHelpers.requestPorts (GetterSetters.projectIdentifier project))
             in
             ( { outerModel | sharedModel = newSharedModel }
             , Cmd.batch
@@ -1492,11 +1607,11 @@ processProjectSpecificMsg outerModel project msg =
                 ( newNewSharedModel, newCmd ) =
                     case result of
                         Ok _ ->
-                            ApiModelHelpers.requestNetworks project.auth.project.uuid newSharedModel
+                            ApiModelHelpers.requestNetworks (GetterSetters.projectIdentifier project) newSharedModel
 
                         Err httpError ->
                             State.Error.processSynchronousApiError newSharedModel errorContext httpError
-                                |> Helpers.pipelineCmd (ApiModelHelpers.requestNetworks project.auth.project.uuid)
+                                |> Helpers.pipelineCmd (ApiModelHelpers.requestNetworks (GetterSetters.projectIdentifier project))
 
                 ( newOuterModel, underlyingCmd ) =
                     case Helpers.newServerNetworkOptions newProject of
@@ -1589,7 +1704,7 @@ processProjectSpecificMsg outerModel project msg =
         ReceiveCreateVolume ->
             {- Should we add new volume to model now? -}
             ( outerModel
-            , Route.pushUrl sharedModel.viewContext (Route.ProjectRoute project.auth.project.uuid Route.VolumeList)
+            , Route.pushUrl sharedModel.viewContext (Route.ProjectRoute (GetterSetters.projectIdentifier project) Route.VolumeList)
             )
 
         ReceiveVolumes volumes ->
@@ -1683,12 +1798,12 @@ processProjectSpecificMsg outerModel project msg =
 
         ReceiveAttachVolume attachment ->
             ( outerModel
-            , Route.pushUrl sharedModel.viewContext (Route.ProjectRoute project.auth.project.uuid <| Route.VolumeMountInstructions attachment)
+            , Route.pushUrl sharedModel.viewContext (Route.ProjectRoute (GetterSetters.projectIdentifier project) <| Route.VolumeMountInstructions attachment)
             )
 
         ReceiveDetachVolume ->
             ( outerModel
-            , Route.pushUrl sharedModel.viewContext (Route.ProjectRoute project.auth.project.uuid Route.VolumeList)
+            , Route.pushUrl sharedModel.viewContext (Route.ProjectRoute (GetterSetters.projectIdentifier project) Route.VolumeList)
             )
 
         ReceiveAppCredential appCredential ->
@@ -1735,7 +1850,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
     in
     case serverMsgConstructor of
         RequestServer ->
-            ApiModelHelpers.requestServer project.auth.project.uuid server.osProps.uuid sharedModel
+            ApiModelHelpers.requestServer (GetterSetters.projectIdentifier project) server.osProps.uuid sharedModel
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
@@ -1756,7 +1871,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
             let
                 newRoute =
                     Route.ProjectRoute
-                        project.auth.project.uuid
+                        (GetterSetters.projectIdentifier project)
                         Route.ProjectOverview
 
                 createImageCmd =
@@ -2257,8 +2372,113 @@ processNewFloatingIp time project floatingIp =
     }
 
 
-createProject : OuterModel -> Maybe OSTypes.ProjectDescription -> OSTypes.ScopedAuthToken -> Endpoints -> ( OuterModel, Cmd OuterMsg )
-createProject outerModel description authToken endpoints =
+removeScopedAuthTokenWaitingRegionSelection : OSTypes.ProjectUuid -> OuterModel -> ( OuterModel, Cmd OuterMsg )
+removeScopedAuthTokenWaitingRegionSelection projectUuid outerModel =
+    let
+        newScopedAuthTokensWaitingRegionSelection =
+            outerModel.sharedModel.scopedAuthTokensWaitingRegionSelection
+                |> List.filter (\t -> t.project.uuid /= projectUuid)
+
+        oldSharedModel =
+            outerModel.sharedModel
+
+        newSharedModel =
+            { oldSharedModel | scopedAuthTokensWaitingRegionSelection = newScopedAuthTokensWaitingRegionSelection }
+    in
+    ( { outerModel | sharedModel = newSharedModel }, Cmd.none )
+
+
+removeUnscopedProject : OSTypes.KeystoneUrl -> OSTypes.ProjectUuid -> OuterModel -> ( OuterModel, Cmd OuterMsg )
+removeUnscopedProject keystoneUrl projectUuid outerModel =
+    case GetterSetters.unscopedProviderLookup outerModel.sharedModel keystoneUrl of
+        Nothing ->
+            ( outerModel, Cmd.none )
+
+        Just unscopedProvider ->
+            case unscopedProvider.projectsAvailable of
+                RemoteData.Success projectsAvailable ->
+                    let
+                        newProjectsAvailable =
+                            projectsAvailable
+                                |> List.filter (\p -> p.project.uuid /= projectUuid)
+                                |> RemoteData.Success
+
+                        newUnscopedProvider =
+                            { unscopedProvider | projectsAvailable = newProjectsAvailable }
+
+                        oldSharedModel =
+                            outerModel.sharedModel
+
+                        newSharedModel =
+                            -- Remove unscoped provider if there are no projects left in it
+                            if
+                                newUnscopedProvider.projectsAvailable
+                                    |> RemoteData.withDefault []
+                                    |> List.isEmpty
+                            then
+                                { oldSharedModel
+                                    | unscopedProviders =
+                                        List.filter
+                                            (\p -> p.authUrl /= unscopedProvider.authUrl)
+                                            outerModel.sharedModel.unscopedProviders
+                                }
+
+                            else
+                                GetterSetters.modelUpdateUnscopedProvider oldSharedModel newUnscopedProvider
+                    in
+                    ( { outerModel | sharedModel = newSharedModel }, Cmd.none )
+
+                _ ->
+                    ( outerModel, Cmd.none )
+
+
+createProject : OSTypes.KeystoneUrl -> OSTypes.ScopedAuthToken -> OSTypes.RegionId -> OuterModel -> ( OuterModel, Cmd OuterMsg )
+createProject keystoneUrl token regionId outerModel =
+    let
+        processError : String -> ( OuterModel, Cmd OuterMsg )
+        processError error =
+            State.Error.processStringError
+                outerModel.sharedModel
+                (ErrorContext
+                    "Create project"
+                    ErrorCrit
+                    Nothing
+                )
+                error
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
+        endpointsResult =
+            Helpers.serviceCatalogToEndpoints token.catalog (Just regionId)
+
+        maybeUnscopedProvider =
+            GetterSetters.unscopedProviderLookup outerModel.sharedModel keystoneUrl
+
+        maybeRegion =
+            maybeUnscopedProvider
+                |> Maybe.andThen (\provider -> GetterSetters.unscopedRegionLookup provider regionId)
+
+        maybeDescription =
+            maybeUnscopedProvider
+                |> Maybe.andThen (\provider -> GetterSetters.unscopedProjectLookup provider token.project.uuid)
+                |> Maybe.map .description
+    in
+    case ( endpointsResult, maybeRegion, maybeDescription ) of
+        ( Ok endpoints, Just region, Just description ) ->
+            createProject_ outerModel description token region endpoints
+
+        ( Err e, _, _ ) ->
+            processError e
+
+        ( _, Nothing, _ ) ->
+            processError ("Could not look up Keystone region with ID " ++ regionId)
+
+        ( _, _, Nothing ) ->
+            processError ("Could not look up description of project with ID " ++ token.project.uuid)
+
+
+createProject_ : OuterModel -> Maybe OSTypes.ProjectDescription -> OSTypes.ScopedAuthToken -> OSTypes.Region -> Endpoints -> ( OuterModel, Cmd OuterMsg )
+createProject_ outerModel description authToken region endpoints =
     let
         sharedModel =
             outerModel.sharedModel
@@ -2266,6 +2486,7 @@ createProject outerModel description authToken endpoints =
         newProject =
             { secret = NoProjectSecret
             , auth = authToken
+            , region = Just region
 
             -- Maybe todo, eliminate parallel data structures in auth and endpoints?
             , endpoints = endpoints
@@ -2285,24 +2506,11 @@ createProject outerModel description authToken endpoints =
             , networkQuota = RemoteData.NotAsked
             }
 
-        newProjects =
-            newProject :: outerModel.sharedModel.projects
+        newSharedModel =
+            GetterSetters.modelUpdateProject outerModel.sharedModel newProject
 
-        newViewStateCmd =
-            -- If the user is selecting projects from an unscoped provider then don't interrupt them
-            case outerModel.viewState of
-                NonProjectView (SelectProjects _) ->
-                    Cmd.none
-
-                -- Otherwise take them to home page
-                _ ->
-                    Route.pushUrl sharedModel.viewContext <|
-                        Route.Home
-
-        ( newSharedModel, newCmd ) =
-            ( { sharedModel
-                | projects = newProjects
-              }
+        ( newNewSharedModel, newCmd ) =
+            ( newSharedModel
             , [ Rest.Nova.requestServers
               , Rest.Neutron.requestSecurityGroups
               , Rest.Keystone.requestAppCredential sharedModel.clientUuid sharedModel.clientCurrentTime
@@ -2311,14 +2519,14 @@ createProject outerModel description authToken endpoints =
                 |> Cmd.batch
             )
                 |> Helpers.pipelineCmd
-                    (ApiModelHelpers.requestVolumes newProject.auth.project.uuid)
+                    (ApiModelHelpers.requestVolumes (GetterSetters.projectIdentifier newProject))
                 |> Helpers.pipelineCmd
-                    (ApiModelHelpers.requestFloatingIps newProject.auth.project.uuid)
+                    (ApiModelHelpers.requestFloatingIps (GetterSetters.projectIdentifier newProject))
                 |> Helpers.pipelineCmd
-                    (ApiModelHelpers.requestPorts newProject.auth.project.uuid)
+                    (ApiModelHelpers.requestPorts (GetterSetters.projectIdentifier newProject))
     in
-    ( { outerModel | sharedModel = newSharedModel }
-    , Cmd.batch [ newViewStateCmd, Cmd.map SharedMsg newCmd ]
+    ( { outerModel | sharedModel = newNewSharedModel }
+    , Cmd.map SharedMsg newCmd
     )
 
 
@@ -2329,13 +2537,17 @@ createUnscopedProvider model authToken authUrl =
             { authUrl = authUrl
             , token = authToken
             , projectsAvailable = RemoteData.Loading
+            , regionsAvailable = RemoteData.Loading
             }
 
         newProviders =
             newProvider :: model.unscopedProviders
     in
     ( { model | unscopedProviders = newProviders }
-    , Rest.Keystone.requestUnscopedProjects newProvider model.cloudCorsProxyUrl
+    , Cmd.batch
+        [ Rest.Keystone.requestUnscopedProjects newProvider model.cloudCorsProxyUrl
+        , Rest.Keystone.requestUnscopedRegions newProvider model.cloudCorsProxyUrl
+        ]
     )
 
 
@@ -2369,7 +2581,7 @@ requestDeleteServer project serverUuid retainFloatingIps =
             ( newProject
             , Cmd.batch
                 [ Rest.Nova.requestDeleteServer
-                    newProject.auth.project.uuid
+                    (GetterSetters.projectIdentifier newProject)
                     newProject.endpoints.nova
                     newServer.osProps.uuid
                 , Cmd.batch deleteFloatingIpCmds

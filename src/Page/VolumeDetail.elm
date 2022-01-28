@@ -56,7 +56,7 @@ update msg project model =
         GotDeleteConfirm ->
             ( model
             , Cmd.none
-            , SharedMsg.ProjectMsg project.auth.project.uuid <| SharedMsg.RequestDeleteVolume model.volumeUuid
+            , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <| SharedMsg.RequestDeleteVolume model.volumeUuid
             )
 
         GotDeleteCancel ->
@@ -163,7 +163,7 @@ renderAttachment context project attachment =
             , Element.link []
                 { url =
                     Route.toUrl context.urlPathPrefix <|
-                        Route.ProjectRoute project.auth.project.uuid <|
+                        Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
                             Route.ServerDetail attachment.serverUuid
                 , label =
                     Style.Widgets.IconButton.goToButton context.palette
@@ -238,7 +238,7 @@ volumeActionButtons context project model volume =
                     Element.link []
                         { url =
                             Route.toUrl context.urlPathPrefix
-                                (Route.ProjectRoute project.auth.project.uuid <|
+                                (Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
                                     Route.VolumeAttach Nothing (Just volume.uuid)
                                 )
                         , label =
@@ -264,7 +264,7 @@ volumeActionButtons context project model volume =
                             , onPress =
                                 Just <|
                                     SharedMsg <|
-                                        SharedMsg.ProjectMsg project.auth.project.uuid <|
+                                        SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
                                             SharedMsg.RequestDetachVolume model.volumeUuid
                             }
 

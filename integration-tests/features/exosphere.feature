@@ -18,7 +18,7 @@ Feature: Text presence
         Then I wait for 2 seconds
         Then I should see "TG-INI210003" within 5 seconds
         When I click the "TG-INI210003" card
-        Then I should see "iu.jetstream-cloud.org - TG-INI210003" within 5 seconds
+        Then I should see "Jetstream1 IU RegionOne - TG-INI210003" within 5 seconds
         And I should see an element with xpath "//h3[contains(string(),'Instances')]" within 20 seconds
 
     @launch
@@ -31,13 +31,13 @@ Feature: Text presence
         When I add a Jetstream1 Account for allocation "TG-INI210003"
         Then I should see "TG-INI210003" within 5 seconds
         When I click the "TG-INI210003" card
-        Then I should see "iu.jetstream-cloud.org - TG-INI210003" within 15 seconds
+        Then I should see "Jetstream1 IU RegionOne - TG-INI210003" within 15 seconds
         And I should see an element with xpath "//h3[contains(string(),'Instances')]" within 20 seconds
         Given a unique instance name starting with "ubuntu"
         And I should not see the unique instance name within 30 seconds
         When I click the "Create" button
         And I click the "Instance" button
-        Then the browser's URL should contain "/projects/285529556e524028aae29f9c8b0f8017/instancesource"
+        Then the browser's URL should contain "/projects/285529556e524028aae29f9c8b0f8017/regions/RegionOne/instancesource"
         And I should see "Images loading..."
         And I should see an element with xpath "//h2[contains(string(),'Choose an Instance Source')]" within 120 seconds
         When I click the "20.04 (latest)" button
@@ -53,7 +53,7 @@ Feature: Text presence
         Then I should see an element with xpath "//h3[contains(string(),'Instances')]" within 5 seconds
         When I press the last element with xpath "//h3[contains(string(),'Instances')]"
         Then I should see the unique instance name within 5 seconds
-        And the browser's URL should contain "/projects/285529556e524028aae29f9c8b0f8017/servers"
+        And the browser's URL should contain "/projects/285529556e524028aae29f9c8b0f8017/regions/RegionOne/servers"
         When I press on the unique instance name
         Then I should see an element with xpath "//h2[contains(string(),'Instance')]" within 2 seconds
         And I should see an element with xpath "//div[contains(string(),'Building')]" within 10 seconds
@@ -72,7 +72,7 @@ Feature: Text presence
         When I add a Jetstream1 Account for allocation "TG-INI210003"
         Then I should see "TG-INI210003" within 5 seconds
         When I click the "TG-INI210003" card
-        Then I should see "iu.jetstream-cloud.org - TG-INI210003" within 15 seconds
+        Then I should see "Jetstream1 IU RegionOne - TG-INI210003" within 15 seconds
         And I should see an element with xpath "//h3[contains(string(),'Instances')]" within 20 seconds
         When I press the last element with xpath "//h3[contains(string(),'Instances')]"
         Given a unique instance name starting with "ubuntu"

@@ -107,9 +107,12 @@ naiveUuidParser =
             |. Parser.chompWhile isUuidChar
 
 
-serviceCatalogToEndpoints : OSTypes.ServiceCatalog -> Result String Endpoints
-serviceCatalogToEndpoints catalog =
+serviceCatalogToEndpoints : OSTypes.ServiceCatalog -> Maybe OSTypes.RegionId -> Result String Endpoints
+serviceCatalogToEndpoints catalog maybeRegionId =
     let
+        getService =
+            GetterSetters.getServicePublicUrl catalog maybeRegionId
+
         -- Future optimization, use a real URL parser
         novaUrlWithMicroversionSupport : String -> String
         novaUrlWithMicroversionSupport url =
@@ -118,11 +121,11 @@ serviceCatalogToEndpoints catalog =
                 |> String.replace "/v2.0/" "/v2.1/"
 
         endpoints =
-            [ ( "cinder", GetterSetters.getServicePublicUrl "volumev3" catalog )
-            , ( "glance", GetterSetters.getServicePublicUrl "image" catalog )
-            , ( "keystone", GetterSetters.getServicePublicUrl "identity" catalog )
-            , ( "nova", GetterSetters.getServicePublicUrl "compute" catalog |> Maybe.map novaUrlWithMicroversionSupport )
-            , ( "neutron", GetterSetters.getServicePublicUrl "network" catalog )
+            [ ( "cinder", getService "volumev3" )
+            , ( "glance", getService "image" )
+            , ( "keystone", getService "identity" )
+            , ( "nova", getService "compute" |> Maybe.map novaUrlWithMicroversionSupport )
+            , ( "neutron", getService "network" )
             ]
 
         missingServiceName service =

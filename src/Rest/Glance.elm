@@ -42,10 +42,10 @@ requestImages model project =
         resultToMsg_ =
             resultToMsgErrorBody
                 errorContext
-                (\images -> ProjectMsg project.auth.project.uuid <| ReceiveImages images)
+                (\images -> ProjectMsg (GetterSetters.projectIdentifier project) <| ReceiveImages images)
     in
     openstackCredentialedRequest
-        project.auth.project.uuid
+        (GetterSetters.projectIdentifier project)
         Get
         Nothing
         (project.endpoints.glance ++ "/v2/images?limit=999999")
