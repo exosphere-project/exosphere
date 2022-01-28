@@ -68,6 +68,7 @@ type Msg
     | GotWorkflowPath String
     | GotWorkflowInputLoseFocus
     | GotShowWorkFlowExplanationToggleTip
+    | GotCreateCluster Bool
     | GotDisabledCreateButtonPressed
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
@@ -96,6 +97,8 @@ init imageUuid imageName restrictFlavorIds deployGuacamole =
     , workflowInputPath = ""
     , workflowInputIsValid = Nothing
     , showWorkflowExplanationToggleTip = False
+    , createCluster = False
+    , showClusterExplanationToggleTip = False
     , showFormInvalidToggleTip = False
     }
 
@@ -265,6 +268,14 @@ update msg project model =
         GotShowWorkFlowExplanationToggleTip ->
             ( { model
                 | showWorkflowExplanationToggleTip = not model.showWorkflowExplanationToggleTip
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
+
+        GotCreateCluster createCluster ->
+            ( { model
+                | createCluster = createCluster
               }
             , Cmd.none
             , SharedMsg.NoOp
@@ -566,6 +577,7 @@ view context project model =
                             , networkPicker context project model
                             , floatingIpPicker context project model
                             , keypairPicker context project model
+                            , clusterInput context model
                             , userDataInput context model
                             ]
                        )
@@ -1192,6 +1204,72 @@ customWorkflowInputExperimental context model =
                     ]
                )
         )
+
+
+clusterInput : View.Types.Context -> Model -> Element.Element Msg
+clusterInput context model =
+    if context.experimentalFeaturesEnabled then
+        clusterInputExperimental context model
+
+    else
+        Element.none
+
+
+clusterInputExperimental : View.Types.Context -> Model -> Element.Element Msg
+clusterInputExperimental context model =
+    let
+        warnings =
+            [ Element.text "Warning: This will only work on Jetstream Cloud, and can take 30 minutes or longer to set up a cluster."
+            , Element.text <|
+                String.concat
+                    [ "This feature currently only supports "
+                    , context.localization.staticRepresentationOfBlockDeviceContents
+                        |> Helpers.String.pluralize
+                    , " based on CentOS 8. If you choose "
+                    , context.localization.staticRepresentationOfBlockDeviceContents
+                        |> Helpers.String.indefiniteArticle
+                    , " "
+                    , context.localization.staticRepresentationOfBlockDeviceContents
+                    , " based on a different operating system it is unlikely to work."
+                    ]
+            ]
+
+        experimentalBadge =
+            badge "Experimental"
+    in
+    Element.column
+        [ Element.width Element.fill
+        , Element.spacing 24
+        ]
+        [ Input.radioRow [ Element.spacing 10 ]
+            { label =
+                Input.labelAbove [ Element.paddingXY 0 12 ]
+                    (Element.row [ Element.spacingXY 10 0 ]
+                        [ Element.el
+                            (VH.heading4 ++ [ Font.size 17 ])
+                            (Element.text ("Create your own SLURM cluster with this " ++ context.localization.virtualComputer ++ " as the head node"))
+                        , experimentalBadge
+                        ]
+                    )
+            , onChange = GotCreateCluster
+            , options =
+                [ Input.option False (Element.text "No")
+                , Input.option True (Element.text "Yes")
+
+                {- -}
+                ]
+            , selected = Just model.createCluster
+            }
+        , if model.createCluster then
+            Element.column
+                ([ Background.color (SH.toElementColor context.palette.warn), Font.color (SH.toElementColor context.palette.on.warn) ]
+                    ++ VH.exoElementAttributes
+                )
+                (List.map (\warning -> Element.paragraph [] [ warning ]) warnings)
+
+          else
+            Element.none
+        ]
 
 
 desktopEnvironmentPicker : View.Types.Context -> Project -> Model -> Element.Element Msg

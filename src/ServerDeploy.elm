@@ -19,12 +19,13 @@ package_update: true
 package_upgrade: {install-os-updates}
 packages:
   - python3-virtualenv
-  - git
+  - git{write-files}
 runcmd:
   - echo on > /proc/sys/kernel/printk_devkmsg || true  # Disable console rate limiting for distros that use kmsg
   - sleep 1  # Ensures that console log output from any previous command completes before the following command begins
   - echo '{"exoSetup":"running"}' | tee --append /dev/console > /dev/kmsg || true
   - chmod 640 /var/log/cloud-init-output.log
+  - {create-cluster-command}
   - |
     (which virtualenv && virtualenv /opt/ansible-venv) || (which virtualenv-3 && virtualenv-3 /opt/ansible-venv) || python3 -m virtualenv /opt/ansible-venv
     . /opt/ansible-venv/bin/activate

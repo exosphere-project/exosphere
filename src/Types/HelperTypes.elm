@@ -274,5 +274,7 @@ type alias CreateServerPageModel =
     , workflowInputPath : String
     , workflowInputIsValid : Maybe Bool
     , showWorkflowExplanationToggleTip : Bool
+    , createCluster : Bool
+    , showClusterExplanationToggleTip : Bool
     , showFormInvalidToggleTip : Bool
     }
