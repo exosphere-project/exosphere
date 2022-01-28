@@ -73,12 +73,12 @@ requestDeleteImage project imageUuid =
                 errorContext
                 (\_ ->
                     ProjectMsg
-                        project.auth.project.uuid
+                        (GetterSetters.projectIdentifier project)
                         (ReceiveDeleteImage imageUuid)
                 )
     in
     openstackCredentialedRequest
-        project.auth.project.uuid
+        (GetterSetters.projectIdentifier project)
         Delete
         Nothing
         (project.endpoints.glance ++ "/v2/images/" ++ imageUuid)

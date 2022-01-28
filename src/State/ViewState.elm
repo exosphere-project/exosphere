@@ -220,7 +220,7 @@ routeToViewStateModelCmd sharedModel route =
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestServers (GetterSetters.projectIdentifier project))
                                         |> Helpers.pipelineCmd
-                                            (ApiModelHelpers.requestImages project.auth.project.uuid)
+                                            (ApiModelHelpers.requestImages (GetterSetters.projectIdentifier project))
                             in
                             ( projectViewProto <| ProjectOverview <| Page.ProjectOverview.init
                             , newSharedModel
@@ -259,7 +259,7 @@ routeToViewStateModelCmd sharedModel route =
                         Route.ImageList ->
                             let
                                 ( newSharedModel, newCmd ) =
-                                    ApiModelHelpers.requestImages project.auth.project.uuid sharedModel
+                                    ApiModelHelpers.requestImages (GetterSetters.projectIdentifier project) sharedModel
                             in
                             ( projectViewProto <| ImageList <| Page.ImageList.init True True
                             , newSharedModel
@@ -271,7 +271,7 @@ routeToViewStateModelCmd sharedModel route =
                                 ( newSharedModel, newCmd ) =
                                     ( sharedModel, Rest.Nova.requestFlavors project )
                                         |> Helpers.pipelineCmd
-                                            (ApiModelHelpers.requestImages project.auth.project.uuid)
+                                            (ApiModelHelpers.requestImages (GetterSetters.projectIdentifier project))
                             in
                             ( projectViewProto <| InstanceSourcePicker <| Page.InstanceSourcePicker.init
                             , newSharedModel
@@ -350,7 +350,7 @@ routeToViewStateModelCmd sharedModel route =
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestServer (GetterSetters.projectIdentifier project) serverId)
                                         |> Helpers.pipelineCmd
-                                            (ApiModelHelpers.requestImages project.auth.project.uuid)
+                                            (ApiModelHelpers.requestImages (GetterSetters.projectIdentifier project))
                             in
                             ( projectViewProto <| ServerDetail (Page.ServerDetail.init serverId)
                             , newNewSharedModel

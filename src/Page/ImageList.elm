@@ -130,7 +130,7 @@ update msg project model =
         GotDeleteConfirm imageId ->
             ( model
             , Cmd.none
-            , SharedMsg.ProjectMsg project.auth.project.uuid <|
+            , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
                 SharedMsg.RequestDeleteImage imageId
             )
 
