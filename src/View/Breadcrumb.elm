@@ -126,6 +126,17 @@ breadcrumb_ outerModel context =
                                       }
                                     ]
 
+                                ImageList _ ->
+                                    [ { route = Nothing
+                                      , label =
+                                            String.join " "
+                                                [ context.localization.staticRepresentationOfBlockDeviceContents
+                                                    |> Helpers.String.pluralize
+                                                    |> Helpers.String.toTitleCase
+                                                ]
+                                      }
+                                    ]
+
                                 InstanceSourcePicker _ ->
                                     [ { route = Nothing
                                       , label =

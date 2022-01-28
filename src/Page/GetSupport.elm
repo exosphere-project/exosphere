@@ -164,6 +164,7 @@ view context sharedModel model =
                                 HelperTypes.SupportableImage ->
                                     sharedModel.projects
                                         |> List.map .images
+                                        |> List.map (RDPP.withDefault [])
                                         |> List.concat
                                         |> List.map
                                             (\image ->

@@ -52,6 +52,7 @@ type ProjectRouteConstructor
     = ProjectOverview
     | FloatingIpAssign (Maybe OSTypes.IpAddressUuid) (Maybe OSTypes.ServerUuid)
     | FloatingIpList
+    | ImageList
     | InstanceSourcePicker
     | KeypairCreate
     | KeypairList
@@ -183,6 +184,11 @@ toUrl maybePathPrefix route =
 
                         FloatingIpList ->
                             ( [ "floatingips" ]
+                            , []
+                            )
+
+                        ImageList ->
+                            ( [ "images" ]
                             , []
                             )
 
@@ -544,9 +550,6 @@ projectRouteParsers =
 
     -- Legacy URLs, keeping parsers around to handle any old links
     , map
-        InstanceSourcePicker
-        (s "images")
-    , map
         ProjectOverview
         (s "resources")
 
@@ -680,6 +683,9 @@ projectRouteParsers =
          in
          s "attachvolinstructions" <?> queryParser
         )
+    , map
+        ImageList
+        (s "images")
     ]
 
 

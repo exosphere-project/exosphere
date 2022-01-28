@@ -130,6 +130,19 @@ view context project _ =
                 Route.KeypairList
                 (Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.Keypair project.computeQuota keypairsUsedCount))
                 (keypairTileContents context project)
+            , renderTile
+                (FeatherIcons.package
+                    |> FeatherIcons.toHtml []
+                    |> Element.html
+                    |> Element.el []
+                )
+                (context.localization.staticRepresentationOfBlockDeviceContents
+                    |> Helpers.String.pluralize
+                    |> Helpers.String.toTitleCase
+                )
+                Route.ImageList
+                Element.none
+                (imageTileContents context project)
             ]
         ]
 
@@ -233,6 +246,37 @@ keypairTileContents context project =
         context.localization.pkiPublicKeyForSsh
         VH.renderWebData
         renderKeypair
+        (\_ -> True)
+
+
+imageTileContents : View.Types.Context -> Project -> Element.Element Msg
+imageTileContents context project =
+    let
+        renderImage : OSTypes.Image -> List (Element.Element Msg)
+        renderImage image =
+            [ VH.possiblyUntitledResource image.name context.localization.staticRepresentationOfBlockDeviceContents
+                |> VH.ellipsizedText
+                |> Element.el
+                    [ Element.centerY
+                    , Element.width Element.fill
+                    , Element.htmlAttribute <| Html.Attributes.style "min-width" "0"
+                    ]
+            , OSTypes.imageVisibilityToString image.visibility
+                |> Element.text
+                |> Element.el
+                    [ Element.centerY
+                    , context.palette.muted
+                        |> SH.toElementColor
+                        |> Font.color
+                    ]
+            ]
+    in
+    tileContents
+        context
+        project.images
+        context.localization.staticRepresentationOfBlockDeviceContents
+        VH.renderRDPP
+        renderImage
         (\_ -> True)
 
 

@@ -29,7 +29,7 @@ type Msg
 
 init : Model
 init =
-    Model (Just 0) Page.ImageList.init
+    Model (Just 0) (Page.ImageList.init False False)
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
@@ -59,96 +59,86 @@ update msg project model =
 
 view : View.Types.Context -> Project -> Model -> Element.Element Msg
 view context project model =
-    if List.isEmpty project.images then
-        Element.row [ Element.spacing 15 ]
-            [ Widget.circularProgressIndicator (SH.materialStyle context.palette).progressIndicator Nothing
-            , Element.text <|
-                String.join " "
-                    [ context.localization.staticRepresentationOfBlockDeviceContents
-                        |> Helpers.String.toTitleCase
-                        |> Helpers.String.pluralize
-                    , "loading..."
-                    ]
-            ]
+    let
+        maybeInstanceTypes =
+            GetterSetters.cloudSpecificConfigLookup context.cloudSpecificConfigs project
+                |> Maybe.map .instanceTypes
 
-    else
-        let
-            maybeInstanceTypes =
-                GetterSetters.cloudSpecificConfigLookup context.cloudSpecificConfigs project
-                    |> Maybe.map .instanceTypes
+        viewImageList =
+            Page.ImageList.view context project model.imageListModel
+                |> Element.map ImageListMsg
 
-            viewImageList =
-                Page.ImageList.view context project model.imageListModel
-                    |> Element.map ImageListMsg
-
-            imageListOnlyView : Element.Element Msg
-            imageListOnlyView =
-                Element.column
-                    (VH.exoColumnAttributes
-                        ++ [ Element.width Element.fill ]
+        imageListOnlyView : Element.Element Msg
+        imageListOnlyView =
+            Element.column
+                (VH.exoColumnAttributes
+                    ++ [ Element.width Element.fill ]
+                )
+                [ Element.el (VH.heading2 context.palette)
+                    (Element.text <|
+                        String.join " "
+                            [ "Choose"
+                            , Helpers.String.indefiniteArticle context.localization.staticRepresentationOfBlockDeviceContents
+                            , context.localization.staticRepresentationOfBlockDeviceContents
+                            ]
                     )
-                    [ Element.el (VH.heading2 context.palette)
-                        (Element.text <|
-                            String.join " "
-                                [ "Choose"
-                                , Helpers.String.indefiniteArticle context.localization.staticRepresentationOfBlockDeviceContents
-                                , context.localization.staticRepresentationOfBlockDeviceContents
-                                ]
-                        )
-                    , viewImageList
-                    ]
+                , viewImageList
+                ]
 
-            tabbedView : List Types.HelperTypes.InstanceType -> Element.Element Msg
-            tabbedView opSysChoices =
-                Element.column
-                    (VH.exoColumnAttributes
-                        ++ [ Element.width Element.fill ]
-                    )
-                    [ Element.el (VH.heading2 context.palette) <|
-                        Element.text <|
-                            String.join " "
-                                [ "Choose"
-                                , context.localization.virtualComputer
-                                    |> Helpers.String.indefiniteArticle
-                                , context.localization.virtualComputer
-                                    |> Helpers.String.toTitleCase
-                                , "Source"
-                                ]
-                    , Widget.tab (SH.materialStyle context.palette).tab
-                        { tabs =
-                            Widget.Select
-                                model.tab
-                                [ { text = "By Type", icon = Element.none }
-                                , { text = "By Image", icon = Element.none }
-                                ]
-                                (\i -> Just <| SetTab i)
-                        , content =
-                            \maybeTabInt ->
-                                case maybeTabInt of
-                                    Just 0 ->
-                                        Page.InstanceTypeList.view context project opSysChoices
-                                            |> Element.map InstanceTypeListMsg
+        tabbedView : List Types.HelperTypes.InstanceType -> Element.Element Msg
+        tabbedView opSysChoices =
+            Element.column
+                (VH.exoColumnAttributes
+                    ++ [ Element.width Element.fill ]
+                )
+                [ Element.el (VH.heading2 context.palette) <|
+                    Element.text <|
+                        String.join " "
+                            [ "Choose"
+                            , context.localization.virtualComputer
+                                |> Helpers.String.indefiniteArticle
+                            , context.localization.virtualComputer
+                                |> Helpers.String.toTitleCase
+                            , "Source"
+                            ]
+                , Widget.tab (SH.materialStyle context.palette).tab
+                    { tabs =
+                        Widget.Select
+                            model.tab
+                            [ { text = "By Type", icon = Element.none }
+                            , { text = "By Image", icon = Element.none }
+                            ]
+                            (\i -> Just <| SetTab i)
+                    , content =
+                        \maybeTabInt ->
+                            case maybeTabInt of
+                                Just 0 ->
+                                    Page.InstanceTypeList.view context project opSysChoices
+                                        |> Element.map InstanceTypeListMsg
 
-                                    Just 1 ->
-                                        viewImageList
+                                Just 1 ->
+                                    viewImageList
 
-                                    _ ->
-                                        Element.none
-                        }
-                    ]
-        in
-        -- At least one instance type + version must be defined to show the instance types tab.
-        -- Otherwise we just show a list of images.
-        case maybeInstanceTypes of
-            Just choices ->
-                if List.isEmpty choices then
+                                _ ->
+                                    Element.none
+                    }
+                ]
+
+        loadedView _ =
+            -- At least one instance type + version must be defined to show the instance types tab.
+            -- Otherwise we just show a list of images.
+            case maybeInstanceTypes of
+                Just choices ->
+                    if List.isEmpty choices then
+                        imageListOnlyView
+
+                    else if List.concatMap .versions choices |> List.isEmpty then
+                        imageListOnlyView
+
+                    else
+                        tabbedView choices
+
+                Nothing ->
                     imageListOnlyView
-
-                else if List.concatMap .versions choices |> List.isEmpty then
-                    imageListOnlyView
-
-                else
-                    tabbedView choices
-
-            Nothing ->
-                imageListOnlyView
+    in
+    VH.renderRDPP context project.images (Helpers.String.pluralize context.localization.staticRepresentationOfBlockDeviceContents) loadedView

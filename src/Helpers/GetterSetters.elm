@@ -22,6 +22,7 @@ module Helpers.GetterSetters exposing
     , projectLookup
     , projectSetAutoAllocatedNetworkUuidLoading
     , projectSetFloatingIpsLoading
+    , projectSetImagesLoading
     , projectSetNetworksLoading
     , projectSetPortsLoading
     , projectSetServerLoading
@@ -111,7 +112,7 @@ flavorLookup project flavorId =
 
 imageLookup : Project -> OSTypes.ImageUuid -> Maybe OSTypes.Image
 imageLookup project imageUuid =
-    project.images
+    RDPP.withDefault [] project.images
         |> List.Extra.find (\i -> i.uuid == imageUuid)
 
 
@@ -494,6 +495,11 @@ projectSetPortsLoading project =
 projectSetAutoAllocatedNetworkUuidLoading : Project -> Project
 projectSetAutoAllocatedNetworkUuidLoading project =
     { project | autoAllocatedNetworkUuid = RDPP.setLoading project.autoAllocatedNetworkUuid }
+
+
+projectSetImagesLoading : Project -> Project
+projectSetImagesLoading project =
+    { project | images = RDPP.setLoading project.images }
 
 
 modelUpdateUnscopedProvider : SharedModel -> HelperTypes.UnscopedProvider -> SharedModel

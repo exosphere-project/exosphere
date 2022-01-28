@@ -3,9 +3,11 @@ module Page.ImageList exposing (Model, Msg(..), init, update, view)
 import Element
 import Element.Font as Font
 import Element.Input as Input
+import FeatherIcons
 import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (Unit(..), humanNumber)
 import Helpers.GetterSetters as GetterSetters
+import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import List.Extra
 import OpenStack.Types as OSTypes
@@ -29,6 +31,9 @@ type alias Model =
     , onlyOwnImages : Bool
     , expandImageDetails : Set.Set OSTypes.ImageUuid
     , visibilityFilter : ImageListVisibilityFilter
+    , deleteConfirmations : Set.Set DeleteConfirmation
+    , showDeleteButtons : Bool
+    , showHeading : Bool
     }
 
 
@@ -40,6 +45,10 @@ type alias ImageListVisibilityFilter =
     }
 
 
+type alias DeleteConfirmation =
+    OSTypes.ImageUuid
+
+
 type Msg
     = GotSearchText String
     | GotTagSelection String Bool
@@ -47,16 +56,27 @@ type Msg
     | GotExpandImage OSTypes.ImageUuid Bool
     | GotVisibilityFilter ImageListVisibilityFilter
     | GotClearFilters
+    | GotDeleteNeedsConfirm DeleteConfirmation
+    | GotDeleteConfirm DeleteConfirmation
+    | GotDeleteCancel DeleteConfirmation
     | NoOp
 
 
-init : Model
-init =
-    Model "" Set.empty False Set.empty (ImageListVisibilityFilter True True True True)
+init : Bool -> Bool -> Model
+init showDeleteButtons showHeading =
+    { searchText = ""
+    , tags = Set.empty
+    , onlyOwnImages = False
+    , expandImageDetails = Set.empty
+    , visibilityFilter = ImageListVisibilityFilter True True True True
+    , deleteConfirmations = Set.empty
+    , showDeleteButtons = showDeleteButtons
+    , showHeading = showHeading
+    }
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
-update msg _ model =
+update msg project model =
     case msg of
         GotSearchText searchText ->
             ( { model | searchText = searchText }, Cmd.none, SharedMsg.NoOp )
@@ -96,7 +116,32 @@ update msg _ model =
             ( { model | visibilityFilter = filter }, Cmd.none, SharedMsg.NoOp )
 
         GotClearFilters ->
-            ( init, Cmd.none, SharedMsg.NoOp )
+            ( init model.showDeleteButtons model.showHeading, Cmd.none, SharedMsg.NoOp )
+
+        GotDeleteNeedsConfirm imageId ->
+            ( { model
+                | deleteConfirmations =
+                    Set.insert imageId model.deleteConfirmations
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
+
+        GotDeleteConfirm imageId ->
+            ( model
+            , Cmd.none
+            , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
+                SharedMsg.RequestDeleteImage imageId
+            )
+
+        GotDeleteCancel imageId ->
+            ( { model
+                | deleteConfirmations =
+                    Set.remove imageId model.deleteConfirmations
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
 
         NoOp ->
             ( model, Cmd.none, SharedMsg.NoOp )
@@ -116,7 +161,7 @@ view context project model =
                 |> List.reverse
 
         filteredImages =
-            project.images |> filterImages model project
+            project.images |> RDPP.withDefault [] |> filterImages model project
 
         tagsAfterFilteringImages =
             generateAllTags filteredImages
@@ -301,53 +346,69 @@ view context project model =
                             Element.text "Private"
                     }
                 ]
-    in
-    Element.column VH.contentContainer
-        [ Input.text (VH.inputItemAttributes context.palette.background)
-            { text = model.searchText
-            , placeholder = Just (Input.placeholder [] (Element.text "try \"Ubuntu\""))
-            , onChange = GotSearchText
-            , label =
-                Input.labelAbove []
-                    (Element.text <|
-                        String.join " "
-                            [ "Filter on"
-                            , context.localization.staticRepresentationOfBlockDeviceContents
-                            , "name:"
-                            ]
-                    )
-            }
-        , visibilityFilters
-        , tagsView
-        , Input.checkbox []
-            { checked = model.onlyOwnImages
-            , onChange = GotOnlyOwnImages
-            , icon = Input.defaultCheckbox
-            , label =
-                Input.labelRight [] <|
-                    Element.text <|
-                        String.join
-                            " "
-                            [ "Show only"
-                            , context.localization.staticRepresentationOfBlockDeviceContents
-                                |> Helpers.String.pluralize
-                            , "owned by this"
-                            , context.localization.unitOfTenancy
-                            ]
-            }
-        , Widget.textButton
-            (SH.materialStyle context.palette).button
-            { text = "Clear filters (show all)"
-            , onPress = Just GotClearFilters
-            }
-        , if noMatchWarning then
-            Element.text "No matches found. Broaden your search terms, or clear the search filter."
 
-          else
-            Element.none
-        , List.map (renderImage context project model) combinedImages
-            |> imagesColumnView
-        ]
+        loadedView : List OSTypes.Image -> Element.Element Msg
+        loadedView _ =
+            Element.column VH.contentContainer
+                [ if model.showHeading then
+                    Element.row (VH.heading2 context.palette ++ [ Element.spacing 15 ])
+                        [ FeatherIcons.package |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
+                        , Element.text
+                            (context.localization.staticRepresentationOfBlockDeviceContents
+                                |> Helpers.String.pluralize
+                                |> Helpers.String.toTitleCase
+                            )
+                        ]
+
+                  else
+                    Element.none
+                , Input.text (VH.inputItemAttributes context.palette.background)
+                    { text = model.searchText
+                    , placeholder = Just (Input.placeholder [] (Element.text "try \"Ubuntu\""))
+                    , onChange = GotSearchText
+                    , label =
+                        Input.labelAbove []
+                            (Element.text <|
+                                String.join " "
+                                    [ "Filter on"
+                                    , context.localization.staticRepresentationOfBlockDeviceContents
+                                    , "name:"
+                                    ]
+                            )
+                    }
+                , visibilityFilters
+                , tagsView
+                , Input.checkbox []
+                    { checked = model.onlyOwnImages
+                    , onChange = GotOnlyOwnImages
+                    , icon = Input.defaultCheckbox
+                    , label =
+                        Input.labelRight [] <|
+                            Element.text <|
+                                String.join
+                                    " "
+                                    [ "Show only"
+                                    , context.localization.staticRepresentationOfBlockDeviceContents
+                                        |> Helpers.String.pluralize
+                                    , "owned by this"
+                                    , context.localization.unitOfTenancy
+                                    ]
+                    }
+                , Widget.textButton
+                    (SH.materialStyle context.palette).button
+                    { text = "Clear filters (show all)"
+                    , onPress = Just GotClearFilters
+                    }
+                , if noMatchWarning then
+                    Element.text "No matches found. Broaden your search terms, or clear the search filter."
+
+                  else
+                    Element.none
+                , List.map (renderImage context project model) combinedImages
+                    |> imagesColumnView
+                ]
+    in
+    VH.renderRDPP context project.images (Helpers.String.pluralize context.localization.staticRepresentationOfBlockDeviceContents) loadedView
 
 
 renderImage : View.Types.Context -> Project -> Model -> OSTypes.Image -> Element.Element Msg
@@ -397,7 +458,7 @@ renderImage context project model image =
                 , label =
                     Widget.textButton
                         (SH.materialStyle context.palette).primaryButton
-                        { text = "Choose"
+                        { text = "Create " ++ Helpers.String.toTitleCase context.localization.virtualComputer
                         , onPress =
                             case image.status of
                                 OSTypes.ImageActive ->
@@ -407,6 +468,54 @@ renderImage context project model image =
                                     Nothing
                         }
                 }
+
+        confirmationNeeded =
+            Set.member image.uuid model.deleteConfirmations
+
+        deleteButton =
+            if projectOwnsImage project image then
+                case ( image.status, confirmationNeeded ) of
+                    ( OSTypes.ImagePendingDelete, _ ) ->
+                        Widget.circularProgressIndicator (SH.materialStyle context.palette).progressIndicator Nothing
+
+                    ( _, True ) ->
+                        Element.row [ Element.spacing 10 ]
+                            [ Element.text "Confirm delete?"
+                            , Widget.iconButton
+                                (SH.materialStyle context.palette).dangerButton
+                                { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
+                                , text = "Delete"
+                                , onPress =
+                                    Just <| GotDeleteConfirm image.uuid
+                                }
+                            , Widget.textButton
+                                (SH.materialStyle context.palette).button
+                                { text = "Cancel"
+                                , onPress =
+                                    Just <| GotDeleteCancel image.uuid
+                                }
+                            ]
+
+                    ( _, False ) ->
+                        if image.protected == True then
+                            Widget.iconButton
+                                (SH.materialStyle context.palette).button
+                                { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
+                                , text = "Delete"
+                                , onPress = Nothing
+                                }
+
+                        else
+                            Widget.iconButton
+                                (SH.materialStyle context.palette).dangerButton
+                                { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
+                                , text = "Delete"
+                                , onPress =
+                                    Just <| GotDeleteNeedsConfirm image.uuid
+                                }
+
+            else
+                Element.none
 
         featuredImageNamePrefix =
             VH.featuredImageNamePrefixLookup context project
@@ -478,9 +587,14 @@ renderImage context project model image =
                             tagChip
                             image.tags
                     )
-                , Element.el
-                    [ Element.alignRight ]
-                    chooseButton
+                , Element.row [ Element.width Element.fill, Element.spacing 10 ]
+                    [ chooseButton
+                    , if model.showDeleteButtons then
+                        Element.el [ Element.alignRight ] deleteButton
+
+                      else
+                        Element.none
+                    ]
                 ]
     in
     ExoCard.expandoCard

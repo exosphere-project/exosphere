@@ -13,6 +13,7 @@ import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.GetSupport
 import Page.Home
+import Page.ImageList
 import Page.InstanceSourcePicker
 import Page.KeypairCreate
 import Page.KeypairList
@@ -36,7 +37,6 @@ import Page.VolumeMountInstructions
 import Ports
 import RemoteData
 import Rest.ApiModelHelpers as ApiModelHelpers
-import Rest.Glance
 import Rest.Keystone
 import Rest.Nova
 import Route
@@ -219,6 +219,8 @@ routeToViewStateModelCmd sharedModel route =
                                             (ApiModelHelpers.requestFloatingIps (GetterSetters.projectIdentifier project))
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestServers (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestImages (GetterSetters.projectIdentifier project))
                             in
                             ( projectViewProto <| ProjectOverview <| Page.ProjectOverview.init
                             , newSharedModel
@@ -254,13 +256,26 @@ routeToViewStateModelCmd sharedModel route =
                             , newCmd
                             )
 
+                        Route.ImageList ->
+                            let
+                                ( newSharedModel, newCmd ) =
+                                    ApiModelHelpers.requestImages (GetterSetters.projectIdentifier project) sharedModel
+                            in
+                            ( projectViewProto <| ImageList <| Page.ImageList.init True True
+                            , newSharedModel
+                            , newCmd
+                            )
+
                         Route.InstanceSourcePicker ->
+                            let
+                                ( newSharedModel, newCmd ) =
+                                    ( sharedModel, Rest.Nova.requestFlavors project )
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestImages (GetterSetters.projectIdentifier project))
+                            in
                             ( projectViewProto <| InstanceSourcePicker <| Page.InstanceSourcePicker.init
-                            , sharedModel
-                            , Cmd.batch
-                                [ Rest.Glance.requestImages sharedModel project
-                                , Rest.Nova.requestFlavors project
-                                ]
+                            , newSharedModel
+                            , newCmd
                             )
 
                         Route.KeypairCreate ->
@@ -326,7 +341,6 @@ routeToViewStateModelCmd sharedModel route =
                                 cmd =
                                     Cmd.batch
                                         [ Rest.Nova.requestFlavors project
-                                        , Rest.Glance.requestImages sharedModel project
                                         , OSVolumes.requestVolumes project
                                         , Ports.instantiateClipboardJs ()
                                         ]
@@ -335,6 +349,8 @@ routeToViewStateModelCmd sharedModel route =
                                     ( newSharedModel, cmd )
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestServer (GetterSetters.projectIdentifier project) serverId)
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestImages (GetterSetters.projectIdentifier project))
                             in
                             ( projectViewProto <| ServerDetail (Page.ServerDetail.init serverId)
                             , newNewSharedModel

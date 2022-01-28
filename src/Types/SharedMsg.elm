@@ -64,6 +64,7 @@ type ProjectSpecificMsgConstructor
     | RequestDeleteFloatingIp OSTypes.IpAddressUuid
     | RequestAssignFloatingIp OSTypes.Port OSTypes.IpAddressUuid
     | RequestUnassignFloatingIp OSTypes.IpAddressUuid
+    | RequestDeleteImage OSTypes.ImageUuid
     | ReceiveImages (List OSTypes.Image)
     | ReceiveServer OSTypes.ServerUuid ErrorContext (Result HttpErrorWithBody OSTypes.Server)
     | ReceiveServers ErrorContext (Result HttpErrorWithBody (List OSTypes.Server))
@@ -91,6 +92,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveVolumeQuota OSTypes.VolumeQuota
     | ReceiveNetworkQuota OSTypes.NetworkQuota
     | ReceiveRandomServerName String
+    | ReceiveDeleteImage OSTypes.ImageUuid
 
 
 type ServerSpecificMsgConstructor

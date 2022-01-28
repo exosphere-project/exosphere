@@ -21,6 +21,7 @@ import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.GetSupport
 import Page.Home
+import Page.ImageList
 import Page.InstanceSourcePicker
 import Page.KeypairCreate
 import Page.KeypairList
@@ -323,6 +324,21 @@ updateUnderlying outerMsg outerModel =
                                         FloatingIpList newSharedModel
                               }
                             , Cmd.map FloatingIpListMsg cmd
+                            )
+                                |> pipelineCmdOuterModelMsg
+                                    (processSharedMsg sharedMsg)
+
+                        ( ImageListMsg pageMsg, ImageList pageModel ) ->
+                            let
+                                ( newSharedModel, cmd, sharedMsg ) =
+                                    Page.ImageList.update pageMsg project pageModel
+                            in
+                            ( { outerModel
+                                | viewState =
+                                    ProjectView projectId projectViewModel <|
+                                        ImageList newSharedModel
+                              }
+                            , Cmd.map ImageListMsg cmd
                             )
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
@@ -1841,6 +1857,15 @@ processProjectSpecificMsg outerModel project msg =
         ReceiveRandomServerName serverName ->
             updateUnderlying (ServerCreateMsg <| Page.ServerCreate.GotServerName serverName) outerModel
 
+        RequestDeleteImage imageUuid ->
+            ( outerModel, Rest.Glance.requestDeleteImage project imageUuid )
+                |> mapToOuterMsg
+
+        ReceiveDeleteImage imageUuid ->
+            Rest.Glance.receiveDeleteImage sharedModel project imageUuid
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
 
 processServerSpecificMsg : OuterModel -> Project -> Server -> ServerSpecificMsgConstructor -> ( OuterModel, Cmd OuterMsg )
 processServerSpecificMsg outerModel project server serverMsgConstructor =
@@ -2491,7 +2516,7 @@ createProject_ outerModel description authToken region endpoints =
             -- Maybe todo, eliminate parallel data structures in auth and endpoints?
             , endpoints = endpoints
             , description = description
-            , images = []
+            , images = RDPP.RemoteDataPlusPlus RDPP.DontHave RDPP.Loading
             , servers = RDPP.RemoteDataPlusPlus RDPP.DontHave RDPP.Loading
             , flavors = []
             , keypairs = RemoteData.NotAsked
@@ -2524,6 +2549,8 @@ createProject_ outerModel description authToken region endpoints =
                     (ApiModelHelpers.requestFloatingIps (GetterSetters.projectIdentifier newProject))
                 |> Helpers.pipelineCmd
                     (ApiModelHelpers.requestPorts (GetterSetters.projectIdentifier newProject))
+                |> Helpers.pipelineCmd
+                    (ApiModelHelpers.requestImages (GetterSetters.projectIdentifier newProject))
     in
     ( { outerModel | sharedModel = newNewSharedModel }
     , Cmd.map SharedMsg newCmd

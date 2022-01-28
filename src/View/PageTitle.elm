@@ -125,6 +125,15 @@ pageTitle outerModel =
                         , projectName
                         ]
 
+                ImageList _ ->
+                    String.join " "
+                        [ localization.staticRepresentationOfBlockDeviceContents
+                            |> Helpers.String.pluralize
+                            |> Helpers.String.toTitleCase
+                        , "for"
+                        , projectName
+                        ]
+
                 InstanceSourcePicker _ ->
                     String.join " "
                         [ localization.virtualComputer

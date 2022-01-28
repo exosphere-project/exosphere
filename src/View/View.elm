@@ -14,6 +14,7 @@ import Page.FloatingIpList
 import Page.GetSupport
 import Page.HelpAbout
 import Page.Home
+import Page.ImageList
 import Page.InstanceSourcePicker
 import Page.KeypairCreate
 import Page.KeypairList
@@ -259,6 +260,10 @@ project model context p projectViewModel viewConstructor =
                 FloatingIpList pageModel ->
                     Page.FloatingIpList.view context p pageModel
                         |> Element.map FloatingIpListMsg
+
+                ImageList pageModel ->
+                    Page.ImageList.view context p pageModel
+                        |> Element.map ImageListMsg
 
                 InstanceSourcePicker pageModel ->
                     Page.InstanceSourcePicker.view context p pageModel
