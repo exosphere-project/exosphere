@@ -1247,7 +1247,7 @@ clusterInputExperimental context model =
                     (Element.row [ Element.spacingXY 10 0 ]
                         [ Element.el
                             (VH.heading4 ++ [ Font.size 17 ])
-                            (Element.text ("Create your own Slurm cluster with this " ++ context.localization.virtualComputer ++ " as the head node"))
+                            (Element.text ("Create your own SLURM cluster with this " ++ context.localization.virtualComputer ++ " as the head node"))
                         , experimentalBadge
                         ]
                     )
