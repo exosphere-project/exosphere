@@ -513,13 +513,6 @@ filtersView model toMsg palette filters =
 
         addFilterBtn =
             let
-                attribs =
-                    if model.showFiltersDropdown then
-                        [ Element.below filtersDropdown ]
-
-                    else
-                        []
-
                 buttonStyleDefaults =
                     (SH.materialStyle palette).button
 
@@ -539,7 +532,7 @@ filtersView model toMsg palette filters =
                     }
             in
             Element.el
-                attribs
+                []
                 (Widget.iconButton
                     buttonStyle
                     { icon =
@@ -671,10 +664,17 @@ filtersView model toMsg palette filters =
                 Element.none
     in
     Element.wrappedRow
-        [ Element.spacing 10
-        , Element.width Element.fill
-        , Element.alignTop
-        ]
+        ([ Element.spacing 10
+         , Element.width Element.fill
+         , Element.alignTop
+         ]
+            ++ (if model.showFiltersDropdown then
+                    [ Element.below filtersDropdown ]
+
+                else
+                    []
+               )
+        )
         (List.concat
             [ [ Element.text "Filters: " ]
             , selectedFiltersChips
