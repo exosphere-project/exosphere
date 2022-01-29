@@ -1,9 +1,11 @@
 module Style.Widgets.DataList exposing
     ( DataRecord
     , Filter
+    , FilterOptionValue(..)
     , Model
     , Msg
-    , getDefaultFiltOpts
+    , UniselectOptionValue(..)
+    , getDefaultFilterOptions
     , init
     , update
     , view
@@ -23,50 +25,44 @@ import Style.Widgets.Icon as Icon
 import Widget
 
 
-{-| Opaque type representing options of all filters
+type FilterOptionValue
+    = MultiselectOption (Set.Set String)
+    | UniselectOption UniselectOptionValue
+
+
+type UniselectOptionValue
+    = UniselectNoChoice
+    | UniselectHasChoice String
+
+
+{-| Opaque type representing option values currently selected for each filter
 -}
-type FiltOpts
-    = FiltOpts (Dict.Dict String (Set.Set String))
+type SelectedFilterOptions
+    = SelectedFilterOptions (Dict.Dict String FilterOptionValue)
 
 
 type alias Model =
     { selectedRowIds : Set.Set String
-    , selectedFilters : FiltOpts
+    , selectedFilters : SelectedFilterOptions
     , showFiltersDropdown : Bool
     }
 
 
-getDefaultFiltOpts : List (Filter record) -> FiltOpts
-getDefaultFiltOpts filters =
-    FiltOpts
+getDefaultFilterOptions : List (Filter record) -> SelectedFilterOptions
+getDefaultFilterOptions filters =
+    SelectedFilterOptions
         (List.foldl
-            (\filter filtOptsDict ->
-                let
-                    filtOpts =
-                        if filter.multipleSelection then
-                            filter.defaultFilterOptions
-
-                        else
-                            -- enforce one element in set
-                            case
-                                filter.defaultFilterOptions
-                                    |> Set.toList
-                                    |> List.head
-                            of
-                                Just oneFilterOption ->
-                                    Set.fromList [ oneFilterOption ]
-
-                                Nothing ->
-                                    Set.empty
-                in
-                Dict.insert filter.id filtOpts filtOptsDict
+            (\filter selectedFiltOptsDict ->
+                Dict.insert filter.id
+                    filter.defaultFilterOptionValue
+                    selectedFiltOptsDict
             )
             Dict.empty
             filters
         )
 
 
-init : FiltOpts -> Model
+init : SelectedFilterOptions -> Model
 init selectedFilters =
     { selectedRowIds = Set.empty
     , selectedFilters = selectedFilters
@@ -74,21 +70,22 @@ init selectedFilters =
     }
 
 
-selectedFiltOpts : String -> Model -> Set.Set String
-selectedFiltOpts filterId model =
+selectedFilterOptionValue : String -> Model -> FilterOptionValue
+selectedFilterOptionValue filterId model =
     case model.selectedFilters of
-        FiltOpts selectedFiltOpts_ ->
-            Dict.get filterId selectedFiltOpts_
-                |> Maybe.withDefault Set.empty
+        SelectedFilterOptions selectedFiltOpts ->
+            Dict.get filterId selectedFiltOpts
+                -- FIXME: Shouldn't happen, better default value?
+                |> Maybe.withDefault (UniselectOption UniselectNoChoice)
 
 
 type Msg
     = ChangeRowSelection String Bool
     | ChangeAllRowsSelection (Set.Set String)
     | ChangeFiltOptCheckboxSelection String String Bool
-    | ChangeFiltOptRadioSelection String String
+    | ChangeFiltOptRadioSelection String UniselectOptionValue
     | ToggleFiltersDropdownVisiblity
-    | ClearFilter String String
+    | ClearFilter String
     | ClearAllFilters
     | NoOp
 
@@ -110,60 +107,80 @@ update msg model =
 
         ChangeFiltOptCheckboxSelection filterId option isSelected ->
             let
-                selectedOptions =
-                    selectedFiltOpts filterId model
+                updateSelection selectedOptions =
+                    if isSelected then
+                        Set.insert option selectedOptions
+
+                    else
+                        Set.remove option selectedOptions
             in
             { model
                 | selectedFilters =
                     case model.selectedFilters of
-                        FiltOpts selectedFiltOpts_ ->
-                            FiltOpts <|
-                                Dict.insert filterId
-                                    (if isSelected then
-                                        Set.insert option selectedOptions
+                        SelectedFilterOptions selectedFiltOptsDict ->
+                            case selectedFilterOptionValue filterId model of
+                                MultiselectOption selectedOptions ->
+                                    SelectedFilterOptions <|
+                                        Dict.insert filterId
+                                            (MultiselectOption <|
+                                                updateSelection selectedOptions
+                                            )
+                                            selectedFiltOptsDict
 
-                                     else
-                                        Set.remove option selectedOptions
-                                    )
-                                    selectedFiltOpts_
+                                UniselectOption _ ->
+                                    SelectedFilterOptions selectedFiltOptsDict
             }
 
-        ChangeFiltOptRadioSelection filterId option ->
+        ChangeFiltOptRadioSelection filterId uniselectOptValue ->
             { model
                 | selectedFilters =
                     case model.selectedFilters of
-                        FiltOpts selectedFiltOpts_ ->
-                            FiltOpts <|
+                        SelectedFilterOptions selectedFiltOptsDict ->
+                            SelectedFilterOptions <|
                                 Dict.insert filterId
-                                    (Set.singleton option)
-                                    selectedFiltOpts_
+                                    (UniselectOption uniselectOptValue)
+                                    selectedFiltOptsDict
             }
 
         ToggleFiltersDropdownVisiblity ->
             { model | showFiltersDropdown = not model.showFiltersDropdown }
 
-        ClearFilter filterId option ->
+        ClearFilter filterId ->
+            let
+                clearedFilterOpts =
+                    case selectedFilterOptionValue filterId model of
+                        MultiselectOption _ ->
+                            MultiselectOption Set.empty
+
+                        UniselectOption _ ->
+                            UniselectOption UniselectNoChoice
+            in
             { model
                 | selectedFilters =
                     case model.selectedFilters of
-                        FiltOpts selectedFiltOpts_ ->
-                            FiltOpts <|
+                        SelectedFilterOptions selectedFiltOptsDict ->
+                            SelectedFilterOptions <|
                                 Dict.insert filterId
-                                    (Set.remove
-                                        option
-                                        (selectedFiltOpts filterId model)
-                                    )
-                                    selectedFiltOpts_
+                                    clearedFilterOpts
+                                    selectedFiltOptsDict
             }
 
         ClearAllFilters ->
             { model
                 | selectedFilters =
                     case model.selectedFilters of
-                        FiltOpts selectedFiltOpts_ ->
-                            FiltOpts <|
-                                Dict.map (\_ _ -> Set.empty)
-                                    selectedFiltOpts_
+                        SelectedFilterOptions selectedFiltOptsDict ->
+                            SelectedFilterOptions <|
+                                Dict.map
+                                    (\_ selectedOptValue ->
+                                        case selectedOptValue of
+                                            MultiselectOption _ ->
+                                                MultiselectOption Set.empty
+
+                                            UniselectOption _ ->
+                                                UniselectOption UniselectNoChoice
+                                    )
+                                    selectedFiltOptsDict
             }
 
         NoOp ->
@@ -191,8 +208,7 @@ type alias Filter record =
     -- will also allow to add more ways of filtering other than multiselect and uniselect
     , filterOptions :
         List FilterOption
-    , defaultFilterOptions : Set.Set String
-    , multipleSelection : Bool
+    , defaultFilterOptionValue : FilterOptionValue
     , onFilter : String -> DataRecord record -> Bool
     }
 
@@ -237,27 +253,28 @@ view model toMsg palette styleAttrs listItemView data bulkActions filters =
 
         keepARecord : Filter record -> DataRecord record -> Bool
         keepARecord filter dataRecord =
-            let
-                selectedOptions =
-                    Set.toList (selectedFiltOpts filter.id model)
-            in
-            if List.isEmpty selectedOptions then
-                True
+            case selectedFilterOptionValue filter.id model of
+                MultiselectOption multiselectOptValues ->
+                    if Set.isEmpty multiselectOptValues then
+                        True
 
-            else
-                List.foldl
-                    (\selectedOption isKeepable ->
-                        (if selectedOption == "noChoice" then
+                    else
+                        Set.foldl
+                            (\selectedOptValue isKeepable ->
+                                filter.onFilter selectedOptValue dataRecord
+                                    || isKeepable
+                            )
+                            -- False is identity element for OR operation
+                            False
+                            multiselectOptValues
+
+                UniselectOption uniselectOptValue ->
+                    case uniselectOptValue of
+                        UniselectNoChoice ->
                             True
 
-                         else
-                            filter.onFilter selectedOption dataRecord
-                        )
-                            || isKeepable
-                    )
-                    -- False is identity element for OR operation
-                    False
-                    selectedOptions
+                        UniselectHasChoice selectedOptValue ->
+                            filter.onFilter selectedOptValue dataRecord
 
         filteredData =
             List.foldl
@@ -415,11 +432,18 @@ filtersView model toMsg palette filters =
     let
         filtOptCheckbox : String -> FilterOption -> Element.Element msg
         filtOptCheckbox filterId filterOption =
+            let
+                checked =
+                    case selectedFilterOptionValue filterId model of
+                        MultiselectOption optionValues ->
+                            Set.member filterOption.value optionValues
+
+                        UniselectOption _ ->
+                            -- FIXME: Won't reach here, set checked or not?
+                            False
+            in
             Input.checkbox [ Element.width Element.shrink ]
-                { checked =
-                    Set.member
-                        filterOption.value
-                        (selectedFiltOpts filterId model)
+                { checked = checked
                 , onChange = ChangeFiltOptCheckboxSelection filterId filterOption.value
                 , icon = Input.defaultCheckbox
                 , label =
@@ -433,9 +457,12 @@ filtersView model toMsg palette filters =
             Input.radioRow [ Element.spacing 18 ]
                 { onChange = ChangeFiltOptRadioSelection filter.id
                 , selected =
-                    List.head <|
-                        Set.toList
-                            (selectedFiltOpts filter.id model)
+                    case selectedFilterOptionValue filter.id model of
+                        UniselectOption uniselectOptValue ->
+                            Just uniselectOptValue
+
+                        MultiselectOption _ ->
+                            Nothing
                 , label =
                     Input.labelLeft
                         [ Element.paddingEach
@@ -445,14 +472,13 @@ filtersView model toMsg palette filters =
                 , options =
                     List.map
                         (\filterOption ->
-                            Input.option filterOption.value
+                            Input.option (UniselectHasChoice filterOption.value)
                                 (Element.text filterOption.text)
                         )
                         filter.filterOptions
                         -- TODO: Let consumer control it. With custom type,
-                        -- ensure that they pass a noChoice option value becuase
-                        -- it doesn't render a filter chip
-                        ++ [ Input.option "noChoice" (Element.text "No choice") ]
+                        -- ensure that they pass text for UniselectNoChoice
+                        ++ [ Input.option UniselectNoChoice (Element.text "No choice") ]
                 }
                 |> Element.map toMsg
 
@@ -497,16 +523,17 @@ filtersView model toMsg palette filters =
                         ]
                         :: List.map
                             (\filter ->
-                                if filter.multipleSelection then
-                                    Element.row [ Element.spacing 15 ]
-                                        (Element.text (filter.label ++ ":")
-                                            :: List.map
-                                                (filtOptCheckbox filter.id)
-                                                filter.filterOptions
-                                        )
+                                case filter.defaultFilterOptionValue of
+                                    MultiselectOption _ ->
+                                        Element.row [ Element.spacing 15 ]
+                                            (Element.text (filter.label ++ ":")
+                                                :: List.map
+                                                    (filtOptCheckbox filter.id)
+                                                    filter.filterOptions
+                                            )
 
-                                else
-                                    filtOptsRadioSelector filter
+                                    UniselectOption _ ->
+                                        filtOptsRadioSelector filter
                             )
                             filters
                     )
@@ -548,8 +575,8 @@ filtersView model toMsg palette filters =
                     |> Element.map toMsg
                 )
 
-        filterChipView : Filter record -> FilterOption -> Element.Element msg
-        filterChipView filter selectedOpt =
+        filterChipView : Filter record -> List (Element.Element msg) -> Element.Element msg
+        filterChipView filter selectedOptContent =
             Element.row
                 [ Border.width 1
                 , Border.color <| Element.rgba255 0 0 0 0.16
@@ -559,10 +586,10 @@ filtersView model toMsg palette filters =
                     [ Font.size 14
                     , Element.paddingEach { top = 0, bottom = 0, left = 6, right = 0 }
                     ]
-                    [ Element.el [ Font.color (Element.rgb255 96 96 96) ]
+                    (Element.el [ Font.color (Element.rgb255 96 96 96) ]
                         (Element.text filter.chipPrefix)
-                    , Element.text selectedOpt.text
-                    ]
+                        :: selectedOptContent
+                    )
                 , Widget.iconButton (iconButtonStyle 6)
                     { text = "Clear filter"
                     , icon =
@@ -572,7 +599,7 @@ filtersView model toMsg palette filters =
                                 |> FeatherIcons.toHtml []
                                 |> Element.html
                             )
-                    , onPress = Just <| ClearFilter filter.id selectedOpt.value
+                    , onPress = Just <| ClearFilter filter.id
                     }
                     |> Element.map toMsg
                 ]
@@ -589,33 +616,52 @@ filtersView model toMsg palette filters =
                         )
                         Dict.empty
                         filtOpts
+
+                textElement val valTextMap =
+                    Element.text
+                        (Dict.get val valTextMap
+                            -- FIXME: Shouldn't happen, better default value?
+                            |> Maybe.withDefault ""
+                        )
             in
-            List.foldl
-                (\filter filtChipsList ->
-                    let
-                        optsValTextMap =
-                            filtOptsValueTextMap filter.filterOptions
+            List.map
+                (\filter ->
+                    case selectedFilterOptionValue filter.id model of
+                        MultiselectOption selectedOptVals ->
+                            if Set.isEmpty selectedOptVals then
+                                Element.none
 
-                        selectedOptVals =
-                            selectedFiltOpts filter.id model |> Set.toList
+                            else
+                                let
+                                    optsValTextMap =
+                                        filtOptsValueTextMap filter.filterOptions
+                                in
+                                filterChipView filter
+                                    (Set.toList selectedOptVals
+                                        |> List.map
+                                            (\selectedOptVal ->
+                                                textElement
+                                                    selectedOptVal
+                                                    optsValTextMap
+                                            )
+                                        |> List.intersperse
+                                            (Element.el
+                                                [ Font.color (Element.rgb255 96 96 96) ]
+                                                (Element.text " or ")
+                                            )
+                                    )
 
-                        filterChip selectedOptVal =
-                            case Dict.get selectedOptVal optsValTextMap of
-                                Just selectedOptText ->
-                                    filterChipView filter
-                                        { text = selectedOptText
-                                        , value = selectedOptVal
-                                        }
-
-                                Nothing ->
-                                    -- when the selected option was added internally,
-                                    -- for e.g. "noChoice" in radio selector
+                        UniselectOption uniselectOptVal ->
+                            case uniselectOptVal of
+                                UniselectNoChoice ->
                                     Element.none
-                    in
-                    filtChipsList
-                        ++ List.map filterChip selectedOptVals
+
+                                UniselectHasChoice selectedOptVal ->
+                                    filterChipView filter
+                                        [ textElement selectedOptVal
+                                            (filtOptsValueTextMap filter.filterOptions)
+                                        ]
                 )
-                []
                 filters
 
         clearAllBtn =
@@ -633,24 +679,29 @@ filtersView model toMsg palette filters =
                                    ]
                     }
 
-                isNotEmpty selectedOpts =
-                    not
-                        (Set.isEmpty selectedOpts
-                            || (Set.size selectedOpts
-                                    == 1
-                                    && Set.member "noChoice" selectedOpts
-                               )
-                        )
+                isAnyOptSelected selectedOpts =
+                    case selectedOpts of
+                        MultiselectOption multiselectOptValues ->
+                            not (Set.isEmpty multiselectOptValues)
+
+                        UniselectOption uniselectOptValue ->
+                            case uniselectOptValue of
+                                UniselectNoChoice ->
+                                    False
+
+                                UniselectHasChoice _ ->
+                                    True
 
                 isAnyFilterApplied =
                     case model.selectedFilters of
-                        FiltOpts selectedFiltOpts_ ->
+                        SelectedFilterOptions selectedFiltOptsDict ->
                             Dict.foldl
-                                (\_ selectedOpts anyOptsSelected ->
-                                    isNotEmpty selectedOpts || anyOptsSelected
+                                (\_ selectedOpts anyOptSelected ->
+                                    isAnyOptSelected selectedOpts
+                                        || anyOptSelected
                                 )
                                 False
-                                selectedFiltOpts_
+                                selectedFiltOptsDict
             in
             if isAnyFilterApplied then
                 Widget.textButton

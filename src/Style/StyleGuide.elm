@@ -185,8 +185,7 @@ filters =
             [ { text = "me (ex3)", value = "ex3" }
             , { text = "tg3456", value = "tg3456" }
             ]
-      , multipleSelection = True
-      , defaultFilterOptions = Set.fromList [ "ex3" ]
+      , defaultFilterOptionValue = DataList.MultiselectOption (Set.fromList [ "ex3" ])
       , onFilter =
             \optionValue server ->
                 server.creator == optionValue
@@ -199,8 +198,7 @@ filters =
             , { text = "past 7 days", value = "1641982803000" }
             , { text = "past 30 days", value = "1639909203000" }
             ]
-      , multipleSelection = False
-      , defaultFilterOptions = Set.fromList []
+      , defaultFilterOptionValue = DataList.UniselectOption DataList.UniselectNoChoice
       , onFilter =
             \optionValue server ->
                 let
@@ -354,7 +352,7 @@ init =
             , options = options
             }
       , expandoCardExpanded = False
-      , dataListModel = DataList.init (DataList.getDefaultFiltOpts filters)
+      , dataListModel = DataList.init (DataList.getDefaultFilterOptions filters)
       , servers = initServers
       }
     , Cmd.none
