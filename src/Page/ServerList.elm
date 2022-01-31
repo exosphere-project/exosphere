@@ -66,6 +66,9 @@ init showHeading =
         True
         Set.empty
         Set.empty
+        -- FIXME: it requires data to define filters.defaultFilterOptionValue
+        -- i.e. not available yet, but only when project.servers.data is RDPP.Have
+        -- how to update model conditionally? or change implementation of DataList
         (DataList.init <| DataList.getDefaultFilterOptions (filters [] ""))
 
 
@@ -430,7 +433,7 @@ filters serversList currentUser =
                     }
                 )
                 (List.map .creator serversList |> Set.fromList |> Set.toList)
-      , defaultFilterOptionValue = DataList.MultiselectOption <| Set.fromList [ "ex3" ]
+      , defaultFilterOptionValue = DataList.MultiselectOption <| Set.fromList [ currentUser ]
       , onFilter =
             \optionValue server ->
                 server.creator == optionValue
