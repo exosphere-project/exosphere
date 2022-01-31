@@ -66,7 +66,7 @@ init showHeading =
         True
         Set.empty
         Set.empty
-        (DataList.init <| DataList.getDefaultFiltOpts (filters []))
+        (DataList.init <| DataList.getDefaultFilterOptions (filters [] ""))
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
@@ -220,7 +220,7 @@ view context project currentTime model =
                             (serverView context project)
                             serversList
                             [ deletionAction ]
-                            (filters serversList)
+                            (filters serversList project.auth.user.name)
     in
     Element.column [ Element.width Element.fill ]
         [ if model.showHeading then
@@ -404,6 +404,7 @@ serverView context project serverRecord =
 
 filters :
     List ServerRecord
+    -> String
     ->
         List
             (DataList.Filter
@@ -412,21 +413,24 @@ filters :
                     , creationTime : String
                 }
             )
-filters serversList =
+filters serversList currentUser =
     [ { id = "creator"
       , label = "Creator"
       , chipPrefix = "Created by "
       , filterOptions =
-            -- TODO: set text of logged in user as "me (user)"
             List.map
                 (\creator ->
-                    { text = creator
+                    { text =
+                        if creator == currentUser then
+                            "me (" ++ creator ++ ")"
+
+                        else
+                            creator
                     , value = creator
                     }
                 )
                 (List.map .creator serversList |> Set.fromList |> Set.toList)
-      , multipleSelection = True
-      , defaultFilterOptions = Set.fromList [ "ex3" ]
+      , defaultFilterOptionValue = DataList.MultiselectOption <| Set.fromList [ "ex3" ]
       , onFilter =
             \optionValue server ->
                 server.creator == optionValue
