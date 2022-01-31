@@ -136,7 +136,7 @@ serverView palette server =
         [ Element.row [ Element.spacing 10, Element.width Element.fill ]
             [ Element.el
                 [ Font.size 18
-                , Font.color (Element.rgb255 32 109 163)
+                , Font.color (SH.toElementColor palette.primary)
                 ]
                 (Element.text server.name)
             , Element.el
@@ -154,17 +154,21 @@ serverView palette server =
         , Element.row
             [ Element.spacing 8
             , Element.width Element.fill
-            , Font.color (Element.rgb255 96 96 96)
+            , Font.color <| SH.toElementColorWithOpacity palette.on.background 0.62
             ]
             [ Element.el [] (Element.text server.size)
             , Element.text "·"
             , Element.paragraph []
                 [ Element.text "created "
-                , Element.el [ Font.color (Element.rgb255 0 0 0) ] (Element.text server.creationTime.relativeTime)
+                , Element.el [ Font.color (SH.toElementColor palette.on.background) ]
+                    (Element.text server.creationTime.relativeTime)
                 , Element.text " by "
-                , Element.el [ Font.color (Element.rgb255 0 0 0) ] (Element.text server.creator)
+                , Element.el [ Font.color (SH.toElementColor palette.on.background) ]
+                    (Element.text server.creator)
                 ]
-            , Style.Widgets.Icon.ipAddress (Element.rgb255 96 96 96) 16
+            , Style.Widgets.Icon.ipAddress
+                (SH.toElementColorWithOpacity palette.on.background 0.62)
+                16
             , Element.el [] (Element.text server.ip)
             ]
         ]

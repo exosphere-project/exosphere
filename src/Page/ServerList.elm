@@ -333,7 +333,7 @@ serverView context project serverRecord =
                 , label =
                     Element.el
                         [ Font.size 18
-                        , Font.color (Element.rgb255 32 109 163)
+                        , Font.color (SH.toElementColor context.palette.primary)
                         ]
                         (Element.text serverRecord.name)
                 }
@@ -389,17 +389,19 @@ serverView context project serverRecord =
         , Element.row
             [ Element.spacing 8
             , Element.width Element.fill
-            , Font.color (Element.rgb255 96 96 96)
+            , Font.color (SH.toElementColorWithOpacity context.palette.on.background 0.62)
             ]
             [ Element.el [] (Element.text serverRecord.size)
             , Element.text "·"
             , Element.paragraph []
                 [ Element.text "created "
-                , Element.el [ Font.color (Element.rgb255 0 0 0) ] (Element.text serverRecord.creationTime)
+                , Element.el [ Font.color (SH.toElementColor context.palette.on.background) ]
+                    (Element.text serverRecord.creationTime)
                 , Element.text " by "
-                , Element.el [ Font.color (Element.rgb255 0 0 0) ] (Element.text serverRecord.creator)
+                , Element.el [ Font.color (SH.toElementColor context.palette.on.background) ]
+                    (Element.text serverRecord.creator)
                 ]
-            , Icon.ipAddress (Element.rgb255 96 96 96) 16
+            , Icon.ipAddress (SH.toElementColorWithOpacity context.palette.on.background 0.62) 16
             , Element.el [] (Element.text serverRecord.floatingIpAddress)
             ]
         ]
