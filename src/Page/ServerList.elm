@@ -29,15 +29,8 @@ import Widget
 
 type alias Model =
     { showHeading : Bool
-    , onlyOwnServers : Bool
-    , selectedServers : Set.Set ServerSelection
-    , deleteConfirmations : Set.Set DeleteConfirmation
     , dataListModel : DataList.Model
     }
-
-
-type alias ServerSelection =
-    OSTypes.ServerUuid
 
 
 type alias DeleteConfirmation =
@@ -45,23 +38,15 @@ type alias DeleteConfirmation =
 
 
 type Msg
-    = GotShowOnlyOwnServers Bool (Set.Set ServerSelection)
-    | GotSelectServer ServerSelection Bool
-    | GotNewServerSelection (Set.Set ServerSelection)
-    | GotDeleteNeedsConfirm DeleteConfirmation
-    | GotDeleteConfirm DeleteConfirmation
-    | GotDeleteCancel DeleteConfirmation
-    | SharedMsg SharedMsg.SharedMsg
+    = GotDeleteConfirm DeleteConfirmation
     | DataListMsg DataList.Msg
+    | SharedMsg SharedMsg.SharedMsg
     | NoOp
 
 
 init : Bool -> Model
 init showHeading =
     Model showHeading
-        True
-        Set.empty
-        Set.empty
         -- FIXME: it requires data to define filters.defaultFilterOptionValue
         -- i.e. not available yet, but only when project.servers.data is RDPP.Have
         -- how to update model conditionally? or change implementation of DataList
@@ -71,55 +56,12 @@ init showHeading =
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
 update msg project model =
     case msg of
-        GotShowOnlyOwnServers showOnlyOwn newSelection ->
-            ( { model
-                | onlyOwnServers = showOnlyOwn
-                , selectedServers = newSelection
-              }
-            , Cmd.none
-            , SharedMsg.NoOp
-            )
-
-        GotSelectServer serverId selected ->
-            ( { model
-                | selectedServers =
-                    if selected then
-                        Set.insert serverId model.selectedServers
-
-                    else
-                        Set.remove serverId model.selectedServers
-              }
-            , Cmd.none
-            , SharedMsg.NoOp
-            )
-
-        GotNewServerSelection newSelection ->
-            ( { model | selectedServers = newSelection }, Cmd.none, SharedMsg.NoOp )
-
-        GotDeleteNeedsConfirm serverId ->
-            ( { model
-                | deleteConfirmations =
-                    Set.insert serverId model.deleteConfirmations
-              }
-            , Cmd.none
-            , SharedMsg.NoOp
-            )
-
         GotDeleteConfirm serverId ->
             ( model
             , Cmd.none
             , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
                 SharedMsg.ServerMsg serverId <|
                     SharedMsg.RequestDeleteServer False
-            )
-
-        GotDeleteCancel serverId ->
-            ( { model
-                | deleteConfirmations =
-                    Set.remove serverId model.deleteConfirmations
-              }
-            , Cmd.none
-            , SharedMsg.NoOp
             )
 
         DataListMsg dataListMsg ->
