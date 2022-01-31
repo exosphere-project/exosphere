@@ -251,7 +251,7 @@ type alias ServerRecord =
         { name : String
         , statusColor : Element.Color
         , size : String
-        , floatingIpAddress : String
+        , floatingIpAddress : Maybe String
         , creationTime : String
         , creator : String
         }
@@ -289,12 +289,8 @@ serverRecords context currentTime project servers =
                 server.osProps.details.created
 
         floatingIpAddress server =
-            case List.head (GetterSetters.getServerFloatingIps project server.osProps.uuid) of
-                Nothing ->
-                    "unknown " ++ context.localization.floatingIpAddress
-
-                Just floatingIp ->
-                    floatingIp.address
+            List.head (GetterSetters.getServerFloatingIps project server.osProps.uuid)
+                |> Maybe.map .address
 
         flavor server =
             GetterSetters.flavorLookup project server.osProps.details.flavorId
@@ -365,6 +361,22 @@ serverView context project serverRecord =
                         -- to disable it
                         Nothing
                 }
+
+        floatingIpView =
+            case serverRecord.floatingIpAddress of
+                Just floatingIpAddress ->
+                    Element.row [ Element.spacing 8 ]
+                        [ Icon.ipAddress
+                            (SH.toElementColorWithOpacity
+                                context.palette.on.background
+                                0.62
+                            )
+                            16
+                        , Element.el [] (Element.text floatingIpAddress)
+                        ]
+
+                Nothing ->
+                    Element.none
     in
     Element.column
         [ Element.spacing 12
@@ -397,8 +409,7 @@ serverView context project serverRecord =
                 , Element.el [ Font.color (SH.toElementColor context.palette.on.background) ]
                     (Element.text serverRecord.creator)
                 ]
-            , Icon.ipAddress (SH.toElementColorWithOpacity context.palette.on.background 0.62) 16
-            , Element.el [] (Element.text serverRecord.floatingIpAddress)
+            , floatingIpView
             ]
         ]
 
