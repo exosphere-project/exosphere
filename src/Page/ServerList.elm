@@ -5,9 +5,7 @@ import Element
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
-import Element.Input as Input
 import FeatherIcons
-import Helpers.Formatting exposing (humanCount)
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
@@ -17,12 +15,10 @@ import Page.QuotaUsage
 import Route
 import Set
 import Style.Helpers as SH
-import Style.Widgets.Card
 import Style.Widgets.DataList as DataList
 import Style.Widgets.Icon as Icon
 import Style.Widgets.StatusBadge as StatusBadge
 import Time
-import Types.HelperTypes exposing (ProjectIdentifier)
 import Types.Project exposing (Project)
 import Types.Server exposing (Server, ServerOrigin(..))
 import Types.SharedMsg as SharedMsg
