@@ -47,6 +47,7 @@ module OpenStack.Types exposing
     , Server
     , ServerDetails
     , ServerEvent
+    , ServerFault
     , ServerLockStatus(..)
     , ServerPassword
     , ServerPowerState(..)
@@ -462,6 +463,14 @@ type alias ServerDetails =
     , volumesAttached : List VolumeUuid
     , tags : List ServerTag
     , lockStatus : ServerLockStatus
+    , fault : Maybe ServerFault
+    }
+
+
+type alias ServerFault =
+    { code : Int
+    , created : Time.Posix
+    , message : String
     }
 
 
