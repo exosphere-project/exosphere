@@ -178,14 +178,28 @@ filters :
             }
         )
 filters =
+    let
+        currentUser =
+            "ex3"
+    in
     [ { id = "creator"
       , label = "Creator"
       , chipPrefix = "Created by "
       , filterOptions =
-            [ { text = "me (ex3)", value = "ex3" }
-            , { text = "tg3456", value = "tg3456" }
-            ]
-      , defaultFilterOptionValue = DataList.MultiselectOption (Set.fromList [ "ex3" ])
+            \servers ->
+                List.map
+                    (\creator ->
+                        { text =
+                            if creator == currentUser then
+                                "me (" ++ creator ++ ")"
+
+                            else
+                                creator
+                        , value = creator
+                        }
+                    )
+                    (List.map .creator servers |> Set.fromList |> Set.toList)
+      , defaultFilterOptionValue = DataList.MultiselectOption (Set.fromList [ currentUser ])
       , onFilter =
             \optionValue server ->
                 server.creator == optionValue
@@ -194,10 +208,11 @@ filters =
       , label = "Created within"
       , chipPrefix = "Created within "
       , filterOptions =
-            [ { text = "past day", value = "1642501203000" }
-            , { text = "past 7 days", value = "1641982803000" }
-            , { text = "past 30 days", value = "1639909203000" }
-            ]
+            \_ ->
+                [ { text = "past day", value = "1642501203000" }
+                , { text = "past 7 days", value = "1641982803000" }
+                , { text = "past 30 days", value = "1639909203000" }
+                ]
       , defaultFilterOptionValue = DataList.UniselectOption DataList.UniselectNoChoice
       , onFilter =
             \optionValue server ->

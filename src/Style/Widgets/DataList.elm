@@ -207,7 +207,7 @@ type alias Filter record =
     -- TODO: Can create a union type to better express interdependence of following 4
     -- will also allow to add more ways of filtering other than multiselect and uniselect
     , filterOptions :
-        List FilterOption
+        List (DataRecord record) -> List FilterOption
     , defaultFilterOptionValue : FilterOptionValue
     , onFilter : String -> DataRecord record -> Bool
     }
@@ -294,7 +294,13 @@ view model toMsg palette styleAttrs listItemView data bulkActions filters =
             ++ styleAttrs
         )
         -- TODO: Use context.palette instead of hard coded colors to create dark-theme version
-        (toolbarView model toMsg palette defaultRowStyle filteredData bulkActions filters
+        (toolbarView model
+            toMsg
+            palette
+            defaultRowStyle
+            { complete = data, filtered = filteredData }
+            bulkActions
+            filters
             :: List.indexedMap
                 (rowView model toMsg rowStyle listItemView showRowCheckbox)
                 filteredData
@@ -344,14 +350,17 @@ toolbarView :
     -> (Msg -> msg) -- convert local Msg to a consumer's msg
     -> Style.Types.ExoPalette
     -> List (Element.Attribute msg)
-    -> List (DataRecord record)
+    ->
+        { complete : List (DataRecord record)
+        , filtered : List (DataRecord record)
+        }
     -> List (Set.Set String -> Element.Element msg)
     -> List (Filter record)
     -> Element.Element msg
 toolbarView model toMsg palette rowStyle data bulkActions filters =
     let
         selectableRecords =
-            List.filter (\record -> record.selectable) data
+            List.filter (\record -> record.selectable) data.filtered
 
         selectedRowIds =
             -- Remove those records' Ids that were deleted after being selected
@@ -417,7 +426,7 @@ toolbarView model toMsg palette rowStyle data bulkActions filters =
     Element.row
         rowStyle
         [ selectAllCheckbox
-        , filtersView model toMsg palette filters
+        , filtersView model toMsg palette filters data.complete
         , bulkActionsView
         ]
 
@@ -427,8 +436,9 @@ filtersView :
     -> (Msg -> msg)
     -> Style.Types.ExoPalette
     -> List (Filter record)
+    -> List (DataRecord record)
     -> Element.Element msg
-filtersView model toMsg palette filters =
+filtersView model toMsg palette filters data =
     let
         filtOptCheckbox : String -> FilterOption -> Element.Element msg
         filtOptCheckbox filterId filterOption =
@@ -475,7 +485,7 @@ filtersView model toMsg palette filters =
                             Input.option (UniselectHasChoice filterOption.value)
                                 (Element.text filterOption.text)
                         )
-                        filter.filterOptions
+                        (filter.filterOptions data)
                         -- TODO: Let consumer control it. With custom type,
                         -- ensure that they pass text for UniselectNoChoice
                         ++ [ Input.option UniselectNoChoice (Element.text "No choice") ]
@@ -529,7 +539,7 @@ filtersView model toMsg palette filters =
                                             (Element.text (filter.label ++ ":")
                                                 :: List.map
                                                     (filtOptCheckbox filter.id)
-                                                    filter.filterOptions
+                                                    (filter.filterOptions data)
                                             )
 
                                     UniselectOption _ ->
@@ -634,7 +644,7 @@ filtersView model toMsg palette filters =
                             else
                                 let
                                     optsValTextMap =
-                                        filtOptsValueTextMap filter.filterOptions
+                                        filtOptsValueTextMap (filter.filterOptions data)
                                 in
                                 filterChipView filter
                                     (Set.toList selectedOptVals
@@ -659,7 +669,7 @@ filtersView model toMsg palette filters =
                                 UniselectHasChoice selectedOptVal ->
                                     filterChipView filter
                                         [ textElement selectedOptVal
-                                            (filtOptsValueTextMap filter.filterOptions)
+                                            (filtOptsValueTextMap (filter.filterOptions data))
                                         ]
                 )
                 filters
