@@ -7,6 +7,7 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
+import Element.Region as Region
 import FeatherIcons
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
@@ -407,6 +408,38 @@ serverDetail_ context project currentTimeAndZone model server =
                         (context.windowSize.width - 100) // 2
                 in
                 ( True, colWidthPx |> Element.px )
+
+        serverFaultView =
+            case details.fault of
+                Just serverFault ->
+                    Element.row
+                        [ Element.padding 16
+                        , Element.spacing 8
+                        , Element.width Element.fill
+                        , Region.announceUrgently
+                        , Border.widthEach { bottom = 0, left = 0, right = 0, top = 2 }
+                        , Border.color (SH.toElementColor context.palette.error)
+                        , Background.color (SH.toElementColorWithOpacity context.palette.error 0.1)
+                        ]
+                        [ Element.el
+                            [ Element.padding 3
+                            , Border.rounded 4
+                            , Background.color (SH.toElementColor context.palette.error)
+                            , Font.color (SH.toElementColor context.palette.on.error)
+                            ]
+                            (FeatherIcons.alertOctagon
+                                |> FeatherIcons.toHtml []
+                                |> Element.html
+                            )
+                        , Element.paragraph
+                            [ Font.color (SH.toElementColor context.palette.error)
+                            , Font.bold
+                            ]
+                            [ Element.text serverFault.message ]
+                        ]
+
+                Nothing ->
+                    Element.none
     in
     Element.column (VH.exoColumnAttributes ++ [ Element.spacing 15 ])
         [ Element.column [ Element.width Element.fill ]
@@ -443,6 +476,7 @@ serverDetail_ context project currentTimeAndZone model server =
                 model.showCreatedTimeToggleTip
                 (GotShowCreatedTimeToggleTip (not model.showCreatedTimeToggleTip))
             ]
+        , serverFaultView
         , if details.openstackStatus == OSTypes.ServerActive then
             resourceUsageCharts context
                 currentTimeAndZone
