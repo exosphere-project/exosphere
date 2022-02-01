@@ -29,6 +29,10 @@ type alias FilterId =
     String
 
 
+type alias RowId =
+    String
+
+
 type FilterOptionValue
     = MultiselectOption (Set.Set String)
     | UniselectOption UniselectOptionValue
@@ -46,7 +50,7 @@ type SelectedFilterOptions
 
 
 type alias Model =
-    { selectedRowIds : Set.Set String
+    { selectedRowIds : Set.Set RowId
     , selectedFilters : SelectedFilterOptions
     , showFiltersDropdown : Bool
     }
@@ -84,8 +88,8 @@ selectedFilterOptionValue filterId model =
 
 
 type Msg
-    = ChangeRowSelection String Bool
-    | ChangeAllRowsSelection (Set.Set String)
+    = ChangeRowSelection RowId Bool
+    | ChangeAllRowsSelection (Set.Set RowId)
     | ChangeFiltOptCheckboxSelection FilterId String Bool
     | ChangeFiltOptRadioSelection FilterId UniselectOptionValue
     | ToggleFiltersDropdownVisiblity
@@ -193,12 +197,12 @@ update msg model =
 
 type alias DataRecord record =
     { record
-        | id : String
+        | id : RowId
         , selectable : Bool
     }
 
 
-idsSet : List (DataRecord record) -> Set.Set String
+idsSet : List (DataRecord record) -> Set.Set RowId
 idsSet dataRecords =
     Set.fromList <| List.map (\dataRecord -> dataRecord.id) dataRecords
 
@@ -230,7 +234,7 @@ view :
     -> List (Element.Attribute msg)
     -> (DataRecord record -> Element.Element msg)
     -> List (DataRecord record)
-    -> List (Set.Set String -> Element.Element msg)
+    -> List (Set.Set RowId -> Element.Element msg)
     -> List (Filter record)
     -> Element.Element msg
 view model toMsg palette styleAttrs listItemView data bulkActions filters =
@@ -358,7 +362,7 @@ toolbarView :
         { complete : List (DataRecord record)
         , filtered : List (DataRecord record)
         }
-    -> List (Set.Set String -> Element.Element msg)
+    -> List (Set.Set RowId -> Element.Element msg)
     -> List (Filter record)
     -> Element.Element msg
 toolbarView model toMsg palette rowStyle data bulkActions filters =
