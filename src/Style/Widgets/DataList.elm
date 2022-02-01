@@ -126,22 +126,22 @@ update msg model =
                     else
                         Set.remove option selectedOptions
             in
-            { model
-                | selectedFilters =
-                    case model.selectedFilters of
-                        SelectedFilterOptions selectedFiltOptsDict ->
-                            case selectedFilterOptionValue filterId model of
-                                MultiselectOption selectedOptions ->
+            case model.selectedFilters of
+                SelectedFilterOptions selectedFiltOptsDict ->
+                    case selectedFilterOptionValue filterId model of
+                        MultiselectOption selectedOptions ->
+                            { model
+                                | selectedFilters =
                                     SelectedFilterOptions <|
                                         Dict.insert filterId
                                             (MultiselectOption <|
                                                 updateSelection selectedOptions
                                             )
                                             selectedFiltOptsDict
+                            }
 
-                                UniselectOption _ ->
-                                    SelectedFilterOptions selectedFiltOptsDict
-            }
+                        _ ->
+                            model
 
         ChangeFiltOptRadioSelection filterId uniselectOptValue ->
             { model
