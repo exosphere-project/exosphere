@@ -25,6 +25,10 @@ import Style.Widgets.Icon as Icon
 import Widget
 
 
+type alias FilterId =
+    String
+
+
 type FilterOptionValue
     = MultiselectOption (Set.Set String)
     | UniselectOption UniselectOptionValue
@@ -38,7 +42,7 @@ type UniselectOptionValue
 {-| Opaque type representing option values currently selected for each filter
 -}
 type SelectedFilterOptions
-    = SelectedFilterOptions (Dict.Dict String FilterOptionValue)
+    = SelectedFilterOptions (Dict.Dict FilterId FilterOptionValue)
 
 
 type alias Model =
@@ -70,7 +74,7 @@ init selectedFilters =
     }
 
 
-selectedFilterOptionValue : String -> Model -> FilterOptionValue
+selectedFilterOptionValue : FilterId -> Model -> FilterOptionValue
 selectedFilterOptionValue filterId model =
     case model.selectedFilters of
         SelectedFilterOptions selectedFiltOpts ->
@@ -82,10 +86,10 @@ selectedFilterOptionValue filterId model =
 type Msg
     = ChangeRowSelection String Bool
     | ChangeAllRowsSelection (Set.Set String)
-    | ChangeFiltOptCheckboxSelection String String Bool
-    | ChangeFiltOptRadioSelection String UniselectOptionValue
+    | ChangeFiltOptCheckboxSelection FilterId String Bool
+    | ChangeFiltOptRadioSelection FilterId UniselectOptionValue
     | ToggleFiltersDropdownVisiblity
-    | ClearFilter String
+    | ClearFilter FilterId
     | ClearAllFilters
     | NoOp
 
@@ -200,7 +204,7 @@ idsSet dataRecords =
 
 
 type alias Filter record =
-    { id : String
+    { id : FilterId
     , label : String
     , chipPrefix : String
 
@@ -440,7 +444,7 @@ filtersView :
     -> Element.Element msg
 filtersView model toMsg palette filters data =
     let
-        filtOptCheckbox : String -> FilterOption -> Element.Element msg
+        filtOptCheckbox : FilterId -> FilterOption -> Element.Element msg
         filtOptCheckbox filterId filterOption =
             let
                 checked =
