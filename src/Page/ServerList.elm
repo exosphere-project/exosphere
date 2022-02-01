@@ -47,10 +47,7 @@ type Msg
 init : Project -> Bool -> Model
 init project showHeading =
     Model showHeading
-        -- FIXME: it requires data to define filter.filterOptions
-        -- i.e. not available yet, but only when project.servers.data is RDPP.Have
-        -- how to update model conditionally? or change implementation of DataList
-        (DataList.init <| DataList.getDefaultFilterOptions (filters [] project.auth.user.name))
+        (DataList.init <| DataList.getDefaultFilterOptions (filters project.auth.user.name))
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
@@ -161,7 +158,7 @@ view context project currentTime model =
                             (serverView context project)
                             serversList
                             [ deletionAction ]
-                            (filters serversList project.auth.user.name)
+                            (filters project.auth.user.name)
     in
     Element.column [ Element.width Element.fill ]
         [ if model.showHeading then
@@ -357,8 +354,7 @@ serverView context project serverRecord =
 
 
 filters :
-    List ServerRecord
-    -> String
+    String
     ->
         List
             (DataList.Filter
@@ -367,23 +363,24 @@ filters :
                     , creationTime : String
                 }
             )
-filters serversList currentUser =
+filters currentUser =
     [ { id = "creator"
       , label = "Creator"
       , chipPrefix = "Created by "
       , filterOptions =
-            List.map
-                (\creator ->
-                    { text =
-                        if creator == currentUser then
-                            "me (" ++ creator ++ ")"
+            \serversList ->
+                List.map
+                    (\creator ->
+                        { text =
+                            if creator == currentUser then
+                                "me (" ++ creator ++ ")"
 
-                        else
-                            creator
-                    , value = creator
-                    }
-                )
-                (List.map .creator serversList |> Set.fromList |> Set.toList)
+                            else
+                                creator
+                        , value = creator
+                        }
+                    )
+                    (List.map .creator serversList |> Set.fromList |> Set.toList)
       , defaultFilterOptionValue = DataList.MultiselectOption <| Set.fromList [ currentUser ]
       , onFilter =
             \optionValue server ->
