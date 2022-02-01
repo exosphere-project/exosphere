@@ -1,7 +1,7 @@
 module Style.Widgets.DataList exposing
     ( DataRecord
     , Filter
-    , FilterOptionValue(..)
+    , FilterSelectionValue(..)
     , Model
     , Msg
     , UniselectOptionIdentifier(..)
@@ -33,24 +33,28 @@ type alias RowId =
     String
 
 
-type FilterOptionValue
+type alias FilterOptionValue =
+    String
+
+
+type FilterSelectionValue
     = MultiselectOption MultiselectOptionIdentifier
     | UniselectOption UniselectOptionIdentifier
 
 
 type alias MultiselectOptionIdentifier =
-    Set.Set String
+    Set.Set FilterOptionValue
 
 
 type UniselectOptionIdentifier
     = UniselectNoChoice
-    | UniselectHasChoice String
+    | UniselectHasChoice FilterOptionValue
 
 
 {-| Opaque type representing option values currently selected for each filter
 -}
 type SelectedFilterOptions
-    = SelectedFilterOptions (Dict.Dict FilterId FilterOptionValue)
+    = SelectedFilterOptions (Dict.Dict FilterId FilterSelectionValue)
 
 
 type alias Model =
@@ -82,7 +86,7 @@ init selectedFilters =
     }
 
 
-selectedFilterOptionValue : FilterId -> Model -> Maybe FilterOptionValue
+selectedFilterOptionValue : FilterId -> Model -> Maybe FilterSelectionValue
 selectedFilterOptionValue filterId model =
     case model.selectedFilters of
         SelectedFilterOptions selectedFiltOpts ->
@@ -92,7 +96,7 @@ selectedFilterOptionValue filterId model =
 type Msg
     = ChangeRowSelection RowId Bool
     | ChangeAllRowsSelection (Set.Set RowId)
-    | ChangeFiltOptCheckboxSelection FilterId String Bool
+    | ChangeFiltOptCheckboxSelection FilterId FilterOptionValue Bool
     | ChangeFiltOptRadioSelection FilterId UniselectOptionIdentifier
     | ToggleFiltersDropdownVisiblity
     | ClearFilter FilterId
@@ -223,14 +227,14 @@ type alias Filter record =
     -- will also allow to add more ways of filtering other than multiselect and uniselect
     , filterOptions :
         List (DataRecord record) -> List FilterOption
-    , filterTypeAndDefaultValue : FilterOptionValue
-    , onFilter : String -> DataRecord record -> Bool
+    , filterTypeAndDefaultValue : FilterSelectionValue
+    , onFilter : FilterOptionValue -> DataRecord record -> Bool
     }
 
 
 type alias FilterOption =
     { text : String
-    , value : String
+    , value : FilterOptionValue
     }
 
 
