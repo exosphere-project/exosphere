@@ -4,7 +4,7 @@ module Style.Widgets.DataList exposing
     , FilterOptionValue(..)
     , Model
     , Msg
-    , UniselectOptionValue(..)
+    , UniselectOptionIdentifier(..)
     , getDefaultFilterOptions
     , init
     , update
@@ -34,11 +34,15 @@ type alias RowId =
 
 
 type FilterOptionValue
-    = MultiselectOption (Set.Set String)
-    | UniselectOption UniselectOptionValue
+    = MultiselectOption MultiselectOptionIdentifier
+    | UniselectOption UniselectOptionIdentifier
 
 
-type UniselectOptionValue
+type alias MultiselectOptionIdentifier =
+    Set.Set String
+
+
+type UniselectOptionIdentifier
     = UniselectNoChoice
     | UniselectHasChoice String
 
@@ -91,7 +95,7 @@ type Msg
     = ChangeRowSelection RowId Bool
     | ChangeAllRowsSelection (Set.Set RowId)
     | ChangeFiltOptCheckboxSelection FilterId String Bool
-    | ChangeFiltOptRadioSelection FilterId UniselectOptionValue
+    | ChangeFiltOptRadioSelection FilterId UniselectOptionIdentifier
     | ToggleFiltersDropdownVisiblity
     | ClearFilter FilterId
     | ClearAllFilters
