@@ -199,7 +199,7 @@ filters =
                         }
                     )
                     (List.map .creator servers |> Set.fromList |> Set.toList)
-      , defaultFilterOptionValue = DataList.MultiselectOption (Set.fromList [ currentUser ])
+      , filterTypeAndDefaultValue = DataList.MultiselectOption (Set.fromList [ currentUser ])
       , onFilter =
             \optionValue server ->
                 server.creator == optionValue
@@ -213,7 +213,7 @@ filters =
                 , { text = "past 7 days", value = "1641982803000" }
                 , { text = "past 30 days", value = "1639909203000" }
                 ]
-      , defaultFilterOptionValue = DataList.UniselectOption DataList.UniselectNoChoice
+      , filterTypeAndDefaultValue = DataList.UniselectOption DataList.UniselectNoChoice
       , onFilter =
             \optionValue server ->
                 let

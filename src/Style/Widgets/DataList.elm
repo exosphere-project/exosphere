@@ -66,7 +66,7 @@ getDefaultFilterOptions filters =
         (List.foldl
             (\filter selectedFiltOptsDict ->
                 Dict.insert filter.id
-                    filter.defaultFilterOptionValue
+                    filter.filterTypeAndDefaultValue
                     selectedFiltOptsDict
             )
             Dict.empty
@@ -220,7 +220,7 @@ type alias Filter record =
     -- will also allow to add more ways of filtering other than multiselect and uniselect
     , filterOptions :
         List (DataRecord record) -> List FilterOption
-    , defaultFilterOptionValue : FilterOptionValue
+    , filterTypeAndDefaultValue : FilterOptionValue
     , onFilter : String -> DataRecord record -> Bool
     }
 
@@ -545,7 +545,7 @@ filtersView model toMsg palette filters data =
                         ]
                         :: List.map
                             (\filter ->
-                                case filter.defaultFilterOptionValue of
+                                case filter.filterTypeAndDefaultValue of
                                     MultiselectOption _ ->
                                         Element.row [ Element.spacing 15 ]
                                             (Element.text (filter.label ++ ":")
