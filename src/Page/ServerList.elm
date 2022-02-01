@@ -44,13 +44,13 @@ type Msg
     | NoOp
 
 
-init : Bool -> Model
-init showHeading =
+init : Project -> Bool -> Model
+init project showHeading =
     Model showHeading
-        -- FIXME: it requires data to define filters.defaultFilterOptionValue
+        -- FIXME: it requires data to define filter.filterOptions
         -- i.e. not available yet, but only when project.servers.data is RDPP.Have
         -- how to update model conditionally? or change implementation of DataList
-        (DataList.init <| DataList.getDefaultFilterOptions (filters [] ""))
+        (DataList.init <| DataList.getDefaultFilterOptions (filters [] project.auth.user.name))
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
