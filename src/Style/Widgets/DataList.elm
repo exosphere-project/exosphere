@@ -82,13 +82,11 @@ init selectedFilters =
     }
 
 
-selectedFilterOptionValue : FilterId -> Model -> FilterOptionValue
+selectedFilterOptionValue : FilterId -> Model -> Maybe FilterOptionValue
 selectedFilterOptionValue filterId model =
     case model.selectedFilters of
         SelectedFilterOptions selectedFiltOpts ->
             Dict.get filterId selectedFiltOpts
-                -- FIXME: Shouldn't happen, better default value?
-                |> Maybe.withDefault (UniselectOption UniselectNoChoice)
 
 
 type Msg
@@ -129,7 +127,7 @@ update msg model =
             case model.selectedFilters of
                 SelectedFilterOptions selectedFiltOptsDict ->
                     case selectedFilterOptionValue filterId model of
-                        MultiselectOption selectedOptions ->
+                        Just (MultiselectOption selectedOptions) ->
                             { model
                                 | selectedFilters =
                                     SelectedFilterOptions <|
@@ -158,24 +156,29 @@ update msg model =
             { model | showFiltersDropdown = not model.showFiltersDropdown }
 
         ClearFilter filterId ->
-            let
-                clearedFilterOpts =
-                    case selectedFilterOptionValue filterId model of
-                        MultiselectOption _ ->
-                            MultiselectOption Set.empty
+            case selectedFilterOptionValue filterId model of
+                Just filterOptionValue ->
+                    let
+                        clearedFilterOpts =
+                            case filterOptionValue of
+                                MultiselectOption _ ->
+                                    MultiselectOption Set.empty
 
-                        UniselectOption _ ->
-                            UniselectOption UniselectNoChoice
-            in
-            { model
-                | selectedFilters =
-                    case model.selectedFilters of
-                        SelectedFilterOptions selectedFiltOptsDict ->
-                            SelectedFilterOptions <|
-                                Dict.insert filterId
-                                    clearedFilterOpts
-                                    selectedFiltOptsDict
-            }
+                                UniselectOption _ ->
+                                    UniselectOption UniselectNoChoice
+                    in
+                    { model
+                        | selectedFilters =
+                            case model.selectedFilters of
+                                SelectedFilterOptions selectedFiltOptsDict ->
+                                    SelectedFilterOptions <|
+                                        Dict.insert filterId
+                                            clearedFilterOpts
+                                            selectedFiltOptsDict
+                    }
+
+                Nothing ->
+                    model
 
         ClearAllFilters ->
             { model
@@ -266,7 +269,7 @@ view model toMsg palette styleAttrs listItemView data bulkActions filters =
         keepARecord : Filter record -> DataRecord record -> Bool
         keepARecord filter dataRecord =
             case selectedFilterOptionValue filter.id model of
-                MultiselectOption multiselectOptValues ->
+                Just (MultiselectOption multiselectOptValues) ->
                     if Set.isEmpty multiselectOptValues then
                         True
 
@@ -280,13 +283,16 @@ view model toMsg palette styleAttrs listItemView data bulkActions filters =
                             False
                             multiselectOptValues
 
-                UniselectOption uniselectOptValue ->
+                Just (UniselectOption uniselectOptValue) ->
                     case uniselectOptValue of
                         UniselectNoChoice ->
                             True
 
                         UniselectHasChoice selectedOptValue ->
                             filter.onFilter selectedOptValue dataRecord
+
+                Nothing ->
+                    True
 
         filteredData =
             List.foldl
@@ -452,17 +458,11 @@ filtersView :
     -> Element.Element msg
 filtersView model toMsg palette filters data =
     let
-        filtOptCheckbox : FilterId -> FilterOption -> Element.Element msg
-        filtOptCheckbox filterId filterOption =
+        filtOptCheckbox : FilterId -> MultiselectOptionIdentifier -> FilterOption -> Element.Element msg
+        filtOptCheckbox filterId optionValues filterOption =
             let
                 checked =
-                    case selectedFilterOptionValue filterId model of
-                        MultiselectOption optionValues ->
-                            Set.member filterOption.value optionValues
-
-                        UniselectOption _ ->
-                            -- FIXME: Won't reach here, set checked or not?
-                            False
+                    Set.member filterOption.value optionValues
             in
             Input.checkbox [ Element.width Element.shrink ]
                 { checked = checked
@@ -474,17 +474,11 @@ filtersView model toMsg palette filters data =
                 }
                 |> Element.map toMsg
 
-        filtOptsRadioSelector : Filter record -> Element.Element msg
-        filtOptsRadioSelector filter =
+        filtOptsRadioSelector : Filter record -> UniselectOptionIdentifier -> Element.Element msg
+        filtOptsRadioSelector filter uniselectOptValue =
             Input.radioRow [ Element.spacing 18 ]
                 { onChange = ChangeFiltOptRadioSelection filter.id
-                , selected =
-                    case selectedFilterOptionValue filter.id model of
-                        UniselectOption uniselectOptValue ->
-                            Just uniselectOptValue
-
-                        MultiselectOption _ ->
-                            Nothing
+                , selected = Just uniselectOptValue
                 , label =
                     Input.labelLeft
                         [ Element.paddingEach
@@ -545,17 +539,20 @@ filtersView model toMsg palette filters data =
                         ]
                         :: List.map
                             (\filter ->
-                                case filter.filterTypeAndDefaultValue of
-                                    MultiselectOption _ ->
+                                case ( filter.filterTypeAndDefaultValue, selectedFilterOptionValue filter.id model ) of
+                                    ( MultiselectOption _, Just (MultiselectOption selectedOptionValues) ) ->
                                         Element.row [ Element.spacing 15 ]
                                             (Element.text (filter.label ++ ":")
                                                 :: List.map
-                                                    (filtOptCheckbox filter.id)
+                                                    (filtOptCheckbox filter.id selectedOptionValues)
                                                     (filter.filterOptions data)
                                             )
 
-                                    UniselectOption _ ->
-                                        filtOptsRadioSelector filter
+                                    ( UniselectOption _, Just (UniselectOption selectedOptionValue) ) ->
+                                        filtOptsRadioSelector filter selectedOptionValue
+
+                                    _ ->
+                                        Element.none
                             )
                             filters
                     )
@@ -649,7 +646,7 @@ filtersView model toMsg palette filters data =
             List.map
                 (\filter ->
                     case selectedFilterOptionValue filter.id model of
-                        MultiselectOption selectedOptVals ->
+                        Just (MultiselectOption selectedOptVals) ->
                             if Set.isEmpty selectedOptVals then
                                 Element.none
 
@@ -673,7 +670,7 @@ filtersView model toMsg palette filters data =
                                             )
                                     )
 
-                        UniselectOption uniselectOptVal ->
+                        Just (UniselectOption uniselectOptVal) ->
                             case uniselectOptVal of
                                 UniselectNoChoice ->
                                     Element.none
@@ -683,6 +680,9 @@ filtersView model toMsg palette filters data =
                                         [ textElement selectedOptVal
                                             (filtOptsValueTextMap (filter.filterOptions data))
                                         ]
+
+                        Nothing ->
+                            Element.none
                 )
                 filters
 
