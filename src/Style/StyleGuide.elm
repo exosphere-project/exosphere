@@ -1,6 +1,7 @@
 module Style.StyleGuide exposing (main)
 
 import Browser
+import Dict
 import Element
 import Element.Background as Background
 import Element.Border as Border
@@ -181,24 +182,28 @@ filters =
     let
         currentUser =
             "ex3"
+
+        createdByFilterOptions servers =
+            List.map .creator servers
+                |> Set.fromList
+                |> Set.toList
+
+        creationTimeFilterOptions =
+            [ ( "1642501203000", "past day" )
+            , ( "1641982803000", "past 7 days" )
+            , ( "1639909203000", "past 30 days" )
+            ]
     in
     [ { id = "creator"
       , label = "Creator"
       , chipPrefix = "Created by "
-      , filterOptions =
+      , filterOptions = createdByFilterOptions
+      , optionsTextMap =
             \servers ->
-                List.map
-                    (\creator ->
-                        { text =
-                            if creator == currentUser then
-                                "me (" ++ creator ++ ")"
-
-                            else
-                                creator
-                        , value = creator
-                        }
-                    )
-                    (List.map .creator servers |> Set.fromList |> Set.toList)
+                createdByFilterOptions servers
+                    |> List.filter (\creator -> creator == currentUser)
+                    |> List.map (\creator -> ( creator, "me (" ++ creator ++ ")" ))
+                    |> Dict.fromList
       , filterTypeAndDefaultValue = DataList.MultiselectOption (Set.fromList [ currentUser ])
       , onFilter =
             \optionValue server ->
@@ -208,11 +213,9 @@ filters =
       , label = "Created within"
       , chipPrefix = "Created within "
       , filterOptions =
-            \_ ->
-                [ { text = "past day", value = "1642501203000" }
-                , { text = "past 7 days", value = "1641982803000" }
-                , { text = "past 30 days", value = "1639909203000" }
-                ]
+            \_ -> List.map Tuple.first creationTimeFilterOptions
+      , optionsTextMap =
+            \_ -> Dict.fromList creationTimeFilterOptions
       , filterTypeAndDefaultValue = DataList.UniselectOption DataList.UniselectNoChoice
       , onFilter =
             \optionValue server ->

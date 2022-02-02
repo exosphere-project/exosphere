@@ -37,6 +37,10 @@ type alias FilterOptionValue =
     String
 
 
+type alias FilterOptionText =
+    String
+
+
 type FilterSelectionValue
     = MultiselectOption MultiselectOptionIdentifier
     | UniselectOption UniselectOptionIdentifier
@@ -225,17 +229,17 @@ type alias Filter record =
 
     -- TODO: Can create a union type to better express interdependence of following 4
     -- will also allow to add more ways of filtering other than multiselect and uniselect
-    , filterOptions :
-        List (DataRecord record) -> List FilterOption
+    , filterOptions : List (DataRecord record) -> List FilterOptionValue
+    , optionsTextMap : List (DataRecord record) -> Dict.Dict FilterOptionValue FilterOptionText
     , filterTypeAndDefaultValue : FilterSelectionValue
     , onFilter : FilterOptionValue -> DataRecord record -> Bool
     }
 
 
-type alias FilterOption =
-    { text : String
-    , value : FilterOptionValue
-    }
+getFilterOptionText : Filter record -> List (DataRecord record) -> FilterOptionValue -> FilterOptionText
+getFilterOptionText filter data filterOptionValue =
+    Dict.get filterOptionValue (filter.optionsTextMap data)
+        |> Maybe.withDefault filterOptionValue
 
 
 view :
@@ -462,19 +466,21 @@ filtersView :
     -> Element.Element msg
 filtersView model toMsg palette filters data =
     let
-        filtOptCheckbox : FilterId -> MultiselectOptionIdentifier -> FilterOption -> Element.Element msg
-        filtOptCheckbox filterId optionValues filterOption =
+        filtOptCheckbox : Filter record -> MultiselectOptionIdentifier -> FilterOptionValue -> Element.Element msg
+        filtOptCheckbox filter optionValues filterOptionValue =
             let
                 checked =
-                    Set.member filterOption.value optionValues
+                    Set.member filterOptionValue optionValues
             in
             Input.checkbox [ Element.width Element.shrink ]
                 { checked = checked
-                , onChange = ChangeFiltOptCheckboxSelection filterId filterOption.value
+                , onChange = ChangeFiltOptCheckboxSelection filter.id filterOptionValue
                 , icon = Input.defaultCheckbox
                 , label =
                     Input.labelRight []
-                        (Element.text filterOption.text)
+                        (getFilterOptionText filter data filterOptionValue
+                            |> Element.text
+                        )
                 }
                 |> Element.map toMsg
 
@@ -491,9 +497,11 @@ filtersView model toMsg palette filters data =
                         (Element.text <| filter.label ++ ":")
                 , options =
                     List.map
-                        (\filterOption ->
-                            Input.option (UniselectHasChoice filterOption.value)
-                                (Element.text filterOption.text)
+                        (\filterOptionValue ->
+                            Input.option (UniselectHasChoice filterOptionValue)
+                                (getFilterOptionText filter data filterOptionValue
+                                    |> Element.text
+                                )
                         )
                         (filter.filterOptions data)
                         -- TODO: Let consumer control it. With custom type,
@@ -548,7 +556,7 @@ filtersView model toMsg palette filters data =
                                         Element.row [ Element.spacing 15 ]
                                             (Element.text (filter.label ++ ":")
                                                 :: List.map
-                                                    (filtOptCheckbox filter.id selectedOptionValues)
+                                                    (filtOptCheckbox filter selectedOptionValues)
                                                     (filter.filterOptions data)
                                             )
 
@@ -628,25 +636,6 @@ filtersView model toMsg palette filters data =
                 ]
 
         selectedFiltersChips =
-            let
-                filtOptsValueTextMap filtOpts =
-                    List.foldl
-                        (\filtOpt valTextMap ->
-                            Dict.insert
-                                filtOpt.value
-                                filtOpt.text
-                                valTextMap
-                        )
-                        Dict.empty
-                        filtOpts
-
-                textElement val valTextMap =
-                    Element.text
-                        (Dict.get val valTextMap
-                            -- FIXME: Shouldn't happen, better default value?
-                            |> Maybe.withDefault ""
-                        )
-            in
             List.map
                 (\filter ->
                     case selectedFilterOptionValue filter.id model of
@@ -655,17 +644,14 @@ filtersView model toMsg palette filters data =
                                 Element.none
 
                             else
-                                let
-                                    optsValTextMap =
-                                        filtOptsValueTextMap (filter.filterOptions data)
-                                in
                                 filterChipView filter
                                     (Set.toList selectedOptVals
                                         |> List.map
                                             (\selectedOptVal ->
-                                                textElement
+                                                getFilterOptionText filter
+                                                    data
                                                     selectedOptVal
-                                                    optsValTextMap
+                                                    |> Element.text
                                             )
                                         |> List.intersperse
                                             (Element.el
@@ -681,8 +667,8 @@ filtersView model toMsg palette filters data =
 
                                 UniselectHasChoice selectedOptVal ->
                                     filterChipView filter
-                                        [ textElement selectedOptVal
-                                            (filtOptsValueTextMap (filter.filterOptions data))
+                                        [ getFilterOptionText filter data selectedOptVal
+                                            |> Element.text
                                         ]
 
                         Nothing ->
