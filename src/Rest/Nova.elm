@@ -924,6 +924,7 @@ decodeServerDetails =
         |> Pipeline.required "os-extended-volumes:volumes_attached" (Decode.list (Decode.at [ "id" ] Decode.string))
         |> Pipeline.required "tags" (Decode.list Decode.string)
         |> Pipeline.required "locked" serverLockStatusDecoder
+        |> Pipeline.optional "fault" (serverFaultDecoder |> Decode.andThen (\f -> Decode.succeed <| Just f)) Nothing
 
 
 serverOpenstackStatusDecoder : String -> Decode.Decoder OSTypes.ServerStatus
@@ -1015,6 +1016,14 @@ serverLockStatusDecoder =
                 Decode.succeed OSTypes.ServerUnlocked
     in
     Decode.bool |> Decode.andThen boolToLockStatus
+
+
+serverFaultDecoder : Decode.Decoder OSTypes.ServerFault
+serverFaultDecoder =
+    Decode.map3 OSTypes.ServerFault
+        (Decode.field "code" Decode.int)
+        (Decode.field "created" (Decode.string |> Decode.andThen iso8601StringToPosixDecodeError))
+        (Decode.field "message" Decode.string)
 
 
 decodeServerEvent : Decode.Decoder OSTypes.ServerEvent
