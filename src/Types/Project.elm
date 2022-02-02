@@ -45,6 +45,7 @@ type alias Endpoints =
     , keystone : HelperTypes.Url
     , nova : HelperTypes.Url
     , neutron : HelperTypes.Url
+    , jetstream2Accounting : Maybe HelperTypes.Url
     }
 
 

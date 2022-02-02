@@ -251,6 +251,11 @@ encodeExoEndpoints endpoints =
         , ( "keystone", Encode.string endpoints.keystone )
         , ( "nova", Encode.string endpoints.nova )
         , ( "neutron", Encode.string endpoints.neutron )
+        , ( "jetstream2Accounting"
+          , endpoints.jetstream2Accounting
+                |> Maybe.map Encode.string
+                |> Maybe.withDefault Encode.null
+          )
         ]
 
 
@@ -475,12 +480,18 @@ decodeRegion =
 
 decodeEndpoints : Decode.Decoder Types.Project.Endpoints
 decodeEndpoints =
-    Decode.map5 Types.Project.Endpoints
+    Decode.map6 Types.Project.Endpoints
         (Decode.field "cinder" Decode.string)
         (Decode.field "glance" Decode.string)
         (Decode.field "keystone" Decode.string)
         (Decode.field "nova" Decode.string)
         (Decode.field "neutron" Decode.string)
+        (Decode.oneOf
+            -- This decodes earlier stored projects which do not have the jetstream2Accounting field in encoded endpoints
+            [ Decode.field "jetstream2Accounting" Decode.string |> Decode.nullable
+            , Decode.succeed Nothing
+            ]
+        )
 
 
 decodeNameAndId : Decode.Decoder OSTypes.NameAndUuid
