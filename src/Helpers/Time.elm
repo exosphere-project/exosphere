@@ -6,6 +6,20 @@ import Time
 
 humanReadableDateAndTime : Time.Posix -> String
 humanReadableDateAndTime posix =
+    [ humanReadableDate posix
+    , " "
+    , Time.toHour Time.utc posix |> String.fromInt |> String.padLeft 2 '0'
+    , ":"
+    , Time.toMinute Time.utc posix |> String.fromInt |> String.padLeft 2 '0'
+    , ":"
+    , Time.toSecond Time.utc posix |> String.fromInt |> String.padLeft 2 '0'
+    , " UTC"
+    ]
+        |> String.concat
+
+
+humanReadableDate : Time.Posix -> String
+humanReadableDate posix =
     let
         monthToStr month =
             case month of
@@ -50,13 +64,6 @@ humanReadableDateAndTime posix =
     , Time.toMonth Time.utc posix |> monthToStr
     , "-"
     , Time.toDay Time.utc posix |> String.fromInt |> String.padLeft 2 '0'
-    , " "
-    , Time.toHour Time.utc posix |> String.fromInt |> String.padLeft 2 '0'
-    , ":"
-    , Time.toMinute Time.utc posix |> String.fromInt |> String.padLeft 2 '0'
-    , ":"
-    , Time.toSecond Time.utc posix |> String.fromInt |> String.padLeft 2 '0'
-    , " UTC"
     ]
         |> String.concat
 
