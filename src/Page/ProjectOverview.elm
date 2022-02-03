@@ -153,7 +153,7 @@ view context project currentTime model =
                                         model.showJetstream2AllocationToggleTip
                                         ShowHideJetstream2AllocationToggleTip
                             in
-                            Element.row [] [ meter, toggleTip ]
+                            Element.row [ Element.spacing 8 ] [ meter, toggleTip ]
             in
             case project.endpoints.jetstream2Accounting of
                 Just _ ->
