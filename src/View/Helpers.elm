@@ -59,7 +59,7 @@ import FeatherIcons
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
-import Helpers.Time exposing (humanReadableTime)
+import Helpers.Time exposing (humanReadableDateAndTime)
 import Helpers.Url as UrlHelpers
 import Html
 import Html.Styled
@@ -301,7 +301,7 @@ renderMessageAsElement context message =
                 )
             , Element.el [ context.palette.muted |> SH.toElementColor |> Font.color ]
                 (Element.text
-                    (" at " ++ humanReadableTime message.timestamp)
+                    (" at " ++ humanReadableDateAndTime message.timestamp)
                 )
             ]
         , compactKVRow "We were trying to"
@@ -337,7 +337,7 @@ renderMessageAsString message =
     in
     [ levelStr message.context.level
     , " at "
-    , humanReadableTime message.timestamp
+    , humanReadableDateAndTime message.timestamp
     , " -- while trying to "
     , message.context.actionContext
     , " -- "
@@ -1027,7 +1027,7 @@ createdAgoByFromSize context currentTime createdTime maybeWhoCreatedTuple maybeF
             DateFormat.Relative.relativeTime currentTime createdTime
 
         createdTimeFormatted =
-            Helpers.Time.humanReadableTime createdTime
+            Helpers.Time.humanReadableDateAndTime createdTime
 
         muted =
             Font.color (context.palette.muted |> SH.toElementColor)

@@ -1,11 +1,15 @@
 module Page.ProjectOverview exposing (Model, Msg, init, update, view)
 
+import DateFormat.Relative
 import Element
 import Element.Border as Border
 import Element.Font as Font
 import FeatherIcons
+import FormatNumber.Locales
+import Helpers.Formatting
 import Helpers.GetterSetters as GetterSetters
 import Helpers.String
+import Helpers.Time
 import Html.Attributes
 import OpenStack.Types as OSTypes
 import Page.QuotaUsage
@@ -14,6 +18,10 @@ import Route
 import Style.Helpers as SH
 import Style.Widgets.Card
 import Style.Widgets.Icon as Icon
+import Style.Widgets.Meter
+import Style.Widgets.ToggleTip
+import Time
+import Types.Jetstream2Accounting
 import Types.Project exposing (Project)
 import Types.Server exposing (Server)
 import Types.SharedMsg as SharedMsg
@@ -22,27 +30,34 @@ import View.Types
 
 
 type alias Model =
-    {}
+    { showJetstream2AllocationToggleTip : Bool }
 
 
 type Msg
-    = NoOp
+    = ShowHideJetstream2AllocationToggleTip
+    | NoOp
 
 
 init : Model
 init =
-    Model
+    Model False
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
 update msg _ model =
     case msg of
+        ShowHideJetstream2AllocationToggleTip ->
+            ( { model | showJetstream2AllocationToggleTip = not model.showJetstream2AllocationToggleTip }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
+
         NoOp ->
             ( model, Cmd.none, SharedMsg.NoOp )
 
 
-view : View.Types.Context -> Project -> Model -> Element.Element Msg
-view context project _ =
+view : View.Types.Context -> Project -> Time.Posix -> Model -> Element.Element Msg
+view context project currentTime model =
     let
         renderTile : Element.Element Msg -> String -> Route.ProjectRouteConstructor -> Element.Element Msg -> Element.Element Msg -> Element.Element Msg
         renderTile icon str projRouteConstructor quotaMeter contents =
@@ -70,8 +85,7 @@ view context project _ =
 
         renderDescription : String -> Element.Element Msg
         renderDescription description =
-            Element.el VH.contentContainer <|
-                Element.paragraph [ Font.italic ] [ Element.text description ]
+            Element.el [ Font.italic, Element.width (Element.fill |> Element.maximum 600) ] (VH.ellipsizedText description)
 
         keypairsUsedCount =
             project.keypairs
@@ -79,9 +93,12 @@ view context project _ =
                 |> List.length
     in
     Element.column
-        [ Element.spacing 15, Element.width Element.fill ]
-        [ VH.renderMaybe project.description renderDescription
-        , Element.wrappedRow [ Element.spacing 25 ]
+        [ Element.spacing 25, Element.width Element.fill ]
+        [ Element.row [ Element.spacing 20 ]
+            [ renderJetstream2Allocation context project currentTime model
+            , VH.renderMaybe project.description renderDescription
+            ]
+        , Element.wrappedRow [ Element.spacing 25, Element.width Element.fill ]
             [ renderTile
                 (FeatherIcons.server
                     |> FeatherIcons.toHtml []
@@ -145,6 +162,83 @@ view context project _ =
                 (imageTileContents context project)
             ]
         ]
+
+
+renderJetstream2Allocation : View.Types.Context -> Project -> Time.Posix -> Model -> Element.Element Msg
+renderJetstream2Allocation context project currentTime model =
+    let
+        meter : Types.Jetstream2Accounting.Allocation -> Element.Element Msg
+        meter allocation =
+            let
+                serviceUnitsUsed =
+                    allocation.serviceUnitsUsed |> Maybe.map round |> Maybe.withDefault 0
+
+                subtitle =
+                    -- Hard-coding USA locale to work around some kind of bug in elm-format-number where 1000000 is rendered as 10,00,000.
+                    -- Don't worry, approximately all Jetstream2 users are USA-based, and nobody else will see this.
+                    String.join " "
+                        [ serviceUnitsUsed
+                            |> Helpers.Formatting.humanCount FormatNumber.Locales.usLocale
+                        , "of"
+                        , allocation.serviceUnitsAllocated
+                            |> round
+                            |> Helpers.Formatting.humanCount FormatNumber.Locales.usLocale
+                        , "SUs"
+                        ]
+            in
+            Style.Widgets.Meter.meter
+                context.palette
+                "Allocation usage"
+                subtitle
+                serviceUnitsUsed
+                (round allocation.serviceUnitsAllocated)
+
+        toggleTip : Types.Jetstream2Accounting.Allocation -> Element.Element Msg
+        toggleTip allocation =
+            let
+                contents : Element.Element Msg
+                contents =
+                    [ String.concat
+                        [ "Start: "
+                        , DateFormat.Relative.relativeTime currentTime allocation.startDate
+                        , " ("
+                        , Helpers.Time.humanReadableDate allocation.startDate
+                        , ")"
+                        ]
+                    , String.concat
+                        [ "End: "
+                        , DateFormat.Relative.relativeTime currentTime allocation.endDate
+                        , " ("
+                        , Helpers.Time.humanReadableDate allocation.endDate
+                        , ")"
+                        ]
+                    ]
+                        |> List.map Element.text
+                        |> Element.column []
+            in
+            Style.Widgets.ToggleTip.toggleTip
+                context.palette
+                contents
+                model.showJetstream2AllocationToggleTip
+                ShowHideJetstream2AllocationToggleTip
+
+        renderRDPPSuccess : Maybe Types.Jetstream2Accounting.Allocation -> Element.Element Msg
+        renderRDPPSuccess maybeAllocation =
+            case maybeAllocation of
+                Nothing ->
+                    Element.text "Jetstream2 allocation information not found."
+
+                Just allocation ->
+                    Element.row [ Element.spacing 8 ] [ meter allocation, toggleTip allocation ]
+    in
+    case project.endpoints.jetstream2Accounting of
+        Just _ ->
+            -- Is a Jetstream2 project
+            VH.renderRDPP context project.jetstream2Allocation "allocation" renderRDPPSuccess
+
+        Nothing ->
+            -- Is not a Jetstream2 project
+            Element.none
 
 
 serverTileContents : View.Types.Context -> Project -> Element.Element Msg

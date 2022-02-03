@@ -1867,6 +1867,46 @@ processProjectSpecificMsg outerModel project msg =
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
+        ReceiveJetstream2Allocation result ->
+            case result of
+                Ok allocation ->
+                    let
+                        newProject =
+                            { project
+                                | jetstream2Allocation =
+                                    RDPP.RemoteDataPlusPlus
+                                        (RDPP.DoHave allocation sharedModel.clientCurrentTime)
+                                        (RDPP.NotLoading Nothing)
+                            }
+                    in
+                    ( GetterSetters.modelUpdateProject sharedModel newProject, Cmd.none )
+                        |> mapToOuterModel outerModel
+
+                Err httpError ->
+                    let
+                        oldAllocationData =
+                            project.jetstream2Allocation.data
+
+                        newProject =
+                            { project
+                                | jetstream2Allocation =
+                                    RDPP.RemoteDataPlusPlus oldAllocationData
+                                        (RDPP.NotLoading (Just ( httpError, sharedModel.clientCurrentTime )))
+                            }
+
+                        newModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+
+                        errorContext =
+                            ErrorContext
+                                "Receive Jetstream2 allocation information"
+                                ErrorCrit
+                                (Just "Please open a ticket with Jetstream2 support.")
+                    in
+                    State.Error.processSynchronousApiError newModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
 
 processServerSpecificMsg : OuterModel -> Project -> Server -> ServerSpecificMsgConstructor -> ( OuterModel, Cmd OuterMsg )
 processServerSpecificMsg outerModel project server serverMsgConstructor =
@@ -2530,6 +2570,7 @@ createProject_ outerModel description authToken region endpoints =
             , computeQuota = RemoteData.NotAsked
             , volumeQuota = RemoteData.NotAsked
             , networkQuota = RemoteData.NotAsked
+            , jetstream2Allocation = RDPP.empty
             }
 
         newSharedModel =

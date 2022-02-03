@@ -250,7 +250,7 @@ project model context p projectViewModel viewConstructor =
         v =
             case viewConstructor of
                 ProjectOverview pageModel ->
-                    Page.ProjectOverview.view context p pageModel
+                    Page.ProjectOverview.view context p model.clientCurrentTime pageModel
                         |> Element.map ProjectOverviewMsg
 
                 FloatingIpAssign pageModel ->
