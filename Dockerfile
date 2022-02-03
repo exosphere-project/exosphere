@@ -25,6 +25,7 @@ COPY index.html .
 COPY service-worker.js .
 COPY environment-configs/docker-config.js ./config.js
 COPY ports.js .
+COPY cloud_configs.js .
 COPY exosphere.webmanifest .
 COPY src ./src
 COPY assets ./assets
