@@ -119,7 +119,7 @@ view context project currentTime model =
                                     in
                                     Style.Widgets.Meter.meter
                                         context.palette
-                                        "Usage"
+                                        "Allocation usage"
                                         subtitle
                                         serviceUnitsUsed
                                         (round allocation.serviceUnitsAllocated)
