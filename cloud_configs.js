@@ -404,8 +404,68 @@ var cloud_configs = {
       "friendlySubName":null,
       "userAppProxy":"proxy-j2-iu.exosphere.app",
       "imageExcludeFilter":null,
-      "featuredImageNamePrefix":"JS-API-Next",
-      "instanceTypes":[]
+      "featuredImageNamePrefix":"Featured-",
+      "instanceTypes":[
+        {
+          "friendlyName":"Ubuntu",
+          "description":"- Wide compatibility with community software packages\n\n- Good choice for new users",
+          "logo":"assets/img/ubuntu.svg",
+          "versions":[
+            {
+              "friendlyName":"20.04 (latest)",
+              "isPrimary":true,
+              "imageFilters":{
+                "name":"Featured-Ubuntu20",
+                "visibility":"public"
+              },
+              "restrictFlavorIds":null
+            },
+            {
+              "friendlyName":"18.04",
+              "isPrimary":false,
+              "imageFilters":{
+                "name":"Featured-Ubuntu18",
+                "visibility":"public"
+              },
+              "restrictFlavorIds":null
+            }
+          ]
+        },
+        {
+          "friendlyName":"Red Hat-like",
+          "description":"- Based on Red Hat Enterprise Linux (RHEL)\n\n- Compatible with RPM-based software",
+          "logo":"assets/img/centos.svg",
+          "versions":[
+            {
+              "friendlyName":"Rocky Linux 8",
+              "isPrimary":true,
+              "imageFilters":{
+                "name":"Featured-RockyLinux8",
+                "visibility":"public"
+              },
+              "restrictFlavorIds":null
+            },
+            {
+              "friendlyName":"AlmaLinux 8",
+              "isPrimary":false,
+              "imageFilters":{
+                "name":"Featured-AlmaLinux8",
+                "visibility":"public"
+              },
+              "restrictFlavorIds":null
+            },
+            {
+              "friendlyName":"CentOS 7",
+              "isPrimary":false,
+              "imageFilters":{
+                "name":"Featured-CentOS7",
+                "visibility":"public"
+              },
+              "restrictFlavorIds":null
+            }
+          ]
+        }
+      ]
     },
     {
       "keystoneHostname":"keystone.rc.nectar.org.au",
