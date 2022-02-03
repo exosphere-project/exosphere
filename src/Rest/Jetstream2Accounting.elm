@@ -11,10 +11,6 @@ import Types.Project exposing (Project)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 
 
-
--- TODO consider another function to request all allocations using an unscoped token
-
-
 requestAllocation : Project -> Url -> Cmd SharedMsg
 requestAllocation project url =
     let
@@ -29,11 +25,6 @@ requestAllocation project url =
         url
         Http.emptyBody
         (Rest.Helpers.expectJsonWithErrorBody resultToMsg decodeFirstAllocation)
-
-
-decodeAllocations : Decode.Decoder (List Types.Jetstream2Accounting.Allocation)
-decodeAllocations =
-    Decode.list decodeAllocation
 
 
 decodeFirstAllocation : Decode.Decoder (Maybe Types.Jetstream2Accounting.Allocation)

@@ -1868,7 +1868,6 @@ processProjectSpecificMsg outerModel project msg =
                 |> mapToOuterModel outerModel
 
         ReceiveJetstream2Allocation result ->
-            -- TODO factor out some of this with case branches for ReceiveNetworks, ReceiveServers, etc.
             case result of
                 Ok allocation ->
                     let
