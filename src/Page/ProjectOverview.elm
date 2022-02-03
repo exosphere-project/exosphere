@@ -127,13 +127,15 @@ view context project model =
                                     let
                                         contents : Element.Element Msg
                                         contents =
+                                            -- TODO also show relative time
+                                            -- TODO show date without seconds
                                             [ String.join " "
                                                 [ "Start:"
-                                                , Helpers.Time.humanReadableTime allocation.startDate
+                                                , Helpers.Time.humanReadableDateAndTime allocation.startDate
                                                 ]
                                             , String.join " "
                                                 [ "End:"
-                                                , Helpers.Time.humanReadableTime allocation.endDate
+                                                , Helpers.Time.humanReadableDateAndTime allocation.endDate
                                                 ]
                                             ]
                                                 |> List.map Element.text

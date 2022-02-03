@@ -1082,7 +1082,7 @@ serverEventHistory context model currentTime serverEventsWebData =
                                                         (Just event.startTime)
                                         in
                                         Style.Widgets.ToggleTip.toggleTip context.palette
-                                            (Element.text (Helpers.Time.humanReadableTime event.startTime))
+                                            (Element.text (Helpers.Time.humanReadableDateAndTime event.startTime))
                                             shown
                                             showHideMsg
                                 in

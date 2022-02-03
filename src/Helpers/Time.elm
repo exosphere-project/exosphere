@@ -1,11 +1,11 @@
-module Helpers.Time exposing (humanReadableTime, iso8601StringToPosix)
+module Helpers.Time exposing (humanReadableDateAndTime, iso8601StringToPosix)
 
 import ISO8601
 import Time
 
 
-humanReadableTime : Time.Posix -> String
-humanReadableTime posix =
+humanReadableDateAndTime : Time.Posix -> String
+humanReadableDateAndTime posix =
     let
         monthToStr month =
             case month of
