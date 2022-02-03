@@ -1,4 +1,4 @@
-module Helpers.Time exposing (humanReadableDateAndTime, iso8601StringToPosix)
+module Helpers.Time exposing (humanReadableDate, humanReadableDateAndTime, iso8601StringToPosix)
 
 import ISO8601
 import Time

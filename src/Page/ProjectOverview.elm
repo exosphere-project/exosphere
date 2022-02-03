@@ -1,5 +1,6 @@
 module Page.ProjectOverview exposing (Model, Msg, init, update, view)
 
+import DateFormat.Relative
 import Element
 import Element.Border as Border
 import Element.Font as Font
@@ -19,6 +20,7 @@ import Style.Widgets.Card
 import Style.Widgets.Icon as Icon
 import Style.Widgets.Meter
 import Style.Widgets.ToggleTip
+import Time
 import Types.Jetstream2Accounting
 import Types.Project exposing (Project)
 import Types.Server exposing (Server)
@@ -54,8 +56,8 @@ update msg _ model =
             ( model, Cmd.none, SharedMsg.NoOp )
 
 
-view : View.Types.Context -> Project -> Model -> Element.Element Msg
-view context project model =
+view : View.Types.Context -> Project -> Time.Posix -> Model -> Element.Element Msg
+view context project currentTime model =
     let
         renderTile : Element.Element Msg -> String -> Route.ProjectRouteConstructor -> Element.Element Msg -> Element.Element Msg -> Element.Element Msg
         renderTile icon str projRouteConstructor quotaMeter contents =
@@ -127,15 +129,19 @@ view context project model =
                                     let
                                         contents : Element.Element Msg
                                         contents =
-                                            -- TODO also show relative time
-                                            -- TODO show date without seconds
-                                            [ String.join " "
-                                                [ "Start:"
-                                                , Helpers.Time.humanReadableDateAndTime allocation.startDate
+                                            [ String.concat
+                                                [ "Start: "
+                                                , DateFormat.Relative.relativeTime currentTime allocation.startDate
+                                                , " ("
+                                                , Helpers.Time.humanReadableDate allocation.startDate
+                                                , ")"
                                                 ]
-                                            , String.join " "
-                                                [ "End:"
-                                                , Helpers.Time.humanReadableDateAndTime allocation.endDate
+                                            , String.concat
+                                                [ "End: "
+                                                , DateFormat.Relative.relativeTime currentTime allocation.endDate
+                                                , " ("
+                                                , Helpers.Time.humanReadableDate allocation.endDate
+                                                , ")"
                                                 ]
                                             ]
                                                 |> List.map Element.text
