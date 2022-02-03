@@ -78,6 +78,7 @@ view context project _ =
                 |> RemoteData.withDefault []
                 |> List.length
     in
+    -- TODO if a Jetstream2 project, show allocation information
     Element.column
         [ Element.spacing 15, Element.width Element.fill ]
         [ VH.renderMaybe project.description renderDescription

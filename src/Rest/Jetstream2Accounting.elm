@@ -8,15 +8,20 @@ import Types.Error
 import Types.HelperTypes exposing (HttpRequestMethod(..), Url)
 import Types.Jetstream2Accounting
 import Types.Project exposing (Project)
-import Types.SharedMsg exposing (SharedMsg)
+import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 
 
 
 -- TODO consider another function to request all allocations using an unscoped token
 
 
-requestAllocation : Project -> Url -> (Result Types.Error.HttpErrorWithBody Types.Jetstream2Accounting.Allocation -> SharedMsg) -> Cmd SharedMsg
-requestAllocation project url resultToMsg =
+requestAllocation : Project -> Url -> Cmd SharedMsg
+requestAllocation project url =
+    let
+        resultToMsg : Result Types.Error.HttpErrorWithBody (Maybe Types.Jetstream2Accounting.Allocation) -> SharedMsg
+        resultToMsg result =
+            ProjectMsg (GetterSetters.projectIdentifier project) <| ReceiveJetstream2Allocation result
+    in
     Rest.Helpers.openstackCredentialedRequest
         (GetterSetters.projectIdentifier project)
         Get
@@ -31,18 +36,10 @@ decodeAllocations =
     Decode.list decodeAllocation
 
 
-decodeFirstAllocation : Decode.Decoder Types.Jetstream2Accounting.Allocation
+decodeFirstAllocation : Decode.Decoder (Maybe Types.Jetstream2Accounting.Allocation)
 decodeFirstAllocation =
     Decode.list decodeAllocation
-        |> Decode.andThen
-            (\allocations ->
-                case List.head allocations of
-                    Just firstAllocation ->
-                        Decode.succeed firstAllocation
-
-                    Nothing ->
-                        Decode.fail "Could not decode first allocation in list"
-            )
+        |> Decode.map List.head
 
 
 decodeAllocation : Decode.Decoder Types.Jetstream2Accounting.Allocation

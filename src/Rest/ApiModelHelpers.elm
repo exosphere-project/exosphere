@@ -3,6 +3,7 @@ module Rest.ApiModelHelpers exposing
     , requestComputeQuota
     , requestFloatingIps
     , requestImages
+    , requestJetstream2Allocation
     , requestNetworkQuota
     , requestNetworks
     , requestPorts
@@ -18,11 +19,12 @@ import OpenStack.Types as OSTypes
 import OpenStack.Volumes
 import RemoteData
 import Rest.Glance
+import Rest.Jetstream2Accounting
 import Rest.Neutron
 import Rest.Nova
 import Types.HelperTypes exposing (ProjectIdentifier)
 import Types.SharedModel exposing (SharedModel)
-import Types.SharedMsg exposing (SharedMsg)
+import Types.SharedMsg exposing (SharedMsg(..))
 
 
 
@@ -170,6 +172,10 @@ requestPorts projectUuid model =
             ( model, Cmd.none )
 
 
+
+-- TODO rename all these arguments to `projectIdentifier`
+
+
 requestImages : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd SharedMsg )
 requestImages projectUuid model =
     case GetterSetters.projectLookup model projectUuid of
@@ -179,6 +185,25 @@ requestImages projectUuid model =
                 |> GetterSetters.modelUpdateProject model
             , Rest.Glance.requestImages model project
             )
+
+        Nothing ->
+            ( model, Cmd.none )
+
+
+requestJetstream2Allocation : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd SharedMsg )
+requestJetstream2Allocation projectIdentifier model =
+    case GetterSetters.projectLookup model projectIdentifier of
+        Just project ->
+            case project.endpoints.jetstream2Accounting of
+                Just accountingApiUrl ->
+                    ( project
+                        |> GetterSetters.projectSetJetstream2AllocationLoading
+                        |> GetterSetters.modelUpdateProject model
+                    , Rest.Jetstream2Accounting.requestAllocation project accountingApiUrl
+                    )
+
+                Nothing ->
+                    ( model, Cmd.none )
 
         Nothing ->
             ( model, Cmd.none )
