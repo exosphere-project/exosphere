@@ -2530,6 +2530,7 @@ createProject_ outerModel description authToken region endpoints =
             , computeQuota = RemoteData.NotAsked
             , volumeQuota = RemoteData.NotAsked
             , networkQuota = RemoteData.NotAsked
+            , jetstream2Allocation = RDPP.empty
             }
 
         newSharedModel =

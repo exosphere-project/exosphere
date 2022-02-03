@@ -5,6 +5,7 @@ import OpenStack.Types as OSTypes
 import RemoteData exposing (WebData)
 import Types.Error exposing (HttpErrorWithBody)
 import Types.HelperTypes as HelperTypes
+import Types.Jetstream2Accounting
 import Types.Server exposing (Server)
 
 
@@ -31,6 +32,7 @@ type alias Project =
     , computeQuota : WebData OSTypes.ComputeQuota
     , volumeQuota : WebData OSTypes.VolumeQuota
     , networkQuota : WebData OSTypes.NetworkQuota
+    , jetstream2Allocation : RDPP.RemoteDataPlusPlus HttpErrorWithBody Types.Jetstream2Accounting.Allocation
     }
 
 
