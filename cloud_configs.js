@@ -402,7 +402,7 @@ var cloud_configs = {
       "keystoneHostname":"js2.jetstream-cloud.org",
       "friendlyName":"Jetstream2",
       "friendlySubName":null,
-      "userAppProxy":"proxy-j2-iu.exosphere.app",
+      "userAppProxy":"proxy-js2-iu.exosphere.app",
       "imageExcludeFilter":null,
       "featuredImageNamePrefix":"Featured-",
       "instanceTypes":[
