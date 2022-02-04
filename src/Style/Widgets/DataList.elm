@@ -227,18 +227,21 @@ type alias Filter record =
     , label : String
     , chipPrefix : String
 
-    -- TODO: Can create a union type to better express interdependence of following 4
+    -- TODO: Can create a union type to better express interdependence of following 3
     -- will also allow to add more ways of filtering other than multiselect and uniselect
-    , filterOptions : List (DataRecord record) -> List FilterOptionValue
-    , optionsTextMap : List (DataRecord record) -> Dict.Dict FilterOptionValue FilterOptionText
+    , filterOptions : List (DataRecord record) -> Dict.Dict FilterOptionValue FilterOptionText
     , filterTypeAndDefaultValue : FilterSelectionValue
     , onFilter : FilterOptionValue -> DataRecord record -> Bool
     }
 
 
-getFilterOptionText : Filter record -> List (DataRecord record) -> FilterOptionValue -> FilterOptionText
+getFilterOptionText :
+    Filter record
+    -> List (DataRecord record)
+    -> FilterOptionValue
+    -> FilterOptionText
 getFilterOptionText filter data filterOptionValue =
-    Dict.get filterOptionValue (filter.optionsTextMap data)
+    Dict.get filterOptionValue (filter.filterOptions data)
         |> Maybe.withDefault filterOptionValue
 
 
@@ -503,7 +506,7 @@ filtersView model toMsg palette filters data =
                                     |> Element.text
                                 )
                         )
-                        (filter.filterOptions data)
+                        (filter.filterOptions data |> Dict.keys)
                         -- TODO: Let consumer control it. With custom type,
                         -- ensure that they pass text for UniselectNoChoice
                         ++ [ Input.option UniselectNoChoice (Element.text "No choice") ]
@@ -557,7 +560,7 @@ filtersView model toMsg palette filters data =
                                             (Element.text (filter.label ++ ":")
                                                 :: List.map
                                                     (filtOptCheckbox filter selectedOptionValues)
-                                                    (filter.filterOptions data)
+                                                    (filter.filterOptions data |> Dict.keys)
                                             )
 
                                     ( UniselectOption _, Just (UniselectOption selectedOptionValue) ) ->

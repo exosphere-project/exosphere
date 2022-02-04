@@ -183,7 +183,7 @@ filters =
         currentUser =
             "ex3"
 
-        createdByFilterOptions servers =
+        creatorFilterOptionValues servers =
             List.map .creator servers
                 |> Set.fromList
                 |> Set.toList
@@ -197,12 +197,19 @@ filters =
     [ { id = "creator"
       , label = "Creator"
       , chipPrefix = "Created by "
-      , filterOptions = createdByFilterOptions
-      , optionsTextMap =
+      , filterOptions =
             \servers ->
-                createdByFilterOptions servers
-                    |> List.filter (\creator -> creator == currentUser)
-                    |> List.map (\creator -> ( creator, "me (" ++ creator ++ ")" ))
+                creatorFilterOptionValues servers
+                    |> List.map
+                        (\creator ->
+                            ( creator
+                            , if creator == currentUser then
+                                "me (" ++ creator ++ ")"
+
+                              else
+                                creator
+                            )
+                        )
                     |> Dict.fromList
       , filterTypeAndDefaultValue = DataList.MultiselectOption (Set.fromList [ currentUser ])
       , onFilter =
@@ -213,8 +220,6 @@ filters =
       , label = "Created within"
       , chipPrefix = "Created within "
       , filterOptions =
-            \_ -> List.map Tuple.first creationTimeFilterOptions
-      , optionsTextMap =
             \_ -> Dict.fromList creationTimeFilterOptions
       , filterTypeAndDefaultValue = DataList.UniselectOption DataList.UniselectNoChoice
       , onFilter =
