@@ -1,6 +1,7 @@
 module Page.ServerList exposing (Model, Msg, init, update, view)
 
 import DateFormat.Relative
+import Dict
 import Element
 import Element.Background as Background
 import Element.Border as Border
@@ -364,24 +365,31 @@ filters :
                 }
             )
 filters currentUser =
+    let
+        creatorFilterOptionValues servers =
+            List.map .creator servers
+                |> Set.fromList
+                |> Set.toList
+    in
     [ { id = "creator"
       , label = "Creator"
       , chipPrefix = "Created by "
       , filterOptions =
-            \serversList ->
-                List.map
-                    (\creator ->
-                        { text =
-                            if creator == currentUser then
+            \servers ->
+                creatorFilterOptionValues servers
+                    |> List.map
+                        (\creator ->
+                            ( creator
+                            , if creator == currentUser then
                                 "me (" ++ creator ++ ")"
 
-                            else
+                              else
                                 creator
-                        , value = creator
-                        }
-                    )
-                    (List.map .creator serversList |> Set.fromList |> Set.toList)
-      , defaultFilterOptionValue = DataList.MultiselectOption <| Set.fromList [ currentUser ]
+                            )
+                        )
+                    |> Dict.fromList
+      , filterTypeAndDefaultValue =
+            DataList.MultiselectOption <| Set.fromList [ currentUser ]
       , onFilter =
             \optionValue server ->
                 server.creator == optionValue
