@@ -1,6 +1,7 @@
 module Style.StyleGuide exposing (main)
 
 import Browser
+import Dict
 import Element
 import Element.Background as Background
 import Element.Border as Border
@@ -35,7 +36,10 @@ type alias Server =
     DataList.DataRecord
         { name : String
         , creator : String
-        , creationTime : String
+        , creationTime :
+            { timestamp : Int
+            , relativeTime : String
+            }
         , ready : Bool
         , size : String
         , ip : String
@@ -46,7 +50,7 @@ initServers : List Server
 initServers =
     [ { name = "kindly_mighty_katydid"
       , creator = "ex3"
-      , creationTime = "5 days ago"
+      , creationTime = { timestamp = 1642544403000, relativeTime = "12 hours ago" }
       , ready = True
       , size = "m1.tiny"
       , ip = "129.114.104.147"
@@ -55,7 +59,7 @@ initServers =
       }
     , { name = "cheaply_next_crab"
       , creator = "tg3456"
-      , creationTime = "15 days ago"
+      , creationTime = { timestamp = 1642155016000, relativeTime = "5 days ago" }
       , ready = False
       , size = "m1.medium"
       , ip = "129.114.104.148"
@@ -64,11 +68,20 @@ initServers =
       }
     , { name = "basically_well_cobra"
       , creator = "ex3"
-      , creationTime = "1 month ago"
+      , creationTime = { timestamp = 1639909203000, relativeTime = "1 month ago" }
       , ready = True
       , size = "g1.v100x"
       , ip = "129.114.104.149"
       , id = "vcb543f"
+      , selectable = True
+      }
+    , { name = "adorably_grumpy_cat"
+      , creator = "tg3456"
+      , creationTime = { timestamp = 1637317203000, relativeTime = "2 months ago" }
+      , ready = True
+      , size = "g1.v100x"
+      , ip = "129.114.104.139"
+      , id = "werfdse"
       , selectable = True
       }
     ]
@@ -147,7 +160,7 @@ serverView palette server =
             , Element.text "·"
             , Element.paragraph []
                 [ Element.text "created "
-                , Element.el [ Font.color (Element.rgb255 0 0 0) ] (Element.text server.creationTime)
+                , Element.el [ Font.color (Element.rgb255 0 0 0) ] (Element.text server.creationTime.relativeTime)
                 , Element.text " by "
                 , Element.el [ Font.color (Element.rgb255 0 0 0) ] (Element.text server.creator)
                 ]
@@ -155,6 +168,69 @@ serverView palette server =
             , Element.el [] (Element.text server.ip)
             ]
         ]
+
+
+filters :
+    List
+        (DataList.Filter
+            { record
+                | creator : String
+                , creationTime : { a | timestamp : Int }
+            }
+        )
+filters =
+    let
+        currentUser =
+            "ex3"
+
+        creatorFilterOptionValues servers =
+            List.map .creator servers
+                |> Set.fromList
+                |> Set.toList
+
+        creationTimeFilterOptions =
+            [ ( "1642501203000", "past day" )
+            , ( "1641982803000", "past 7 days" )
+            , ( "1639909203000", "past 30 days" )
+            ]
+    in
+    [ { id = "creator"
+      , label = "Creator"
+      , chipPrefix = "Created by "
+      , filterOptions =
+            \servers ->
+                creatorFilterOptionValues servers
+                    |> List.map
+                        (\creator ->
+                            ( creator
+                            , if creator == currentUser then
+                                "me (" ++ creator ++ ")"
+
+                              else
+                                creator
+                            )
+                        )
+                    |> Dict.fromList
+      , filterTypeAndDefaultValue = DataList.MultiselectOption (Set.fromList [ currentUser ])
+      , onFilter =
+            \optionValue server ->
+                server.creator == optionValue
+      }
+    , { id = "creationTime"
+      , label = "Created within"
+      , chipPrefix = "Created within "
+      , filterOptions =
+            \_ -> Dict.fromList creationTimeFilterOptions
+      , filterTypeAndDefaultValue = DataList.UniselectOption DataList.UniselectNoChoice
+      , onFilter =
+            \optionValue server ->
+                let
+                    optionInTimestamp =
+                        Maybe.withDefault 0 (String.toInt optionValue)
+                in
+                server.creationTime.timestamp >= optionInTimestamp
+      }
+    ]
 
 
 
@@ -220,6 +296,7 @@ widgets palette model =
     , DataList.view
         model.dataListModel
         DataListMsg
+        palette
         [ Element.width (Element.maximum 900 Element.fill)
         , Font.size 16
         ]
@@ -236,6 +313,7 @@ widgets palette model =
                     }
                 )
         ]
+        filters
     ]
 
 
@@ -297,7 +375,7 @@ init =
             , options = options
             }
       , expandoCardExpanded = False
-      , dataListModel = DataList.init
+      , dataListModel = DataList.init (DataList.getDefaultFilterOptions filters)
       , servers = initServers
       }
     , Cmd.none
