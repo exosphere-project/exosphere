@@ -9,6 +9,7 @@ import Element.Font as Font
 import FeatherIcons
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
+import Helpers.Interaction as IHelpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import OpenStack.Types as OSTypes
@@ -20,6 +21,7 @@ import Style.Widgets.DataList as DataList
 import Style.Widgets.Icon as Icon
 import Style.Widgets.StatusBadge as StatusBadge
 import Time
+import Types.Interaction as ITypes
 import Types.Project exposing (Project)
 import Types.Server exposing (Server, ServerOrigin(..))
 import Types.SharedMsg as SharedMsg
@@ -30,6 +32,7 @@ import Widget
 
 type alias Model =
     { showHeading : Bool
+    , showInteractionPopover : Dict.Dict OSTypes.ServerUuid Bool
     , dataListModel : DataList.Model
     }
 
@@ -40,6 +43,7 @@ type alias DeleteConfirmation =
 
 type Msg
     = GotDeleteConfirm DeleteConfirmation
+    | ToggleInteractionPopover OSTypes.ServerUuid
     | DataListMsg DataList.Msg
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
@@ -48,6 +52,7 @@ type Msg
 init : Project -> Bool -> Model
 init project showHeading =
     Model showHeading
+        Dict.empty
         (DataList.init <| DataList.getDefaultFilterOptions (filters project.auth.user.name))
 
 
@@ -60,6 +65,21 @@ update msg project model =
             , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
                 SharedMsg.ServerMsg serverId <|
                     SharedMsg.RequestDeleteServer False
+            )
+
+        ToggleInteractionPopover serverId ->
+            ( { model
+                | showInteractionPopover =
+                    case Dict.get serverId model.showInteractionPopover of
+                        Just showPopover ->
+                            Dict.insert serverId (not showPopover) model.showInteractionPopover
+
+                        Nothing ->
+                            -- no data is saved in dict means 1st click
+                            Dict.insert serverId True model.showInteractionPopover
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
             )
 
         DataListMsg dataListMsg ->
@@ -156,7 +176,7 @@ view context project currentTime model =
                             DataListMsg
                             context.palette
                             []
-                            (serverView context project)
+                            (serverView model context project)
                             serversList
                             [ deletionAction ]
                             (filters project.auth.user.name)
@@ -186,7 +206,7 @@ stringToUuid =
     identity
 
 
-type alias ServerRecord =
+type alias ServerRecord msg =
     DataList.DataRecord
         { name : String
         , statusColor : Element.Color
@@ -194,6 +214,11 @@ type alias ServerRecord =
         , floatingIpAddress : Maybe String
         , creationTime : String
         , creator : String
+        , interactions :
+            List
+                { interactionStatus : ITypes.InteractionStatus
+                , interactionDetails : ITypes.InteractionDetails msg
+                }
         }
 
 
@@ -202,7 +227,7 @@ serverRecords :
     -> Time.Posix
     -> Project
     -> List Server
-    -> List ServerRecord
+    -> List (ServerRecord msg)
 serverRecords context currentTime project servers =
     let
         serverStatusColors server =
@@ -236,6 +261,28 @@ serverRecords context currentTime project servers =
             GetterSetters.flavorLookup project server.osProps.details.flavorId
                 |> Maybe.map .name
                 |> Maybe.withDefault ("unknown " ++ context.localization.virtualComputerHardwareConfig)
+
+        interactions server =
+            [ ITypes.GuacTerminal
+            , ITypes.GuacDesktop
+            , ITypes.Console
+            ]
+                |> List.map
+                    (\interaction ->
+                        { interactionStatus =
+                            IHelpers.interactionStatus
+                                project
+                                server
+                                interaction
+                                context
+                                currentTime
+                                (VH.userAppProxyLookup context project)
+                        , interactionDetails =
+                            IHelpers.interactionDetails
+                                interaction
+                                context
+                        }
+                    )
     in
     List.map
         (\server ->
@@ -247,13 +294,14 @@ serverRecords context currentTime project servers =
             , floatingIpAddress = floatingIpAddress server
             , creationTime = creationTimeStr server
             , creator = creatorName server
+            , interactions = interactions server
             }
         )
         servers
 
 
-serverView : View.Types.Context -> Project -> ServerRecord -> Element.Element Msg
-serverView context project serverRecord =
+serverView : Model -> View.Types.Context -> Project -> ServerRecord Never -> Element.Element Msg
+serverView model context project serverRecord =
     let
         serverLink =
             Element.link []
@@ -270,23 +318,94 @@ serverView context project serverRecord =
                         (Element.text serverRecord.name)
                 }
 
+        dropdownItemStyle =
+            let
+                textButtonDefaults =
+                    (SH.materialStyle context.palette).textButton
+            in
+            { textButtonDefaults
+                | container =
+                    textButtonDefaults.container
+                        ++ [ Element.width Element.fill
+                           , Font.size 15
+                           , Font.medium
+                           , Font.letterSpacing 0.8
+                           , Element.paddingXY 8 12
+                           , Element.height Element.shrink
+                           ]
+            }
+
+        interactionPopover =
+            Element.el [ Element.paddingXY 0 6 ] <|
+                Element.column
+                    [ Background.color <| SH.toElementColor context.palette.background
+                    , Border.width 1
+                    , Border.color <| SH.toElementColorWithOpacity context.palette.on.background 0.16
+                    , Border.shadow SH.shadowDefaults
+                    , Element.padding 10
+                    ]
+                    (List.map
+                        (\{ interactionStatus, interactionDetails } ->
+                            Widget.button
+                                dropdownItemStyle
+                                { text = interactionDetails.name
+                                , icon =
+                                    Element.el
+                                        [ Element.paddingEach
+                                            { top = 0
+                                            , right = 5
+                                            , left = 0
+                                            , bottom = 0
+                                            }
+                                        ]
+                                        (interactionDetails.icon (SH.toElementColor context.palette.primary) 18)
+                                , onPress =
+                                    case interactionStatus of
+                                        ITypes.Ready url ->
+                                            Just <| SharedMsg <| SharedMsg.OpenNewWindow url
+
+                                        ITypes.Warn url _ ->
+                                            Just <| SharedMsg <| SharedMsg.OpenNewWindow url
+
+                                        _ ->
+                                            Nothing
+                                }
+                        )
+                        serverRecord.interactions
+                    )
+
         interactionButton =
-            Widget.iconButton
-                (SH.materialStyle context.palette).button
-                { text = "Connect to"
-                , icon =
-                    Element.row
-                        [ Element.spacing 5 ]
-                        [ Element.text "Connect to"
-                        , Element.el []
-                            (FeatherIcons.chevronDown
-                                |> FeatherIcons.withSize 18
-                                |> FeatherIcons.toHtml []
-                                |> Element.html
-                            )
-                        ]
-                , onPress = Just NoOp
-                }
+            let
+                showPopover =
+                    Dict.get serverRecord.id model.showInteractionPopover
+                        |> Maybe.withDefault False
+
+                ( attribs, buttonIcon ) =
+                    if showPopover then
+                        ( [ Element.below interactionPopover ], FeatherIcons.chevronUp )
+
+                    else
+                        ( [], FeatherIcons.chevronDown )
+            in
+            Element.el
+                ([] ++ attribs)
+            <|
+                Widget.iconButton
+                    (SH.materialStyle context.palette).button
+                    { text = "Connect to"
+                    , icon =
+                        Element.row
+                            [ Element.spacing 5 ]
+                            [ Element.text "Connect to"
+                            , Element.el []
+                                (buttonIcon
+                                    |> FeatherIcons.withSize 18
+                                    |> FeatherIcons.toHtml []
+                                    |> Element.html
+                                )
+                            ]
+                    , onPress = Just <| ToggleInteractionPopover serverRecord.id
+                    }
 
         deleteServerButton =
             Widget.iconButton
