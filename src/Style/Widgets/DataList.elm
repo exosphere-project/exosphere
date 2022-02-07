@@ -268,7 +268,7 @@ view model toMsg palette styleAttrs listItemView data bulkActions filters =
 
         rowStyle : Int -> List (Element.Attribute msg)
         rowStyle i =
-            if i == List.length data - 1 then
+            if i == List.length filteredData - 1 then
                 -- Don't show divider (bottom border) for last row
                 defaultRowStyle ++ [ Border.width 0 ]
 
