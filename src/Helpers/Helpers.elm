@@ -379,7 +379,7 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
         createClusterYaml : String
         createClusterYaml =
             if createCluster then
-                """su - centos -c "git clone --branch cluster-create-local --single-branch https://github.com/julianpistorius/CRI_Jetstream_Cluster.git; cd CRI_Jetstream_Cluster; ./cluster_create_local.sh" """
+                """su - centos -c "git clone --branch main --single-branch --depth 1 https://github.com/XSEDE/CRI_Jetstream_Cluster.git; cd CRI_Jetstream_Cluster; ./cluster_create_local.sh" """
 
             else
                 """echo "Not creating a cluster, moving along..." """
