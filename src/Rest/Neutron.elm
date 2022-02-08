@@ -191,15 +191,9 @@ requestCreateFloatingIp project network port_ server =
     requestCmd
 
 
-requestDeleteFloatingIp : Project -> OSTypes.IpAddressUuid -> Cmd SharedMsg
-requestDeleteFloatingIp project uuid =
+requestDeleteFloatingIp : Project -> Types.Error.ErrorContext -> OSTypes.IpAddressUuid -> Cmd SharedMsg
+requestDeleteFloatingIp project errorContext uuid =
     let
-        errorContext =
-            ErrorContext
-                ("delete floating IP address with UUID " ++ uuid)
-                ErrorCrit
-                Nothing
-
         resultToMsg_ =
             resultToMsgErrorBody
                 errorContext

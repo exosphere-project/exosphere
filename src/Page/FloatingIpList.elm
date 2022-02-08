@@ -16,6 +16,7 @@ import Style.Widgets.Card
 import Style.Widgets.CopyableText
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton
+import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
@@ -72,9 +73,16 @@ update msg project model =
             ( newModel, Cmd.none, SharedMsg.NoOp )
 
         GotDeleteConfirm ipUuid ->
+            let
+                errorContext =
+                    ErrorContext
+                        ("delete floating IP address with UUID " ++ ipUuid)
+                        ErrorCrit
+                        Nothing
+            in
             ( model
             , Cmd.none
-            , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) (SharedMsg.RequestDeleteFloatingIp ipUuid)
+            , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) (SharedMsg.RequestDeleteFloatingIp errorContext ipUuid)
             )
 
         GotDeleteCancel ipUuid ->
