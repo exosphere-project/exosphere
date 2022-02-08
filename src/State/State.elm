@@ -1300,8 +1300,8 @@ processProjectSpecificMsg outerModel project msg =
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
-        RequestDeleteFloatingIp floatingIpAddress ->
-            ( outerModel, Rest.Neutron.requestDeleteFloatingIp project floatingIpAddress )
+        RequestDeleteFloatingIp errorContext floatingIpAddress ->
+            ( outerModel, Rest.Neutron.requestDeleteFloatingIp project errorContext floatingIpAddress )
                 |> mapToOuterMsg
 
         RequestAssignFloatingIp port_ floatingIpUuid ->
@@ -2640,9 +2640,20 @@ requestDeleteServer project serverUuid retainFloatingIps =
                         []
 
                     else
+                        let
+                            errorContext : OSTypes.IpAddressUuid -> ErrorContext
+                            errorContext ipUuid =
+                                ErrorContext
+                                    ("delete floating IP address with UUID " ++ ipUuid)
+                                    ErrorDebug
+                                    Nothing
+                        in
                         GetterSetters.getServerFloatingIps project server.osProps.uuid
                             |> List.map .uuid
-                            |> List.map (Rest.Neutron.requestDeleteFloatingIp project)
+                            |> List.map
+                                (\ipUuid ->
+                                    Rest.Neutron.requestDeleteFloatingIp project (errorContext ipUuid) ipUuid
+                                )
 
                 newProject =
                     GetterSetters.projectUpdateServer project newServer

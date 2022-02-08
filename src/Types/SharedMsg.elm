@@ -62,7 +62,7 @@ type ProjectSpecificMsgConstructor
     | RequestKeypairs
     | RequestCreateKeypair OSTypes.KeypairName OSTypes.PublicKey
     | RequestDeleteKeypair OSTypes.KeypairIdentifier
-    | RequestDeleteFloatingIp OSTypes.IpAddressUuid
+    | RequestDeleteFloatingIp ErrorContext OSTypes.IpAddressUuid
     | RequestAssignFloatingIp OSTypes.Port OSTypes.IpAddressUuid
     | RequestUnassignFloatingIp OSTypes.IpAddressUuid
     | RequestDeleteImage OSTypes.ImageUuid
