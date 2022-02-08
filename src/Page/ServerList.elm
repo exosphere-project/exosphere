@@ -12,6 +12,7 @@ import Helpers.Helpers as Helpers
 import Helpers.Interaction as IHelpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
+import Html.Attributes as HtmlA
 import OpenStack.Types as OSTypes
 import Page.QuotaUsage
 import Route
@@ -408,12 +409,30 @@ serverView model context project serverRecord =
                     }
 
         deleteServerButton =
+            let
+                dangerBtnStyleDefaults =
+                    (SH.materialStyle context.palette).dangerButtonSecondary
+
+                deleteBtnStyle =
+                    { dangerBtnStyleDefaults
+                        | container =
+                            dangerBtnStyleDefaults.container
+                                ++ [ Element.htmlAttribute <| HtmlA.title "Delete"
+                                   ]
+                        , labelRow =
+                            dangerBtnStyleDefaults.labelRow
+                                ++ [ Element.width Element.shrink
+                                   , Element.paddingXY 4 0
+                                   ]
+                    }
+            in
             Widget.iconButton
-                (SH.materialStyle context.palette).dangerButton
-                { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
+                deleteBtnStyle
+                { icon = FeatherIcons.trash |> FeatherIcons.withSize 18 |> FeatherIcons.toHtml [] |> Element.html
                 , text = "Delete"
                 , onPress =
                     if serverRecord.selectable then
+                        -- TODO: Add Modal to confirm deletion
                         Just <| GotDeleteConfirm serverRecord.id
 
                     else
