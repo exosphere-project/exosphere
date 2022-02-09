@@ -24,7 +24,7 @@ import Style.Widgets.StatusBadge as StatusBadge
 import Time
 import Types.Interaction as ITypes
 import Types.Project exposing (Project)
-import Types.Server exposing (Server, ServerOrigin(..))
+import Types.Server exposing (Server, ServerOrigin(..), ServerUiStatus(..))
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
@@ -225,7 +225,7 @@ stringToUuid =
 type alias ServerRecord msg =
     DataList.DataRecord
         { name : String
-        , statusColor : Element.Color
+        , status : ServerUiStatus
         , size : String
         , floatingIpAddress : Maybe String
         , creationTime : String
@@ -246,12 +246,6 @@ serverRecords :
     -> List (ServerRecord msg)
 serverRecords context currentTime project servers =
     let
-        serverStatusColors server =
-            server
-                |> VH.getServerUiStatus
-                |> VH.getServerUiStatusBadgeState
-                |> StatusBadge.toColors context.palette
-
         creatorName server =
             case server.exoProps.serverOrigin of
                 ServerFromExo exoOriginProps ->
@@ -305,7 +299,7 @@ serverRecords context currentTime project servers =
             { id = server.osProps.uuid
             , selectable = server.osProps.details.lockStatus == OSTypes.ServerUnlocked
             , name = server.osProps.name
-            , statusColor = Tuple.first <| serverStatusColors server
+            , status = VH.getServerUiStatus server
             , size = flavor server
             , floatingIpAddress = floatingIpAddress server
             , creationTime = creationTimeStr server
@@ -333,6 +327,26 @@ serverView model context project serverRecord =
                         ]
                         (Element.text serverRecord.name)
                 }
+
+        statusColor =
+            serverRecord.status
+                |> VH.getServerUiStatusBadgeState
+                |> StatusBadge.toColors context.palette
+                |> Tuple.first
+
+        statusText =
+            VH.getServerUiStatusStr serverRecord.status
+
+        statusTextToDisplay =
+            case serverRecord.status of
+                ServerUiStatusDeleting ->
+                    -- because server appears for a while in the DataList
+                    -- after delete action is taken
+                    Element.el [ Font.italic ] <|
+                        Element.text (statusText ++ " ...")
+
+                _ ->
+                    Element.none
 
         dropdownItemStyle =
             let
@@ -513,6 +527,7 @@ serverView model context project serverRecord =
     Element.column
         [ Element.spacing 12
         , Element.width Element.fill
+        , Font.color (SH.toElementColorWithOpacity context.palette.on.background 0.62)
         ]
         [ Element.row [ Element.spacing 10, Element.width Element.fill ]
             [ serverLink
@@ -520,16 +535,17 @@ serverView model context project serverRecord =
                 [ Element.width (Element.px 12)
                 , Element.height (Element.px 12)
                 , Border.rounded 6
-                , Background.color serverRecord.statusColor
+                , Background.color statusColor
+                , Element.htmlAttribute <| HtmlA.title statusText
                 ]
                 Element.none
+            , statusTextToDisplay
             , Element.el [ Element.alignRight ] interactionButton
             , Element.el [ Element.alignRight ] deleteServerButton
             ]
         , Element.row
             [ Element.spacing 8
             , Element.width Element.fill
-            , Font.color (SH.toElementColorWithOpacity context.palette.on.background 0.62)
             ]
             [ Element.el [] (Element.text serverRecord.size)
             , Element.text "·"
