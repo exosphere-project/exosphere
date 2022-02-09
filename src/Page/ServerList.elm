@@ -34,6 +34,7 @@ import Widget
 type alias Model =
     { showHeading : Bool
     , showInteractionPopover : Dict.Dict OSTypes.ServerUuid Bool
+    , showDeletePopconfirm : Dict.Dict OSTypes.ServerUuid Bool
     , dataListModel : DataList.Model
     }
 
@@ -44,6 +45,7 @@ type alias DeleteConfirmation =
 
 type Msg
     = GotDeleteConfirm DeleteConfirmation
+    | ShowDeletePopconfirm OSTypes.ServerUuid Bool
     | ToggleInteractionPopover OSTypes.ServerUuid
     | DataListMsg DataList.Msg
     | SharedMsg SharedMsg.SharedMsg
@@ -54,6 +56,7 @@ init : Project -> Bool -> Model
 init project showHeading =
     Model showHeading
         Dict.empty
+        Dict.empty
         (DataList.init <| DataList.getDefaultFilterOptions (filters project.auth.user.name))
 
 
@@ -61,11 +64,23 @@ update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
 update msg project model =
     case msg of
         GotDeleteConfirm serverId ->
-            ( model
+            ( { model
+                | showDeletePopconfirm =
+                    Dict.insert serverId False model.showDeletePopconfirm
+              }
             , Cmd.none
             , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
                 SharedMsg.ServerMsg serverId <|
                     SharedMsg.RequestDeleteServer False
+            )
+
+        ShowDeletePopconfirm serverId bool ->
+            ( { model
+                | showDeletePopconfirm =
+                    Dict.insert serverId bool model.showDeletePopconfirm
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
             )
 
         ToggleInteractionPopover serverId ->
@@ -328,7 +343,7 @@ serverView model context project serverRecord =
                 | container =
                     textButtonDefaults.container
                         ++ [ Element.width Element.fill
-                           , Font.size 15
+                           , Font.size 16
                            , Font.medium
                            , Font.letterSpacing 0.8
                            , Element.paddingXY 8 12
@@ -336,15 +351,17 @@ serverView model context project serverRecord =
                            ]
             }
 
+        popoverStyle =
+            [ Background.color <| SH.toElementColor context.palette.background
+            , Border.width 1
+            , Border.color <| SH.toElementColorWithOpacity context.palette.on.background 0.16
+            , Border.shadow SH.shadowDefaults
+            ]
+
         interactionPopover =
             Element.el [ Element.paddingXY 0 6 ] <|
                 Element.column
-                    [ Background.color <| SH.toElementColor context.palette.background
-                    , Border.width 1
-                    , Border.color <| SH.toElementColorWithOpacity context.palette.on.background 0.16
-                    , Border.shadow SH.shadowDefaults
-                    , Element.padding 10
-                    ]
+                    (popoverStyle ++ [ Element.padding 10 ])
                     (List.map
                         (\{ interactionStatus, interactionDetails } ->
                             Widget.button
@@ -425,20 +442,57 @@ serverView model context project serverRecord =
                                    , Element.paddingXY 4 0
                                    ]
                     }
-            in
-            Widget.iconButton
-                deleteBtnStyle
-                { icon = FeatherIcons.trash |> FeatherIcons.withSize 18 |> FeatherIcons.toHtml [] |> Element.html
-                , text = "Delete"
-                , onPress =
-                    if serverRecord.selectable then
-                        -- TODO: Add Modal to confirm deletion
-                        Just <| GotDeleteConfirm serverRecord.id
+
+                showDeletePopconfirm =
+                    Dict.get serverRecord.id model.showDeletePopconfirm
+                        |> Maybe.withDefault False
+
+                popconfirmAttribs =
+                    if showDeletePopconfirm then
+                        [ Element.below deletePopconfirm ]
 
                     else
-                        -- to disable it
-                        Nothing
-                }
+                        []
+            in
+            Element.el popconfirmAttribs <|
+                Widget.iconButton
+                    deleteBtnStyle
+                    { icon = FeatherIcons.trash |> FeatherIcons.withSize 18 |> FeatherIcons.toHtml [] |> Element.html
+                    , text = "Delete"
+                    , onPress =
+                        if serverRecord.selectable then
+                            Just <| ShowDeletePopconfirm serverRecord.id True
+
+                        else
+                            -- to disable it
+                            Nothing
+                    }
+
+        deletePopconfirm =
+            Element.el [ Element.paddingXY 0 6, Element.alignRight ] <|
+                Element.column (popoverStyle ++ [ Element.padding 16, Element.spacing 16 ])
+                    [ Element.row [ Element.spacing 8 ]
+                        [ FeatherIcons.alertCircle
+                            |> FeatherIcons.withSize 20
+                            |> FeatherIcons.toHtml []
+                            |> Element.html
+                            |> Element.el []
+                        , Element.text <|
+                            "Are you sure to delete this "
+                                ++ context.localization.virtualComputer
+                                ++ "?"
+                        ]
+                    , Element.row [ Element.spacing 10, Element.alignRight ]
+                        [ Widget.textButton (SH.materialStyle context.palette).button
+                            { text = "Cancel"
+                            , onPress = Just <| ShowDeletePopconfirm serverRecord.id False
+                            }
+                        , Widget.textButton (SH.materialStyle context.palette).dangerButton
+                            { text = "Delete"
+                            , onPress = Just <| GotDeleteConfirm serverRecord.id
+                            }
+                        ]
+                    ]
 
         floatingIpView =
             case serverRecord.floatingIpAddress of
