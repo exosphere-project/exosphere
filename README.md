@@ -24,7 +24,7 @@ _OK, what can I do with Exosphere?_
 - Easily create instances to run your code, and volumes to manage your data
   - Works great for containers, intensive compute jobs, disposable experiments, and persistent web services
 - Get **one-click, browser-based shell** access to cloud resources with Exosphere's [Apache Guacamole](http://guacamole.apache.org) integration
-  - One-click **graphical desktop** as well! (for CentOS 8 and Ubuntu 20.04)
+  - One-click **graphical desktop** as well! (for Ubuntu 20.04, Rocky Linux, and AlmaLinux)
 - **Pretty graphs** show resource utilization of each instance at a glance
 - If you're a cloud operator, deliver a customized interface with white-labeling, localized nomenclature, and single sign-on
 - 100% self-hostable, 99% standalone client application
@@ -213,9 +213,9 @@ information.
 
 #### Supported Instance Operating Systems
 
-Exosphere works best with instances launched from images based on **Ubuntu 20.04 LTS, CentOS 8, AlmaLinux, and Rocky Linux**. Ubuntu 18.04 and CentOS 7 are also supported, but they receive less attention when testing new features. Exosphere can launch instances that run other operating systems, but some features and integrations are likely to not work.
+Exosphere works best with instances launched from images based on **Ubuntu 20.04 LTS, AlmaLinux, and Rocky Linux**. Ubuntu 18.04 and CentOS 7 are also supported, but they receive less attention when testing new features. Exosphere can launch instances that run other operating systems, but some features and integrations are likely to not work.
 
-One exception to the above: the one-click graphical desktop feature, only works with CentOS 8 and Ubuntu 20.04.
+For example: the one-click graphical desktop feature, only works with Ubuntu 20.04 LTS, AlmaLinux, and Rocky Linux.
 
 If your community relies on an operating system that we don't currently support, please [create an issue](https://gitlab.com/exosphere/exosphere/-/issues) explaining your need! It's probably not hard to add support for Linux distros that use systemd and an APT/YUM/DNF package system.
 

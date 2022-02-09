@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # Outputs system resource usage on one line as JSON.
-# Uses only the standard library shipped with CentOS 8 and Ubuntu 20 cloud images.
+# Uses only the standard library shipped with Ubuntu 20, Rocky Linux, and AlmaLinux cloud images.
 # Requires "top", "free", and "df" installed.
 
 import json
