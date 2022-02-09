@@ -40,12 +40,8 @@ type alias Model =
     }
 
 
-type alias DeleteConfirmation =
-    OSTypes.ServerUuid
-
-
 type Msg
-    = GotDeleteConfirm DeleteConfirmation
+    = GotDeleteConfirm OSTypes.ServerUuid
     | ShowDeletePopconfirm OSTypes.ServerUuid Bool
     | ToggleInteractionPopover OSTypes.ServerUuid
     | DataListMsg DataList.Msg
@@ -524,7 +520,11 @@ serverView model context project serverRecord =
         ]
 
 
-deletionAction : View.Types.Context -> Project -> Set.Set String -> Element.Element Msg
+deletionAction :
+    View.Types.Context
+    -> Project
+    -> Set.Set OSTypes.ServerUuid
+    -> Element.Element Msg
 deletionAction context project serverIds =
     Element.el [ Element.alignRight ] <|
         deleteIconButton context.palette
