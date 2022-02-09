@@ -18,6 +18,7 @@ import Page.QuotaUsage
 import Route
 import Set
 import Style.Helpers as SH
+import Style.Types exposing (ExoPalette)
 import Style.Widgets.DataList as DataList
 import Style.Widgets.Icon as Icon
 import Style.Widgets.StatusBadge as StatusBadge
@@ -163,27 +164,6 @@ view context project currentTime model =
 
                     else
                         let
-                            deletionAction : Set.Set String -> Element.Element Msg
-                            deletionAction =
-                                \serverIds ->
-                                    Element.el [ Element.alignRight ]
-                                        (Widget.iconButton
-                                            (SH.materialStyle context.palette).dangerButton
-                                            { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
-                                            , text = "Delete"
-                                            , onPress =
-                                                Just <|
-                                                    SharedMsg
-                                                        (SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project)
-                                                            (SharedMsg.RequestDeleteServers
-                                                                (List.map stringToUuid
-                                                                    (Set.toList serverIds)
-                                                                )
-                                                            )
-                                                        )
-                                            }
-                                        )
-
                             serversList =
                                 serverRecords context currentTime project servers
                         in
@@ -194,7 +174,7 @@ view context project currentTime model =
                             []
                             (serverView model context project)
                             serversList
-                            [ deletionAction ]
+                            [ deletionAction context project ]
                             (filters project.auth.user.name)
     in
     Element.column [ Element.width Element.fill ]
@@ -441,22 +421,6 @@ serverView model context project serverRecord =
 
         deleteServerButton =
             let
-                dangerBtnStyleDefaults =
-                    (SH.materialStyle context.palette).dangerButtonSecondary
-
-                deleteBtnStyle =
-                    { dangerBtnStyleDefaults
-                        | container =
-                            dangerBtnStyleDefaults.container
-                                ++ [ Element.htmlAttribute <| HtmlA.title "Delete"
-                                   ]
-                        , labelRow =
-                            dangerBtnStyleDefaults.labelRow
-                                ++ [ Element.width Element.shrink
-                                   , Element.paddingXY 4 0
-                                   ]
-                    }
-
                 showDeletePopconfirm =
                     Dict.get serverRecord.id model.showDeletePopconfirm
                         |> Maybe.withDefault False
@@ -469,18 +433,16 @@ serverView model context project serverRecord =
                         []
             in
             Element.el popconfirmAttribs <|
-                Widget.iconButton
-                    deleteBtnStyle
-                    { icon = FeatherIcons.trash |> FeatherIcons.withSize 18 |> FeatherIcons.toHtml [] |> Element.html
-                    , text = "Delete"
-                    , onPress =
-                        if serverRecord.selectable then
-                            Just <| ShowDeletePopconfirm serverRecord.id True
+                deleteIconButton context.palette
+                    False
+                    "Delete"
+                    (if serverRecord.selectable then
+                        Just <| ShowDeletePopconfirm serverRecord.id True
 
-                        else
-                            -- to disable it
-                            Nothing
-                    }
+                     else
+                        -- to disable it
+                        Nothing
+                    )
 
         deletePopconfirm =
             Element.el [ Element.paddingXY 0 6, Element.alignRight ] <|
@@ -560,6 +522,60 @@ serverView model context project serverRecord =
             , floatingIpView
             ]
         ]
+
+
+deletionAction : View.Types.Context -> Project -> Set.Set String -> Element.Element Msg
+deletionAction context project serverIds =
+    Element.el [ Element.alignRight ] <|
+        deleteIconButton context.palette
+            True
+            "Delete All"
+            (Just <|
+                SharedMsg
+                    (SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project)
+                        (SharedMsg.RequestDeleteServers
+                            (List.map stringToUuid
+                                (Set.toList serverIds)
+                            )
+                        )
+                    )
+            )
+
+
+deleteIconButton : ExoPalette -> Bool -> String -> Maybe msg -> Element.Element msg
+deleteIconButton palette styleIsPrimary text onPress =
+    let
+        dangerBtnStyleDefaults =
+            if styleIsPrimary then
+                (SH.materialStyle palette).dangerButton
+
+            else
+                -- secondary style
+                (SH.materialStyle palette).dangerButtonSecondary
+
+        deleteBtnStyle =
+            { dangerBtnStyleDefaults
+                | container =
+                    dangerBtnStyleDefaults.container
+                        ++ [ Element.htmlAttribute <| HtmlA.title text
+                           ]
+                , labelRow =
+                    dangerBtnStyleDefaults.labelRow
+                        ++ [ Element.width Element.shrink
+                           , Element.paddingXY 4 0
+                           ]
+            }
+    in
+    Widget.iconButton
+        deleteBtnStyle
+        { icon =
+            FeatherIcons.trash2
+                |> FeatherIcons.withSize 18
+                |> FeatherIcons.toHtml []
+                |> Element.html
+        , text = text
+        , onPress = onPress
+        }
 
 
 filters :
