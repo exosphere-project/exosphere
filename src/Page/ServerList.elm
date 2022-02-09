@@ -54,7 +54,10 @@ init project showHeading =
     Model showHeading
         Dict.empty
         Dict.empty
-        (DataList.init <| DataList.getDefaultFilterOptions (filters project.auth.user.name))
+        (DataList.init <|
+            DataList.getDefaultFilterOptions
+                (filters project.auth.user.name (Time.millisToPosix 0))
+        )
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
@@ -168,10 +171,10 @@ view context project currentTime model =
                             DataListMsg
                             context.palette
                             []
-                            (serverView model context project)
+                            (serverView model context currentTime project)
                             serversList
                             [ deletionAction context project ]
-                            (filters project.auth.user.name)
+                            (filters project.auth.user.name currentTime)
     in
     Element.column [ Element.width Element.fill ]
         [ if model.showHeading then
@@ -204,7 +207,7 @@ type alias ServerRecord msg =
         , status : ServerUiStatus
         , size : String
         , floatingIpAddress : Maybe String
-        , creationTime : String
+        , creationTime : Time.Posix
         , creator : String
         , interactions :
             List
@@ -234,10 +237,6 @@ serverRecords context currentTime project servers =
 
                 _ ->
                     "unknown user"
-
-        creationTimeStr server =
-            DateFormat.Relative.relativeTime currentTime
-                server.osProps.details.created
 
         floatingIpAddress server =
             List.head (GetterSetters.getServerFloatingIps project server.osProps.uuid)
@@ -278,7 +277,7 @@ serverRecords context currentTime project servers =
             , status = VH.getServerUiStatus server
             , size = flavor server
             , floatingIpAddress = floatingIpAddress server
-            , creationTime = creationTimeStr server
+            , creationTime = server.osProps.details.created
             , creator = creatorName server
             , interactions = interactions server
             }
@@ -286,8 +285,14 @@ serverRecords context currentTime project servers =
         servers
 
 
-serverView : Model -> View.Types.Context -> Project -> ServerRecord Never -> Element.Element Msg
-serverView model context project serverRecord =
+serverView :
+    Model
+    -> View.Types.Context
+    -> Time.Posix
+    -> Project
+    -> ServerRecord Never
+    -> Element.Element Msg
+serverView model context currentTime project serverRecord =
     let
         serverLink =
             Element.link []
@@ -510,7 +515,10 @@ serverView model context project serverRecord =
             , Element.paragraph []
                 [ Element.text "created "
                 , Element.el [ Font.color (SH.toElementColor context.palette.on.background) ]
-                    (Element.text serverRecord.creationTime)
+                    (Element.text <|
+                        DateFormat.Relative.relativeTime currentTime
+                            serverRecord.creationTime
+                    )
                 , Element.text " by "
                 , Element.el [ Font.color (SH.toElementColor context.palette.on.background) ]
                     (Element.text serverRecord.creator)
@@ -580,20 +588,29 @@ deleteIconButton palette styleIsPrimary text onPress =
 
 filters :
     String
+    -> Time.Posix
     ->
         List
             (DataList.Filter
                 { record
                     | creator : String
-                    , creationTime : String
+                    , creationTime : Time.Posix
                 }
             )
-filters currentUser =
+filters currentUser currentTime =
     let
         creatorFilterOptionValues servers =
             List.map .creator servers
                 |> Set.fromList
                 |> Set.toList
+
+        creationTimeFilterOptions =
+            -- (milliseconds, time period text)
+            -- left padded with 0s to preserve order when creating Dict
+            [ ( "0086400000", "past day" )
+            , ( "0604800000", "past week" )
+            , ( "2592000000", "past 30 days" )
+            ]
     in
     [ { id = "creator"
       , label = "Creator"
@@ -617,5 +634,27 @@ filters currentUser =
       , onFilter =
             \optionValue server ->
                 server.creator == optionValue
+      }
+    , { id = "creationTime"
+      , label = "Created within"
+      , chipPrefix = "Created within "
+      , filterOptions =
+            \_ ->
+                Dict.fromList creationTimeFilterOptions
+      , filterTypeAndDefaultValue =
+            DataList.UniselectOption DataList.UniselectNoChoice
+      , onFilter =
+            \optionValue server ->
+                let
+                    timeElapsedSinceCreation =
+                        Time.posixToMillis currentTime
+                            - Time.posixToMillis server.creationTime
+                in
+                case String.toInt optionValue of
+                    Just optionInTimePeriod ->
+                        timeElapsedSinceCreation <= optionInTimePeriod
+
+                    Nothing ->
+                        True
       }
     ]
