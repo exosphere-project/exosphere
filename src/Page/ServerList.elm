@@ -34,8 +34,8 @@ import Widget
 
 type alias Model =
     { showHeading : Bool
-    , showInteractionPopover : Dict.Dict OSTypes.ServerUuid Bool
-    , showDeletePopconfirm : Dict.Dict OSTypes.ServerUuid Bool
+    , showInteractionPopover : Maybe OSTypes.ServerUuid
+    , showDeletePopconfirm : Maybe OSTypes.ServerUuid
     , dataListModel : DataList.Model
     }
 
@@ -43,6 +43,7 @@ type alias Model =
 type Msg
     = GotDeleteConfirm OSTypes.ServerUuid
     | ShowDeletePopconfirm OSTypes.ServerUuid Bool
+    | OpenInteraction String
     | ToggleInteractionPopover OSTypes.ServerUuid
     | DataListMsg DataList.Msg
     | SharedMsg SharedMsg.SharedMsg
@@ -52,8 +53,8 @@ type Msg
 init : Project -> Bool -> Model
 init project showHeading =
     Model showHeading
-        Dict.empty
-        Dict.empty
+        Nothing
+        Nothing
         (DataList.init <|
             DataList.getDefaultFilterOptions
                 (filters project.auth.user.name (Time.millisToPosix 0))
@@ -64,35 +65,45 @@ update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
 update msg project model =
     case msg of
         GotDeleteConfirm serverId ->
-            ( { model
-                | showDeletePopconfirm =
-                    Dict.insert serverId False model.showDeletePopconfirm
-              }
+            ( { model | showDeletePopconfirm = Nothing }
             , Cmd.none
             , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
                 SharedMsg.ServerMsg serverId <|
                     SharedMsg.RequestDeleteServer False
             )
 
-        ShowDeletePopconfirm serverId bool ->
+        ShowDeletePopconfirm serverId toBeShown ->
             ( { model
                 | showDeletePopconfirm =
-                    Dict.insert serverId bool model.showDeletePopconfirm
+                    if toBeShown then
+                        Just serverId
+
+                    else
+                        Nothing
               }
             , Cmd.none
             , SharedMsg.NoOp
             )
 
+        OpenInteraction url ->
+            ( { model | showInteractionPopover = Nothing }
+            , Cmd.none
+            , SharedMsg.OpenNewWindow url
+            )
+
         ToggleInteractionPopover serverId ->
             ( { model
                 | showInteractionPopover =
-                    case Dict.get serverId model.showInteractionPopover of
-                        Just showPopover ->
-                            Dict.insert serverId (not showPopover) model.showInteractionPopover
+                    case model.showInteractionPopover of
+                        Just interactionPopoverServerId ->
+                            if interactionPopoverServerId == serverId then
+                                Nothing
+
+                            else
+                                Just serverId
 
                         Nothing ->
-                            -- no data is saved in dict means 1st click
-                            Dict.insert serverId True model.showInteractionPopover
+                            Just serverId
               }
             , Cmd.none
             , SharedMsg.NoOp
@@ -370,10 +381,10 @@ serverView model context currentTime project serverRecord =
                                 , onPress =
                                     case interactionStatus of
                                         ITypes.Ready url ->
-                                            Just <| SharedMsg <| SharedMsg.OpenNewWindow url
+                                            Just <| OpenInteraction url
 
                                         ITypes.Warn url _ ->
-                                            Just <| SharedMsg <| SharedMsg.OpenNewWindow url
+                                            Just <| OpenInteraction url
 
                                         _ ->
                                             Nothing
@@ -385,8 +396,12 @@ serverView model context currentTime project serverRecord =
         interactionButton =
             let
                 showPopover =
-                    Dict.get serverRecord.id model.showInteractionPopover
-                        |> Maybe.withDefault False
+                    case model.showInteractionPopover of
+                        Just interactionPopoverServerId ->
+                            interactionPopoverServerId == serverRecord.id
+
+                        Nothing ->
+                            False
 
                 ( attribs, buttonIcon ) =
                     if showPopover then
@@ -418,8 +433,12 @@ serverView model context currentTime project serverRecord =
         deleteServerButton =
             let
                 showDeletePopconfirm =
-                    Dict.get serverRecord.id model.showDeletePopconfirm
-                        |> Maybe.withDefault False
+                    case model.showDeletePopconfirm of
+                        Just deletePopconfirmServerId ->
+                            deletePopconfirmServerId == serverRecord.id
+
+                        Nothing ->
+                            False
 
                 popconfirmAttribs =
                     if showDeletePopconfirm then
