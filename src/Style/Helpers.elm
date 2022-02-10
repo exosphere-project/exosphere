@@ -192,6 +192,7 @@ materialStyle exoPalette =
     , button = outlinedButton regularPalette
     , warningButton = containedButton warningPalette
     , dangerButton = containedButton dangerPalette
+    , dangerButtonSecondary = outlinedButton dangerPalette
     , chipButton = Material.chip regularPalette
     , iconButton = iconButton regularPalette
     , textButton = textButton regularPalette

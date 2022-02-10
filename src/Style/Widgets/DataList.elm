@@ -261,13 +261,14 @@ view model toMsg palette styleAttrs listItemView data bulkActions filters =
             [ Element.padding 24
             , Element.spacing 20
             , Border.widthEach { top = 0, bottom = 1, left = 0, right = 0 }
-            , Border.color <| Element.rgba255 0 0 0 0.16
+            , Border.color <|
+                SH.toElementColorWithOpacity palette.on.background 0.16
             , Element.width Element.fill
             ]
 
         rowStyle : Int -> List (Element.Attribute msg)
         rowStyle i =
-            if i == List.length data - 1 then
+            if i == List.length filteredData - 1 then
                 -- Don't show divider (bottom border) for last row
                 defaultRowStyle ++ [ Border.width 0 ]
 
@@ -316,13 +317,12 @@ view model toMsg palette styleAttrs listItemView data bulkActions filters =
     Element.column
         ([ Element.width Element.fill
          , Border.width 1
-         , Border.color (Element.rgba255 0 0 0 0.1)
+         , Border.color <| SH.toElementColorWithOpacity palette.on.background 0.1
          , Border.rounded 4
          ]
             -- Add or override default style with passed style attributes
             ++ styleAttrs
         )
-        -- TODO: Use context.palette instead of hard coded colors to create dark-theme version
         (toolbarView model
             toMsg
             palette
@@ -331,7 +331,7 @@ view model toMsg palette styleAttrs listItemView data bulkActions filters =
             bulkActions
             filters
             :: List.indexedMap
-                (rowView model toMsg rowStyle listItemView showRowCheckbox)
+                (rowView model toMsg palette rowStyle listItemView showRowCheckbox)
                 filteredData
         )
 
@@ -339,13 +339,14 @@ view model toMsg palette styleAttrs listItemView data bulkActions filters =
 rowView :
     Model
     -> (Msg -> msg) -- convert local Msg to a consumer's msg
+    -> Style.Types.ExoPalette
     -> (Int -> List (Element.Attribute msg))
     -> (DataRecord record -> Element.Element msg)
     -> Bool
     -> Int
     -> DataRecord record
     -> Element.Element msg
-rowView model toMsg rowStyle listItemView showRowCheckbox i dataRecord =
+rowView model toMsg palette rowStyle listItemView showRowCheckbox i dataRecord =
     let
         rowCheckbox =
             if showRowCheckbox then
@@ -361,7 +362,11 @@ rowView model toMsg rowStyle listItemView showRowCheckbox i dataRecord =
                     Input.checkbox [ Element.width Element.shrink ]
                         { checked = False
                         , onChange = \_ -> NoOp
-                        , icon = \_ -> Icon.lock (Element.rgb255 42 42 42) 14 -- TODO: use color from context
+                        , icon =
+                            \_ ->
+                                Icon.lock
+                                    (SH.toElementColorWithOpacity palette.on.background 0.8)
+                                    14
                         , label = Input.labelHidden "locked row cannot be selected"
                         }
 
@@ -532,7 +537,8 @@ filtersView model toMsg palette filters data =
                     , Element.spacingXY 0 24
                     , Background.color <| SH.toElementColor palette.background
                     , Border.width 1
-                    , Border.color <| Element.rgba255 0 0 0 0.16
+                    , Border.color <|
+                        SH.toElementColorWithOpacity palette.on.background 0.16
                     , Border.shadow SH.shadowDefaults
                     ]
                     (Element.row [ Element.width Element.fill ]
@@ -613,14 +619,18 @@ filtersView model toMsg palette filters data =
         filterChipView filter selectedOptContent =
             Element.row
                 [ Border.width 1
-                , Border.color <| Element.rgba255 0 0 0 0.16
+                , Border.color <|
+                    SH.toElementColorWithOpacity palette.on.background 0.16
                 , Border.rounded 4
                 ]
                 [ Element.row
                     [ Font.size 14
                     , Element.paddingEach { top = 0, bottom = 0, left = 6, right = 0 }
                     ]
-                    (Element.el [ Font.color (Element.rgb255 96 96 96) ]
+                    (Element.el
+                        [ Font.color <|
+                            SH.toElementColorWithOpacity palette.on.background 0.62
+                        ]
                         (Element.text filter.chipPrefix)
                         :: selectedOptContent
                     )
@@ -658,7 +668,9 @@ filtersView model toMsg palette filters data =
                                             )
                                         |> List.intersperse
                                             (Element.el
-                                                [ Font.color (Element.rgb255 96 96 96) ]
+                                                [ Font.color <|
+                                                    SH.toElementColorWithOpacity palette.on.background 0.62
+                                                ]
                                                 (Element.text " or ")
                                             )
                                     )

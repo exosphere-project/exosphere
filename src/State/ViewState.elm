@@ -370,11 +370,12 @@ routeToViewStateModelCmd sharedModel route =
                                                 (GetterSetters.projectIdentifier project)
                                             )
                             in
-                            ( projectViewProto <| ServerList <| Page.ServerList.init True
+                            ( projectViewProto <| ServerList <| Page.ServerList.init project True
                             , newSharedModel
                             , Cmd.batch
                                 [ cmd
                                 , OSQuotas.requestComputeQuota project
+                                , Rest.Nova.requestFlavors project
                                 ]
                             )
 

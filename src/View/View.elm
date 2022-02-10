@@ -290,7 +290,7 @@ project model context p projectViewModel viewConstructor =
                         |> Element.map ServerDetailMsg
 
                 ServerList pageModel ->
-                    Page.ServerList.view context p pageModel
+                    Page.ServerList.view context p model.clientCurrentTime pageModel
                         |> Element.map ServerListMsg
 
                 VolumeAttach pageModel ->

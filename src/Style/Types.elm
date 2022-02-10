@@ -30,6 +30,7 @@ type alias ElmUiWidgetStyle style msg =
         , button : ButtonStyle msg
         , warningButton : ButtonStyle msg
         , dangerButton : ButtonStyle msg
+        , dangerButtonSecondary : ButtonStyle msg
         , chipButton : ButtonStyle msg
         , iconButton : ButtonStyle msg
         , textButton : ButtonStyle msg
