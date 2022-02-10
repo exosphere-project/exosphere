@@ -196,11 +196,6 @@ view context project currentTime model =
         ]
 
 
-stringToUuid : String -> OSTypes.ServerUuid
-stringToUuid =
-    identity
-
-
 type alias ServerRecord msg =
     DataList.DataRecord
         { name : String
@@ -455,7 +450,7 @@ serverView model context currentTime project serverRecord =
                             |> Element.html
                             |> Element.el []
                         , Element.text <|
-                            "Are you sure to delete this "
+                            "Are you sure you want to delete this "
                                 ++ context.localization.virtualComputer
                                 ++ "?"
                         ]
@@ -541,11 +536,7 @@ deletionAction context project serverIds =
             (Just <|
                 SharedMsg
                     (SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project)
-                        (SharedMsg.RequestDeleteServers
-                            (List.map stringToUuid
-                                (Set.toList serverIds)
-                            )
-                        )
+                        (SharedMsg.RequestDeleteServers (Set.toList serverIds))
                     )
             )
 
