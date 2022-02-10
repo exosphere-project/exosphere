@@ -1283,7 +1283,7 @@ desktopEnvironmentPicker context project model =
                         [ "Warning: this feature currently only supports "
                         , context.localization.staticRepresentationOfBlockDeviceContents
                             |> Helpers.String.pluralize
-                        , " based on Ubuntu 20.04 and CentOS 8. Support for other operating systems is coming soon, but if you choose "
+                        , " based on Ubuntu 20.04, Rocky Linux, or AlmaLinux. Support for other operating systems is coming soon, but if you choose "
                         , context.localization.staticRepresentationOfBlockDeviceContents
                             |> Helpers.String.indefiniteArticle
                         , " "
