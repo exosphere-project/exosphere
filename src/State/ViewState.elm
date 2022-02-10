@@ -375,6 +375,7 @@ routeToViewStateModelCmd sharedModel route =
                             , Cmd.batch
                                 [ cmd
                                 , OSQuotas.requestComputeQuota project
+                                , Rest.Nova.requestFlavors project
                                 ]
                             )
 
