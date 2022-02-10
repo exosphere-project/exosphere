@@ -32,10 +32,15 @@ import View.Types
 import Widget
 
 
+type ServerListShownPopover
+    = InteractionPopover OSTypes.ServerUuid
+    | DeletePopconfirm OSTypes.ServerUuid
+    | NoPopover
+
+
 type alias Model =
     { showHeading : Bool
-    , showInteractionPopover : Maybe OSTypes.ServerUuid
-    , showDeletePopconfirm : Maybe OSTypes.ServerUuid
+    , shownPopover : ServerListShownPopover
     , dataListModel : DataList.Model
     }
 
@@ -53,8 +58,7 @@ type Msg
 init : Project -> Bool -> Model
 init project showHeading =
     Model showHeading
-        Nothing
-        Nothing
+        NoPopover
         (DataList.init <|
             DataList.getDefaultFilterOptions
                 (filters project.auth.user.name (Time.millisToPosix 0))
@@ -65,7 +69,7 @@ update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
 update msg project model =
     case msg of
         GotDeleteConfirm serverId ->
-            ( { model | showDeletePopconfirm = Nothing }
+            ( { model | shownPopover = NoPopover }
             , Cmd.none
             , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
                 SharedMsg.ServerMsg serverId <|
@@ -74,36 +78,36 @@ update msg project model =
 
         ShowDeletePopconfirm serverId toBeShown ->
             ( { model
-                | showDeletePopconfirm =
+                | shownPopover =
                     if toBeShown then
-                        Just serverId
+                        DeletePopconfirm serverId
 
                     else
-                        Nothing
+                        NoPopover
               }
             , Cmd.none
             , SharedMsg.NoOp
             )
 
         OpenInteraction url ->
-            ( { model | showInteractionPopover = Nothing }
+            ( { model | shownPopover = NoPopover }
             , Cmd.none
             , SharedMsg.OpenNewWindow url
             )
 
         ToggleInteractionPopover serverId ->
             ( { model
-                | showInteractionPopover =
-                    case model.showInteractionPopover of
-                        Just interactionPopoverServerId ->
+                | shownPopover =
+                    case model.shownPopover of
+                        InteractionPopover interactionPopoverServerId ->
                             if interactionPopoverServerId == serverId then
-                                Nothing
+                                NoPopover
 
                             else
-                                Just serverId
+                                InteractionPopover serverId
 
-                        Nothing ->
-                            Just serverId
+                        _ ->
+                            InteractionPopover serverId
               }
             , Cmd.none
             , SharedMsg.NoOp
@@ -395,16 +399,16 @@ serverView model context currentTime project serverRecord =
 
         interactionButton =
             let
-                showPopover =
-                    case model.showInteractionPopover of
-                        Just interactionPopoverServerId ->
+                showInteractionPopover =
+                    case model.shownPopover of
+                        InteractionPopover interactionPopoverServerId ->
                             interactionPopoverServerId == serverRecord.id
 
-                        Nothing ->
+                        _ ->
                             False
 
                 ( attribs, buttonIcon ) =
-                    if showPopover then
+                    if showInteractionPopover then
                         ( [ Element.below interactionPopover ], FeatherIcons.chevronUp )
 
                     else
@@ -433,11 +437,11 @@ serverView model context currentTime project serverRecord =
         deleteServerButton =
             let
                 showDeletePopconfirm =
-                    case model.showDeletePopconfirm of
-                        Just deletePopconfirmServerId ->
+                    case model.shownPopover of
+                        DeletePopconfirm deletePopconfirmServerId ->
                             deletePopconfirmServerId == serverRecord.id
 
-                        Nothing ->
+                        _ ->
                             False
 
                 popconfirmAttribs =
