@@ -1,4 +1,4 @@
-module Explorer exposing (main)
+module DesignSystem.Explorer exposing (main)
 
 import Html
 import UIExplorer

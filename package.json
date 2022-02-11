@@ -14,7 +14,7 @@
     "live-debug": "npx elm-live src/Exosphere.elm --host app.exosphere.localhost --open --pushstate true --verbose --start-page index.html --hot true -- --output=elm-web.js --debug",
     "build-style-guide": "npx elm make src/Style/StyleGuide.elm --output=styleguide.html",
     "live-style-guide": "npx elm-live src/Style/StyleGuide.elm --port 8001 --open --start-page styleguide.html -- --output=styleguide.html --debug",
-    "ui-explorer": "npx elm-live src/Explorer.elm --open --dir=ui-explorer --start-page=index.html -- --output=ui-explorer/explorer.js --debug",
+    "designs": "npx elm-live src/DesignSystem/Explorer.elm --open --dir=design --start-page=index.html -- --output=design/explorer.js --debug",
     "test": "npx elm-test-rs",
     "elm:format": "npx elm-format --validate src",
     "elm:analyse": "npx elm-analyse"
