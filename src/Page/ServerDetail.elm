@@ -173,12 +173,8 @@ view context project currentTimeAndZone model =
                     ]
 
 
-
--- TODO destructure currentTimeAndZone tuple
-
-
 serverDetail_ : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> Model -> Server -> Element.Element Msg
-serverDetail_ context project currentTimeAndZone model server =
+serverDetail_ context project ( currentTime, timeZone ) model server =
     {- Render details of a server type and associated resources (e.g. volumes) -}
     let
         details =
@@ -187,7 +183,7 @@ serverDetail_ context project currentTimeAndZone model server =
         whenCreated =
             let
                 timeDistanceStr =
-                    DateFormat.Relative.relativeTime (Tuple.first currentTimeAndZone) details.created
+                    DateFormat.Relative.relativeTime currentTime details.created
 
                 createdTimeFormatted =
                     Helpers.Time.humanReadableDateAndTime details.created
@@ -333,7 +329,7 @@ serverDetail_ context project currentTimeAndZone model server =
                     context
                     project
                     server
-                    (Tuple.first currentTimeAndZone)
+                    currentTime
                     (VH.userAppProxyLookup context project)
                     model
                 ]
@@ -415,7 +411,7 @@ serverDetail_ context project currentTimeAndZone model server =
                 [ serverEventHistory
                     context
                     model
-                    (Tuple.first currentTimeAndZone)
+                    currentTime
                     server.events
                 ]
             ]
@@ -498,7 +494,7 @@ serverDetail_ context project currentTimeAndZone model server =
         , serverFaultView
         , if details.openstackStatus == OSTypes.ServerActive then
             resourceUsageCharts context
-                currentTimeAndZone
+                ( currentTime, timeZone )
                 server
                 (maybeFlavor |> Maybe.map (\flavor -> Helpers.serverResourceQtys project flavor server))
 
