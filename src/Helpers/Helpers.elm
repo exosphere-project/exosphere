@@ -477,8 +477,8 @@ newServerMetadata exoServerVersion exoClientUuid deployGuacamole deployDesktopEn
             , Json.Encode.string exoCreatorUsername
             )
           , ( "exoSetup"
-              -- TODO update this
-            , Json.Encode.string "waiting"
+            , Json.Encode.string <|
+                Helpers.ExoSetupStatus.encodeMetadataItem ExoSetupWaiting Nothing
             )
           ]
         , encodeFloatingIpOption floatingIpCreationOption
