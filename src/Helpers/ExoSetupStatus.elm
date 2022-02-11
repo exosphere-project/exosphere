@@ -125,9 +125,14 @@ exoSetupDecoder =
                     Json.Decode.fail "no matching string"
     in
     Json.Decode.oneOf
-        [ -- as currently used in both server console log and server metadata
+        [ -- JSON object currently used in both server console log and server metadata
           Json.Decode.map2 Tuple.pair
-            (Json.Decode.field "exoSetup" Json.Decode.string
+            (Json.Decode.oneOf
+                [ -- Field name previously used in console log
+                  Json.Decode.field "exoSetup" Json.Decode.string
+                , -- Field name currently used in console log
+                  Json.Decode.field "status" Json.Decode.string
+                ]
                 |> Json.Decode.andThen strtoExoSetupStatus
             )
             (Json.Decode.oneOf
@@ -137,7 +142,7 @@ exoSetupDecoder =
                 , Json.Decode.succeed Nothing
                 ]
             )
-        , -- as previously used in server metadata only
+        , -- String along previously used in server metadata only
           Json.Decode.string
             |> Json.Decode.andThen strtoExoSetupStatus
             |> Json.Decode.map (\status -> ( status, Nothing ))
