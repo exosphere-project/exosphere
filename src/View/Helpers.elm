@@ -518,7 +518,7 @@ getServerUiStatus server =
 
                                 else
                                     case serverFromExoProps.exoSetupStatus.data of
-                                        RDPP.DoHave status _ ->
+                                        RDPP.DoHave ( status, _ ) _ ->
                                             case status of
                                                 ExoSetupWaiting ->
                                                     ServerUiStatusBuilding
@@ -632,7 +632,7 @@ getExoSetupStatusStr server =
 
         ServerFromExo exoOriginProps ->
             case exoOriginProps.exoSetupStatus.data of
-                RDPP.DoHave exoSetupStatus _ ->
+                RDPP.DoHave ( exoSetupStatus, _ ) _ ->
                     case exoSetupStatus of
                         ExoSetupWaiting ->
                             Just "Waiting"

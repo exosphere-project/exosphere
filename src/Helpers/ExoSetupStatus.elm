@@ -1,20 +1,25 @@
 module Helpers.ExoSetupStatus exposing
-    ( exoSetupStatusToStr
+    ( decodeExoSetupJson
+    , encodeMetadataItem
+    , exoSetupDecoder
+    , exoSetupStatusToStr
     , parseConsoleLogExoSetupStatus
     )
 
 import Json.Decode
+import Json.Encode
 import Time
 import Types.Server exposing (ExoSetupStatus(..))
 
 
-parseConsoleLogExoSetupStatus : ExoSetupStatus -> String -> Time.Posix -> Time.Posix -> ExoSetupStatus
-parseConsoleLogExoSetupStatus oldExoSetupStatus consoleLog serverCreatedTime currentTime =
+parseConsoleLogExoSetupStatus : ( ExoSetupStatus, Maybe Time.Posix ) -> String -> Time.Posix -> Time.Posix -> ( ExoSetupStatus, Maybe Time.Posix )
+parseConsoleLogExoSetupStatus ( oldExoSetupStatus, oldTimestamp ) consoleLog serverCreatedTime currentTime =
     let
         logLines =
             String.split "\n" consoleLog
 
         decodedData =
+            -- TODO this may do a lot of work and it can easily be made more performant
             logLines
                 -- Throw out anything before the start of a JSON object on a given line
                 |> List.map
@@ -33,15 +38,15 @@ parseConsoleLogExoSetupStatus oldExoSetupStatus consoleLog serverCreatedTime cur
                             |> Maybe.map (\index -> String.left (index + 1) line)
                             |> Maybe.withDefault line
                     )
-                |> List.map (Json.Decode.decodeString decodeLogLine)
+                |> List.map (Json.Decode.decodeString exoSetupDecoder)
                 |> List.map Result.toMaybe
                 |> List.filterMap identity
 
-        latestStatus =
+        ( latestStatus, latestTimestamp ) =
             decodedData
                 |> List.reverse
                 |> List.head
-                |> Maybe.withDefault oldExoSetupStatus
+                |> Maybe.withDefault ( oldExoSetupStatus, oldTimestamp )
 
         nonTerminalStatuses =
             [ ExoSetupWaiting, ExoSetupRunning ]
@@ -57,10 +62,10 @@ parseConsoleLogExoSetupStatus oldExoSetupStatus consoleLog serverCreatedTime cur
 
         finalStatus =
             if statusIsNonTerminal && serverTooOldForNonTerminalStatus then
-                ExoSetupTimeout
+                ( ExoSetupTimeout, Just currentTime )
 
             else
-                latestStatus
+                ( latestStatus, latestTimestamp )
     in
     finalStatus
 
@@ -87,8 +92,14 @@ exoSetupStatusToStr status =
             "unknown"
 
 
-decodeLogLine : Json.Decode.Decoder ExoSetupStatus
-decodeLogLine =
+decodeExoSetupJson : String -> ( ExoSetupStatus, Maybe Time.Posix )
+decodeExoSetupJson jsonValue =
+    Json.Decode.decodeString exoSetupDecoder jsonValue
+        |> Result.withDefault ( ExoSetupUnknown, Nothing )
+
+
+exoSetupDecoder : Json.Decode.Decoder ( ExoSetupStatus, Maybe Time.Posix )
+exoSetupDecoder =
     let
         strtoExoSetupStatus str =
             case str of
@@ -113,5 +124,38 @@ decodeLogLine =
                 _ ->
                     Json.Decode.fail "no matching string"
     in
-    Json.Decode.field "exoSetup" Json.Decode.string
-        |> Json.Decode.andThen strtoExoSetupStatus
+    Json.Decode.oneOf
+        [ -- as currently used in both server console log and server metadata
+          Json.Decode.map2 Tuple.pair
+            (Json.Decode.field "exoSetup" Json.Decode.string
+                |> Json.Decode.andThen strtoExoSetupStatus
+            )
+            (Json.Decode.oneOf
+                [ Json.Decode.field "epoch" Json.Decode.int
+                    |> Json.Decode.map Time.millisToPosix
+                    |> Json.Decode.map Just
+                , Json.Decode.succeed Nothing
+                ]
+            )
+        , -- as previously used in server metadata only
+          Json.Decode.string
+            |> Json.Decode.andThen strtoExoSetupStatus
+            |> Json.Decode.map (\status -> ( status, Nothing ))
+        ]
+
+
+encodeMetadataItem : ExoSetupStatus -> Maybe Time.Posix -> String
+encodeMetadataItem status epoch =
+    Json.Encode.object
+        [ ( "status"
+          , exoSetupStatusToStr status
+                |> Json.Encode.string
+          )
+        , ( "epoch"
+          , epoch
+                |> Maybe.map Time.posixToMillis
+                |> Maybe.map Json.Encode.int
+                |> Maybe.withDefault Json.Encode.null
+          )
+        ]
+        |> Json.Encode.encode 0
