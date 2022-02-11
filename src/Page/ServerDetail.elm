@@ -32,7 +32,7 @@ import Time
 import Types.HelperTypes exposing (FloatingIpOption(..), ServerResourceQtys, UserAppProxyHostname)
 import Types.Interaction as ITypes exposing (Interaction)
 import Types.Project exposing (Project)
-import Types.Server exposing (Server, ServerOrigin(..))
+import Types.Server exposing (ExoSetupStatus(..), Server, ServerOrigin(..))
 import Types.ServerResourceUsage
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
@@ -185,15 +185,44 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                 timeDistanceStr =
                     DateFormat.Relative.relativeTime currentTime details.created
 
-                createdTimeFormatted =
-                    Helpers.Time.humanReadableDateAndTime details.created
+                createdTimeText =
+                    let
+                        createdTimeFormatted =
+                            Helpers.Time.humanReadableDateAndTime details.created
+                    in
+                    Element.text ("Created on: " ++ createdTimeFormatted)
+
+                setupTimeText =
+                    case server.exoProps.serverOrigin of
+                        ServerFromExo exoOriginProps ->
+                            case exoOriginProps.exoSetupStatus.data of
+                                RDPP.DoHave ( ExoSetupComplete, maybeSetupCompleteTime ) _ ->
+                                    let
+                                        setupTimeStr =
+                                            case maybeSetupCompleteTime of
+                                                Nothing ->
+                                                    "Unknown"
+
+                                                Just setupCompleteTime ->
+                                                    Helpers.Time.relativeTimeNoAffixes details.created setupCompleteTime
+                                    in
+                                    Element.text ("Setup time: " ++ setupTimeStr)
+
+                                _ ->
+                                    Element.none
+
+                        _ ->
+                            Element.none
+
+                toggleTipContents =
+                    Element.column [] [ createdTimeText, setupTimeText ]
             in
             Element.row
                 [ Element.spacing 5 ]
                 [ Element.text timeDistanceStr
                 , Style.Widgets.ToggleTip.toggleTip
                     context.palette
-                    (Element.text createdTimeFormatted)
+                    toggleTipContents
                     model.showCreatedTimeToggleTip
                     (GotShowCreatedTimeToggleTip (not model.showCreatedTimeToggleTip))
                 ]
