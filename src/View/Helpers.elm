@@ -47,7 +47,6 @@ module View.Helpers exposing
 
 import Color
 import Css
-import DateFormat.Relative
 import Dict
 import Element
 import Element.Background as Background
@@ -75,8 +74,6 @@ import Route
 import Style.Helpers as SH exposing (shadowDefaults)
 import Style.Types exposing (ExoPalette)
 import Style.Widgets.StatusBadge as StatusBadge
-import Style.Widgets.ToggleTip
-import Time
 import Types.Error exposing (ErrorLevel(..), toFriendlyErrorLevel)
 import Types.HelperTypes
 import Types.Project exposing (Project)
@@ -1013,22 +1010,13 @@ friendlyProjectTitle model project =
 
 createdAgoByFromSize :
     View.Types.Context
-    -> Time.Posix
-    -> Time.Posix
+    -> ( String, Element.Element msg )
     -> Maybe ( String, String )
     -> Maybe ( String, String )
     -> Maybe ( String, Element.Element msg )
-    -> Bool
-    -> msg
     -> Element.Element msg
-createdAgoByFromSize context currentTime createdTime maybeWhoCreatedTuple maybeFromTuple maybeSizeTuple showToggleTip showHideTipMsg =
+createdAgoByFromSize context ( agoWord, agoContents ) maybeWhoCreatedTuple maybeFromTuple maybeSizeTuple =
     let
-        timeDistanceStr =
-            DateFormat.Relative.relativeTime currentTime createdTime
-
-        createdTimeFormatted =
-            Helpers.Time.humanReadableDateAndTime createdTime
-
         muted =
             Font.color (context.palette.muted |> SH.toElementColor)
     in
@@ -1036,13 +1024,8 @@ createdAgoByFromSize context currentTime createdTime maybeWhoCreatedTuple maybeF
         [ Element.width Element.fill, Element.spaceEvenly ]
     <|
         [ Element.row [ Element.paddingXY 5 6 ]
-            [ Element.el [ muted ] (Element.text "created ")
-            , Element.text timeDistanceStr
-            , Style.Widgets.ToggleTip.toggleTip
-                context.palette
-                (Element.text createdTimeFormatted)
-                showToggleTip
-                showHideTipMsg
+            [ Element.el [ muted ] (Element.text <| agoWord ++ " ")
+            , agoContents
             ]
         , case maybeWhoCreatedTuple of
             Just ( creatorAdjective, whoCreated ) ->

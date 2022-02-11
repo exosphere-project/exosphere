@@ -173,12 +173,34 @@ view context project currentTimeAndZone model =
                     ]
 
 
+
+-- TODO destructure currentTimeAndZone tuple
+
+
 serverDetail_ : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> Model -> Server -> Element.Element Msg
 serverDetail_ context project currentTimeAndZone model server =
     {- Render details of a server type and associated resources (e.g. volumes) -}
     let
         details =
             server.osProps.details
+
+        whenCreated =
+            let
+                timeDistanceStr =
+                    DateFormat.Relative.relativeTime (Tuple.first currentTimeAndZone) details.created
+
+                createdTimeFormatted =
+                    Helpers.Time.humanReadableDateAndTime details.created
+            in
+            Element.row
+                [ Element.spacing 5 ]
+                [ Element.text timeDistanceStr
+                , Style.Widgets.ToggleTip.toggleTip
+                    context.palette
+                    (Element.text createdTimeFormatted)
+                    model.showCreatedTimeToggleTip
+                    (GotShowCreatedTimeToggleTip (not model.showCreatedTimeToggleTip))
+                ]
 
         creatorName =
             case server.exoProps.serverOrigin of
@@ -468,13 +490,10 @@ serverDetail_ context project currentTimeAndZone model server =
             , passwordVulnWarning context server
             , VH.createdAgoByFromSize
                 context
-                (Tuple.first currentTimeAndZone)
-                details.created
+                ( "created", whenCreated )
                 (Just ( "user", creatorName ))
                 (Just ( context.localization.staticRepresentationOfBlockDeviceContents, imageText ))
                 (Just ( context.localization.virtualComputerHardwareConfig, flavorContents ))
-                model.showCreatedTimeToggleTip
-                (GotShowCreatedTimeToggleTip (not model.showCreatedTimeToggleTip))
             ]
         , serverFaultView
         , if details.openstackStatus == OSTypes.ServerActive then
