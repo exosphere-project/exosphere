@@ -143,7 +143,7 @@ exoSetupDecoder =
                 , Json.Decode.succeed Nothing
                 ]
             )
-        , -- String along previously used in server metadata only
+        , -- String alone previously used in server metadata only
           Json.Decode.string
             |> Json.Decode.andThen strtoExoSetupStatus
             |> Json.Decode.map (\status -> ( status, Nothing ))
