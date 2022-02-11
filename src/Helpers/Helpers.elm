@@ -477,6 +477,7 @@ newServerMetadata exoServerVersion exoClientUuid deployGuacamole deployDesktopEn
             , Json.Encode.string exoCreatorUsername
             )
           , ( "exoSetup"
+              -- TODO update this
             , Json.Encode.string "waiting"
             )
           ]
@@ -568,14 +569,14 @@ serverOrigin serverDetails =
                 ( Nothing, False ) ->
                     Nothing
 
-        exoSetupStatus =
+        ( exoSetupStatus, exoSetupTimestamp ) =
             List.Extra.find (\i -> i.key == "exoSetup") serverDetails.metadata
                 |> Maybe.map .value
                 |> Maybe.map Helpers.ExoSetupStatus.decodeExoSetupJson
                 |> Maybe.withDefault ( ExoSetupUnknown, Nothing )
 
         exoSetupStatusRDPP =
-            RDPP.RemoteDataPlusPlus (RDPP.DoHave exoSetupStatus (Time.millisToPosix 0)) (RDPP.NotLoading Nothing)
+            RDPP.RemoteDataPlusPlus (RDPP.DoHave ( exoSetupStatus, exoSetupTimestamp ) (Time.millisToPosix 0)) (RDPP.NotLoading Nothing)
 
         decodeGuacamoleProps : Decode.Decoder GuacTypes.LaunchedWithGuacProps
         decodeGuacamoleProps =
