@@ -137,6 +137,7 @@ exoSetupDecoder =
             )
             (Json.Decode.oneOf
                 [ Json.Decode.field "epoch" Json.Decode.int
+                    |> Json.Decode.map (\seconds -> seconds * 1000)
                     |> Json.Decode.map Time.millisToPosix
                     |> Json.Decode.map Just
                 , Json.Decode.succeed Nothing
