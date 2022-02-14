@@ -24,7 +24,7 @@ runcmd:
   - echo on > /proc/sys/kernel/printk_devkmsg || true  # Disable console rate limiting for distros that use kmsg
   - sleep 1  # Ensures that console log output from any previous command completes before the following command begins
   - >-
-    echo '{"status":"running", "epoch": '$(date '+%s')'}' | tee --append /dev/console > /dev/kmsg || true
+    echo '{"status":"running", "epoch": '$(date '+%s')'000}' | tee --append /dev/console > /dev/kmsg || true
   - chmod 640 /var/log/cloud-init-output.log
   - {create-cluster-command}
   - |
@@ -34,7 +34,7 @@ runcmd:
     ansible-pull --url "{instance-config-mgt-repo-url}" --checkout "{instance-config-mgt-repo-checkout}" --directory /opt/instance-config-mgt -i /opt/instance-config-mgt/ansible/hosts -e "{ansible-extra-vars}" /opt/instance-config-mgt/ansible/playbook.yml
   - sleep 1  # Ensures that console log output from previous command completes before the following command begins
   - >-
-    echo '{"status":"complete", "epoch": '$(date '+%s')'}' | tee --append /dev/console > /dev/kmsg || true
+    echo '{"status":"complete", "epoch": '$(date '+%s')'000}' | tee --append /dev/console > /dev/kmsg || true
 mount_default_fields: [None, None, "ext4", "user,exec,rw,auto,nofail,x-systemd.makefs,x-systemd.automount", "0", "2"]
 mounts:
   - [ /dev/sdb, /media/volume/sdb ]
