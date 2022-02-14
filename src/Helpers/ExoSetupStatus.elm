@@ -95,59 +95,53 @@ exoSetupStatusToStr status =
 decodeExoSetupJson : String -> ( ExoSetupStatus, Maybe Time.Posix )
 decodeExoSetupJson jsonValue =
     Json.Decode.decodeString exoSetupDecoder jsonValue
-        |> Result.withDefault ( ExoSetupUnknown, Nothing )
+        |> Result.withDefault ( strtoExoSetupStatus jsonValue, Nothing )
+
+
+strtoExoSetupStatus : String -> ExoSetupStatus
+strtoExoSetupStatus str =
+    case str of
+        "waiting" ->
+            ExoSetupWaiting
+
+        "running" ->
+            ExoSetupRunning
+
+        "complete" ->
+            ExoSetupComplete
+
+        "timeout" ->
+            ExoSetupTimeout
+
+        "error" ->
+            ExoSetupError
+
+        "unknown" ->
+            ExoSetupUnknown
+
+        _ ->
+            ExoSetupUnknown
 
 
 exoSetupDecoder : Json.Decode.Decoder ( ExoSetupStatus, Maybe Time.Posix )
 exoSetupDecoder =
-    let
-        strtoExoSetupStatus str =
-            case str of
-                "waiting" ->
-                    Json.Decode.succeed ExoSetupWaiting
-
-                "running" ->
-                    Json.Decode.succeed ExoSetupRunning
-
-                "complete" ->
-                    Json.Decode.succeed ExoSetupComplete
-
-                "timeout" ->
-                    Json.Decode.succeed ExoSetupTimeout
-
-                "error" ->
-                    Json.Decode.succeed ExoSetupError
-
-                "unknown" ->
-                    Json.Decode.succeed ExoSetupUnknown
-
-                _ ->
-                    Json.Decode.fail "no matching string"
-    in
-    Json.Decode.oneOf
-        [ -- JSON object currently used in both server console log and server metadata
-          Json.Decode.map2 Tuple.pair
-            (Json.Decode.oneOf
-                [ -- Field name previously used in console log
-                  Json.Decode.field "exoSetup" Json.Decode.string
-                , -- Field name currently used in console log
-                  Json.Decode.field "status" Json.Decode.string
-                ]
-                |> Json.Decode.andThen strtoExoSetupStatus
-            )
-            (Json.Decode.oneOf
-                [ Json.Decode.field "epoch" Json.Decode.int
-                    |> Json.Decode.map (\seconds -> seconds * 1000)
-                    |> Json.Decode.map Time.millisToPosix
-                    |> Json.Decode.map Just
-                , Json.Decode.succeed Nothing
-                ]
-            )
-        , -- String alone previously used in server metadata only
-          Json.Decode.string
-            |> Json.Decode.andThen strtoExoSetupStatus
-            |> Json.Decode.map (\status -> ( status, Nothing ))
-        ]
+    Json.Decode.map2 Tuple.pair
+        (Json.Decode.oneOf
+            [ -- Field name previously used in console log
+              Json.Decode.field "exoSetup" Json.Decode.string
+            , -- Field name currently used in console log
+              Json.Decode.field "status" Json.Decode.string
+            ]
+            |> Json.Decode.map (\str -> strtoExoSetupStatus str)
+        )
+        (Json.Decode.oneOf
+            [ Json.Decode.field "epoch" Json.Decode.int
+                |> Json.Decode.map (\seconds -> seconds * 1000)
+                |> Json.Decode.map Time.millisToPosix
+                |> Json.Decode.map Just
+            , Json.Decode.succeed Nothing
+            ]
+        )
 
 
 encodeMetadataItem : ExoSetupStatus -> Maybe Time.Posix -> String
