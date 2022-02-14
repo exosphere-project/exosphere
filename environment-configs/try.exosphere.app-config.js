@@ -16,7 +16,8 @@ var config = {
   "openIdConnectLoginConfig":null,
   "localization":null,
   "instanceConfigMgtRepoUrl":null,
-  "instanceConfigMgtRepoCheckout":null
+  "instanceConfigMgtRepoCheckout":null,
+  "sentryConfig":null
 }
 
 /* Matomo tracking code */

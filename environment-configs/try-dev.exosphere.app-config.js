@@ -22,7 +22,8 @@ var config = {
   },
   "localization":null,
   "instanceConfigMgtRepoUrl":null,
-  "instanceConfigMgtRepoCheckout":"dev"
+  "instanceConfigMgtRepoCheckout":"dev",
+  "sentryConfig":null
 }
 
 /* Matomo tracking code */

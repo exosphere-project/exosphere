@@ -50,6 +50,7 @@ type alias Flags =
     , clouds : Decode.Value
     , instanceConfigMgtRepoUrl : Maybe String
     , instanceConfigMgtRepoCheckout : Maybe String
+    , sentryConfig : Maybe HelperTypes.SentryConfig
 
     -- Flags that Exosphere sets dynamically
     , localeGuessingString : String

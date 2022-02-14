@@ -202,6 +202,7 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
                 , urlPathPrefix = flags.urlPathPrefix
                 , windowSize = { width = flags.width, height = flags.height }
                 }
+            , sentryConfig = flags.sentryConfig
             }
 
         -- This only gets used if we do not find a client UUID in stored state

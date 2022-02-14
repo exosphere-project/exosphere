@@ -63,7 +63,8 @@ var config = {
     "graphicalDesktopEnvironment":"web desktop"
   },
   "instanceConfigMgtRepoUrl":null,
-  "instanceConfigMgtRepoCheckout":null
+  "instanceConfigMgtRepoCheckout":null,
+  "sentryConfig":null
 }
 
 /* Matomo tracking code */
