@@ -22,9 +22,9 @@ build_standalone_container:
     entrypoint: [ "" ]
   before_script:
     - 'sed -i -e "s/instanceConfigMgtRepoUrl:.*/instanceConfigMgtRepoUrl: \"https:\/\/gitlab.com\/${CI_PROJECT_NAMESPACE}\/${CI_PROJECT_NAME}\.git\",/g" environment-configs/docker-config.js'
-    - 'sed -i -e "s/instanceConfigMgtRepoCheckout:.*/instanceConfigMgtRepoCheckout: \"${CI_COMMIT_SHA}\",/g" environment-configs/docker-config.js'
-    - 'sed -i -e "s/releaseVersion:.*/releaseVersion:\"${CI_COMMIT_SHA}\",/g" environment-configs/docker-config.js'
-    - 'sed -i -e "s/environmentName:.*/environmentName:\"ci-docker\"/g" environment-configs/docker-config.js'
+    - 'sed -i -e "s/\"instanceConfigMgtRepoCheckout\":.*/instanceConfigMgtRepoCheckout: \"${CI_COMMIT_SHA}\",/g" environment-configs/docker-config.js'
+    - 'sed -i -e "s/\"releaseVersion\":.*/\"releaseVersion\":\"${CI_COMMIT_SHA}\",/g" environment-configs/docker-config.js'
+    - 'sed -i -e "s/\"environmentName\":.*/\"environmentName\":\"ci-docker\"/g" environment-configs/docker-config.js'
 
   script:
     - mkdir -p /kaniko/.docker
@@ -49,10 +49,10 @@ build_standalone_container:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [ "" ]
   before_script:
-    - 'sed -i -e "s/instanceConfigMgtRepoUrl:.*/instanceConfigMgtRepoUrl: \"https:\/\/gitlab.com\/${CI_PROJECT_NAMESPACE}\/${CI_PROJECT_NAME}\.git\",/g" public/config.js'
-    - 'sed -i -e "s/instanceConfigMgtRepoCheckout:.*/instanceConfigMgtRepoCheckout: \"${CI_COMMIT_SHA}\",/g" public/config.js'
-    - 'sed -i -e "s/releaseVersion:.*/releaseVersion:\"${CI_COMMIT_SHA}\",/g" public/config.js'
-    - 'sed -i -e "s/environmentName:.*/environmentName:\"ci-kaniko\"/g" public/config.js'
+    - 'sed -i -e "s/\"instanceConfigMgtRepoUrl\":.*/\"instanceConfigMgtRepoUrl\": \"https:\/\/gitlab.com\/${CI_PROJECT_NAMESPACE}\/${CI_PROJECT_NAME}\.git\",/g" public/config.js'
+    - 'sed -i -e "s/\"instanceConfigMgtRepoCheckout\":.*/\"instanceConfigMgtRepoCheckout\": \"${CI_COMMIT_SHA}\",/g" public/config.js'
+    - 'sed -i -e "s/\"releaseVersion\":.*/\"releaseVersion\":\"${CI_COMMIT_SHA}\",/g" public/config.js'
+    - 'sed -i -e "s/\"environmentName\":.*/\"environmentName\":\"ci-kaniko\"/g" public/config.js'
     - cp public/elm-web.js .
     - cp public/ports.js .
     - cp public/cloud_configs.js .
@@ -223,8 +223,8 @@ deploy_prod:
     - 'which rsync || ( apt-get update -y && apt-get install rsync -y )'
   script:
     - 'cp environment-configs/try.exosphere.app-config.js public/config.js'
-    - 'sed -i -e "s/instanceConfigMgtRepoCheckout:.*/instanceConfigMgtRepoCheckout: \"${CI_COMMIT_SHA}\",/g" public/config.js'
-    - 'sed -i -e "s/releaseVersion:.*/releaseVersion:\"${CI_COMMIT_SHA}\",/g" public/config.js'
+    - 'sed -i -e "s/\"instanceConfigMgtRepoCheckout\":.*/\"instanceConfigMgtRepoCheckout\": \"${CI_COMMIT_SHA}\",/g" public/config.js'
+    - 'sed -i -e "s/\"releaseVersion\":.*/\"releaseVersion\":\"${CI_COMMIT_SHA}\",/g" public/config.js'
     - 'sed -i -e ''s/<base href="\/">/<base href="\/exosphere\/">/g'' public/index.html'
     - 'rsync -av --delete public exouser@dogfood.exosphere.app:'
   environment:
@@ -252,8 +252,8 @@ deploy_jetstream:
     - 'which rsync || ( apt-get update -y && apt-get install rsync -y )'
   script:
     - 'cp environment-configs/exosphere.jetstream-cloud.org-config.js public/config.js'
-    - 'sed -i -e "s/instanceConfigMgtRepoCheckout:.*/instanceConfigMgtRepoCheckout: \"${CI_COMMIT_SHA}\",/g" public/config.js'
-    - 'sed -i -e "s/releaseVersion:.*/releaseVersion:\"${CI_COMMIT_SHA}\",/g" public/config.js'
+    - 'sed -i -e "s/\"instanceConfigMgtRepoCheckout\":.*/\"instanceConfigMgtRepoCheckout\": \"${CI_COMMIT_SHA}\",/g" public/config.js'
+    - 'sed -i -e "s/\"releaseVersion\":.*/\"releaseVersion\":\"${CI_COMMIT_SHA}\",/g" public/config.js'
     - 'sed -i -e ''s/<base href="\/">/<base href="\/exosphere\/">/g'' public/index.html'
     - 'rsync -av --delete public exouser@dogfood.exosphere.app:jetstream-deploy/'
   environment:
@@ -281,8 +281,8 @@ deploy_jetstream2:
     - 'which rsync || ( apt-get update -y && apt-get install rsync -y )'
   script:
     - 'cp environment-configs/jetstream2.exosphere.app-config.js public/config.js'
-    - 'sed -i -e "s/instanceConfigMgtRepoCheckout:.*/instanceConfigMgtRepoCheckout: \"${CI_COMMIT_SHA}\",/g" public/config.js'
-    - 'sed -i -e "s/releaseVersion:.*/releaseVersion:\"${CI_COMMIT_SHA}\",/g" public/config.js'
+    - 'sed -i -e "s/\"instanceConfigMgtRepoCheckout\":.*/\"instanceConfigMgtRepoCheckout\": \"${CI_COMMIT_SHA}\",/g" public/config.js'
+    - 'sed -i -e "s/\"releaseVersion\":.*/\"releaseVersion\":\"${CI_COMMIT_SHA}\",/g" public/config.js'
     - 'sed -i -e ''s/<base href="\/">/<base href="\/exosphere\/">/g'' public/index.html'
     - 'rsync -av --delete public exouser@dogfood.exosphere.app:jetstream2-deploy/'
   environment:
@@ -311,8 +311,8 @@ deploy_dev:
     - 'which rsync || ( apt-get update -y && apt-get install rsync -y )'
   script:
     - 'cp environment-configs/try-dev.exosphere.app-config.js public/config.js'
-    - 'sed -i -e "s/instanceConfigMgtRepoCheckout:.*/instanceConfigMgtRepoCheckout: \"${CI_COMMIT_SHA}\",/g" public/config.js'
-    - 'sed -i -e "s/releaseVersion:.*/releaseVersion:\"${CI_COMMIT_SHA}\",/g" public/config.js'
+    - 'sed -i -e "s/\"instanceConfigMgtRepoCheckout\":.*/\"instanceConfigMgtRepoCheckout\": \"${CI_COMMIT_SHA}\",/g" public/config.js'
+    - 'sed -i -e "s/\"releaseVersion\":.*/\"releaseVersion\":\"${CI_COMMIT_SHA}\",/g" public/config.js'
     - 'sed -i -e ''s/<base href="\/">/<base href="\/exosphere\/">/g'' public/index.html'
     - 'rsync -av --delete public exouser@dogfood.exosphere.app:dev-deploy/'
   environment:
