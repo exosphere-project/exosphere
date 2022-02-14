@@ -64,7 +64,13 @@ var config = {
   },
   "instanceConfigMgtRepoUrl":null,
   "instanceConfigMgtRepoCheckout":null,
-  "sentryConfig":null
+  "sentryConfig":{
+    "dsnPublicKey":"2c1487a758db4414b30ea690ab46b338",
+    "dsnHost":"o1143942.ingest.sentry.io",
+    "dsnProjectId":"6205105",
+    "releaseVersion":"latest",
+    "environmentName":"exosphere.jetstream-cloud.org"
+  }
 }
 
 /* Matomo tracking code */
