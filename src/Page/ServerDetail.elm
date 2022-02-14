@@ -32,7 +32,7 @@ import Time
 import Types.HelperTypes exposing (FloatingIpOption(..), ServerResourceQtys, UserAppProxyHostname)
 import Types.Interaction as ITypes exposing (Interaction)
 import Types.Project exposing (Project)
-import Types.Server exposing (Server, ServerOrigin(..))
+import Types.Server exposing (ExoSetupStatus(..), Server, ServerOrigin(..))
 import Types.ServerResourceUsage
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
@@ -174,11 +174,58 @@ view context project currentTimeAndZone model =
 
 
 serverDetail_ : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> Model -> Server -> Element.Element Msg
-serverDetail_ context project currentTimeAndZone model server =
+serverDetail_ context project ( currentTime, timeZone ) model server =
     {- Render details of a server type and associated resources (e.g. volumes) -}
     let
         details =
             server.osProps.details
+
+        whenCreated =
+            let
+                timeDistanceStr =
+                    DateFormat.Relative.relativeTime currentTime details.created
+
+                createdTimeText =
+                    let
+                        createdTimeFormatted =
+                            Helpers.Time.humanReadableDateAndTime details.created
+                    in
+                    Element.text ("Created on: " ++ createdTimeFormatted)
+
+                setupTimeText =
+                    case server.exoProps.serverOrigin of
+                        ServerFromExo exoOriginProps ->
+                            case exoOriginProps.exoSetupStatus.data of
+                                RDPP.DoHave ( ExoSetupComplete, maybeSetupCompleteTime ) _ ->
+                                    let
+                                        setupTimeStr =
+                                            case maybeSetupCompleteTime of
+                                                Nothing ->
+                                                    "Unknown"
+
+                                                Just setupCompleteTime ->
+                                                    Helpers.Time.relativeTimeNoAffixes details.created setupCompleteTime
+                                    in
+                                    Element.text ("Setup time: " ++ setupTimeStr)
+
+                                _ ->
+                                    Element.none
+
+                        _ ->
+                            Element.none
+
+                toggleTipContents =
+                    Element.column [] [ createdTimeText, setupTimeText ]
+            in
+            Element.row
+                [ Element.spacing 5 ]
+                [ Element.text timeDistanceStr
+                , Style.Widgets.ToggleTip.toggleTip
+                    context.palette
+                    toggleTipContents
+                    model.showCreatedTimeToggleTip
+                    (GotShowCreatedTimeToggleTip (not model.showCreatedTimeToggleTip))
+                ]
 
         creatorName =
             case server.exoProps.serverOrigin of
@@ -311,7 +358,7 @@ serverDetail_ context project currentTimeAndZone model server =
                     context
                     project
                     server
-                    (Tuple.first currentTimeAndZone)
+                    currentTime
                     (VH.userAppProxyLookup context project)
                     model
                 ]
@@ -393,7 +440,7 @@ serverDetail_ context project currentTimeAndZone model server =
                 [ serverEventHistory
                     context
                     model
-                    (Tuple.first currentTimeAndZone)
+                    currentTime
                     server.events
                 ]
             ]
@@ -468,18 +515,15 @@ serverDetail_ context project currentTimeAndZone model server =
             , passwordVulnWarning context server
             , VH.createdAgoByFromSize
                 context
-                (Tuple.first currentTimeAndZone)
-                details.created
+                ( "created", whenCreated )
                 (Just ( "user", creatorName ))
                 (Just ( context.localization.staticRepresentationOfBlockDeviceContents, imageText ))
                 (Just ( context.localization.virtualComputerHardwareConfig, flavorContents ))
-                model.showCreatedTimeToggleTip
-                (GotShowCreatedTimeToggleTip (not model.showCreatedTimeToggleTip))
             ]
         , serverFaultView
         , if details.openstackStatus == OSTypes.ServerActive then
             resourceUsageCharts context
-                currentTimeAndZone
+                ( currentTime, timeZone )
                 server
                 (maybeFlavor |> Maybe.map (\flavor -> Helpers.serverResourceQtys project flavor server))
 

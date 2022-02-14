@@ -1,5 +1,6 @@
-module Helpers.Time exposing (humanReadableDate, humanReadableDateAndTime, iso8601StringToPosix)
+module Helpers.Time exposing (humanReadableDate, humanReadableDateAndTime, iso8601StringToPosix, relativeTimeNoAffixes)
 
+import DateFormat.Relative
 import ISO8601
 import Time
 
@@ -72,3 +73,20 @@ iso8601StringToPosix : String -> Result String Time.Posix
 iso8601StringToPosix str =
     ISO8601.fromString str
         |> Result.map ISO8601.toPosix
+
+
+relativeTimeNoAffixes : Time.Posix -> Time.Posix -> String
+relativeTimeNoAffixes start end =
+    let
+        relativeTimeStr =
+            DateFormat.Relative.relativeTime start end
+
+        isNotAffixWord str =
+            [ "in", "ago" ]
+                |> List.member str
+                |> not
+    in
+    relativeTimeStr
+        |> String.words
+        |> List.filter isNotAffixWord
+        |> String.join " "

@@ -46,7 +46,7 @@ type ServerOrigin
 
 type alias ServerFromExoProps =
     { exoServerVersion : ExoServerVersion
-    , exoSetupStatus : RDPP.RemoteDataPlusPlus HttpErrorWithBody ExoSetupStatus
+    , exoSetupStatus : RDPP.RemoteDataPlusPlus HttpErrorWithBody ( ExoSetupStatus, Maybe Time.Posix )
     , resourceUsage : ResourceUsageRDPP
     , guacamoleStatus : GuacTypes.ServerGuacamoleStatus
     , customWorkflowStatus : WorkflowTypes.ServerCustomWorkflowStatus

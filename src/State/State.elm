@@ -2279,10 +2279,10 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
 
                 ServerFromExo exoOriginProps ->
                     let
-                        oldExoSetupStatus =
+                        ( oldExoSetupStatus, oldTimestamp ) =
                             case exoOriginProps.exoSetupStatus.data of
                                 RDPP.DontHave ->
-                                    ExoSetupUnknown
+                                    ( ExoSetupUnknown, Nothing )
 
                                 RDPP.DoHave s _ ->
                                     s
@@ -2298,9 +2298,9 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
 
                                 Ok consoleLog ->
                                     let
-                                        newExoSetupStatus =
+                                        ( newExoSetupStatus, newTimestamp ) =
                                             Helpers.ExoSetupStatus.parseConsoleLogExoSetupStatus
-                                                oldExoSetupStatus
+                                                ( oldExoSetupStatus, oldTimestamp )
                                                 consoleLog
                                                 server.osProps.details.created
                                                 sharedModel.clientCurrentTime
@@ -2311,19 +2311,16 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
 
                                             else
                                                 let
-                                                    value =
-                                                        Helpers.ExoSetupStatus.exoSetupStatusToStr newExoSetupStatus
-
                                                     metadataItem =
                                                         OSTypes.MetadataItem
                                                             "exoSetup"
-                                                            value
+                                                            (Helpers.ExoSetupStatus.encodeMetadataItem newExoSetupStatus newTimestamp)
                                                 in
                                                 Rest.Nova.requestSetServerMetadata project server.osProps.uuid metadataItem
                                     in
                                     ( RDPP.RemoteDataPlusPlus
                                         (RDPP.DoHave
-                                            newExoSetupStatus
+                                            ( newExoSetupStatus, newTimestamp )
                                             sharedModel.clientCurrentTime
                                         )
                                         (RDPP.NotLoading Nothing)

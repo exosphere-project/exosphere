@@ -335,7 +335,7 @@ stepServerPollConsoleLog time project server =
                                 -- Get the whole log
                                 Just Nothing
 
-                            RDPP.DoHave exoSetupStatus recTime ->
+                            RDPP.DoHave ( exoSetupStatus, _ ) recTime ->
                                 -- If setupStatus is in a non-terminal state and we haven't checked in at least 30 seconds, get the whole log
                                 if
                                     List.member exoSetupStatus [ ExoSetupUnknown, ExoSetupWaiting, ExoSetupRunning ]

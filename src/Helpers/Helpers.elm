@@ -23,6 +23,7 @@ module Helpers.Helpers exposing
 -- Many functions which get and set things in the data model have been moved from here to GetterSetters.elm.
 -- Getter/setter functions that remain here are too "smart" (too much business logic) for GetterSetters.elm.
 
+import Helpers.ExoSetupStatus
 import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
 import Http
@@ -476,7 +477,8 @@ newServerMetadata exoServerVersion exoClientUuid deployGuacamole deployDesktopEn
             , Json.Encode.string exoCreatorUsername
             )
           , ( "exoSetup"
-            , Json.Encode.string "waiting"
+            , Json.Encode.string <|
+                Helpers.ExoSetupStatus.encodeMetadataItem ExoSetupWaiting Nothing
             )
           ]
         , encodeFloatingIpOption floatingIpCreationOption
@@ -567,30 +569,14 @@ serverOrigin serverDetails =
                 ( Nothing, False ) ->
                     Nothing
 
-        exoSetupStatus =
+        ( exoSetupStatus, exoSetupTimestamp ) =
             List.Extra.find (\i -> i.key == "exoSetup") serverDetails.metadata
-                |> Maybe.map
-                    (\{ value } ->
-                        case value of
-                            "waiting" ->
-                                ExoSetupWaiting
-
-                            "running" ->
-                                ExoSetupRunning
-
-                            "complete" ->
-                                ExoSetupComplete
-
-                            "error" ->
-                                ExoSetupError
-
-                            _ ->
-                                ExoSetupUnknown
-                    )
-                |> Maybe.withDefault ExoSetupUnknown
+                |> Maybe.map .value
+                |> Maybe.map Helpers.ExoSetupStatus.decodeExoSetupJson
+                |> Maybe.withDefault ( ExoSetupUnknown, Nothing )
 
         exoSetupStatusRDPP =
-            RDPP.RemoteDataPlusPlus (RDPP.DoHave exoSetupStatus (Time.millisToPosix 0)) (RDPP.NotLoading Nothing)
+            RDPP.RemoteDataPlusPlus (RDPP.DoHave ( exoSetupStatus, exoSetupTimestamp ) (Time.millisToPosix 0)) (RDPP.NotLoading Nothing)
 
         decodeGuacamoleProps : Decode.Decoder GuacTypes.LaunchedWithGuacProps
         decodeGuacamoleProps =
@@ -732,10 +718,10 @@ serverNeedsFrequentPoll server =
 
         ( _, ( False, Nothing, ServerFromExo { exoSetupStatus } ) ) ->
             case exoSetupStatus.data of
-                RDPP.DoHave ExoSetupWaiting _ ->
+                RDPP.DoHave ( ExoSetupWaiting, _ ) _ ->
                     True
 
-                RDPP.DoHave ExoSetupRunning _ ->
+                RDPP.DoHave ( ExoSetupRunning, _ ) _ ->
                     True
 
                 RDPP.DoHave _ _ ->
