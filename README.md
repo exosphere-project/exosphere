@@ -359,12 +359,12 @@ localization: {
 [Here](https://package.elm-lang.org/packages/romariolopezc/elm-sentry/latest/Sentry#config) are instructions for determining the DSN fields.
 
 ```
-sentryConfig: {
-    dsnPublicKey: "1900942c246350fdacb4c9369cac2ets",
-    dsnHost: "o298593.ingest.sentry.io",
-    dsnProjectId: "2312456"
-    releaseVersion: "latest"
-    environmentName: "prod"
+"sentryConfig":{
+  "dsnPublicKey":"1900942c246350fdacb4c9369cac2ets",
+  "dsnHost":"o298593.ingest.sentry.io",
+  "dsnProjectId":"2312456",
+  "releaseVersion":"latest",
+  "environmentName":"prod"
 }
 ```
 
