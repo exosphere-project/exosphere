@@ -1,5 +1,6 @@
 module DesignSystem.Explorer exposing (main)
 
+import Element exposing (text)
 import Html
 import UIExplorer
     exposing
@@ -12,6 +13,18 @@ import UIExplorer
         )
 
 
+
+--- elm-ui helpers
+
+
+toHtml element msg =
+    Element.layout [] <| element msg
+
+
+
+--- MAIN
+
+
 main : UIExplorerProgram {} () {}
 main =
     exploreWithCategories
@@ -20,7 +33,7 @@ main =
             |> category "Atoms"
                 [ storiesOf
                     "Text"
-                    [ ( "Default", \_ -> Html.text "//TODO: Add components to this section.", {} )
+                    [ ( "Default", \_ -> toHtml text "Connect to...", {} )
                     ]
                 ]
             |> category "Molecules"
