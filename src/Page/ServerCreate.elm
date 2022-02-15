@@ -14,7 +14,6 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
-import List.Extra
 import Maybe
 import OpenStack.Quotas as OSQuotas
 import OpenStack.ServerNameValidator exposing (serverNameValidator)
@@ -118,7 +117,13 @@ update msg project model =
         GotFlavorList ->
             let
                 allowedFlavors =
-                    getAllowedFlavors model project
+                    case model.restrictFlavorIds of
+                        Nothing ->
+                            project.flavors
+
+                        Just restrictedFlavorIds ->
+                            restrictedFlavorIds
+                                |> List.filterMap (GetterSetters.flavorLookup project)
 
                 maybeSmallestFlavor =
                     GetterSetters.sortedFlavors allowedFlavors |> List.head
@@ -548,7 +553,7 @@ view context project model =
                         ]
                 , Element.text model.imageName
                 ]
-            , flavorPicker context project model computeQuota
+            , VH.flavorPicker context project model.restrictFlavorIds computeQuota model.flavorId GotFlavorId
             , volBackedPrompt context model volumeQuota flavor
             , countPicker context model computeQuota volumeQuota flavor
             , desktopEnvironmentPicker context project model
@@ -639,177 +644,6 @@ view context project model =
 
                 ( _, _, _ ) ->
                     loading
-        ]
-
-
-flavorPicker : View.Types.Context -> Project -> Model -> OSTypes.ComputeQuota -> Element.Element Msg
-flavorPicker context project model computeQuota =
-    let
-        { locale } =
-            context
-
-        allowedFlavors =
-            getAllowedFlavors model project
-
-        -- This is a kludge. Input.radio is intended to display a group of multiple radio buttons,
-        -- but we want to embed a button in each table row, so we define several Input.radios,
-        -- each containing just a single option.
-        -- https://elmlang.slack.com/archives/C4F9NBLR1/p1539909855000100
-        radioButton flavor =
-            let
-                radio_ =
-                    Input.radio
-                        []
-                        { label = Input.labelHidden flavor.name
-                        , onChange = GotFlavorId
-                        , options = [ Input.option flavor.id (Element.text " ") ]
-                        , selected =
-                            if flavor.id == model.flavorId then
-                                Just flavor.id
-
-                            else
-                                Nothing
-                        }
-            in
-            -- Only allow selection if there is enough available quota
-            case OSQuotas.computeQuotaFlavorAvailServers computeQuota flavor of
-                Nothing ->
-                    radio_
-
-                Just availServers ->
-                    if availServers < 1 then
-                        Element.text "X"
-
-                    else
-                        radio_
-
-        paddingRight =
-            Element.paddingEach { edges | right = 15 }
-
-        headerAttribs =
-            [ paddingRight
-            , Font.bold
-            , Font.center
-            ]
-
-        columns =
-            [ { header = Element.none
-              , width = Element.fill
-              , view = \r -> radioButton r
-              }
-            , { header = Element.el (headerAttribs ++ [ Font.alignLeft ]) (Element.text "Name")
-              , width = Element.fill
-              , view = \r -> Element.el [ paddingRight ] (Element.text r.name)
-              }
-            , { header = Element.el headerAttribs (Element.text "CPUs")
-              , width = Element.fill
-              , view = \r -> Element.el [ paddingRight, Font.alignRight ] (Element.text (humanCount locale r.vcpu))
-              }
-            , { header = Element.el headerAttribs (Element.text "RAM")
-              , width = Element.fill
-              , view =
-                    \r ->
-                        Element.el [ paddingRight, Font.alignRight ] (Element.text (FormatNumber.format { locale | decimals = Exact 0 } (toFloat r.ram_mb / 1024) ++ " GB"))
-              }
-            , { header = Element.el headerAttribs (Element.text "Root Disk")
-              , width = Element.fill
-              , view =
-                    \r ->
-                        Element.el
-                            [ paddingRight, Font.alignRight ]
-                            (if r.disk_root == 0 then
-                                Element.text "- *"
-
-                             else
-                                Element.text (String.fromInt r.disk_root ++ " GB")
-                            )
-              }
-            , { header = Element.el headerAttribs (Element.text "Ephemeral Disk")
-              , width = Element.fill
-              , view =
-                    \r ->
-                        Element.el
-                            [ paddingRight, Font.alignRight ]
-                            (if r.disk_ephemeral == 0 then
-                                Element.text "none"
-
-                             else
-                                Element.text (String.fromInt r.disk_ephemeral ++ " GB")
-                            )
-              }
-            ]
-
-        zeroRootDiskExplainText =
-            case List.Extra.find (\f -> f.disk_root == 0) allowedFlavors of
-                Just _ ->
-                    String.concat
-                        [ "* No default root disk size is defined for this "
-                        , context.localization.virtualComputer
-                        , " "
-                        , context.localization.virtualComputerHardwareConfig
-                        , ", see below"
-                        ]
-
-                Nothing ->
-                    ""
-
-        flavorEmptyHint =
-            if model.flavorId == "" then
-                [ VH.hint context <|
-                    String.join
-                        " "
-                        [ "Please pick a"
-                        , context.localization.virtualComputerHardwareConfig
-                        ]
-                ]
-
-            else
-                []
-
-        anyFlavorsTooLarge =
-            allowedFlavors
-                |> List.filterMap (OSQuotas.computeQuotaFlavorAvailServers computeQuota)
-                |> List.filter (\x -> x < 1)
-                |> List.isEmpty
-                |> not
-    in
-    Element.column
-        [ Element.spacing 10 ]
-        [ Element.el
-            [ Font.bold ]
-            (Element.text <| Helpers.String.toTitleCase context.localization.virtualComputerHardwareConfig)
-        , Element.table
-            flavorEmptyHint
-            { data = GetterSetters.sortedFlavors allowedFlavors
-            , columns = columns
-            }
-        , case model.restrictFlavorIds of
-            Nothing ->
-                Element.none
-
-            Just _ ->
-                Element.text <|
-                    String.join " "
-                        [ "Only showing"
-                        , context.localization.virtualComputerHardwareConfig
-                            |> Helpers.String.pluralize
-                        , "that are compatible with selected"
-                        , context.localization.virtualComputer
-                        , "type"
-                        ]
-        , if anyFlavorsTooLarge then
-            Element.text <|
-                String.join " "
-                    [ context.localization.virtualComputerHardwareConfig
-                        |> Helpers.String.pluralize
-                        |> Helpers.String.toTitleCase
-                    , "marked 'X' are too large for your available"
-                    , context.localization.maxResourcesPerProject
-                    ]
-
-          else
-            Element.none
-        , Element.paragraph [ Font.size 12 ] [ Element.text zeroRootDiskExplainText ]
         ]
 
 
@@ -1706,14 +1540,3 @@ userDataInput context model =
             , spellcheck = False
             }
         ]
-
-
-getAllowedFlavors : Model -> Project -> List OSTypes.Flavor
-getAllowedFlavors model project =
-    case model.restrictFlavorIds of
-        Nothing ->
-            project.flavors
-
-        Just restrictedFlavorIds ->
-            restrictedFlavorIds
-                |> List.filterMap (GetterSetters.flavorLookup project)

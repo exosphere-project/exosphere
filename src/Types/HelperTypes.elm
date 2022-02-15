@@ -268,6 +268,8 @@ type alias CreateServerPageModel =
     , imageName : String
     , restrictFlavorIds : Maybe (List OSTypes.FlavorId)
     , count : Int
+
+    -- TODO make this a Maybe type instead of using empty string to designate lack of choice
     , flavorId : OSTypes.FlavorId
     , volSizeTextInput : Maybe NumericTextInput
     , userDataTemplate : String
