@@ -58,8 +58,17 @@ update msg { viewContext } project model =
             )
 
 
-view : View.Types.Context -> Model -> Element.Element Msg
-view context model =
+view : View.Types.Context -> Project -> Model -> Element.Element Msg
+view context project model =
+    VH.renderWebData
+        context
+        project.computeQuota
+        context.localization.maxResourcesPerProject
+        (view_ context project model)
+
+
+view_ : View.Types.Context -> Project -> Model -> OSTypes.ComputeQuota -> Element.Element Msg
+view_ context project model computeQuota =
     Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
         [ Element.el
             (VH.heading2 context.palette)
@@ -72,14 +81,18 @@ view context model =
                     ]
             )
         , Element.column VH.formContainer
-            [ -- TODO flavor picker
-              Element.none
+            [ VH.flavorPicker context
+                project
+                Nothing
+                computeQuota
+                (Maybe.withDefault "" model.flavorId)
+                GotFlavorId
             , Element.row [ Element.width Element.fill ]
                 [ Element.el [ Element.alignRight ]
                     (Widget.textButton
                         (SH.materialStyle context.palette).primaryButton
-                        { text = "Create"
-                        , onPress = Just GotSubmit
+                        { text = "Resize"
+                        , onPress = model.flavorId |> Maybe.map (\_ -> GotSubmit)
                         }
                     )
                 ]

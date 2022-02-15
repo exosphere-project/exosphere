@@ -295,7 +295,7 @@ project model context p projectViewModel viewConstructor =
                         |> Element.map ServerListMsg
 
                 ServerResize pageModel ->
-                    Page.ServerResize.view context pageModel
+                    Page.ServerResize.view context p pageModel
                         |> Element.map ServerResizeMsg
 
                 VolumeAttach pageModel ->
