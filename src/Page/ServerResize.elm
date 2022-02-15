@@ -1,7 +1,6 @@
 module Page.ServerResize exposing (Model, Msg, init, update, view)
 
 import Element
-import Element.Input as Input
 import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import OpenStack.Types as OSTypes
@@ -47,7 +46,9 @@ update msg { viewContext } project model =
         GotSubmit flavorId ->
             -- TODO navigate to instance details page
             ( model
-            , Cmd.none
+            , Route.pushUrl viewContext <|
+                Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
+                    Route.ServerDetail model.serverUuid
             , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
                 ServerMsg model.serverUuid <|
                     RequestResizeServer flavorId
