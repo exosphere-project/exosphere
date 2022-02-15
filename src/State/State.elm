@@ -1967,7 +1967,22 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
             )
 
         RequestResizeServer flavorId ->
-            ( outerModel, Rest.Nova.requestServerResize project server.osProps.uuid flavorId )
+            let
+                oldExoProps =
+                    server.exoProps
+
+                newServer =
+                    Server server.osProps { oldExoProps | targetOpenstackStatus = Just [ OSTypes.ServerResize ] } server.events
+
+                newProject =
+                    GetterSetters.projectUpdateServer project newServer
+
+                newSharedModel =
+                    GetterSetters.modelUpdateProject sharedModel newProject
+            in
+            ( { outerModel | sharedModel = newSharedModel }
+            , Rest.Nova.requestServerResize project server.osProps.uuid flavorId
+            )
                 |> mapToOuterMsg
 
         RequestSetServerName newServerName ->
