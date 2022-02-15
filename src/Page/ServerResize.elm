@@ -23,7 +23,7 @@ type alias Model =
 
 type Msg
     = GotFlavorId OSTypes.FlavorId
-    | GotSubmit
+    | GotSubmit OSTypes.FlavorId
 
 
 init : OSTypes.ServerUuid -> Model
@@ -44,17 +44,13 @@ update msg { viewContext } project model =
             , SharedMsg.NoOp
             )
 
-        GotSubmit ->
+        GotSubmit flavorId ->
             -- TODO navigate to instance details page
             ( model
             , Cmd.none
-              -- TODO fire a msg to resize server
-            , SharedMsg.NoOp
-              {-
-                 , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
-                     ServerMsg model.serverUuid <|
-                         RequestCreateServerImage model.imageName
-              -}
+            , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
+                ServerMsg model.serverUuid <|
+                    RequestResizeServer flavorId
             )
 
 
@@ -92,7 +88,7 @@ view_ context project model computeQuota =
                     (Widget.textButton
                         (SH.materialStyle context.palette).primaryButton
                         { text = "Resize"
-                        , onPress = model.flavorId |> Maybe.map (\_ -> GotSubmit)
+                        , onPress = model.flavorId |> Maybe.map GotSubmit
                         }
                     )
                 ]

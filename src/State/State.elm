@@ -1966,6 +1966,10 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                 ]
             )
 
+        RequestResizeServer flavorId ->
+            ( outerModel, Rest.Nova.requestServerResize project server.osProps.uuid flavorId )
+                |> mapToOuterMsg
+
         RequestSetServerName newServerName ->
             ( outerModel, Rest.Nova.requestSetServerName project server.osProps.uuid newServerName )
                 |> mapToOuterMsg
