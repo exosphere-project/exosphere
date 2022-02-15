@@ -12,6 +12,7 @@ module Rest.Nova exposing
     , requestFlavors
     , requestKeypairs
     , requestServer
+    , requestServerResize
     , requestServers
     , requestSetServerMetadata
     , requestSetServerName
@@ -468,6 +469,35 @@ requestCreateServerImage project serverUuid imageName =
         errorContext =
             ErrorContext
                 ("create an image for server with UUID " ++ serverUuid)
+                ErrorCrit
+                Nothing
+    in
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Post
+        Nothing
+        (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/action")
+        (Http.jsonBody body)
+        (expectStringWithErrorBody
+            (resultToMsgErrorBody errorContext (\_ -> NoOp))
+        )
+
+
+requestServerResize : Project -> OSTypes.ServerUuid -> OSTypes.FlavorId -> Cmd SharedMsg
+requestServerResize project serverUuid flavorId =
+    let
+        body =
+            Encode.object
+                [ ( "resize"
+                  , Encode.object
+                        [ ( "flavorRef", Encode.string flavorId )
+                        ]
+                  )
+                ]
+
+        errorContext =
+            ErrorContext
+                ("resize server with UUID " ++ serverUuid ++ " to flavor ID " ++ flavorId)
                 ErrorCrit
                 Nothing
     in
