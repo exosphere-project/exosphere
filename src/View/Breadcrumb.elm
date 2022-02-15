@@ -221,6 +221,18 @@ breadcrumb_ outerModel context =
                                       }
                                     ]
 
+                                ServerResize pageModel ->
+                                    [ { route = Nothing
+                                      , label =
+                                            String.join " "
+                                                [ "Resize"
+                                                , context.localization.virtualComputer
+                                                    |> Helpers.String.toTitleCase
+                                                , View.PageTitle.serverName (GetterSetters.projectLookup outerModel.sharedModel projectId) pageModel.serverUuid
+                                                ]
+                                      }
+                                    ]
+
                                 VolumeAttach _ ->
                                     [ { route = Nothing
                                       , label =

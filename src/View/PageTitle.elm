@@ -192,6 +192,14 @@ pageTitle outerModel =
                         , projectName
                         ]
 
+                ServerResize pageModel ->
+                    String.join " "
+                        [ "Resize"
+                        , localization.virtualComputer
+                            |> Helpers.String.toTitleCase
+                        , serverName maybeProject pageModel.serverUuid
+                        ]
+
                 VolumeAttach _ ->
                     String.join " "
                         [ "Attach"

@@ -28,6 +28,7 @@ import Page.ServerCreate
 import Page.ServerCreateImage
 import Page.ServerDetail
 import Page.ServerList
+import Page.ServerResize
 import Page.Settings
 import Page.VolumeAttach
 import Page.VolumeCreate
@@ -376,6 +377,15 @@ routeToViewStateModelCmd sharedModel route =
                                 [ cmd
                                 , OSQuotas.requestComputeQuota project
                                 , Rest.Nova.requestFlavors project
+                                ]
+                            )
+
+                        Route.ServerResize serverId ->
+                            ( projectViewProto <| ServerResize (Page.ServerResize.init serverId)
+                            , sharedModel
+                            , Cmd.batch
+                                [ Rest.Nova.requestFlavors project
+                                , OSQuotas.requestComputeQuota project
                                 ]
                             )
 
