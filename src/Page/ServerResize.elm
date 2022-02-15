@@ -46,7 +46,6 @@ update msg { viewContext } project model =
             )
 
         GotSubmit flavorId ->
-            -- TODO navigate to instance details page
             ( model
             , Route.pushUrl viewContext <|
                 Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
@@ -69,7 +68,6 @@ view context project model =
 view_ : View.Types.Context -> Project -> Model -> OSTypes.ComputeQuota -> Element.Element Msg
 view_ context project model computeQuota =
     let
-        -- TODO do not allow user to choose a flavor with a smaller root disk than what they already have, unless server is volume-backed
         restrictFlavorIds =
             GetterSetters.serverLookup project model.serverUuid
                 |> Maybe.map restrictFlavorIds_
