@@ -1164,7 +1164,6 @@ flavorPicker context project restrictFlavorIds computeQuota selectedFlavorId cha
                         , context.localization.virtualComputer
                         , " "
                         , context.localization.virtualComputerHardwareConfig
-                        , ", see below"
                         ]
 
                 Nothing ->
