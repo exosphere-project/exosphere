@@ -91,14 +91,14 @@ actions maybeWordForServer maybeWordForImage maybeWordForFlavor =
       , selectMod = Primary
       , confirmable = False
       }
-    , { name = "Revert Resize"
+    , { name = "Revert"
       , description =
             String.join " "
                 [ "Abort"
                 , wordForServer
                 , "resize operation"
                 ]
-      , allowedStatuses = Just [ OSTypes.ServerRevertResize ]
+      , allowedStatuses = Just [ OSTypes.ServerVerifyResize ]
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
             doAction (Json.Encode.object [ ( "revertResize", Json.Encode.null ) ]) (Just [ OSTypes.ServerActive ])
