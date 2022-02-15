@@ -521,7 +521,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                 (Just ( context.localization.virtualComputerHardwareConfig, flavorContents ))
             ]
         , serverFaultView
-        , if details.openstackStatus == OSTypes.ServerActive then
+        , if List.member details.openstackStatus [ OSTypes.ServerActive, OSTypes.ServerVerifyResize ] then
             resourceUsageCharts context
                 ( currentTime, timeZone )
                 server
