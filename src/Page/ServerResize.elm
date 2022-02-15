@@ -4,9 +4,11 @@ import Element
 import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import OpenStack.Types as OSTypes
+import RemoteData
 import Route
 import Style.Helpers as SH
 import Types.Project exposing (Project)
+import Types.Server exposing (Server)
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..))
 import View.Helpers as VH
@@ -67,14 +69,35 @@ view context project model =
 view_ : View.Types.Context -> Project -> Model -> OSTypes.ComputeQuota -> Element.Element Msg
 view_ context project model computeQuota =
     let
+        -- TODO do not allow user to choose a flavor with a smaller root disk than what they already have, unless server is volume-backed
         restrictFlavorIds =
             GetterSetters.serverLookup project model.serverUuid
-                |> Maybe.map
-                    (\server ->
-                        project.flavors
-                            |> List.map .id
-                            |> List.filter (\id -> id /= server.osProps.details.flavorId)
-                    )
+                |> Maybe.map restrictFlavorIds_
+
+        restrictFlavorIds_ : Server -> List OSTypes.FlavorId
+        restrictFlavorIds_ server =
+            let
+                currentFlavorRootDiskSize =
+                    case GetterSetters.flavorLookup project server.osProps.details.flavorId of
+                        Just flavor ->
+                            flavor.disk_root
+
+                        Nothing ->
+                            0
+
+                minRootDiskSize =
+                    case GetterSetters.getBootVolume (RemoteData.withDefault [] project.volumes) model.serverUuid of
+                        Just _ ->
+                            -- Server is volume-backed, so root disk size of flavor does not matter
+                            0
+
+                        Nothing ->
+                            currentFlavorRootDiskSize
+            in
+            project.flavors
+                |> List.filter (\flavor -> flavor.id /= server.osProps.details.flavorId)
+                |> List.filter (\flavor -> flavor.disk_root >= minRootDiskSize)
+                |> List.map .id
     in
     Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
         [ Element.el
