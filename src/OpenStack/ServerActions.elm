@@ -77,7 +77,7 @@ actions maybeWordForServer maybeWordForImage maybeWordForFlavor =
             maybeWordForFlavor
                 |> Maybe.withDefault "flavor"
     in
-    [ { name = "Confirm Resize"
+    [ { name = "Confirm"
       , description =
             String.join " "
                 [ "Finish"
