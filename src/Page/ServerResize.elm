@@ -113,7 +113,7 @@ view_ context project model computeQuota =
                 project
                 restrictFlavorIds
                 computeQuota
-                (Maybe.withDefault "" model.flavorId)
+                model.flavorId
                 GotFlavorId
             , Element.row [ Element.width Element.fill ]
                 [ Element.el [ Element.alignRight ]

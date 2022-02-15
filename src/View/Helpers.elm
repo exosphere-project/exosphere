@@ -1049,7 +1049,7 @@ friendlyProjectTitle model project =
         providerTitle
 
 
-flavorPicker : View.Types.Context -> Project -> Maybe (List OSTypes.FlavorId) -> OSTypes.ComputeQuota -> OSTypes.FlavorId -> (OSTypes.FlavorId -> msg) -> Element.Element msg
+flavorPicker : View.Types.Context -> Project -> Maybe (List OSTypes.FlavorId) -> OSTypes.ComputeQuota -> Maybe OSTypes.FlavorId -> (OSTypes.FlavorId -> msg) -> Element.Element msg
 flavorPicker context project restrictFlavorIds computeQuota selectedFlavorId changeMsg =
     let
         { locale } =
@@ -1077,11 +1077,15 @@ flavorPicker context project restrictFlavorIds computeQuota selectedFlavorId cha
                         , onChange = changeMsg
                         , options = [ Element.Input.option flavor.id (Element.text " ") ]
                         , selected =
-                            if flavor.id == selectedFlavorId then
-                                Just flavor.id
+                            selectedFlavorId
+                                |> Maybe.andThen
+                                    (\flavorId ->
+                                        if flavor.id == flavorId then
+                                            Just flavor.id
 
-                            else
-                                Nothing
+                                        else
+                                            Nothing
+                                    )
                         }
             in
             -- Only allow selection if there is enough available quota
@@ -1167,7 +1171,7 @@ flavorPicker context project restrictFlavorIds computeQuota selectedFlavorId cha
                     ""
 
         flavorEmptyHint =
-            if selectedFlavorId == "" then
+            if selectedFlavorId == Nothing then
                 [ hint context <|
                     String.join
                         " "

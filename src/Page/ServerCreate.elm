@@ -80,7 +80,7 @@ init imageUuid imageName restrictFlavorIds deployGuacamole =
     , imageName = imageName
     , restrictFlavorIds = restrictFlavorIds
     , count = 1
-    , flavorId = ""
+    , flavorId = Nothing
     , volSizeTextInput = Nothing
     , userDataTemplate = cloudInitUserDataTemplate
     , networkUuid = Nothing
@@ -112,7 +112,7 @@ update msg project model =
             ( enforceQuotaCompliance project { model | count = count }, Cmd.none, SharedMsg.NoOp )
 
         GotFlavorId flavorId ->
-            ( enforceQuotaCompliance project { model | flavorId = flavorId }, Cmd.none, SharedMsg.NoOp )
+            ( enforceQuotaCompliance project { model | flavorId = Just flavorId }, Cmd.none, SharedMsg.NoOp )
 
         GotFlavorList ->
             let
@@ -133,11 +133,7 @@ update msg project model =
                     ( enforceQuotaCompliance project
                         { model
                             | flavorId =
-                                if model.flavorId == "" then
-                                    smallestFlavor.id
-
-                                else
-                                    model.flavorId
+                                Just <| Maybe.withDefault smallestFlavor.id model.flavorId
                         }
                     , Cmd.none
                     , SharedMsg.NoOp
@@ -306,7 +302,7 @@ enforceQuotaCompliance project model =
     -- If user is trying to choose a combination of flavor, volume-backed disk size, and count
     -- that would exceed quota, reduce count to comply with quota.
     case
-        ( GetterSetters.flavorLookup project model.flavorId
+        ( model.flavorId |> Maybe.andThen (GetterSetters.flavorLookup project)
         , project.computeQuota
         , project.volumeQuota
         )
@@ -423,13 +419,37 @@ view context project model =
                 invalidInputs =
                     invalidVolSizeTextInput || invalidWorkflowTextInput
             in
-            case ( invalidNameReasons, invalidInputs, model.networkUuid ) of
-                ( Nothing, False, Just netUuid ) ->
-                    ( Just <| SharedMsg (SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) (SharedMsg.RequestCreateServer model netUuid))
-                    , Nothing
-                    )
+            case ( invalidNameReasons, invalidInputs ) of
+                ( Nothing, False ) ->
+                    case ( model.networkUuid, model.flavorId ) of
+                        ( Just netUuid, Just flavorId ) ->
+                            ( Just <| SharedMsg (SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) (SharedMsg.RequestCreateServer model netUuid flavorId))
+                            , Nothing
+                            )
 
-                ( _, _, _ ) ->
+                        ( _, _ ) ->
+                            let
+                                invalidNetworkReason =
+                                    if model.networkUuid == Nothing then
+                                        [ "Choose a network" ]
+
+                                    else
+                                        []
+
+                                invalidFlavorReason =
+                                    if model.flavorId == Nothing then
+                                        [ "Choose a flavor" ]
+
+                                    else
+                                        []
+
+                                invalidFormReasons =
+                                    invalidNetworkReason
+                                        ++ invalidFlavorReason
+                            in
+                            ( Just GotDisabledCreateButtonPressed, Just invalidFormReasons )
+
+                ( _, _ ) ->
                     let
                         invalidNameFormReason =
                             if invalidNameReasons == Nothing then
@@ -452,18 +472,10 @@ view context project model =
                             else
                                 []
 
-                        invalidNetworkReason =
-                            if model.networkUuid == Nothing then
-                                [ "Choose a network" ]
-
-                            else
-                                []
-
                         invalidFormReasons =
                             invalidNameFormReason
                                 ++ invalidVolSizeReason
                                 ++ invalidWorkflowReason
-                                ++ invalidNetworkReason
                     in
                     ( Just GotDisabledCreateButtonPressed, Just invalidFormReasons )
 
@@ -628,7 +640,7 @@ view context project model =
             ]
           <|
             case
-                ( GetterSetters.flavorLookup project model.flavorId
+                ( model.flavorId |> Maybe.andThen (GetterSetters.flavorLookup project)
                 , project.computeQuota
                 , project.volumeQuota
                 )
@@ -1141,7 +1153,7 @@ desktopEnvironmentPicker context project model =
               in
               case model.volSizeTextInput of
                 Nothing ->
-                    case GetterSetters.flavorLookup project model.flavorId of
+                    case model.flavorId |> Maybe.andThen (GetterSetters.flavorLookup project) of
                         Just flavor ->
                             if flavor.disk_root < warningMaxGB then
                                 Just <| Element.text rootDiskWarnText

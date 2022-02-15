@@ -1226,7 +1226,7 @@ processProjectSpecificMsg outerModel project msg =
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
-        RequestCreateServer pageModel networkUuid ->
+        RequestCreateServer pageModel networkUuid flavorId ->
             let
                 customWorkFlowSource =
                     if pageModel.includeWorkflow && Maybe.withDefault False pageModel.workflowInputIsValid then
@@ -1243,7 +1243,7 @@ processProjectSpecificMsg outerModel project msg =
                     { name = pageModel.serverName
                     , count = pageModel.count
                     , imageUuid = pageModel.imageUuid
-                    , flavorId = pageModel.flavorId
+                    , flavorId = flavorId
                     , volBackedSizeGb =
                         pageModel.volSizeTextInput
                             |> Maybe.andThen Style.Widgets.NumericTextInput.NumericTextInput.toMaybe
