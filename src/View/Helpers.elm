@@ -564,7 +564,7 @@ getServerUiStatus server =
                     Just OSTypes.ServerDeleted ->
                         ServerUiStatusDeleting
 
-                    Just OSTypes.ServerVerifyResize ->
+                    Just OSTypes.ServerResize ->
                         ServerUiStatusResizing
 
                     _ ->
@@ -634,7 +634,11 @@ getServerUiStatus server =
                 ServerUiStatusResizing
 
             OSTypes.ServerVerifyResize ->
-                ServerUiStatusVerifyResize
+                if targetStatusActive then
+                    ServerUiStatusReady
+
+                else
+                    ServerUiStatusVerifyResize
 
             OSTypes.ServerRevertResize ->
                 ServerUiStatusRevertingResize
