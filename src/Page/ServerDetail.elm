@@ -1238,6 +1238,23 @@ renderServerActionButton context project model server serverAction =
                             (Just NoOp)
                             (Helpers.String.toTitleCase context.localization.staticRepresentationOfBlockDeviceContents)
                     }
+                -- This is similarly ugly
+
+            else if serverAction.name == "Resize" then
+                -- Overriding button for resize, because we just want to navigate to another page
+                Element.link [ Element.width Element.fill ]
+                    { url =
+                        Route.toUrl context.urlPathPrefix
+                            (Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
+                                Route.ServerResize server.osProps.uuid
+                            )
+                    , label =
+                        renderActionButton
+                            context
+                            serverAction
+                            (Just NoOp)
+                            (Helpers.String.toTitleCase "Resize")
+                    }
 
             else
                 let
