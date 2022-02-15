@@ -20,6 +20,7 @@ module Types.HelperTypes exposing
     , OpenIdConnectLoginConfig
     , Password
     , ProjectIdentifier
+    , SentryConfig
     , ServerResourceQtys
     , SupportableItemType(..)
     , UnscopedProvider
@@ -111,6 +112,15 @@ type alias Localization =
 type alias WindowSize =
     { width : Int
     , height : Int
+    }
+
+
+type alias SentryConfig =
+    { dsnPublicKey : String
+    , dsnHost : String
+    , dsnProjectId : String
+    , releaseVersion : String
+    , environmentName : String
     }
 
 

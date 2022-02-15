@@ -22,7 +22,14 @@ var config = {
   },
   "localization":null,
   "instanceConfigMgtRepoUrl":null,
-  "instanceConfigMgtRepoCheckout":"dev"
+  "instanceConfigMgtRepoCheckout":"dev",
+  "sentryConfig":{
+    "dsnPublicKey":"2c1487a758db4414b30ea690ab46b338",
+    "dsnHost":"o1143942.ingest.sentry.io",
+    "dsnProjectId":"6205105",
+    "releaseVersion":"latest",
+    "environmentName":"try-dev.exosphere.app"
+  }
 }
 
 /* Matomo tracking code */

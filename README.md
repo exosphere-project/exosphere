@@ -246,6 +246,7 @@ These options are primarily intended for cloud operators who wish to offer a cus
 | localization                  | null, JSON object                 | Pass custom localization strings for the UI, see example below         |
 | instanceConfigMgtRepoUrl      | null, string                      | Set a custom repository to use for instance provisioning code          |
 | instanceConfigMgtRepoCheckout | null, string                      | Check out specific branch/tag/commit of instance provisioning code     |
+| sentryConfig                  | null, JSON object                 | Pass Sentry DSN for error logging, see example below                   |
 
 #### Example cloud configuration
 
@@ -351,6 +352,20 @@ localization: {
     publiclyRoutableIpAddress: "public IP address",
     graphicalDesktopEnvironment: "graphical desktop environment"
     }
+```
+
+#### Example Sentry Configuration
+
+[Here](https://package.elm-lang.org/packages/romariolopezc/elm-sentry/latest/Sentry#config) are instructions for determining the DSN fields.
+
+```
+"sentryConfig":{
+  "dsnPublicKey":"1900942c246350fdacb4c9369cac2ets",
+  "dsnHost":"o298593.ingest.sentry.io",
+  "dsnProjectId":"2312456",
+  "releaseVersion":"latest",
+  "environmentName":"prod"
+}
 ```
 
 ### Instance Provisioning Code

@@ -28,6 +28,7 @@ type alias SharedModel =
     , instanceConfigMgtRepoUrl : HelperTypes.Url
     , instanceConfigMgtRepoCheckout : String
     , viewContext : View.Types.Context
+    , sentryConfig : Maybe HelperTypes.SentryConfig
     }
 
 
