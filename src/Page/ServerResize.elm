@@ -66,6 +66,16 @@ view context project model =
 
 view_ : View.Types.Context -> Project -> Model -> OSTypes.ComputeQuota -> Element.Element Msg
 view_ context project model computeQuota =
+    let
+        restrictFlavorIds =
+            GetterSetters.serverLookup project model.serverUuid
+                |> Maybe.map
+                    (\server ->
+                        project.flavors
+                            |> List.map .id
+                            |> List.filter (\id -> id /= server.osProps.details.flavorId)
+                    )
+    in
     Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
         [ Element.el
             (VH.heading2 context.palette)
@@ -80,7 +90,7 @@ view_ context project model computeQuota =
         , Element.column VH.formContainer
             [ VH.flavorPicker context
                 project
-                Nothing
+                restrictFlavorIds
                 computeQuota
                 (Maybe.withDefault "" model.flavorId)
                 GotFlavorId
