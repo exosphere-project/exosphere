@@ -2224,7 +2224,10 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                                 newGuacProps =
                                     case result of
                                         Ok tokenValue ->
-                                            if server.osProps.details.openstackStatus == OSTypes.ServerActive then
+                                            if
+                                                List.member server.osProps.details.openstackStatus
+                                                    [ OSTypes.ServerActive, OSTypes.ServerVerifyResize ]
+                                            then
                                                 { oldGuacProps
                                                     | authToken =
                                                         RDPP.RemoteDataPlusPlus
