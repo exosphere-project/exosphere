@@ -557,6 +557,9 @@ getServerUiStatus server =
                     Just OSTypes.ServerDeleted ->
                         ServerUiStatusDeleting
 
+                    Just OSTypes.ServerVerifyResize ->
+                        ServerUiStatusResizing
+
                     _ ->
                         whenNoTargetStatus
 
@@ -619,6 +622,15 @@ getServerUiStatus server =
 
             OSTypes.ServerDeleted ->
                 ServerUiStatusDeleted
+
+            OSTypes.ServerResize ->
+                ServerUiStatusResizing
+
+            OSTypes.ServerVerifyResize ->
+                ServerUiStatusVerifyResize
+
+            OSTypes.ServerRevertResize ->
+                ServerUiStatusRevertingResize
 
 
 getExoSetupStatusStr : Server -> Maybe String
@@ -719,6 +731,15 @@ getServerUiStatusStr status =
         ServerUiStatusDeleted ->
             "Deleted"
 
+        ServerUiStatusResizing ->
+            "Resizing"
+
+        ServerUiStatusVerifyResize ->
+            "Resized"
+
+        ServerUiStatusRevertingResize ->
+            "Reverting Resize"
+
 
 getServerUiStatusBadgeState : ServerUiStatus -> StatusBadge.StatusBadgeState
 getServerUiStatusBadgeState status =
@@ -785,6 +806,15 @@ getServerUiStatusBadgeState status =
 
         ServerUiStatusDeleted ->
             StatusBadge.Muted
+
+        ServerUiStatusResizing ->
+            StatusBadge.Warning
+
+        ServerUiStatusVerifyResize ->
+            StatusBadge.ReadyGood
+
+        ServerUiStatusRevertingResize ->
+            StatusBadge.Warning
 
 
 renderMarkdown : View.Types.Context -> String -> List (Element.Element msg)

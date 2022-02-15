@@ -969,6 +969,15 @@ serverOpenstackStatusDecoder status =
         "deleted" ->
             Decode.succeed OSTypes.ServerDeleted
 
+        "resize" ->
+            Decode.succeed OSTypes.ServerResize
+
+        "verify_resize" ->
+            Decode.succeed OSTypes.ServerVerifyResize
+
+        "revert_resize" ->
+            Decode.succeed OSTypes.ServerRevertResize
+
         _ ->
             Decode.fail "Ooooooops, unrecognised server OpenStack status"
 

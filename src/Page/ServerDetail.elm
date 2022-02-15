@@ -1039,6 +1039,7 @@ serverActionsDropdown context project model server =
                     (ServerActions.getAllowed
                         (Just context.localization.virtualComputer)
                         (Just context.localization.staticRepresentationOfBlockDeviceContents)
+                        (Just context.localization.virtualComputerHardwareConfig)
                         server.osProps.details.openstackStatus
                         server.osProps.details.lockStatus
                     )
