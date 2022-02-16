@@ -346,59 +346,54 @@ type alias ConsoleUrl =
     HelperTypes.Url
 
 
-type
-    ServerStatus
-    -- TODO put these in alphabetical order here and everywhere they are used
-    = ServerPaused
-    | ServerSuspended
-    | ServerActive
-    | ServerReboot
-    | ServerShutoff
-    | ServerStopped
-    | ServerSoftDeleted
-    | ServerError
+type ServerStatus
+    = ServerActive
     | ServerBuilding
+    | ServerDeleted
+    | ServerError
+    | ServerPaused
+    | ServerReboot
+    | ServerResize
     | ServerRescued
+    | ServerRevertResize
     | ServerShelved
     | ServerShelvedOffloaded
-    | ServerDeleted
-    | ServerResize
+    | ServerShutoff
+    | ServerSoftDeleted
+    | ServerStopped
+    | ServerSuspended
     | ServerVerifyResize
-    | ServerRevertResize
 
 
 serverStatusToString : ServerStatus -> String
 serverStatusToString serverStatus =
     case serverStatus of
-        ServerPaused ->
-            "ServerPaused"
-
-        ServerSuspended ->
-            "ServerSuspended"
-
         ServerActive ->
             "ServerActive"
-
-        ServerReboot ->
-            "ServerReboot"
-
-        ServerShutoff ->
-            "ServerShutoff"
-
-        ServerStopped ->
-            "ServerStopped"
-
-        ServerSoftDeleted ->
-            "ServerSoftDeleted"
-
-        ServerError ->
-            "ServerError"
 
         ServerBuilding ->
             "ServerBuilding"
 
+        ServerDeleted ->
+            "ServerDeleted"
+
+        ServerError ->
+            "ServerError"
+
+        ServerPaused ->
+            "ServerPaused"
+
+        ServerReboot ->
+            "ServerReboot"
+
+        ServerResize ->
+            "ServerResize"
+
         ServerRescued ->
             "ServerRescued"
+
+        ServerRevertResize ->
+            "ServerRevertResize"
 
         ServerShelved ->
             "ServerShelved"
@@ -406,17 +401,20 @@ serverStatusToString serverStatus =
         ServerShelvedOffloaded ->
             "ServerShelvedOffloaded"
 
-        ServerDeleted ->
-            "ServerDeleted"
+        ServerShutoff ->
+            "ServerShutoff"
 
-        ServerResize ->
-            "ServerResize"
+        ServerSoftDeleted ->
+            "ServerSoftDeleted"
+
+        ServerStopped ->
+            "ServerStopped"
+
+        ServerSuspended ->
+            "ServerSuspended"
 
         ServerVerifyResize ->
             "ServerVerifyResize"
-
-        ServerRevertResize ->
-            "ServerRevertResize"
 
 
 type ServerPowerState

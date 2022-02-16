@@ -139,7 +139,7 @@ actions maybeWordForServer maybeWordForImage maybeWordForFlavor =
                 [ "Start stopped"
                 , wordForServer
                 ]
-      , allowedStatuses = Just [ OSTypes.ServerStopped, OSTypes.ServerShutoff ]
+      , allowedStatuses = Just [ OSTypes.ServerShutoff, OSTypes.ServerStopped ]
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
             doAction (Json.Encode.object [ ( "os-start", Json.Encode.null ) ]) (Just [ OSTypes.ServerActive ])
@@ -201,7 +201,7 @@ actions maybeWordForServer maybeWordForImage maybeWordForFlavor =
                 , wordForServer
                 , "and offload it from compute host"
                 ]
-      , allowedStatuses = Just [ OSTypes.ServerActive, OSTypes.ServerShutoff, OSTypes.ServerPaused, OSTypes.ServerSuspended ]
+      , allowedStatuses = Just [ OSTypes.ServerActive, OSTypes.ServerPaused, OSTypes.ServerShutoff, OSTypes.ServerSuspended ]
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
             doAction (Json.Encode.object [ ( "shelve", Json.Encode.null ) ])
@@ -233,7 +233,7 @@ actions maybeWordForServer maybeWordForImage maybeWordForFlavor =
                 [ "Create snapshot image of"
                 , wordForServer
                 ]
-      , allowedStatuses = Just [ OSTypes.ServerActive, OSTypes.ServerShutoff, OSTypes.ServerPaused, OSTypes.ServerSuspended ]
+      , allowedStatuses = Just [ OSTypes.ServerActive, OSTypes.ServerPaused, OSTypes.ServerShutoff, OSTypes.ServerSuspended ]
       , allowedLockStatus = Nothing
       , action =
             -- This must be overridden in the Page to do anything
@@ -272,17 +272,18 @@ actions maybeWordForServer maybeWordForImage maybeWordForFlavor =
                 ]
       , allowedStatuses =
             Just
-                [ OSTypes.ServerPaused
-                , OSTypes.ServerSuspended
-                , OSTypes.ServerActive
-                , OSTypes.ServerReboot
-                , OSTypes.ServerShutoff
-                , OSTypes.ServerStopped
-                , OSTypes.ServerError
+                -- TODO add new statuses like resize-whatever, migrating, etc
+                [ OSTypes.ServerActive
                 , OSTypes.ServerBuilding
+                , OSTypes.ServerError
+                , OSTypes.ServerPaused
+                , OSTypes.ServerReboot
                 , OSTypes.ServerRescued
+                , OSTypes.ServerSuspended
                 , OSTypes.ServerShelved
                 , OSTypes.ServerShelvedOffloaded
+                , OSTypes.ServerShutoff
+                , OSTypes.ServerStopped
                 ]
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
