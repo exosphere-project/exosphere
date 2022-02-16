@@ -30,6 +30,7 @@ import Page.ServerCreate
 import Page.ServerCreateImage
 import Page.ServerDetail
 import Page.ServerList
+import Page.ServerResize
 import Page.Settings
 import Page.Toast
 import Page.VolumeAttach
@@ -292,6 +293,10 @@ project model context p projectViewModel viewConstructor =
                 ServerList pageModel ->
                     Page.ServerList.view context p model.clientCurrentTime pageModel
                         |> Element.map ServerListMsg
+
+                ServerResize pageModel ->
+                    Page.ServerResize.view context p pageModel
+                        |> Element.map ServerResizeMsg
 
                 VolumeAttach pageModel ->
                     Page.VolumeAttach.view context p pageModel

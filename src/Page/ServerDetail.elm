@@ -521,7 +521,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                 (Just ( context.localization.virtualComputerHardwareConfig, flavorContents ))
             ]
         , serverFaultView
-        , if details.openstackStatus == OSTypes.ServerActive then
+        , if List.member details.openstackStatus [ OSTypes.ServerActive, OSTypes.ServerVerifyResize ] then
             resourceUsageCharts context
                 ( currentTime, timeZone )
                 server
@@ -1039,6 +1039,7 @@ serverActionsDropdown context project model server =
                     (ServerActions.getAllowed
                         (Just context.localization.virtualComputer)
                         (Just context.localization.staticRepresentationOfBlockDeviceContents)
+                        (Just context.localization.virtualComputerHardwareConfig)
                         server.osProps.details.openstackStatus
                         server.osProps.details.lockStatus
                     )
@@ -1236,6 +1237,23 @@ renderServerActionButton context project model server serverAction =
                             serverAction
                             (Just NoOp)
                             (Helpers.String.toTitleCase context.localization.staticRepresentationOfBlockDeviceContents)
+                    }
+                -- This is similarly ugly
+
+            else if serverAction.name == "Resize" then
+                -- Overriding button for resize, because we just want to navigate to another page
+                Element.link [ Element.width Element.fill ]
+                    { url =
+                        Route.toUrl context.urlPathPrefix
+                            (Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
+                                Route.ServerResize server.osProps.uuid
+                            )
+                    , label =
+                        renderActionButton
+                            context
+                            serverAction
+                            (Just NoOp)
+                            (Helpers.String.toTitleCase "Resize")
                     }
 
             else

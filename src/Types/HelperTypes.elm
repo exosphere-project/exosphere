@@ -268,7 +268,7 @@ type alias CreateServerPageModel =
     , imageName : String
     , restrictFlavorIds : Maybe (List OSTypes.FlavorId)
     , count : Int
-    , flavorId : OSTypes.FlavorId
+    , flavorId : Maybe OSTypes.FlavorId
     , volSizeTextInput : Maybe NumericTextInput
     , userDataTemplate : String
     , networkUuid : Maybe OSTypes.NetworkUuid

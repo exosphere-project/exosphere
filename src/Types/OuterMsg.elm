@@ -19,6 +19,7 @@ import Page.ServerCreate
 import Page.ServerCreateImage
 import Page.ServerDetail
 import Page.ServerList
+import Page.ServerResize
 import Page.Settings
 import Page.VolumeAttach
 import Page.VolumeCreate
@@ -55,3 +56,4 @@ type OuterMsg
     | ServerCreateImageMsg Page.ServerCreateImage.Msg
     | ServerDetailMsg Page.ServerDetail.Msg
     | ServerListMsg Page.ServerList.Msg
+    | ServerResizeMsg Page.ServerResize.Msg

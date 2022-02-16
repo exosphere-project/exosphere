@@ -89,6 +89,9 @@ type ServerUiStatus
     | ServerUiStatusShelved
     | ServerUiStatusUnshelving
     | ServerUiStatusDeleted
+    | ServerUiStatusResizing
+    | ServerUiStatusVerifyResize
+    | ServerUiStatusRevertingResize
 
 
 type ExoSetupStatus

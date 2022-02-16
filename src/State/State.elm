@@ -36,6 +36,7 @@ import Page.ServerCreate
 import Page.ServerCreateImage
 import Page.ServerDetail
 import Page.ServerList
+import Page.ServerResize
 import Page.Settings
 import Page.VolumeAttach
 import Page.VolumeCreate
@@ -444,6 +445,21 @@ updateUnderlying outerMsg outerModel =
                                         ServerList newSharedModel
                               }
                             , Cmd.map ServerListMsg cmd
+                            )
+                                |> pipelineCmdOuterModelMsg
+                                    (processSharedMsg sharedMsg)
+
+                        ( ServerResizeMsg pageMsg, ServerResize pageModel ) ->
+                            let
+                                ( newSharedModel, cmd, sharedMsg ) =
+                                    Page.ServerResize.update pageMsg sharedModel project pageModel
+                            in
+                            ( { outerModel
+                                | viewState =
+                                    ProjectView projectId projectViewModel <|
+                                        ServerResize newSharedModel
+                              }
+                            , Cmd.map ServerResizeMsg cmd
                             )
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
@@ -1210,7 +1226,7 @@ processProjectSpecificMsg outerModel project msg =
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
-        RequestCreateServer pageModel networkUuid ->
+        RequestCreateServer pageModel networkUuid flavorId ->
             let
                 customWorkFlowSource =
                     if pageModel.includeWorkflow && Maybe.withDefault False pageModel.workflowInputIsValid then
@@ -1227,7 +1243,7 @@ processProjectSpecificMsg outerModel project msg =
                     { name = pageModel.serverName
                     , count = pageModel.count
                     , imageUuid = pageModel.imageUuid
-                    , flavorId = pageModel.flavorId
+                    , flavorId = flavorId
                     , volBackedSizeGb =
                         pageModel.volSizeTextInput
                             |> Maybe.andThen Style.Widgets.NumericTextInput.NumericTextInput.toMaybe
@@ -1950,6 +1966,25 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                 ]
             )
 
+        RequestResizeServer flavorId ->
+            let
+                oldExoProps =
+                    server.exoProps
+
+                newServer =
+                    Server server.osProps { oldExoProps | targetOpenstackStatus = Just [ OSTypes.ServerResize ] } server.events
+
+                newProject =
+                    GetterSetters.projectUpdateServer project newServer
+
+                newSharedModel =
+                    GetterSetters.modelUpdateProject sharedModel newProject
+            in
+            ( { outerModel | sharedModel = newSharedModel }
+            , Rest.Nova.requestServerResize project server.osProps.uuid flavorId
+            )
+                |> mapToOuterMsg
+
         RequestSetServerName newServerName ->
             ( outerModel, Rest.Nova.requestSetServerName project server.osProps.uuid newServerName )
                 |> mapToOuterMsg
@@ -2204,7 +2239,10 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                                 newGuacProps =
                                     case result of
                                         Ok tokenValue ->
-                                            if server.osProps.details.openstackStatus == OSTypes.ServerActive then
+                                            if
+                                                List.member server.osProps.details.openstackStatus
+                                                    [ OSTypes.ServerActive, OSTypes.ServerVerifyResize ]
+                                            then
                                                 { oldGuacProps
                                                     | authToken =
                                                         RDPP.RemoteDataPlusPlus

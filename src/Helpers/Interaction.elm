@@ -327,17 +327,8 @@ interactionStatus project server interaction context currentTime tlsReverseProxy
                                                                         ("Exosphere tried to authenticate to the Guacamole API, and received this error: "
                                                                             ++ Helpers.httpErrorToString httpError
                                                                         )
-    in
-    case server.osProps.details.openstackStatus of
-        OSTypes.ServerBuilding ->
-            ITypes.Unavailable <|
-                String.join " "
-                    [ context.localization.virtualComputer
-                        |> Helpers.String.toTitleCase
-                    , "is still building"
-                    ]
 
-        OSTypes.ServerActive ->
+        showInteraction =
             case interaction of
                 ITypes.GuacTerminal ->
                     guac Terminal
@@ -375,6 +366,21 @@ interactionStatus project server interaction context currentTime tlsReverseProxy
 
                 ITypes.CustomWorkflow ->
                     customWorkflowInteraction
+    in
+    case server.osProps.details.openstackStatus of
+        OSTypes.ServerBuilding ->
+            ITypes.Unavailable <|
+                String.join " "
+                    [ context.localization.virtualComputer
+                        |> Helpers.String.toTitleCase
+                    , "is still building"
+                    ]
+
+        OSTypes.ServerActive ->
+            showInteraction
+
+        OSTypes.ServerVerifyResize ->
+            showInteraction
 
         _ ->
             ITypes.Unavailable <|

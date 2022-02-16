@@ -24,6 +24,7 @@ import Page.SelectProjects
 import Page.ServerCreateImage
 import Page.ServerDetail
 import Page.ServerList
+import Page.ServerResize
 import Page.Settings
 import Page.VolumeAttach
 import Page.VolumeCreate
@@ -73,6 +74,7 @@ type ProjectViewConstructor
     | ServerCreateImage Page.ServerCreateImage.Model
     | ServerDetail Page.ServerDetail.Model
     | ServerList Page.ServerList.Model
+    | ServerResize Page.ServerResize.Model
       -- TODO these should be in alphabetical order
     | VolumeList Page.VolumeList.Model
     | VolumeAttach Page.VolumeAttach.Model

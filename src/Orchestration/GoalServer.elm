@@ -146,9 +146,7 @@ stepServerRequestNetworks time project server =
     in
     if
         not server.exoProps.deletionAttempted
-            && (server.osProps.details.openstackStatus
-                    == OSTypes.ServerActive
-               )
+            && serverIsActiveEnough server
             && (case
                     Helpers.getNewFloatingIpOption project server.osProps server.exoProps.floatingIpCreationOption
                 of
@@ -192,9 +190,7 @@ stepServerRequestPorts time project server =
     in
     if
         not server.exoProps.deletionAttempted
-            && (server.osProps.details.openstackStatus
-                    == OSTypes.ServerActive
-               )
+            && serverIsActiveEnough server
             && (case
                     Helpers.getNewFloatingIpOption project server.osProps server.exoProps.floatingIpCreationOption
                 of
@@ -244,9 +240,7 @@ stepServerRequestFloatingIp _ project server =
     -- Request to create/assign floating IP address to new server
     if
         not server.exoProps.deletionAttempted
-            && (server.osProps.details.openstackStatus
-                    == OSTypes.ServerActive
-               )
+            && serverIsActiveEnough server
     then
         case
             ( GetterSetters.getServerPorts project server.osProps.uuid
@@ -309,9 +303,6 @@ stepServerPollConsoleLog time project server =
                 curTimeMillis =
                     Time.posixToMillis time
 
-                serverIsActive =
-                    server.osProps.details.openstackStatus == OSTypes.ServerActive
-
                 consoleLogNotLoading =
                     -- ugh parallel data structures, should consolidate at some point?
                     case ( exoOriginProps.exoSetupStatus.refreshStatus, exoOriginProps.resourceUsage.refreshStatus ) of
@@ -326,7 +317,7 @@ stepServerPollConsoleLog time project server =
                 doPollLinesExoSetupStatus : Maybe (Maybe Int)
                 doPollLinesExoSetupStatus =
                     if
-                        serverIsActive
+                        serverIsActiveEnough server
                             && (exoOriginProps.exoServerVersion >= 4)
                             && consoleLogNotLoading
                     then
@@ -352,7 +343,7 @@ stepServerPollConsoleLog time project server =
                 doPollLinesResourceUsage : Maybe (Maybe Int)
                 doPollLinesResourceUsage =
                     if
-                        serverIsActive
+                        serverIsActiveEnough server
                             && (exoOriginProps.exoServerVersion >= 2)
                             && consoleLogNotLoading
                     then
@@ -480,7 +471,7 @@ stepServerPollConsoleLog time project server =
 
 stepServerGuacamoleAuth : Time.Posix -> Maybe UserAppProxyHostname -> Project -> Server -> ( Project, Cmd SharedMsg )
 stepServerGuacamoleAuth time maybeUserAppProxy project server =
-    -- TODO ensure server is active
+    -- TODO ensure server is active or in verify resize state
     let
         curTimeMillis =
             Time.posixToMillis time
@@ -601,3 +592,8 @@ stepServerGuacamoleAuth time maybeUserAppProxy project server =
                         _ ->
                             -- Missing either a floating IP, password, or TLS-terminating reverse proxy server
                             doNothing
+
+
+serverIsActiveEnough : Server -> Bool
+serverIsActiveEnough server =
+    List.member server.osProps.details.openstackStatus [ OSTypes.ServerActive, OSTypes.ServerVerifyResize ]

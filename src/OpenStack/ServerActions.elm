@@ -20,8 +20,8 @@ import Types.SharedMsg as SharedMsg
         )
 
 
-getAllowed : Maybe String -> Maybe String -> OSTypes.ServerStatus -> OSTypes.ServerLockStatus -> List ServerAction
-getAllowed maybeWordForServer maybeWordForImage serverStatus serverLockStatus =
+getAllowed : Maybe String -> Maybe String -> Maybe String -> OSTypes.ServerStatus -> OSTypes.ServerLockStatus -> List ServerAction
+getAllowed maybeWordForServer maybeWordForImage maybeWordForFlavor serverStatus serverLockStatus =
     let
         allowedByServerStatus action =
             case action.allowedStatuses of
@@ -39,7 +39,7 @@ getAllowed maybeWordForServer maybeWordForImage serverStatus serverLockStatus =
                 Just allowedLockStatus_ ->
                     serverLockStatus == allowedLockStatus_
     in
-    actions maybeWordForServer maybeWordForImage
+    actions maybeWordForServer maybeWordForImage maybeWordForFlavor
         |> List.filter allowedByServerStatus
         |> List.filter allowedByLockStatus
 
@@ -62,8 +62,8 @@ type SelectMod
     | Danger
 
 
-actions : Maybe String -> Maybe String -> List ServerAction
-actions maybeWordForServer maybeWordForImage =
+actions : Maybe String -> Maybe String -> Maybe String -> List ServerAction
+actions maybeWordForServer maybeWordForImage maybeWordForFlavor =
     let
         wordForServer =
             maybeWordForServer
@@ -72,8 +72,40 @@ actions maybeWordForServer maybeWordForImage =
         wordForImage =
             maybeWordForImage
                 |> Maybe.withDefault "image"
+
+        wordForFlavor =
+            maybeWordForFlavor
+                |> Maybe.withDefault "flavor"
     in
-    [ { name = "Lock"
+    [ { name = "Confirm"
+      , description =
+            String.join " "
+                [ "Finish"
+                , wordForServer
+                , "resize operation"
+                ]
+      , allowedStatuses = Just [ OSTypes.ServerVerifyResize ]
+      , allowedLockStatus = Just OSTypes.ServerUnlocked
+      , action =
+            doAction (Json.Encode.object [ ( "confirmResize", Json.Encode.null ) ]) (Just [ OSTypes.ServerActive ])
+      , selectMod = Primary
+      , confirmable = False
+      }
+    , { name = "Revert"
+      , description =
+            String.join " "
+                [ "Abort"
+                , wordForServer
+                , "resize operation"
+                ]
+      , allowedStatuses = Just [ OSTypes.ServerVerifyResize ]
+      , allowedLockStatus = Just OSTypes.ServerUnlocked
+      , action =
+            doAction (Json.Encode.object [ ( "revertResize", Json.Encode.null ) ]) (Just [ OSTypes.ServerActive ])
+      , selectMod = NoMod
+      , confirmable = False
+      }
+    , { name = "Lock"
       , description =
             String.join " "
                 [ "Prevent further"
@@ -174,6 +206,22 @@ actions maybeWordForServer maybeWordForImage =
       , action =
             doAction (Json.Encode.object [ ( "shelve", Json.Encode.null ) ])
                 (Just [ OSTypes.ServerShelved, OSTypes.ServerShelvedOffloaded ])
+      , selectMod = NoMod
+      , confirmable = False
+      }
+    , { name = "Resize"
+      , description =
+            String.join " "
+                [ "Change"
+                , wordForServer
+                , "to a different"
+                , wordForFlavor
+                ]
+      , allowedStatuses = Just [ OSTypes.ServerActive, OSTypes.ServerShutoff ]
+      , allowedLockStatus = Just OSTypes.ServerUnlocked
+      , action =
+            -- This must be overridden in the Page to do anything
+            \_ _ _ -> NoOp
       , selectMod = NoMod
       , confirmable = False
       }

@@ -54,7 +54,7 @@ type ProjectSpecificMsgConstructor
     | RemoveProject
     | ServerMsg OSTypes.ServerUuid ServerSpecificMsgConstructor
     | RequestServers
-    | RequestCreateServer HelperTypes.CreateServerPageModel OSTypes.NetworkUuid
+    | RequestCreateServer HelperTypes.CreateServerPageModel OSTypes.NetworkUuid OSTypes.FlavorId
     | RequestDeleteServers (List OSTypes.ServerUuid)
     | RequestCreateVolume OSTypes.VolumeName OSTypes.VolumeSize
     | RequestDeleteVolume OSTypes.VolumeUuid
@@ -103,6 +103,7 @@ type ServerSpecificMsgConstructor
     | RequestSetServerName String
     | RequestAttachVolume OSTypes.VolumeUuid
     | RequestCreateServerImage String
+    | RequestResizeServer OSTypes.FlavorId
     | ReceiveServerEvents ErrorContext (Result HttpErrorWithBody (List OSTypes.ServerEvent))
     | ReceiveConsoleUrl (Result HttpErrorWithBody OSTypes.ConsoleUrl)
     | ReceiveDeleteServer

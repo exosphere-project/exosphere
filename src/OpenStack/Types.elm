@@ -346,7 +346,9 @@ type alias ConsoleUrl =
     HelperTypes.Url
 
 
-type ServerStatus
+type
+    ServerStatus
+    -- TODO put these in alphabetical order here and everywhere they are used
     = ServerPaused
     | ServerSuspended
     | ServerActive
@@ -360,6 +362,9 @@ type ServerStatus
     | ServerShelved
     | ServerShelvedOffloaded
     | ServerDeleted
+    | ServerResize
+    | ServerVerifyResize
+    | ServerRevertResize
 
 
 serverStatusToString : ServerStatus -> String
@@ -403,6 +408,15 @@ serverStatusToString serverStatus =
 
         ServerDeleted ->
             "ServerDeleted"
+
+        ServerResize ->
+            "ServerResize"
+
+        ServerVerifyResize ->
+            "ServerVerifyResize"
+
+        ServerRevertResize ->
+            "ServerRevertResize"
 
 
 type ServerPowerState
