@@ -589,11 +589,11 @@ getServerUiStatus server =
             OSTypes.ServerReboot ->
                 ServerUiStatusRebooting
 
-            OSTypes.ServerResize ->
-                ServerUiStatusResizing
-
             OSTypes.ServerRescue ->
                 ServerUiStatusRescued
+
+            OSTypes.ServerResize ->
+                ServerUiStatusResizing
 
             OSTypes.ServerRevertResize ->
                 ServerUiStatusRevertingResize

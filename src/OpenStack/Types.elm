@@ -353,8 +353,8 @@ type ServerStatus
     | ServerError
     | ServerPaused
     | ServerReboot
-    | ServerResize
     | ServerRescue
+    | ServerResize
     | ServerRevertResize
     | ServerShelved
     | ServerShelvedOffloaded
@@ -386,11 +386,11 @@ serverStatusToString serverStatus =
         ServerReboot ->
             "Reboot"
 
-        ServerResize ->
-            "Resize"
-
         ServerRescue ->
             "Rescue"
+
+        ServerResize ->
+            "Resize"
 
         ServerRevertResize ->
             "RevertResize"

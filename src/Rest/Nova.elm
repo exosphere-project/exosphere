@@ -978,11 +978,11 @@ serverOpenstackStatusDecoder status =
         "reboot" ->
             Decode.succeed OSTypes.ServerReboot
 
-        "resize" ->
-            Decode.succeed OSTypes.ServerResize
-
         "rescued" ->
             Decode.succeed OSTypes.ServerRescue
+
+        "resize" ->
+            Decode.succeed OSTypes.ServerResize
 
         "revert_resize" ->
             Decode.succeed OSTypes.ServerRevertResize
