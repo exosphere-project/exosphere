@@ -369,52 +369,52 @@ serverStatusToString : ServerStatus -> String
 serverStatusToString serverStatus =
     case serverStatus of
         ServerActive ->
-            "ServerActive"
+            "Active"
 
         ServerBuild ->
-            "ServerBuild"
+            "Build"
 
         ServerDeleted ->
-            "ServerDeleted"
+            "Deleted"
 
         ServerError ->
-            "ServerError"
+            "Error"
 
         ServerPaused ->
-            "ServerPaused"
+            "Paused"
 
         ServerReboot ->
-            "ServerReboot"
+            "Reboot"
 
         ServerResize ->
-            "ServerResize"
+            "Resize"
 
         ServerRescue ->
-            "ServerRescue"
+            "Rescue"
 
         ServerRevertResize ->
-            "ServerRevertResize"
+            "RevertResize"
 
         ServerShelved ->
-            "ServerShelved"
+            "Shelved"
 
         ServerShelvedOffloaded ->
-            "ServerShelvedOffloaded"
+            "ShelvedOffloaded"
 
         ServerShutoff ->
-            "ServerShutoff"
+            "Shutoff"
 
         ServerSoftDeleted ->
-            "ServerSoftDeleted"
+            "SoftDeleted"
 
         ServerStopped ->
-            "ServerStopped"
+            "Stopped"
 
         ServerSuspended ->
-            "ServerSuspended"
+            "Suspended"
 
         ServerVerifyResize ->
-            "ServerVerifyResize"
+            "VerifyResize"
 
 
 type ServerPowerState

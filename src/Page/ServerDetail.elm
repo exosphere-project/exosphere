@@ -751,7 +751,6 @@ serverStatus context model server =
                 friendlyOpenstackStatus : OSTypes.ServerStatus -> String
                 friendlyOpenstackStatus osStatus =
                     OSTypes.serverStatusToString osStatus
-                        |> String.dropLeft 6
 
                 friendlyPowerState =
                     OSTypes.serverPowerStateToString details.powerState
