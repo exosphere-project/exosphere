@@ -67,7 +67,9 @@ currentExoServerVersion =
     4
 
 
-type ServerUiStatus
+type
+    ServerUiStatus
+    -- TODO alphabetize these here and everywhere they are used
     = ServerUiStatusUnknown
     | ServerUiStatusBuilding
     | ServerUiStatusRunningSetup
@@ -92,6 +94,8 @@ type ServerUiStatus
     | ServerUiStatusResizing
     | ServerUiStatusVerifyResize
     | ServerUiStatusRevertingResize
+    | ServerUiStatusMigrating
+    | ServerUiStatusPassword
 
 
 type ExoSetupStatus

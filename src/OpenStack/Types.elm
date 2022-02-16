@@ -351,8 +351,12 @@ type ServerStatus
     | ServerBuild
     | ServerDeleted
     | ServerError
+    | ServerHardReboot
+    | ServerMigrating
+    | ServerPassword
     | ServerPaused
     | ServerReboot
+    | ServerRebuild
     | ServerRescue
     | ServerResize
     | ServerRevertResize
@@ -362,6 +366,7 @@ type ServerStatus
     | ServerSoftDeleted
     | ServerStopped
     | ServerSuspended
+    | ServerUnknown
     | ServerVerifyResize
 
 
@@ -380,11 +385,23 @@ serverStatusToString serverStatus =
         ServerError ->
             "Error"
 
+        ServerHardReboot ->
+            "HardReboot"
+
+        ServerMigrating ->
+            "Migrating"
+
+        ServerPassword ->
+            "Password"
+
         ServerPaused ->
             "Paused"
 
         ServerReboot ->
             "Reboot"
+
+        ServerRebuild ->
+            "Rebuild"
 
         ServerRescue ->
             "Rescue"
@@ -412,6 +429,9 @@ serverStatusToString serverStatus =
 
         ServerSuspended ->
             "Suspended"
+
+        ServerUnknown ->
+            "Unknown"
 
         ServerVerifyResize ->
             "VerifyResize"

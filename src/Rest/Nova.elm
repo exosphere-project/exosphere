@@ -972,12 +972,25 @@ serverOpenstackStatusDecoder status =
         "error" ->
             Decode.succeed OSTypes.ServerError
 
+        "hard_reboot" ->
+            Decode.succeed OSTypes.ServerHardReboot
+
+        "migrating" ->
+            Decode.succeed OSTypes.ServerMigrating
+
+        "password" ->
+            Decode.succeed OSTypes.ServerPassword
+
         "paused" ->
             Decode.succeed OSTypes.ServerPaused
 
         "reboot" ->
             Decode.succeed OSTypes.ServerReboot
 
+        "rebuild" ->
+            Decode.succeed OSTypes.ServerRebuild
+
+        -- TODO this should be "rescue"
         "rescued" ->
             Decode.succeed OSTypes.ServerRescue
 
@@ -1004,6 +1017,9 @@ serverOpenstackStatusDecoder status =
 
         "suspended" ->
             Decode.succeed OSTypes.ServerSuspended
+
+        "unknown" ->
+            Decode.succeed OSTypes.ServerUnknown
 
         "verify_resize" ->
             Decode.succeed OSTypes.ServerVerifyResize

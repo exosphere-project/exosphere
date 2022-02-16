@@ -579,6 +579,15 @@ getServerUiStatus server =
             OSTypes.ServerError ->
                 ServerUiStatusError
 
+            OSTypes.ServerHardReboot ->
+                ServerUiStatusRebooting
+
+            OSTypes.ServerMigrating ->
+                ServerUiStatusMigrating
+
+            OSTypes.ServerPassword ->
+                ServerUiStatusPassword
+
             OSTypes.ServerPaused ->
                 if targetStatusActive then
                     ServerUiStatusUnpausing
@@ -588,6 +597,9 @@ getServerUiStatus server =
 
             OSTypes.ServerReboot ->
                 ServerUiStatusRebooting
+
+            OSTypes.ServerRebuild ->
+                ServerUiStatusBuilding
 
             OSTypes.ServerRescue ->
                 ServerUiStatusRescued
@@ -635,6 +647,9 @@ getServerUiStatus server =
 
                 else
                     ServerUiStatusSuspended
+
+            OSTypes.ServerUnknown ->
+                ServerUiStatusUnknown
 
             OSTypes.ServerVerifyResize ->
                 if targetStatusActive then
@@ -751,6 +766,12 @@ getServerUiStatusStr status =
         ServerUiStatusRevertingResize ->
             "Reverting Resize"
 
+        ServerUiStatusMigrating ->
+            "Migrating"
+
+        ServerUiStatusPassword ->
+            "Setting Password"
+
 
 getServerUiStatusBadgeState : ServerUiStatus -> StatusBadge.StatusBadgeState
 getServerUiStatusBadgeState status =
@@ -826,6 +847,12 @@ getServerUiStatusBadgeState status =
 
         ServerUiStatusRevertingResize ->
             StatusBadge.Warning
+
+        ServerUiStatusMigrating ->
+            StatusBadge.Warning
+
+        ServerUiStatusPassword ->
+            StatusBadge.ReadyGood
 
 
 renderMarkdown : View.Types.Context -> String -> List (Element.Element msg)
