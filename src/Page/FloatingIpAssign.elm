@@ -72,7 +72,7 @@ view context project model =
                             List.member s.osProps.details.openstackStatus
                                 [ OSTypes.ServerSoftDeleted
                                 , OSTypes.ServerError
-                                , OSTypes.ServerBuilding
+                                , OSTypes.ServerBuild
                                 , OSTypes.ServerDeleted
                                 ]
                     )

@@ -274,11 +274,11 @@ actions maybeWordForServer maybeWordForImage maybeWordForFlavor =
             Just
                 -- TODO add new statuses like resize-whatever, migrating, etc
                 [ OSTypes.ServerActive
-                , OSTypes.ServerBuilding
+                , OSTypes.ServerBuild
                 , OSTypes.ServerError
                 , OSTypes.ServerPaused
                 , OSTypes.ServerReboot
-                , OSTypes.ServerRescued
+                , OSTypes.ServerRescue
                 , OSTypes.ServerSuspended
                 , OSTypes.ServerShelved
                 , OSTypes.ServerShelvedOffloaded

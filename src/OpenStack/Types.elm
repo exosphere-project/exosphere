@@ -348,13 +348,13 @@ type alias ConsoleUrl =
 
 type ServerStatus
     = ServerActive
-    | ServerBuilding
+    | ServerBuild
     | ServerDeleted
     | ServerError
     | ServerPaused
     | ServerReboot
     | ServerResize
-    | ServerRescued
+    | ServerRescue
     | ServerRevertResize
     | ServerShelved
     | ServerShelvedOffloaded
@@ -371,8 +371,8 @@ serverStatusToString serverStatus =
         ServerActive ->
             "ServerActive"
 
-        ServerBuilding ->
-            "ServerBuilding"
+        ServerBuild ->
+            "ServerBuild"
 
         ServerDeleted ->
             "ServerDeleted"
@@ -389,8 +389,8 @@ serverStatusToString serverStatus =
         ServerResize ->
             "ServerResize"
 
-        ServerRescued ->
-            "ServerRescued"
+        ServerRescue ->
+            "ServerRescue"
 
         ServerRevertResize ->
             "ServerRevertResize"

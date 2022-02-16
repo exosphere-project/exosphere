@@ -964,7 +964,7 @@ serverOpenstackStatusDecoder status =
             Decode.succeed OSTypes.ServerActive
 
         "build" ->
-            Decode.succeed OSTypes.ServerBuilding
+            Decode.succeed OSTypes.ServerBuild
 
         "deleted" ->
             Decode.succeed OSTypes.ServerDeleted
@@ -982,7 +982,7 @@ serverOpenstackStatusDecoder status =
             Decode.succeed OSTypes.ServerResize
 
         "rescued" ->
-            Decode.succeed OSTypes.ServerRescued
+            Decode.succeed OSTypes.ServerRescue
 
         "revert_resize" ->
             Decode.succeed OSTypes.ServerRevertResize

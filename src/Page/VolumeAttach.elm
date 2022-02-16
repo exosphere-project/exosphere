@@ -83,7 +83,7 @@ view context project model =
                                 , OSTypes.ServerShelvedOffloaded
                                 , OSTypes.ServerError
                                 , OSTypes.ServerSoftDeleted
-                                , OSTypes.ServerBuilding
+                                , OSTypes.ServerBuild
                                 ]
                     )
                 |> List.map

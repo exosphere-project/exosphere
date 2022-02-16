@@ -710,7 +710,7 @@ serverNeedsFrequentPoll server =
           )
         )
     of
-        ( OSTypes.ServerBuilding, _ ) ->
+        ( OSTypes.ServerBuild, _ ) ->
             True
 
         ( _, ( False, Nothing, ServerNotFromExo ) ) ->

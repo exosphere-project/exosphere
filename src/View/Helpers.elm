@@ -570,7 +570,7 @@ getServerUiStatus server =
                     _ ->
                         whenNoTargetStatus
 
-            OSTypes.ServerBuilding ->
+            OSTypes.ServerBuild ->
                 ServerUiStatusBuilding
 
             OSTypes.ServerDeleted ->
@@ -592,7 +592,7 @@ getServerUiStatus server =
             OSTypes.ServerResize ->
                 ServerUiStatusResizing
 
-            OSTypes.ServerRescued ->
+            OSTypes.ServerRescue ->
                 ServerUiStatusRescued
 
             OSTypes.ServerRevertResize ->

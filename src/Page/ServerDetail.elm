@@ -400,7 +400,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                                 , OSTypes.ServerShelvedOffloaded
                                 , OSTypes.ServerError
                                 , OSTypes.ServerSoftDeleted
-                                , OSTypes.ServerBuilding
+                                , OSTypes.ServerBuild
                                 ]
                     then
                         Element.link []
