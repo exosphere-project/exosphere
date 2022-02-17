@@ -272,18 +272,25 @@ actions maybeWordForServer maybeWordForImage maybeWordForFlavor =
                 ]
       , allowedStatuses =
             Just
-                -- TODO add new statuses like resize-whatever, migrating, etc
                 [ OSTypes.ServerActive
                 , OSTypes.ServerBuild
                 , OSTypes.ServerError
+                , OSTypes.ServerHardReboot
+                , OSTypes.ServerMigrating
+                , OSTypes.ServerPassword
                 , OSTypes.ServerPaused
                 , OSTypes.ServerReboot
+                , OSTypes.ServerRebuild
                 , OSTypes.ServerRescue
-                , OSTypes.ServerSuspended
+                , OSTypes.ServerResize
+                , OSTypes.ServerRevertResize
                 , OSTypes.ServerShelved
                 , OSTypes.ServerShelvedOffloaded
                 , OSTypes.ServerShutoff
                 , OSTypes.ServerStopped
+                , OSTypes.ServerSuspended
+                , OSTypes.ServerUnknown
+                , OSTypes.ServerVerifyResize
                 ]
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
