@@ -990,8 +990,7 @@ serverOpenstackStatusDecoder status =
         "rebuild" ->
             Decode.succeed OSTypes.ServerRebuild
 
-        -- TODO this should be "rescue"
-        "rescued" ->
+        "rescue" ->
             Decode.succeed OSTypes.ServerRescue
 
         "resize" ->
