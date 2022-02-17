@@ -549,8 +549,11 @@ getServerUiStatus server =
                                 ServerUiStatusReady
                 in
                 case maybeFirstTargetStatus of
-                    Just OSTypes.ServerSuspended ->
-                        ServerUiStatusSuspending
+                    Just OSTypes.ServerDeleted ->
+                        ServerUiStatusDeleting
+
+                    Just OSTypes.ServerResize ->
+                        ServerUiStatusResizing
 
                     Just OSTypes.ServerShelved ->
                         ServerUiStatusShelving
@@ -561,14 +564,29 @@ getServerUiStatus server =
                     Just OSTypes.ServerSoftDeleted ->
                         ServerUiStatusDeleting
 
-                    Just OSTypes.ServerDeleted ->
-                        ServerUiStatusDeleting
-
-                    Just OSTypes.ServerResize ->
-                        ServerUiStatusResizing
+                    Just OSTypes.ServerSuspended ->
+                        ServerUiStatusSuspending
 
                     _ ->
                         whenNoTargetStatus
+
+            OSTypes.ServerBuild ->
+                ServerUiStatusBuilding
+
+            OSTypes.ServerDeleted ->
+                ServerUiStatusDeleted
+
+            OSTypes.ServerError ->
+                ServerUiStatusError
+
+            OSTypes.ServerHardReboot ->
+                ServerUiStatusRebooting
+
+            OSTypes.ServerMigrating ->
+                ServerUiStatusMigrating
+
+            OSTypes.ServerPassword ->
+                ServerUiStatusPassword
 
             OSTypes.ServerPaused ->
                 if targetStatusActive then
@@ -580,38 +598,17 @@ getServerUiStatus server =
             OSTypes.ServerReboot ->
                 ServerUiStatusRebooting
 
-            OSTypes.ServerSuspended ->
-                if targetStatusActive then
-                    ServerUiStatusResuming
-
-                else
-                    ServerUiStatusSuspended
-
-            OSTypes.ServerShutoff ->
-                if targetStatusActive then
-                    ServerUiStatusStarting
-
-                else
-                    ServerUiStatusShutoff
-
-            OSTypes.ServerStopped ->
-                if targetStatusActive then
-                    ServerUiStatusStarting
-
-                else
-                    ServerUiStatusStopped
-
-            OSTypes.ServerSoftDeleted ->
-                ServerUiStatusSoftDeleted
-
-            OSTypes.ServerError ->
-                ServerUiStatusError
-
-            OSTypes.ServerBuilding ->
+            OSTypes.ServerRebuild ->
                 ServerUiStatusBuilding
 
-            OSTypes.ServerRescued ->
+            OSTypes.ServerRescue ->
                 ServerUiStatusRescued
+
+            OSTypes.ServerResize ->
+                ServerUiStatusResizing
+
+            OSTypes.ServerRevertResize ->
+                ServerUiStatusRevertingResize
 
             OSTypes.ServerShelved ->
                 if targetStatusActive then
@@ -627,11 +624,32 @@ getServerUiStatus server =
                 else
                     ServerUiStatusShelved
 
-            OSTypes.ServerDeleted ->
-                ServerUiStatusDeleted
+            OSTypes.ServerShutoff ->
+                if targetStatusActive then
+                    ServerUiStatusStarting
 
-            OSTypes.ServerResize ->
-                ServerUiStatusResizing
+                else
+                    ServerUiStatusShutoff
+
+            OSTypes.ServerSoftDeleted ->
+                ServerUiStatusSoftDeleted
+
+            OSTypes.ServerStopped ->
+                if targetStatusActive then
+                    ServerUiStatusStarting
+
+                else
+                    ServerUiStatusStopped
+
+            OSTypes.ServerSuspended ->
+                if targetStatusActive then
+                    ServerUiStatusResuming
+
+                else
+                    ServerUiStatusSuspended
+
+            OSTypes.ServerUnknown ->
+                ServerUiStatusUnknown
 
             OSTypes.ServerVerifyResize ->
                 if targetStatusActive then
@@ -639,9 +657,6 @@ getServerUiStatus server =
 
                 else
                     ServerUiStatusVerifyResize
-
-            OSTypes.ServerRevertResize ->
-                ServerUiStatusRevertingResize
 
 
 getExoSetupStatusStr : Server -> Maybe String
@@ -751,6 +766,12 @@ getServerUiStatusStr status =
         ServerUiStatusRevertingResize ->
             "Reverting Resize"
 
+        ServerUiStatusMigrating ->
+            "Migrating"
+
+        ServerUiStatusPassword ->
+            "Setting Password"
+
 
 getServerUiStatusBadgeState : ServerUiStatus -> StatusBadge.StatusBadgeState
 getServerUiStatusBadgeState status =
@@ -826,6 +847,12 @@ getServerUiStatusBadgeState status =
 
         ServerUiStatusRevertingResize ->
             StatusBadge.Warning
+
+        ServerUiStatusMigrating ->
+            StatusBadge.Warning
+
+        ServerUiStatusPassword ->
+            StatusBadge.ReadyGood
 
 
 renderMarkdown : View.Types.Context -> String -> List (Element.Element msg)

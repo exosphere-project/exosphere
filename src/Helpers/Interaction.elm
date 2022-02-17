@@ -368,7 +368,7 @@ interactionStatus project server interaction context currentTime tlsReverseProxy
                     customWorkflowInteraction
     in
     case server.osProps.details.openstackStatus of
-        OSTypes.ServerBuilding ->
+        OSTypes.ServerBuild ->
             ITypes.Unavailable <|
                 String.join " "
                     [ context.localization.virtualComputer

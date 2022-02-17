@@ -346,77 +346,95 @@ type alias ConsoleUrl =
     HelperTypes.Url
 
 
-type
-    ServerStatus
-    -- TODO put these in alphabetical order here and everywhere they are used
-    = ServerPaused
-    | ServerSuspended
-    | ServerActive
-    | ServerReboot
-    | ServerShutoff
-    | ServerStopped
-    | ServerSoftDeleted
+type ServerStatus
+    = ServerActive
+    | ServerBuild
+    | ServerDeleted
     | ServerError
-    | ServerBuilding
-    | ServerRescued
+    | ServerHardReboot
+    | ServerMigrating
+    | ServerPassword
+    | ServerPaused
+    | ServerReboot
+    | ServerRebuild
+    | ServerRescue
+    | ServerResize
+    | ServerRevertResize
     | ServerShelved
     | ServerShelvedOffloaded
-    | ServerDeleted
-    | ServerResize
+    | ServerShutoff
+    | ServerSoftDeleted
+    | ServerStopped
+    | ServerSuspended
+    | ServerUnknown
     | ServerVerifyResize
-    | ServerRevertResize
 
 
 serverStatusToString : ServerStatus -> String
 serverStatusToString serverStatus =
     case serverStatus of
-        ServerPaused ->
-            "ServerPaused"
-
-        ServerSuspended ->
-            "ServerSuspended"
-
         ServerActive ->
-            "ServerActive"
+            "Active"
 
-        ServerReboot ->
-            "ServerReboot"
-
-        ServerShutoff ->
-            "ServerShutoff"
-
-        ServerStopped ->
-            "ServerStopped"
-
-        ServerSoftDeleted ->
-            "ServerSoftDeleted"
-
-        ServerError ->
-            "ServerError"
-
-        ServerBuilding ->
-            "ServerBuilding"
-
-        ServerRescued ->
-            "ServerRescued"
-
-        ServerShelved ->
-            "ServerShelved"
-
-        ServerShelvedOffloaded ->
-            "ServerShelvedOffloaded"
+        ServerBuild ->
+            "Build"
 
         ServerDeleted ->
-            "ServerDeleted"
+            "Deleted"
+
+        ServerError ->
+            "Error"
+
+        ServerHardReboot ->
+            "HardReboot"
+
+        ServerMigrating ->
+            "Migrating"
+
+        ServerPassword ->
+            "Password"
+
+        ServerPaused ->
+            "Paused"
+
+        ServerReboot ->
+            "Reboot"
+
+        ServerRebuild ->
+            "Rebuild"
+
+        ServerRescue ->
+            "Rescue"
 
         ServerResize ->
-            "ServerResize"
-
-        ServerVerifyResize ->
-            "ServerVerifyResize"
+            "Resize"
 
         ServerRevertResize ->
-            "ServerRevertResize"
+            "RevertResize"
+
+        ServerShelved ->
+            "Shelved"
+
+        ServerShelvedOffloaded ->
+            "ShelvedOffloaded"
+
+        ServerShutoff ->
+            "Shutoff"
+
+        ServerSoftDeleted ->
+            "SoftDeleted"
+
+        ServerStopped ->
+            "Stopped"
+
+        ServerSuspended ->
+            "Suspended"
+
+        ServerUnknown ->
+            "Unknown"
+
+        ServerVerifyResize ->
+            "VerifyResize"
 
 
 type ServerPowerState

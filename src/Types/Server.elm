@@ -92,6 +92,8 @@ type ServerUiStatus
     | ServerUiStatusResizing
     | ServerUiStatusVerifyResize
     | ServerUiStatusRevertingResize
+    | ServerUiStatusMigrating
+    | ServerUiStatusPassword
 
 
 type ExoSetupStatus

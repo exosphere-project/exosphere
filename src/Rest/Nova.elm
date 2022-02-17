@@ -960,35 +960,44 @@ decodeServerDetails =
 serverOpenstackStatusDecoder : String -> Decode.Decoder OSTypes.ServerStatus
 serverOpenstackStatusDecoder status =
     case String.toLower status of
-        "paused" ->
-            Decode.succeed OSTypes.ServerPaused
-
-        "suspended" ->
-            Decode.succeed OSTypes.ServerSuspended
-
         "active" ->
             Decode.succeed OSTypes.ServerActive
 
-        "reboot" ->
-            Decode.succeed OSTypes.ServerReboot
+        "build" ->
+            Decode.succeed OSTypes.ServerBuild
 
-        "shutoff" ->
-            Decode.succeed OSTypes.ServerShutoff
-
-        "rescued" ->
-            Decode.succeed OSTypes.ServerRescued
-
-        "stopped" ->
-            Decode.succeed OSTypes.ServerStopped
-
-        "soft_deleted" ->
-            Decode.succeed OSTypes.ServerSoftDeleted
+        "deleted" ->
+            Decode.succeed OSTypes.ServerDeleted
 
         "error" ->
             Decode.succeed OSTypes.ServerError
 
-        "build" ->
-            Decode.succeed OSTypes.ServerBuilding
+        "hard_reboot" ->
+            Decode.succeed OSTypes.ServerHardReboot
+
+        "migrating" ->
+            Decode.succeed OSTypes.ServerMigrating
+
+        "password" ->
+            Decode.succeed OSTypes.ServerPassword
+
+        "paused" ->
+            Decode.succeed OSTypes.ServerPaused
+
+        "reboot" ->
+            Decode.succeed OSTypes.ServerReboot
+
+        "rebuild" ->
+            Decode.succeed OSTypes.ServerRebuild
+
+        "rescue" ->
+            Decode.succeed OSTypes.ServerRescue
+
+        "resize" ->
+            Decode.succeed OSTypes.ServerResize
+
+        "revert_resize" ->
+            Decode.succeed OSTypes.ServerRevertResize
 
         "shelved" ->
             Decode.succeed OSTypes.ServerShelved
@@ -996,17 +1005,23 @@ serverOpenstackStatusDecoder status =
         "shelved_offloaded" ->
             Decode.succeed OSTypes.ServerShelvedOffloaded
 
-        "deleted" ->
-            Decode.succeed OSTypes.ServerDeleted
+        "shutoff" ->
+            Decode.succeed OSTypes.ServerShutoff
 
-        "resize" ->
-            Decode.succeed OSTypes.ServerResize
+        "soft_deleted" ->
+            Decode.succeed OSTypes.ServerSoftDeleted
+
+        "stopped" ->
+            Decode.succeed OSTypes.ServerStopped
+
+        "suspended" ->
+            Decode.succeed OSTypes.ServerSuspended
+
+        "unknown" ->
+            Decode.succeed OSTypes.ServerUnknown
 
         "verify_resize" ->
             Decode.succeed OSTypes.ServerVerifyResize
-
-        "revert_resize" ->
-            Decode.succeed OSTypes.ServerRevertResize
 
         _ ->
             Decode.fail "Ooooooops, unrecognised server OpenStack status"
