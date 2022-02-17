@@ -129,7 +129,7 @@ var config = {
         {
           "friendlyName":"CentOS",
           "description":"Based on Red Hat Enterprise Linux (RHEL), compatible with RPM-based software",
-          "logo":"assets/img/centos.svg",
+          "logo":"assets/img/hat-fedora.svg",
           "versions":[
             {
               "friendlyName":"8 (latest)",

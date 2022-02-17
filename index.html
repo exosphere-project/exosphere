@@ -21,6 +21,29 @@
       navigator.serviceWorker.register('service-worker.js');
     };
     </script>
+    <script type="text/javascript">
+      // Pre-load some images using JavaScript
+      let images_to_preload = [
+        "assets/img/logo-alt.svg",
+        "assets/img/logo-196px-maskable.png",
+        "assets/img/openstack-logo.svg",
+        "assets/img/jetstream1-logo.svg",
+        "assets/img/jetstream1-logo-white.svg",
+        "assets/img/jetstream2-logo-white.svg",
+        "assets/img/ubuntu.svg",
+        "assets/img/hat-fedora.svg"
+      ];
+
+      let loaded_images = [];
+
+      for (let i = 0; i < images_to_preload.length; i++) {
+        let img = new Image();
+        img.src = images_to_preload[i];
+        loaded_images.push(img);
+      }
+    </script>
+
+
   </head>
 
   <body>

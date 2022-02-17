@@ -1,7 +1,10 @@
 module Page.InstanceTypeList exposing (Msg(..), view)
 
+import Color
 import Dict
 import Element
+import Element.Background as Background
+import Element.Border as Border
 import Element.Font as Font
 import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
@@ -120,16 +123,26 @@ view context project instanceTypes =
                         , Element.spacing 15
                         ]
                       <|
-                        [ Element.image
-                            [ Element.width (Element.px 80)
-                            , Element.height (Element.px 80)
+                        [ Element.el
+                            -- Yes, a hard-coded color when we've otherwise removed them from the app. These logos need a light background to look right.
+                            [ Background.color <| SH.toElementColor <| Color.rgb255 255 255 255
                             , Element.centerX
-                            , Element.htmlAttribute <| HtmlA.style "color" "blue"
-                            , Font.color <| SH.toElementColor context.palette.primary
+                            , Element.paddingXY 15 0
+                            , Border.rounded 10
+                            , Element.height <| Element.px 100
                             ]
-                            { src = instanceType.logo
-                            , description = instanceType.friendlyName ++ " logo"
-                            }
+                            (Element.image
+                                [ Element.width (Element.px 80)
+                                , Element.height (Element.px 80)
+                                , Element.centerX
+                                , Element.centerY
+                                , Element.htmlAttribute <| HtmlA.style "color" "blue"
+                                , Font.color <| SH.toElementColor context.palette.primary
+                                ]
+                                { src = instanceType.logo
+                                , description = instanceType.friendlyName ++ " logo"
+                                }
+                            )
                         , Element.el
                             [ Element.centerX
                             , Font.bold
