@@ -128,7 +128,7 @@ var cloud_configs = {
         {
           "friendlyName":"Red Hat-like",
           "description":"- Based on Red Hat Enterprise Linux (RHEL)\n\n- Compatible with RPM-based software",
-          "logo":"assets/img/centos.svg",
+          "logo":"assets/img/hat-fedora.svg",
           "versions":[
             {
               "friendlyName":"CentOS 8",
@@ -365,7 +365,7 @@ var cloud_configs = {
         {
           "friendlyName":"CentOS",
           "description":"- Based on Red Hat Enterprise Linux (RHEL)\n\n- Compatible with RPM-based software",
-          "logo":"assets/img/centos.svg",
+          "logo":"assets/img/hat-fedora.svg",
           "versions":[
             {
               "friendlyName":"8 (latest)",
@@ -434,7 +434,7 @@ var cloud_configs = {
         {
           "friendlyName":"Red Hat-like",
           "description":"- Based on Red Hat Enterprise Linux (RHEL)\n\n- Compatible with RPM-based software",
-          "logo":"assets/img/centos.svg",
+          "logo":"assets/img/hat-fedora.svg",
           "versions":[
             {
               "friendlyName":"Rocky Linux 8",
