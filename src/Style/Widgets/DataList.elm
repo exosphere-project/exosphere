@@ -457,12 +457,16 @@ toolbarView model toMsg palette rowStyle data bulkActions filters =
                             bulkActions
                     )
     in
-    Element.row
-        rowStyle
-        [ selectAllCheckbox
-        , filtersView model toMsg palette filters data.complete
-        , bulkActionsView
-        ]
+    if List.isEmpty bulkActions && List.isEmpty filters then
+        Element.none
+
+    else
+        Element.row
+            rowStyle
+            [ selectAllCheckbox
+            , filtersView model toMsg palette filters data.complete
+            , bulkActionsView
+            ]
 
 
 filtersView :
@@ -741,21 +745,25 @@ filtersView model toMsg palette filters data =
             else
                 Element.none
     in
-    Element.wrappedRow
-        ([ Element.spacing 10
-         , Element.width Element.fill
-         , Element.alignTop
-         ]
-            ++ (if model.showFiltersDropdown then
-                    [ Element.below filtersDropdown ]
+    if List.isEmpty filters then
+        Element.none
 
-                else
-                    []
-               )
-        )
-        (List.concat
-            [ [ Element.text "Filters: " ]
-            , selectedFiltersChips
-            , [ addFilterBtn, clearAllBtn ]
-            ]
-        )
+    else
+        Element.wrappedRow
+            ([ Element.spacing 10
+             , Element.width Element.fill
+             , Element.alignTop
+             ]
+                ++ (if model.showFiltersDropdown then
+                        [ Element.below filtersDropdown ]
+
+                    else
+                        []
+                   )
+            )
+            (List.concat
+                [ [ Element.text "Filters: " ]
+                , selectedFiltersChips
+                , [ addFilterBtn, clearAllBtn ]
+                ]
+            )
