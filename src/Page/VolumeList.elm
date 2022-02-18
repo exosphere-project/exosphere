@@ -32,7 +32,9 @@ type alias Model =
 type Msg
     = GotExpandCard OSTypes.VolumeUuid Bool
     | VolumeDetailMsg OSTypes.VolumeUuid Page.VolumeDetail.Msg
+    | DetachVolume OSTypes.VolumeUuid
     | DataListMsg DataList.Msg
+    | NoOp
 
 
 init : Bool -> Model
@@ -53,7 +55,7 @@ update msg project model =
                         Set.remove uuid model.expandedVols
               }
             , Cmd.none
-            , NoOp
+            , SharedMsg.NoOp
             )
 
         VolumeDetailMsg uuid subMsg ->
@@ -93,11 +95,24 @@ update msg project model =
                 Page.VolumeDetail.NoOp ->
                     ( model, Cmd.none, SharedMsg.NoOp )
 
+        DetachVolume volumeUuid ->
+            ( model
+            , Cmd.none
+            , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
+                SharedMsg.RequestDetachVolume volumeUuid
+            )
+
         DataListMsg dataListMsg ->
             ( { model
                 | dataListModel =
                     DataList.update dataListMsg model.dataListModel
               }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
+
+        NoOp ->
+            ( model
             , Cmd.none
             , SharedMsg.NoOp
             )
@@ -165,10 +180,7 @@ renderVolumeCard context project model volume =
 
 type alias VolumeRecord =
     DataList.DataRecord
-        { name : OSTypes.VolumeName
-        , size : OSTypes.VolumeSize
-        , status : OSTypes.VolumeStatus
-        , attachment : Maybe OSTypes.VolumeAttachment
+        { volume : OSTypes.Volume
 
         -- TODO: figure how to fetch
         -- , creationTime : Time.Posix
@@ -182,10 +194,7 @@ volumeRecords volumes =
         (\volume ->
             { id = volume.uuid
             , selectable = False
-            , name = volume.name
-            , size = volume.size
-            , status = volume.status
-            , attachment = List.head volume.attachments
+            , volume = volume
             }
         )
         volumes
@@ -196,7 +205,7 @@ volumeView :
     -> View.Types.Context
     -> Project
     -> VolumeRecord
-    -> Element.Element msg
+    -> Element.Element Msg
 volumeView model context project volumeRecord =
     let
         volumeLink =
@@ -211,7 +220,7 @@ volumeView model context project volumeRecord =
                         [ Font.size 18
                         , Font.color (SH.toElementColor context.palette.primary)
                         ]
-                        (Element.text volumeRecord.name)
+                        (Element.text volumeRecord.volume.name)
                 }
 
         volumeAttachment =
@@ -226,7 +235,7 @@ volumeView model context project volumeRecord =
             in
             Element.row [ Element.alignRight ]
                 [ Element.text "Attached to "
-                , case volumeRecord.attachment of
+                , case List.head volumeRecord.volume.attachments of
                     Just volumeAttachment_ ->
                         Element.link []
                             { url =
@@ -246,8 +255,45 @@ volumeView model context project volumeRecord =
                 ]
 
         volumeActions =
-            -- TODO: Add no action, detach, attach + delete for 3 possible cases
-            Element.text "Action"
+            case volumeRecord.volume.status of
+                OSTypes.InUse ->
+                    if GetterSetters.isBootVolume Nothing volumeRecord.volume then
+                        Element.row [ Element.height <| Element.minimum 32 Element.fill ]
+                            [ Element.text "as "
+                            , Element.el
+                                [ Font.color (SH.toElementColor context.palette.on.background) ]
+                                (Element.text <| "boot " ++ context.localization.blockDevice)
+                            ]
+
+                    else
+                        Widget.textButton
+                            (SH.materialStyle context.palette).button
+                            { text = "Detach"
+                            , onPress =
+                                Just <| DetachVolume volumeRecord.id
+                            }
+
+                OSTypes.Available ->
+                    Element.row [ Element.spacing 12 ]
+                        [ -- TODO: Add delete button
+                          Element.text "Delete"
+                        , Element.link []
+                            { url =
+                                Route.toUrl context.urlPathPrefix
+                                    (Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
+                                        Route.VolumeAttach Nothing (Just volumeRecord.id)
+                                    )
+                            , label =
+                                Widget.textButton
+                                    (SH.materialStyle context.palette).button
+                                    { text = "Attach"
+                                    , onPress = Just NoOp
+                                    }
+                            }
+                        ]
+
+                _ ->
+                    Element.none
     in
     Element.column
         [ Element.spacing 12
@@ -262,7 +308,7 @@ volumeView model context project volumeRecord =
             [ Element.spacing 8
             , Element.width Element.fill
             ]
-            [ Element.el [] (Element.text <| String.fromInt volumeRecord.size ++ " GB")
+            [ Element.el [] (Element.text <| String.fromInt volumeRecord.volume.size ++ " GB")
 
             -- , Element.text "·"
             -- , Element.paragraph []
