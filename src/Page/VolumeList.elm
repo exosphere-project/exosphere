@@ -13,6 +13,7 @@ import Set
 import Style.Helpers as SH
 import Style.Widgets.Card as ExoCard
 import Style.Widgets.DataList as DataList
+import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
 import Time
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
@@ -25,6 +26,7 @@ type alias Model =
     { showHeading : Bool
     , expandedVols : Set.Set OSTypes.VolumeUuid
     , deleteConfirmations : Set.Set OSTypes.VolumeUuid
+    , shownDeletePopconfirm : Maybe OSTypes.VolumeUuid
     , dataListModel : DataList.Model
     }
 
@@ -33,13 +35,19 @@ type Msg
     = GotExpandCard OSTypes.VolumeUuid Bool
     | VolumeDetailMsg OSTypes.VolumeUuid Page.VolumeDetail.Msg
     | DetachVolume OSTypes.VolumeUuid
+    | GotDeleteConfirm OSTypes.VolumeUuid
+    | ShowDeletePopconfirm OSTypes.VolumeUuid Bool
     | DataListMsg DataList.Msg
     | NoOp
 
 
 init : Bool -> Model
 init showHeading =
-    Model showHeading Set.empty Set.empty (DataList.init <| DataList.getDefaultFilterOptions [])
+    Model showHeading
+        Set.empty
+        Set.empty
+        Nothing
+        (DataList.init <| DataList.getDefaultFilterOptions [])
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
@@ -102,6 +110,26 @@ update msg project model =
                 SharedMsg.RequestDetachVolume volumeUuid
             )
 
+        GotDeleteConfirm volumeUuid ->
+            ( { model | shownDeletePopconfirm = Nothing }
+            , Cmd.none
+            , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
+                SharedMsg.RequestDeleteVolume volumeUuid
+            )
+
+        ShowDeletePopconfirm volumeUuid toBeShown ->
+            ( { model
+                | shownDeletePopconfirm =
+                    if toBeShown then
+                        Just volumeUuid
+
+                    else
+                        Nothing
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
+
         DataListMsg dataListMsg ->
             ( { model
                 | dataListModel =
@@ -123,7 +151,6 @@ view context project model =
     let
         renderSuccessCase : List OSTypes.Volume -> Element.Element Msg
         renderSuccessCase volumes_ =
-            -- TODO: use datalist instead
             DataList.view
                 model.dataListModel
                 DataListMsg
@@ -256,8 +283,15 @@ volumeView model context project volumeRecord =
 
         volumeActions =
             case volumeRecord.volume.status of
+                OSTypes.Detaching ->
+                    Element.el [ Font.italic ] (Element.text "Detaching ...")
+
+                OSTypes.Deleting ->
+                    Element.el [ Font.italic ] (Element.text "Deleting ...")
+
                 OSTypes.InUse ->
                     if GetterSetters.isBootVolume Nothing volumeRecord.volume then
+                        -- Volume cannot be deleted or detached
                         Element.row [ Element.height <| Element.minimum 32 Element.fill ]
                             [ Element.text "as "
                             , Element.el
@@ -266,6 +300,7 @@ volumeView model context project volumeRecord =
                             ]
 
                     else
+                        -- Volume can only be detached
                         Widget.textButton
                             (SH.materialStyle context.palette).button
                             { text = "Detach"
@@ -274,9 +309,39 @@ volumeView model context project volumeRecord =
                             }
 
                 OSTypes.Available ->
+                    -- Volume can be either deleted or attached
+                    let
+                        showDeletePopconfirm =
+                            case model.shownDeletePopconfirm of
+                                Just shownDeletePopconfirmVolumeId ->
+                                    shownDeletePopconfirmVolumeId == volumeRecord.id
+
+                                Nothing ->
+                                    False
+                    in
                     Element.row [ Element.spacing 12 ]
-                        [ -- TODO: Add delete button
-                          Element.text "Delete"
+                        [ Element.el
+                            (if showDeletePopconfirm then
+                                [ Element.below <|
+                                    deletePopconfirm context.palette
+                                        { confirmationText =
+                                            "Are you sure you want to delete this "
+                                                ++ context.localization.blockDevice
+                                                ++ "?"
+                                        , onConfirm = Just <| GotDeleteConfirm volumeRecord.id
+                                        , onCancel = Just <| ShowDeletePopconfirm volumeRecord.id False
+                                        }
+                                ]
+
+                             else
+                                []
+                            )
+                            (deleteIconButton
+                                context.palette
+                                False
+                                "Delete Volume"
+                                (Just <| ShowDeletePopconfirm volumeRecord.id True)
+                            )
                         , Element.link []
                             { url =
                                 Route.toUrl context.urlPathPrefix
