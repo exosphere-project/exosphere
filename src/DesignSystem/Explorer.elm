@@ -4,7 +4,9 @@ import Element exposing (text)
 import Html
 import Style.Helpers as SH
 import Style.Types
+import Style.Widgets.Card exposing (badge)
 import Style.Widgets.Icon exposing (bell, console, copyToClipboard, history, ipAddress, lock, lockOpen, plusCircle, remove, roundRect, timesCircle)
+import Style.Widgets.StatusBadge exposing (statusBadge)
 import UIExplorer
     exposing
         ( UIExplorerProgram
@@ -44,6 +46,39 @@ palette =
 defaultIcon : (Element.Color -> number -> icon) -> icon
 defaultIcon icon =
     icon (palette.on.background |> SH.toElementColor) 25
+
+
+type ButtonVariant
+    = Primary
+    | Plain
+    | Danger
+    | Danger2
+    | Warning
+
+
+button : ButtonVariant -> { textButton | onPress : Maybe msg, text : String } -> Element.Element msg
+button variant params =
+    let
+        style =
+            case variant of
+                Primary ->
+                    (SH.materialStyle palette).primaryButton
+
+                Danger ->
+                    (SH.materialStyle palette).dangerButton
+
+                Danger2 ->
+                    (SH.materialStyle palette).dangerButtonSecondary
+
+                Warning ->
+                    (SH.materialStyle palette).warningButton
+
+                _ ->
+                    (SH.materialStyle palette).button
+    in
+    textButton
+        style
+        params
 
 
 
@@ -109,49 +144,37 @@ main =
                     [ ( "primary"
                       , \_ ->
                             toHtml <|
-                                Widget.textButton
-                                    (SH.materialStyle palette).primaryButton
-                                    { text = "Create", onPress = Just NoOp }
+                                button Primary { text = "Create", onPress = Just NoOp }
                       , {}
                       )
                     , ( "disabled"
                       , \_ ->
                             toHtml <|
-                                Widget.textButton
-                                    (SH.materialStyle palette).primaryButton
-                                    { text = "Next", onPress = Nothing }
+                                button Primary { text = "Next", onPress = Nothing }
                       , {}
                       )
                     , ( "plain"
                       , \_ ->
                             toHtml <|
-                                Widget.textButton
-                                    (SH.materialStyle palette).button
-                                    { text = "Next", onPress = Just NoOp }
+                                button Plain { text = "Next", onPress = Just NoOp }
                       , {}
                       )
                     , ( "warning"
                       , \_ ->
                             toHtml <|
-                                Widget.textButton
-                                    (SH.materialStyle palette).warningButton
-                                    { text = "Suspend", onPress = Just NoOp }
+                                button Warning { text = "Suspend", onPress = Just NoOp }
                       , {}
                       )
                     , ( "danger"
                       , \_ ->
                             toHtml <|
-                                Widget.textButton
-                                    (SH.materialStyle palette).dangerButton
-                                    { text = "Delete All", onPress = Just NoOp }
+                                button Danger { text = "Delete All", onPress = Just NoOp }
                       , {}
                       )
                     , ( "danger secondary"
                       , \_ ->
                             toHtml <|
-                                Widget.textButton
-                                    (SH.materialStyle palette).dangerButtonSecondary
-                                    { text = "Delete All", onPress = Just NoOp }
+                                button Danger2 { text = "Delete All", onPress = Just NoOp }
                       , {}
                       )
                     ]
