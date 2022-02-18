@@ -356,17 +356,10 @@ serverView model context currentTime project serverRecord =
                            ]
             }
 
-        popoverStyle =
-            [ Background.color <| SH.toElementColor context.palette.background
-            , Border.width 1
-            , Border.color <| SH.toElementColorWithOpacity context.palette.on.background 0.16
-            , Border.shadow SH.shadowDefaults
-            ]
-
         interactionPopover =
             Element.el [ Element.paddingXY 0 6 ] <|
                 Element.column
-                    (popoverStyle ++ [ Element.padding 10 ])
+                    (SH.popoverStyleDefaults context.palette ++ [ Element.padding 10 ])
                     (List.map
                         (\{ interactionStatus, interactionDetails } ->
                             Widget.button
@@ -465,7 +458,10 @@ serverView model context currentTime project serverRecord =
 
         deletePopconfirm =
             Element.el [ Element.paddingXY 0 6, Element.alignRight ] <|
-                Element.column (popoverStyle ++ [ Element.padding 16, Element.spacing 16 ])
+                Element.column
+                    (SH.popoverStyleDefaults context.palette
+                        ++ [ Element.padding 16, Element.spacing 16 ]
+                    )
                     [ Element.row [ Element.spacing 8 ]
                         [ FeatherIcons.alertCircle
                             |> FeatherIcons.withSize 20

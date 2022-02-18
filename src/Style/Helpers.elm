@@ -1,5 +1,6 @@
 module Style.Helpers exposing
     ( materialStyle
+    , popoverStyleDefaults
     , shadowDefaults
     , toCssColor
     , toElementColor
@@ -11,6 +12,8 @@ module Style.Helpers exposing
 import Color
 import Css
 import Element
+import Element.Background as Background
+import Element.Border as Border
 import Element.Font as Font
 import Html.Attributes
 import Style.Types as ST exposing (ElmUiWidgetStyle, ExoPalette, StyleMode, Theme(..))
@@ -260,3 +263,12 @@ shadowDefaults =
     , size = 0
     , color = Element.rgba255 3 3 3 0.18
     }
+
+
+popoverStyleDefaults : ExoPalette -> List (Element.Attribute msg)
+popoverStyleDefaults palette =
+    [ Background.color <| toElementColor palette.background
+    , Border.width 1
+    , Border.color <| toElementColorWithOpacity palette.on.background 0.16
+    , Border.shadow shadowDefaults
+    ]
