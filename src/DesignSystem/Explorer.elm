@@ -14,6 +14,7 @@ import UIExplorer
         , exploreWithCategories
         , storiesOf
         )
+import Widget exposing (textButton)
 
 
 
@@ -46,10 +47,40 @@ defaultIcon icon =
 
 
 
+--- MODEL
+
+
+type alias Model =
+    {}
+
+
+init : ( Model, Cmd Msg )
+init =
+    ( {}
+    , Cmd.none
+    )
+
+
+
+--- UPDATE
+
+
+type Msg
+    = NoOp
+
+
+update : Msg -> Model -> ( Model, Cmd Msg )
+update msg model =
+    case msg of
+        NoOp ->
+            ( model, Cmd.none )
+
+
+
 --- MAIN
 
 
-main : UIExplorerProgram {} () {}
+main : UIExplorerProgram {} Msg {}
 main =
     exploreWithCategories
         defaultConfig
@@ -57,7 +88,7 @@ main =
             |> category "Atoms"
                 [ storiesOf
                     "Text"
-                    [ ( "Default", \_ -> toHtml <| Element.text "Connect to...", {} )
+                    [ ( "body", \_ -> toHtml <| Element.text "Connect to...", {} )
                     ]
                 , storiesOf
                     "Icon"
@@ -72,6 +103,57 @@ main =
                     , ( "remove", \_ -> toHtml <| defaultIcon <| remove, {} )
                     , ( "roundRect", \_ -> toHtml <| defaultIcon <| roundRect, {} )
                     , ( "timesCircle", \_ -> toHtml <| defaultIcon <| timesCircle, {} )
+                    ]
+                , storiesOf
+                    "Button"
+                    [ ( "primary"
+                      , \_ ->
+                            toHtml <|
+                                Widget.textButton
+                                    (SH.materialStyle palette).primaryButton
+                                    { text = "Create", onPress = Just NoOp }
+                      , {}
+                      )
+                    , ( "disabled"
+                      , \_ ->
+                            toHtml <|
+                                Widget.textButton
+                                    (SH.materialStyle palette).primaryButton
+                                    { text = "Next", onPress = Nothing }
+                      , {}
+                      )
+                    , ( "plain"
+                      , \_ ->
+                            toHtml <|
+                                Widget.textButton
+                                    (SH.materialStyle palette).button
+                                    { text = "Next", onPress = Just NoOp }
+                      , {}
+                      )
+                    , ( "warning"
+                      , \_ ->
+                            toHtml <|
+                                Widget.textButton
+                                    (SH.materialStyle palette).warningButton
+                                    { text = "Suspend", onPress = Just NoOp }
+                      , {}
+                      )
+                    , ( "danger"
+                      , \_ ->
+                            toHtml <|
+                                Widget.textButton
+                                    (SH.materialStyle palette).dangerButton
+                                    { text = "Delete All", onPress = Just NoOp }
+                      , {}
+                      )
+                    , ( "danger secondary"
+                      , \_ ->
+                            toHtml <|
+                                Widget.textButton
+                                    (SH.materialStyle palette).dangerButtonSecondary
+                                    { text = "Delete All", onPress = Just NoOp }
+                      , {}
+                      )
                     ]
                 ]
             |> category "Molecules"
