@@ -1,12 +1,12 @@
 module DesignSystem.Explorer exposing (main)
 
-import Element exposing (text)
+import Element
 import Html
 import Style.Helpers as SH
 import Style.Types
 import Style.Widgets.Card exposing (badge)
 import Style.Widgets.Icon exposing (bell, console, copyToClipboard, history, ipAddress, lock, lockOpen, plusCircle, remove, roundRect, timesCircle)
-import Style.Widgets.StatusBadge exposing (statusBadge)
+import Style.Widgets.StatusBadge exposing (StatusBadgeState(..), statusBadge)
 import UIExplorer
     exposing
         ( UIExplorerProgram
@@ -40,7 +40,12 @@ palette =
 
 
 
---- styling
+--- component helpers
+
+
+text : String -> Element.Element msg
+text msg =
+    Element.text msg
 
 
 defaultIcon : (Element.Color -> number -> icon) -> icon
@@ -83,20 +88,13 @@ button variant params =
 
 
 --- MODEL
-
-
-type alias Model =
-    {}
-
-
-init : ( Model, Cmd Msg )
-init =
-    ( {}
-    , Cmd.none
-    )
-
-
-
+--type alias Model =
+--    {}
+--init : ( Model, Cmd Msg )
+--init =
+--    ( {}
+--    , Cmd.none
+--    )
 --- UPDATE
 
 
@@ -104,14 +102,12 @@ type Msg
     = NoOp
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
-update msg model =
-    case msg of
-        NoOp ->
-            ( model, Cmd.none )
 
-
-
+--update : Msg -> Model -> ( Model, Cmd Msg )
+--update msg model =
+--    case msg of
+--        NoOp ->
+--            ( model, Cmd.none )
 --- MAIN
 
 
@@ -123,7 +119,7 @@ main =
             |> category "Atoms"
                 [ storiesOf
                     "Text"
-                    [ ( "body", \_ -> toHtml <| Element.text "Connect to...", {} )
+                    [ ( "body", \_ -> toHtml <| text "Connect to...", {} )
                     ]
                 , storiesOf
                     "Icon"
@@ -177,6 +173,17 @@ main =
                                 button Danger2 { text = "Delete All", onPress = Just NoOp }
                       , {}
                       )
+                    ]
+                , storiesOf
+                    "Badge"
+                    [ ( "default", \_ -> toHtml <| badge "Experimental", {} )
+                    ]
+                , storiesOf
+                    "Status Badge"
+                    [ ( "good", \_ -> toHtml <| statusBadge palette ReadyGood (text "Ready"), {} )
+                    , ( "muted", \_ -> toHtml <| statusBadge palette Muted (text "Unknown"), {} )
+                    , ( "warning", \_ -> toHtml <| statusBadge palette Style.Widgets.StatusBadge.Warning (text "Building"), {} )
+                    , ( "error", \_ -> toHtml <| statusBadge palette Error (text "Error"), {} )
                     ]
                 ]
             |> category "Molecules"
