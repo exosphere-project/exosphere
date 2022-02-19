@@ -1,10 +1,12 @@
 module DesignSystem.Explorer exposing (main)
 
 import Element
+import Element.Font as Font
 import Html
 import Style.Helpers as SH
 import Style.Types
-import Style.Widgets.Card exposing (badge)
+import Style.Widgets.Card exposing (badge, clickableCardFixedSize, exoCard, exoCardWithTitleAndSubtitle)
+import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon exposing (bell, console, copyToClipboard, history, ipAddress, lock, lockOpen, plusCircle, remove, roundRect, timesCircle)
 import Style.Widgets.StatusBadge exposing (StatusBadgeState(..), statusBadge)
 import UIExplorer
@@ -188,42 +190,73 @@ main =
                 ]
             |> category "Molecules"
                 [ storiesOf
+                    "Copyable Text"
+                    [ ( "default"
+                      , \_ ->
+                            toHtml <|
+                                Style.Widgets.CopyableText.copyableText
+                                    palette
+                                    [ Font.family [ Font.monospace ] ]
+                                    "192.168.1.1"
+                      , {}
+                      )
+                    ]
+                , storiesOf
                     "Card"
-                    [ ( "Default", \_ -> Html.text "//TODO: Add components to this section.", {} )
+                    [ ( "default", \_ -> toHtml <| exoCard palette (text "192.168.1.1"), {} )
+                    , -- TODO: Render a more complete version of this based on Page.Home.
+                      ( "fixed size with hover", \_ -> toHtml <| clickableCardFixedSize palette 300 300 [ text "Lorem ipsum dolor sit amet." ], {} )
+                    , ( "title & accessories with hover"
+                      , \_ ->
+                            toHtml <|
+                                exoCardWithTitleAndSubtitle palette
+                                    (Style.Widgets.CopyableText.copyableText
+                                        palette
+                                        [ Font.family [ Font.monospace ] ]
+                                        "192.168.1.1"
+                                    )
+                                    (button Plain
+                                        { text = "Unassign"
+                                        , onPress = Just NoOp
+                                        }
+                                    )
+                                    (text "Assigned to a resource that Exosphere cannot represent")
+                      , {}
+                      )
                     ]
                 , storiesOf
                     "Input"
-                    [ ( "Default", \_ -> Html.text "//TODO: Add components to this section.", {} )
+                    [ ( "default", \_ -> Html.text "//TODO: Add components to this section.", {} )
                     ]
                 ]
             |> category "Organisms"
                 [ storiesOf
-                    "Lists"
-                    [ ( "Default", \_ -> Html.text "//TODO: Add components to this section.", {} )
+                    "Expandable Card"
+                    [ ( "default", \_ -> Html.text "//TODO: Add components to this section.", {} )
                     ]
                 ]
             |> category "Templates"
                 [ storiesOf
                     "Login"
-                    [ ( "Default", \_ -> Html.text "//TODO: Add components to this section.", {} )
+                    [ ( "default", \_ -> Html.text "//TODO: Add components to this section.", {} )
                     ]
                 , storiesOf
                     "Create"
-                    [ ( "Default", \_ -> Html.text "//TODO: Add components to this section.", {} )
+                    [ ( "default", \_ -> Html.text "//TODO: Add components to this section.", {} )
                     ]
                 , storiesOf
                     "List"
-                    [ ( "Default", \_ -> Html.text "//TODO: Add components to this section.", {} )
+                    [ ( "default", \_ -> Html.text "//TODO: Add components to this section.", {} )
                     ]
                 , storiesOf
                     "Detail"
-                    [ ( "Default", \_ -> Html.text "//TODO: Add components to this section.", {} )
+                    [ ( "default", \_ -> Html.text "//TODO: Add components to this section.", {} )
                     ]
                 ]
             |> category "Pages"
                 [ storiesOf
                     "Jetstream2"
-                    [ ( "Default", \_ -> Html.text "//TODO: Add components to this section.", {} )
+                    [ ( "default", \_ -> Html.text "//TODO: Add components to this section.", {} )
                     ]
                 ]
         )
