@@ -8,6 +8,7 @@ import Style.Types
 import Style.Widgets.Card exposing (badge, clickableCardFixedSize, exoCard, exoCardWithTitleAndSubtitle, expandoCard)
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon exposing (bell, console, copyToClipboard, history, ipAddress, lock, lockOpen, plusCircle, remove, roundRect, timesCircle)
+import Style.Widgets.IconButton exposing (chip)
 import Style.Widgets.Meter exposing (meter)
 import Style.Widgets.StatusBadge exposing (StatusBadgeState(..), statusBadge)
 import UIExplorer
@@ -298,6 +299,11 @@ main =
                                     )
                       , {}
                       )
+                    ]
+                , storiesOf
+                    "Chip"
+                    [ ( "default", \_ -> toHtml <| chip palette Nothing (Element.text "assigned"), {} )
+                    , ( "with badge", \_ -> toHtml <| chip palette Nothing (Element.row [ Element.spacing 5 ] [ Element.text "ubuntu", badge "10" ]), {} )
                     ]
                 ]
             |> category "Templates"
