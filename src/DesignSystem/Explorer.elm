@@ -19,6 +19,7 @@ import UIExplorer
         , exploreWithCategories
         , storiesOf
         )
+import View.Helpers as VH
 import Widget exposing (textButton)
 
 
@@ -283,9 +284,18 @@ main =
                                 expandoCard palette
                                     m.customModel.expandoCard.expanded
                                     (\next -> ToggleExpandoCard next)
-                                    (Element.text "Title")
-                                    (Element.text "Subtitle")
-                                    (Element.text "contents")
+                                    (Element.text "Backup SSD")
+                                    (Element.text "25 GB")
+                                    (Element.column
+                                        VH.contentContainer
+                                        [ VH.compactKVRow "Name:" <| Element.text "Backup SSD"
+                                        , VH.compactKVRow "Status:" <| Element.text "Ready"
+                                        , VH.compactKVRow "Description:" <|
+                                            Element.paragraph [ Element.width Element.fill ] <|
+                                                [ Element.text "Solid State Drive" ]
+                                        , VH.compactKVRow "UUID:" <| copyableText palette [] "6205e1a8-9a5d-4325-bb0d-219f09a4d988"
+                                        ]
+                                    )
                       , {}
                       )
                     ]
