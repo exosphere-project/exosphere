@@ -11,6 +11,7 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.Interaction as IHelpers
 import Helpers.RemoteDataPlusPlus as RDPP
+import Helpers.ResourceList exposing (creationTimeFilterOptions, onCreationTimeFilter)
 import Helpers.String
 import Html.Attributes as HtmlA
 import OpenStack.Types as OSTypes
@@ -18,7 +19,6 @@ import Page.QuotaUsage
 import Route
 import Set
 import Style.Helpers as SH
-import Style.Types exposing (ExoPalette)
 import Style.Widgets.DataList as DataList
 import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
 import Style.Widgets.Icon as Icon
@@ -558,14 +558,6 @@ filters currentUser currentTime =
             List.map .creator servers
                 |> Set.fromList
                 |> Set.toList
-
-        creationTimeFilterOptions =
-            -- (milliseconds, time period text)
-            -- left padded with 0s to preserve order when creating Dict
-            [ ( "0086400000", "past day" )
-            , ( "0604800000", "past week" )
-            , ( "2592000000", "past 30 days" )
-            ]
     in
     [ { id = "creator"
       , label = "Creator"
@@ -594,22 +586,11 @@ filters currentUser currentTime =
       , label = "Created within"
       , chipPrefix = "Created within "
       , filterOptions =
-            \_ ->
-                Dict.fromList creationTimeFilterOptions
+            \_ -> creationTimeFilterOptions
       , filterTypeAndDefaultValue =
             DataList.UniselectOption DataList.UniselectNoChoice
       , onFilter =
             \optionValue server ->
-                let
-                    timeElapsedSinceCreation =
-                        Time.posixToMillis currentTime
-                            - Time.posixToMillis server.creationTime
-                in
-                case String.toInt optionValue of
-                    Just optionInTimePeriod ->
-                        timeElapsedSinceCreation <= optionInTimePeriod
-
-                    Nothing ->
-                        True
+                onCreationTimeFilter optionValue server.creationTime currentTime
       }
     ]

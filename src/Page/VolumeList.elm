@@ -1,14 +1,17 @@
 module Page.VolumeList exposing (Model, Msg, init, update, view)
 
 import DateFormat.Relative
+import Dict
 import Element
 import Element.Font as Font
 import FeatherIcons
 import Helpers.GetterSetters as GetterSetters
+import Helpers.ResourceList exposing (creationTimeFilterOptions, onCreationTimeFilter)
 import Helpers.String
 import OpenStack.Types as OSTypes
 import Page.QuotaUsage
 import Route
+import Set
 import Style.Helpers as SH
 import Style.Widgets.DataList as DataList
 import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
@@ -39,7 +42,7 @@ init : Bool -> Model
 init showHeading =
     Model showHeading
         Nothing
-        (DataList.init <| DataList.getDefaultFilterOptions [])
+        (DataList.init <| DataList.getDefaultFilterOptions (filters (Time.millisToPosix 0)))
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
@@ -99,9 +102,9 @@ view context project currentTime model =
                 context.palette
                 []
                 (volumeView model context project currentTime)
-                (volumeRecords volumes_)
+                (volumeRecords project volumes_)
                 []
-                []
+                (filters currentTime)
     in
     Element.column
         [ Element.spacing 20, Element.width Element.fill ]
@@ -131,16 +134,26 @@ view context project currentTime model =
 type alias VolumeRecord =
     DataList.DataRecord
         { volume : OSTypes.Volume
+        , creator : String
         }
 
 
-volumeRecords : List OSTypes.Volume -> List VolumeRecord
-volumeRecords volumes =
+volumeRecords : Project -> List OSTypes.Volume -> List VolumeRecord
+volumeRecords project volumes =
+    let
+        creator volume =
+            if volume.userUuid == project.auth.user.uuid then
+                "me"
+
+            else
+                "other user"
+    in
     List.map
         (\volume ->
             { id = volume.uuid
             , selectable = False
             , volume = volume
+            , creator = creator volume
             }
         )
         volumes
@@ -304,16 +317,48 @@ volumeView model context project currentTime volumeRecord =
                     )
                 , Element.text " by "
                 , Element.el [ Font.color (SH.toElementColor context.palette.on.background) ]
-                    (Element.text
-                        (if volumeRecord.volume.userUuid == project.auth.user.uuid then
-                            "me"
-
-                         else
-                            "other user"
-                        )
-                    )
+                    (Element.text volumeRecord.creator)
                 ]
             , Element.el [ Element.alignRight ]
                 volumeActions
             ]
         ]
+
+
+filters :
+    Time.Posix
+    ->
+        List
+            (DataList.Filter
+                { record | volume : OSTypes.Volume, creator : String }
+            )
+filters currentTime =
+    [ { id = "creator"
+      , label = "Creator"
+      , chipPrefix = "Created by "
+      , filterOptions =
+            \volumes ->
+                volumes
+                    |> List.map .creator
+                    |> Set.fromList
+                    |> Set.map (\creator -> ( creator, creator ))
+                    |> Set.toList
+                    |> Dict.fromList
+      , filterTypeAndDefaultValue =
+            DataList.MultiselectOption <| Set.fromList [ "me" ]
+      , onFilter =
+            \optionValue volume ->
+                volume.creator == optionValue
+      }
+    , { id = "creationTime"
+      , label = "Created within"
+      , chipPrefix = "Created within "
+      , filterOptions =
+            \_ -> creationTimeFilterOptions
+      , filterTypeAndDefaultValue =
+            DataList.UniselectOption DataList.UniselectNoChoice
+      , onFilter =
+            \optionValue volume ->
+                onCreationTimeFilter optionValue volume.volume.createdAt currentTime
+      }
+    ]

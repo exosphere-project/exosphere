@@ -1,6 +1,8 @@
 module Style.Widgets.DataList exposing
     ( DataRecord
     , Filter
+    , FilterOptionText
+    , FilterOptionValue
     , FilterSelectionValue(..)
     , Model
     , Msg
