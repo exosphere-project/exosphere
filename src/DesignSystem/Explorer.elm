@@ -5,17 +5,17 @@ import Element.Font as Font
 import Html
 import Style.Helpers as SH
 import Style.Types
-import Style.Widgets.Card exposing (badge, clickableCardFixedSize, exoCard, exoCardWithTitleAndSubtitle)
+import Style.Widgets.Card exposing (badge, clickableCardFixedSize, exoCard, exoCardWithTitleAndSubtitle, expandoCard)
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon exposing (bell, console, copyToClipboard, history, ipAddress, lock, lockOpen, plusCircle, remove, roundRect, timesCircle)
 import Style.Widgets.Meter exposing (meter)
 import Style.Widgets.StatusBadge exposing (StatusBadgeState(..), statusBadge)
 import UIExplorer
     exposing
-        ( UIExplorerProgram
+        ( Config
+        , UIExplorerProgram
         , category
         , createCategories
-        , defaultConfig
         , exploreWithCategories
         , storiesOf
         )
@@ -91,33 +91,73 @@ button variant params =
 
 
 --- MODEL
---type alias Model =
---    {}
---init : ( Model, Cmd Msg )
---init =
---    ( {}
---    , Cmd.none
---    )
+
+
+type alias ExpandoCardState =
+    { expanded : Bool }
+
+
+type alias Model =
+    { expandoCard : ExpandoCardState }
+
+
+initialModel : Model
+initialModel =
+    { expandoCard = { expanded = False } }
+
+
+
 --- UPDATE
 
 
 type Msg
     = NoOp
+    | ToggleExpandoCard Bool
 
 
 
---update : Msg -> Model -> ( Model, Cmd Msg )
---update msg model =
---    case msg of
---        NoOp ->
---            ( model, Cmd.none )
 --- MAIN
 
 
-main : UIExplorerProgram {} Msg {}
+config : Config Model Msg {}
+config =
+    { customModel = initialModel
+    , customHeader =
+        Just
+            { title = "Exosphere Design System"
+            , logo = UIExplorer.logoFromUrl "/assets/img/logo-alt.svg"
+            , titleColor = Just "#FFFFFF"
+            , bgColor = Just "#181725"
+            }
+    , subscriptions = \_ -> Sub.none
+    , update =
+        \msg m ->
+            let
+                model =
+                    m.customModel
+            in
+            case msg of
+                NoOp ->
+                    ( m, Cmd.none )
+
+                ToggleExpandoCard expanded ->
+                    ( { m
+                        | customModel =
+                            { model
+                                | expandoCard = { expanded = expanded }
+                            }
+                      }
+                    , Cmd.none
+                    )
+    , menuViewEnhancer = \_ v -> v
+    , viewEnhancer = \_ stories -> stories
+    }
+
+
+main : UIExplorerProgram Model Msg {}
 main =
     exploreWithCategories
-        defaultConfig
+        config
         (createCategories
             |> category "Atoms"
                 [ storiesOf
@@ -237,7 +277,17 @@ main =
             |> category "Organisms"
                 [ storiesOf
                     "Expandable Card"
-                    [ ( "default", \_ -> Html.text "//TODO: Add components to this section.", {} )
+                    [ ( "default"
+                      , \m ->
+                            toHtml <|
+                                expandoCard palette
+                                    m.customModel.expandoCard.expanded
+                                    (\next -> ToggleExpandoCard next)
+                                    (Element.text "Title")
+                                    (Element.text "Subtitle")
+                                    (Element.text "contents")
+                      , {}
+                      )
                     ]
                 ]
             |> category "Templates"
