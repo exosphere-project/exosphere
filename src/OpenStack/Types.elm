@@ -558,6 +558,8 @@ type alias Volume =
     , description : Maybe VolumeDescription
     , attachments : List VolumeAttachment
     , imageMetadata : Maybe NameAndUuid
+    , createdAt : Time.Posix
+    , userUuid : UserUuid
     }
 
 

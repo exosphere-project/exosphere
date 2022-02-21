@@ -311,7 +311,7 @@ project model context p projectViewModel viewConstructor =
                         |> Element.map VolumeDetailMsg
 
                 VolumeList pageModel ->
-                    Page.VolumeList.view context p pageModel
+                    Page.VolumeList.view context p model.clientCurrentTime pageModel
                         |> Element.map VolumeListMsg
 
                 VolumeMountInstructions pageModel ->

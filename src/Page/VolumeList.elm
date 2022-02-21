@@ -1,5 +1,6 @@
 module Page.VolumeList exposing (Model, Msg, init, update, view)
 
+import DateFormat.Relative
 import Element
 import Element.Font as Font
 import FeatherIcons
@@ -146,8 +147,8 @@ update msg project model =
             )
 
 
-view : View.Types.Context -> Project -> Model -> Element.Element Msg
-view context project model =
+view : View.Types.Context -> Project -> Time.Posix -> Model -> Element.Element Msg
+view context project currentTime model =
     let
         renderSuccessCase : List OSTypes.Volume -> Element.Element Msg
         renderSuccessCase volumes_ =
@@ -156,7 +157,7 @@ view context project model =
                 DataListMsg
                 context.palette
                 []
-                (volumeView model context project)
+                (volumeView model context project currentTime)
                 (volumeRecords volumes_)
                 []
                 []
@@ -208,10 +209,6 @@ renderVolumeCard context project model volume =
 type alias VolumeRecord =
     DataList.DataRecord
         { volume : OSTypes.Volume
-
-        -- TODO: figure how to fetch
-        -- , creationTime : Time.Posix
-        -- , creator : String
         }
 
 
@@ -231,9 +228,10 @@ volumeView :
     Model
     -> View.Types.Context
     -> Project
+    -> Time.Posix
     -> VolumeRecord
     -> Element.Element Msg
-volumeView model context project volumeRecord =
+volumeView model context project currentTime volumeRecord =
     let
         volumeLink =
             Element.link []
@@ -374,19 +372,25 @@ volumeView model context project volumeRecord =
             , Element.width Element.fill
             ]
             [ Element.el [] (Element.text <| String.fromInt volumeRecord.volume.size ++ " GB")
+            , Element.text "·"
+            , Element.paragraph []
+                [ Element.text "created "
+                , Element.el [ Font.color (SH.toElementColor context.palette.on.background) ]
+                    (Element.text <|
+                        DateFormat.Relative.relativeTime currentTime
+                            volumeRecord.volume.createdAt
+                    )
+                , Element.text " by "
+                , Element.el [ Font.color (SH.toElementColor context.palette.on.background) ]
+                    (Element.text
+                        (if volumeRecord.volume.userUuid == project.auth.user.uuid then
+                            "me"
 
-            -- , Element.text "·"
-            -- , Element.paragraph []
-            --     [ Element.text "created "
-            --     , Element.el [ Font.color (SH.toElementColor context.palette.on.background) ]
-            --         (Element.text <|
-            --             DateFormat.Relative.relativeTime currentTime
-            --                 serverRecord.creationTime
-            --         )
-            --     , Element.text " by "
-            --     , Element.el [ Font.color (SH.toElementColor context.palette.on.background) ]
-            --         (Element.text serverRecord.creator)
-            --     ]
+                         else
+                            "other user"
+                        )
+                    )
+                ]
             , Element.el [ Element.alignRight ]
                 volumeActions
             ]
