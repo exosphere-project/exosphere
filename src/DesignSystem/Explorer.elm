@@ -8,6 +8,7 @@ import Style.Types
 import Style.Widgets.Card exposing (badge, clickableCardFixedSize, exoCard, exoCardWithTitleAndSubtitle)
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon exposing (bell, console, copyToClipboard, history, ipAddress, lock, lockOpen, plusCircle, remove, roundRect, timesCircle)
+import Style.Widgets.Meter exposing (meter)
 import Style.Widgets.StatusBadge exposing (StatusBadgeState(..), statusBadge)
 import UIExplorer
     exposing
@@ -223,6 +224,10 @@ main =
                                     (text "Assigned to a resource that Exosphere cannot represent")
                       , {}
                       )
+                    ]
+                , storiesOf
+                    "Meter"
+                    [ ( "default", \_ -> toHtml <| meter palette "Space used" "6 of 10 GB" 6 10, {} )
                     ]
                 , storiesOf
                     "Input"
