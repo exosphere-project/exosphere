@@ -215,7 +215,11 @@ volumeView model context project currentTime volumeRecord =
                             }
 
                     Nothing ->
-                        Element.text <| "No " ++ context.localization.virtualComputer
+                        Element.el
+                            [ Font.color
+                                (SH.toElementColorWithOpacity context.palette.on.background 0.86)
+                            ]
+                            (Element.text <| "no " ++ context.localization.virtualComputer)
                 ]
 
         volumeActions =
