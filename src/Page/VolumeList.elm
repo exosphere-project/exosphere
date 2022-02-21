@@ -180,7 +180,11 @@ volumeView model context project currentTime volumeRecord =
                         [ Font.size 18
                         , Font.color (SH.toElementColor context.palette.primary)
                         ]
-                        (Element.text volumeRecord.volume.name)
+                        (Element.text <|
+                            VH.possiblyUntitledResource
+                                volumeRecord.volume.name
+                                context.localization.blockDevice
+                        )
                 }
 
         volumeAttachment =
