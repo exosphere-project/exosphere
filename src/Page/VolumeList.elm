@@ -8,11 +8,8 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import OpenStack.Types as OSTypes
 import Page.QuotaUsage
-import Page.VolumeDetail
 import Route
-import Set
 import Style.Helpers as SH
-import Style.Widgets.Card as ExoCard
 import Style.Widgets.DataList as DataList
 import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
 import Time
@@ -25,17 +22,13 @@ import Widget
 
 type alias Model =
     { showHeading : Bool
-    , expandedVols : Set.Set OSTypes.VolumeUuid
-    , deleteConfirmations : Set.Set OSTypes.VolumeUuid
     , shownDeletePopconfirm : Maybe OSTypes.VolumeUuid
     , dataListModel : DataList.Model
     }
 
 
 type Msg
-    = GotExpandCard OSTypes.VolumeUuid Bool
-    | VolumeDetailMsg OSTypes.VolumeUuid Page.VolumeDetail.Msg
-    | DetachVolume OSTypes.VolumeUuid
+    = DetachVolume OSTypes.VolumeUuid
     | GotDeleteConfirm OSTypes.VolumeUuid
     | ShowDeletePopconfirm OSTypes.VolumeUuid Bool
     | DataListMsg DataList.Msg
@@ -45,8 +38,6 @@ type Msg
 init : Bool -> Model
 init showHeading =
     Model showHeading
-        Set.empty
-        Set.empty
         Nothing
         (DataList.init <| DataList.getDefaultFilterOptions [])
 
@@ -54,56 +45,6 @@ init showHeading =
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
 update msg project model =
     case msg of
-        GotExpandCard uuid bool ->
-            ( { model
-                | expandedVols =
-                    if bool then
-                        Set.insert uuid model.expandedVols
-
-                    else
-                        Set.remove uuid model.expandedVols
-              }
-            , Cmd.none
-            , SharedMsg.NoOp
-            )
-
-        VolumeDetailMsg uuid subMsg ->
-            -- This is an experiment
-            case subMsg of
-                Page.VolumeDetail.GotDeleteNeedsConfirm ->
-                    ( { model
-                        | deleteConfirmations =
-                            Set.insert
-                                uuid
-                                model.deleteConfirmations
-                      }
-                    , Cmd.none
-                    , SharedMsg.NoOp
-                    )
-
-                Page.VolumeDetail.GotDeleteConfirm ->
-                    ( model
-                    , Cmd.none
-                    , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <| SharedMsg.RequestDeleteVolume uuid
-                    )
-
-                Page.VolumeDetail.GotDeleteCancel ->
-                    ( { model
-                        | deleteConfirmations =
-                            Set.remove
-                                uuid
-                                model.deleteConfirmations
-                      }
-                    , Cmd.none
-                    , SharedMsg.NoOp
-                    )
-
-                Page.VolumeDetail.SharedMsg sharedMsg ->
-                    ( model, Cmd.none, sharedMsg )
-
-                Page.VolumeDetail.NoOp ->
-                    ( model, Cmd.none, SharedMsg.NoOp )
-
         DetachVolume volumeUuid ->
             ( model
             , Cmd.none
@@ -185,25 +126,6 @@ view context project currentTime model =
                 renderSuccessCase
             ]
         ]
-
-
-renderVolumeCard : View.Types.Context -> Project -> Model -> OSTypes.Volume -> Element.Element Msg
-renderVolumeCard context project model volume =
-    ExoCard.expandoCard
-        context.palette
-        (Set.member volume.uuid model.expandedVols)
-        (GotExpandCard volume.uuid)
-        (VH.possiblyUntitledResource volume.name context.localization.blockDevice
-            |> Element.text
-        )
-        (Element.text <| String.fromInt volume.size ++ " GB")
-    <|
-        (Page.VolumeDetail.view
-            context
-            project
-            { showHeading = False, volumeUuid = volume.uuid, deleteConfirmations = model.deleteConfirmations }
-            |> Element.map (VolumeDetailMsg volume.uuid)
-        )
 
 
 type alias VolumeRecord =
