@@ -1,21 +1,21 @@
 module Page.FloatingIpList exposing (Model, Msg(..), init, update, view)
 
+import Dict
 import Element
 import Element.Background as Background
 import Element.Font as Font
-import FeatherIcons
-import Helpers.Formatting exposing (humanCount)
 import Helpers.GetterSetters as GetterSetters
+import Helpers.ResourceList exposing (listItemColumnAttribs)
 import Helpers.String
 import OpenStack.Types as OSTypes
 import Page.QuotaUsage
 import Route
 import Set
 import Style.Helpers as SH
-import Style.Widgets.Card
 import Style.Widgets.CopyableText
+import Style.Widgets.DataList as DataList
+import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
 import Style.Widgets.Icon as Icon
-import Style.Widgets.IconButton
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg
@@ -26,17 +26,16 @@ import Widget
 
 type alias Model =
     { showHeading : Bool
-    , deleteConfirmations : Set.Set OSTypes.IpAddressUuid
-    , hideAssignedIps : Bool
+    , shownDeletePopconfirm : Maybe OSTypes.IpAddressUuid
+    , dataListModel : DataList.Model
     }
 
 
 type Msg
-    = GotHideAssignedIps Bool
-    | GotUnassign OSTypes.IpAddressUuid
-    | GotDeleteNeedsConfirm OSTypes.IpAddressUuid
+    = GotUnassign OSTypes.IpAddressUuid
     | GotDeleteConfirm OSTypes.IpAddressUuid
-    | GotDeleteCancel OSTypes.IpAddressUuid
+    | ShowDeletePopconfirm OSTypes.IpAddressUuid Bool
+    | DataListMsg DataList.Msg
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
 
@@ -44,33 +43,19 @@ type Msg
 init : Bool -> Model
 init showHeading =
     { showHeading = showHeading
-    , deleteConfirmations = Set.empty
-    , hideAssignedIps = True
+    , shownDeletePopconfirm = Nothing
+    , dataListModel = DataList.init <| DataList.getDefaultFilterOptions filters
     }
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
 update msg project model =
     case msg of
-        GotHideAssignedIps hidden ->
-            let
-                newModel =
-                    { model | hideAssignedIps = hidden }
-            in
-            ( newModel, Cmd.none, SharedMsg.NoOp )
-
         GotUnassign ipUuid ->
             ( model
             , Cmd.none
             , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <| SharedMsg.RequestUnassignFloatingIp ipUuid
             )
-
-        GotDeleteNeedsConfirm ipUuid ->
-            let
-                newModel =
-                    { model | deleteConfirmations = Set.insert ipUuid model.deleteConfirmations }
-            in
-            ( newModel, Cmd.none, SharedMsg.NoOp )
 
         GotDeleteConfirm ipUuid ->
             let
@@ -80,17 +65,33 @@ update msg project model =
                         ErrorCrit
                         Nothing
             in
-            ( model
+            ( { model | shownDeletePopconfirm = Nothing }
             , Cmd.none
-            , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) (SharedMsg.RequestDeleteFloatingIp errorContext ipUuid)
+            , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project)
+                (SharedMsg.RequestDeleteFloatingIp errorContext ipUuid)
             )
 
-        GotDeleteCancel ipUuid ->
-            let
-                newModel =
-                    { model | deleteConfirmations = Set.remove ipUuid model.deleteConfirmations }
-            in
-            ( newModel, Cmd.none, SharedMsg.NoOp )
+        ShowDeletePopconfirm ipUuid toBeShown ->
+            ( { model
+                | shownDeletePopconfirm =
+                    if toBeShown then
+                        Just ipUuid
+
+                    else
+                        Nothing
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
+
+        DataListMsg dataListMsg ->
+            ( { model
+                | dataListModel =
+                    DataList.update dataListMsg model.dataListModel
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
 
         SharedMsg sharedMsg ->
             ( model, Cmd.none, sharedMsg )
@@ -121,7 +122,7 @@ view context project model =
                         Nothing ->
                             False
 
-                ( ipsAssignedToResources, ipsNotAssignedToResources ) =
+                ( _, ipsNotAssignedToResources ) =
                     List.partition ipAssignedToAResource ipsSorted
             in
             if List.isEmpty ipsSorted then
@@ -143,26 +144,22 @@ view context project model =
 
             else
                 Element.column
-                    (VH.exoColumnAttributes
-                        ++ [ Element.paddingXY 10 0, Element.width Element.fill ]
-                    )
-                <|
-                    List.concat
-                        [ if List.length ipsNotAssignedToResources >= ipScarcityWarningThreshold then
-                            [ ipScarcityWarning context ]
+                    [ Element.spacing 24, Element.width Element.fill ]
+                    [ if List.length ipsNotAssignedToResources >= ipScarcityWarningThreshold then
+                        ipScarcityWarning context
 
-                          else
-                            []
-                        , List.map
-                            (renderFloatingIpCard context project model)
-                            ipsNotAssignedToResources
-                        , [ ipsAssignedToResourcesExpander context model ipsAssignedToResources ]
-                        , if model.hideAssignedIps then
-                            []
-
-                          else
-                            List.map (renderFloatingIpCard context project model) ipsAssignedToResources
-                        ]
+                      else
+                        Element.none
+                    , DataList.view
+                        model.dataListModel
+                        DataListMsg
+                        context.palette
+                        []
+                        (floatingIpView model context project)
+                        (floatingIpRecords ipsSorted)
+                        []
+                        filters
+                    ]
     in
     Element.column
         [ Element.spacing 15, Element.width Element.fill ]
@@ -209,70 +206,34 @@ ipScarcityWarning context =
         ]
 
 
-renderFloatingIpCard :
-    View.Types.Context
-    -> Project
-    -> Model
-    -> OSTypes.FloatingIp
-    -> Element.Element Msg
-renderFloatingIpCard context project model ip =
-    let
-        subtitle =
-            actionButtons context project model ip
+type alias FloatingIpRecord =
+    DataList.DataRecord
+        { ip : OSTypes.FloatingIp }
 
-        cardBody =
-            case ip.portUuid of
-                Just _ ->
-                    case GetterSetters.getFloatingIpServer project ip of
-                        Just server ->
-                            Element.row [ Element.spacing 5 ]
-                                [ Element.text <|
-                                    String.join " "
-                                        [ "Assigned to"
-                                        , context.localization.virtualComputer
-                                        , server.osProps.name
-                                        ]
-                                , Element.link []
-                                    { url =
-                                        Route.toUrl context.urlPathPrefix
-                                            (Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
-                                                Route.ServerDetail server.osProps.uuid
-                                            )
-                                    , label =
-                                        Style.Widgets.IconButton.goToButton
-                                            context.palette
-                                            (Just <| SharedMsg <| SharedMsg.NoOp)
-                                    }
-                                ]
 
-                        Nothing ->
-                            Element.text "Assigned to a resource that Exosphere cannot represent"
-
-                Nothing ->
-                    Element.text "Unassigned"
-    in
-    Style.Widgets.Card.exoCardWithTitleAndSubtitle
-        context.palette
-        (Style.Widgets.CopyableText.copyableText
-            context.palette
-            [ Font.family [ Font.monospace ] ]
-            ip.address
+floatingIpRecords : List OSTypes.FloatingIp -> List FloatingIpRecord
+floatingIpRecords floatingIps =
+    List.map
+        (\floatingIp ->
+            { id = floatingIp.uuid
+            , selectable = False
+            , ip = floatingIp
+            }
         )
-        subtitle
-        cardBody
+        floatingIps
 
 
-actionButtons : View.Types.Context -> Project -> Model -> OSTypes.FloatingIp -> Element.Element Msg
-actionButtons context project model ip =
+floatingIpView : Model -> View.Types.Context -> Project -> FloatingIpRecord -> Element.Element Msg
+floatingIpView model context project floatingIpRecord =
     let
-        assignUnassignButton =
-            case ip.portUuid of
+        assignUnassignIpButton =
+            case floatingIpRecord.ip.portUuid of
                 Nothing ->
                     Element.link []
                         { url =
                             Route.toUrl context.urlPathPrefix
                                 (Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
-                                    Route.FloatingIpAssign (Just ip.uuid) Nothing
+                                    Route.FloatingIpAssign (Just floatingIpRecord.ip.uuid) Nothing
                                 )
                         , label =
                             Widget.textButton
@@ -286,121 +247,108 @@ actionButtons context project model ip =
                     Widget.textButton
                         (SH.materialStyle context.palette).button
                         { text = "Unassign"
-                        , onPress = Just <| GotUnassign ip.uuid
+                        , onPress = Just <| GotUnassign floatingIpRecord.ip.uuid
                         }
 
-        confirmationNeeded =
-            Set.member ip.uuid model.deleteConfirmations
+        showDeletePopconfirm =
+            case model.shownDeletePopconfirm of
+                Just shownDeletePopconfirmIpId ->
+                    shownDeletePopconfirmIpId == floatingIpRecord.id
 
-        deleteButton =
-            if confirmationNeeded then
-                Element.row [ Element.spacing 10 ]
-                    [ Element.text "Confirm delete?"
-                    , Widget.iconButton
-                        (SH.materialStyle context.palette).dangerButton
-                        { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
-                        , text = "Delete"
-                        , onPress =
-                            Just <| GotDeleteConfirm ip.uuid
-                        }
-                    , Widget.textButton
-                        (SH.materialStyle context.palette).button
-                        { text = "Cancel"
-                        , onPress =
-                            Just <| GotDeleteCancel ip.uuid
-                        }
+                Nothing ->
+                    False
+
+        deleteIpButton =
+            Element.el
+                (if showDeletePopconfirm then
+                    [ Element.below <|
+                        deletePopconfirm context.palette
+                            { confirmationText =
+                                "Are you sure you want to delete this "
+                                    ++ context.localization.floatingIpAddress
+                                    ++ "?"
+                            , onConfirm = Just <| GotDeleteConfirm floatingIpRecord.id
+                            , onCancel = Just <| ShowDeletePopconfirm floatingIpRecord.id False
+                            }
                     ]
 
-            else
-                Widget.iconButton
-                    (SH.materialStyle context.palette).dangerButton
-                    { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
-                    , text = "Delete"
-                    , onPress =
-                        Just <| GotDeleteNeedsConfirm ip.uuid
-                    }
+                 else
+                    []
+                )
+                (deleteIconButton
+                    context.palette
+                    False
+                    ("Delete " ++ context.localization.floatingIpAddress)
+                    (Just <| ShowDeletePopconfirm floatingIpRecord.id True)
+                )
+
+        ipAssignment =
+            case floatingIpRecord.ip.portUuid of
+                Just _ ->
+                    case GetterSetters.getFloatingIpServer project floatingIpRecord.ip of
+                        Just server ->
+                            Element.row [ Element.spacing 5 ]
+                                [ Element.text <|
+                                    String.join " "
+                                        [ "Assigned to"
+                                        , context.localization.virtualComputer
+                                        ]
+                                , Element.link []
+                                    { url =
+                                        Route.toUrl context.urlPathPrefix
+                                            (Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
+                                                Route.ServerDetail server.osProps.uuid
+                                            )
+                                    , label =
+                                        Element.el
+                                            [ Font.color (SH.toElementColor context.palette.primary) ]
+                                            (Element.text server.osProps.name)
+                                    }
+                                ]
+
+                        Nothing ->
+                            Element.text "Assigned to a resource that Exosphere cannot represent"
+
+                Nothing ->
+                    Element.text "Unassigned"
     in
-    Element.row
-        [ Element.width Element.fill ]
-        [ Element.row [ Element.alignRight, Element.spacing 10 ] [ assignUnassignButton, deleteButton ] ]
-
-
-
--- TODO factor this out with onlyOwnExpander in ServerList.elm
-
-
-ipsAssignedToResourcesExpander : View.Types.Context -> Model -> List OSTypes.FloatingIp -> Element.Element Msg
-ipsAssignedToResourcesExpander context model ipsAssignedToResources =
-    let
-        numIpsAssignedToResources =
-            List.length ipsAssignedToResources
-
-        statusText =
-            let
-                ( ipsPluralization, resourcesPluralization ) =
-                    if numIpsAssignedToResources == 1 then
-                        ( context.localization.floatingIpAddress
-                        , "a resource"
-                        )
-
-                    else
-                        ( Helpers.String.pluralize context.localization.floatingIpAddress
-                        , "resources"
-                        )
-            in
-            if model.hideAssignedIps then
-                String.join " "
-                    [ "Hiding"
-                    , humanCount context.locale numIpsAssignedToResources
-                    , ipsPluralization
-                    , "assigned to"
-                    , resourcesPluralization
+    Element.column (listItemColumnAttribs context.palette)
+        [ Element.row [ Element.width Element.fill ]
+            [ Element.el []
+                (Style.Widgets.CopyableText.copyableText
+                    context.palette
+                    [ Font.size 18
+                    , Font.color (SH.toElementColor context.palette.on.background)
                     ]
-
-            else
-                String.join " "
-                    [ context.localization.floatingIpAddress
-                        |> Helpers.String.pluralize
-                        |> Helpers.String.toTitleCase
-                    , "assigned to resources"
-                    ]
-
-        ( changeActionVerb, changeActionIcon ) =
-            if model.hideAssignedIps then
-                ( "Show", FeatherIcons.chevronDown )
-
-            else
-                ( "Hide", FeatherIcons.chevronUp )
-
-        changeOnlyOwnMsg : Msg
-        changeOnlyOwnMsg =
-            GotHideAssignedIps (not model.hideAssignedIps)
-
-        changeButton =
-            Widget.iconButton
-                (SH.materialStyle context.palette).button
-                { onPress = Just changeOnlyOwnMsg
-                , icon =
-                    Element.row [ Element.spacing 5 ]
-                        [ Element.text changeActionVerb
-                        , changeActionIcon
-                            |> FeatherIcons.withSize 18
-                            |> FeatherIcons.toHtml []
-                            |> Element.html
-                            |> Element.el []
-                        ]
-                , text = changeActionVerb
-                }
-    in
-    if numIpsAssignedToResources == 0 then
-        Element.none
-
-    else
-        Element.column [ Element.spacing 3, Element.padding 0, Element.width Element.fill ]
-            [ Element.el
-                [ Element.centerX, Font.size 14 ]
-                (Element.text statusText)
-            , Element.el
-                [ Element.centerX ]
-                changeButton
+                    floatingIpRecord.ip.address
+                )
+            , Element.row [ Element.spacing 12, Element.alignRight ]
+                [ assignUnassignIpButton, deleteIpButton ]
             ]
+        , Element.row [] [ ipAssignment ]
+        ]
+
+
+filters : List (DataList.Filter { record | ip : OSTypes.FloatingIp })
+filters =
+    [ { id = "assigned"
+      , label = "IP is"
+      , chipPrefix = "IP is "
+      , filterOptions =
+            \_ -> Dict.fromList [ ( "yes", "assigned" ), ( "no", "unassigned" ) ]
+      , filterTypeAndDefaultValue =
+            DataList.MultiselectOption <| Set.fromList [ "no" ]
+      , onFilter =
+            \optionValue floatingIpRecord ->
+                let
+                    ipAssignedToAResource =
+                        case floatingIpRecord.ip.portUuid of
+                            Just _ ->
+                                "yes"
+
+                            Nothing ->
+                                "no"
+                in
+                ipAssignedToAResource == optionValue
+      }
+    ]
