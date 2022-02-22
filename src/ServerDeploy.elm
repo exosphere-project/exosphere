@@ -27,7 +27,7 @@ runcmd:
     echo '{"status":"running", "epoch": '$(date '+%s')'000}' | tee --append /dev/console > /dev/kmsg || true
   - chmod 640 /var/log/cloud-init-output.log
   - {create-cluster-command}
-  - |
+  - |-
     (which virtualenv && virtualenv /opt/ansible-venv) || (which virtualenv-3 && virtualenv-3 /opt/ansible-venv) || python3 -m virtualenv /opt/ansible-venv
     . /opt/ansible-venv/bin/activate
     pip install ansible-core
