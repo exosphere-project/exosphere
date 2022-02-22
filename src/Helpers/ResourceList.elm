@@ -1,6 +1,14 @@
-module Helpers.ResourceList exposing (creationTimeFilterOptions, onCreationTimeFilter)
+module Helpers.ResourceList exposing
+    ( creationTimeFilterOptions
+    , listItemColumnAttribs
+    , onCreationTimeFilter
+    )
 
 import Dict
+import Element
+import Element.Font as Font
+import Style.Helpers as SH
+import Style.Types exposing (ExoPalette)
 import Style.Widgets.DataList exposing (FilterOptionText, FilterOptionValue)
 import Time
 
@@ -29,3 +37,11 @@ onCreationTimeFilter optionValue resourceCreationTime currentTime =
 
         Nothing ->
             True
+
+
+listItemColumnAttribs : ExoPalette -> List (Element.Attribute msg)
+listItemColumnAttribs palette =
+    [ Element.spacing 12
+    , Element.width Element.fill
+    , Font.color (SH.toElementColorWithOpacity palette.on.background 0.62)
+    ]

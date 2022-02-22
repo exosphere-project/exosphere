@@ -11,7 +11,7 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.Interaction as IHelpers
 import Helpers.RemoteDataPlusPlus as RDPP
-import Helpers.ResourceList exposing (creationTimeFilterOptions, onCreationTimeFilter)
+import Helpers.ResourceList exposing (creationTimeFilterOptions, listItemColumnAttribs, onCreationTimeFilter)
 import Helpers.String
 import Html.Attributes as HtmlA
 import OpenStack.Types as OSTypes
@@ -483,10 +483,7 @@ serverView model context currentTime project serverRecord =
                     Element.none
     in
     Element.column
-        [ Element.spacing 12
-        , Element.width Element.fill
-        , Font.color (SH.toElementColorWithOpacity context.palette.on.background 0.62)
-        ]
+        (listItemColumnAttribs context.palette)
         [ Element.row [ Element.spacing 10, Element.width Element.fill ]
             [ serverLink
             , Element.el

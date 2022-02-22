@@ -6,7 +6,7 @@ import Element
 import Element.Font as Font
 import FeatherIcons
 import Helpers.GetterSetters as GetterSetters
-import Helpers.ResourceList exposing (creationTimeFilterOptions, onCreationTimeFilter)
+import Helpers.ResourceList exposing (creationTimeFilterOptions, listItemColumnAttribs, onCreationTimeFilter)
 import Helpers.String
 import OpenStack.Types as OSTypes
 import Page.QuotaUsage
@@ -302,10 +302,7 @@ volumeView model context project currentTime volumeRecord =
                     Element.none
     in
     Element.column
-        [ Element.spacing 12
-        , Element.width Element.fill
-        , Font.color (SH.toElementColorWithOpacity context.palette.on.background 0.62)
-        ]
+        (listItemColumnAttribs context.palette)
         [ Element.row [ Element.spacing 10, Element.width Element.fill ]
             [ volumeLink
             , volumeAttachment
