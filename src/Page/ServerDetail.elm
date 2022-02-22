@@ -1016,12 +1016,31 @@ serverPassword context model server =
                 ]
 
         passwordHint =
-            GetterSetters.getServerExouserPassword server.osProps.details
-                |> Maybe.withDefault (Element.text "Not available yet, check back in a few minutes.")
-                << Maybe.map
-                    (\password ->
-                        passwordShower password
-                    )
+            case GetterSetters.getServerExouserPassword server.osProps.details of
+                Just password ->
+                    passwordShower password
+
+                Nothing ->
+                    -- TODO factor out this logic used to determine whether to display the charts as well
+                    case server.exoProps.serverOrigin of
+                        ServerFromExo originProps ->
+                            case originProps.exoSetupStatus.data of
+                                RDPP.DoHave ( ExoSetupWaiting, _ ) _ ->
+                                    Element.text "Not available yet, check in a few minutes."
+
+                                RDPP.DoHave ( ExoSetupRunning, _ ) _ ->
+                                    Element.text "Not available yet, check in a few minutes."
+
+                                _ ->
+                                    Element.text "Not available"
+
+                        _ ->
+                            Element.text <|
+                                String.concat
+                                    [ "Unknown ("
+                                    , context.localization.virtualComputer
+                                    , " not created by Exosphere)"
+                                    ]
     in
     passwordHint
 
