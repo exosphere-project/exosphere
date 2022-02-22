@@ -7,12 +7,12 @@ import Types.SharedMsg exposing (SharedMsg)
 
 
 requestLoginToken : Url -> String -> String -> (Result Http.Error String -> SharedMsg) -> Cmd SharedMsg
-requestLoginToken url username password resultToMsg =
+requestLoginToken url username passphrase resultToMsg =
     Http.request
         { method = "POST"
         , headers = []
         , url = url
-        , body = Http.stringBody "text/plain" <| "username=" ++ username ++ "&password=" ++ password
+        , body = Http.stringBody "text/plain" <| "username=" ++ username ++ "&password=" ++ passphrase
         , expect = Http.expectJson resultToMsg decodeLoginToken
         , timeout = Just 10000
         , tracker = Nothing

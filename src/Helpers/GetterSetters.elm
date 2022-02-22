@@ -6,7 +6,7 @@ module Helpers.GetterSetters exposing
     , getCatalogRegionIds
     , getExternalNetwork
     , getFloatingIpServer
-    , getServerExouserPassword
+    , getServerExouserPassphrase
     , getServerFixedIps
     , getServerFloatingIps
     , getServerPorts
@@ -244,8 +244,8 @@ getFloatingIpServer project ip =
         |> Maybe.andThen (getPortServer project)
 
 
-getServerExouserPassword : OSTypes.ServerDetails -> Maybe String
-getServerExouserPassword serverDetails =
+getServerExouserPassphrase : OSTypes.ServerDetails -> Maybe String
+getServerExouserPassphrase serverDetails =
     let
         newLocation =
             serverDetails.tags
@@ -258,8 +258,8 @@ getServerExouserPassword serverDetails =
                 |> Maybe.map .value
     in
     case newLocation of
-        Just password ->
-            Just password
+        Just passphrase ->
+            Just passphrase
 
         Nothing ->
             oldLocation
