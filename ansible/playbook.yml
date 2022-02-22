@@ -10,7 +10,7 @@
         - "{{ ansible_distribution }}.yml"
         - "{{ ansible_os_family }}.yml"
   roles:
-    - 'password'
+    - 'passphrase'
     - 'base-setup'
     - 'system-load-logging'
     - 'cloud-init-tweaks'
