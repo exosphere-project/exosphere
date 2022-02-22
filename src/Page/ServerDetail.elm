@@ -1382,16 +1382,27 @@ resourceUsageCharts context currentTimeAndZone server maybeServerResourceQtys =
                     case exoOriginProps.resourceUsage.data of
                         RDPP.DoHave history _ ->
                             if Dict.isEmpty history.timeSeries then
-                                if Helpers.serverLessThanThisOld server (Tuple.first currentTimeAndZone) thirtyMinMillis then
-                                    Element.text <|
-                                        String.join " "
-                                            [ "No chart data yet. This"
-                                            , context.localization.virtualComputer
-                                            , "is new and may take a few minutes to start reporting data."
-                                            ]
+                                case exoOriginProps.exoSetupStatus.data of
+                                    RDPP.DoHave ( ExoSetupError, _ ) _ ->
+                                        Element.none
 
-                                else
-                                    Element.text "No chart data to show."
+                                    RDPP.DoHave ( ExoSetupTimeout, _ ) _ ->
+                                        Element.none
+
+                                    RDPP.DoHave ( ExoSetupWaiting, _ ) _ ->
+                                        Element.none
+
+                                    _ ->
+                                        if Helpers.serverLessThanThisOld server (Tuple.first currentTimeAndZone) thirtyMinMillis then
+                                            Element.text <|
+                                                String.join " "
+                                                    [ "No chart data yet. This"
+                                                    , context.localization.virtualComputer
+                                                    , "is new and may take a few minutes to start reporting data."
+                                                    ]
+
+                                        else
+                                            Element.text "No chart data to show."
 
                             else
                                 charts_ history.timeSeries
