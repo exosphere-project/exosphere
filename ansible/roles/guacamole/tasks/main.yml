@@ -1,13 +1,13 @@
 ---
 
-- name: 'Guacamole password hash set'
-  shell: 'echo -n "{{ exouser_password }}" | md5sum | cut --fields=1 --only-delimited --delimiter=" "'
+- name: 'Guacamole passphrase hash set'
+  shell: 'echo -n "{{ exouser_passphrase }}" | md5sum | cut --fields=1 --only-delimited --delimiter=" "'
   check_mode: false
-  register: 'guac_password_md5sum_cmd'
+  register: 'guac_passphrase_md5sum_cmd'
   no_log: true
 
 - set_fact:
-    guac_password_md5sum: '{{ guac_password_md5sum_cmd.stdout }}'
+    guac_passphrase_md5sum: '{{ guac_passphrase_md5sum_cmd.stdout }}'
 
 - name: 'Guacamole config directories created'
   file:

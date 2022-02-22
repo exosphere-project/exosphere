@@ -46,7 +46,7 @@ type alias Model =
     , showCreatedTimeToggleTip : Bool
     , showFlavorToggleTip : Bool
     , verboseStatus : VerboseStatus
-    , passwordVisibility : PasswordVisibility
+    , passphraseVisibility : PassphraseVisibility
     , ipInfoLevel : IpInfoLevel
     , serverActionNamePendingConfirmation : Maybe String
     , serverNamePendingConfirmation : Maybe String
@@ -66,16 +66,16 @@ type alias VerboseStatus =
     Bool
 
 
-type PasswordVisibility
-    = PasswordShown
-    | PasswordHidden
+type PassphraseVisibility
+    = PassphraseShown
+    | PassphraseHidden
 
 
 type Msg
     = GotShowCreatedTimeToggleTip Bool
     | GotShowFlavorToggleTip Bool
     | GotShowVerboseStatus Bool
-    | GotPasswordVisibility PasswordVisibility
+    | GotPassphraseVisibility PassphraseVisibility
     | GotIpInfoLevel IpInfoLevel
     | GotServerActionNamePendingConfirmation (Maybe String)
     | GotServerNamePendingConfirmation (Maybe String)
@@ -94,7 +94,7 @@ init serverUuid =
     , showCreatedTimeToggleTip = False
     , showFlavorToggleTip = False
     , verboseStatus = False
-    , passwordVisibility = PasswordHidden
+    , passphraseVisibility = PassphraseHidden
     , ipInfoLevel = IpSummary
     , serverActionNamePendingConfirmation = Nothing
     , serverNamePendingConfirmation = Nothing
@@ -117,8 +117,8 @@ update msg project model =
         GotShowVerboseStatus shown ->
             ( { model | verboseStatus = shown }, Cmd.none, SharedMsg.NoOp )
 
-        GotPasswordVisibility visibility ->
-            ( { model | passwordVisibility = visibility }, Cmd.none, SharedMsg.NoOp )
+        GotPassphraseVisibility visibility ->
+            ( { model | passphraseVisibility = visibility }, Cmd.none, SharedMsg.NoOp )
 
         GotIpInfoLevel level ->
             ( { model | ipInfoLevel = level }, Cmd.none, SharedMsg.NoOp )
@@ -376,7 +376,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                     model
                 , VH.compactKVSubRow "Username" (Element.text "exouser")
                 , VH.compactKVSubRow "Passphrase"
-                    (serverPassword context model server)
+                    (serverPassphrase context model server)
                 , VH.compactKVSubRow
                     (String.join " "
                         [ context.localization.pkiPublicKeyForSsh
@@ -512,7 +512,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                     [ Element.alignRight, Font.size 16, Font.regular ]
                     (serverActionsDropdown context project model server)
                 ]
-            , passwordVulnWarning context server
+            , passphraseVulnWarning context server
             , VH.createdAgoByFromSize
                 context
                 ( "created", whenCreated )
@@ -687,8 +687,8 @@ serverNameView context model server =
             serverNameViewPlain
 
 
-passwordVulnWarning : View.Types.Context -> Server -> Element.Element Msg
-passwordVulnWarning context server =
+passphraseVulnWarning : View.Types.Context -> Server -> Element.Element Msg
+passphraseVulnWarning context server =
     case server.exoProps.serverOrigin of
         ServerNotFromExo ->
             Element.none
@@ -703,7 +703,7 @@ passwordVulnWarning context server =
                             , context.localization.virtualComputer
                             , "was created with an older version of Exosphere which left the opportunity for unprivileged processes running on the"
                             , context.localization.virtualComputer
-                            , "to query the instance metadata service and determine the password for exouser (who is a sudoer). This represents a "
+                            , "to query the instance metadata service and determine the passphrase for exouser (who is a sudoer). This represents a "
                             ]
                     , VH.externalLink
                         context
@@ -713,7 +713,7 @@ passwordVulnWarning context server =
                         String.join " "
                             [ ". If you have used this"
                             , context.localization.virtualComputer
-                            , "for anything important or sensitive, consider rotating the password for exouser, or building a new"
+                            , "for anything important or sensitive, consider rotating the passphrase for exouser, or building a new"
                             , context.localization.virtualComputer
                             , "and moving to that one instead of this one. For more information, see "
                             ]
@@ -980,32 +980,32 @@ interactions context project server currentTime tlsReverseProxyHostname model =
         |> Element.column []
 
 
-serverPassword : View.Types.Context -> Model -> Server -> Element.Element Msg
-serverPassword context model server =
+serverPassphrase : View.Types.Context -> Model -> Server -> Element.Element Msg
+serverPassphrase context model server =
     let
-        passwordShower password =
+        passphraseShower passphrase =
             Element.column
                 [ Element.spacing 10 ]
-                [ case model.passwordVisibility of
-                    PasswordShown ->
-                        copyableText context.palette [] password
+                [ case model.passphraseVisibility of
+                    PassphraseShown ->
+                        copyableText context.palette [] passphrase
 
-                    PasswordHidden ->
+                    PassphraseHidden ->
                         Element.none
                 , let
                     changeMsg newValue =
-                        GotPasswordVisibility newValue
+                        GotPassphraseVisibility newValue
 
                     ( buttonText, onPressMsg ) =
-                        case model.passwordVisibility of
-                            PasswordShown ->
+                        case model.passphraseVisibility of
+                            PassphraseShown ->
                                 ( "Hide passphrase"
-                                , changeMsg PasswordHidden
+                                , changeMsg PassphraseHidden
                                 )
 
-                            PasswordHidden ->
+                            PassphraseHidden ->
                                 ( "Show"
-                                , changeMsg PasswordShown
+                                , changeMsg PassphraseShown
                                 )
                   in
                   Widget.textButton
@@ -1015,10 +1015,10 @@ serverPassword context model server =
                     }
                 ]
 
-        passwordHint =
-            case GetterSetters.getServerExouserPassword server.osProps.details of
-                Just password ->
-                    passwordShower password
+        passphraseHint =
+            case GetterSetters.getServerExouserPassphrase server.osProps.details of
+                Just passphrase ->
+                    passphraseShower passphrase
 
                 Nothing ->
                     -- TODO factor out this logic used to determine whether to display the charts as well
@@ -1042,7 +1042,7 @@ serverPassword context model server =
                                     , " not created by Exosphere)"
                                     ]
     in
-    passwordHint
+    passphraseHint
 
 
 serverActionsDropdown : View.Types.Context -> Project -> Model -> Server -> Element.Element Msg

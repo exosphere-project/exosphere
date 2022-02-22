@@ -2064,14 +2064,14 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
-        ReceiveServerPassword password ->
-            if String.isEmpty password then
+        ReceiveServerPassphrase passphrase ->
+            if String.isEmpty passphrase then
                 ( outerModel, Cmd.none )
 
             else
                 let
                     tag =
-                        "exoPw:" ++ password
+                        "exoPw:" ++ passphrase
 
                     cmd =
                         case server.exoProps.serverOrigin of

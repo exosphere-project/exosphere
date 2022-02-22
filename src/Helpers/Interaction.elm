@@ -286,7 +286,7 @@ interactionStatus project server interaction context currentTime tlsReverseProxy
                                             case
                                                 ( tlsReverseProxyHostname
                                                 , maybeFloatingIpAddress
-                                                , GetterSetters.getServerExouserPassword server.osProps.details
+                                                , GetterSetters.getServerExouserPassphrase server.osProps.details
                                                 )
                                             of
                                                 ( Nothing, _, _ ) ->
@@ -306,7 +306,7 @@ interactionStatus project server interaction context currentTime tlsReverseProxy
                                                         String.join " "
                                                             [ "Cannot find"
                                                             , context.localization.virtualComputer
-                                                            , "password to authenticate"
+                                                            , "passphrase to authenticate"
                                                             ]
 
                                                 ( Just _, Just _, Just _ ) ->

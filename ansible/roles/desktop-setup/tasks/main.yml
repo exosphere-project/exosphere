@@ -72,7 +72,7 @@
     path: '/etc/polkit-1/rules.d'
     state: 'directory'
 
-- name: 'polkit rule written to not prompt desktop user for password for administrative actions'
+- name: 'polkit rule written to not prompt desktop user for passphrase for administrative actions'
   template:
     src: '49-nopasswd_global.rules.j2'
     dest: '/etc/polkit-1/rules.d/49-nopasswd_global.rules'

@@ -1,0 +1,27 @@
+---
+
+- name: 'list of words copied into place'
+  copy:
+    src: 'words'
+    dest: '/opt/words'
+
+- name: 'passphrase generated'
+  shell: "cat /opt/words | shuf --random-source=/dev/urandom --head-count 11 | paste --delimiters=' ' --serial | head -c -1"
+  register: 'exouser_passphrase_cmd'
+  check_mode: false
+  no_log: true
+
+- name: 'passphrase saved as variable'
+  set_fact:
+    exouser_passphrase: '{{ exouser_passphrase_cmd.stdout }}'
+  no_log: true
+
+- name: 'passphrase POSTed to OpenStack metadata service'
+  command: 'curl --fail --silent --request POST {{ passphrase_post_url }} --data "{{ exouser_passphrase }}"'
+  no_log: true
+
+- name: 'passphrase set for exouser'
+  user:
+    name: 'exouser'
+    password: "{{ exouser_passphrase | password_hash('sha512') }}"
+  no_log: true

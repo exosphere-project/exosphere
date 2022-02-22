@@ -33,7 +33,7 @@ requestServerPassword project serverUuid =
                 \serverPassword ->
                     ProjectMsg (GetterSetters.projectIdentifier project) <|
                         ServerMsg serverUuid <|
-                            ReceiveServerPassword serverPassword
+                            ReceiveServerPassphrase serverPassword
     in
     openstackCredentialedRequest
         (GetterSetters.projectIdentifier project)

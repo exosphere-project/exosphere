@@ -18,7 +18,7 @@ module Types.HelperTypes exposing
     , Localization
     , MetadataFilter
     , OpenIdConnectLoginConfig
-    , Password
+    , Passphrase
     , ProjectIdentifier
     , SentryConfig
     , ServerResourceQtys
@@ -69,7 +69,7 @@ type alias ProjectIdentifier =
     }
 
 
-type alias Password =
+type alias Passphrase =
     String
 
 
