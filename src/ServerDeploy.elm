@@ -32,9 +32,11 @@ runcmd:
     . /opt/ansible-venv/bin/activate
     pip install ansible-core
     ansible-pull --url "{instance-config-mgt-repo-url}" --checkout "{instance-config-mgt-repo-checkout}" --directory /opt/instance-config-mgt -i /opt/instance-config-mgt/ansible/hosts -e "{ansible-extra-vars}" /opt/instance-config-mgt/ansible/playbook.yml
-  - sleep 1  # Ensures that console log output from previous command completes before the following command begins
+  - ANSIBLE_RETURN_CODE=$?
+  - if [ $ANSIBLE_RETURN_CODE -eq 0 ]; then STATUS="complete"; else STATUS="error"; fi
+  - sleep 1  # Ensures that console log output from any previous commands complete before the following command begins
   - >-
-    echo '{"status":"complete", "epoch": '$(date '+%s')'000}' | tee --append /dev/console > /dev/kmsg || true
+    echo '{"status":"'$STATUS'", "epoch": '$(date '+%s')'000}' | tee --append /dev/console > /dev/kmsg || true
 mount_default_fields: [None, None, "ext4", "user,exec,rw,auto,nofail,x-systemd.makefs,x-systemd.automount", "0", "2"]
 mounts:
   - [ /dev/sdb, /media/volume/sdb ]
