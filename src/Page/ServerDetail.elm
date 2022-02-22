@@ -1016,12 +1016,31 @@ serverPassword context model server =
                 ]
 
         passwordHint =
-            GetterSetters.getServerExouserPassword server.osProps.details
-                |> Maybe.withDefault (Element.text "Not available yet, check back in a few minutes.")
-                << Maybe.map
-                    (\password ->
-                        passwordShower password
-                    )
+            case GetterSetters.getServerExouserPassword server.osProps.details of
+                Just password ->
+                    passwordShower password
+
+                Nothing ->
+                    -- TODO factor out this logic used to determine whether to display the charts as well
+                    case server.exoProps.serverOrigin of
+                        ServerFromExo originProps ->
+                            case originProps.exoSetupStatus.data of
+                                RDPP.DoHave ( ExoSetupWaiting, _ ) _ ->
+                                    Element.text "Not available yet, check in a few minutes."
+
+                                RDPP.DoHave ( ExoSetupRunning, _ ) _ ->
+                                    Element.text "Not available yet, check in a few minutes."
+
+                                _ ->
+                                    Element.text "Not available"
+
+                        _ ->
+                            Element.text <|
+                                String.concat
+                                    [ "Unknown ("
+                                    , context.localization.virtualComputer
+                                    , " not created by Exosphere)"
+                                    ]
     in
     passwordHint
 
@@ -1382,16 +1401,27 @@ resourceUsageCharts context currentTimeAndZone server maybeServerResourceQtys =
                     case exoOriginProps.resourceUsage.data of
                         RDPP.DoHave history _ ->
                             if Dict.isEmpty history.timeSeries then
-                                if Helpers.serverLessThanThisOld server (Tuple.first currentTimeAndZone) thirtyMinMillis then
-                                    Element.text <|
-                                        String.join " "
-                                            [ "No chart data yet. This"
-                                            , context.localization.virtualComputer
-                                            , "is new and may take a few minutes to start reporting data."
-                                            ]
+                                case exoOriginProps.exoSetupStatus.data of
+                                    RDPP.DoHave ( ExoSetupError, _ ) _ ->
+                                        Element.none
 
-                                else
-                                    Element.text "No chart data to show."
+                                    RDPP.DoHave ( ExoSetupTimeout, _ ) _ ->
+                                        Element.none
+
+                                    RDPP.DoHave ( ExoSetupWaiting, _ ) _ ->
+                                        Element.none
+
+                                    _ ->
+                                        if Helpers.serverLessThanThisOld server (Tuple.first currentTimeAndZone) thirtyMinMillis then
+                                            Element.text <|
+                                                String.join " "
+                                                    [ "No chart data yet. This"
+                                                    , context.localization.virtualComputer
+                                                    , "is new and may take a few minutes to start reporting data."
+                                                    ]
+
+                                        else
+                                            Element.text "No chart data to show."
 
                             else
                                 charts_ history.timeSeries
