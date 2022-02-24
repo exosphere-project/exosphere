@@ -30,7 +30,6 @@
     }
   },
   "devDependencies": {
-    "@kalutheo/uie": "^0.0.6",
     "elm-analyse": "^0.16.5",
     "elm-live": "^4.0.2",
     "elm-tooling": "^1.3.0",
