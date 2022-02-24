@@ -2,8 +2,10 @@ module Page.KeypairList exposing (Model, Msg(..), init, update, view)
 
 import Element
 import Element.Font as Font
+import Element.Input
 import FeatherIcons
 import Helpers.GetterSetters as GetterSetters
+import Helpers.ResourceList exposing (listItemColumnAttribs)
 import Helpers.String
 import Html.Attributes
 import OpenStack.Types as OSTypes
@@ -12,9 +14,9 @@ import RemoteData
 import Route
 import Set
 import Style.Helpers as SH
-import Style.Widgets.Card as Card
 import Style.Widgets.CopyableText
-import Style.Widgets.Icon as Icon
+import Style.Widgets.DataList as DataList
+import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import View.Helpers as VH
@@ -24,64 +26,68 @@ import Widget
 
 type alias Model =
     { showHeading : Bool
-    , expandedKeypairs : Set.Set OSTypes.KeypairIdentifier
-    , deleteConfirmations : Set.Set OSTypes.KeypairIdentifier
+    , expandedPublicKeys : Set.Set OSTypes.KeypairIdentifier
+    , shownDeletePopconfirm : Maybe OSTypes.KeypairIdentifier
+    , dataListModel : DataList.Model
     }
 
 
 type Msg
-    = GotExpandCard OSTypes.KeypairIdentifier Bool
-    | GotDeleteNeedsConfirm OSTypes.KeypairIdentifier
+    = GotExpandPublicKey OSTypes.KeypairIdentifier Bool
     | GotDeleteConfirm OSTypes.KeypairIdentifier
-    | GotDeleteCancel OSTypes.KeypairIdentifier
+    | ShowDeletePopconfirm OSTypes.KeypairIdentifier Bool
+    | DataListMsg DataList.Msg
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
 
 
 init : Bool -> Model
 init showHeading =
-    Model showHeading Set.empty Set.empty
+    Model showHeading
+        Set.empty
+        Nothing
+        (DataList.init <| DataList.getDefaultFilterOptions [])
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
 update msg project model =
     case msg of
-        GotExpandCard keypairId expanded ->
+        GotExpandPublicKey keypairId expanded ->
             ( { model
-                | expandedKeypairs =
+                | expandedPublicKeys =
                     if expanded then
-                        Set.insert keypairId model.expandedKeypairs
+                        Set.insert keypairId model.expandedPublicKeys
 
                     else
-                        Set.remove keypairId model.expandedKeypairs
-              }
-            , Cmd.none
-            , SharedMsg.NoOp
-            )
-
-        GotDeleteNeedsConfirm keypairId ->
-            ( { model
-                | deleteConfirmations =
-                    Set.insert
-                        keypairId
-                        model.deleteConfirmations
+                        Set.remove keypairId model.expandedPublicKeys
               }
             , Cmd.none
             , SharedMsg.NoOp
             )
 
         GotDeleteConfirm keypairId ->
-            ( model
+            ( { model | shownDeletePopconfirm = Nothing }
             , Cmd.none
             , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <| SharedMsg.RequestDeleteKeypair keypairId
             )
 
-        GotDeleteCancel keypairId ->
+        ShowDeletePopconfirm keypairId toBeShown ->
             ( { model
-                | deleteConfirmations =
-                    Set.remove
-                        keypairId
-                        model.deleteConfirmations
+                | shownDeletePopconfirm =
+                    if toBeShown then
+                        Just keypairId
+
+                    else
+                        Nothing
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
+
+        DataListMsg dataListMsg ->
+            ( { model
+                | dataListModel =
+                    DataList.update dataListMsg model.dataListModel
               }
             , Cmd.none
             , SharedMsg.NoOp
@@ -98,8 +104,8 @@ view : View.Types.Context -> Project -> Model -> Element.Element Msg
 view context project model =
     let
         renderKeypairs : List OSTypes.Keypair -> Element.Element Msg
-        renderKeypairs keypairs_ =
-            if List.isEmpty keypairs_ then
+        renderKeypairs keypairs =
+            if List.isEmpty keypairs then
                 Element.column
                     (VH.exoColumnAttributes ++ [ Element.paddingXY 10 0 ])
                     [ Element.text <|
@@ -141,10 +147,16 @@ view context project model =
             else
                 Element.column
                     VH.contentContainer
-                    (List.map
-                        (renderKeypairCard context model)
-                        keypairs_
-                    )
+                    [ DataList.view
+                        model.dataListModel
+                        DataListMsg
+                        context.palette
+                        []
+                        (keypairView model context)
+                        (keypairRecords keypairs)
+                        []
+                        []
+                    ]
 
         keypairsUsedCount =
             project.keypairs
@@ -176,83 +188,141 @@ view context project model =
         ]
 
 
-renderKeypairCard : View.Types.Context -> Model -> OSTypes.Keypair -> Element.Element Msg
-renderKeypairCard context model keypair =
-    let
-        cardBody =
-            Element.column
-                VH.exoColumnAttributes
-                [ VH.compactKVRow "Public Key" <|
-                    Style.Widgets.CopyableText.copyableText context.palette
-                        [ Font.family [ Font.monospace ]
-                        , Html.Attributes.style "word-break" "break-all" |> Element.htmlAttribute
-                        ]
-                        keypair.publicKey
-                , VH.compactKVRow "Fingerprint" <|
-                    Style.Widgets.CopyableText.copyableText context.palette
-                        [ Font.family [ Font.monospace ]
-                        , Html.Attributes.style "word-break" "break-all" |> Element.htmlAttribute
-                        ]
-                        keypair.fingerprint
-                , actionButtons context model keypair
-                ]
+type alias KeypairRecord =
+    DataList.DataRecord { keypair : OSTypes.Keypair }
 
-        expanded =
-            Set.member (toIdentifier keypair) model.expandedKeypairs
-    in
-    Card.expandoCard
-        context.palette
-        expanded
-        (GotExpandCard (toIdentifier keypair))
-        (VH.possiblyUntitledResource keypair.name context.localization.pkiPublicKeyForSsh
-            |> Element.text
+
+keypairRecords : List OSTypes.Keypair -> List KeypairRecord
+keypairRecords keypairs =
+    List.map
+        (\keypair ->
+            { id = keypair.fingerprint -- doesn't matter if non-unique since bulk selection is not being used
+            , selectable = False
+            , keypair = keypair
+            }
         )
-        (if expanded then
-            Element.none
-
-         else
-            Element.el [ Font.family [ Font.monospace ] ] (Element.text keypair.fingerprint)
-        )
-        cardBody
+        keypairs
 
 
-actionButtons : View.Types.Context -> Model -> OSTypes.Keypair -> Element.Element Msg
-actionButtons context model keypair =
+keypairView : Model -> View.Types.Context -> KeypairRecord -> Element.Element Msg
+keypairView model context keypairRecord =
     let
-        confirmationNeeded =
-            Set.member (toIdentifier keypair) model.deleteConfirmations
+        keypairId =
+            ( keypairRecord.keypair.name, keypairRecord.keypair.fingerprint )
 
-        deleteButton =
-            if confirmationNeeded then
-                Element.row [ Element.spacing 10 ]
-                    [ Element.text "Confirm delete?"
-                    , Widget.iconButton
-                        (SH.materialStyle context.palette).dangerButton
-                        { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
-                        , text = "Delete"
-                        , onPress = Just <| GotDeleteConfirm (toIdentifier keypair)
-                        }
-                    , Widget.textButton
-                        (SH.materialStyle context.palette).button
-                        { text = "Cancel"
-                        , onPress = Just <| GotDeleteCancel (toIdentifier keypair)
-                        }
+        showDeletePopconfirm =
+            case model.shownDeletePopconfirm of
+                Just shownDeletePopconfirmKeypairId ->
+                    shownDeletePopconfirmKeypairId == keypairId
+
+                Nothing ->
+                    False
+
+        deleteKeypairButton =
+            Element.el
+                (if showDeletePopconfirm then
+                    [ Element.below <|
+                        deletePopconfirm context.palette
+                            { confirmationText =
+                                "Are you sure you want to delete this "
+                                    ++ context.localization.pkiPublicKeyForSsh
+                                    ++ "?"
+                            , onConfirm = Just <| GotDeleteConfirm keypairId
+                            , onCancel = Just <| ShowDeletePopconfirm keypairId False
+                            }
                     ]
 
+                 else
+                    []
+                )
+                (deleteIconButton
+                    context.palette
+                    False
+                    ("Delete " ++ context.localization.pkiPublicKeyForSsh)
+                    (Just <| ShowDeletePopconfirm keypairId True)
+                )
+
+        ( publicKeyLabelStyle, publicKeyValue ) =
+            if Set.member keypairId model.expandedPublicKeys then
+                ( Element.alignTop
+                , Element.row [ Element.width Element.fill ]
+                    [ Element.el [ Element.width Element.fill ]
+                        (Style.Widgets.CopyableText.copyableText
+                            context.palette
+                            [ Html.Attributes.style "word-break" "break-all"
+                                |> Element.htmlAttribute
+                            ]
+                            keypairRecord.keypair.publicKey
+                        )
+                    , Element.Input.button
+                        [ Element.alignBottom
+                        , Element.alignRight
+                        ]
+                        { label =
+                            Element.el
+                                [ Font.size 14
+                                , Font.color <| SH.toElementColor context.palette.primary
+                                ]
+                                (Element.text "(show less)")
+                        , onPress =
+                            Just <|
+                                GotExpandPublicKey keypairId False
+                        }
+                    ]
+                )
+
             else
-                Widget.iconButton
-                    (SH.materialStyle context.palette).dangerButton
-                    { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
-                    , text = "Delete"
-                    , onPress =
-                        Just <| GotDeleteNeedsConfirm (toIdentifier keypair)
-                    }
+                ( Element.centerY
+                , Element.row [ Element.width Element.fill ]
+                    [ Element.el
+                        [ -- FIXME: this should come dynamically as the space left after putting "show more"
+                          Element.width <| Element.px 640
+                        , Element.htmlAttribute <| Html.Attributes.style "min-width" "0"
+                        ]
+                        (VH.ellipsizedText keypairRecord.keypair.publicKey)
+                    , Element.Input.button [ Element.alignRight, Element.width Element.shrink ]
+                        { label =
+                            Element.el
+                                [ Font.size 14
+                                , Font.color <| SH.toElementColor context.palette.primary
+                                ]
+                                (Element.text "(show more)")
+                        , onPress =
+                            Just <|
+                                GotExpandPublicKey keypairId True
+                        }
+                    ]
+                )
     in
-    Element.row
-        [ Element.width Element.fill ]
-        [ Element.el [ Element.alignRight ] deleteButton ]
-
-
-toIdentifier : OSTypes.Keypair -> OSTypes.KeypairIdentifier
-toIdentifier keypair =
-    ( keypair.name, keypair.fingerprint )
+    Element.column (listItemColumnAttribs context.palette ++ [ Element.spacing 12 ])
+        [ Element.row [ Element.width Element.fill ]
+            [ Element.el
+                [ Font.size 18
+                , Font.color (SH.toElementColor context.palette.on.background)
+                ]
+                (Element.text keypairRecord.keypair.name)
+            , Element.el [ Element.alignRight ] deleteKeypairButton
+            ]
+        , Element.row []
+            [ Element.el
+                [ Element.width <| Element.minimum 120 Element.shrink ]
+                (Element.text "Fingerprint:")
+            , Element.el []
+                (Style.Widgets.CopyableText.copyableText
+                    context.palette
+                    []
+                    keypairRecord.keypair.fingerprint
+                )
+            ]
+        , Element.row
+            [ Element.width Element.fill
+            , Element.paddingEach { top = 6, right = 0, bottom = 0, left = 0 }
+            ]
+            [ Element.el
+                [ Element.width <| Element.minimum 120 Element.shrink
+                , publicKeyLabelStyle
+                ]
+                (Element.text "Public Key:")
+            , publicKeyValue
+            ]
+        ]
