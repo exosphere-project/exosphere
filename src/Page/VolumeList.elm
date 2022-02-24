@@ -342,12 +342,9 @@ filters currentTime =
       , label = "Creator"
       , chipPrefix = "Created by "
       , filterOptions =
-            \volumes ->
-                volumes
-                    |> List.map .creator
-                    |> Set.fromList
-                    |> Set.map (\creator -> ( creator, creator ))
-                    |> Set.toList
+            \_ ->
+                [ "me", "other user" ]
+                    |> List.map (\creator -> ( creator, creator ))
                     |> Dict.fromList
       , filterTypeAndDefaultValue =
             DataList.MultiselectOption <| Set.fromList [ "me" ]
