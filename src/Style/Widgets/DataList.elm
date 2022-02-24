@@ -315,6 +315,44 @@ view model toMsg palette styleAttrs listItemView data bulkActions filters =
                 )
                 data
                 filters
+
+        rows =
+            if List.isEmpty filteredData then
+                [ Element.column
+                    (rowStyle -1
+                        ++ [ Font.color <|
+                                SH.toElementColorWithOpacity palette.on.background 0.62
+                           ]
+                    )
+                    [ FeatherIcons.search
+                        |> FeatherIcons.withSize 36
+                        |> FeatherIcons.toHtml []
+                        |> Element.html
+                        |> Element.el [ Element.centerX ]
+                    , Element.el
+                        [ Element.centerX
+                        , Font.size 18
+                        , Font.color <| SH.toElementColor palette.on.background
+                        ]
+                        (Element.text "No data found!")
+                    , if not (List.isEmpty data) then
+                        Element.el
+                            [ Element.centerX
+                            , Font.size 16
+                            ]
+                        <|
+                            Element.text
+                                "No records match the filter criteria. Clear all filters and try again."
+
+                      else
+                        Element.none
+                    ]
+                ]
+
+            else
+                List.indexedMap
+                    (rowView model toMsg palette rowStyle listItemView showRowCheckbox)
+                    filteredData
     in
     Element.column
         ([ Element.width Element.fill
@@ -332,9 +370,7 @@ view model toMsg palette styleAttrs listItemView data bulkActions filters =
             { complete = data, filtered = filteredData }
             bulkActions
             filters
-            :: List.indexedMap
-                (rowView model toMsg palette rowStyle listItemView showRowCheckbox)
-                filteredData
+            :: rows
         )
 
 
