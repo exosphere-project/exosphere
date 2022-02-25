@@ -12,7 +12,7 @@ requestLoginToken url username passphrase resultToMsg =
         { method = "POST"
         , headers = []
         , url = url
-        , body = Http.stringBody "text/plain" <| "username=" ++ username ++ "&password=" ++ passphrase
+        , body = Http.stringBody "application/x-www-form-urlencoded" <| "username=" ++ username ++ "&password=" ++ passphrase
         , expect = Http.expectJson resultToMsg decodeLoginToken
         , timeout = Just 10000
         , tracker = Nothing
