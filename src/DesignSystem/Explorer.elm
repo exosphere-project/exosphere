@@ -60,9 +60,9 @@ defaultIcon icon =
 
 type ButtonVariant
     = Primary
-    | Plain
+    | Secondary
     | Danger
-    | Danger2
+    | DangerSecondary
     | Warning
 
 
@@ -77,7 +77,7 @@ button variant params =
                 Danger ->
                     (SH.materialStyle palette).dangerButton
 
-                Danger2 ->
+                DangerSecondary ->
                     (SH.materialStyle palette).dangerButtonSecondary
 
                 Warning ->
@@ -194,10 +194,10 @@ main =
                                 button Primary { text = "Next", onPress = Nothing }
                       , {}
                       )
-                    , ( "plain"
+                    , ( "secondary"
                       , \_ ->
                             toHtml <|
-                                button Plain { text = "Next", onPress = Just NoOp }
+                                button Secondary { text = "Next", onPress = Just NoOp }
                       , {}
                       )
                     , ( "warning"
@@ -215,7 +215,7 @@ main =
                     , ( "danger secondary"
                       , \_ ->
                             toHtml <|
-                                button Danger2 { text = "Delete All", onPress = Just NoOp }
+                                button DangerSecondary { text = "Delete All", onPress = Just NoOp }
                       , {}
                       )
                     ]
@@ -258,7 +258,7 @@ main =
                                         [ Font.family [ Font.monospace ] ]
                                         "192.168.1.1"
                                     )
-                                    (button Plain
+                                    (button Secondary
                                         { text = "Unassign"
                                         , onPress = Just NoOp
                                         }
