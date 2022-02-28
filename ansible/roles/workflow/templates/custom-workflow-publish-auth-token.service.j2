@@ -1,0 +1,9 @@
+[Unit]
+Description=Retrieve and publish custom workflow authentication token
+
+[Service]
+Type=simple
+ExecStart=/bin/bash -c "/opt/custom_workflow_json.sh {{ console_file }}"
+
+[Install]
+WantedBy=default.target

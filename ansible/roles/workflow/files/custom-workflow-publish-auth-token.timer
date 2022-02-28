@@ -1,0 +1,14 @@
+[Unit]
+Description=Schedule retrieval and publication of custom workflow authentication token
+RefuseManualStart=no
+RefuseManualStop=no
+
+[Timer]
+Persistent=true
+OnBootSec=180
+OnCalendar=hourly
+RandomizedDelaySec=30
+Unit=custom-workflow-publish-auth-token.service
+
+[Install]
+WantedBy=timers.target

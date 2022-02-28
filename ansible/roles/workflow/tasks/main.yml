@@ -39,7 +39,7 @@
     repo2docker_repo_arg: '{{ ''/opt/workflow'' if workflow_local_download == true else workflow_source_repository }}'
 
 - name: 'repo2docker called to build container image'
-  become: 'yes'
+  become: true
   become_user: 'exouser'
   register: result
   retries: 3
@@ -56,52 +56,48 @@
       - '{{ workflow_repo_version }}'
       - '{{ repo2docker_repo_arg }}'
 
-# This is allowed to fail because container may already exist
+- name: 'custom-workflow.service systemd unit file templated and copied into place'
+  template:
+    src: 'custom-workflow.service.j2'
+    dest: '/etc/systemd/system/custom-workflow.service'
 
-- name: 'docker container created from new image'
-  command:
-    argv:
-      - 'docker'
-      - 'run'
-      - '--detach'
-      - '--restart'
-      - 'always'
-      - '--name'
-      - 'workflow'
-      - '--volume'
-      - '/data:/data:rw'
-      - '-p'
-      - '8888:8888'
-      - 'exosphere-workflow'
-      - 'jupyter'
-      - 'notebook'
-      - '--ip'
-      - '0.0.0.0'
-  failed_when: false
+- name: 'custom-workflow-publish-auth-token.service systemd unit file templated and copied into place'
+  template:
+    src: 'custom-workflow-publish-auth-token.service.j2'
+    dest: '/etc/systemd/system/custom-workflow-publish-auth-token.service'
+
+- name: 'custom-workflow-publish-auth-token.timer systemd unit file copied into place'
+  copy:
+    src: 'custom-workflow-publish-auth-token.timer'
+    dest: '/etc/systemd/system/custom-workflow-publish-auth-token.timer'
+
+- name: 'custom-workflow.service systemd service enabled and started'
+  systemd:
+    name: 'custom-workflow.service'
+    daemon_reload: 'yes'
+    enabled: 'yes'
+    state: 'started'
+
+- name: 'custom-workflow-publish-auth-token.service systemd service enabled and started'
+  systemd:
+    name: 'custom-workflow-publish-auth-token.service'
+    daemon_reload: 'yes'
+    enabled: 'yes'
+
+- name: 'custom-workflow-publish-auth-token.timer systemd timer enabled and started'
+  systemd:
+    name: 'custom-workflow-publish-auth-token.timer'
+    daemon_reload: 'yes'
+    enabled: 'yes'
+    state: 'started'
 
 - name: 'Jupyter notebook token determined'
-  shell: 'docker exec workflow jupyter notebook list | grep -m 1 -Po ''(token=)\K[a-f0-9]+'''
+  shell: 'docker exec custom-workflow.service jupyter notebook list | grep -m 1 -Po ''(token=)\K[a-f0-9]+'''
   register: 'workflow_token'
   retries: 3
   delay: 10
   until: workflow_token is not failed
   check_mode: false
-
-- name: 'Write Jupyter notebook token to console'
-  shell: 'echo ''{"exoWorkflowToken":"{{ workflow_token.stdout }}"}'' > {{ console_file }}'
-  check_mode: false
-
-- name: 'custom workflow details logged first time'
-  register: result
-  retries: 3
-  delay: 10
-  until: result is not failed
-  shell: '/opt/custom_workflow_json.sh > {{ console_file }}'
-
-- name: 'custom workflow logging script run every minute'
-  cron:
-    name: 'custom workflow details logging script run every minute'
-    job: '/opt/custom_workflow_json.sh > {{ console_file }}'
 
 # Write to console that workflow provisioning is complete
 - shell: 'echo ''{"exoWorkflowSetup":"complete"}'' > {{ console_file }}'
