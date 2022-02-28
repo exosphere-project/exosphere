@@ -18,11 +18,11 @@
     state: 'directory'
     owner: '{{ vnc_server_user }}'
 
-- name: 'VNC password set'
-  shell: 'echo "{{ exouser_password }}" | vncpasswd -f > /home/{{ vnc_server_user }}/.vnc/passwd'
+- name: 'VNC passphrase set'
+  shell: 'echo "{{ exouser_passphrase }}" | vncpasswd -f > /home/{{ vnc_server_user }}/.vnc/passwd'
   no_log: true
 
-- name: 'permissions set on VNC password file'
+- name: 'permissions set on VNC passphrase file'
   file:
     path: '/home/{{ vnc_server_user }}/.vnc/passwd'
     mode: '600'

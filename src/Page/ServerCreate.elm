@@ -1071,7 +1071,7 @@ clusterInputExperimental context model =
                     [ "This feature currently only supports "
                     , context.localization.staticRepresentationOfBlockDeviceContents
                         |> Helpers.String.pluralize
-                    , " based on CentOS 8. If you choose "
+                    , " based on Rocky Linux 8. If you choose "
                     , context.localization.staticRepresentationOfBlockDeviceContents
                         |> Helpers.String.indefiniteArticle
                     , " "

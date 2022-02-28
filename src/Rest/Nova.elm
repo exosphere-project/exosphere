@@ -808,7 +808,7 @@ receiveServer_ project osServer =
                 _ ->
                     requestConsoleUrlIfRequestable project newServer
 
-        passwordCmd =
+        passphraseCmd =
             case newServer.exoProps.serverOrigin of
                 ServerNotFromExo ->
                     Cmd.none
@@ -816,7 +816,7 @@ receiveServer_ project osServer =
                 ServerFromExo serverFromExoProps ->
                     case
                         ( serverFromExoProps.exoServerVersion >= 1
-                        , GetterSetters.getServerExouserPassword newServer.osProps.details
+                        , GetterSetters.getServerExouserPassphrase newServer.osProps.details
                         , newServer.osProps.details.openstackStatus
                         )
                     of
@@ -850,7 +850,7 @@ receiveServer_ project osServer =
                     Cmd.none
 
         allCmds =
-            [ consoleUrlCmd, passwordCmd, deleteFloatingIpMetadataOptionCmd ]
+            [ consoleUrlCmd, passphraseCmd, deleteFloatingIpMetadataOptionCmd ]
                 |> Cmd.batch
     in
     ( newServer, allCmds )

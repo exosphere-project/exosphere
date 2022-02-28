@@ -380,7 +380,7 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
         createClusterYaml : String
         createClusterYaml =
             if createCluster then
-                """su - centos -c "git clone --branch main --single-branch --depth 1 https://github.com/XSEDE/CRI_Jetstream_Cluster.git; cd CRI_Jetstream_Cluster; ./cluster_create_local.sh" """
+                """su - rocky -c "git clone --branch rocky-linux --single-branch --depth 1 https://github.com/XSEDE/CRI_Jetstream_Cluster.git; cd CRI_Jetstream_Cluster; ./cluster_create_local.sh -d 2>&1 | tee local_create.log" """
 
             else
                 """echo "Not creating a cluster, moving along..." """
@@ -388,16 +388,16 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
         openrcFileYamlTemplate : String
         openrcFileYamlTemplate =
             """
-- path: /home/centos/openrc.sh
+- path: /home/rocky/openrc.sh
   content: |
     export OS_AUTH_TYPE=v3applicationcredential
     export OS_AUTH_URL={os-auth-url}
     export OS_IDENTITY_API_VERSION=3
-    export OS_REGION_NAME="RegionOne"
+    export OS_REGION_NAME="{os-region}"
     export OS_INTERFACE=public
     export OS_APPLICATION_CREDENTIAL_ID="{os-ac-id}"
     export OS_APPLICATION_CREDENTIAL_SECRET="{os-ac-secret}"
-  owner: centos:centos
+  owner: rocky:rocky
   permissions: '0400'
   defer: true"""
 
@@ -405,10 +405,20 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
         includeOpenrcFile =
             createCluster
 
+        regionId : String
+        regionId =
+            case project.region of
+                Nothing ->
+                    "RegionOne"
+
+                Just region ->
+                    region.id
+
         openrcFileYaml : Maybe String
         openrcFileYaml =
             if includeOpenrcFile then
                 [ ( "{os-auth-url}", project.endpoints.keystone )
+                , ( "{os-region}", regionId )
                 , ( "{os-ac-id}", appCredentialUuid )
                 , ( "{os-ac-secret}", appCredentialSecret )
                 ]

@@ -1,0 +1,3 @@
+---
+
+passphrase_post_url: 'http://169.254.169.254/openstack/latest/password'

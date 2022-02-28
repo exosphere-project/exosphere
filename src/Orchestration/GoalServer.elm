@@ -490,7 +490,7 @@ stepServerGuacamoleAuth time maybeUserAppProxy project server =
             ( project, Cmd.none )
 
         doRequestToken : String -> String -> UserAppProxyHostname -> ServerFromExoProps -> GuacTypes.LaunchedWithGuacProps -> ( Project, Cmd SharedMsg )
-        doRequestToken floatingIp password proxyHostname oldExoOriginProps oldGuacProps =
+        doRequestToken floatingIp passphrase proxyHostname oldExoOriginProps oldGuacProps =
             let
                 oldAuthToken =
                     oldGuacProps.authToken
@@ -525,7 +525,7 @@ stepServerGuacamoleAuth time maybeUserAppProxy project server =
             , Rest.Guacamole.requestLoginToken
                 url
                 "exouser"
-                password
+                passphrase
                 (\result ->
                     ProjectMsg (GetterSetters.projectIdentifier project) <|
                         ServerMsg server.osProps.uuid <|
@@ -547,14 +547,14 @@ stepServerGuacamoleAuth time maybeUserAppProxy project server =
                         ( GetterSetters.getServerFloatingIps project server.osProps.uuid
                             |> List.map .address
                             |> List.head
-                        , GetterSetters.getServerExouserPassword server.osProps.details
+                        , GetterSetters.getServerExouserPassphrase server.osProps.details
                         , maybeUserAppProxy
                         )
                     of
-                        ( Just floatingIp, Just password, Just tlsReverseProxyHostname ) ->
+                        ( Just floatingIp, Just passphrase, Just tlsReverseProxyHostname ) ->
                             let
                                 doRequestToken_ =
-                                    doRequestToken floatingIp password tlsReverseProxyHostname exoOriginProps launchedWithGuacProps
+                                    doRequestToken floatingIp passphrase tlsReverseProxyHostname exoOriginProps launchedWithGuacProps
                             in
                             case launchedWithGuacProps.authToken.refreshStatus of
                                 RDPP.Loading ->
@@ -590,7 +590,7 @@ stepServerGuacamoleAuth time maybeUserAppProxy project server =
                                                 doRequestToken_
 
                         _ ->
-                            -- Missing either a floating IP, password, or TLS-terminating reverse proxy server
+                            -- Missing either a floating IP, passphrase, or TLS-terminating reverse proxy server
                             doNothing
 
 
