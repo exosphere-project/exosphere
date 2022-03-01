@@ -66,7 +66,7 @@ We discuss project progress and priorities on a **weekly video call** Mondays at
 ### For Exosphere Contributors
 
 - [Contributing to Exosphere](contributing.md)
-- [UI, Layout, and Style](docs/style.md)
+- [UI, Layout, Style & Design System](docs/style.md)
 - [Architecture Decision Records](docs/adr/README.md)
 - [Exosphere Tests](tests/README.md)
 - [Browser Integration Tests](integration-tests/README.md)
@@ -219,7 +219,7 @@ For example: the one-click graphical desktop feature, only works with Ubuntu 20.
 
 If your community relies on an operating system that we don't currently support, please [create an issue](https://gitlab.com/exosphere/exosphere/-/issues) explaining your need! It's probably not hard to add support for Linux distros that use systemd and an APT/YUM/DNF package system.
 
-#### To host the Exosphere Web Application  
+#### To host the Exosphere Web Application
 
 - The Exosphere client-side application can be served as static content from any web server.
 - Exosphere's two supporting proxy servers ([Cloud CORS Proxy](docs/solving-cors-problem.md) and [User Application Proxy](docs/user-app-proxy.md)) require [Nginx](https://nginx.org) configured with browser-accepted TLS (e.g. via [Let's Encrypt](https://letsencrypt.org)). The User Application Proxy requires a wildcard TLS certificate; Let's Encrypt issues these free of charge.

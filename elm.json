@@ -27,6 +27,7 @@
             "elm-community/random-extra": "3.1.0",
             "feathericons/elm-feather": "1.5.0",
             "jweir/elm-iso8601": "6.0.1",
+            "kalutheo/elm-ui-explorer": "7.0.1",
             "krisajenkins/remotedata": "6.0.1",
             "mdgriffith/elm-ui": "1.1.7",
             "pablen/toasty": "1.2.0",
@@ -39,6 +40,7 @@
             "truqu/elm-base64": "2.0.4"
         },
         "indirect": {
+            "1602/elm-feather": "2.3.4",
             "Orasund/elm-ui-framework": "1.6.1",
             "TSFoster/elm-bytes-extra": "1.3.0",
             "TSFoster/elm-md5": "2.0.0",
@@ -49,6 +51,7 @@
             "elm/file": "1.0.5",
             "elm/virtual-dom": "1.0.2",
             "elm-community/intdict": "3.0.0",
+            "elm-explorations/markdown": "1.0.0",
             "fredcy/elm-parseint": "2.0.1",
             "justinmimbs/date": "3.2.1",
             "justinmimbs/time-extra": "1.1.0",
