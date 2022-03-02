@@ -1099,11 +1099,11 @@ serverEventHistory :
     View.Types.Context
     -> Model
     -> Time.Posix
-    -> RemoteData.WebData (List OSTypes.ServerEvent)
+    -> RDPP.RemoteDataPlusPlus a (List OSTypes.ServerEvent)
     -> Element.Element Msg
-serverEventHistory context model currentTime serverEventsWebData =
-    case serverEventsWebData of
-        RemoteData.Success serverEvents ->
+serverEventHistory context model currentTime serverEventsRDPP =
+    case serverEventsRDPP.data of
+        RDPP.DoHave serverEvents _ ->
             let
                 renderTableHeader : String -> Element.Element Msg
                 renderTableHeader headerText =

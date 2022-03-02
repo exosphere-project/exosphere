@@ -763,7 +763,7 @@ receiveServer_ project osServer =
                                 Nothing
                                 False
                     in
-                    Server osServer defaultExoProps RemoteData.NotAsked
+                    Server osServer defaultExoProps RDPP.empty
 
                 Just exoServer ->
                     let

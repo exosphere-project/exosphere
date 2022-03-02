@@ -1994,7 +1994,12 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                 Ok serverEvents ->
                     let
                         newServer =
-                            { server | events = RemoteData.Success serverEvents }
+                            { server
+                                | events =
+                                    RDPP.RemoteDataPlusPlus
+                                        (RDPP.DoHave serverEvents sharedModel.clientCurrentTime)
+                                        (RDPP.NotLoading Nothing)
+                            }
 
                         newProject =
                             GetterSetters.projectUpdateServer project newServer

@@ -95,7 +95,7 @@ interactionStatus project server interaction context currentTime tlsReverseProxy
 
                                         recentServerEvent =
                                             server.events
-                                                |> RemoteData.withDefault []
+                                                |> RDPP.withDefault []
                                                 -- Ignore server events which don't cause a power cycle
                                                 |> List.filter
                                                     (\event ->
@@ -174,7 +174,7 @@ interactionStatus project server interaction context currentTime tlsReverseProxy
 
                 recentServerEvent =
                     server.events
-                        |> RemoteData.withDefault []
+                        |> RDPP.withDefault []
                         -- Ignore server events which don't cause a power cycle
                         |> List.filter
                             (\event ->

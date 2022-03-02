@@ -25,7 +25,7 @@ import Types.Workflow as WorkflowTypes
 type alias Server =
     { osProps : OSTypes.Server
     , exoProps : ExoServerProps
-    , events : WebData (List OSTypes.ServerEvent)
+    , events : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.ServerEvent)
     }
 
 
