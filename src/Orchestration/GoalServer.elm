@@ -71,12 +71,6 @@ goalPollServers time maybeCloudSpecificConfig project =
 stepServerPoll : Time.Posix -> Project -> Server -> ( Project, Cmd SharedMsg )
 stepServerPoll time project server =
     let
-        frequentPollIntervalMs =
-            4500
-
-        infrequentPollIntervalMs =
-            60000
-
         serverReceivedRecentlyEnough =
             let
                 receivedTime =
@@ -93,11 +87,7 @@ stepServerPoll time project server =
                                     Time.millisToPosix 0
 
                 pollInterval =
-                    if Helpers.serverNeedsFrequentPoll server then
-                        frequentPollIntervalMs
-
-                    else
-                        infrequentPollIntervalMs
+                    Helpers.serverPollIntervalMs server
             in
             Time.posixToMillis time < (Time.posixToMillis receivedTime + pollInterval)
 

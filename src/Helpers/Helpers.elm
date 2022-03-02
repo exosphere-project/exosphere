@@ -12,8 +12,8 @@ module Helpers.Helpers exposing
     , renderUserDataTemplate
     , serverFromThisExoClient
     , serverLessThanThisOld
-    , serverNeedsFrequentPoll
     , serverOrigin
+    , serverPollIntervalMs
     , serverResourceQtys
     , serviceCatalogToEndpoints
     , stringIsUuidOrDefault
@@ -710,8 +710,9 @@ serverFromThisExoClient clientUuid server =
     List.member (OSTypes.MetadataItem "exoClientUuid" (UUID.toString clientUuid)) server.osProps.details.metadata
 
 
-serverNeedsFrequentPoll : Server -> Bool
-serverNeedsFrequentPoll server =
+serverPollIntervalMs : Server -> Int
+serverPollIntervalMs server =
+    -- TODO less often than every 5 seconds. more like, every 10-15?
     case
         ( server.osProps.details.openstackStatus
         , ( server.exoProps.deletionAttempted
@@ -721,27 +722,27 @@ serverNeedsFrequentPoll server =
         )
     of
         ( OSTypes.ServerBuild, _ ) ->
-            True
+            4500
 
         ( _, ( False, Nothing, ServerNotFromExo ) ) ->
-            False
+            60000
 
         ( _, ( False, Nothing, ServerFromExo { exoSetupStatus } ) ) ->
             case exoSetupStatus.data of
                 RDPP.DoHave ( ExoSetupWaiting, _ ) _ ->
-                    True
+                    4500
 
                 RDPP.DoHave ( ExoSetupRunning, _ ) _ ->
-                    True
+                    4500
 
                 RDPP.DoHave _ _ ->
-                    False
+                    60000
 
                 RDPP.DontHave ->
-                    True
+                    4500
 
         _ ->
-            True
+            4500
 
 
 serverLessThanThisOld : Server -> Time.Posix -> Int -> Bool
