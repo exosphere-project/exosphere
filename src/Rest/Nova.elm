@@ -441,12 +441,17 @@ requestDeleteServer projectId novaUrl serverId =
 
 requestConsoleUrlIfRequestable : Project -> Server -> Cmd SharedMsg
 requestConsoleUrlIfRequestable project server =
-    case server.osProps.details.openstackStatus of
-        OSTypes.ServerActive ->
-            requestConsoleUrls project server.osProps.uuid
+    case server.osProps.consoleUrl of
+        RemoteData.Success _ ->
+            Cmd.none
 
         _ ->
-            Cmd.none
+            case server.osProps.details.openstackStatus of
+                OSTypes.ServerActive ->
+                    requestConsoleUrls project server.osProps.uuid
+
+                _ ->
+                    Cmd.none
 
 
 requestCreateServerImage : Project -> OSTypes.ServerUuid -> String -> Cmd SharedMsg
@@ -801,12 +806,7 @@ receiveServer_ project osServer =
                     }
 
         consoleUrlCmd =
-            case newServer.osProps.consoleUrl of
-                RemoteData.Success _ ->
-                    Cmd.none
-
-                _ ->
-                    requestConsoleUrlIfRequestable project newServer
+            requestConsoleUrlIfRequestable project newServer
 
         passphraseCmd =
             case newServer.exoProps.serverOrigin of
