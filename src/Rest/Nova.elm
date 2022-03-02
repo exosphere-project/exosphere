@@ -42,7 +42,7 @@ import Types.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes exposing (HttpRequestMethod(..), ProjectIdentifier, Url)
 import Types.Project exposing (Project)
-import Types.Server exposing (ExoServerProps, NewServerNetworkOptions(..), Server, ServerOrigin(..))
+import Types.Server exposing (ExoServerProps, ExoSetupStatus(..), NewServerNetworkOptions(..), Server, ServerOrigin(..))
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
 
@@ -463,14 +463,19 @@ requestPassphraseIfRequestable project server =
             Cmd.none
 
         ServerFromExo serverFromExoProps ->
-            -- TODO only if we don't have the tag already
-            -- TODO only if Exosphere setup status is "running" or "complete"
+            let
+                passphraseLikelySetAlready =
+                    List.member
+                        (RDPP.withDefault ( ExoSetupUnknown, Nothing ) serverFromExoProps.exoSetupStatus |> Tuple.first)
+                        [ ExoSetupRunning, ExoSetupComplete ]
+            in
             case
                 ( GetterSetters.getServerExouserPassphrase server.osProps.details
                 , server.osProps.details.openstackStatus
+                , passphraseLikelySetAlready
                 )
             of
-                ( Nothing, OSTypes.ServerActive ) ->
+                ( Nothing, OSTypes.ServerActive, True ) ->
                     OSServerPassword.requestServerPassword project server.osProps.uuid
 
                 _ ->
