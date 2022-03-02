@@ -712,6 +712,7 @@ serverFromThisExoClient clientUuid server =
 
 serverPollIntervalMs : Server -> Int
 serverPollIntervalMs server =
+    -- TODO if server not created by current user, consider polling even less often -- perhaps every 5 minutes
     case
         ( server.osProps.details.openstackStatus
         , ( server.exoProps.deletionAttempted

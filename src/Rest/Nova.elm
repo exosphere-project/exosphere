@@ -106,6 +106,9 @@ requestServer project serverUuid =
     -- Get server events whenever we get a server. We may not want to do this forever, but let's try it out
     Cmd.batch
         [ requestServerCmd
+
+        -- TODO consider doing this less often? perhaps orchestration code handles this. only if the actions we know about are >5 mins old or something.
+        -- TODO also poll after we perform a server action, so when we receive the result of API call of server action being performed
         , requestServerEvents project serverUuid
         ]
 

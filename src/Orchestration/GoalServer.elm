@@ -56,6 +56,7 @@ goalPollServers time maybeCloudSpecificConfig project =
         steps =
             [ stepServerPoll time
             , stepServerPollConsoleLog time
+            , stepServerPollEvents time
             , stepServerGuacamoleAuth time userAppProxy
             ]
 
@@ -459,6 +460,13 @@ stepServerPollConsoleLog time project server =
                     )
 
 
+stepServerPollEvents : Time.Posix -> Project -> Server -> ( Project, Cmd SharedMsg )
+stepServerPollEvents time project server =
+    case server.events.refreshStatus of
+        RDPP.Loading ->
+            doNothing
+
+
 stepServerGuacamoleAuth : Time.Posix -> Maybe UserAppProxyHostname -> Project -> Server -> ( Project, Cmd SharedMsg )
 stepServerGuacamoleAuth time maybeUserAppProxy project server =
     -- TODO ensure server is active or in verify resize state
@@ -475,9 +483,6 @@ stepServerGuacamoleAuth time maybeUserAppProxy project server =
 
         guacUpstreamPort =
             49528
-
-        doNothing =
-            ( project, Cmd.none )
 
         doRequestToken : String -> String -> UserAppProxyHostname -> ServerFromExoProps -> GuacTypes.LaunchedWithGuacProps -> ( Project, Cmd SharedMsg )
         doRequestToken floatingIp passphrase proxyHostname oldExoOriginProps oldGuacProps =
@@ -525,12 +530,12 @@ stepServerGuacamoleAuth time maybeUserAppProxy project server =
     in
     case server.exoProps.serverOrigin of
         ServerNotFromExo ->
-            doNothing
+            doNothing project
 
         ServerFromExo exoOriginProps ->
             case exoOriginProps.guacamoleStatus of
                 GuacTypes.NotLaunchedWithGuacamole ->
-                    doNothing
+                    doNothing project
 
                 GuacTypes.LaunchedWithGuacamole launchedWithGuacProps ->
                     case
@@ -548,7 +553,7 @@ stepServerGuacamoleAuth time maybeUserAppProxy project server =
                             in
                             case launchedWithGuacProps.authToken.refreshStatus of
                                 RDPP.Loading ->
-                                    doNothing
+                                    doNothing project
 
                                 RDPP.NotLoading maybeErrorTimeTuple ->
                                     case launchedWithGuacProps.authToken.data of
@@ -563,7 +568,7 @@ stepServerGuacamoleAuth time maybeUserAppProxy project server =
                                                             Time.posixToMillis receivedTime + errorRetryIntervalMillis
                                                     in
                                                     if curTimeMillis <= whenToRetryMillis then
-                                                        doNothing
+                                                        doNothing project
 
                                                     else
                                                         doRequestToken_
@@ -574,16 +579,21 @@ stepServerGuacamoleAuth time maybeUserAppProxy project server =
                                                     Time.posixToMillis receivedTime + maxGuacTokenLifetimeMillis
                                             in
                                             if curTimeMillis <= whenToRefreshMillis then
-                                                doNothing
+                                                doNothing project
 
                                             else
                                                 doRequestToken_
 
                         _ ->
                             -- Missing either a floating IP, passphrase, or TLS-terminating reverse proxy server
-                            doNothing
+                            doNothing project
 
 
 serverIsActiveEnough : Server -> Bool
 serverIsActiveEnough server =
     List.member server.osProps.details.openstackStatus [ OSTypes.ServerActive, OSTypes.ServerVerifyResize ]
+
+
+doNothing : Project -> ( Project, Cmd SharedMsg )
+doNothing project =
+    ( project, Cmd.none )
