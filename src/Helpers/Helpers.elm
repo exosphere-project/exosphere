@@ -712,7 +712,6 @@ serverFromThisExoClient clientUuid server =
 
 serverPollIntervalMs : Server -> Int
 serverPollIntervalMs server =
-    -- TODO less often than every 5 seconds. more like, every 10-15?
     case
         ( server.osProps.details.openstackStatus
         , ( server.exoProps.deletionAttempted
@@ -722,26 +721,32 @@ serverPollIntervalMs server =
         )
     of
         ( OSTypes.ServerBuild, _ ) ->
-            4500
+            15000
 
         ( _, ( False, Nothing, ServerNotFromExo ) ) ->
+            -- Not created from Exosphere, not deleting or waiting a pending server action
             60000
 
         ( _, ( False, Nothing, ServerFromExo { exoSetupStatus } ) ) ->
             case exoSetupStatus.data of
                 RDPP.DoHave ( ExoSetupWaiting, _ ) _ ->
-                    4500
+                    -- Exosphere-created, booting up for the first time
+                    15000
 
                 RDPP.DoHave ( ExoSetupRunning, _ ) _ ->
-                    4500
+                    -- Exosphere-created, running setup
+                    10000
 
                 RDPP.DoHave _ _ ->
+                    -- Exosphere-created, not waiting for setup to complete
                     60000
 
                 RDPP.DontHave ->
-                    4500
+                    -- Exosphere-created and Exosphere setup status known
+                    15000
 
         _ ->
+            -- We're expecting OpenStack status to change (or server to be deleted) very soon
             4500
 
 
