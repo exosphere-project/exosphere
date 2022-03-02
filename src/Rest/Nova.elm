@@ -466,12 +466,11 @@ requestPassphraseIfRequestable project server =
             -- TODO only if we don't have the tag already
             -- TODO only if Exosphere setup status is "running" or "complete"
             case
-                ( serverFromExoProps.exoServerVersion >= 1
-                , GetterSetters.getServerExouserPassphrase server.osProps.details
+                ( GetterSetters.getServerExouserPassphrase server.osProps.details
                 , server.osProps.details.openstackStatus
                 )
             of
-                ( True, Nothing, OSTypes.ServerActive ) ->
+                ( Nothing, OSTypes.ServerActive ) ->
                     OSServerPassword.requestServerPassword project server.osProps.uuid
 
                 _ ->
