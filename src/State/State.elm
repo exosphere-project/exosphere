@@ -1989,6 +1989,12 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
             ( outerModel, Rest.Nova.requestSetServerName project server.osProps.uuid newServerName )
                 |> mapToOuterMsg
 
+        ReceiveServerAction ->
+            ApiModelHelpers.requestServer (GetterSetters.projectIdentifier project) server.osProps.uuid sharedModel
+                |> Helpers.pipelineCmd (ApiModelHelpers.requestServerEvents (GetterSetters.projectIdentifier project) server.osProps.uuid)
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
         ReceiveServerEvents _ result ->
             case result of
                 Ok serverEvents ->

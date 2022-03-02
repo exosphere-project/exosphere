@@ -9,6 +9,7 @@ import Helpers.Url as UrlHelpers
 import OpenStack.ConsoleLog
 import OpenStack.Types as OSTypes
 import Orchestration.Helpers exposing (applyStepToAllServers)
+import Rest.ApiModelHelpers as ApiModelHelpers
 import Rest.Guacamole
 import Rest.Neutron
 import Rest.Nova
@@ -462,9 +463,47 @@ stepServerPollConsoleLog time project server =
 
 stepServerPollEvents : Time.Posix -> Project -> Server -> ( Project, Cmd SharedMsg )
 stepServerPollEvents time project server =
+    let
+        pollIntervalMillis =
+            5 * 60 * 1000
+
+        curTimeMillis =
+            Time.posixToMillis time
+
+        pollIfIntervalExceeded : Time.Posix -> ( Project, Cmd SharedMsg )
+        pollIfIntervalExceeded receivedTime =
+            if Time.posixToMillis receivedTime + pollIntervalMillis < curTimeMillis then
+                doPollEvents
+
+            else
+                doNothing project
+
+        doPollEvents =
+            let
+                newServer =
+                    { server | events = RDPP.setLoading server.events }
+
+                newProject =
+                    GetterSetters.projectUpdateServer project newServer
+            in
+            ( newProject, Rest.Nova.requestServerEvents newProject server.osProps.uuid )
+    in
     case server.events.refreshStatus of
         RDPP.Loading ->
-            doNothing
+            doNothing project
+
+        RDPP.NotLoading maybeErrorTimeTuple ->
+            case server.events.data of
+                RDPP.DoHave _ receivedTime ->
+                    pollIfIntervalExceeded receivedTime
+
+                RDPP.DontHave ->
+                    case maybeErrorTimeTuple of
+                        Nothing ->
+                            doPollEvents
+
+                        Just ( _, receivedTime ) ->
+                            pollIfIntervalExceeded receivedTime
 
 
 stepServerGuacamoleAuth : Time.Posix -> Maybe UserAppProxyHostname -> Project -> Server -> ( Project, Cmd SharedMsg )

@@ -26,6 +26,7 @@ module Helpers.GetterSetters exposing
     , projectSetJetstream2AllocationLoading
     , projectSetNetworksLoading
     , projectSetPortsLoading
+    , projectSetServerEventsLoading
     , projectSetServerLoading
     , projectSetServersLoading
     , projectSetVolumesLoading
@@ -469,6 +470,21 @@ projectSetServerLoading project serverUuid =
 
                 newServer =
                     { server | exoProps = newExoProps }
+            in
+            projectUpdateServer project newServer
+
+
+projectSetServerEventsLoading : Project -> OSTypes.ServerUuid -> Project
+projectSetServerEventsLoading project serverUuid =
+    case serverLookup project serverUuid of
+        Nothing ->
+            -- We can't do anything lol
+            project
+
+        Just server ->
+            let
+                newServer =
+                    { server | events = RDPP.setLoading server.events }
             in
             projectUpdateServer project newServer
 

@@ -104,6 +104,7 @@ type ServerSpecificMsgConstructor
     | RequestAttachVolume OSTypes.VolumeUuid
     | RequestCreateServerImage String
     | RequestResizeServer OSTypes.FlavorId
+    | ReceiveServerAction
     | ReceiveServerEvents ErrorContext (Result HttpErrorWithBody (List OSTypes.ServerEvent))
     | ReceiveConsoleUrl (Result HttpErrorWithBody OSTypes.ConsoleUrl)
     | ReceiveDeleteServer
