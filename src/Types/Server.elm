@@ -13,7 +13,6 @@ module Types.Server exposing
 
 import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.Types as OSTypes
-import RemoteData exposing (WebData)
 import Time
 import Types.Error exposing (HttpErrorWithBody)
 import Types.Guacamole as GuacTypes

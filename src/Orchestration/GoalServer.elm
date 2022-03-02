@@ -9,7 +9,6 @@ import Helpers.Url as UrlHelpers
 import OpenStack.ConsoleLog
 import OpenStack.Types as OSTypes
 import Orchestration.Helpers exposing (applyStepToAllServers)
-import Rest.ApiModelHelpers as ApiModelHelpers
 import Rest.Guacamole
 import Rest.Neutron
 import Rest.Nova
