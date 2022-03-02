@@ -456,6 +456,28 @@ requestConsoleUrlIfRequestable project server =
                 Cmd.none
 
 
+requestPassphraseIfRequestable : Project -> Server -> Cmd SharedMsg
+requestPassphraseIfRequestable project server =
+    case server.exoProps.serverOrigin of
+        ServerNotFromExo ->
+            Cmd.none
+
+        ServerFromExo serverFromExoProps ->
+            -- TODO only if we don't have the tag already
+            -- TODO only if Exosphere setup status is "running" or "complete"
+            case
+                ( serverFromExoProps.exoServerVersion >= 1
+                , GetterSetters.getServerExouserPassphrase server.osProps.details
+                , server.osProps.details.openstackStatus
+                )
+            of
+                ( True, Nothing, OSTypes.ServerActive ) ->
+                    OSServerPassword.requestServerPassword project server.osProps.uuid
+
+                _ ->
+                    Cmd.none
+
+
 requestCreateServerImage : Project -> OSTypes.ServerUuid -> String -> Cmd SharedMsg
 requestCreateServerImage project serverUuid imageName =
     let
@@ -811,22 +833,7 @@ receiveServer_ project osServer =
             requestConsoleUrlIfRequestable project newServer
 
         passphraseCmd =
-            case newServer.exoProps.serverOrigin of
-                ServerNotFromExo ->
-                    Cmd.none
-
-                ServerFromExo serverFromExoProps ->
-                    case
-                        ( serverFromExoProps.exoServerVersion >= 1
-                        , GetterSetters.getServerExouserPassphrase newServer.osProps.details
-                        , newServer.osProps.details.openstackStatus
-                        )
-                    of
-                        ( True, Nothing, OSTypes.ServerActive ) ->
-                            OSServerPassword.requestServerPassword project newServer.osProps.uuid
-
-                        _ ->
-                            Cmd.none
+            requestPassphraseIfRequestable project newServer
 
         deleteFloatingIpMetadataOptionCmd =
             -- The exoCreateFloatingIp metadata property is only used temporarily so that Exosphere knows the user's
