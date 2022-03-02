@@ -446,12 +446,14 @@ requestConsoleUrlIfRequestable project server =
             Cmd.none
 
         _ ->
-            case server.osProps.details.openstackStatus of
-                OSTypes.ServerActive ->
-                    requestConsoleUrls project server.osProps.uuid
+            if
+                List.member server.osProps.details.openstackStatus
+                    [ OSTypes.ServerActive, OSTypes.ServerPassword, OSTypes.ServerRescue, OSTypes.ServerVerifyResize ]
+            then
+                requestConsoleUrls project server.osProps.uuid
 
-                _ ->
-                    Cmd.none
+            else
+                Cmd.none
 
 
 requestCreateServerImage : Project -> OSTypes.ServerUuid -> String -> Cmd SharedMsg
