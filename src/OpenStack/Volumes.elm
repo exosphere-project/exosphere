@@ -9,6 +9,7 @@ module OpenStack.Volumes exposing
 import Helpers.GetterSetters as GetterSetters
 import Http
 import Json.Decode as Decode
+import Json.Decode.Pipeline as Pipeline
 import Json.Encode
 import List.Extra
 import OpenStack.Types as OSTypes
@@ -17,6 +18,7 @@ import Rest.Helpers
     exposing
         ( expectJsonWithErrorBody
         , expectStringWithErrorBody
+        , iso8601StringToPosixDecodeError
         , openstackCredentialedRequest
         , resultToMsgErrorBody
         )
@@ -153,14 +155,16 @@ requestUpdateVolumeName project volumeUuid name =
 
 volumeDecoder : Decode.Decoder OSTypes.Volume
 volumeDecoder =
-    Decode.map7 OSTypes.Volume
-        (Decode.field "name" Decode.string)
-        (Decode.field "id" Decode.string)
-        (Decode.field "status" (Decode.string |> Decode.andThen volumeStatusDecoder))
-        (Decode.field "size" Decode.int)
-        (Decode.field "description" <| Decode.nullable Decode.string)
-        (Decode.field "attachments" (Decode.list cinderVolumeAttachmentDecoder))
-        (Decode.maybe (Decode.field "volume_image_metadata" imageMetadataDecoder))
+    Decode.succeed OSTypes.Volume
+        |> Pipeline.required "name" Decode.string
+        |> Pipeline.required "id" Decode.string
+        |> Pipeline.required "status" (Decode.string |> Decode.andThen volumeStatusDecoder)
+        |> Pipeline.required "size" Decode.int
+        |> Pipeline.required "description" (Decode.nullable Decode.string)
+        |> Pipeline.required "attachments" (Decode.list cinderVolumeAttachmentDecoder)
+        |> Pipeline.optional "volume_image_metadata" (imageMetadataDecoder |> Decode.andThen (\a -> Decode.succeed <| Just a)) Nothing
+        |> Pipeline.required "created_at" (Decode.string |> Decode.andThen iso8601StringToPosixDecodeError)
+        |> Pipeline.required "user_id" Decode.string
 
 
 volumeStatusDecoder : String -> Decode.Decoder OSTypes.VolumeStatus

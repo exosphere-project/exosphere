@@ -1,6 +1,8 @@
 module Style.Widgets.DataList exposing
     ( DataRecord
     , Filter
+    , FilterOptionText
+    , FilterOptionValue
     , FilterSelectionValue(..)
     , Model
     , Msg
@@ -313,6 +315,44 @@ view model toMsg palette styleAttrs listItemView data bulkActions filters =
                 )
                 data
                 filters
+
+        rows =
+            if List.isEmpty filteredData then
+                [ Element.column
+                    (rowStyle -1
+                        ++ [ Font.color <|
+                                SH.toElementColorWithOpacity palette.on.background 0.62
+                           ]
+                    )
+                    [ FeatherIcons.search
+                        |> FeatherIcons.withSize 36
+                        |> FeatherIcons.toHtml []
+                        |> Element.html
+                        |> Element.el [ Element.centerX ]
+                    , Element.el
+                        [ Element.centerX
+                        , Font.size 18
+                        , Font.color <| SH.toElementColor palette.on.background
+                        ]
+                        (Element.text "No data found!")
+                    , if not (List.isEmpty data) then
+                        Element.el
+                            [ Element.centerX
+                            , Font.size 16
+                            ]
+                        <|
+                            Element.text
+                                "No records match the filter criteria. Clear all filters and try again."
+
+                      else
+                        Element.none
+                    ]
+                ]
+
+            else
+                List.indexedMap
+                    (rowView model toMsg palette rowStyle listItemView showRowCheckbox)
+                    filteredData
     in
     Element.column
         ([ Element.width Element.fill
@@ -330,9 +370,7 @@ view model toMsg palette styleAttrs listItemView data bulkActions filters =
             { complete = data, filtered = filteredData }
             bulkActions
             filters
-            :: List.indexedMap
-                (rowView model toMsg palette rowStyle listItemView showRowCheckbox)
-                filteredData
+            :: rows
         )
 
 
@@ -457,12 +495,16 @@ toolbarView model toMsg palette rowStyle data bulkActions filters =
                             bulkActions
                     )
     in
-    Element.row
-        rowStyle
-        [ selectAllCheckbox
-        , filtersView model toMsg palette filters data.complete
-        , bulkActionsView
-        ]
+    if List.isEmpty bulkActions && List.isEmpty filters then
+        Element.none
+
+    else
+        Element.row
+            rowStyle
+            [ selectAllCheckbox
+            , filtersView model toMsg palette filters data.complete
+            , bulkActionsView
+            ]
 
 
 filtersView :
@@ -741,21 +783,25 @@ filtersView model toMsg palette filters data =
             else
                 Element.none
     in
-    Element.wrappedRow
-        ([ Element.spacing 10
-         , Element.width Element.fill
-         , Element.alignTop
-         ]
-            ++ (if model.showFiltersDropdown then
-                    [ Element.below filtersDropdown ]
+    if List.isEmpty filters then
+        Element.none
 
-                else
-                    []
-               )
-        )
-        (List.concat
-            [ [ Element.text "Filters: " ]
-            , selectedFiltersChips
-            , [ addFilterBtn, clearAllBtn ]
-            ]
-        )
+    else
+        Element.wrappedRow
+            ([ Element.spacing 10
+             , Element.width Element.fill
+             , Element.alignTop
+             ]
+                ++ (if model.showFiltersDropdown then
+                        [ Element.below filtersDropdown ]
+
+                    else
+                        []
+                   )
+            )
+            (List.concat
+                [ [ Element.text "Filters: " ]
+                , selectedFiltersChips
+                , [ addFilterBtn, clearAllBtn ]
+                ]
+            )

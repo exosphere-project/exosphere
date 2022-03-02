@@ -28,6 +28,7 @@ copyableText palette textAttributes text =
         , Input.button
             [ Element.htmlAttribute <| Html.Attributes.class "copy-button"
             , Element.htmlAttribute <| Html.Attributes.attribute "data-clipboard-target" ("#copy-me-" ++ hash text)
+            , Element.alignTop
             , Element.inFront <|
                 Element.row
                     [ Element.transparent True

@@ -11,6 +11,7 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.Interaction as IHelpers
 import Helpers.RemoteDataPlusPlus as RDPP
+import Helpers.ResourceList exposing (creationTimeFilterOptions, listItemColumnAttribs, onCreationTimeFilter)
 import Helpers.String
 import Html.Attributes as HtmlA
 import OpenStack.Types as OSTypes
@@ -18,8 +19,8 @@ import Page.QuotaUsage
 import Route
 import Set
 import Style.Helpers as SH
-import Style.Types exposing (ExoPalette)
 import Style.Widgets.DataList as DataList
+import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.StatusBadge as StatusBadge
 import Time
@@ -356,17 +357,10 @@ serverView model context currentTime project serverRecord =
                            ]
             }
 
-        popoverStyle =
-            [ Background.color <| SH.toElementColor context.palette.background
-            , Border.width 1
-            , Border.color <| SH.toElementColorWithOpacity context.palette.on.background 0.16
-            , Border.shadow SH.shadowDefaults
-            ]
-
         interactionPopover =
             Element.el [ Element.paddingXY 0 6 ] <|
                 Element.column
-                    (popoverStyle ++ [ Element.padding 10 ])
+                    (SH.popoverStyleDefaults context.palette ++ [ Element.padding 10 ])
                     (List.map
                         (\{ interactionStatus, interactionDetails } ->
                             Widget.button
@@ -446,7 +440,16 @@ serverView model context currentTime project serverRecord =
 
                 popconfirmAttribs =
                     if showDeletePopconfirm then
-                        [ Element.below deletePopconfirm ]
+                        [ Element.below <|
+                            deletePopconfirm context.palette
+                                { confirmationText =
+                                    "Are you sure you want to delete this "
+                                        ++ context.localization.virtualComputer
+                                        ++ "?"
+                                , onConfirm = Just <| GotDeleteConfirm serverRecord.id
+                                , onCancel = Just <| ShowDeletePopconfirm serverRecord.id False
+                                }
+                        ]
 
                     else
                         []
@@ -462,32 +465,6 @@ serverView model context currentTime project serverRecord =
                         -- to disable it
                         Nothing
                     )
-
-        deletePopconfirm =
-            Element.el [ Element.paddingXY 0 6, Element.alignRight ] <|
-                Element.column (popoverStyle ++ [ Element.padding 16, Element.spacing 16 ])
-                    [ Element.row [ Element.spacing 8 ]
-                        [ FeatherIcons.alertCircle
-                            |> FeatherIcons.withSize 20
-                            |> FeatherIcons.toHtml []
-                            |> Element.html
-                            |> Element.el []
-                        , Element.text <|
-                            "Are you sure you want to delete this "
-                                ++ context.localization.virtualComputer
-                                ++ "?"
-                        ]
-                    , Element.row [ Element.spacing 10, Element.alignRight ]
-                        [ Widget.textButton (SH.materialStyle context.palette).button
-                            { text = "Cancel"
-                            , onPress = Just <| ShowDeletePopconfirm serverRecord.id False
-                            }
-                        , Widget.textButton (SH.materialStyle context.palette).dangerButton
-                            { text = "Delete"
-                            , onPress = Just <| GotDeleteConfirm serverRecord.id
-                            }
-                        ]
-                    ]
 
         floatingIpView =
             case serverRecord.floatingIpAddress of
@@ -506,10 +483,7 @@ serverView model context currentTime project serverRecord =
                     Element.none
     in
     Element.column
-        [ Element.spacing 12
-        , Element.width Element.fill
-        , Font.color (SH.toElementColorWithOpacity context.palette.on.background 0.62)
-        ]
+        (listItemColumnAttribs context.palette)
         [ Element.row [ Element.spacing 10, Element.width Element.fill ]
             [ serverLink
             , Element.el
@@ -564,42 +538,6 @@ deletionAction context project serverIds =
             )
 
 
-deleteIconButton : ExoPalette -> Bool -> String -> Maybe msg -> Element.Element msg
-deleteIconButton palette styleIsPrimary text onPress =
-    let
-        dangerBtnStyleDefaults =
-            if styleIsPrimary then
-                (SH.materialStyle palette).dangerButton
-
-            else
-                -- secondary style
-                (SH.materialStyle palette).dangerButtonSecondary
-
-        deleteBtnStyle =
-            { dangerBtnStyleDefaults
-                | container =
-                    dangerBtnStyleDefaults.container
-                        ++ [ Element.htmlAttribute <| HtmlA.title text
-                           ]
-                , labelRow =
-                    dangerBtnStyleDefaults.labelRow
-                        ++ [ Element.width Element.shrink
-                           , Element.paddingXY 4 0
-                           ]
-            }
-    in
-    Widget.iconButton
-        deleteBtnStyle
-        { icon =
-            FeatherIcons.trash2
-                |> FeatherIcons.withSize 18
-                |> FeatherIcons.toHtml []
-                |> Element.html
-        , text = text
-        , onPress = onPress
-        }
-
-
 filters :
     String
     -> Time.Posix
@@ -617,14 +555,6 @@ filters currentUser currentTime =
             List.map .creator servers
                 |> Set.fromList
                 |> Set.toList
-
-        creationTimeFilterOptions =
-            -- (milliseconds, time period text)
-            -- left padded with 0s to preserve order when creating Dict
-            [ ( "0086400000", "past day" )
-            , ( "0604800000", "past week" )
-            , ( "2592000000", "past 30 days" )
-            ]
     in
     [ { id = "creator"
       , label = "Creator"
@@ -653,22 +583,11 @@ filters currentUser currentTime =
       , label = "Created within"
       , chipPrefix = "Created within "
       , filterOptions =
-            \_ ->
-                Dict.fromList creationTimeFilterOptions
+            \_ -> creationTimeFilterOptions
       , filterTypeAndDefaultValue =
             DataList.UniselectOption DataList.UniselectNoChoice
       , onFilter =
             \optionValue server ->
-                let
-                    timeElapsedSinceCreation =
-                        Time.posixToMillis currentTime
-                            - Time.posixToMillis server.creationTime
-                in
-                case String.toInt optionValue of
-                    Just optionInTimePeriod ->
-                        timeElapsedSinceCreation <= optionInTimePeriod
-
-                    Nothing ->
-                        True
+                onCreationTimeFilter optionValue server.creationTime currentTime
       }
     ]
