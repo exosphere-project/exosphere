@@ -56,6 +56,7 @@ goalPollServers time maybeCloudSpecificConfig project =
         steps =
             [ stepServerPoll time
             , stepServerPollConsoleLog time
+            , stepServerPollEvents time
             , stepServerGuacamoleAuth time userAppProxy
             ]
 
@@ -71,12 +72,6 @@ goalPollServers time maybeCloudSpecificConfig project =
 stepServerPoll : Time.Posix -> Project -> Server -> ( Project, Cmd SharedMsg )
 stepServerPoll time project server =
     let
-        frequentPollIntervalMs =
-            4500
-
-        infrequentPollIntervalMs =
-            60000
-
         serverReceivedRecentlyEnough =
             let
                 receivedTime =
@@ -93,11 +88,7 @@ stepServerPoll time project server =
                                     Time.millisToPosix 0
 
                 pollInterval =
-                    if Helpers.serverNeedsFrequentPoll server then
-                        frequentPollIntervalMs
-
-                    else
-                        infrequentPollIntervalMs
+                    Helpers.serverPollIntervalMs project server
             in
             Time.posixToMillis time < (Time.posixToMillis receivedTime + pollInterval)
 
@@ -469,9 +460,54 @@ stepServerPollConsoleLog time project server =
                     )
 
 
+stepServerPollEvents : Time.Posix -> Project -> Server -> ( Project, Cmd SharedMsg )
+stepServerPollEvents time project server =
+    let
+        pollIntervalMillis =
+            -- 5 minutes
+            300000
+
+        curTimeMillis =
+            Time.posixToMillis time
+
+        pollIfIntervalExceeded : Time.Posix -> ( Project, Cmd SharedMsg )
+        pollIfIntervalExceeded receivedTime =
+            if Time.posixToMillis receivedTime + pollIntervalMillis < curTimeMillis then
+                doPollEvents
+
+            else
+                doNothing project
+
+        doPollEvents =
+            let
+                newServer =
+                    { server | events = RDPP.setLoading server.events }
+
+                newProject =
+                    GetterSetters.projectUpdateServer project newServer
+            in
+            ( newProject, Rest.Nova.requestServerEvents newProject server.osProps.uuid )
+    in
+    case server.events.refreshStatus of
+        RDPP.Loading ->
+            doNothing project
+
+        RDPP.NotLoading maybeErrorTimeTuple ->
+            case server.events.data of
+                RDPP.DoHave _ receivedTime ->
+                    pollIfIntervalExceeded receivedTime
+
+                RDPP.DontHave ->
+                    case maybeErrorTimeTuple of
+                        Nothing ->
+                            doPollEvents
+
+                        Just ( _, receivedTime ) ->
+                            pollIfIntervalExceeded receivedTime
+
+
 stepServerGuacamoleAuth : Time.Posix -> Maybe UserAppProxyHostname -> Project -> Server -> ( Project, Cmd SharedMsg )
 stepServerGuacamoleAuth time maybeUserAppProxy project server =
-    -- TODO ensure server is active or in verify resize state
     let
         curTimeMillis =
             Time.posixToMillis time
@@ -485,9 +521,6 @@ stepServerGuacamoleAuth time maybeUserAppProxy project server =
 
         guacUpstreamPort =
             49528
-
-        doNothing =
-            ( project, Cmd.none )
 
         doRequestToken : String -> String -> UserAppProxyHostname -> ServerFromExoProps -> GuacTypes.LaunchedWithGuacProps -> ( Project, Cmd SharedMsg )
         doRequestToken floatingIp passphrase proxyHostname oldExoOriginProps oldGuacProps =
@@ -533,14 +566,15 @@ stepServerGuacamoleAuth time maybeUserAppProxy project server =
                 )
             )
     in
-    case server.exoProps.serverOrigin of
-        ServerNotFromExo ->
-            doNothing
-
-        ServerFromExo exoOriginProps ->
+    case
+        ( server.exoProps.serverOrigin
+        , serverIsActiveEnough server
+        )
+    of
+        ( ServerFromExo exoOriginProps, True ) ->
             case exoOriginProps.guacamoleStatus of
                 GuacTypes.NotLaunchedWithGuacamole ->
-                    doNothing
+                    doNothing project
 
                 GuacTypes.LaunchedWithGuacamole launchedWithGuacProps ->
                     case
@@ -558,7 +592,7 @@ stepServerGuacamoleAuth time maybeUserAppProxy project server =
                             in
                             case launchedWithGuacProps.authToken.refreshStatus of
                                 RDPP.Loading ->
-                                    doNothing
+                                    doNothing project
 
                                 RDPP.NotLoading maybeErrorTimeTuple ->
                                     case launchedWithGuacProps.authToken.data of
@@ -573,7 +607,7 @@ stepServerGuacamoleAuth time maybeUserAppProxy project server =
                                                             Time.posixToMillis receivedTime + errorRetryIntervalMillis
                                                     in
                                                     if curTimeMillis <= whenToRetryMillis then
-                                                        doNothing
+                                                        doNothing project
 
                                                     else
                                                         doRequestToken_
@@ -584,16 +618,24 @@ stepServerGuacamoleAuth time maybeUserAppProxy project server =
                                                     Time.posixToMillis receivedTime + maxGuacTokenLifetimeMillis
                                             in
                                             if curTimeMillis <= whenToRefreshMillis then
-                                                doNothing
+                                                doNothing project
 
                                             else
                                                 doRequestToken_
 
                         _ ->
                             -- Missing either a floating IP, passphrase, or TLS-terminating reverse proxy server
-                            doNothing
+                            doNothing project
+
+        _ ->
+            doNothing project
 
 
 serverIsActiveEnough : Server -> Bool
 serverIsActiveEnough server =
-    List.member server.osProps.details.openstackStatus [ OSTypes.ServerActive, OSTypes.ServerVerifyResize ]
+    List.member server.osProps.details.openstackStatus [ OSTypes.ServerActive, OSTypes.ServerPassword, OSTypes.ServerRescue, OSTypes.ServerVerifyResize ]
+
+
+doNothing : Project -> ( Project, Cmd SharedMsg )
+doNothing project =
+    ( project, Cmd.none )

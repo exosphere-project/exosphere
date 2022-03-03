@@ -347,7 +347,7 @@ doAction jsonBody maybeTargetStatuses projectId server _ =
                         (\_ ->
                             ProjectMsg projectId <|
                                 ServerMsg server.osProps.uuid <|
-                                    RequestServer
+                                    ReceiveServerAction
                         )
                     )
                 )

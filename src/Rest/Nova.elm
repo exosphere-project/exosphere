@@ -12,6 +12,7 @@ module Rest.Nova exposing
     , requestFlavors
     , requestKeypairs
     , requestServer
+    , requestServerEvents
     , requestServerResize
     , requestServers
     , requestSetServerMetadata
@@ -42,7 +43,7 @@ import Types.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes exposing (HttpRequestMethod(..), ProjectIdentifier, Url)
 import Types.Project exposing (Project)
-import Types.Server exposing (ExoServerProps, NewServerNetworkOptions(..), Server, ServerOrigin(..))
+import Types.Server exposing (ExoServerProps, ExoSetupStatus(..), NewServerNetworkOptions(..), Server, ServerOrigin(..))
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
 
@@ -103,11 +104,7 @@ requestServer project serverUuid =
                     (Decode.at [ "server" ] decodeServer)
                 )
     in
-    -- Get server events whenever we get a server. We may not want to do this forever, but let's try it out
-    Cmd.batch
-        [ requestServerCmd
-        , requestServerEvents project serverUuid
-        ]
+    requestServerCmd
 
 
 requestServerEvents : Project -> OSTypes.ServerUuid -> Cmd SharedMsg
@@ -441,12 +438,45 @@ requestDeleteServer projectId novaUrl serverId =
 
 requestConsoleUrlIfRequestable : Project -> Server -> Cmd SharedMsg
 requestConsoleUrlIfRequestable project server =
-    case server.osProps.details.openstackStatus of
-        OSTypes.ServerActive ->
-            requestConsoleUrls project server.osProps.uuid
+    case server.osProps.consoleUrl of
+        RemoteData.Success _ ->
+            Cmd.none
 
         _ ->
+            if
+                List.member server.osProps.details.openstackStatus
+                    [ OSTypes.ServerActive, OSTypes.ServerPassword, OSTypes.ServerRescue, OSTypes.ServerVerifyResize ]
+            then
+                requestConsoleUrls project server.osProps.uuid
+
+            else
+                Cmd.none
+
+
+requestPassphraseIfRequestable : Project -> Server -> Cmd SharedMsg
+requestPassphraseIfRequestable project server =
+    case server.exoProps.serverOrigin of
+        ServerNotFromExo ->
             Cmd.none
+
+        ServerFromExo serverFromExoProps ->
+            let
+                passphraseLikelySetAlready =
+                    List.member
+                        (RDPP.withDefault ( ExoSetupUnknown, Nothing ) serverFromExoProps.exoSetupStatus |> Tuple.first)
+                        [ ExoSetupRunning, ExoSetupComplete ]
+            in
+            case
+                ( GetterSetters.getServerExouserPassphrase server.osProps.details
+                , server.osProps.details.openstackStatus
+                , passphraseLikelySetAlready
+                )
+            of
+                ( Nothing, OSTypes.ServerActive, True ) ->
+                    OSServerPassword.requestServerPassword project server.osProps.uuid
+
+                _ ->
+                    Cmd.none
 
 
 requestCreateServerImage : Project -> OSTypes.ServerUuid -> String -> Cmd SharedMsg
@@ -508,7 +538,11 @@ requestServerResize project serverUuid flavorId =
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/action")
         (Http.jsonBody body)
         (expectStringWithErrorBody
-            (resultToMsgErrorBody errorContext (\_ -> NoOp))
+            (resultToMsgErrorBody errorContext
+                (\_ ->
+                    ProjectMsg (GetterSetters.projectIdentifier project) <| ServerMsg serverUuid <| ReceiveServerAction
+                )
+            )
         )
 
 
@@ -730,7 +764,7 @@ receiveServer_ project osServer =
                                 Nothing
                                 False
                     in
-                    Server osServer defaultExoProps RemoteData.NotAsked
+                    Server osServer defaultExoProps RDPP.empty
 
                 Just exoServer ->
                     let
@@ -801,30 +835,10 @@ receiveServer_ project osServer =
                     }
 
         consoleUrlCmd =
-            case newServer.osProps.consoleUrl of
-                RemoteData.Success _ ->
-                    Cmd.none
-
-                _ ->
-                    requestConsoleUrlIfRequestable project newServer
+            requestConsoleUrlIfRequestable project newServer
 
         passphraseCmd =
-            case newServer.exoProps.serverOrigin of
-                ServerNotFromExo ->
-                    Cmd.none
-
-                ServerFromExo serverFromExoProps ->
-                    case
-                        ( serverFromExoProps.exoServerVersion >= 1
-                        , GetterSetters.getServerExouserPassphrase newServer.osProps.details
-                        , newServer.osProps.details.openstackStatus
-                        )
-                    of
-                        ( True, Nothing, OSTypes.ServerActive ) ->
-                            OSServerPassword.requestServerPassword project newServer.osProps.uuid
-
-                        _ ->
-                            Cmd.none
+            requestPassphraseIfRequestable project newServer
 
         deleteFloatingIpMetadataOptionCmd =
             -- The exoCreateFloatingIp metadata property is only used temporarily so that Exosphere knows the user's

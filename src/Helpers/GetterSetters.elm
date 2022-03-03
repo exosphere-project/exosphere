@@ -26,11 +26,13 @@ module Helpers.GetterSetters exposing
     , projectSetJetstream2AllocationLoading
     , projectSetNetworksLoading
     , projectSetPortsLoading
+    , projectSetServerEventsLoading
     , projectSetServerLoading
     , projectSetServersLoading
     , projectSetVolumesLoading
     , projectUpdateKeypair
     , projectUpdateServer
+    , serverCreatedByCurrentUser
     , serverLookup
     , serverPresentNotDeleting
     , sortedFlavors
@@ -183,6 +185,12 @@ getExternalNetwork project =
 
         RDPP.DontHave ->
             Nothing
+
+
+serverCreatedByCurrentUser : Project -> OSTypes.ServerUuid -> Maybe Bool
+serverCreatedByCurrentUser project serverUuid =
+    serverLookup project serverUuid
+        |> Maybe.map (\s -> s.osProps.details.userUuid == project.auth.user.uuid)
 
 
 getServerPorts : Project -> OSTypes.ServerUuid -> List OSTypes.Port
@@ -469,6 +477,21 @@ projectSetServerLoading project serverUuid =
 
                 newServer =
                     { server | exoProps = newExoProps }
+            in
+            projectUpdateServer project newServer
+
+
+projectSetServerEventsLoading : Project -> OSTypes.ServerUuid -> Project
+projectSetServerEventsLoading project serverUuid =
+    case serverLookup project serverUuid of
+        Nothing ->
+            -- We can't do anything lol
+            project
+
+        Just server ->
+            let
+                newServer =
+                    { server | events = RDPP.setLoading server.events }
             in
             projectUpdateServer project newServer
 

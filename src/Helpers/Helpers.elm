@@ -12,8 +12,8 @@ module Helpers.Helpers exposing
     , renderUserDataTemplate
     , serverFromThisExoClient
     , serverLessThanThisOld
-    , serverNeedsFrequentPoll
     , serverOrigin
+    , serverPollIntervalMs
     , serverResourceQtys
     , serviceCatalogToEndpoints
     , stringIsUuidOrDefault
@@ -710,38 +710,53 @@ serverFromThisExoClient clientUuid server =
     List.member (OSTypes.MetadataItem "exoClientUuid" (UUID.toString clientUuid)) server.osProps.details.metadata
 
 
-serverNeedsFrequentPoll : Server -> Bool
-serverNeedsFrequentPoll server =
-    case
-        ( server.osProps.details.openstackStatus
-        , ( server.exoProps.deletionAttempted
-          , server.exoProps.targetOpenstackStatus
-          , server.exoProps.serverOrigin
-          )
-        )
-    of
-        ( OSTypes.ServerBuild, _ ) ->
-            True
+serverPollIntervalMs : Project -> Server -> Int
+serverPollIntervalMs project server =
+    case GetterSetters.serverCreatedByCurrentUser project server.osProps.uuid of
+        Just createdByCurrentUser ->
+            if createdByCurrentUser then
+                case
+                    ( server.osProps.details.openstackStatus
+                    , ( server.exoProps.deletionAttempted
+                      , server.exoProps.targetOpenstackStatus
+                      , server.exoProps.serverOrigin
+                      )
+                    )
+                of
+                    ( OSTypes.ServerBuild, _ ) ->
+                        15000
 
-        ( _, ( False, Nothing, ServerNotFromExo ) ) ->
-            False
+                    ( _, ( False, Nothing, ServerNotFromExo ) ) ->
+                        -- Not created from Exosphere, not deleting or waiting a pending server action
+                        60000
 
-        ( _, ( False, Nothing, ServerFromExo { exoSetupStatus } ) ) ->
-            case exoSetupStatus.data of
-                RDPP.DoHave ( ExoSetupWaiting, _ ) _ ->
-                    True
+                    ( _, ( False, Nothing, ServerFromExo { exoSetupStatus } ) ) ->
+                        case exoSetupStatus.data of
+                            RDPP.DoHave ( ExoSetupWaiting, _ ) _ ->
+                                -- Exosphere-created, booting up for the first time
+                                15000
 
-                RDPP.DoHave ( ExoSetupRunning, _ ) _ ->
-                    True
+                            RDPP.DoHave ( ExoSetupRunning, _ ) _ ->
+                                -- Exosphere-created, running setup
+                                10000
 
-                RDPP.DoHave _ _ ->
-                    False
+                            RDPP.DoHave _ _ ->
+                                -- Exosphere-created, not waiting for setup to complete
+                                60000
 
-                RDPP.DontHave ->
-                    True
+                            RDPP.DontHave ->
+                                -- Exosphere-created and Exosphere setup status unknown
+                                15000
 
-        _ ->
-            True
+                    _ ->
+                        -- We're expecting OpenStack status to change (or server to be deleted) very soon
+                        4500
+
+            else
+                300000
+
+        Nothing ->
+            300000
 
 
 serverLessThanThisOld : Server -> Time.Posix -> Int -> Bool

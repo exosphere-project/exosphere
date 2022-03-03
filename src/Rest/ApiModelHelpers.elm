@@ -8,6 +8,7 @@ module Rest.ApiModelHelpers exposing
     , requestNetworks
     , requestPorts
     , requestServer
+    , requestServerEvents
     , requestServers
     , requestVolumeQuota
     , requestVolumes
@@ -53,6 +54,20 @@ requestServer projectUuid serverUuid model =
                 |> (\p -> GetterSetters.projectSetServerLoading p serverUuid)
                 |> GetterSetters.modelUpdateProject model
             , Rest.Nova.requestServer project serverUuid
+            )
+
+        Nothing ->
+            ( model, Cmd.none )
+
+
+requestServerEvents : ProjectIdentifier -> OSTypes.ServerUuid -> SharedModel -> ( SharedModel, Cmd SharedMsg )
+requestServerEvents projectId serverUuid model =
+    case GetterSetters.projectLookup model projectId of
+        Just project ->
+            ( project
+                |> (\p -> GetterSetters.projectSetServerEventsLoading p serverUuid)
+                |> GetterSetters.modelUpdateProject model
+            , Rest.Nova.requestServerEvents project serverUuid
             )
 
         Nothing ->

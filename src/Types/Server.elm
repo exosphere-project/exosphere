@@ -13,7 +13,6 @@ module Types.Server exposing
 
 import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.Types as OSTypes
-import RemoteData exposing (WebData)
 import Time
 import Types.Error exposing (HttpErrorWithBody)
 import Types.Guacamole as GuacTypes
@@ -25,7 +24,7 @@ import Types.Workflow as WorkflowTypes
 type alias Server =
     { osProps : OSTypes.Server
     , exoProps : ExoServerProps
-    , events : WebData (List OSTypes.ServerEvent)
+    , events : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.ServerEvent)
     }
 
 
