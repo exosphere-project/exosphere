@@ -32,6 +32,7 @@ module Helpers.GetterSetters exposing
     , projectSetVolumesLoading
     , projectUpdateKeypair
     , projectUpdateServer
+    , serverCreatedByCurrentUser
     , serverLookup
     , serverPresentNotDeleting
     , sortedFlavors
@@ -184,6 +185,12 @@ getExternalNetwork project =
 
         RDPP.DontHave ->
             Nothing
+
+
+serverCreatedByCurrentUser : Project -> OSTypes.ServerUuid -> Maybe Bool
+serverCreatedByCurrentUser project serverUuid =
+    serverLookup project serverUuid
+        |> Maybe.map (\s -> s.osProps.details.userUuid == project.auth.user.uuid)
 
 
 getServerPorts : Project -> OSTypes.ServerUuid -> List OSTypes.Port

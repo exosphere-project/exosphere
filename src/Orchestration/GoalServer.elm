@@ -88,7 +88,7 @@ stepServerPoll time project server =
                                     Time.millisToPosix 0
 
                 pollInterval =
-                    Helpers.serverPollIntervalMs server
+                    Helpers.serverPollIntervalMs project server
             in
             Time.posixToMillis time < (Time.posixToMillis receivedTime + pollInterval)
 
