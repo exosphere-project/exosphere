@@ -507,7 +507,6 @@ stepServerPollEvents time project server =
 
 stepServerGuacamoleAuth : Time.Posix -> Maybe UserAppProxyHostname -> Project -> Server -> ( Project, Cmd SharedMsg )
 stepServerGuacamoleAuth time maybeUserAppProxy project server =
-    -- TODO ensure server is active or in verify resize state
     let
         curTimeMillis =
             Time.posixToMillis time
@@ -566,11 +565,12 @@ stepServerGuacamoleAuth time maybeUserAppProxy project server =
                 )
             )
     in
-    case server.exoProps.serverOrigin of
-        ServerNotFromExo ->
-            doNothing project
-
-        ServerFromExo exoOriginProps ->
+    case
+        ( server.exoProps.serverOrigin
+        , serverIsActiveEnough server
+        )
+    of
+        ( ServerFromExo exoOriginProps, True ) ->
             case exoOriginProps.guacamoleStatus of
                 GuacTypes.NotLaunchedWithGuacamole ->
                     doNothing project
@@ -626,10 +626,13 @@ stepServerGuacamoleAuth time maybeUserAppProxy project server =
                             -- Missing either a floating IP, passphrase, or TLS-terminating reverse proxy server
                             doNothing project
 
+        _ ->
+            doNothing project
+
 
 serverIsActiveEnough : Server -> Bool
 serverIsActiveEnough server =
-    List.member server.osProps.details.openstackStatus [ OSTypes.ServerActive, OSTypes.ServerVerifyResize ]
+    List.member server.osProps.details.openstackStatus [ OSTypes.ServerActive, OSTypes.ServerPassword, OSTypes.ServerRescue, OSTypes.ServerVerifyResize ]
 
 
 doNothing : Project -> ( Project, Cmd SharedMsg )
