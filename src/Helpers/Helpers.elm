@@ -713,9 +713,6 @@ serverFromThisExoClient clientUuid server =
 serverPollIntervalMs : Project -> Server -> Int
 serverPollIntervalMs project server =
     case GetterSetters.serverCreatedByCurrentUser project server.osProps.uuid of
-        Nothing ->
-            300000
-
         Just createdByCurrentUser ->
             if createdByCurrentUser then
                 case
@@ -757,6 +754,9 @@ serverPollIntervalMs project server =
 
             else
                 300000
+
+        Nothing ->
+            300000
 
 
 serverLessThanThisOld : Server -> Time.Posix -> Int -> Bool
