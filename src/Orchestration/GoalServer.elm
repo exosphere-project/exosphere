@@ -464,7 +464,8 @@ stepServerPollEvents : Time.Posix -> Project -> Server -> ( Project, Cmd SharedM
 stepServerPollEvents time project server =
     let
         pollIntervalMillis =
-            5 * 60 * 1000
+            -- 5 minutes
+            300000
 
         curTimeMillis =
             Time.posixToMillis time
