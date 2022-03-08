@@ -108,6 +108,10 @@ initialModel =
     { expandoCard = { expanded = False } }
 
 
+type alias PluginOptions =
+    {}
+
+
 
 --- UPDATE
 
@@ -121,7 +125,7 @@ type Msg
 --- MAIN
 
 
-config : Config Model Msg {}
+config : Config Model Msg PluginOptions ()
 config =
     { customModel = initialModel
     , customHeader =
@@ -131,7 +135,11 @@ config =
             , titleColor = Just "#FFFFFF"
             , bgColor = Just "#181725"
             }
-    , subscriptions = \_ -> Sub.none
+    , init =
+        \_ m -> m
+    , enableDarkMode = True
+    , subscriptions =
+        \_ -> Sub.none
     , update =
         \msg m ->
             let
@@ -153,10 +161,12 @@ config =
                     )
     , menuViewEnhancer = \_ v -> v
     , viewEnhancer = \_ stories -> stories
+    , onModeChanged = Nothing
+    , documentTitle = Just "Exosphere Design System"
     }
 
 
-main : UIExplorerProgram Model Msg {}
+main : UIExplorerProgram Model Msg PluginOptions ()
 main =
     exploreWithCategories
         config

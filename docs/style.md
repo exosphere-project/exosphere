@@ -13,7 +13,7 @@
 - Launch the design system explorer (with live updates) using:
 
     ```bash
-    npm run designs
+    npm run live-design-system
     ```
 
 

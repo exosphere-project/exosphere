@@ -68,7 +68,7 @@ def find_button_with_label(context, label, wait_time=None):
 
 def find_checkbox_with_label(context, label, wait_time=None):
     return context.browser.find_by_xpath(
-        xpath=f"//label[contains(string(), '{label}')]//div[@role='checkbox']",
+        xpath=f"//label[@role='checkbox' and contains(string(), '{label}')]",
         wait_time=wait_time)
 
 
