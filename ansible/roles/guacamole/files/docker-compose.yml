@@ -6,12 +6,12 @@ networks:
     driver: bridge
 services:
   exo-guac-guacd:
-    image: 'guacamole/guacd:1.3.0'
+    image: 'guacamole/guacd:1.4.0'
     restart: 'always'
     networks:
       exo-guac-net:
   exo-guac-guacamole:
-    image: 'guacamole/guacamole:1.3.0'
+    image: 'guacamole/guacamole:1.4.0'
     restart: 'always'
     networks:
       exo-guac-net:
