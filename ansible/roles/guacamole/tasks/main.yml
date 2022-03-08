@@ -18,7 +18,7 @@
   template:
     src: 'user-mapping.xml.j2'
     dest: '/opt/guacamole/config/user-mapping.xml'
-    owner: 'root'
+    owner: '1001'
     group: 'root'
     mode: '500'
 
