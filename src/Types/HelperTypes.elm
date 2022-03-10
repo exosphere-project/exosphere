@@ -138,7 +138,7 @@ type alias CloudSpecificConfig =
     , imageExcludeFilter : Maybe MetadataFilter
     , featuredImageNamePrefix : Maybe String
     , instanceTypes : List InstanceType
-    , flavorGroup : List FlavorGroup
+    , flavorGroups : List FlavorGroup
     }
 
 

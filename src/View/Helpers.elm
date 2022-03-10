@@ -1082,6 +1082,11 @@ flavorPicker context project restrictFlavorIds computeQuota selectedFlavorId cha
         { locale } =
             context
 
+        flavorGroups =
+            GetterSetters.cloudSpecificConfigLookup context.cloudSpecificConfigs project
+                |> Maybe.map .flavorGroups
+                |> Maybe.withDefault []
+
         allowedFlavors =
             case restrictFlavorIds of
                 Nothing ->
@@ -1216,6 +1221,30 @@ flavorPicker context project restrictFlavorIds computeQuota selectedFlavorId cha
                 |> List.isEmpty
                 |> not
 
+        renderFlavorGroup : List OSTypes.Flavor -> Types.HelperTypes.FlavorGroup -> Element.Element msg
+        renderFlavorGroup flavors flavorGroup =
+            let
+                regex =
+                    Regex.fromString flavorGroup.matchOn
+                        |> Maybe.withDefault Regex.never
+
+                groupFlavors =
+                    flavors
+                        |> List.filter (\f -> Regex.contains regex f.name)
+            in
+            Element.column
+                [ Element.spacing 5, Element.paddingXY 0 5 ]
+                [ Element.el
+                    [ context.palette.muted
+                        |> SH.toElementColor
+                        |> Font.color
+                    ]
+                  <|
+                    Element.text flavorGroup.title
+                , renderFlavors
+                    groupFlavors
+                ]
+
         renderFlavors flavors =
             Element.table
                 flavorEmptyHint
@@ -1228,7 +1257,13 @@ flavorPicker context project restrictFlavorIds computeQuota selectedFlavorId cha
         [ Element.el
             [ Font.bold ]
             (Element.text <| Helpers.String.toTitleCase context.localization.virtualComputerHardwareConfig)
-        , renderFlavors (GetterSetters.sortedFlavors allowedFlavors)
+        , if List.isEmpty flavorGroups then
+            renderFlavors (GetterSetters.sortedFlavors allowedFlavors)
+
+          else
+            Element.column
+                []
+                (flavorGroups |> List.map (renderFlavorGroup (GetterSetters.sortedFlavors allowedFlavors)))
         , if anyFlavorsTooLarge then
             Element.text <|
                 String.join " "
