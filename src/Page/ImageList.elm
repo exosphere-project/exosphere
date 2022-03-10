@@ -8,21 +8,25 @@ import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (Unit(..), humanNumber)
 import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
+import Helpers.ResourceList exposing (listItemColumnAttribs)
 import Helpers.String
+import Html.Attributes as HtmlA
 import List.Extra
-import OpenStack.Types as OSTypes
+import OpenStack.Types as OSTypes exposing (Image)
 import Route
 import Set
 import Set.Extra
 import Style.Helpers as SH
 import Style.Widgets.Button as Button
 import Style.Widgets.Card as ExoCard
+import Style.Widgets.DataList as DataList
+import Style.Widgets.DeleteButton exposing (deleteIconButton)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton exposing (chip)
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
-import View.Types exposing (ImageTag)
+import View.Types exposing (Context, ImageTag)
 import Widget
 
 
@@ -36,6 +40,7 @@ type alias Model =
     , deletionsAttempted : Set.Set DeleteConfirmation
     , showDeleteButtons : Bool
     , showHeading : Bool
+    , dataListModel : DataList.Model
     }
 
 
@@ -61,6 +66,7 @@ type Msg
     | GotDeleteNeedsConfirm DeleteConfirmation
     | GotDeleteConfirm DeleteConfirmation
     | GotDeleteCancel DeleteConfirmation
+    | DataListMsg DataList.Msg
     | NoOp
 
 
@@ -75,6 +81,7 @@ init showDeleteButtons showHeading =
     , deletionsAttempted = Set.empty
     , showDeleteButtons = showDeleteButtons
     , showHeading = showHeading
+    , dataListModel = DataList.init <| DataList.getDefaultFilterOptions filters
     }
 
 
@@ -141,6 +148,15 @@ update msg project model =
             ( { model
                 | deleteConfirmations =
                     Set.remove imageId model.deleteConfirmations
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
+
+        DataListMsg dataListMsg ->
+            ( { model
+                | dataListModel =
+                    DataList.update dataListMsg model.dataListModel
               }
             , Cmd.none
             , SharedMsg.NoOp
@@ -406,8 +422,15 @@ view context project model =
 
                   else
                     Element.none
-                , List.map (renderImage context project model) combinedImages
-                    |> imagesColumnView
+                , DataList.view
+                    model.dataListModel
+                    DataListMsg
+                    context.palette
+                    []
+                    (imageView model context project)
+                    (imageRecords context project combinedImages)
+                    []
+                    filters
                 ]
     in
     VH.renderRDPP context project.images (Helpers.String.pluralize context.localization.staticRepresentationOfBlockDeviceContents) loadedView
@@ -685,3 +708,125 @@ filterImages model project someImages =
         |> filterByTags model.tags
         |> filterBySearchText model.searchText
         |> filterByVisibility model.visibilityFilter
+
+
+type alias ImageRecord =
+    DataList.DataRecord
+        { image : Image
+        , featured : Bool
+        , owned : Bool
+        }
+
+
+imageRecords : Context -> Project -> List Image -> List ImageRecord
+imageRecords context project images =
+    let
+        featuredImageNamePrefix =
+            VH.featuredImageNamePrefixLookup context project
+    in
+    List.map
+        (\image ->
+            { id = image.uuid
+            , selectable = False
+            , image = image
+            , featured = isImageFeaturedByDeployer featuredImageNamePrefix image
+            , owned = projectOwnsImage project image
+            }
+        )
+        images
+
+
+imageView : Model -> Context -> Project -> ImageRecord -> Element.Element Msg
+imageView model context project imageRecord =
+    let
+        deleteImageBtn =
+            deleteIconButton
+                context.palette
+                False
+                ("Delete " ++ context.localization.staticRepresentationOfBlockDeviceContents)
+                Nothing
+
+        createServerBtn =
+            let
+                textBtn onPress =
+                    Widget.textButton
+                        (SH.materialStyle context.palette).button
+                        { text =
+                            "Create "
+                                ++ Helpers.String.toTitleCase
+                                    context.localization.virtualComputer
+                        , onPress = onPress
+                        }
+
+                serverCreationRoute =
+                    Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
+                        Route.ServerCreate
+                            imageRecord.image.uuid
+                            imageRecord.image.name
+                            Nothing
+                            (VH.userAppProxyLookup context project
+                                |> Maybe.map (\_ -> True)
+                            )
+            in
+            case imageRecord.image.status of
+                OSTypes.ImageActive ->
+                    Element.link []
+                        { url = Route.toUrl context.urlPathPrefix serverCreationRoute
+                        , label = textBtn (Just NoOp)
+                        }
+
+                _ ->
+                    Element.el [ Element.htmlAttribute <| HtmlA.title "Image is not active!" ] (textBtn Nothing)
+
+        imageActions =
+            Element.row [ Element.alignRight, Element.spacing 12 ]
+                [ deleteImageBtn, createServerBtn ]
+
+        size =
+            case imageRecord.image.size of
+                Just s ->
+                    let
+                        { locale } =
+                            context
+
+                        ( count, units ) =
+                            humanNumber { locale | decimals = Exact 2 } Bytes s
+                    in
+                    count ++ " " ++ units
+
+                Nothing ->
+                    "unknown size"
+
+        featuredIcon =
+            if imageRecord.featured then
+                FeatherIcons.award |> FeatherIcons.toHtml [] |> Element.html |> Element.el [ Font.size 10 ]
+
+            else
+                Element.none
+    in
+    Element.column
+        (listItemColumnAttribs context.palette)
+        [ Element.row [ Element.width Element.fill, Element.spacing 12 ]
+            [ Element.el
+                [ Font.size 18
+                , Font.color (SH.toElementColor context.palette.on.background)
+                ]
+                (Element.text imageRecord.image.name)
+            , featuredIcon
+            , imageActions
+            ]
+        , Element.row [ Element.width Element.fill, Element.spacing 8 ]
+            [ Element.text size
+            , Element.text "·"
+            , Element.paragraph []
+                [ Element.text "visibility is "
+                , Element.el [ Font.color (SH.toElementColor context.palette.on.background) ]
+                    (Element.text <| String.toLower <| OSTypes.imageVisibilityToString imageRecord.image.visibility)
+                ]
+            ]
+        ]
+
+
+filters : List (DataList.Filter record)
+filters =
+    []
