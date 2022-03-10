@@ -32,6 +32,7 @@ type alias Model =
     , expandImageDetails : Set.Set OSTypes.ImageUuid
     , visibilityFilter : ImageListVisibilityFilter
     , deleteConfirmations : Set.Set DeleteConfirmation
+    , deletionsAttempted : Set.Set DeleteConfirmation
     , showDeleteButtons : Bool
     , showHeading : Bool
     }
@@ -70,6 +71,7 @@ init showDeleteButtons showHeading =
     , expandImageDetails = Set.empty
     , visibilityFilter = ImageListVisibilityFilter True True True True
     , deleteConfirmations = Set.empty
+    , deletionsAttempted = Set.empty
     , showDeleteButtons = showDeleteButtons
     , showHeading = showHeading
     }
@@ -128,7 +130,7 @@ update msg project model =
             )
 
         GotDeleteConfirm imageId ->
-            ( model
+            ( { model | deletionsAttempted = Set.insert imageId model.deletionsAttempted }
             , Cmd.none
             , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
                 SharedMsg.RequestDeleteImage imageId
@@ -472,13 +474,19 @@ renderImage context project model image =
         confirmationNeeded =
             Set.member image.uuid model.deleteConfirmations
 
+        deletionAttempted =
+            Set.member image.uuid model.deletionsAttempted
+
         deleteButton =
             if projectOwnsImage project image then
-                case ( image.status, confirmationNeeded ) of
-                    ( OSTypes.ImagePendingDelete, _ ) ->
+                case ( image.status, confirmationNeeded, deletionAttempted ) of
+                    ( OSTypes.ImagePendingDelete, _, _ ) ->
                         Widget.circularProgressIndicator (SH.materialStyle context.palette).progressIndicator Nothing
 
-                    ( _, True ) ->
+                    ( _, _, True ) ->
+                        Widget.circularProgressIndicator (SH.materialStyle context.palette).progressIndicator Nothing
+
+                    ( _, True, _ ) ->
                         Element.row [ Element.spacing 10 ]
                             [ Element.text "Confirm delete?"
                             , Widget.iconButton
@@ -496,7 +504,7 @@ renderImage context project model image =
                                 }
                             ]
 
-                    ( _, False ) ->
+                    ( _, False, _ ) ->
                         if image.protected == True then
                             Widget.iconButton
                                 (SH.materialStyle context.palette).button
