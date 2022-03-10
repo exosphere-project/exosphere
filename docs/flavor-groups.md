@@ -25,7 +25,11 @@ Each array element in `flavorGroups` is an object with the following members:
 - `title` (string) is something like "General-purpose" or "GPU", used as a heading for the group.
 - `description` (null or string) is optional help text that appears in a toggle tip next to the heading.
 
-The order in which you specify flavor groups is the same order in which they will appear in Exosphere.
+A few hints:
+- The order in which you specify flavor groups is the same order in which they will appear in Exosphere.
+- At this time, it's possible to define flavor groups such that the same flavor appears in multiple groups.
+- It's possible to define an array of flavor groups such that one or more of your flavors do not belong to any groups. At this time, those flavors will not be displayed at all.
+- If you do not define any flavor groups, then Exosphere will just display all flavors in a flat list.
 
 ## Example instanceTypes JSON
 
