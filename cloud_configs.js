@@ -470,12 +470,17 @@ var cloud_configs = {
       ],
       "flavorGroups":[
         {
-          "matchOn":"m1\..*",
+          "matchOn":"m3\..*",
           "title":"General-purpose",
           "description":null
         },
         {
-          "matchOn":"g1\..*",
+          "matchOn":"r3\..*",
+          "title":"Large-memory",
+          "description":"These have lots of RAM."
+        },
+        {
+          "matchOn":"g3\..*",
           "title":"GPU",
           "description":"These have a graphics processing unit."
         }
