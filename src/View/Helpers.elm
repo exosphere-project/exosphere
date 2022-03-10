@@ -1247,7 +1247,7 @@ flavorPicker context project restrictFlavorIds computeQuota selectedFlavorId cha
 
         renderFlavors flavors =
             Element.table
-                flavorEmptyHint
+                []
                 { data = flavors
                 , columns = columns
                 }
@@ -1257,13 +1257,14 @@ flavorPicker context project restrictFlavorIds computeQuota selectedFlavorId cha
         [ Element.el
             [ Font.bold ]
             (Element.text <| Helpers.String.toTitleCase context.localization.virtualComputerHardwareConfig)
-        , if List.isEmpty flavorGroups then
-            renderFlavors (GetterSetters.sortedFlavors allowedFlavors)
+        , Element.el flavorEmptyHint <|
+            if List.isEmpty flavorGroups then
+                renderFlavors (GetterSetters.sortedFlavors allowedFlavors)
 
-          else
-            Element.column
-                []
-                (flavorGroups |> List.map (renderFlavorGroup (GetterSetters.sortedFlavors allowedFlavors)))
+            else
+                Element.column
+                    []
+                    (flavorGroups |> List.map (renderFlavorGroup (GetterSetters.sortedFlavors allowedFlavors)))
         , if anyFlavorsTooLarge then
             Element.text <|
                 String.join " "
