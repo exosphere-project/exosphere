@@ -779,7 +779,7 @@ imageView model context project imageRecord =
                     Element.el [ Element.htmlAttribute <| HtmlA.title "Image is not active!" ] (textBtn Nothing)
 
         imageActions =
-            Element.row [ Element.alignRight, Element.spacing 12 ]
+            Element.row [ Element.alignRight, Element.spacing 10 ]
                 [ deleteImageBtn, createServerBtn ]
 
         size =
@@ -799,14 +799,30 @@ imageView model context project imageRecord =
 
         featuredIcon =
             if imageRecord.featured then
-                FeatherIcons.award |> FeatherIcons.toHtml [] |> Element.html |> Element.el [ Font.size 10 ]
+                FeatherIcons.award
+                    |> FeatherIcons.withSize 20
+                    |> FeatherIcons.toHtml []
+                    |> Element.html
+                    |> Element.el
+                        [ Element.htmlAttribute <| HtmlA.title "Featured"
+                        ]
 
             else
                 Element.none
+
+        ownerText =
+            if imageRecord.owned then
+                Element.text <| " belongs to this " ++ context.localization.unitOfTenancy
+
+            else
+                Element.none
+
+        imageTags =
+            Element.none
     in
     Element.column
         (listItemColumnAttribs context.palette)
-        [ Element.row [ Element.width Element.fill, Element.spacing 12 ]
+        [ Element.row [ Element.width Element.fill, Element.spacing 10 ]
             [ Element.el
                 [ Font.size 18
                 , Font.color (SH.toElementColor context.palette.on.background)
@@ -818,11 +834,13 @@ imageView model context project imageRecord =
         , Element.row [ Element.width Element.fill, Element.spacing 8 ]
             [ Element.text size
             , Element.text "·"
-            , Element.paragraph []
-                [ Element.text "visibility is "
-                , Element.el [ Font.color (SH.toElementColor context.palette.on.background) ]
+            , Element.row []
+                [ Element.el [ Font.color (SH.toElementColor context.palette.on.background) ]
                     (Element.text <| String.toLower <| OSTypes.imageVisibilityToString imageRecord.image.visibility)
+                , Element.text <| " " ++ context.localization.staticRepresentationOfBlockDeviceContents
+                , ownerText
                 ]
+            , imageTags
             ]
         ]
 
