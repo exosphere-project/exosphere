@@ -112,7 +112,26 @@ view context project model =
                     2
 
                 ipsSorted =
-                    List.sortBy .address ips
+                    List.sortBy (.address >> ipToInt) ips
+
+                ipToInt address =
+                    address
+                        |> String.split "."
+                        |> List.map
+                            (\string ->
+                                case String.length string of
+                                    1 ->
+                                        "00" ++ string
+
+                                    2 ->
+                                        "0" ++ string
+
+                                    _ ->
+                                        string
+                            )
+                        |> String.concat
+                        |> String.toInt
+                        |> Maybe.withDefault 0
 
                 ipAssignedToAResource ip =
                     case ip.portUuid of
