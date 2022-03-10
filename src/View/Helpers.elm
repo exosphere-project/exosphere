@@ -81,6 +81,7 @@ import Route
 import Style.Helpers as SH exposing (shadowDefaults)
 import Style.Types exposing (ExoPalette)
 import Style.Widgets.StatusBadge as StatusBadge
+import Style.Widgets.ToggleTip as ToggleTip
 import Types.Error exposing (ErrorLevel(..), toFriendlyErrorLevel)
 import Types.HelperTypes
 import Types.Project exposing (Project)
@@ -1076,8 +1077,17 @@ friendlyProjectTitle model project =
         providerTitle
 
 
-flavorPicker : View.Types.Context -> Project -> Maybe (List OSTypes.FlavorId) -> OSTypes.ComputeQuota -> Maybe OSTypes.FlavorId -> (OSTypes.FlavorId -> msg) -> Element.Element msg
-flavorPicker context project restrictFlavorIds computeQuota selectedFlavorId changeMsg =
+flavorPicker :
+    View.Types.Context
+    -> Project
+    -> Maybe (List OSTypes.FlavorId)
+    -> OSTypes.ComputeQuota
+    -> Maybe Types.HelperTypes.FlavorGroupTitle
+    -> (Maybe Types.HelperTypes.FlavorGroupTitle -> msg)
+    -> Maybe OSTypes.FlavorId
+    -> (OSTypes.FlavorId -> msg)
+    -> Element.Element msg
+flavorPicker context project restrictFlavorIds computeQuota selectedFlavorGroupToggleTip selectFlavorGroupToggleTipMsg selectedFlavorId changeMsg =
     let
         { locale } =
             context
@@ -1234,13 +1244,35 @@ flavorPicker context project restrictFlavorIds computeQuota selectedFlavorId cha
             in
             Element.column
                 [ Element.spacing 5, Element.paddingXY 0 5 ]
-                [ Element.el
-                    [ context.palette.muted
-                        |> SH.toElementColor
-                        |> Font.color
+                [ Element.row []
+                    [ Element.el
+                        [ context.palette.muted
+                            |> SH.toElementColor
+                            |> Font.color
+                        ]
+                      <|
+                        Element.text flavorGroup.title
+                    , case flavorGroup.description of
+                        Just description ->
+                            let
+                                selected =
+                                    selectedFlavorGroupToggleTip |> Maybe.map (\n -> flavorGroup.title == n) |> Maybe.withDefault False
+                            in
+                            ToggleTip.toggleTip context.palette
+                                (Element.text description)
+                                selected
+                                (selectFlavorGroupToggleTipMsg
+                                    (if selected then
+                                        Nothing
+
+                                     else
+                                        Just flavorGroup.title
+                                    )
+                                )
+
+                        Nothing ->
+                            Element.none
                     ]
-                  <|
-                    Element.text flavorGroup.title
                 , renderFlavors
                     groupFlavors
                 ]

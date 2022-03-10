@@ -48,6 +48,7 @@ type alias Model =
 type Msg
     = GotServerName String
     | GotCount Int
+    | GotSelectedFlavorGroupToggleTip (Maybe HelperTypes.FlavorGroupTitle)
     | GotFlavorId OSTypes.FlavorId
     | GotFlavorList
     | GotVolSizeTextInput (Maybe NumericTextInput)
@@ -80,6 +81,7 @@ init imageUuid imageName restrictFlavorIds deployGuacamole =
     , imageName = imageName
     , restrictFlavorIds = restrictFlavorIds
     , count = 1
+    , selectedFlavorGroupToggleTip = Nothing
     , flavorId = Nothing
     , volSizeTextInput = Nothing
     , userDataTemplate = cloudInitUserDataTemplate
@@ -110,6 +112,18 @@ update msg project model =
 
         GotCount count ->
             ( enforceQuotaCompliance project { model | count = count }, Cmd.none, SharedMsg.NoOp )
+
+        GotSelectedFlavorGroupToggleTip maybeFlavorGroupTitle ->
+            let
+                newModel =
+                    { model
+                        | selectedFlavorGroupToggleTip = maybeFlavorGroupTitle
+                    }
+            in
+            ( newModel
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
 
         GotFlavorId flavorId ->
             ( enforceQuotaCompliance project { model | flavorId = Just flavorId }, Cmd.none, SharedMsg.NoOp )
@@ -565,7 +579,14 @@ view context project model =
                         ]
                 , Element.text model.imageName
                 ]
-            , VH.flavorPicker context project model.restrictFlavorIds computeQuota model.flavorId GotFlavorId
+            , VH.flavorPicker context
+                project
+                model.restrictFlavorIds
+                computeQuota
+                model.selectedFlavorGroupToggleTip
+                GotSelectedFlavorGroupToggleTip
+                model.flavorId
+                GotFlavorId
             , volBackedPrompt context model volumeQuota flavor
             , countPicker context model computeQuota volumeQuota flavor
             , desktopEnvironmentPicker context project model

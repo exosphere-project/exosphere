@@ -7,6 +7,7 @@ import OpenStack.Types as OSTypes
 import RemoteData
 import Route
 import Style.Helpers as SH
+import Types.HelperTypes as HelperTypes
 import Types.Project exposing (Project)
 import Types.Server exposing (Server)
 import Types.SharedModel exposing (SharedModel)
@@ -19,17 +20,19 @@ import Widget
 type alias Model =
     { serverUuid : OSTypes.ServerUuid
     , flavorId : Maybe OSTypes.FlavorId
+    , selectedFlavorGroupToggleTip : Maybe HelperTypes.FlavorGroupTitle
     }
 
 
 type Msg
     = GotFlavorId OSTypes.FlavorId
+    | GotSelectedFlavorGroupToggleTip (Maybe HelperTypes.FlavorGroupTitle)
     | GotSubmit OSTypes.FlavorId
 
 
 init : OSTypes.ServerUuid -> Model
 init serverUuid =
-    Model serverUuid Nothing
+    Model serverUuid Nothing Nothing
 
 
 update : Msg -> SharedModel -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
@@ -39,6 +42,18 @@ update msg { viewContext } project model =
             let
                 newModel =
                     { model | flavorId = Just flavorId }
+            in
+            ( newModel
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
+
+        GotSelectedFlavorGroupToggleTip maybeFlavorGroupTitle ->
+            let
+                newModel =
+                    { model
+                        | selectedFlavorGroupToggleTip = maybeFlavorGroupTitle
+                    }
             in
             ( newModel
             , Cmd.none
@@ -113,6 +128,8 @@ view_ context project model computeQuota =
                 project
                 restrictFlavorIds
                 computeQuota
+                model.selectedFlavorGroupToggleTip
+                GotSelectedFlavorGroupToggleTip
                 model.flavorId
                 GotFlavorId
             , Element.row [ Element.width Element.fill ]

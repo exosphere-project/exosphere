@@ -4,6 +4,7 @@ module Types.HelperTypes exposing
     , CreateServerPageModel
     , DefaultLoginView(..)
     , FlavorGroup
+    , FlavorGroupTitle
     , FloatingIpAssignmentStatus(..)
     , FloatingIpOption(..)
     , FloatingIpReuseOption(..)
@@ -174,9 +175,13 @@ type alias InstanceTypeImageFilters =
 
 type alias FlavorGroup =
     { matchOn : String
-    , title : String
+    , title : FlavorGroupTitle
     , description : Maybe String
     }
+
+
+type alias FlavorGroupTitle =
+    String
 
 
 type alias UnscopedProvider =
@@ -277,6 +282,7 @@ type alias CreateServerPageModel =
     , imageName : String
     , restrictFlavorIds : Maybe (List OSTypes.FlavorId)
     , count : Int
+    , selectedFlavorGroupToggleTip : Maybe FlavorGroupTitle
     , flavorId : Maybe OSTypes.FlavorId
     , volSizeTextInput : Maybe NumericTextInput
     , userDataTemplate : String
