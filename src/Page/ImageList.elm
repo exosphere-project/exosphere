@@ -476,14 +476,14 @@ renderImage context project model image =
 
         deletionAttempted =
             Set.member image.uuid model.deletionsAttempted
-            
+
         deleteButton =
             if projectOwnsImage project image then
-                case ( image.status, confirmationNeeded, deletionAttempted) of
-                    ( OSTypes.ImagePendingDelete, _ ,_ ) ->
+                case ( image.status, confirmationNeeded, deletionAttempted ) of
+                    ( OSTypes.ImagePendingDelete, _, _ ) ->
                         Widget.circularProgressIndicator (SH.materialStyle context.palette).progressIndicator Nothing
 
-                    ( _ , _ ,True ) ->
+                    ( _, _, True ) ->
                         Widget.circularProgressIndicator (SH.materialStyle context.palette).progressIndicator Nothing
 
                     ( _, True, _ ) ->
