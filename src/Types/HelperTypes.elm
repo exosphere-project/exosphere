@@ -3,6 +3,8 @@ module Types.HelperTypes exposing
     , CloudSpecificConfigMap
     , CreateServerPageModel
     , DefaultLoginView(..)
+    , FlavorGroup
+    , FlavorGroupTitle
     , FloatingIpAssignmentStatus(..)
     , FloatingIpOption(..)
     , FloatingIpReuseOption(..)
@@ -137,6 +139,7 @@ type alias CloudSpecificConfig =
     , imageExcludeFilter : Maybe MetadataFilter
     , featuredImageNamePrefix : Maybe String
     , instanceTypes : List InstanceType
+    , flavorGroups : List FlavorGroup
     }
 
 
@@ -168,6 +171,17 @@ type alias InstanceTypeImageFilters =
     , osVersionFilter : Maybe String
     , metadataFilter : Maybe MetadataFilter
     }
+
+
+type alias FlavorGroup =
+    { matchOn : String
+    , title : FlavorGroupTitle
+    , description : Maybe String
+    }
+
+
+type alias FlavorGroupTitle =
+    String
 
 
 type alias UnscopedProvider =
@@ -268,6 +282,7 @@ type alias CreateServerPageModel =
     , imageName : String
     , restrictFlavorIds : Maybe (List OSTypes.FlavorId)
     , count : Int
+    , selectedFlavorGroupToggleTip : Maybe FlavorGroupTitle
     , flavorId : Maybe OSTypes.FlavorId
     , volSizeTextInput : Maybe NumericTextInput
     , userDataTemplate : String

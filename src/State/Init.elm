@@ -298,13 +298,14 @@ decodeCloudSpecificConfigs value =
 
 decodeCloudSpecificConfig : Decode.Decoder ( HelperTypes.KeystoneHostname, HelperTypes.CloudSpecificConfig )
 decodeCloudSpecificConfig =
-    Decode.map6 HelperTypes.CloudSpecificConfig
+    Decode.map7 HelperTypes.CloudSpecificConfig
         (Decode.field "friendlyName" Decode.string)
         (Decode.field "friendlySubName" (Decode.nullable Decode.string))
         (Decode.field "userAppProxy" (Decode.nullable Decode.string))
         (Decode.field "imageExcludeFilter" (Decode.nullable metadataFilterDecoder))
         (Decode.field "featuredImageNamePrefix" (Decode.nullable Decode.string))
         (Decode.field "instanceTypes" (Decode.list instanceTypeDecoder))
+        (Decode.field "flavorGroups" (Decode.list flavorGroupDecoder))
         |> Decode.andThen
             (\cloudSpecificConfig ->
                 Decode.field "keystoneHostname" Decode.string
@@ -367,3 +368,11 @@ imageFiltersDecoder =
         (Decode.maybe (Decode.field "osDistro" Decode.string))
         (Decode.maybe (Decode.field "osVersion" Decode.string))
         (Decode.maybe (Decode.field "metadata" metadataFilterDecoder))
+
+
+flavorGroupDecoder : Decode.Decoder HelperTypes.FlavorGroup
+flavorGroupDecoder =
+    Decode.map3 HelperTypes.FlavorGroup
+        (Decode.field "matchOn" Decode.string)
+        (Decode.field "title" Decode.string)
+        (Decode.field "description" (Decode.nullable Decode.string))

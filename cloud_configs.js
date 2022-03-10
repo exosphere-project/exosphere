@@ -315,7 +315,8 @@ var cloud_configs = {
             }
           ]
         }
-      ]
+      ],
+      "flavorGroups":[]
     },
     {
       "keystoneHostname":"tacc.jetstream-cloud.org",
@@ -396,7 +397,8 @@ var cloud_configs = {
             }
           ]
         }
-      ]
+      ],
+      "flavorGroups":[]
     },
     {
       "keystoneHostname":"js2.jetstream-cloud.org",
@@ -465,6 +467,23 @@ var cloud_configs = {
             }
           ]
         }
+      ],
+      "flavorGroups":[
+        {
+          "matchOn":"m3\..*",
+          "title":"General-purpose",
+          "description":null
+        },
+        {
+          "matchOn":"r3\..*",
+          "title":"Large-memory",
+          "description":"These have lots of RAM."
+        },
+        {
+          "matchOn":"g3\..*",
+          "title":"GPU",
+          "description":"These have a graphics processing unit."
+        }
       ]
     },
     {
@@ -474,7 +493,8 @@ var cloud_configs = {
       "userAppProxy":null,
       "imageExcludeFilter":null,
       "featuredImageNamePrefix":null,
-      "instanceTypes":[]
+      "instanceTypes":[],
+      "flavorGroups":[]
     }
   ]
 }
