@@ -315,7 +315,8 @@ var cloud_configs = {
             }
           ]
         }
-      ]
+      ],
+      "flavorGroups":[]
     },
     {
       "keystoneHostname":"tacc.jetstream-cloud.org",
@@ -396,7 +397,8 @@ var cloud_configs = {
             }
           ]
         }
-      ]
+      ],
+      "flavorGroups":[]
     },
     {
       "keystoneHostname":"js2.jetstream-cloud.org",
@@ -465,6 +467,18 @@ var cloud_configs = {
             }
           ]
         }
+      ],
+      "flavorGroups":[
+        {
+          "matchOn":"m1\..*",
+          "title":"General-purpose",
+          "description":null
+        },
+        {
+          "matchOn":"g1\..*",
+          "title":"GPU",
+          "description":"These have a graphics processing unit."
+        }
       ]
     },
     {
@@ -474,7 +488,8 @@ var cloud_configs = {
       "userAppProxy":null,
       "imageExcludeFilter":null,
       "featuredImageNamePrefix":null,
-      "instanceTypes":[]
+      "instanceTypes":[],
+      "flavorGroups":[]
     }
   ]
 }
