@@ -814,10 +814,15 @@ imageView model context project imageRecord =
 
         ownerText =
             if imageRecord.owned then
-                Element.text <| " belongs to this " ++ context.localization.unitOfTenancy
+                [ Element.el [ Font.color (SH.toElementColor context.palette.on.background) ]
+                    (Element.text " belongs ")
+                , Element.text <|
+                    "to this "
+                        ++ context.localization.unitOfTenancy
+                ]
 
             else
-                Element.none
+                []
 
         tag text =
             Element.el
@@ -832,7 +837,11 @@ imageView model context project imageRecord =
                 (Element.text text)
 
         imageTags =
-            Element.row [ Element.spacing 6, Element.paddingEach { left = 6, top = 0, right = 0, bottom = 0 } ] (List.map tag imageRecord.image.tags)
+            Element.row
+                [ Element.spacing 6
+                , Element.paddingEach { left = 6, top = 0, right = 0, bottom = 0 }
+                ]
+                (List.map tag imageRecord.image.tags)
     in
     Element.column
         (listItemColumnAttribs context.palette)
@@ -849,11 +858,12 @@ imageView model context project imageRecord =
             [ Element.text size
             , Element.text "·"
             , Element.row []
-                [ Element.el [ Font.color (SH.toElementColor context.palette.on.background) ]
+                ([ Element.el [ Font.color (SH.toElementColor context.palette.on.background) ]
                     (Element.text <| String.toLower <| OSTypes.imageVisibilityToString imageRecord.image.visibility)
-                , Element.text <| " " ++ context.localization.staticRepresentationOfBlockDeviceContents
-                , ownerText
-                ]
+                 , Element.text <| " " ++ context.localization.staticRepresentationOfBlockDeviceContents
+                 ]
+                    ++ ownerText
+                )
             , imageTags
             ]
         ]
