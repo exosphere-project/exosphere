@@ -602,20 +602,28 @@ filtersView model toMsg palette filters data =
                         ]
                         :: List.map
                             (\filter ->
-                                case ( filter.filterTypeAndDefaultValue, selectedFilterOptionValue filter.id model ) of
-                                    ( MultiselectOption _, Just (MultiselectOption selectedOptionValues) ) ->
-                                        Element.row [ Element.spacing 15 ]
-                                            (Element.text (filter.label ++ ":")
-                                                :: List.map
-                                                    (filtOptCheckbox filter selectedOptionValues)
-                                                    (filter.filterOptions data |> Dict.keys)
-                                            )
+                                if Dict.isEmpty <| filter.filterOptions data then
+                                    Element.none
 
-                                    ( UniselectOption _, Just (UniselectOption selectedOptionValue) ) ->
-                                        filtOptsRadioSelector filter selectedOptionValue
+                                else
+                                    case
+                                        ( filter.filterTypeAndDefaultValue
+                                        , selectedFilterOptionValue filter.id model
+                                        )
+                                    of
+                                        ( MultiselectOption _, Just (MultiselectOption selectedOptionValues) ) ->
+                                            Element.row [ Element.spacing 15 ]
+                                                (Element.text (filter.label ++ ":")
+                                                    :: List.map
+                                                        (filtOptCheckbox filter selectedOptionValues)
+                                                        (filter.filterOptions data |> Dict.keys)
+                                                )
 
-                                    _ ->
-                                        Element.none
+                                        ( UniselectOption _, Just (UniselectOption selectedOptionValue) ) ->
+                                            filtOptsRadioSelector filter selectedOptionValue
+
+                                        _ ->
+                                            Element.none
                             )
                             filters
                     )
