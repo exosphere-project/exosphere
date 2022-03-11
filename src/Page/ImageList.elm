@@ -22,7 +22,7 @@ import Style.Helpers as SH
 import Style.Widgets.Button as Button
 import Style.Widgets.Card as ExoCard
 import Style.Widgets.DataList as DataList
-import Style.Widgets.DeleteButton exposing (deleteIconButton)
+import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton exposing (chip)
 import Types.Project exposing (Project)
@@ -42,6 +42,7 @@ type alias Model =
     , deletionsAttempted : Set.Set DeleteConfirmation
     , showDeleteButtons : Bool
     , showHeading : Bool
+    , shownDeletePopconfirm : Maybe OSTypes.ImageUuid
     , dataListModel : DataList.Model
     }
 
@@ -68,6 +69,7 @@ type Msg
     | GotDeleteNeedsConfirm DeleteConfirmation
     | GotDeleteConfirm DeleteConfirmation
     | GotDeleteCancel DeleteConfirmation
+    | ShowDeletePopconfirm OSTypes.ImageUuid Bool
     | DataListMsg DataList.Msg
     | NoOp
 
@@ -83,6 +85,7 @@ init showDeleteButtons showHeading =
     , deletionsAttempted = Set.empty
     , showDeleteButtons = showDeleteButtons
     , showHeading = showHeading
+    , shownDeletePopconfirm = Nothing
     , dataListModel = DataList.init <| DataList.getDefaultFilterOptions filters
     }
 
@@ -140,7 +143,10 @@ update msg project model =
             )
 
         GotDeleteConfirm imageId ->
-            ( { model | deletionsAttempted = Set.insert imageId model.deletionsAttempted }
+            ( { model
+                | deletionsAttempted = Set.insert imageId model.deletionsAttempted
+                , shownDeletePopconfirm = Nothing
+              }
             , Cmd.none
             , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
                 SharedMsg.RequestDeleteImage imageId
@@ -150,6 +156,19 @@ update msg project model =
             ( { model
                 | deleteConfirmations =
                     Set.remove imageId model.deleteConfirmations
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
+
+        ShowDeletePopconfirm imageId toBeShown ->
+            ( { model
+                | shownDeletePopconfirm =
+                    if toBeShown then
+                        Just imageId
+
+                    else
+                        Nothing
               }
             , Cmd.none
             , SharedMsg.NoOp
@@ -742,11 +761,63 @@ imageView : Model -> Context -> Project -> ImageRecord -> Element.Element Msg
 imageView model context project imageRecord =
     let
         deleteImageBtn =
-            deleteIconButton
-                context.palette
-                False
-                ("Delete " ++ context.localization.staticRepresentationOfBlockDeviceContents)
-                Nothing
+            let
+                showDeletePopconfirm =
+                    case model.shownDeletePopconfirm of
+                        Just shownDeletePopconfirmImageId ->
+                            shownDeletePopconfirmImageId == imageRecord.id
+
+                        Nothing ->
+                            False
+
+                ( deleteBtnText, deleteBtnOnPress ) =
+                    if imageRecord.image.protected then
+                        ( "Can't delete protected " ++ context.localization.staticRepresentationOfBlockDeviceContents, Nothing )
+
+                    else
+                        ( "Delete " ++ context.localization.staticRepresentationOfBlockDeviceContents, Just <| ShowDeletePopconfirm imageRecord.id True )
+
+                deleteBtnWithPopconfirm =
+                    Element.el
+                        (if showDeletePopconfirm then
+                            [ Element.below <|
+                                deletePopconfirm context.palette
+                                    { confirmationText =
+                                        "Are you sure you want to delete this "
+                                            ++ context.localization.staticRepresentationOfBlockDeviceContents
+                                            ++ "?"
+                                    , onConfirm = Just <| GotDeleteConfirm imageRecord.id
+                                    , onCancel = Just <| ShowDeletePopconfirm imageRecord.id False
+                                    }
+                            ]
+
+                         else
+                            []
+                        )
+                        (deleteIconButton
+                            context.palette
+                            False
+                            deleteBtnText
+                            deleteBtnOnPress
+                        )
+
+                deletionAttempted =
+                    Set.member imageRecord.id model.deletionsAttempted
+
+                deletionPending =
+                    imageRecord.image.status == OSTypes.ImagePendingDelete
+            in
+            if projectOwnsImage project imageRecord.image then
+                if deletionAttempted || deletionPending then
+                    -- FIXME: Constraint progressIndicator svg's height to 36 px also
+                    Element.el [ Element.height <| Element.px 36 ]
+                        (Widget.circularProgressIndicator (SH.materialStyle context.palette).progressIndicator Nothing)
+
+                else
+                    deleteBtnWithPopconfirm
+
+            else
+                Element.none
 
         createServerBtn =
             let
