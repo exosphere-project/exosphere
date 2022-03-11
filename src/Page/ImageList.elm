@@ -1,5 +1,6 @@
 module Page.ImageList exposing (Model, Msg(..), init, update, view)
 
+import Dict
 import Element
 import Element.Background as Background
 import Element.Border as Border
@@ -25,6 +26,7 @@ import Style.Widgets.DataList as DataList
 import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton exposing (chip)
+import Svg.Attributes exposing (visibility)
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
@@ -734,6 +736,7 @@ filterImages model project someImages =
 type alias ImageRecord =
     DataList.DataRecord
         { image : Image
+        , visibility : String
         , featured : Bool
         , owned : Bool
         }
@@ -750,6 +753,7 @@ imageRecords context project images =
             { id = image.uuid
             , selectable = False
             , image = image
+            , visibility = OSTypes.imageVisibilityToString image.visibility
             , featured = isImageFeaturedByDeployer featuredImageNamePrefix image
             , owned = projectOwnsImage project image
             }
@@ -940,6 +944,68 @@ imageView model context project imageRecord =
         ]
 
 
-filters : List (DataList.Filter record)
+filters :
+    List
+        (DataList.Filter
+            { record
+                | image : Image
+                , visibility : String
+                , owned : Bool
+            }
+        )
 filters =
-    []
+    [ { id = "visibility"
+      , label = "Visibility"
+      , chipPrefix = "Visibilty is "
+      , filterOptions =
+            \images ->
+                List.map .visibility images
+                    |> Set.fromList
+                    |> Set.toList
+                    |> List.map (\visibility -> ( visibility, visibility ))
+                    |> Dict.fromList
+      , filterTypeAndDefaultValue =
+            DataList.MultiselectOption Set.empty
+      , onFilter =
+            \optionValue imageRecord ->
+                imageRecord.visibility == optionValue
+      }
+    , { id = "isOwned"
+      , label = "Belongs to"
+      , chipPrefix = "Belongs to "
+      , filterOptions =
+            \_ ->
+                [ ( "yes", "this project" ), ( "no", "other projects" ) ]
+                    |> Dict.fromList
+      , filterTypeAndDefaultValue =
+            DataList.UniselectOption DataList.UniselectNoChoice
+      , onFilter =
+            \optionValue imageRecord ->
+                let
+                    imageIsOwned =
+                        if imageRecord.owned then
+                            "yes"
+
+                        else
+                            "no"
+                in
+                imageIsOwned == optionValue
+      }
+    , { id = "tags"
+      , label = "Image tags"
+      , chipPrefix = "Image tag is "
+      , filterOptions =
+            \images ->
+                List.map (\i -> i.image.tags) images
+                    |> List.concat
+                    |> Set.fromList
+                    |> Set.toList
+                    |> List.map (\tag -> ( tag, tag ))
+                    |> Dict.fromList
+      , filterTypeAndDefaultValue =
+            DataList.MultiselectOption Set.empty
+      , onFilter =
+            \optionValue imageRecord ->
+                List.member optionValue imageRecord.image.tags
+      }
+    ]
