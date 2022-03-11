@@ -1242,40 +1242,44 @@ flavorPicker context project restrictFlavorIds computeQuota selectedFlavorGroupT
                     flavors
                         |> List.filter (\f -> Regex.contains regex f.name)
             in
-            Element.column
-                [ Element.spacing 5, Element.paddingXY 0 5 ]
-                [ Element.row []
-                    [ Element.el
-                        [ context.palette.muted
-                            |> SH.toElementColor
-                            |> Font.color
-                        ]
-                      <|
-                        Element.text flavorGroup.title
-                    , case flavorGroup.description of
-                        Just description ->
-                            let
-                                selected =
-                                    selectedFlavorGroupToggleTip |> Maybe.map (\n -> flavorGroup.title == n) |> Maybe.withDefault False
-                            in
-                            ToggleTip.toggleTip context.palette
-                                (Element.text description)
-                                selected
-                                (selectFlavorGroupToggleTipMsg
-                                    (if selected then
-                                        Nothing
+            if List.isEmpty groupFlavors then
+                Element.none
 
-                                     else
-                                        Just flavorGroup.title
+            else
+                Element.column
+                    [ Element.spacing 5, Element.paddingXY 0 5 ]
+                    [ Element.row []
+                        [ Element.el
+                            [ context.palette.muted
+                                |> SH.toElementColor
+                                |> Font.color
+                            ]
+                          <|
+                            Element.text flavorGroup.title
+                        , case flavorGroup.description of
+                            Just description ->
+                                let
+                                    selected =
+                                        selectedFlavorGroupToggleTip |> Maybe.map (\n -> flavorGroup.title == n) |> Maybe.withDefault False
+                                in
+                                ToggleTip.toggleTip context.palette
+                                    (Element.text description)
+                                    selected
+                                    (selectFlavorGroupToggleTipMsg
+                                        (if selected then
+                                            Nothing
+
+                                         else
+                                            Just flavorGroup.title
+                                        )
                                     )
-                                )
 
-                        Nothing ->
-                            Element.none
+                            Nothing ->
+                                Element.none
+                        ]
+                    , renderFlavors
+                        groupFlavors
                     ]
-                , renderFlavors
-                    groupFlavors
-                ]
 
         renderFlavors flavors =
             Element.table
