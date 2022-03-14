@@ -8,13 +8,13 @@ import Helpers.String
 import OpenStack.Quotas as OSQuotas
 import RemoteData
 import Style.Helpers as SH
+import Style.Widgets.Button as Button exposing (button)
 import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Types.Project exposing (Project)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import View.Helpers as VH
 import View.Types
-import Widget
 
 
 type alias Model =
@@ -129,8 +129,9 @@ view context project model =
                     Nothing ->
                         Element.none
                 , Element.el [ Element.alignRight ] <|
-                    Widget.textButton
-                        (SH.materialStyle context.palette).primaryButton
+                    button
+                        Button.Primary
+                        context.palette
                         { text = "Create"
                         , onPress = onPress
                         }

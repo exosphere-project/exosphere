@@ -6,6 +6,7 @@ import Element.Input as Input
 import OpenStack.OpenRc
 import OpenStack.Types as OSTypes
 import Style.Helpers as SH
+import Style.Widgets.Button as Button exposing (button)
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
@@ -145,8 +146,9 @@ view context _ model =
                             , onPress = Just GotSelectOpenRcInput
                             }
                         , Element.el [ Element.alignRight ]
-                            (Widget.textButton
-                                (SH.materialStyle context.palette).primaryButton
+                            (button
+                                Button.Primary
+                                context.palette
                                 { text = "Log In"
                                 , onPress =
                                     if allCredsEntered then
@@ -167,8 +169,9 @@ view context _ model =
                                 }
                             )
                         , Element.el (VH.exoPaddingSpacingAttributes ++ [ Element.alignRight ])
-                            (Widget.textButton
-                                (SH.materialStyle context.palette).primaryButton
+                            (button
+                                Button.Primary
+                                context.palette
                                 { text = "Submit"
                                 , onPress = Just GotProcessOpenRc
                                 }

@@ -15,6 +15,7 @@ import Route
 import Set
 import Set.Extra
 import Style.Helpers as SH
+import Style.Widgets.Button as Button exposing (button)
 import Style.Widgets.Card as ExoCard
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton exposing (chip)
@@ -396,7 +397,7 @@ view context project model =
                                     , context.localization.unitOfTenancy
                                     ]
                     }
-                , Widget.textButton
+                , button
                     (SH.materialStyle context.palette).button
                     { text = "Clear filters (show all)"
                     , onPress = Just GotClearFilters
@@ -458,8 +459,9 @@ renderImage context project model image =
             Element.link []
                 { url = Route.toUrl context.urlPathPrefix chooseRoute
                 , label =
-                    Widget.textButton
-                        (SH.materialStyle context.palette).primaryButton
+                    button
+                        Button.Primary
+                        context.palette
                         { text = "Create " ++ Helpers.String.toTitleCase context.localization.virtualComputer
                         , onPress =
                             case image.status of
@@ -496,7 +498,7 @@ renderImage context project model image =
                                 , onPress =
                                     Just <| GotDeleteConfirm image.uuid
                                 }
-                            , Widget.textButton
+                            , button
                                 (SH.materialStyle context.palette).button
                                 { text = "Cancel"
                                 , onPress =

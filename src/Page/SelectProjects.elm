@@ -7,13 +7,12 @@ import Helpers.String
 import Helpers.Url as UrlHelpers
 import OpenStack.Types as OSTypes
 import Set
-import Style.Helpers as SH
+import Style.Widgets.Button as Button exposing (button)
 import Types.HelperTypes exposing (UnscopedProviderProject)
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
-import Widget
 
 
 type alias Model =
@@ -84,8 +83,9 @@ view context sharedModel model =
                                 (renderProject model.selectedProjects)
                                 (VH.sortProjects projects)
                             )
-                            [ Widget.textButton
-                                (SH.materialStyle context.palette).primaryButton
+                            [ button
+                                Button.Primary
+                                context.palette
                                 { text = "Choose"
                                 , onPress =
                                     Just GotSubmit

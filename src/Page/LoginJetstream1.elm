@@ -3,13 +3,12 @@ module Page.LoginJetstream1 exposing (Model, Msg(..), init, update, view)
 import Element
 import Element.Font as Font
 import Element.Input as Input
-import Style.Helpers as SH
+import Style.Widgets.Button as Button exposing (button)
 import Types.HelperTypes exposing (Jetstream1Creds, Jetstream1Provider(..))
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
-import Widget
 
 
 type alias Model =
@@ -93,8 +92,9 @@ view context _ model =
                             |> Element.map SharedMsg
                         )
                     , Element.el [ Element.alignRight ]
-                        (Widget.textButton
-                            (SH.materialStyle context.palette).primaryButton
+                        (button
+                            Button.Primary
+                            context.palette
                             { text = "Log In"
                             , onPress =
                                 Just <| SharedMsg <| SharedMsg.Jetstream1Login model

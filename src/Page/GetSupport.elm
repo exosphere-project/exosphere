@@ -8,7 +8,7 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import RemoteData
 import Set
-import Style.Helpers as SH
+import Style.Widgets.Button as Button exposing (button)
 import Style.Widgets.CopyableText
 import Style.Widgets.Select
 import Types.HelperTypes as HelperTypes
@@ -17,7 +17,6 @@ import Types.SharedMsg as SharedMsg exposing (SharedMsg(..))
 import UUID
 import View.Helpers as VH
 import View.Types
-import Widget
 
 
 type alias Model =
@@ -236,8 +235,9 @@ view context sharedModel model =
             , Element.row
                 [ Element.width Element.fill ]
                 [ Element.el [ Element.alignRight ] <|
-                    Widget.textButton
-                        (SH.materialStyle context.palette).primaryButton
+                    button
+                        Button.Primary
+                        context.palette
                         { text = "Build Support Request"
                         , onPress =
                             if String.isEmpty model.requestDescription then

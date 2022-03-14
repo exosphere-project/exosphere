@@ -22,6 +22,7 @@ import RemoteData
 import Route
 import ServerDeploy exposing (cloudInitUserDataTemplate)
 import Style.Helpers as SH
+import Style.Widgets.Button as Button exposing (button)
 import Style.Widgets.Card exposing (badge)
 import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
@@ -496,8 +497,9 @@ view context project model =
         createButton =
             case maybeInvalidFormReasons of
                 Nothing ->
-                    Widget.textButton
-                        (SH.materialStyle context.palette).primaryButton
+                    button
+                        Button.Primary
+                        context.palette
                         { text = "Create"
                         , onPress = createOnPress
                         }
