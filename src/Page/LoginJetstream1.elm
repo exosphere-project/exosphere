@@ -58,12 +58,11 @@ view : View.Types.Context -> SharedModel -> Model -> Element.Element Msg
 view context _ model =
     let
         renderInvalidReasons value inputName =
-            case String.isEmpty value of
-                True ->
-                    VH.invalidInputHelperText context.palette (inputName ++ " is required")
+            if String.isEmpty value then
+                VH.invalidInputHelperText context.palette (inputName ++ " is required")
 
-                False ->
-                    Element.none
+            else
+                Element.none
     in
     Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
         [ Element.el (VH.heading2 context.palette)
