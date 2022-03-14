@@ -56,6 +56,15 @@ update msg _ model =
 
 view : View.Types.Context -> SharedModel -> Model -> Element.Element Msg
 view context _ model =
+    let
+        renderInvalidReasons value inputName =
+            case String.isEmpty value of
+                True ->
+                    VH.invalidInputHelperText context.palette (inputName ++ " is required")
+
+                False ->
+                    Element.none
+    in
     Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
         [ Element.el (VH.heading2 context.palette)
             (Element.text "Add a Jetstream1 Account")
@@ -67,8 +76,9 @@ view context _ model =
                     { text = model.taccUsername
                     , placeholder = Just (Input.placeholder [] (Element.text "tg******"))
                     , onChange = GotUsername
-                    , label = Input.labelAbove [ Font.size 14 ] (Element.text "TACC Username")
+                    , label = Input.labelAbove [ Font.size 14 ] (VH.requiredLabel context.palette (Element.text "TACC Username"))
                     }
+                , renderInvalidReasons model.taccUsername "TACC Username"
                 , Input.currentPassword
                     (VH.inputItemAttributes context.palette.background)
                     { text = model.taccPassword
@@ -77,6 +87,7 @@ view context _ model =
                     , label = Input.labelAbove [ Font.size 14 ] (Element.text "TACC Password")
                     , show = False
                     }
+                , renderInvalidReasons model.taccPassword "TACC Password"
                 , Input.radio []
                     { label = Input.labelAbove [] (Element.text "Provider")
                     , onChange = GotProviderChoice
@@ -92,12 +103,19 @@ view context _ model =
                         (VH.loginPickerButton context
                             |> Element.map SharedMsg
                         )
-                    , Element.el [ Element.alignRight ]
+                    , let
+                        onPress =
+                            if String.isEmpty model.taccUsername || String.isEmpty model.taccPassword then
+                                Nothing
+
+                            else
+                                Just <| SharedMsg <| SharedMsg.Jetstream1Login model
+                      in
+                      Element.el [ Element.alignRight ]
                         (Widget.textButton
                             (SH.materialStyle context.palette).primaryButton
                             { text = "Log In"
-                            , onPress =
-                                Just <| SharedMsg <| SharedMsg.Jetstream1Login model
+                            , onPress = onPress
                             }
                         )
                     ]
