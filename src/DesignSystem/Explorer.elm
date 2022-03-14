@@ -2,7 +2,8 @@ module DesignSystem.Explorer exposing (main)
 
 import Element
 import Element.Font as Font
-import Html
+import Html exposing (text)
+import Html.Attributes exposing (src, style)
 import Style.Helpers as SH
 import Style.Types
 import Style.Widgets.Button as Button
@@ -98,7 +99,7 @@ config =
     , customHeader =
         Just
             { title = "Exosphere Design System"
-            , logo = UIExplorer.logoFromUrl "/assets/img/logo-alt.svg"
+            , logo = UIExplorer.logoFromHtml (Html.img [ src "/assets/img/logo-alt.svg", style "padding-top" "10px", style "padding-left" "5px" ] [])
             , titleColor = Just "#FFFFFF"
             , bgColor = Just "#181725"
             }
