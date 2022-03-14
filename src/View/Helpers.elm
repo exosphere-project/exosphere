@@ -80,6 +80,7 @@ import RemoteData
 import Route
 import Style.Helpers as SH exposing (shadowDefaults)
 import Style.Types exposing (ExoPalette)
+import Style.Widgets.Button as Button exposing (button)
 import Style.Widgets.StatusBadge as StatusBadge
 import Style.Widgets.ToggleTip as ToggleTip
 import Types.Error exposing (ErrorLevel(..), toFriendlyErrorLevel)
@@ -477,8 +478,9 @@ loginPickerButton context =
     Element.link []
         { url = Route.toUrl context.urlPathPrefix Route.LoginPicker
         , label =
-            Widget.textButton
-                (SH.materialStyle context.palette).button
+            button
+                Button.Secondary
+                context.palette
                 { text = "Other Login Methods"
                 , onPress =
                     Just SharedMsg.NoOp

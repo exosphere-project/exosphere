@@ -11,7 +11,6 @@ import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
-import Widget
 
 
 type alias Model =
@@ -140,8 +139,9 @@ view context _ model =
                             (VH.loginPickerButton context
                                 |> Element.map SharedMsg
                             )
-                        , Widget.textButton
-                            (SH.materialStyle context.palette).button
+                        , button
+                            Button.Secondary
+                            context.palette
                             { text = "Use OpenRC File"
                             , onPress = Just GotSelectOpenRcInput
                             }
@@ -162,8 +162,9 @@ view context _ model =
 
                     OpenRcEntry ->
                         [ Element.el VH.exoPaddingSpacingAttributes
-                            (Widget.textButton
-                                (SH.materialStyle context.palette).button
+                            (button
+                                Button.Secondary
+                                context.palette
                                 { text = "Cancel"
                                 , onPress = Just GotSelectCredsInput
                                 }

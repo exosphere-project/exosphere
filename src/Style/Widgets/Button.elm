@@ -30,6 +30,9 @@ button variant palette params =
                 Primary ->
                     (SH.materialStyle palette).primaryButton
 
+                Secondary ->
+                    (SH.materialStyle palette).button
+
                 Danger ->
                     (SH.materialStyle palette).dangerButton
 
@@ -38,9 +41,6 @@ button variant palette params =
 
                 Warning ->
                     (SH.materialStyle palette).warningButton
-
-                _ ->
-                    (SH.materialStyle palette).button
     in
     textButton
         style
