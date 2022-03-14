@@ -348,13 +348,18 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
         firstColumnContents : List (Element.Element Msg)
         firstColumnContents =
             let
-                usernameToDisplay =
+                usernameView =
                     case server.exoProps.serverOrigin of
                         ServerFromExo _ ->
-                            "exouser"
+                            Element.text "exouser"
 
                         _ ->
-                            "unknown"
+                            Element.el
+                                [ context.palette.muted
+                                    |> SH.toElementColor
+                                    |> Font.color
+                                ]
+                                (Element.text "unknown")
             in
             [ tile
                 [ FeatherIcons.monitor
@@ -383,14 +388,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                     project
                     server
                     model
-                , VH.compactKVSubRow "Username"
-                    (Element.el
-                        [ context.palette.muted
-                            |> SH.toElementColor
-                            |> Font.color
-                        ]
-                        (Element.text usernameToDisplay)
-                    )
+                , VH.compactKVSubRow "Username" usernameView
                 , VH.compactKVSubRow "Passphrase"
                     (serverPassphrase context model server)
                 , VH.compactKVSubRow
