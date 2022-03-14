@@ -374,7 +374,10 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                     project
                     server
                     model
-                , VH.compactKVSubRow "Username" (Element.text "exouser")
+                , VH.compactKVSubRow "Username" 
+                    (Element.el [ context.palette.muted
+                        |> SH.toElementColor
+                        |> Font.color ] (Element.text "Unknown"))
                 , VH.compactKVSubRow "Passphrase"
                     (serverPassphrase context model server)
                 , VH.compactKVSubRow
@@ -1035,12 +1038,16 @@ serverPassphrase context model server =
                                     Element.text "Not available"
 
                         _ ->
-                            Element.text <|
-                                String.concat
-                                    [ "Unknown ("
-                                    , context.localization.virtualComputer
-                                    , " not created by Exosphere)"
-                                    ]
+                            Element.el [ context.palette.muted
+                                |> SH.toElementColor
+                                |> Font.color ]
+                                (Element.text <|
+                                    String.concat
+                                        [ "Not available because "
+                                        , context.localization.virtualComputer
+                                        , " was not created by Exosphere"
+                                        ]
+                                )
     in
     passphraseHint
 
