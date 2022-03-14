@@ -6,7 +6,7 @@ import Element.Input as Input
 import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import Html.Attributes
-import Style.Widgets.Button as Button exposing (button)
+import Style.Widgets.Button as Button
 import Style.Widgets.FormValidation as FormValidation
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg
@@ -125,8 +125,7 @@ createKeyPairButton context model =
                 )
     in
     [ Element.el [ Element.alignRight ] <|
-        button
-            Button.Primary
+        Button.primary
             context.palette
             { text = "Create"
             , onPress = maybeCmd

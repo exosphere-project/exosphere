@@ -6,7 +6,7 @@ import Helpers.String
 import OpenStack.Types as OSTypes
 import RemoteData
 import Route
-import Style.Widgets.Button as Button exposing (button)
+import Style.Widgets.Button as Button
 import Types.HelperTypes as HelperTypes
 import Types.Project exposing (Project)
 import Types.Server exposing (Server)
@@ -133,8 +133,7 @@ view_ context project model computeQuota =
                 GotFlavorId
             , Element.row [ Element.width Element.fill ]
                 [ Element.el [ Element.alignRight ]
-                    (button
-                        Button.Primary
+                    (Button.primary
                         context.palette
                         { text = "Resize"
                         , onPress = model.flavorId |> Maybe.map GotSubmit

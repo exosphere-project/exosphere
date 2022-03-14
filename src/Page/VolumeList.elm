@@ -13,7 +13,7 @@ import Page.QuotaUsage
 import Route
 import Set
 import Style.Helpers as SH
-import Style.Widgets.Button as Button exposing (button)
+import Style.Widgets.Button as Button
 import Style.Widgets.DataList as DataList
 import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
 import Time
@@ -242,8 +242,7 @@ volumeView model context project currentTime volumeRecord =
 
                     else
                         -- Volume can only be detached
-                        button
-                            Button.Secondary
+                        Button.default
                             context.palette
                             { text = "Detach"
                             , onPress =
@@ -291,8 +290,8 @@ volumeView model context project currentTime volumeRecord =
                                         Route.VolumeAttach Nothing (Just volumeRecord.id)
                                     )
                             , label =
-                                button
-                                    (SH.materialStyle context.palette).button
+                                Button.default
+                                    context.palette
                                     { text = "Attach"
                                     , onPress = Just NoOp
                                     }

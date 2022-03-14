@@ -7,7 +7,7 @@ import Element.Background as Background
 import Element.Border as Border
 import Route
 import Style.Helpers as SH
-import Style.Widgets.Button as Button exposing (button)
+import Style.Widgets.Button as Button
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
@@ -40,8 +40,7 @@ view context sharedModel =
             Element.link []
                 { url = Route.toUrl context.urlPathPrefix route
                 , label =
-                    button
-                        Button.Primary
+                    Button.primary
                         context.palette
                         { text = text
                         , onPress =
@@ -74,8 +73,8 @@ view context sharedModel =
                     , description = oidcLoginConfig.oidcLoginButtonDescription
                     }
             , button =
-                button
-                    (SH.materialStyle context.palette).button
+                Button.default
+                    context.palette
                     { text = oidcLoginConfig.oidcLoginButtonLabel
                     , onPress =
                         let

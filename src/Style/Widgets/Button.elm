@@ -1,4 +1,4 @@
-module Style.Widgets.Button exposing (Variant(..), button)
+module Style.Widgets.Button exposing (Variant(..), button, default, primary)
 
 import Element
 import Style.Helpers as SH
@@ -18,11 +18,31 @@ type Variant
     | Warning
 
 
+type alias ThemedButton textButton msg =
+    Style.Types.ExoPalette
+    ->
+        { textButton
+            | onPress : Maybe msg
+            , text : String
+        }
+    -> Element.Element msg
+
+
 
 --- component
 
 
-button : Variant -> Style.Types.ExoPalette -> { textButton | onPress : Maybe msg, text : String } -> Element.Element msg
+primary : ThemedButton textButton msg
+primary =
+    button Primary
+
+
+default : ThemedButton textButton msg
+default =
+    button Secondary
+
+
+button : Variant -> ThemedButton textButton msg
 button variant palette params =
     let
         style =

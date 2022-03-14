@@ -9,7 +9,7 @@ import OpenStack.Volumes
 import Route
 import Set
 import Style.Helpers as SH
-import Style.Widgets.Button as Button exposing (button)
+import Style.Widgets.Button as Button
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton
@@ -243,8 +243,7 @@ volumeActionButtons context project model volume =
                                     Route.VolumeAttach Nothing (Just volume.uuid)
                                 )
                         , label =
-                            button
-                                Button.Secondary
+                            Button.default
                                 context.palette
                                 { text = "Attach"
                                 , onPress = Just NoOp
@@ -253,16 +252,14 @@ volumeActionButtons context project model volume =
 
                 OSTypes.InUse ->
                     if GetterSetters.isBootVolume Nothing volume then
-                        button
-                            Button.Secondary
+                        Button.default
                             context.palette
                             { text = "Detach"
                             , onPress = Nothing
                             }
 
                     else
-                        button
-                            Button.Secondary
+                        Button.default
                             context.palette
                             { text = "Detach"
                             , onPress =
@@ -293,8 +290,7 @@ volumeActionButtons context project model volume =
                             , onPress =
                                 Just <| GotDeleteConfirm
                             }
-                        , button
-                            Button.Secondary
+                        , Button.default
                             context.palette
                             { text = "Cancel"
                             , onPress =

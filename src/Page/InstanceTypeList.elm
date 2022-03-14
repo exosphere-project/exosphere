@@ -12,7 +12,6 @@ import Html.Attributes as HtmlA
 import OpenStack.Types as OSTypes
 import Route
 import Style.Helpers as SH
-import Style.Widgets.Button as Button exposing (button)
 import Time
 import Types.HelperTypes as HelperTypes
 import Types.Project exposing (Project)
@@ -82,7 +81,7 @@ view context project instanceTypes =
 
                         buttonStyleProto =
                             if instanceTypeVersion.isPrimary then
-                                Button.Primary context.palette
+                                (SH.materialStyle context.palette).primaryButton
 
                             else
                                 (SH.materialStyle context.palette).button
@@ -102,7 +101,7 @@ view context project instanceTypes =
                     Element.link [ Element.centerX, Element.width Element.fill ]
                         { url = Route.toUrl context.urlPathPrefix chooseRoute
                         , label =
-                            button
+                            Widget.textButton
                                 buttonStyle
                                 { text =
                                     instanceTypeVersion.friendlyName

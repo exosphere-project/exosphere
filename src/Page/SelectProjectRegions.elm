@@ -6,7 +6,7 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import OpenStack.Types as OSTypes
 import Set
-import Style.Widgets.Button as Button exposing (button)
+import Style.Widgets.Button as Button
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
@@ -74,8 +74,7 @@ view context sharedModel model =
                                 (renderRegion model.selectedRegions)
                                 regions
                             )
-                            [ button
-                                Button.Primary
+                            [ Button.primary
                                 context.palette
                                 { text = "Choose"
                                 , onPress =

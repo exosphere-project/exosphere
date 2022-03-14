@@ -6,7 +6,7 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import OpenStack.Types as OSTypes
 import Route
-import Style.Widgets.Button as Button exposing (button)
+import Style.Widgets.Button as Button
 import Types.Project exposing (Project)
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..))
@@ -90,8 +90,7 @@ view context model =
                 }
             , Element.row [ Element.width Element.fill ]
                 [ Element.el [ Element.alignRight ]
-                    (button
-                        Button.Primary
+                    (Button.primary
                         context.palette
                         { text = "Create"
                         , onPress = Just GotSubmit

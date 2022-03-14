@@ -6,7 +6,7 @@ import Element.Input as Input
 import OpenStack.OpenRc
 import OpenStack.Types as OSTypes
 import Style.Helpers as SH
-import Style.Widgets.Button as Button exposing (button)
+import Style.Widgets.Button as Button
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
@@ -139,15 +139,13 @@ view context _ model =
                             (VH.loginPickerButton context
                                 |> Element.map SharedMsg
                             )
-                        , button
-                            Button.Secondary
+                        , Button.default
                             context.palette
                             { text = "Use OpenRC File"
                             , onPress = Just GotSelectOpenRcInput
                             }
                         , Element.el [ Element.alignRight ]
-                            (button
-                                Button.Primary
+                            (Button.primary
                                 context.palette
                                 { text = "Log In"
                                 , onPress =
@@ -162,16 +160,14 @@ view context _ model =
 
                     OpenRcEntry ->
                         [ Element.el VH.exoPaddingSpacingAttributes
-                            (button
-                                Button.Secondary
+                            (Button.default
                                 context.palette
                                 { text = "Cancel"
                                 , onPress = Just GotSelectCredsInput
                                 }
                             )
                         , Element.el (VH.exoPaddingSpacingAttributes ++ [ Element.alignRight ])
-                            (button
-                                Button.Primary
+                            (Button.primary
                                 context.palette
                                 { text = "Submit"
                                 , onPress = Just GotProcessOpenRc

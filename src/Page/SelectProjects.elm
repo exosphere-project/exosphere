@@ -7,7 +7,7 @@ import Helpers.String
 import Helpers.Url as UrlHelpers
 import OpenStack.Types as OSTypes
 import Set
-import Style.Widgets.Button as Button exposing (button)
+import Style.Widgets.Button as Button
 import Types.HelperTypes exposing (UnscopedProviderProject)
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
@@ -83,8 +83,7 @@ view context sharedModel model =
                                 (renderProject model.selectedProjects)
                                 (VH.sortProjects projects)
                             )
-                            [ button
-                                Button.Primary
+                            [ Button.primary
                                 context.palette
                                 { text = "Choose"
                                 , onPress =

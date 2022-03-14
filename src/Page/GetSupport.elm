@@ -8,7 +8,7 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import RemoteData
 import Set
-import Style.Widgets.Button as Button exposing (button)
+import Style.Widgets.Button as Button
 import Style.Widgets.CopyableText
 import Style.Widgets.Select
 import Types.HelperTypes as HelperTypes
@@ -235,8 +235,7 @@ view context sharedModel model =
             , Element.row
                 [ Element.width Element.fill ]
                 [ Element.el [ Element.alignRight ] <|
-                    button
-                        Button.Primary
+                    Button.primary
                         context.palette
                         { text = "Build Support Request"
                         , onPress =

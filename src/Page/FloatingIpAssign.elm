@@ -224,8 +224,7 @@ view context project model =
 
                 button =
                     Element.el [ Element.alignRight ] <|
-                        Button.button
-                            Button.Primary
+                        Button.primary
                             context.palette
                             { text = "Assign"
                             , onPress = params.onPress

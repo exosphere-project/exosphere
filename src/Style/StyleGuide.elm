@@ -11,7 +11,7 @@ import FeatherIcons
 import Set exposing (Set)
 import Style.Helpers as SH
 import Style.Types
-import Style.Widgets.Button as Button exposing (button)
+import Style.Widgets.Button as Button
 import Style.Widgets.Card exposing (badge, clickableCardFixedSize, exoCard, exoCardWithTitleAndSubtitle, expandoCard)
 import Style.Widgets.ChipsFilter exposing (chipsFilter)
 import Style.Widgets.CopyableText exposing (copyableText)
@@ -275,12 +275,12 @@ widgets palette model =
     , Element.text "Style.Widgets.Card.badge"
     , badge "belongs to this project"
     , Element.text "Style.Widgets.button (danger)"
-    , button
+    , Button.button
         Button.Danger
         palette
         { text = "Danger button", onPress = Just NoOp }
     , Element.text "Style.Widgets.button (warning)"
-    , button
+    , Button.button
         Button.Warning
         palette
         { text = "Warning button", onPress = Just NoOp }

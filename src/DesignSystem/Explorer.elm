@@ -5,7 +5,7 @@ import Element.Font as Font
 import Html
 import Style.Helpers as SH
 import Style.Types
-import Style.Widgets.Button as Button exposing (button)
+import Style.Widgets.Button as Button
 import Style.Widgets.Card exposing (badge, clickableCardFixedSize, exoCard, exoCardWithTitleAndSubtitle, expandoCard)
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon exposing (bell, console, copyToClipboard, history, ipAddress, lock, lockOpen, plusCircle, remove, roundRect, timesCircle)
@@ -162,37 +162,37 @@ main =
                     [ ( "primary"
                       , \_ ->
                             toHtml <|
-                                button Button.Primary palette { text = "Create", onPress = Just NoOp }
+                                Button.primary palette { text = "Create", onPress = Just NoOp }
                       , {}
                       )
                     , ( "disabled"
                       , \_ ->
                             toHtml <|
-                                button Button.Primary palette { text = "Next", onPress = Nothing }
+                                Button.primary palette { text = "Next", onPress = Nothing }
                       , {}
                       )
                     , ( "secondary"
                       , \_ ->
                             toHtml <|
-                                button Button.Secondary palette { text = "Next", onPress = Just NoOp }
+                                Button.default palette { text = "Next", onPress = Just NoOp }
                       , {}
                       )
                     , ( "warning"
                       , \_ ->
                             toHtml <|
-                                button Button.Warning palette { text = "Suspend", onPress = Just NoOp }
+                                Button.button Button.Warning palette { text = "Suspend", onPress = Just NoOp }
                       , {}
                       )
                     , ( "danger"
                       , \_ ->
                             toHtml <|
-                                button Button.Danger palette { text = "Delete All", onPress = Just NoOp }
+                                Button.button Button.Danger palette { text = "Delete All", onPress = Just NoOp }
                       , {}
                       )
                     , ( "danger secondary"
                       , \_ ->
                             toHtml <|
-                                button Button.DangerSecondary palette { text = "Delete All", onPress = Just NoOp }
+                                Button.button Button.DangerSecondary palette { text = "Delete All", onPress = Just NoOp }
                       , {}
                       )
                     ]
@@ -235,7 +235,7 @@ main =
                                         [ Font.family [ Font.monospace ] ]
                                         "192.168.1.1"
                                     )
-                                    (button Button.Secondary
+                                    (Button.default
                                         palette
                                         { text = "Unassign"
                                         , onPress = Just NoOp
