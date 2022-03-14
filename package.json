@@ -17,7 +17,8 @@
     "live-design-system": "npx elm-live src/DesignSystem/Explorer.elm --port 8002 --open --start-page=explorer.html -- --output=explorer.js --debug",
     "test": "npx elm-test-rs",
     "elm:format": "npx elm-format --validate src",
-    "elm:analyse": "npx elm-analyse"
+    "elm:analyse": "npx elm-analyse",
+    "prepare": "husky install"
   },
   "author": {
     "email": "dont@spam.me"
@@ -33,6 +34,7 @@
     "elm-analyse": "^0.16.5",
     "elm-live": "^4.0.2",
     "elm-tooling": "^1.3.0",
+    "husky": "^7.0.0",
     "uglify-js": "^3.14.2"
   },
   "repository": {
