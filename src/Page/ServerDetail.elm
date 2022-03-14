@@ -347,6 +347,15 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
 
         firstColumnContents : List (Element.Element Msg)
         firstColumnContents =
+            let
+                usernameToDisplay =
+                    case server.exoProps.serverOrigin of
+                        ServerFromExo _ ->
+                            "exouser"
+
+                        _ ->
+                            "unknown"
+            in
             [ tile
                 [ FeatherIcons.monitor
                     |> FeatherIcons.toHtml []
@@ -374,10 +383,14 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                     project
                     server
                     model
-                , VH.compactKVSubRow "Username" 
-                    (Element.el [ context.palette.muted
-                        |> SH.toElementColor
-                        |> Font.color ] (Element.text "Unknown"))
+                , VH.compactKVSubRow "Username"
+                    (Element.el
+                        [ context.palette.muted
+                            |> SH.toElementColor
+                            |> Font.color
+                        ]
+                        (Element.text usernameToDisplay)
+                    )
                 , VH.compactKVSubRow "Passphrase"
                     (serverPassphrase context model server)
                 , VH.compactKVSubRow
@@ -1038,9 +1051,11 @@ serverPassphrase context model server =
                                     Element.text "Not available"
 
                         _ ->
-                            Element.el [ context.palette.muted
-                                |> SH.toElementColor
-                                |> Font.color ]
+                            Element.el
+                                [ context.palette.muted
+                                    |> SH.toElementColor
+                                    |> Font.color
+                                ]
                                 (Element.text <|
                                     String.concat
                                         [ "Not available because "
