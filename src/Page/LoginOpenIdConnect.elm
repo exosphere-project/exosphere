@@ -6,6 +6,7 @@ import Element
 import Element.Background as Background
 import Element.Border as Border
 import Style.Helpers as SH
+import Style.Widgets.Button as Button
 import Types.HelperTypes as HelperTypes
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
@@ -54,8 +55,8 @@ view context _ model =
                                 }
                             )
                         , Element.el [ Element.centerX ]
-                            (Widget.textButton
-                                (SH.materialStyle context.palette).primaryButton
+                            (Button.primary
+                                context.palette
                                 { text = model.oidcLoginButtonLabel
                                 , onPress =
                                     let

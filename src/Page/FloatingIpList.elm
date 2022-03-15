@@ -12,6 +12,7 @@ import Page.QuotaUsage
 import Route
 import Set
 import Style.Helpers as SH
+import Style.Widgets.Button as Button
 import Style.Widgets.CopyableText
 import Style.Widgets.DataList as DataList
 import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
@@ -21,7 +22,6 @@ import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
-import Widget
 
 
 type alias Model =
@@ -255,16 +255,16 @@ floatingIpView model context project floatingIpRecord =
                                     Route.FloatingIpAssign (Just floatingIpRecord.ip.uuid) Nothing
                                 )
                         , label =
-                            Widget.textButton
-                                (SH.materialStyle context.palette).button
+                            Button.default
+                                context.palette
                                 { text = "Assign"
                                 , onPress = Just NoOp
                                 }
                         }
 
                 Just _ ->
-                    Widget.textButton
-                        (SH.materialStyle context.palette).button
+                    Button.default
+                        context.palette
                         { text = "Unassign"
                         , onPress = Just <| GotUnassign floatingIpRecord.ip.uuid
                         }

@@ -11,6 +11,7 @@ import FeatherIcons
 import Set exposing (Set)
 import Style.Helpers as SH
 import Style.Types
+import Style.Widgets.Button as Button
 import Style.Widgets.Card exposing (badge, clickableCardFixedSize, exoCard, exoCardWithTitleAndSubtitle, expandoCard)
 import Style.Widgets.ChipsFilter exposing (chipsFilter)
 import Style.Widgets.CopyableText exposing (copyableText)
@@ -273,13 +274,15 @@ widgets palette model =
         (Element.text "contents")
     , Element.text "Style.Widgets.Card.badge"
     , badge "belongs to this project"
-    , Element.text "Widgets.textButton (dangerButton)"
-    , Widget.textButton
-        (SH.materialStyle palette).dangerButton
+    , Element.text "Style.Widgets.button (danger)"
+    , Button.button
+        Button.Danger
+        palette
         { text = "Danger button", onPress = Just NoOp }
-    , Element.text "Widgets.textButton (warningButton)"
-    , Widget.textButton
-        (SH.materialStyle palette).warningButton
+    , Element.text "Style.Widgets.button (warning)"
+    , Button.button
+        Button.Warning
+        palette
         { text = "Warning button", onPress = Just NoOp }
     , Element.text "Style.Widgets.CopyableText.CopyableText"
     , copyableText palette [] "foobar"

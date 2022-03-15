@@ -6,11 +6,11 @@ import Element.Input as Input
 import OpenStack.OpenRc
 import OpenStack.Types as OSTypes
 import Style.Helpers as SH
+import Style.Widgets.Button as Button
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
-import Widget
 
 
 type alias Model =
@@ -139,14 +139,14 @@ view context _ model =
                             (VH.loginPickerButton context
                                 |> Element.map SharedMsg
                             )
-                        , Widget.textButton
-                            (SH.materialStyle context.palette).button
+                        , Button.default
+                            context.palette
                             { text = "Use OpenRC File"
                             , onPress = Just GotSelectOpenRcInput
                             }
                         , Element.el [ Element.alignRight ]
-                            (Widget.textButton
-                                (SH.materialStyle context.palette).primaryButton
+                            (Button.primary
+                                context.palette
                                 { text = "Log In"
                                 , onPress =
                                     if allCredsEntered then
@@ -160,15 +160,15 @@ view context _ model =
 
                     OpenRcEntry ->
                         [ Element.el VH.exoPaddingSpacingAttributes
-                            (Widget.textButton
-                                (SH.materialStyle context.palette).button
+                            (Button.default
+                                context.palette
                                 { text = "Cancel"
                                 , onPress = Just GotSelectCredsInput
                                 }
                             )
                         , Element.el (VH.exoPaddingSpacingAttributes ++ [ Element.alignRight ])
-                            (Widget.textButton
-                                (SH.materialStyle context.palette).primaryButton
+                            (Button.primary
+                                context.palette
                                 { text = "Submit"
                                 , onPress = Just GotProcessOpenRc
                                 }

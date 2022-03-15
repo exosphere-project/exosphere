@@ -13,6 +13,7 @@ import Page.QuotaUsage
 import Route
 import Set
 import Style.Helpers as SH
+import Style.Widgets.Button as Button
 import Style.Widgets.DataList as DataList
 import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
 import Time
@@ -20,7 +21,6 @@ import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import View.Helpers as VH
 import View.Types
-import Widget
 
 
 type alias Model =
@@ -242,8 +242,8 @@ volumeView model context project currentTime volumeRecord =
 
                     else
                         -- Volume can only be detached
-                        Widget.textButton
-                            (SH.materialStyle context.palette).button
+                        Button.default
+                            context.palette
                             { text = "Detach"
                             , onPress =
                                 Just <| DetachVolume volumeRecord.id
@@ -290,8 +290,8 @@ volumeView model context project currentTime volumeRecord =
                                         Route.VolumeAttach Nothing (Just volumeRecord.id)
                                     )
                             , label =
-                                Widget.textButton
-                                    (SH.materialStyle context.palette).button
+                                Button.default
+                                    context.palette
                                     { text = "Attach"
                                     , onPress = Just NoOp
                                     }

@@ -5,6 +5,7 @@ import FeatherIcons
 import Html.Attributes as HtmlA
 import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
+import Style.Widgets.Button as Button
 import Widget
 
 
@@ -67,11 +68,13 @@ deletePopconfirm palette { confirmationText, onConfirm, onCancel } =
                 , Element.text confirmationText
                 ]
             , Element.row [ Element.spacing 10, Element.alignRight ]
-                [ Widget.textButton (SH.materialStyle palette).button
+                [ Button.default
+                    palette
                     { text = "Cancel"
                     , onPress = onCancel
                     }
-                , Widget.textButton (SH.materialStyle palette).dangerButton
+                , Button.button Button.Danger
+                    palette
                     { text = "Delete"
                     , onPress = onConfirm
                     }

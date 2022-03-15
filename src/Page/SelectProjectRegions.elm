@@ -6,12 +6,11 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import OpenStack.Types as OSTypes
 import Set
-import Style.Helpers as SH
+import Style.Widgets.Button as Button
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
-import Widget
 
 
 type alias Model =
@@ -75,8 +74,8 @@ view context sharedModel model =
                                 (renderRegion model.selectedRegions)
                                 regions
                             )
-                            [ Widget.textButton
-                                (SH.materialStyle context.palette).primaryButton
+                            [ Button.primary
+                                context.palette
                                 { text = "Choose"
                                 , onPress =
                                     Just GotSubmit
