@@ -79,8 +79,9 @@ view context project model =
                 { text = model.name
                 , placeholder = Just (Input.placeholder [] (Element.text "My Important Data"))
                 , onChange = GotName
-                , label = Input.labelAbove [] (Element.text "Name")
+                , label = Input.labelAbove [] (VH.requiredLabel context.palette (Element.text "Name"))
                 }
+            , VH.invalidInputHelperText context.palette "Name is required" |> VH.renderIf (String.isEmpty model.name)
             , Element.text <|
                 String.join " "
                     [ "(Suggestion: choose a good name that describes what the"
@@ -100,13 +101,13 @@ view context project model =
             , let
                 ( onPress, quotaWarnText ) =
                     if canAttemptCreateVol then
-                        case model.sizeInput of
-                            ValidNumericTextInput volSizeGb ->
+                        case ( model.sizeInput, String.isEmpty model.name ) of
+                            ( ValidNumericTextInput volSizeGb, False ) ->
                                 ( Just <| GotSubmit volSizeGb
                                 , Nothing
                                 )
 
-                            InvalidNumericTextInput _ ->
+                            ( _, _ ) ->
                                 ( Nothing, Nothing )
 
                     else
