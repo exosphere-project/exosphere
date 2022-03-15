@@ -6,13 +6,12 @@ import Element.Input as Input
 import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import Html.Attributes
-import Style.Helpers as SH
+import Style.Widgets.Button as Button
 import Style.Widgets.FormValidation as FormValidation
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
-import Widget
 
 
 type alias Model =
@@ -126,8 +125,8 @@ createKeyPairButton context model =
                 )
     in
     [ Element.el [ Element.alignRight ] <|
-        Widget.textButton
-            (SH.materialStyle context.palette).primaryButton
+        Button.primary
+            context.palette
             { text = "Create"
             , onPress = maybeCmd
             }

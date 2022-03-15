@@ -2,9 +2,11 @@ module DesignSystem.Explorer exposing (main)
 
 import Element
 import Element.Font as Font
-import Html
+import Html exposing (text)
+import Html.Attributes exposing (src, style)
 import Style.Helpers as SH
 import Style.Types
+import Style.Widgets.Button as Button
 import Style.Widgets.Card exposing (badge, clickableCardFixedSize, exoCard, exoCardWithTitleAndSubtitle, expandoCard)
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon exposing (bell, console, copyToClipboard, history, ipAddress, lock, lockOpen, plusCircle, remove, roundRect, timesCircle)
@@ -21,7 +23,6 @@ import UIExplorer
         , storiesOf
         )
 import View.Helpers as VH
-import Widget exposing (textButton)
 
 
 
@@ -56,39 +57,6 @@ text msg =
 defaultIcon : (Element.Color -> number -> icon) -> icon
 defaultIcon icon =
     icon (palette.on.background |> SH.toElementColor) 25
-
-
-type ButtonVariant
-    = Primary
-    | Secondary
-    | Danger
-    | DangerSecondary
-    | Warning
-
-
-button : ButtonVariant -> { textButton | onPress : Maybe msg, text : String } -> Element.Element msg
-button variant params =
-    let
-        style =
-            case variant of
-                Primary ->
-                    (SH.materialStyle palette).primaryButton
-
-                Danger ->
-                    (SH.materialStyle palette).dangerButton
-
-                DangerSecondary ->
-                    (SH.materialStyle palette).dangerButtonSecondary
-
-                Warning ->
-                    (SH.materialStyle palette).warningButton
-
-                _ ->
-                    (SH.materialStyle palette).button
-    in
-    textButton
-        style
-        params
 
 
 
@@ -131,7 +99,7 @@ config =
     , customHeader =
         Just
             { title = "Exosphere Design System"
-            , logo = UIExplorer.logoFromUrl "/assets/img/logo-alt.svg"
+            , logo = UIExplorer.logoFromHtml (Html.img [ src "/assets/img/logo-alt.svg", style "padding-top" "10px", style "padding-left" "5px" ] [])
             , titleColor = Just "#FFFFFF"
             , bgColor = Just "#181725"
             }
@@ -195,37 +163,37 @@ main =
                     [ ( "primary"
                       , \_ ->
                             toHtml <|
-                                button Primary { text = "Create", onPress = Just NoOp }
+                                Button.primary palette { text = "Create", onPress = Just NoOp }
                       , {}
                       )
                     , ( "disabled"
                       , \_ ->
                             toHtml <|
-                                button Primary { text = "Next", onPress = Nothing }
+                                Button.primary palette { text = "Next", onPress = Nothing }
                       , {}
                       )
                     , ( "secondary"
                       , \_ ->
                             toHtml <|
-                                button Secondary { text = "Next", onPress = Just NoOp }
+                                Button.default palette { text = "Next", onPress = Just NoOp }
                       , {}
                       )
                     , ( "warning"
                       , \_ ->
                             toHtml <|
-                                button Warning { text = "Suspend", onPress = Just NoOp }
+                                Button.button Button.Warning palette { text = "Suspend", onPress = Just NoOp }
                       , {}
                       )
                     , ( "danger"
                       , \_ ->
                             toHtml <|
-                                button Danger { text = "Delete All", onPress = Just NoOp }
+                                Button.button Button.Danger palette { text = "Delete All", onPress = Just NoOp }
                       , {}
                       )
                     , ( "danger secondary"
                       , \_ ->
                             toHtml <|
-                                button DangerSecondary { text = "Delete All", onPress = Just NoOp }
+                                Button.button Button.DangerSecondary palette { text = "Delete All", onPress = Just NoOp }
                       , {}
                       )
                     ]
@@ -268,7 +236,8 @@ main =
                                         [ Font.family [ Font.monospace ] ]
                                         "192.168.1.1"
                                     )
-                                    (button Secondary
+                                    (Button.default
+                                        palette
                                         { text = "Unassign"
                                         , onPress = Just NoOp
                                         }

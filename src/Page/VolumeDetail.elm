@@ -9,6 +9,7 @@ import OpenStack.Volumes
 import Route
 import Set
 import Style.Helpers as SH
+import Style.Widgets.Button as Button
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton
@@ -242,8 +243,8 @@ volumeActionButtons context project model volume =
                                     Route.VolumeAttach Nothing (Just volume.uuid)
                                 )
                         , label =
-                            Widget.textButton
-                                (SH.materialStyle context.palette).button
+                            Button.default
+                                context.palette
                                 { text = "Attach"
                                 , onPress = Just NoOp
                                 }
@@ -251,15 +252,15 @@ volumeActionButtons context project model volume =
 
                 OSTypes.InUse ->
                     if GetterSetters.isBootVolume Nothing volume then
-                        Widget.textButton
-                            (SH.materialStyle context.palette).button
+                        Button.default
+                            context.palette
                             { text = "Detach"
                             , onPress = Nothing
                             }
 
                     else
-                        Widget.textButton
-                            (SH.materialStyle context.palette).button
+                        Button.default
+                            context.palette
                             { text = "Detach"
                             , onPress =
                                 Just <|
@@ -289,8 +290,8 @@ volumeActionButtons context project model volume =
                             , onPress =
                                 Just <| GotDeleteConfirm
                             }
-                        , Widget.textButton
-                            (SH.materialStyle context.palette).button
+                        , Button.default
+                            context.palette
                             { text = "Cancel"
                             , onPress =
                                 Just <| GotDeleteCancel

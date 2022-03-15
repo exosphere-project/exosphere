@@ -5,12 +5,11 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import OpenStack.Types as OSTypes
 import Route
-import Style.Helpers as SH
+import Style.Widgets.Button as Button
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
-import Widget
 
 
 type alias Model =
@@ -89,8 +88,8 @@ view context project model =
                             Route.ServerDetail model.serverUuid
                         )
                 , label =
-                    Widget.textButton
-                        (SH.materialStyle context.palette).primaryButton
+                    Button.primary
+                        context.palette
                         { text = "Go to my " ++ context.localization.virtualComputer
                         , onPress = Just <| SharedMsg <| SharedMsg.NoOp
                         }

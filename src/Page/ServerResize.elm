@@ -6,7 +6,7 @@ import Helpers.String
 import OpenStack.Types as OSTypes
 import RemoteData
 import Route
-import Style.Helpers as SH
+import Style.Widgets.Button as Button
 import Types.HelperTypes as HelperTypes
 import Types.Project exposing (Project)
 import Types.Server exposing (Server)
@@ -14,7 +14,6 @@ import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..))
 import View.Helpers as VH
 import View.Types
-import Widget
 
 
 type alias Model =
@@ -134,8 +133,8 @@ view_ context project model computeQuota =
                 GotFlavorId
             , Element.row [ Element.width Element.fill ]
                 [ Element.el [ Element.alignRight ]
-                    (Widget.textButton
-                        (SH.materialStyle context.palette).primaryButton
+                    (Button.primary
+                        context.palette
                         { text = "Resize"
                         , onPress = model.flavorId |> Maybe.map GotSubmit
                         }
