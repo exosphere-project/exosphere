@@ -3,12 +3,13 @@ module Page.LoginJetstream1 exposing (Model, Msg(..), init, update, view)
 import Element
 import Element.Font as Font
 import Element.Input as Input
-import Style.Widgets.Button as Button
+import Style.Helpers as SH
 import Types.HelperTypes exposing (Jetstream1Creds, Jetstream1Provider(..))
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
+import Widget
 
 
 type alias Model =
@@ -55,6 +56,14 @@ update msg _ model =
 
 view : View.Types.Context -> SharedModel -> Model -> Element.Element Msg
 view context _ model =
+    let
+        renderInvalidReasons value inputName =
+            if String.isEmpty value then
+                VH.invalidInputHelperText context.palette (inputName ++ " is required")
+
+            else
+                Element.none
+    in
     Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
         [ Element.el (VH.heading2 context.palette)
             (Element.text "Add a Jetstream1 Account")
@@ -66,8 +75,9 @@ view context _ model =
                     { text = model.taccUsername
                     , placeholder = Just (Input.placeholder [] (Element.text "tg******"))
                     , onChange = GotUsername
-                    , label = Input.labelAbove [ Font.size 14 ] (Element.text "TACC Username")
+                    , label = Input.labelAbove [ Font.size 14 ] (VH.requiredLabel context.palette (Element.text "TACC Username"))
                     }
+                , renderInvalidReasons model.taccUsername "TACC Username"
                 , Input.currentPassword
                     (VH.inputItemAttributes context.palette.background)
                     { text = model.taccPassword
@@ -76,6 +86,7 @@ view context _ model =
                     , label = Input.labelAbove [ Font.size 14 ] (Element.text "TACC Password")
                     , show = False
                     }
+                , renderInvalidReasons model.taccPassword "TACC Password"
                 , Input.radio []
                     { label = Input.labelAbove [] (Element.text "Provider")
                     , onChange = GotProviderChoice
@@ -91,12 +102,19 @@ view context _ model =
                         (VH.loginPickerButton context
                             |> Element.map SharedMsg
                         )
-                    , Element.el [ Element.alignRight ]
-                        (Button.primary
-                            context.palette
-                            { text = "Log In"
-                            , onPress =
+                    , let
+                        onPress =
+                            if String.isEmpty model.taccUsername || String.isEmpty model.taccPassword then
+                                Nothing
+
+                            else
                                 Just <| SharedMsg <| SharedMsg.Jetstream1Login model
+                      in
+                      Element.el [ Element.alignRight ]
+                        (Widget.textButton
+                            (SH.materialStyle context.palette).primaryButton
+                            { text = "Log In"
+                            , onPress = onPress
                             }
                         )
                     ]
