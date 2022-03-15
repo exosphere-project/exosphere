@@ -347,6 +347,20 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
 
         firstColumnContents : List (Element.Element Msg)
         firstColumnContents =
+            let
+                usernameView =
+                    case server.exoProps.serverOrigin of
+                        ServerFromExo _ ->
+                            Element.text "exouser"
+
+                        _ ->
+                            Element.el
+                                [ context.palette.muted
+                                    |> SH.toElementColor
+                                    |> Font.color
+                                ]
+                                (Element.text "unknown")
+            in
             [ tile
                 [ FeatherIcons.monitor
                     |> FeatherIcons.toHtml []
@@ -374,7 +388,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                     project
                     server
                     model
-                , VH.compactKVSubRow "Username" (Element.text "exouser")
+                , VH.compactKVSubRow "Username" usernameView
                 , VH.compactKVSubRow "Passphrase"
                     (serverPassphrase context model server)
                 , VH.compactKVSubRow
@@ -1035,12 +1049,18 @@ serverPassphrase context model server =
                                     Element.text "Not available"
 
                         _ ->
-                            Element.text <|
-                                String.concat
-                                    [ "Unknown ("
-                                    , context.localization.virtualComputer
-                                    , " not created by Exosphere)"
-                                    ]
+                            Element.el
+                                [ context.palette.muted
+                                    |> SH.toElementColor
+                                    |> Font.color
+                                ]
+                                (Element.text <|
+                                    String.concat
+                                        [ "Not available because "
+                                        , context.localization.virtualComputer
+                                        , " was not created by Exosphere"
+                                        ]
+                                )
     in
     passphraseHint
 
