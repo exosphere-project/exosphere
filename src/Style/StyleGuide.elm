@@ -238,6 +238,15 @@ filters =
     ]
 
 
+searchFilter : DataList.SearchFilter { record | name : String }
+searchFilter =
+    { id = "serverName"
+    , label = "Search by name:"
+    , placeholder = Just "try 'my-server'"
+    , textToSearch = .name
+    }
+
+
 
 --noinspection ElmUnresolvedReference
 {- When you create a new widget, add example usages to the `widgets` list here! -}
@@ -321,6 +330,7 @@ widgets palette model =
                 )
         ]
         filters
+        (Just searchFilter)
     ]
 
 

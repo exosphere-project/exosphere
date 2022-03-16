@@ -6,6 +6,7 @@ module Style.Widgets.DataList exposing
     , FilterSelectionValue(..)
     , Model
     , Msg
+    , SearchFilter
     , UniselectOptionIdentifier(..)
     , getDefaultFilterOptions
     , init
@@ -20,10 +21,12 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons
+import Html.Attributes as HtmlA
 import Set
 import Style.Helpers as SH
 import Style.Types
 import Style.Widgets.Icon as Icon
+import View.Helpers as VH
 import Widget
 
 
@@ -67,6 +70,7 @@ type alias Model =
     { selectedRowIds : Set.Set RowId
     , selectedFilters : SelectedFilterOptions
     , showFiltersDropdown : Bool
+    , searchText : String
     }
 
 
@@ -89,6 +93,7 @@ init selectedFilters =
     { selectedRowIds = Set.empty
     , selectedFilters = selectedFilters
     , showFiltersDropdown = False
+    , searchText = ""
     }
 
 
@@ -105,6 +110,7 @@ type Msg
     | ChangeFiltOptCheckboxSelection FilterId FilterOptionValue Bool
     | ChangeFiltOptRadioSelection FilterId UniselectOptionIdentifier
     | ToggleFiltersDropdownVisiblity
+    | GotSearchText String
     | ClearFilter FilterId
     | ClearAllFilters
     | NoOp
@@ -165,6 +171,9 @@ update msg model =
         ToggleFiltersDropdownVisiblity ->
             { model | showFiltersDropdown = not model.showFiltersDropdown }
 
+        GotSearchText searchText ->
+            { model | searchText = searchText }
+
         ClearFilter filterId ->
             case selectedFilterOptionValue filterId model of
                 Just filterOptionValue ->
@@ -206,6 +215,7 @@ update msg model =
                                                 UniselectOption UniselectNoChoice
                                     )
                                     selectedFiltOptsDict
+                , searchText = ""
             }
 
         NoOp ->
@@ -237,6 +247,14 @@ type alias Filter record =
     }
 
 
+type alias SearchFilter record =
+    { id : FilterId
+    , label : String
+    , placeholder : Maybe String
+    , textToSearch : DataRecord record -> String
+    }
+
+
 getFilterOptionText :
     Filter record
     -> List (DataRecord record)
@@ -256,8 +274,9 @@ view :
     -> List (DataRecord record)
     -> List (Set.Set RowId -> Element.Element msg)
     -> List (Filter record)
+    -> Maybe (SearchFilter record)
     -> Element.Element msg
-view model toMsg palette styleAttrs listItemView data bulkActions filters =
+view model toMsg palette styleAttrs listItemView data bulkActions filters searchFilter =
     let
         defaultRowStyle =
             [ Element.padding 24
@@ -308,6 +327,18 @@ view model toMsg palette styleAttrs listItemView data bulkActions filters =
                 Nothing ->
                     True
 
+        filterRecordsBySearchText : DataRecord record -> Bool
+        filterRecordsBySearchText =
+            case searchFilter of
+                Just searchFilter_ ->
+                    \dataRecord ->
+                        String.contains
+                            (String.toLower model.searchText)
+                            (String.toLower <| searchFilter_.textToSearch dataRecord)
+
+                Nothing ->
+                    \_ -> True
+
         filteredData =
             List.foldl
                 (\filter dataRecords ->
@@ -315,6 +346,7 @@ view model toMsg palette styleAttrs listItemView data bulkActions filters =
                 )
                 data
                 filters
+                |> List.filter filterRecordsBySearchText
 
         rows =
             if List.isEmpty filteredData then
@@ -370,6 +402,7 @@ view model toMsg palette styleAttrs listItemView data bulkActions filters =
             { complete = data, filtered = filteredData }
             bulkActions
             filters
+            searchFilter
             :: rows
         )
 
@@ -428,8 +461,9 @@ toolbarView :
         }
     -> List (Set.Set RowId -> Element.Element msg)
     -> List (Filter record)
+    -> Maybe (SearchFilter record)
     -> Element.Element msg
-toolbarView model toMsg palette rowStyle data bulkActions filters =
+toolbarView model toMsg palette rowStyle data bulkActions filters searchFilter =
     let
         selectableRecords =
             List.filter (\record -> record.selectable) data.filtered
@@ -494,16 +528,44 @@ toolbarView model toMsg palette rowStyle data bulkActions filters =
                         :: List.map (\bulkAction -> bulkAction selectedRowIds)
                             bulkActions
                     )
+
+        searchFilterView =
+            case searchFilter of
+                Just searchFilter_ ->
+                    Input.text
+                        (VH.inputItemAttributes palette.background
+                            ++ [ Element.htmlAttribute <| HtmlA.style "height" "calc(1em + 16px)" ]
+                        )
+                        { text = model.searchText
+                        , placeholder =
+                            Maybe.map
+                                (\placeholderText ->
+                                    Input.placeholder [ Element.paddingXY 12 6 ]
+                                        (Element.text placeholderText)
+                                )
+                                searchFilter_.placeholder
+                        , onChange = GotSearchText
+                        , label =
+                            Input.labelLeft []
+                                (Element.text searchFilter_.label)
+                        }
+                        |> Element.map toMsg
+
+                Nothing ->
+                    Element.none
     in
     if List.isEmpty bulkActions && List.isEmpty filters then
         Element.none
 
     else
-        Element.row
-            rowStyle
-            [ selectAllCheckbox
-            , filtersView model toMsg palette filters data.complete
-            , bulkActionsView
+        Element.column
+            (rowStyle ++ [ Element.spacing 16 ])
+            [ searchFilterView
+            , Element.row [ Element.spacing 20 ]
+                [ selectAllCheckbox
+                , filtersView model toMsg palette filters data.complete
+                , bulkActionsView
+                ]
             ]
 
 
@@ -780,7 +842,7 @@ filtersView model toMsg palette filters data =
                                 False
                                 selectedFiltOptsDict
             in
-            if isAnyFilterApplied then
+            if isAnyFilterApplied || not (String.isEmpty model.searchText) then
                 Widget.textButton
                     textBtnStyle
                     { text = "Clear filters"

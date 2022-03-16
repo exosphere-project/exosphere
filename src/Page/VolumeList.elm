@@ -105,6 +105,7 @@ view context project currentTime model =
                 (volumeRecords project volumes_)
                 []
                 (filters currentTime)
+                Nothing
     in
     Element.column
         [ Element.spacing 20, Element.width Element.fill ]

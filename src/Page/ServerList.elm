@@ -191,6 +191,7 @@ view context project currentTime model =
                             serversList
                             [ deletionAction context project ]
                             (filters project.auth.user.name currentTime)
+                            Nothing
     in
     Element.column [ Element.width Element.fill ]
         [ if model.showHeading then

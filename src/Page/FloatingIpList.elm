@@ -178,6 +178,7 @@ view context project model =
                         (floatingIpRecords ipsSorted)
                         []
                         filters
+                        Nothing
                     ]
     in
     Element.column
