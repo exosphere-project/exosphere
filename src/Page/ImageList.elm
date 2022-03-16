@@ -95,19 +95,20 @@ update msg project model =
 view : View.Types.Context -> Project -> Model -> Element.Element Msg
 view context project model =
     let
-        filteredImages =
-            project.images |> RDPP.withDefault []
+        imagesInCustomOrder =
+            let
+                images =
+                    project.images |> RDPP.withDefault []
 
-        featuredImageNamePrefix =
-            VH.featuredImageNamePrefixLookup context project
+                featuredImageNamePrefix =
+                    VH.featuredImageNamePrefixLookup context project
 
-        ( featuredImages, nonFeaturedImages_ ) =
-            List.partition (isImageFeaturedByDeployer featuredImageNamePrefix) filteredImages
+                ( featuredImages, nonFeaturedImages_ ) =
+                    List.partition (isImageFeaturedByDeployer featuredImageNamePrefix) images
 
-        ( ownImages, otherImages ) =
-            List.partition (\i -> projectOwnsImage project i) nonFeaturedImages_
-
-        combinedImages =
+                ( ownImages, otherImages ) =
+                    List.partition (\i -> projectOwnsImage project i) nonFeaturedImages_
+            in
             List.concat [ featuredImages, ownImages, otherImages ]
 
         loadedView : List OSTypes.Image -> Element.Element Msg
@@ -131,7 +132,7 @@ view context project model =
                     context.palette
                     []
                     (imageView model context project)
-                    (imageRecords context project combinedImages)
+                    (imageRecords context project imagesInCustomOrder)
                     []
                     filters
                     (Just searchByNameFilter)
