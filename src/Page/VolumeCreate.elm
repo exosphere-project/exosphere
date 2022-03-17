@@ -50,6 +50,22 @@ update msg project model =
 view : View.Types.Context -> Project -> Model -> Element.Element Msg
 view context project model =
     let
+        renderInvalidReasonsFunction reason condition =
+            reason |> VH.invalidInputHelperText context.palette |> VH.renderIf condition
+
+        ( renderInvalidReason, isNameValid ) =
+            if String.isEmpty model.name then
+                ( renderInvalidReasonsFunction "Name is required" True, False )
+
+            else if String.left 1 model.name == " " then
+                ( renderInvalidReasonsFunction "Name cannot start with a space" True, False )
+
+            else if String.right 1 model.name == " " then
+                ( renderInvalidReasonsFunction "Name cannot end with a space" True, False )
+
+            else
+                ( Element.none, True )
+
         maybeVolumeQuotaAvail =
             project.volumeQuota
                 |> RemoteData.toMaybe
@@ -81,7 +97,7 @@ view context project model =
                 , onChange = GotName
                 , label = Input.labelAbove [] (VH.requiredLabel context.palette (Element.text "Name"))
                 }
-            , VH.invalidInputHelperText context.palette "Name is required" |> VH.renderIf (String.isEmpty model.name)
+            , renderInvalidReason
             , Element.text <|
                 String.join " "
                     [ "(Suggestion: choose a good name that describes what the"
@@ -101,8 +117,8 @@ view context project model =
             , let
                 ( onPress, quotaWarnText ) =
                     if canAttemptCreateVol then
-                        case ( model.sizeInput, String.isEmpty model.name ) of
-                            ( ValidNumericTextInput volSizeGb, False ) ->
+                        case ( model.sizeInput, isNameValid ) of
+                            ( ValidNumericTextInput volSizeGb, True ) ->
                                 ( Just <| GotSubmit volSizeGb
                                 , Nothing
                                 )
