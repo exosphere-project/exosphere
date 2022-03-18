@@ -240,8 +240,7 @@ filters =
 
 searchFilter : DataList.SearchFilter { record | name : String }
 searchFilter =
-    { id = "serverName"
-    , label = "Search by name:"
+    { label = "Search by name:"
     , placeholder = Just "try 'my-server'"
     , textToSearch = .name
     }
