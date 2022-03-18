@@ -111,46 +111,48 @@ volumeDetail context project model =
             )
         << Maybe.map
             (\volume ->
-                Style.Widgets.Card.exoCard context.palette
-                    (Element.column
-                        VH.contentContainer
-                        [ Element.row []
-                            [ Element.el
-                                (VH.heading3 context.palette)
-                              <|
-                                Element.text "Status"
+                Element.row []
+                    [ Style.Widgets.Card.exoCard context.palette
+                        (Element.column
+                            VH.contentContainer
+                            [ Element.row []
+                                [ Element.el
+                                    (VH.heading3 context.palette)
+                                  <|
+                                    Element.text "Status"
+                                ]
+                            , Element.row []
+                                [ Element.el [] (Element.text <| OSTypes.volumeStatusToString volume.status) ]
+                            , case volume.description of
+                                Just "" ->
+                                    Element.none
+
+                                Just description ->
+                                    VH.compactKVRow "Description:" <|
+                                        Element.paragraph [ Element.width Element.fill ] <|
+                                            [ Element.text <| description ]
+
+                                Nothing ->
+                                    Element.none
+                            , VH.compactKVRow "UUID:" <| copyableText context.palette [] volume.uuid
+                            , case volume.imageMetadata of
+                                Nothing ->
+                                    Element.none
+
+                                Just metadata ->
+                                    VH.compactKVRow
+                                        (String.concat
+                                            [ "Created from "
+                                            , context.localization.staticRepresentationOfBlockDeviceContents
+                                            , ":"
+                                            ]
+                                        )
+                                        (Element.text metadata.name)
+                            , renderAttachments context project volume
+                            , volumeActionButtons context project model volume
                             ]
-                        , Element.row []
-                            [ Element.el [] (Element.text <| OSTypes.volumeStatusToString volume.status) ]
-                        , renderAttachments context project volume
-                        , case volume.description of
-                            Just "" ->
-                                Element.none
-
-                            Just description ->
-                                VH.compactKVRow "Description:" <|
-                                    Element.paragraph [ Element.width Element.fill ] <|
-                                        [ Element.text <| description ]
-
-                            Nothing ->
-                                Element.none
-                        , VH.compactKVRow "UUID:" <| copyableText context.palette [] volume.uuid
-                        , case volume.imageMetadata of
-                            Nothing ->
-                                Element.none
-
-                            Just metadata ->
-                                VH.compactKVRow
-                                    (String.concat
-                                        [ "Created from "
-                                        , context.localization.staticRepresentationOfBlockDeviceContents
-                                        , ":"
-                                        ]
-                                    )
-                                    (Element.text metadata.name)
-                        , volumeActionButtons context project model volume
-                        ]
-                    )
+                        )
+                    ]
             )
 
 
