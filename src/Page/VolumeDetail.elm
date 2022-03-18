@@ -10,9 +10,9 @@ import Route
 import Set
 import Style.Helpers as SH
 import Style.Widgets.Button as Button
+import Style.Widgets.Card
 import Style.Widgets.CopyableText exposing (copyableText)
-import Style.Widgets.Icon as Icon
-import Style.Widgets.IconButton
+import Style.Widgets.DeleteButton exposing (deleteIconButton)
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import View.Helpers as VH
@@ -86,10 +86,7 @@ view context project model =
             [ Element.el (VH.heading2 context.palette) <|
                 Element.text <|
                     String.join " "
-                        [ context.localization.blockDevice
-                            |> Helpers.String.toTitleCase
-                        , "Detail"
-                        ]
+                        [ context.localization.blockDevice |> Helpers.String.toTitleCase ]
             , volumeDetail context project model
             ]
 
@@ -114,30 +111,46 @@ volumeDetail context project model =
             )
         << Maybe.map
             (\volume ->
-                Element.column
-                    VH.contentContainer
-                    [ VH.compactKVRow "Name:" <| Element.text <| VH.possiblyUntitledResource volume.name context.localization.blockDevice
-                    , VH.compactKVRow "Status:" <| Element.text <| OSTypes.volumeStatusToString volume.status
-                    , renderAttachments context project volume
-                    , VH.compactKVRow "Description:" <|
-                        Element.paragraph [ Element.width Element.fill ] <|
-                            [ Element.text <| Maybe.withDefault "" volume.description ]
-                    , VH.compactKVRow "UUID:" <| copyableText context.palette [] volume.uuid
-                    , case volume.imageMetadata of
-                        Nothing ->
-                            Element.none
+                Style.Widgets.Card.exoCard context.palette
+                    (Element.column
+                        VH.contentContainer
+                        [ Element.row []
+                            [ Element.el
+                                (VH.heading3 context.palette)
+                              <|
+                                Element.text "Status"
+                            ]
+                        , Element.row []
+                            [ Element.el [] (Element.text <| OSTypes.volumeStatusToString volume.status) ]
+                        , renderAttachments context project volume
+                        , case volume.description of
+                            Just "" ->
+                                Element.none
 
-                        Just metadata ->
-                            VH.compactKVRow
-                                (String.concat
-                                    [ "Created from "
-                                    , context.localization.staticRepresentationOfBlockDeviceContents
-                                    , ":"
-                                    ]
-                                )
-                                (Element.text metadata.name)
-                    , volumeActionButtons context project model volume
-                    ]
+                            Just description ->
+                                VH.compactKVRow "Description:" <|
+                                    Element.paragraph [ Element.width Element.fill ] <|
+                                        [ Element.text <| description ]
+
+                            Nothing ->
+                                Element.none
+                        , VH.compactKVRow "UUID:" <| copyableText context.palette [] volume.uuid
+                        , case volume.imageMetadata of
+                            Nothing ->
+                                Element.none
+
+                            Just metadata ->
+                                VH.compactKVRow
+                                    (String.concat
+                                        [ "Created from "
+                                        , context.localization.staticRepresentationOfBlockDeviceContents
+                                        , ":"
+                                        ]
+                                    )
+                                    (Element.text metadata.name)
+                        , volumeActionButtons context project model volume
+                        ]
+                    )
             )
 
 
@@ -158,23 +171,17 @@ renderAttachment context project attachment =
     in
     Element.column
         (VH.exoColumnAttributes ++ [ Element.padding 0 ])
-        [ Element.el [ Font.bold ] <| Element.text "Server:"
-        , Element.row [ Element.spacing 5 ]
-            [ Element.text (serverName attachment.serverUuid)
-            , Element.link []
+        [ VH.compactKVRow "Server:" <|
+            Element.link []
                 { url =
                     Route.toUrl context.urlPathPrefix <|
                         Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
                             Route.ServerDetail attachment.serverUuid
                 , label =
-                    Style.Widgets.IconButton.goToButton context.palette
-                        (Just NoOp)
+                    Element.el [ Font.color (SH.toElementColor context.palette.primary) ] <| Element.text (serverName attachment.serverUuid)
                 }
-            ]
-        , Element.el [ Font.bold ] <| Element.text "Device:"
-        , Element.text attachment.device
-        , Element.el [ Font.bold ] <| Element.text "Mount point*:"
-        , GetterSetters.volDeviceToMountpoint attachment.device |> Maybe.withDefault "" |> Element.text
+        , VH.compactKVRow "Device:" <| Element.text <| attachment.device
+        , VH.compactKVRow "Mount point*:" <| (GetterSetters.volDeviceToMountpoint attachment.device |> Maybe.withDefault "" |> Element.text)
         , Element.el [ Font.size 11 ] <|
             Element.text <|
                 String.join " "
@@ -194,11 +201,17 @@ renderAttachments context project volume =
             Element.none
 
         _ ->
-            VH.compactKVRow "Attached to:" <|
-                Element.column
-                    (VH.exoColumnAttributes ++ [ Element.padding 0 ])
-                <|
-                    List.map (renderAttachment context project) volume.attachments
+            Element.column []
+                [ Element.row [ Element.paddingXY 0 15 ]
+                    [ Element.el
+                        (VH.heading3 context.palette)
+                      <|
+                        Element.text "Attached to"
+                    ]
+                , Element.row []
+                    [ Element.row (VH.exoColumnAttributes ++ [ Element.padding 0 ]) <| List.map (renderAttachment context project) volume.attachments
+                    ]
+                ]
 
 
 volumeActionButtons :
@@ -211,24 +224,27 @@ volumeActionButtons context project model volume =
     let
         volDetachDeleteWarning =
             if GetterSetters.isBootVolume Nothing volume then
-                Element.text <|
-                    String.concat
-                        [ "This "
-                        , context.localization.blockDevice
-                        , " backs a "
-                        , context.localization.virtualComputer
-                        , "; it cannot be detached or deleted until the "
-                        , context.localization.virtualComputer
-                        , " is deleted."
-                        ]
+                Element.el [ Font.color <| SH.toElementColor context.palette.warn ] <|
+                    Element.text
+                        (String.concat
+                            [ "This "
+                            , context.localization.blockDevice
+                            , " backs a "
+                            , context.localization.virtualComputer
+                            , "; it cannot be detached or deleted until the "
+                            , context.localization.virtualComputer
+                            , " is deleted."
+                            ]
+                        )
 
             else if volume.status == OSTypes.InUse then
-                Element.text <|
-                    String.join " "
-                        [ "This"
-                        , context.localization.blockDevice
-                        , "must be detached before it can be deleted."
-                        ]
+                Element.el [ Font.color <| SH.toElementColor context.palette.warn ] <|
+                    Element.text <|
+                        String.join " "
+                            [ "This"
+                            , context.localization.blockDevice
+                            , "must be detached before it can be deleted."
+                            ]
 
             else
                 Element.none
@@ -283,13 +299,11 @@ volumeActionButtons context project model volume =
                 ( _, True ) ->
                     Element.row [ Element.spacing 10 ]
                         [ Element.text "Confirm delete?"
-                        , Widget.iconButton
-                            (SH.materialStyle context.palette).dangerButton
-                            { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
-                            , text = "Delete"
-                            , onPress =
-                                Just <| GotDeleteConfirm
-                            }
+                        , deleteIconButton
+                            context.palette
+                            False
+                            "Delete"
+                            (Just <| GotDeleteConfirm)
                         , Button.default
                             context.palette
                             { text = "Cancel"
@@ -300,26 +314,23 @@ volumeActionButtons context project model volume =
 
                 ( _, False ) ->
                     if volume.status == OSTypes.InUse then
-                        Widget.iconButton
-                            (SH.materialStyle context.palette).button
-                            { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
-                            , text = "Delete"
-                            , onPress = Nothing
-                            }
+                        deleteIconButton
+                            context.palette
+                            False
+                            "Delete"
+                            Nothing
 
                     else
-                        Widget.iconButton
-                            (SH.materialStyle context.palette).dangerButton
-                            { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
-                            , text = "Delete"
-                            , onPress =
-                                Just <| GotDeleteNeedsConfirm
-                            }
+                        deleteIconButton
+                            context.palette
+                            False
+                            "Delete"
+                            (Just <| GotDeleteNeedsConfirm)
     in
     Element.column (Element.width Element.fill :: VH.exoColumnAttributes)
-        [ volDetachDeleteWarning
-        , Element.row [ Element.width Element.fill, Element.spacing 10 ]
+        [ Element.row [ Element.width Element.fill, Element.spacing 10 ]
             [ attachDetachButton
+            , volDetachDeleteWarning
             , Element.el [ Element.alignRight ] deleteButton
             ]
         ]
