@@ -438,8 +438,7 @@ filters =
 
 searchByNameFilter : DataList.SearchFilter { record | image : OSTypes.Image }
 searchByNameFilter =
-    { id = "imageName"
-    , label = "Search by name:"
+    { label = "Search by name:"
     , placeholder = Just "try \"Ubuntu\""
     , textToSearch = \imageRecord -> imageRecord.image.name
     }

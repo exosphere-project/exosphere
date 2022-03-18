@@ -248,8 +248,7 @@ type alias Filter record =
 
 
 type alias SearchFilter record =
-    { id : FilterId
-    , label : String
+    { label : String
     , placeholder : Maybe String
     , textToSearch : DataRecord record -> String
     }
