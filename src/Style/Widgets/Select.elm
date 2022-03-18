@@ -9,6 +9,7 @@ import Html.Attributes as HtmlA
 import Html.Events as HtmlE
 import Style.Types exposing (ExoPalette)
 
+
 select :
     List (Element.Attribute msg)
     -> ExoPalette
@@ -80,6 +81,7 @@ select attributes palette { onChange, options, selected, label } =
         [ Element.el [ Element.width Element.fill ] <| Element.html select_
         , FeatherIcons.chevronDown |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
         ]
+
 
 type alias Value =
     String
