@@ -314,15 +314,17 @@ imageView model context project imageRecord =
 
         ownerText =
             if imageRecord.owned then
-                [ Element.el [ Font.color (SH.toElementColor context.palette.on.background) ]
-                    (Element.text " belongs ")
-                , Element.text <|
-                    "to this "
-                        ++ context.localization.unitOfTenancy
-                ]
+                Just <|
+                    Element.row []
+                        [ Element.el [ Font.color (SH.toElementColor context.palette.on.background) ]
+                            (Element.text "belongs")
+                        , Element.text <|
+                            " to this "
+                                ++ context.localization.unitOfTenancy
+                        ]
 
             else
-                []
+                Nothing
 
         tag text =
             Element.el
@@ -337,11 +339,41 @@ imageView model context project imageRecord =
                 (Element.text text)
 
         imageTags =
-            Element.row
-                [ Element.spacing 6
-                , Element.paddingEach { left = 6, top = 0, right = 0, bottom = 0 }
-                ]
-                (List.map tag imageRecord.image.tags)
+            if List.isEmpty imageRecord.image.tags then
+                Nothing
+
+            else
+                Just <|
+                    Element.row
+                        [ Element.spacing 6
+                        , Element.paddingEach { left = 6, top = 0, right = 0, bottom = 0 }
+                        ]
+                        (List.map tag imageRecord.image.tags)
+
+        imageAttributesView =
+            let
+                attributesAlwaysShown =
+                    [ Element.text size
+                    , Element.row []
+                        [ Element.el [ Font.color (SH.toElementColor context.palette.on.background) ]
+                            (Element.text <| String.toLower <| OSTypes.imageVisibilityToString imageRecord.image.visibility)
+                        , Element.text <| " " ++ context.localization.staticRepresentationOfBlockDeviceContents
+                        ]
+                    ]
+
+                attributesMaybeShown =
+                    [ ownerText
+                    , imageTags
+                    ]
+
+                attributesShown =
+                    attributesAlwaysShown ++ List.filterMap identity attributesMaybeShown
+
+                separator =
+                    Element.text "·"
+            in
+            Element.row [ Element.width Element.fill, Element.spacing 8 ] <|
+                List.intersperse separator attributesShown
     in
     Element.column
         (listItemColumnAttribs context.palette)
@@ -354,18 +386,7 @@ imageView model context project imageRecord =
             , featuredIcon
             , imageActions
             ]
-        , Element.row [ Element.width Element.fill, Element.spacing 8 ]
-            [ Element.text size
-            , Element.text "·"
-            , Element.row []
-                ([ Element.el [ Font.color (SH.toElementColor context.palette.on.background) ]
-                    (Element.text <| String.toLower <| OSTypes.imageVisibilityToString imageRecord.image.visibility)
-                 , Element.text <| " " ++ context.localization.staticRepresentationOfBlockDeviceContents
-                 ]
-                    ++ ownerText
-                )
-            , imageTags
-            ]
+        , imageAttributesView
         ]
 
 
