@@ -156,6 +156,7 @@ view context project model =
                         (keypairRecords keypairs)
                         []
                         []
+                        Nothing
                     ]
 
         keypairsUsedCount =
