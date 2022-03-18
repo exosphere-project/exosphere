@@ -111,7 +111,7 @@ volumeDetail context project model =
             )
         << Maybe.map
             (\volume ->
-                Element.row []
+                Element.column []
                     [ Style.Widgets.Card.exoCard context.palette
                         (Element.column
                             VH.contentContainer
@@ -148,8 +148,16 @@ volumeDetail context project model =
                                             ]
                                         )
                                         (Element.text metadata.name)
-                            , renderAttachments context project volume
-                            , volumeActionButtons context project model volume
+                            ]
+                        )
+                    , Element.row [] [ Element.el [] (Element.text " ") ]
+                    , Style.Widgets.Card.exoCard context.palette
+                        (Element.column
+                            VH.contentContainer
+                            [ Element.column []
+                                [ renderAttachments context project volume
+                                , volumeActionButtons context project model volume
+                                ]
                             ]
                         )
                     ]
