@@ -137,7 +137,9 @@ view context project model =
                         ]
 
               else
-                Style.Widgets.Select.select []
+                Style.Widgets.Select.select 
+                    [] 
+                    context.palette
                     { label = selectServerText
                     , onChange = GotServerUuid
                     , options = serverChoices
@@ -157,7 +159,9 @@ view context project model =
                         ]
 
               else
-                Style.Widgets.Select.select []
+                Style.Widgets.Select.select 
+                    [] 
+                    context.palette
                     { label = selectIpText
                     , onChange = GotIpUuid
                     , options = ipChoices

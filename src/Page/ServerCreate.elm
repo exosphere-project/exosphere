@@ -1337,6 +1337,7 @@ networkPicker context project model =
             in
             Style.Widgets.Select.select
                 []
+                context.palette
                 { label = "Choose a Network"
                 , onChange = \networkUuid -> GotNetworkUuid networkUuid
                 , options =

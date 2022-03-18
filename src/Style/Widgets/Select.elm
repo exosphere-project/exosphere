@@ -1,15 +1,17 @@
 module Style.Widgets.Select exposing (Label, Value, select)
 
+import Color
 import Element
 import Element.Border as Border
 import FeatherIcons
 import Html exposing (Html)
 import Html.Attributes as HtmlA
 import Html.Events as HtmlE
-
+import Style.Types exposing (ExoPalette)
 
 select :
     List (Element.Attribute msg)
+    -> ExoPalette
     ->
         { onChange : Maybe Value -> msg
         , options : List ( Value, Label )
@@ -17,8 +19,17 @@ select :
         , label : String
         }
     -> Element.Element msg
-select attributes { onChange, options, selected, label } =
+select attributes palette { onChange, options, selected, label } =
     let
+        to255String value =
+            String.fromFloat (value * 255)
+
+        { red, green, blue, alpha } =
+            Color.toRgba palette.on.secondary
+
+        fontColor =
+            "rgba(" ++ to255String red ++ ", " ++ to255String green ++ ", " ++ to255String blue ++ ", " ++ to255String alpha ++ ")"
+
         select_ : Html msg
         select_ =
             Html.select
@@ -37,6 +48,7 @@ select attributes { onChange, options, selected, label } =
                 , HtmlA.style "border-width" "0"
                 , HtmlA.style "height" "48px"
                 , HtmlA.style "font-size" "18px"
+                , HtmlA.style "color" fontColor
                 , HtmlA.style "background-color" "transparent"
                 ]
                 (Html.option [ HtmlA.value "" ] [ Html.text label ]
@@ -68,7 +80,6 @@ select attributes { onChange, options, selected, label } =
         [ Element.el [ Element.width Element.fill ] <| Element.html select_
         , FeatherIcons.chevronDown |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
         ]
-
 
 type alias Value =
     String
