@@ -1086,9 +1086,10 @@ flavorPicker :
     -> Maybe Types.HelperTypes.FlavorGroupTitle
     -> (Maybe Types.HelperTypes.FlavorGroupTitle -> msg)
     -> Maybe OSTypes.FlavorId
+    -> Maybe OSTypes.FlavorId
     -> (OSTypes.FlavorId -> msg)
     -> Element.Element msg
-flavorPicker context project restrictFlavorIds computeQuota selectedFlavorGroupToggleTip selectFlavorGroupToggleTipMsg selectedFlavorId changeMsg =
+flavorPicker context project restrictFlavorIds computeQuota selectedFlavorGroupToggleTip selectFlavorGroupToggleTipMsg maybeCurrentFlavorId selectedFlavorId changeMsg =
     let
         { locale } =
             context
@@ -1113,23 +1114,35 @@ flavorPicker context project restrictFlavorIds computeQuota selectedFlavorGroupT
         -- https://elmlang.slack.com/archives/C4F9NBLR1/p1539909855000100
         radioButton flavor =
             let
-                radio_ =
-                    Element.Input.radio
-                        []
-                        { label = Element.Input.labelHidden flavor.name
-                        , onChange = changeMsg
-                        , options = [ Element.Input.option flavor.id (Element.text " ") ]
-                        , selected =
-                            selectedFlavorId
-                                |> Maybe.andThen
-                                    (\flavorId ->
-                                        if flavor.id == flavorId then
-                                            Just flavor.id
+                currentFlavorId =
+                    case maybeCurrentFlavorId of
+                        Just flavorId ->
+                            flavorId
 
-                                        else
-                                            Nothing
-                                    )
-                        }
+                        Nothing ->
+                            ""
+
+                radio_ =
+                    if flavor.id == currentFlavorId then
+                        Element.text "Current"
+
+                    else
+                        Element.Input.radio
+                            []
+                            { label = Element.Input.labelHidden flavor.name
+                            , onChange = changeMsg
+                            , options = [ Element.Input.option flavor.id (Element.text " ") ]
+                            , selected =
+                                selectedFlavorId
+                                    |> Maybe.andThen
+                                        (\flavorId ->
+                                            if flavor.id == flavorId then
+                                                Just flavor.id
+
+                                            else
+                                                Nothing
+                                        )
+                            }
             in
             -- Only allow selection if there is enough available quota
             case OSQuotas.computeQuotaFlavorAvailServers computeQuota flavor of
