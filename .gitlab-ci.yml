@@ -225,7 +225,7 @@ deploy_prod:
     - 'cp environment-configs/try.exosphere.app-config.js public/config.js'
     - 'sed -i -e "s/\"instanceConfigMgtRepoCheckout\":.*/\"instanceConfigMgtRepoCheckout\": \"${CI_COMMIT_SHA}\",/g" public/config.js'
     - 'sed -i -e "s/\"releaseVersion\":.*/\"releaseVersion\":\"${CI_COMMIT_SHA}\",/g" public/config.js'
-    - 'sed -i -e ''s/<base href="\/">/<base href="\/exosphere\/">/g'' public/index.html'
+    - 'sed -i -e ''s/<base href="\/" \/>/<base href="\/exosphere\/" \/>/g'' public/index.html'
     - 'rsync -av --delete public exouser@dogfood.exosphere.app:'
   environment:
     name: prod
@@ -254,7 +254,7 @@ deploy_jetstream:
     - 'cp environment-configs/exosphere.jetstream-cloud.org-config.js public/config.js'
     - 'sed -i -e "s/\"instanceConfigMgtRepoCheckout\":.*/\"instanceConfigMgtRepoCheckout\": \"${CI_COMMIT_SHA}\",/g" public/config.js'
     - 'sed -i -e "s/\"releaseVersion\":.*/\"releaseVersion\":\"${CI_COMMIT_SHA}\",/g" public/config.js'
-    - 'sed -i -e ''s/<base href="\/">/<base href="\/exosphere\/">/g'' public/index.html'
+    - 'sed -i -e ''s/<base href="\/" \/>/<base href="\/exosphere\/" \/>/g'' public/index.html'
     - 'rsync -av --delete public exouser@dogfood.exosphere.app:jetstream-deploy/'
   environment:
     name: jetstream
@@ -283,7 +283,7 @@ deploy_jetstream2:
     - 'cp environment-configs/jetstream2.exosphere.app-config.js public/config.js'
     - 'sed -i -e "s/\"instanceConfigMgtRepoCheckout\":.*/\"instanceConfigMgtRepoCheckout\": \"${CI_COMMIT_SHA}\",/g" public/config.js'
     - 'sed -i -e "s/\"releaseVersion\":.*/\"releaseVersion\":\"${CI_COMMIT_SHA}\",/g" public/config.js'
-    - 'sed -i -e ''s/<base href="\/">/<base href="\/exosphere\/">/g'' public/index.html'
+    - 'sed -i -e ''s/<base href="\/" \/>/<base href="\/exosphere\/" \/>/g'' public/index.html'
     - 'rsync -av --delete public exouser@dogfood.exosphere.app:jetstream2-deploy/'
   environment:
     name: jetstream2
@@ -313,7 +313,7 @@ deploy_dev:
     - 'cp environment-configs/try-dev.exosphere.app-config.js public/config.js'
     - 'sed -i -e "s/\"instanceConfigMgtRepoCheckout\":.*/\"instanceConfigMgtRepoCheckout\": \"${CI_COMMIT_SHA}\",/g" public/config.js'
     - 'sed -i -e "s/\"releaseVersion\":.*/\"releaseVersion\":\"${CI_COMMIT_SHA}\",/g" public/config.js'
-    - 'sed -i -e ''s/<base href="\/">/<base href="\/exosphere\/">/g'' public/index.html'
+    - 'sed -i -e ''s/<base href="\/" \/>/<base href="\/exosphere\/" \/>/g'' public/index.html'
     - 'rsync -av --delete public exouser@dogfood.exosphere.app:dev-deploy/'
   environment:
     name: dev
