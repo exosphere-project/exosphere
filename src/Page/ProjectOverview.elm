@@ -16,6 +16,7 @@ import Page.QuotaUsage
 import RemoteData
 import Route
 import Style.Helpers as SH
+import Style.Types as ST
 import Style.Widgets.Card
 import Style.Widgets.Icon as Icon
 import Style.Widgets.Meter
@@ -219,6 +220,7 @@ renderJetstream2Allocation context project currentTime model =
             Style.Widgets.ToggleTip.toggleTip
                 context.palette
                 contents
+                ST.PositionRight
                 model.showJetstream2AllocationToggleTip
                 ShowHideJetstream2AllocationToggleTip
 

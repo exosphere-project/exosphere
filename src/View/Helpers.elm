@@ -79,7 +79,7 @@ import Regex
 import RemoteData
 import Route
 import Style.Helpers as SH exposing (shadowDefaults)
-import Style.Types exposing (ExoPalette)
+import Style.Types as ST exposing (ExoPalette)
 import Style.Widgets.Button as Button
 import Style.Widgets.StatusBadge as StatusBadge
 import Style.Widgets.ToggleTip as ToggleTip
@@ -487,7 +487,7 @@ loginPickerButton context =
         }
 
 
-serverStatusBadge : Style.Types.ExoPalette -> Server -> Element.Element msg
+serverStatusBadge : ExoPalette -> Server -> Element.Element msg
 serverStatusBadge palette server =
     let
         contents =
@@ -1265,6 +1265,7 @@ flavorPicker context project restrictFlavorIds computeQuota selectedFlavorGroupT
                                 in
                                 ToggleTip.toggleTip context.palette
                                     (Element.text description)
+                                    ST.PositionRight
                                     selected
                                     (selectFlavorGroupToggleTipMsg
                                         (if selected then

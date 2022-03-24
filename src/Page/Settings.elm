@@ -60,6 +60,7 @@ view context sharedModel model =
                     , Element.text "when you launch a server."
                     ]
                 )
+                ST.PositionRight
                 model.showExperimentalFeaturesToggleTip
                 GotShowExperimentalFeaturesToggleTip
     in
