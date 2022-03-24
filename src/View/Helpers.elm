@@ -1114,16 +1114,16 @@ flavorPicker context project restrictFlavorIds computeQuota selectedFlavorGroupT
         -- https://elmlang.slack.com/archives/C4F9NBLR1/p1539909855000100
         radioButton flavor =
             let
-                currentFlavorId =
+                isCurrentFlavor =
                     case maybeCurrentFlavorId of
-                        Just flavorId ->
-                            flavorId
+                        Just currentFlavorId ->
+                            flavor.id == currentFlavorId
 
                         Nothing ->
-                            ""
+                            False
 
                 radio_ =
-                    if flavor.id == currentFlavorId then
+                    if isCurrentFlavor then
                         Element.text "Current"
 
                     else
