@@ -107,9 +107,11 @@ view_ context project model computeQuota =
                             currentFlavorRootDiskSize
             in
             project.flavors
-                |> List.filter (\flavor -> flavor.id /= server.osProps.details.flavorId)
                 |> List.filter (\flavor -> flavor.disk_root >= minRootDiskSize)
                 |> List.map .id
+
+        currentFlavorId =
+            GetterSetters.serverLookup project model.serverUuid |> Maybe.map (\server -> server.osProps.details.flavorId)
     in
     Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
         [ Element.el
@@ -120,6 +122,12 @@ view_ context project model computeQuota =
                     [ "Resize"
                     , context.localization.virtualComputer
                         |> Helpers.String.toTitleCase
+                    , case currentFlavorId of
+                        Just flavorId ->
+                            "(Current Size: " ++ (GetterSetters.flavorLookup project flavorId |> Maybe.map .name |> Maybe.withDefault "") ++ ")"
+
+                        Nothing ->
+                            ""
                     ]
             )
         , Element.column VH.formContainer
@@ -129,6 +137,7 @@ view_ context project model computeQuota =
                 computeQuota
                 model.selectedFlavorGroupToggleTip
                 GotSelectedFlavorGroupToggleTip
+                currentFlavorId
                 model.flavorId
                 GotFlavorId
             , Element.row [ Element.width Element.fill ]
@@ -136,7 +145,12 @@ view_ context project model computeQuota =
                     (Button.primary
                         context.palette
                         { text = "Resize"
-                        , onPress = model.flavorId |> Maybe.map GotSubmit
+                        , onPress =
+                            if model.flavorId == currentFlavorId then
+                                Nothing
+
+                            else
+                                model.flavorId |> Maybe.map GotSubmit
                         }
                     )
                 ]
