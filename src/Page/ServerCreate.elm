@@ -51,6 +51,7 @@ type alias Model =
 type Msg
     = GotServerName String
     | GotCount Int
+    | GotCreateServerButtonPressed OSTypes.NetworkUuid OSTypes.FlavorId
     | GotSelectedFlavorGroupToggleTip (Maybe HelperTypes.FlavorGroupTitle)
     | GotFlavorId OSTypes.FlavorId
     | GotFlavorList
@@ -104,6 +105,7 @@ init imageUuid imageName restrictFlavorIds deployGuacamole =
     , createCluster = False
     , showClusterExplanationToggleTip = False
     , showFormInvalidToggleTip = False
+    , createServerAttempted = False
     }
 
 
@@ -115,6 +117,12 @@ update msg project model =
 
         GotCount count ->
             ( enforceQuotaCompliance project { model | count = count }, Cmd.none, SharedMsg.NoOp )
+
+        GotCreateServerButtonPressed netUuid flavorId ->
+            ( { model | createServerAttempted = True }
+            , Cmd.none
+            , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) (SharedMsg.RequestCreateServer model netUuid flavorId)
+            )
 
         GotSelectedFlavorGroupToggleTip maybeFlavorGroupTitle ->
             let
@@ -440,7 +448,7 @@ view context project model =
                 ( Nothing, False ) ->
                     case ( model.networkUuid, model.flavorId ) of
                         ( Just netUuid, Just flavorId ) ->
-                            ( Just <| SharedMsg (SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) (SharedMsg.RequestCreateServer model netUuid flavorId))
+                            ( Just (GotCreateServerButtonPressed netUuid flavorId)
                             , Nothing
                             )
 
@@ -499,11 +507,15 @@ view context project model =
         createButton =
             case maybeInvalidFormReasons of
                 Nothing ->
-                    Button.primary
-                        context.palette
-                        { text = "Create"
-                        , onPress = createOnPress
-                        }
+                    if model.createServerAttempted then
+                        loading
+
+                    else
+                        Button.primary
+                            context.palette
+                            { text = "Create"
+                            , onPress = createOnPress
+                            }
 
                 Just _ ->
                     let
@@ -630,13 +642,12 @@ view context project model =
             ]
 
         loading =
-            [ Element.row [ Element.spacing 15 ]
+            Element.row [ Element.spacing 15 ]
                 [ Widget.circularProgressIndicator
                     (SH.materialStyle context.palette).progressIndicator
                     Nothing
                 , Element.text "Loading..."
                 ]
-            ]
     in
     Element.column
         [ Element.spacing 24
@@ -675,13 +686,13 @@ view context project model =
                     contents flavor computeQuota volumeQuota
 
                 ( _, _, RemoteData.Loading ) ->
-                    loading
+                    [ loading ]
 
                 ( _, RemoteData.Loading, _ ) ->
-                    loading
+                    [ loading ]
 
                 ( _, _, _ ) ->
-                    loading
+                    [ loading ]
         ]
 
 
