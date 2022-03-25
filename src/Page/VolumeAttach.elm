@@ -114,7 +114,9 @@ view context project model =
                         |> Helpers.String.toTitleCase
                     ]
         , Element.column VH.formContainer
-            [ Style.Widgets.Select.select []
+            [ Style.Widgets.Select.select
+                []
+                context.palette
                 { label =
                     String.join " "
                         [ "Select"
@@ -125,7 +127,9 @@ view context project model =
                 , options = serverChoices
                 , selected = model.maybeServerUuid
                 }
-            , Style.Widgets.Select.select []
+            , Style.Widgets.Select.select
+                []
+                context.palette
                 -- TODO if no volumes in list, suggest user create a volume and provide link to that view
                 { label = "Select a " ++ context.localization.blockDevice
                 , onChange = GotVolumeUuid

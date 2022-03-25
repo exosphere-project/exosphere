@@ -1,15 +1,18 @@
 module Style.Widgets.Select exposing (Label, Value, select)
 
+import Color
 import Element
 import Element.Border as Border
 import FeatherIcons
 import Html exposing (Html)
 import Html.Attributes as HtmlA
 import Html.Events as HtmlE
+import Style.Types exposing (ExoPalette)
 
 
 select :
     List (Element.Attribute msg)
+    -> ExoPalette
     ->
         { onChange : Maybe Value -> msg
         , options : List ( Value, Label )
@@ -17,8 +20,11 @@ select :
         , label : String
         }
     -> Element.Element msg
-select attributes { onChange, options, selected, label } =
+select attributes palette { onChange, options, selected, label } =
     let
+        fontColor =
+            Color.toCssString palette.on.secondary
+
         select_ : Html msg
         select_ =
             Html.select
@@ -37,6 +43,7 @@ select attributes { onChange, options, selected, label } =
                 , HtmlA.style "border-width" "0"
                 , HtmlA.style "height" "48px"
                 , HtmlA.style "font-size" "18px"
+                , HtmlA.style "color" fontColor
                 , HtmlA.style "background-color" "transparent"
                 ]
                 (Html.option [ HtmlA.value "" ] [ Html.text label ]

@@ -215,6 +215,7 @@ view context sharedModel model =
                     in
                     Style.Widgets.Select.select
                         []
+                        context.palette
                         { onChange = GotResourceUuid
                         , options = options
                         , selected = maybeSupportableItemUuid
