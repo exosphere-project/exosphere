@@ -1,8 +1,10 @@
 module DesignSystem.Explorer exposing (main)
 
 import Element
+import Element.Border
 import Element.Font as Font
-import Html exposing (text)
+import Element.Region
+import Html
 import Html.Attributes exposing (src, style)
 import Style.Helpers as SH
 import Style.Types
@@ -13,6 +15,7 @@ import Style.Widgets.Icon exposing (bell, console, copyToClipboard, history, ipA
 import Style.Widgets.IconButton exposing (chip)
 import Style.Widgets.Meter exposing (meter)
 import Style.Widgets.StatusBadge exposing (StatusBadgeState(..), statusBadge)
+import Style.Widgets.Text as Text
 import UIExplorer
     exposing
         ( Config
@@ -32,6 +35,17 @@ import View.Helpers as VH
 toHtml : Element.Element msg -> Html.Html msg
 toHtml a =
     Element.layout [] <| a
+
+
+veryLongCopy : String
+veryLongCopy =
+    """
+    Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature from 45 BC,
+    making it over 2000 years old. Richard McClintock, a Latin professor at Hampden-Sydney College in Virginia, looked up one of the more obscure Latin words,
+    consectetur, from a Lorem Ipsum passage, and going through the cites of the word in classical literature, discovered the undoubtable source.
+    Lorem Ipsum comes from sections 1.10.32 and 1.10.33 of "de Finibus Bonorum et Malorum" (The Extremes of Good and Evil) by Cicero, written in 45 BC.
+    This book is a treatise on the theory of ethics, very popular during the Renaissance. [ref. https://www.lipsum.com/]
+    """
 
 
 
@@ -142,7 +156,43 @@ main =
             |> category "Atoms"
                 [ storiesOf
                     "Text"
-                    [ ( "body", \_ -> toHtml <| text "Connect to...", {} )
+                    [ ( "unstyled", \_ -> toHtml <| text "This is text rendered using `Element.text` and no styling. It will inherit attributes from the document layout.", {} )
+                    , ( "body", \_ -> toHtml <| Text.text Text.Body [] veryLongCopy, {} )
+                    , ( "h1"
+                      , \_ ->
+                            toHtml <|
+                                Text.text Text.H1
+                                    [ Element.Region.heading 1 ]
+                                    "App Config Info"
+                      , {}
+                      )
+                    , ( "h2"
+                      , \_ ->
+                            toHtml <|
+                                Text.text Text.H2
+                                    [ Element.Region.heading 2
+                                    , Element.Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
+                                    , Element.Border.color (palette.muted |> SH.toElementColor)
+                                    , Element.width Element.fill
+                                    , Element.paddingEach { bottom = 8, left = 0, right = 0, top = 0 }
+                                    ]
+                                    "App Config Info"
+                      , {}
+                      )
+                    , ( "h3"
+                      , \_ ->
+                            toHtml <|
+                                Text.text Text.H3
+                                    [ Element.Region.heading 3
+                                    , Element.Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
+                                    , Element.Border.color (palette.muted |> SH.toElementColor)
+                                    , Element.width Element.fill
+                                    , Element.paddingEach { bottom = 8, left = 0, right = 0, top = 0 }
+                                    ]
+                                    "App Config Info"
+                      , {}
+                      )
+                    , ( "h4", \_ -> toHtml <| Text.text Text.H4 [ Element.Region.heading 4 ] "App Config Info", {} )
                     ]
                 , storiesOf
                     "Icon"
