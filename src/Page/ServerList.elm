@@ -342,40 +342,16 @@ serverView model context currentTime project serverRecord =
                 _ ->
                     Element.none
 
-        dropdownItemStyle =
-            let
-                textButtonDefaults =
-                    (SH.materialStyle context.palette).textButton
-            in
-            { textButtonDefaults
-                | container =
-                    textButtonDefaults.container
-                        ++ [ Element.width Element.fill
-                           , Font.size 16
-                           , Font.medium
-                           , Font.letterSpacing 0.8
-                           , Element.paddingXY 8 12
-                           , Element.height Element.shrink
-                           ]
-            }
-
         interactionPopover =
             Element.column
-                (SH.popoverStyleDefaults context.palette ++ [ Element.padding 10 ])
+                (SH.popoverStyleDefaults context.palette)
                 (List.map
                     (\{ interactionStatus, interactionDetails } ->
                         Widget.button
-                            dropdownItemStyle
+                            (SH.dropdownItemStyle context.palette)
                             { text = interactionDetails.name
                             , icon =
-                                Element.el
-                                    [ Element.paddingEach
-                                        { top = 0
-                                        , right = 5
-                                        , left = 0
-                                        , bottom = 0
-                                        }
-                                    ]
+                                Element.el []
                                     (interactionDetails.icon (SH.toElementColor context.palette.primary) 18)
                             , onPress =
                                 case interactionStatus of

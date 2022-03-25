@@ -395,14 +395,6 @@ projectNav context p projectViewModel =
 createButton : View.Types.Context -> ProjectIdentifier -> Bool -> Element.Element OuterMsg
 createButton context projectId expanded =
     let
-        materialStyle =
-            (SH.materialStyle context.palette).button
-
-        buttonStyle =
-            { materialStyle
-                | container = Element.width Element.fill :: materialStyle.container
-            }
-
         renderButton : Element.Element Never -> String -> Route.Route -> Element.Element OuterMsg
         renderButton icon_ text route =
             Element.link
@@ -410,16 +402,10 @@ createButton context projectId expanded =
                 ]
                 { url = Route.toUrl context.urlPathPrefix route
                 , label =
-                    Widget.iconButton
-                        buttonStyle
+                    Widget.button
+                        (SH.dropdownItemStyle context.palette)
                         { icon =
-                            Element.row
-                                [ Element.spacing 10
-                                , Element.width Element.fill
-                                ]
-                                [ Element.el [] icon_
-                                , Element.text text
-                                ]
+                            Element.el [] icon_
                         , text =
                             text
                         , onPress =
@@ -429,9 +415,7 @@ createButton context projectId expanded =
 
         dropdown =
             Element.column
-                (SH.popoverStyleDefaults context.palette
-                    ++ [ Element.spacing 5 ]
-                )
+                (SH.popoverStyleDefaults context.palette)
                 [ renderButton
                     (FeatherIcons.server |> FeatherIcons.withSize 18 |> FeatherIcons.toHtml [] |> Element.html)
                     (context.localization.virtualComputer

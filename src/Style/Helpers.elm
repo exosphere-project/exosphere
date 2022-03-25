@@ -1,5 +1,6 @@
 module Style.Helpers exposing
-    ( materialStyle
+    ( dropdownItemStyle
+    , materialStyle
     , popoverAttribs
     , popoverStyleDefaults
     , shadowDefaults
@@ -18,6 +19,7 @@ import Element.Border as Border
 import Element.Font as Font
 import Html.Attributes
 import Style.Types as ST exposing (ElmUiWidgetStyle, ExoPalette, PopoverPosition(..), StyleMode, Theme(..))
+import Widget.Style
 import Widget.Style.Material as Material
 
 
@@ -397,3 +399,23 @@ popoverAttribs popover position distanceToTarget =
             )
             popover
     ]
+
+
+dropdownItemStyle : ExoPalette -> Widget.Style.ButtonStyle msg
+dropdownItemStyle palette =
+    let
+        textButtonDefaults =
+            (materialStyle palette).textButton
+    in
+    { textButtonDefaults
+        | container =
+            textButtonDefaults.container
+                ++ [ Element.width Element.fill
+                   , Font.size 16
+                   , Font.medium
+                   , Font.letterSpacing 0.8
+                   , Element.paddingXY 8 12
+                   , Element.height Element.shrink
+                   ]
+        , labelRow = textButtonDefaults.labelRow ++ [ Element.spacing 12 ]
+    }
