@@ -775,7 +775,7 @@ serverStatus context model server =
 
                 contents =
                     -- TODO nicer layout here?
-                    Element.column []
+                    Element.column [ Element.spacing 6, Element.padding 6 ]
                         [ Element.text ("OpenStack Status: " ++ friendlyOpenstackStatus details.openstackStatus)
                         , case server.exoProps.targetOpenstackStatus of
                             Just expectedStatusList ->
