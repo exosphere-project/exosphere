@@ -1,6 +1,7 @@
 module Page.Settings exposing (Model, Msg(..), init, update, view)
 
 import Element
+import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons
 import Style.Types as ST
@@ -47,18 +48,13 @@ view context sharedModel model =
         experimentalFeatureToggleTip =
             Style.Widgets.ToggleTip.toggleTip
                 context.palette
-                (Element.column
-                    [ Element.width
-                        (Element.fill
-                            |> Element.minimum 100
-                            |> Element.maximum 300
-                        )
+                (Element.paragraph
+                    [ Element.width (Element.fill |> Element.minimum 300)
                     , Element.spacing 7
+                    , Element.padding 6
+                    , Font.regular
                     ]
-                    [ Element.text "New features in development. An "
-                    , Element.text "example is adding a custom workflow "
-                    , Element.text "when you launch a server."
-                    ]
+                    [ Element.text "New features in development. An example is adding a custom workflow when you launch a server." ]
                 )
                 ST.PositionRight
                 model.showExperimentalFeaturesToggleTip
