@@ -41,6 +41,7 @@ import Page.VolumeMountInstructions
 import Route
 import Style.Helpers as SH exposing (shadowDefaults)
 import Style.Toast
+import Style.Widgets.Text as Text
 import Toasty
 import Types.Error exposing (AppError)
 import Types.HelperTypes exposing (ProjectIdentifier, WindowSize)
@@ -80,7 +81,7 @@ viewValid outerModel =
 viewInvalid : AppError -> Browser.Document OuterMsg
 viewInvalid appError =
     { title = "Error"
-    , body = [ Element.text appError.error |> Element.layout [] ]
+    , body = [ Text.body appError.error |> Element.layout [] ]
     }
 
 
@@ -132,7 +133,7 @@ elementView windowSize outerModel context =
 
                             LoadingUnscopedProjects _ ->
                                 -- TODO put a fidget spinner here
-                                Element.text <|
+                                Text.body <|
                                     String.join " "
                                         [ "Loading"
                                         , context.localization.unitOfTenancy
@@ -163,7 +164,7 @@ elementView windowSize outerModel context =
                                     |> Element.map MessageLogMsg
 
                             PageNotFound ->
-                                Element.text "Error: page not found. Perhaps you are trying to reach an invalid URL."
+                                Text.body "Error: page not found. Perhaps you are trying to reach an invalid URL."
 
                             SelectProjectRegions pageModel ->
                                 Page.SelectProjectRegions.view context outerModel.sharedModel pageModel
@@ -180,7 +181,7 @@ elementView windowSize outerModel context =
                     ProjectView projectName projectViewModel viewConstructor ->
                         case GetterSetters.projectLookup outerModel.sharedModel projectName of
                             Nothing ->
-                                Element.text <|
+                                Text.body <|
                                     String.join " "
                                         [ "Oops!"
                                         , context.localization.unitOfTenancy
@@ -355,14 +356,14 @@ projectNav context p projectViewModel =
                 VH.friendlyCloudName context p
                     ++ " - "
                     ++ p.auth.project.name
-        , Element.paragraph
+        , Text.p
             [ Font.size 15
             , Element.alpha 0.75
             , Element.paddingEach { left = 5, top = 0, bottom = 0, right = 0 }
             ]
-            [ Element.text "(logged in as "
-            , Element.el [ Font.bold ] (Element.text p.auth.user.name)
-            , Element.text ")"
+            [ Text.body "(logged in as "
+            , Text.bold p.auth.user.name
+            , Text.body ")"
             ]
         , Element.el
             [ Element.alignRight ]
