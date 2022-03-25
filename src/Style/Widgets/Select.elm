@@ -22,14 +22,8 @@ select :
     -> Element.Element msg
 select attributes palette { onChange, options, selected, label } =
     let
-        to255String value =
-            String.fromFloat (value * 255)
-
-        { red, green, blue, alpha } =
-            Color.toRgba palette.on.secondary
-
         fontColor =
-            "rgba(" ++ to255String red ++ ", " ++ to255String green ++ ", " ++ to255String blue ++ ", " ++ to255String alpha ++ ")"
+            Color.toCssString palette.on.secondary
 
         select_ : Html msg
         select_ =
