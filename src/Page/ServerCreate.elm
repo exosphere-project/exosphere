@@ -508,7 +508,7 @@ view context project model =
             case maybeInvalidFormReasons of
                 Nothing ->
                     if model.createServerAttempted then
-                        loading
+                        loading ("Creating " ++ context.localization.virtualComputer |> Helpers.String.toTitleCase)
 
                     else
                         Button.primary
@@ -641,12 +641,12 @@ view context project model =
                 createButton
             ]
 
-        loading =
+        loading message =
             Element.row [ Element.spacing 15 ]
                 [ Widget.circularProgressIndicator
                     (SH.materialStyle context.palette).progressIndicator
                     Nothing
-                , Element.text "Loading..."
+                , Element.text message
                 ]
     in
     Element.column
@@ -686,13 +686,13 @@ view context project model =
                     contents flavor computeQuota volumeQuota
 
                 ( _, _, RemoteData.Loading ) ->
-                    [ loading ]
+                    [ loading "Loading..." ]
 
                 ( _, RemoteData.Loading, _ ) ->
-                    [ loading ]
+                    [ loading "Loading..." ]
 
                 ( _, _, _ ) ->
-                    [ loading ]
+                    [ loading "Loading..." ]
         ]
 
 
