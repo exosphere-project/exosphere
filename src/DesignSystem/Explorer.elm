@@ -170,13 +170,8 @@ main =
                     , ( "h2"
                       , \_ ->
                             toHtml <|
-                                Text.text Text.H2
-                                    [ Element.Region.heading 2
-                                    , Element.Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
-                                    , Element.Border.color (palette.muted |> SH.toElementColor)
-                                    , Element.width Element.fill
-                                    , Element.paddingEach { bottom = 8, left = 0, right = 0, top = 0 }
-                                    ]
+                                Text.h2 palette
+                                    []
                                     "App Config Info"
                       , {}
                       )

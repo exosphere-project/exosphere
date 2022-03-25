@@ -1,7 +1,11 @@
-module Style.Widgets.Text exposing (TextVariant(..), body, bold, button, p, text)
+module Style.Widgets.Text exposing (TextVariant(..), body, bold, button, h2, p, text)
 
 import Element
+import Element.Border as Border
 import Element.Font as Font
+import Element.Region as Region
+import Style.Helpers as SH
+import Style.Types exposing (ExoPalette)
 
 
 
@@ -143,4 +147,18 @@ button label =
     text Button
         [ Font.letterSpacing 1.25 -- ref. Widget.Style.Material buttonFont consistency.
         ]
+        label
+
+
+h2 : ExoPalette -> List (Element.Attribute msg) -> String -> Element.Element msg
+h2 palette options label =
+    text H2
+        ([ Region.heading 2
+         , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
+         , Border.color (palette.muted |> SH.toElementColor)
+         , Element.width Element.fill
+         , Element.paddingEach { bottom = 8, left = 0, right = 0, top = 0 }
+         ]
+            ++ options
+        )
         label

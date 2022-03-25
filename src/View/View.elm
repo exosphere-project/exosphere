@@ -341,21 +341,20 @@ projectNav context p projectViewModel =
                 ]
     in
     Element.row [ Element.width Element.fill, Element.spacing 10, Element.paddingEach { edges | bottom = 10 } ]
-        [ Element.el
-            (VH.heading2 context.palette
-                -- Removing bottom border from this heading because it runs into buttons to the right and looks weird
-                -- Removing bottom padding to vertically align it with butttons
-                -- Shrink heading width so that username can be shown right next to it
-                ++ [ Border.width 0
-                   , Element.padding 0
-                   , Element.width Element.shrink
-                   ]
+        [ Text.h2 context.palette
+            -- Removing bottom border from this heading because it runs into buttons to the right and looks weird
+            -- Removing bottom padding to vertically align it with butttons
+            -- Shrink heading width so that username can be shown right next to it
+            [ Border.width 0
+            , Element.padding 0
+            , Element.width Element.shrink
+            ]
+            (VH.friendlyCloudName
+                context
+                p
+                ++ " - "
+                ++ p.auth.project.name
             )
-          <|
-            Element.text <|
-                VH.friendlyCloudName context p
-                    ++ " - "
-                    ++ p.auth.project.name
         , Text.p
             [ Font.size 15
             , Element.alpha 0.75
