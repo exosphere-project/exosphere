@@ -1,4 +1,4 @@
-module Style.Widgets.Text exposing (TextVariant(..), body, bold, p, text)
+module Style.Widgets.Text exposing (TextVariant(..), body, bold, button, p, text)
 
 import Element
 import Element.Font as Font
@@ -10,6 +10,7 @@ import Element.Font as Font
 
 type FontWeight
     = Bold
+    | Semibold
     | Regular
 
 
@@ -25,6 +26,7 @@ type TextVariant
     | H3
     | H4
     | Body
+    | Button
     | Strong
 
 
@@ -60,7 +62,12 @@ typography variant =
             , weight = Bold
             }
 
-        _ ->
+        Button ->
+            { size = 14
+            , weight = Semibold
+            }
+
+        Body ->
             { size = 17
             , weight = Regular
             }
@@ -72,7 +79,10 @@ fontWeightAttr weight =
         Bold ->
             Font.bold
 
-        _ ->
+        Semibold ->
+            Font.semiBold
+
+        Regular ->
             Font.regular
 
 
@@ -91,20 +101,27 @@ p options lines =
         lines
 
 
+el : List (Element.Attribute msg) -> String -> Element.Element msg
+el options label =
+    Element.el
+        options
+        (Element.text label)
+
+
 text : TextVariant -> List (Element.Attribute msg) -> String -> Element.Element msg
 text variant options label =
     let
         typo =
             typography variant
     in
-    p
+    el
         ([ defaultTypeface
          , Font.size typo.size
          , fontWeightAttr typo.weight
          ]
             ++ options
         )
-        [ Element.text label ]
+        label
 
 
 
@@ -119,3 +136,11 @@ body label =
 bold : String -> Element.Element msg
 bold label =
     text Strong [] label
+
+
+button : String -> Element.Element msg
+button label =
+    text Button
+        [ Font.letterSpacing 1.25 -- ref. Widget.Style.Material buttonFont consistency.
+        ]
+        label
