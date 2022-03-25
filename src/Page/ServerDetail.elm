@@ -1075,7 +1075,9 @@ serverActionsDropdown context project model server =
     let
         contents =
             Element.column
-                (VH.dropdownAttributes context ++ [ Element.padding 10 ])
+                (SH.popoverStyleDefaults context.palette
+                    ++ [ Element.spacing 8, Element.padding 20 ]
+                )
             <|
                 List.map
                     (renderServerActionButton context project model server)
@@ -1089,7 +1091,9 @@ serverActionsDropdown context project model server =
 
         ( attribs, icon ) =
             if model.showActionsDropdown then
-                ( [ Element.below contents ], FeatherIcons.chevronUp )
+                ( SH.popoverAttribs contents ST.PositionBottomRight Nothing
+                , FeatherIcons.chevronUp
+                )
 
             else
                 ( [], FeatherIcons.chevronDown )

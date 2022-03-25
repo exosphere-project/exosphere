@@ -41,6 +41,7 @@ import Page.VolumeMountInstructions
 import Route
 import Style.Helpers as SH exposing (shadowDefaults)
 import Style.Toast
+import Style.Types as ST
 import Toasty
 import Types.Error exposing (AppError)
 import Types.HelperTypes exposing (ProjectIdentifier, WindowSize)
@@ -428,7 +429,9 @@ createButton context projectId expanded =
 
         dropdown =
             Element.column
-                (VH.dropdownAttributes context)
+                (SH.popoverStyleDefaults context.palette
+                    ++ [ Element.spacing 5 ]
+                )
                 [ renderButton
                     (FeatherIcons.server |> FeatherIcons.withSize 18 |> FeatherIcons.toHtml [] |> Element.html)
                     (context.localization.virtualComputer
@@ -451,7 +454,7 @@ createButton context projectId expanded =
 
         ( attribs, icon ) =
             if expanded then
-                ( [ Element.below dropdown ]
+                ( SH.popoverAttribs dropdown ST.PositionBottomRight Nothing
                 , FeatherIcons.chevronUp
                 )
 

@@ -19,6 +19,7 @@ import Page.QuotaUsage
 import Route
 import Set
 import Style.Helpers as SH
+import Style.Types as ST
 import Style.Widgets.DataList as DataList
 import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
 import Style.Widgets.Icon as Icon
@@ -359,38 +360,37 @@ serverView model context currentTime project serverRecord =
             }
 
         interactionPopover =
-            Element.el [ Element.paddingXY 0 6 ] <|
-                Element.column
-                    (SH.popoverStyleDefaults context.palette ++ [ Element.padding 10 ])
-                    (List.map
-                        (\{ interactionStatus, interactionDetails } ->
-                            Widget.button
-                                dropdownItemStyle
-                                { text = interactionDetails.name
-                                , icon =
-                                    Element.el
-                                        [ Element.paddingEach
-                                            { top = 0
-                                            , right = 5
-                                            , left = 0
-                                            , bottom = 0
-                                            }
-                                        ]
-                                        (interactionDetails.icon (SH.toElementColor context.palette.primary) 18)
-                                , onPress =
-                                    case interactionStatus of
-                                        ITypes.Ready url ->
-                                            Just <| OpenInteraction url
+            Element.column
+                (SH.popoverStyleDefaults context.palette ++ [ Element.padding 10 ])
+                (List.map
+                    (\{ interactionStatus, interactionDetails } ->
+                        Widget.button
+                            dropdownItemStyle
+                            { text = interactionDetails.name
+                            , icon =
+                                Element.el
+                                    [ Element.paddingEach
+                                        { top = 0
+                                        , right = 5
+                                        , left = 0
+                                        , bottom = 0
+                                        }
+                                    ]
+                                    (interactionDetails.icon (SH.toElementColor context.palette.primary) 18)
+                            , onPress =
+                                case interactionStatus of
+                                    ITypes.Ready url ->
+                                        Just <| OpenInteraction url
 
-                                        ITypes.Warn url _ ->
-                                            Just <| OpenInteraction url
+                                    ITypes.Warn url _ ->
+                                        Just <| OpenInteraction url
 
-                                        _ ->
-                                            Nothing
-                                }
-                        )
-                        serverRecord.interactions
+                                    _ ->
+                                        Nothing
+                            }
                     )
+                    serverRecord.interactions
+                )
 
         interactionButton =
             let
@@ -404,14 +404,14 @@ serverView model context currentTime project serverRecord =
 
                 ( attribs, buttonIcon ) =
                     if showInteractionPopover then
-                        ( [ Element.below interactionPopover ], FeatherIcons.chevronUp )
+                        ( SH.popoverAttribs interactionPopover ST.PositionBottomLeft Nothing
+                        , FeatherIcons.chevronUp
+                        )
 
                     else
                         ( [], FeatherIcons.chevronDown )
             in
-            Element.el
-                ([] ++ attribs)
-            <|
+            Element.el attribs <|
                 Widget.iconButton
                     (SH.materialStyle context.palette).button
                     { text = "Connect to"
