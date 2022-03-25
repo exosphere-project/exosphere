@@ -1,4 +1,4 @@
-module Style.Widgets.Text exposing (TextVariant(..), text)
+module Style.Widgets.Text exposing (TextVariant(..), body, bold, p, text)
 
 import Element
 import Element.Font as Font
@@ -25,6 +25,7 @@ type TextVariant
     | H3
     | H4
     | Body
+    | Strong
 
 
 
@@ -54,6 +55,11 @@ typography variant =
             , weight = Bold
             }
 
+        Strong ->
+            { size = 17
+            , weight = Bold
+            }
+
         _ ->
             { size = 17
             , weight = Regular
@@ -78,11 +84,11 @@ defaultTypeface =
         ]
 
 
-p : List (Element.Attribute msg) -> String -> Element.Element msg
-p options label =
+p : List (Element.Attribute msg) -> List (Element.Element msg) -> Element.Element msg
+p options lines =
     Element.paragraph
         options
-        [ Element.text label ]
+        lines
 
 
 text : TextVariant -> List (Element.Attribute msg) -> String -> Element.Element msg
@@ -98,4 +104,18 @@ text variant options label =
          ]
             ++ options
         )
-        label
+        [ Element.text label ]
+
+
+
+--- helpers
+
+
+body : String -> Element.Element msg
+body label =
+    text Body [] label
+
+
+bold : String -> Element.Element msg
+bold label =
+    text Strong [] label
