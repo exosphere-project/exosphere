@@ -371,7 +371,7 @@ projectNav context p projectViewModel =
                 (SH.materialStyle context.palette).button
                 { icon =
                     Element.row [ Element.spacing 10 ]
-                        [ Text.button removeText
+                        [ Element.text removeText
                         , FeatherIcons.logOut |> FeatherIcons.withSize 18 |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
                         ]
                 , text = removeText
@@ -417,7 +417,7 @@ createButton context projectId expanded =
                                 , Element.width Element.fill
                                 ]
                                 [ Element.el [] icon_
-                                , Text.button text
+                                , Element.text text
                                 ]
                         , text =
                             text
@@ -468,7 +468,7 @@ createButton context projectId expanded =
             , icon =
                 Element.row
                     [ Element.spacing 5 ]
-                    [ Text.button "Create"
+                    [ Element.text "Create"
                     , Element.el []
                         (icon
                             |> FeatherIcons.withSize 18

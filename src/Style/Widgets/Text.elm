@@ -1,4 +1,4 @@
-module Style.Widgets.Text exposing (TextVariant(..), body, bold, button, h2, p, text)
+module Style.Widgets.Text exposing (TextVariant(..), body, bold, h2, p, text)
 
 import Element
 import Element.Border as Border
@@ -30,7 +30,6 @@ type TextVariant
     | H3
     | H4
     | Body
-    | Button
     | Strong
 
 
@@ -64,11 +63,6 @@ typography variant =
         Strong ->
             { size = 17
             , weight = Bold
-            }
-
-        Button ->
-            { size = 14
-            , weight = Semibold
             }
 
         Body ->
@@ -140,14 +134,6 @@ body label =
 bold : String -> Element.Element msg
 bold label =
     text Strong [] label
-
-
-button : String -> Element.Element msg
-button label =
-    text Button
-        [ Font.letterSpacing 1.25 -- ref. Widget.Style.Material buttonFont consistency.
-        ]
-        label
 
 
 h2 : ExoPalette -> List (Element.Attribute msg) -> String -> Element.Element msg
