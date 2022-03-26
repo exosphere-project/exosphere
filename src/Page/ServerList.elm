@@ -21,7 +21,7 @@ import Set
 import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.DataList as DataList
-import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
+import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirmAttribs)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.StatusBadge as StatusBadge
 import Time
@@ -417,16 +417,15 @@ serverView model context currentTime project serverRecord =
 
                 popconfirmAttribs =
                     if showDeletePopconfirm then
-                        [ Element.below <|
-                            deletePopconfirm context.palette
-                                { confirmationText =
-                                    "Are you sure you want to delete this "
-                                        ++ context.localization.virtualComputer
-                                        ++ "?"
-                                , onConfirm = Just <| GotDeleteConfirm serverRecord.id
-                                , onCancel = Just <| ShowDeletePopconfirm serverRecord.id False
-                                }
-                        ]
+                        deletePopconfirmAttribs ST.PositionBottomRight
+                            context.palette
+                            { confirmationText =
+                                "Are you sure you want to delete this "
+                                    ++ context.localization.virtualComputer
+                                    ++ "?"
+                            , onConfirm = Just <| GotDeleteConfirm serverRecord.id
+                            , onCancel = Just <| ShowDeletePopconfirm serverRecord.id False
+                            }
 
                     else
                         []

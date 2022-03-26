@@ -17,9 +17,10 @@ import OpenStack.Types as OSTypes exposing (Image)
 import Route
 import Set
 import Style.Helpers as SH
+import Style.Types as ST
 import Style.Widgets.Button as Button
 import Style.Widgets.DataList as DataList
-import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
+import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirmAttribs)
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
@@ -209,16 +210,15 @@ imageView model context project imageRecord =
                 deleteBtnWithPopconfirm =
                     Element.el
                         (if showDeletePopconfirm then
-                            [ Element.below <|
-                                deletePopconfirm context.palette
-                                    { confirmationText =
-                                        "Are you sure you want to delete this "
-                                            ++ context.localization.staticRepresentationOfBlockDeviceContents
-                                            ++ "?"
-                                    , onConfirm = Just <| GotDeleteConfirm imageRecord.id
-                                    , onCancel = Just <| ShowDeletePopconfirm imageRecord.id False
-                                    }
-                            ]
+                            deletePopconfirmAttribs ST.PositionBottomRight
+                                context.palette
+                                { confirmationText =
+                                    "Are you sure you want to delete this "
+                                        ++ context.localization.staticRepresentationOfBlockDeviceContents
+                                        ++ "?"
+                                , onConfirm = Just <| GotDeleteConfirm imageRecord.id
+                                , onCancel = Just <| ShowDeletePopconfirm imageRecord.id False
+                                }
 
                          else
                             []
