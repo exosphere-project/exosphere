@@ -7,6 +7,7 @@ import Helpers.String
 import OpenStack.Types as OSTypes
 import Set
 import Style.Widgets.Button as Button
+import Style.Widgets.Text as Text
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
@@ -83,18 +84,19 @@ view context sharedModel model =
                             ]
             in
             Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-                [ Element.el (VH.heading2 context.palette)
-                    (Element.text <|
-                        String.join " "
-                            [ "Choose"
-                            , context.localization.openstackSharingKeystoneWithAnother
-                                |> Helpers.String.pluralize
-                                |> Helpers.String.toTitleCase
-                            , "for"
-                            , context.localization.unitOfTenancy
-                                |> Helpers.String.toTitleCase
-                            , scopedAuthToken.project.name
-                            ]
+                [ Text.heading context.palette
+                    []
+                    Element.none
+                    (String.join " "
+                        [ "Choose"
+                        , context.localization.openstackSharingKeystoneWithAnother
+                            |> Helpers.String.pluralize
+                            |> Helpers.String.toTitleCase
+                        , "for"
+                        , context.localization.unitOfTenancy
+                            |> Helpers.String.toTitleCase
+                        , scopedAuthToken.project.name
+                        ]
                     )
                 , VH.renderWebData
                     context

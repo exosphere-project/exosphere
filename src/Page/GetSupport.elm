@@ -1,6 +1,7 @@
 module Page.GetSupport exposing (Model, Msg(..), init, update, view)
 
 import Element
+import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons
@@ -11,6 +12,7 @@ import Set
 import Style.Widgets.Button as Button
 import Style.Widgets.CopyableText
 import Style.Widgets.Select
+import Style.Widgets.Text as Text
 import Types.HelperTypes as HelperTypes
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg exposing (SharedMsg(..))
@@ -84,14 +86,14 @@ view context sharedModel model =
                , Element.width Element.fill
                ]
         )
-        [ Element.row
-            (VH.heading2 context.palette ++ [ Element.spacing 12 ])
-            [ FeatherIcons.helpCircle
+        [ Text.heading context.palette
+            []
+            (FeatherIcons.helpCircle
                 |> FeatherIcons.toHtml []
                 |> Element.html
                 |> Element.el []
-            , Element.text ("Get Support for " ++ sharedModel.style.appTitle)
-            ]
+            )
+            ("Get Support for " ++ sharedModel.style.appTitle)
         , case sharedModel.style.supportInfoMarkdown of
             Just markdown ->
                 Element.column VH.contentContainer <|

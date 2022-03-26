@@ -4,6 +4,7 @@ import Element
 import Element.Font as Font
 import Element.Input as Input
 import Style.Helpers as SH
+import Style.Widgets.Text as Text
 import Types.HelperTypes exposing (Jetstream1Creds, Jetstream1Provider(..))
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
@@ -65,8 +66,7 @@ view context _ model =
                 Element.none
     in
     Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-        [ Element.el (VH.heading2 context.palette)
-            (Element.text "Add a Jetstream1 Account")
+        [ Text.heading context.palette [] Element.none "Add a Jetstream1 Account"
         , Element.column VH.contentContainer
             [ helpText context
             , Element.column VH.formContainer

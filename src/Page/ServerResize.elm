@@ -7,6 +7,7 @@ import OpenStack.Types as OSTypes
 import RemoteData
 import Route
 import Style.Widgets.Button as Button
+import Style.Widgets.Text as Text
 import Types.HelperTypes as HelperTypes
 import Types.Project exposing (Project)
 import Types.Server exposing (Server)
@@ -114,21 +115,21 @@ view_ context project model computeQuota =
             GetterSetters.serverLookup project model.serverUuid |> Maybe.map (\server -> server.osProps.details.flavorId)
     in
     Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-        [ Element.el
-            (VH.heading2 context.palette)
-            (Element.text <|
-                String.join
-                    " "
-                    [ "Resize"
-                    , context.localization.virtualComputer
-                        |> Helpers.String.toTitleCase
-                    , case currentFlavorId of
-                        Just flavorId ->
-                            "(Current Size: " ++ (GetterSetters.flavorLookup project flavorId |> Maybe.map .name |> Maybe.withDefault "") ++ ")"
+        [ Text.heading context.palette
+            []
+            Element.none
+            (String.join
+                " "
+                [ "Resize"
+                , context.localization.virtualComputer
+                    |> Helpers.String.toTitleCase
+                , case currentFlavorId of
+                    Just flavorId ->
+                        "(Current Size: " ++ (GetterSetters.flavorLookup project flavorId |> Maybe.map .name |> Maybe.withDefault "") ++ ")"
 
-                        Nothing ->
-                            ""
-                    ]
+                    Nothing ->
+                        ""
+                ]
             )
         , Element.column VH.formContainer
             [ VH.flavorPicker context

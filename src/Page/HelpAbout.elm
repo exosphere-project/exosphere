@@ -3,6 +3,7 @@ module Page.HelpAbout exposing (view)
 import Element
 import Element.Font as Font
 import FeatherIcons
+import Style.Widgets.Text as Text
 import Types.SharedModel exposing (SharedModel)
 import UUID
 import View.Helpers as VH
@@ -16,13 +17,14 @@ import View.Types
 view : SharedModel -> View.Types.Context -> Element.Element msg
 view model context =
     Element.column (List.append VH.exoColumnAttributes [ Element.spacing 16, Element.width Element.fill ])
-        [ Element.row (VH.heading2 context.palette ++ [ Element.spacing 12 ])
-            [ FeatherIcons.info
+        [ Text.heading context.palette
+            []
+            (FeatherIcons.info
                 |> FeatherIcons.toHtml []
                 |> Element.html
                 |> Element.el []
-            , Element.text <| "About " ++ model.style.appTitle
-            ]
+            )
+            ("About " ++ model.style.appTitle)
         , case model.style.aboutAppMarkdown of
             Just aboutAppMarkdown ->
                 Element.column VH.contentContainer <|
@@ -30,7 +32,7 @@ view model context =
 
             Nothing ->
                 defaultHelpAboutText context
-        , Element.el (VH.heading2 context.palette) <| Element.text "App Config Info"
+        , Text.heading context.palette [] Element.none "App Config Info"
         , Element.column VH.contentContainer
             [ Element.paragraph [ Element.spacing 8 ] <|
                 case model.cloudCorsProxyUrl of

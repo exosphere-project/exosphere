@@ -13,6 +13,7 @@ import Style.Widgets.Button as Button
 import Style.Widgets.Card
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.DeleteButton exposing (deleteIconButton)
+import Style.Widgets.Text as Text
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import View.Helpers as VH
@@ -83,10 +84,13 @@ view context project model =
     if model.showHeading then
         Element.column
             (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-            [ Element.el (VH.heading2 context.palette) <|
-                Element.text <|
-                    String.join " "
-                        [ context.localization.blockDevice |> Helpers.String.toTitleCase ]
+            [ Text.heading context.palette
+                []
+                Element.none
+                (String.join
+                    " "
+                    [ context.localization.blockDevice |> Helpers.String.toTitleCase ]
+                )
             , volumeDetail context project model
             ]
 

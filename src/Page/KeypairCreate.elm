@@ -8,6 +8,7 @@ import Helpers.String
 import Html.Attributes
 import Style.Widgets.Button as Button
 import Style.Widgets.FormValidation as FormValidation
+import Style.Widgets.Text as Text
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
@@ -52,13 +53,15 @@ view : View.Types.Context -> Model -> Element.Element Msg
 view context model =
     Element.column
         (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-        [ Element.el (VH.heading2 context.palette) <|
-            Element.text <|
-                String.join " "
-                    [ "Upload"
-                    , context.localization.pkiPublicKeyForSsh
-                        |> Helpers.String.toTitleCase
-                    ]
+        [ Text.heading context.palette
+            []
+            Element.none
+            (String.join " "
+                [ "Upload"
+                , context.localization.pkiPublicKeyForSsh
+                    |> Helpers.String.toTitleCase
+                ]
+            )
         , Element.column VH.formContainer
             ([ Input.text
                 (VH.inputItemAttributes context.palette.background)

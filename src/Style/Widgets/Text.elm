@@ -1,4 +1,4 @@
-module Style.Widgets.Text exposing (TextVariant(..), body, bold, h2, p, text)
+module Style.Widgets.Text exposing (TextVariant(..), body, bold, heading, p, text)
 
 import Element
 import Element.Border as Border
@@ -99,6 +99,13 @@ p options lines =
         lines
 
 
+row : List (Element.Attribute msg) -> List (Element.Element msg) -> Element.Element msg
+row options elements =
+    Element.row
+        options
+        elements
+
+
 el : List (Element.Attribute msg) -> String -> Element.Element msg
 el options label =
     Element.el
@@ -136,15 +143,18 @@ bold label =
     text Strong [] label
 
 
-h2 : ExoPalette -> List (Element.Attribute msg) -> String -> Element.Element msg
-h2 palette options label =
-    text H2
+heading : ExoPalette -> List (Element.Attribute msg) -> Element.Element msg -> String -> Element.Element msg
+heading palette options icon label =
+    row
         ([ Region.heading 2
          , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
          , Border.color (palette.muted |> SH.toElementColor)
          , Element.width Element.fill
          , Element.paddingEach { bottom = 8, left = 0, right = 0, top = 0 }
+         , Element.spacing 12
          ]
             ++ options
         )
-        label
+        [ icon
+        , text H2 [] label
+        ]

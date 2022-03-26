@@ -6,6 +6,7 @@ import Helpers.String
 import OpenStack.Types as OSTypes
 import Route
 import Style.Widgets.Button as Button
+import Style.Widgets.Text as Text
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
@@ -35,13 +36,16 @@ update msg _ model =
 view : View.Types.Context -> Project -> Model -> Element.Element Msg
 view context project model =
     Element.column VH.exoColumnAttributes
-        [ Element.el (VH.heading2 context.palette) <|
-            Element.text <|
-                String.join " "
-                    [ context.localization.blockDevice
-                        |> Helpers.String.toTitleCase
-                    , "Attached"
-                    ]
+        [ Text.heading context.palette
+            []
+            Element.none
+            (String.join
+                " "
+                [ context.localization.blockDevice
+                    |> Helpers.String.toTitleCase
+                , "Attached"
+                ]
+            )
         , Element.column VH.contentContainer
             [ Element.text ("Device: " ++ model.device)
             , case GetterSetters.volDeviceToMountpoint model.device of

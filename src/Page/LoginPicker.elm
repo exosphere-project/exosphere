@@ -8,6 +8,7 @@ import Element.Border as Border
 import Route
 import Style.Helpers as SH
 import Style.Widgets.Button as Button
+import Style.Widgets.Text as Text
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
@@ -122,7 +123,7 @@ view context sharedModel =
                     ]
     in
     Element.column VH.contentContainer
-        [ Element.row (VH.heading2 context.palette) [ Element.text "Choose a Login Method" ]
+        [ Text.heading context.palette [] Element.none "Choose a Login Method"
         , Element.wrappedRow
             (VH.exoRowAttributes
                 ++ [ Element.width Element.fill

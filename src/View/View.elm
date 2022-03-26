@@ -341,7 +341,7 @@ projectNav context p projectViewModel =
                 ]
     in
     Element.row [ Element.width Element.fill, Element.spacing 10, Element.paddingEach { edges | bottom = 10 } ]
-        [ Text.h2 context.palette
+        [ Text.heading context.palette
             -- Removing bottom border from this heading because it runs into buttons to the right and looks weird
             -- Removing bottom padding to vertically align it with butttons
             -- Shrink heading width so that username can be shown right next to it
@@ -349,6 +349,7 @@ projectNav context p projectViewModel =
             , Element.padding 0
             , Element.width Element.shrink
             ]
+            Element.none
             (VH.friendlyCloudName
                 context
                 p

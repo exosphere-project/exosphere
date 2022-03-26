@@ -5,6 +5,7 @@ import Element.Input as Input
 import Route
 import Style.Helpers as SH
 import Style.Widgets.Icon as Icon
+import Style.Widgets.Text as Text
 import Types.Error exposing (ErrorLevel(..))
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
@@ -53,11 +54,10 @@ view context sharedModel model =
     in
     Element.column
         (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-        [ Element.row
-            (VH.heading2 context.palette ++ [ Element.spacing 12 ])
-            [ Icon.bell (SH.toElementColor context.palette.on.background) 20
-            , Element.text "Recent Messages"
-            ]
+        [ Text.heading context.palette
+            []
+            (Icon.bell (SH.toElementColor context.palette.on.background) 20)
+            "Recent Messages"
         , Input.checkbox
             []
             { label = Input.labelRight [] (Element.text "Show low-level debug messages")

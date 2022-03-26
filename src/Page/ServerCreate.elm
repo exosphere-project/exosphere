@@ -27,6 +27,7 @@ import Style.Widgets.Card exposing (badge)
 import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Style.Widgets.Select
+import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
 import Types.HelperTypes as HelperTypes
     exposing
@@ -641,14 +642,14 @@ view context project model =
         , Element.width Element.fill
         ]
     <|
-        [ Element.el
-            (VH.heading2 context.palette)
-            (Element.text <|
-                String.join " "
-                    [ "Create"
-                    , context.localization.virtualComputer
-                        |> Helpers.String.toTitleCase
-                    ]
+        [ Text.heading context.palette
+            []
+            Element.none
+            (String.join " "
+                [ "Create"
+                , context.localization.virtualComputer
+                    |> Helpers.String.toTitleCase
+                ]
             )
         , Element.column
             [ -- Keeps form fields from displaying too wide

@@ -8,6 +8,7 @@ import Helpers.Url as UrlHelpers
 import OpenStack.Types as OSTypes
 import Set
 import Style.Widgets.Button as Button
+import Style.Widgets.Text as Text
 import Types.HelperTypes exposing (UnscopedProviderProject)
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
@@ -92,16 +93,18 @@ view context sharedModel model =
                             ]
             in
             Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-                [ Element.el (VH.heading2 context.palette)
-                    (Element.text <|
-                        String.join " "
-                            [ "Choose"
-                            , context.localization.unitOfTenancy
-                                |> Helpers.String.pluralize
-                                |> Helpers.String.toTitleCase
-                            , "for"
-                            , urlLabel
-                            ]
+                [ Text.heading context.palette
+                    []
+                    Element.none
+                    (String.join
+                        " "
+                        [ "Choose"
+                        , context.localization.unitOfTenancy
+                            |> Helpers.String.pluralize
+                            |> Helpers.String.toTitleCase
+                        , "for"
+                        , urlLabel
+                        ]
                     )
                 , VH.renderWebData
                     context

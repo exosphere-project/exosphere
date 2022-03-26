@@ -4,6 +4,7 @@ import Element
 import Element.Border
 import Element.Font as Font
 import Element.Region
+import FeatherIcons
 import Html
 import Html.Attributes exposing (src, style)
 import Style.Helpers as SH
@@ -157,8 +158,21 @@ main =
                 [ storiesOf
                     "Text"
                     [ ( "unstyled", \_ -> toHtml <| text "This is text rendered using `Element.text` and no styling. It will inherit attributes from the document layout.", {} )
-                    , ( "body", \_ -> toHtml <| Text.body veryLongCopy, {} )
+                    , ( "body", \_ -> toHtml <| Text.p [] [ Text.body veryLongCopy ], {} )
                     , ( "bold", \_ -> toHtml <| Text.p [] [ Text.body "Logged in as ", Text.bold "@Jimmy:3421", Text.body "." ], {} )
+                    , ( "heading"
+                      , \_ ->
+                            toHtml <|
+                                Text.heading palette
+                                    []
+                                    (FeatherIcons.helpCircle
+                                        |> FeatherIcons.toHtml []
+                                        |> Element.html
+                                        |> Element.el []
+                                    )
+                                    "Get Support"
+                      , {}
+                      )
                     , ( "h1"
                       , \_ ->
                             toHtml <|
@@ -170,8 +184,8 @@ main =
                     , ( "h2"
                       , \_ ->
                             toHtml <|
-                                Text.h2 palette
-                                    []
+                                Text.text Text.H2
+                                    [ Element.Region.heading 2 ]
                                     "App Config Info"
                       , {}
                       )
@@ -179,12 +193,7 @@ main =
                       , \_ ->
                             toHtml <|
                                 Text.text Text.H3
-                                    [ Element.Region.heading 3
-                                    , Element.Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
-                                    , Element.Border.color (palette.muted |> SH.toElementColor)
-                                    , Element.width Element.fill
-                                    , Element.paddingEach { bottom = 8, left = 0, right = 0, top = 0 }
-                                    ]
+                                    [ Element.Region.heading 3 ]
                                     "App Config Info"
                       , {}
                       )

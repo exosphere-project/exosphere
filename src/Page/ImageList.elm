@@ -20,6 +20,7 @@ import Style.Helpers as SH
 import Style.Widgets.Button as Button
 import Style.Widgets.DataList as DataList
 import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
+import Style.Widgets.Text as Text
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
@@ -115,14 +116,13 @@ view context project model =
         loadedView _ =
             Element.column VH.contentContainer
                 [ if model.showHeading then
-                    Element.row (VH.heading2 context.palette ++ [ Element.spacing 15 ])
-                        [ FeatherIcons.package |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
-                        , Element.text
-                            (context.localization.staticRepresentationOfBlockDeviceContents
-                                |> Helpers.String.pluralize
-                                |> Helpers.String.toTitleCase
-                            )
-                        ]
+                    Text.heading context.palette
+                        []
+                        (FeatherIcons.package |> FeatherIcons.toHtml [] |> Element.html |> Element.el [])
+                        (context.localization.staticRepresentationOfBlockDeviceContents
+                            |> Helpers.String.pluralize
+                            |> Helpers.String.toTitleCase
+                        )
 
                   else
                     Element.none

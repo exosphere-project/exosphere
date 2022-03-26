@@ -11,6 +11,7 @@ import Route
 import Style.Helpers as SH
 import Style.Widgets.Button as Button
 import Style.Widgets.Select
+import Style.Widgets.Text as Text
 import Types.Project exposing (Project)
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..))
@@ -106,13 +107,16 @@ view context project model =
                     )
     in
     Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-        [ Element.el (VH.heading2 context.palette) <|
-            Element.text <|
-                String.join " "
-                    [ "Attach a"
-                    , context.localization.blockDevice
-                        |> Helpers.String.toTitleCase
-                    ]
+        [ Text.heading context.palette
+            []
+            Element.none
+            (String.join
+                " "
+                [ "Attach a"
+                , context.localization.blockDevice
+                    |> Helpers.String.toTitleCase
+                ]
+            )
         , Element.column VH.formContainer
             [ Style.Widgets.Select.select
                 []

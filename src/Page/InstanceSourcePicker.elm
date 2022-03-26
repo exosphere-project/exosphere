@@ -6,6 +6,7 @@ import Helpers.String
 import Page.ImageList
 import Page.InstanceTypeList
 import Style.Helpers as SH
+import Style.Widgets.Text as Text
 import Types.HelperTypes
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg
@@ -74,13 +75,14 @@ view context project model =
                 (VH.exoColumnAttributes
                     ++ [ Element.width Element.fill ]
                 )
-                [ Element.el (VH.heading2 context.palette)
-                    (Element.text <|
-                        String.join " "
-                            [ "Choose"
-                            , Helpers.String.indefiniteArticle context.localization.staticRepresentationOfBlockDeviceContents
-                            , context.localization.staticRepresentationOfBlockDeviceContents
-                            ]
+                [ Text.heading context.palette
+                    []
+                    Element.none
+                    (String.join " "
+                        [ "Choose"
+                        , Helpers.String.indefiniteArticle context.localization.staticRepresentationOfBlockDeviceContents
+                        , context.localization.staticRepresentationOfBlockDeviceContents
+                        ]
                     )
                 , viewImageList
                 ]
@@ -91,16 +93,18 @@ view context project model =
                 (VH.exoColumnAttributes
                     ++ [ Element.width Element.fill ]
                 )
-                [ Element.el (VH.heading2 context.palette) <|
-                    Element.text <|
-                        String.join " "
-                            [ "Choose"
-                            , context.localization.virtualComputer
-                                |> Helpers.String.indefiniteArticle
-                            , context.localization.virtualComputer
-                                |> Helpers.String.toTitleCase
-                            , "Source"
-                            ]
+                [ Text.heading context.palette
+                    []
+                    Element.none
+                    (String.join " "
+                        [ "Choose"
+                        , context.localization.virtualComputer
+                            |> Helpers.String.indefiniteArticle
+                        , context.localization.virtualComputer
+                            |> Helpers.String.toTitleCase
+                        , "Source"
+                        ]
+                    )
                 , Widget.tab (SH.materialStyle context.palette).tab
                     { tabs =
                         Widget.Select

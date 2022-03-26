@@ -14,6 +14,7 @@ import Style.Helpers as SH
 import Style.Types
 import Style.Widgets.Card exposing (clickableCardFixedSize)
 import Style.Widgets.Icon as Icon
+import Style.Widgets.Text as Text
 import Types.HelperTypes as HelperTypes
 import Types.Project exposing (Project)
 import Types.SharedModel exposing (SharedModel)
@@ -82,11 +83,10 @@ viewWithProjects context sharedModel uniqueKeystoneHostnames =
         , Element.spacing 20
         ]
         [ Element.row [ Element.width Element.fill, Element.spacing 25 ]
-            [ Element.el
-                (VH.heading2 context.palette
-                    ++ [ Element.width Element.fill ]
-                )
-                (Element.text "Home")
+            [ Text.heading context.palette
+                [ Element.width Element.fill ]
+                Element.none
+                "Home"
             , if List.isEmpty uniqueKeystoneHostnames then
                 Element.none
 

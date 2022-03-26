@@ -17,6 +17,7 @@ import Style.Widgets.CopyableText
 import Style.Widgets.DataList as DataList
 import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
 import Style.Widgets.Icon as Icon
+import Style.Widgets.Text as Text
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg
@@ -184,14 +185,13 @@ view context project model =
     Element.column
         [ Element.spacing 15, Element.width Element.fill ]
         [ if model.showHeading then
-            Element.row (VH.heading2 context.palette ++ [ Element.spacing 15 ])
-                [ Icon.ipAddress (SH.toElementColor context.palette.on.background) 24
-                , Element.text
-                    (context.localization.floatingIpAddress
-                        |> Helpers.String.pluralize
-                        |> Helpers.String.toTitleCase
-                    )
-                ]
+            Text.heading context.palette
+                []
+                (Icon.ipAddress (SH.toElementColor context.palette.on.background) 24)
+                (context.localization.floatingIpAddress
+                    |> Helpers.String.pluralize
+                    |> Helpers.String.toTitleCase
+                )
 
           else
             Element.none

@@ -7,6 +7,7 @@ import OpenStack.OpenRc
 import OpenStack.Types as OSTypes
 import Style.Helpers as SH
 import Style.Widgets.Button as Button
+import Style.Widgets.Text as Text
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
@@ -122,9 +123,7 @@ view context _ model =
                 |> not
     in
     Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-        [ Element.el
-            (VH.heading2 context.palette)
-            (Element.text "Add an OpenStack Account")
+        [ Text.heading context.palette [] Element.none "Add an OpenStack Account"
         , Element.column VH.formContainer
             [ case model.entryType of
                 CredsEntry ->
