@@ -1,7 +1,6 @@
 module Page.GetSupport exposing (Model, Msg(..), init, update, view)
 
 import Element
-import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons
@@ -252,8 +251,8 @@ view context sharedModel model =
             , if model.isSubmitted then
                 Element.column
                     [ Element.spacing 10, Element.width Element.fill ]
-                    [ Element.paragraph
-                        [ Element.spacing 10 ]
+                    [ Text.p
+                        []
                         [ Element.text "Please copy all of the text below and paste it into an email message to: "
                         , Element.el [ Font.extraBold ] <|
                             Style.Widgets.CopyableText.copyableText context.palette [] sharedModel.style.userSupportEmail

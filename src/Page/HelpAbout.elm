@@ -34,14 +34,14 @@ view model context =
                 defaultHelpAboutText context
         , Text.heading context.palette [] Element.none "App Config Info"
         , Element.column VH.contentContainer
-            [ Element.paragraph [ Element.spacing 8 ] <|
+            [ Text.p [] <|
                 case model.cloudCorsProxyUrl of
                     Nothing ->
                         [ Element.text "You are not using a proxy server." ]
 
                     Just proxyUrl ->
                         [ Element.text ("You are using a cloud CORS proxy server at " ++ proxyUrl ++ ". All communication between Exosphere and OpenStack APIs pass through this server.") ]
-            , Element.paragraph [ Element.spacing 8 ] [ Element.text ("Exosphere client UUID: " ++ UUID.toString model.clientUuid) ]
+            , Text.p [] [ Element.text ("Exosphere client UUID: " ++ UUID.toString model.clientUuid) ]
             ]
         ]
 
@@ -49,7 +49,7 @@ view model context =
 defaultHelpAboutText : View.Types.Context -> Element.Element msg
 defaultHelpAboutText context =
     Element.textColumn (VH.contentContainer ++ [ Font.size 16, Element.spacing 16 ])
-        [ Element.paragraph [ Element.spacing 8 ]
+        [ Text.p []
             [ Element.text "Exosphere is a user-friendly, extensible client for cloud computing. Check out our "
             , VH.externalLink
                 context
@@ -57,7 +57,7 @@ defaultHelpAboutText context =
                 "README on GitLab"
             , Element.text "."
             ]
-        , Element.paragraph [ Element.spacing 8 ]
+        , Text.p []
             [ Element.text "To ask for help, report a bug, or request a new feature, "
             , VH.externalLink
                 context

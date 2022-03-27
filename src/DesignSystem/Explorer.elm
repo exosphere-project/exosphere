@@ -1,7 +1,6 @@
 module DesignSystem.Explorer exposing (main)
 
 import Element
-import Element.Border
 import Element.Font as Font
 import Element.Region
 import FeatherIcons
@@ -158,7 +157,7 @@ main =
                 [ storiesOf
                     "Text"
                     [ ( "unstyled", \_ -> toHtml <| text "This is text rendered using `Element.text` and no styling. It will inherit attributes from the document layout.", {} )
-                    , ( "body", \_ -> toHtml <| Text.p [] [ Text.body veryLongCopy ], {} )
+                    , ( "p", \_ -> toHtml <| Text.p [] [ Text.body veryLongCopy ], {} )
                     , ( "bold", \_ -> toHtml <| Text.p [] [ Text.body "Logged in as ", Text.bold "@Jimmy:3421", Text.body "." ], {} )
                     , ( "heading"
                       , \_ ->

@@ -14,7 +14,6 @@ import Style.Types exposing (ExoPalette)
 
 type FontWeight
     = Bold
-    | Semibold
     | Regular
 
 
@@ -77,9 +76,6 @@ fontWeightAttr weight =
         Bold ->
             Font.bold
 
-        Semibold ->
-            Font.semiBold
-
         Regular ->
             Font.regular
 
@@ -95,7 +91,11 @@ defaultTypeface =
 p : List (Element.Attribute msg) -> List (Element.Element msg) -> Element.Element msg
 p options lines =
     Element.paragraph
-        options
+        ([ defaultTypeface
+         , Element.spacing 8
+         ]
+            ++ options
+        )
         lines
 
 
