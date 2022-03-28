@@ -1,4 +1,4 @@
-module Style.Widgets.Text exposing (TextVariant(..), body, bold, heading, p, subheading, text)
+module Style.Widgets.Text exposing (TextVariant(..), body, bold, heading, p, subheading, text, underline)
 
 import Element
 import Element.Border as Border
@@ -141,6 +141,19 @@ body label =
 bold : String -> Element.Element msg
 bold label =
     text Strong [] label
+
+
+underline : String -> Element.Element msg
+underline label =
+    text Body
+        [ Border.widthEach
+            { bottom = 1
+            , left = 0
+            , top = 0
+            , right = 0
+            }
+        ]
+        label
 
 
 heading : ExoPalette -> List (Element.Attribute msg) -> Element.Element msg -> String -> Element.Element msg

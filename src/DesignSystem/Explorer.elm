@@ -1,6 +1,7 @@
 module DesignSystem.Explorer exposing (main)
 
 import Element
+import Element.Border as Border
 import Element.Font as Font
 import Element.Region
 import FeatherIcons
@@ -44,7 +45,7 @@ veryLongCopy =
     making it over 2000 years old. Richard McClintock, a Latin professor at Hampden-Sydney College in Virginia, looked up one of the more obscure Latin words,
     consectetur, from a Lorem Ipsum passage, and going through the cites of the word in classical literature, discovered the undoubtable source.
     Lorem Ipsum comes from sections 1.10.32 and 1.10.33 of "de Finibus Bonorum et Malorum" (The Extremes of Good and Evil) by Cicero, written in 45 BC.
-    This book is a treatise on the theory of ethics, very popular during the Renaissance. [ref. https://www.lipsum.com/]
+    This book is a treatise on the theory of ethics, very popular during the Renaissance.
     """
 
 
@@ -157,8 +158,42 @@ main =
                 [ storiesOf
                     "Text"
                     [ ( "unstyled", \_ -> toHtml <| text "This is text rendered using `Element.text` and no styling. It will inherit attributes from the document layout.", {} )
-                    , ( "p", \_ -> toHtml <| Text.p [] [ Text.body veryLongCopy ], {} )
+                    , ( "p"
+                      , \_ ->
+                            toHtml <|
+                                Text.p []
+                                    [ Text.body veryLongCopy
+                                    , Text.body "[ref. "
+                                    , Element.newTabLink
+                                        [ palette.primary |> SH.toElementColor |> Font.color
+                                        , Element.pointer
+                                        , Border.color (SH.toElementColor palette.background)
+                                        , Border.widthEach
+                                            { bottom = 1
+                                            , left = 0
+                                            , top = 0
+                                            , right = 0
+                                            }
+                                        , Element.mouseOver [ Border.color (SH.toElementColor palette.primary) ]
+                                        ]
+                                        { url = "https://www.lipsum.com/"
+                                        , label = Text.body "www.lipsum.com"
+                                        }
+                                    , Text.body "]"
+                                    ]
+                      , {}
+                      )
                     , ( "bold", \_ -> toHtml <| Text.p [] [ Text.body "Logged in as ", Text.bold "@Jimmy:3421", Text.body "." ], {} )
+                    , ( "underline"
+                      , \_ ->
+                            toHtml <|
+                                Text.p []
+                                    [ Text.body "Exosphere is a "
+                                    , Text.underline "user-friendly"
+                                    , Text.body ", extensible client for cloud computing."
+                                    ]
+                      , {}
+                      )
                     , ( "heading"
                       , \_ ->
                             toHtml <|
