@@ -119,12 +119,10 @@ volumeDetail context project model =
                     [ Style.Widgets.Card.exoCard context.palette
                         (Element.column
                             VH.contentContainer
-                            [ Element.row []
-                                [ Element.el
-                                    (VH.heading3 context.palette)
-                                  <|
-                                    Element.text "Status"
-                                ]
+                            [ Text.subheading context.palette
+                                [ Element.width Element.shrink ]
+                                Element.none
+                                "Status"
                             , Element.row []
                                 [ Element.el [] (Element.text <| OSTypes.volumeStatusToString volume.status) ]
                             , case volume.description of
@@ -216,13 +214,11 @@ renderAttachments context project volume =
 
         _ ->
             Element.column []
-                [ Element.row [ Element.paddingXY 0 15 ]
-                    [ Element.el
-                        (VH.heading3 context.palette)
-                      <|
-                        Element.text "Attached to"
-                    ]
-                , Element.row []
+                [ Text.subheading context.palette
+                    [ Element.width Element.shrink ]
+                    Element.none
+                    "Attached to"
+                , Element.row [ Element.paddingXY 0 15 ]
                     [ Element.row (VH.exoColumnAttributes ++ [ Element.padding 0 ]) <| List.map (renderAttachment context project) volume.attachments
                     ]
                 ]

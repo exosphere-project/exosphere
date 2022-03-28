@@ -1050,9 +1050,9 @@ customWorkflowInputExperimental context model =
             { label =
                 Input.labelAbove [ Element.paddingXY 0 12 ]
                     (Element.row [ Element.spacingXY 10 0 ]
-                        [ Element.el
-                            (VH.heading4 ++ [ Font.size 17 ])
-                            (Element.text ("Launch a workflow in the " ++ context.localization.virtualComputer))
+                        [ Text.text Text.H4
+                            []
+                            ("Launch a workflow in the " ++ context.localization.virtualComputer)
                         , experimentalBadge
                         , workflowExplanationToggleTip
                         ]
@@ -1115,9 +1115,7 @@ clusterInputExperimental context model =
             { label =
                 Input.labelAbove [ Element.paddingXY 0 12 ]
                     (Element.row [ Element.spacingXY 10 0 ]
-                        [ Element.el
-                            (VH.heading4 ++ [ Font.size 17 ])
-                            (Element.text ("Create your own SLURM cluster with this " ++ context.localization.virtualComputer ++ " as the head node"))
+                        [ Text.text Text.H4 [] ("Create your own SLURM cluster with this " ++ context.localization.virtualComputer ++ " as the head node")
                         , experimentalBadge
                         ]
                     )

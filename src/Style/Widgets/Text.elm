@@ -1,4 +1,4 @@
-module Style.Widgets.Text exposing (TextVariant(..), body, bold, heading, p, text)
+module Style.Widgets.Text exposing (TextVariant(..), body, bold, heading, p, subheading, text)
 
 import Element
 import Element.Border as Border
@@ -55,7 +55,7 @@ typography variant =
             }
 
         H4 ->
-            { size = 16
+            { size = 17
             , weight = Bold
             }
 
@@ -157,4 +157,21 @@ heading palette options icon label =
         )
         [ icon
         , text H2 [] label
+        ]
+
+
+subheading : ExoPalette -> List (Element.Attribute msg) -> Element.Element msg -> String -> Element.Element msg
+subheading palette options icon label =
+    row
+        ([ Region.heading 3
+         , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
+         , Border.color (palette.muted |> SH.toElementColor)
+         , Element.width Element.fill
+         , Element.paddingEach { bottom = 8, left = 0, right = 0, top = 0 }
+         , Element.spacing 12
+         ]
+            ++ options
+        )
+        [ icon
+        , text H3 [] label
         ]

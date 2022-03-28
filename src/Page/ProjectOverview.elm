@@ -19,6 +19,7 @@ import Style.Helpers as SH
 import Style.Widgets.Card
 import Style.Widgets.Icon as Icon
 import Style.Widgets.Meter
+import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
 import Time
 import Types.Jetstream2Accounting
@@ -66,17 +67,13 @@ view context project currentTime model =
                 , label =
                     tile context
                         [ Element.column [ Element.padding 18, Element.width Element.fill, Element.spacing 20 ]
-                            [ Element.row
-                                (VH.heading3 context.palette
-                                    ++ [ Element.spacing 12
-                                       , Element.paddingEach { bottom = 0, left = 0, right = 0, top = 0 }
-                                       , Border.width 0
-                                       , Element.pointer
-                                       ]
-                                )
-                                [ icon
-                                , Element.text str
+                            [ Text.subheading context.palette
+                                [ Element.paddingEach { bottom = 0, left = 0, right = 0, top = 0 }
+                                , Border.width 0
+                                , Element.pointer
                                 ]
+                                icon
+                                str
                             , Element.el [ Element.centerX ] quotaMeter
                             , contents
                             ]

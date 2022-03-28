@@ -172,6 +172,19 @@ main =
                                     "Get Support"
                       , {}
                       )
+                    , ( "subheading"
+                      , \_ ->
+                            toHtml <|
+                                Text.subheading palette
+                                    []
+                                    (FeatherIcons.hardDrive
+                                        |> FeatherIcons.toHtml []
+                                        |> Element.html
+                                        |> Element.el []
+                                    )
+                                    "Volumes"
+                      , {}
+                      )
                     , ( "h1"
                       , \_ ->
                             toHtml <|

@@ -85,7 +85,7 @@ view context sharedModel model =
                     ]
                 , selected =
                     Just sharedModel.style.styleMode.theme
-                , label = Input.labelAbove VH.heading4 (Element.text "Color theme")
+                , label = Input.labelAbove [] (Text.text Text.H4 [] "Color theme")
                 }
             , Input.radio
                 VH.exoColumnAttributes
@@ -99,11 +99,12 @@ view context sharedModel model =
                 , selected =
                     Just sharedModel.viewContext.experimentalFeaturesEnabled
                 , label =
-                    Input.labelAbove VH.heading4
-                        (Element.el
+                    Input.labelAbove
+                        []
+                        (Text.text Text.H4
                             [ Element.onRight experimentalFeatureToggleTip
                             ]
-                            (Element.text "Experimental features")
+                            "Experimental features"
                         )
                 }
             ]
