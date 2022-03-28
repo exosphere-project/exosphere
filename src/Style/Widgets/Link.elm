@@ -1,4 +1,4 @@
-module Style.Widgets.Link exposing (Behaviour(..), externalLink, link, navigate)
+module Style.Widgets.Link exposing (Behaviour(..), externalLink, link, linkStyle, navigate)
 
 import Element
 import Element.Border as Border
