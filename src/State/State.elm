@@ -2379,7 +2379,9 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                                         )
 
                                     else
-                                        ( exoOriginProps.exoSetupStatus, Cmd.none )
+                                        ( RDPP.setNotLoading exoOriginProps.exoSetupStatus
+                                        , Cmd.none
+                                        )
 
                         newResourceUsage =
                             case result of

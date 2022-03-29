@@ -6,6 +6,7 @@ module Helpers.RemoteDataPlusPlus exposing
     , RequestedTime
     , empty
     , setLoading
+    , setNotLoading
     , withDefault
     )
 
@@ -65,3 +66,8 @@ empty =
 setLoading : RemoteDataPlusPlus x y -> RemoteDataPlusPlus x y
 setLoading rdpp =
     { rdpp | refreshStatus = Loading }
+
+
+setNotLoading : RemoteDataPlusPlus x y -> RemoteDataPlusPlus x y
+setNotLoading rdpp =
+    { rdpp | refreshStatus = NotLoading Nothing }
