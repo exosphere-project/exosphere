@@ -3,6 +3,7 @@ module Page.HelpAbout exposing (view)
 import Element
 import Element.Font as Font
 import FeatherIcons
+import Style.Widgets.Link as Link
 import Style.Widgets.Text as Text
 import Types.SharedModel exposing (SharedModel)
 import UUID
@@ -51,26 +52,26 @@ defaultHelpAboutText context =
     Element.textColumn (VH.contentContainer ++ [ Font.size 16, Element.spacing 16 ])
         [ Text.p []
             [ Element.text "Exosphere is a user-friendly, extensible client for cloud computing. Check out our "
-            , VH.externalLink
-                context
+            , Link.externalLink
+                context.palette
                 "https://gitlab.com/exosphere/exosphere/blob/master/README.md"
                 "README on GitLab"
             , Element.text "."
             ]
         , Text.p []
             [ Element.text "To ask for help, report a bug, or request a new feature, "
-            , VH.externalLink
-                context
+            , Link.externalLink
+                context.palette
                 "https://gitlab.com/exosphere/exosphere/issues"
                 "create an issue"
             , Element.text " on Exosphere's GitLab project. Someone will respond within a day or so. For real-time assistance, try Exosphere chat. Our chat is on "
-            , VH.externalLink
-                context
+            , Link.externalLink
+                context.palette
                 "https://gitter.im/exosphere-app/community"
                 "gitter"
             , Element.text " and "
-            , VH.externalLink
-                context
+            , Link.externalLink
+                context.palette
                 "https://riot.im/app/#/room/#exosphere:matrix.org"
                 "Matrix via Element"
             , Element.text ". The chat is bridged across both platforms, so join whichever you prefer."

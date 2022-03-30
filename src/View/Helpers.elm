@@ -9,7 +9,6 @@ module View.Helpers exposing
     , exoElementAttributes
     , exoPaddingSpacingAttributes
     , exoRowAttributes
-    , externalLink
     , featuredImageNamePrefixLookup
     , flavorPicker
     , formContainer
@@ -23,7 +22,6 @@ module View.Helpers exposing
     , inputItemAttributes
     , invalidInputAttributes
     , invalidInputHelperText
-    , linkAttribs
     , loginPickerButton
     , possiblyUntitledResource
     , renderIf
@@ -327,15 +325,6 @@ linkAttribs context =
         }
     , Element.mouseOver [ Border.color (SH.toElementColor context.palette.primary) ]
     ]
-
-
-externalLink : View.Types.Context -> Types.HelperTypes.Url -> String -> Element.Element msg
-externalLink context url label =
-    Element.newTabLink
-        (linkAttribs context)
-        { url = url
-        , label = Element.text label
-        }
 
 
 possiblyUntitledResource : String -> String -> String

@@ -7,6 +7,7 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import Route
 import Style.Helpers as SH
+import Style.Widgets.Link as Link
 import Types.OuterModel
 import Types.SharedMsg exposing (SharedMsg)
 import Types.View
@@ -16,7 +17,6 @@ import Types.View
         , ProjectViewConstructor(..)
         , ViewState(..)
         )
-import View.Helpers
 import View.PageTitle
 import View.Types
 
@@ -39,11 +39,7 @@ renderItem disableClick context item =
     else
         case item.route of
             Just route ->
-                Element.link
-                    (View.Helpers.linkAttribs context)
-                    { url = Route.toUrl context.urlPathPrefix route
-                    , label = Element.text item.label
-                    }
+                Link.navigate Link.Direct context.palette (Route.toUrl context.urlPathPrefix route) (Element.text item.label)
 
             Nothing ->
                 Element.text item.label

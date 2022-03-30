@@ -7,6 +7,7 @@ import OpenStack.OpenRc
 import OpenStack.Types as OSTypes
 import Style.Helpers as SH
 import Style.Widgets.Button as Button
+import Style.Widgets.Link as Link
 import Style.Widgets.Text as Text
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
@@ -239,8 +240,8 @@ loginOpenstackOpenRcEntry context model =
         VH.formContainer
         [ Element.paragraph []
             [ Element.text "Paste an "
-            , VH.externalLink
-                context
+            , Link.externalLink
+                context.palette
                 "https://docs.openstack.org/newton/install-guide-rdo/keystone-openrc.html"
                 "OpenRC"
             , Element.text " file"

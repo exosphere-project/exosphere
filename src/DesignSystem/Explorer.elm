@@ -1,7 +1,6 @@
 module DesignSystem.Explorer exposing (main)
 
 import Element
-import Element.Border as Border
 import Element.Font as Font
 import Element.Region
 import FeatherIcons
@@ -14,6 +13,7 @@ import Style.Widgets.Card exposing (badge, clickableCardFixedSize, exoCard, exoC
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon exposing (bell, console, copyToClipboard, history, ipAddress, lock, lockOpen, plusCircle, remove, roundRect, timesCircle)
 import Style.Widgets.IconButton exposing (chip)
+import Style.Widgets.Link as Link
 import Style.Widgets.Meter exposing (meter)
 import Style.Widgets.StatusBadge exposing (StatusBadgeState(..), statusBadge)
 import Style.Widgets.Text as Text
@@ -196,21 +196,7 @@ main =
                                 Text.p [ Font.justify ]
                                     [ Text.body veryLongCopy
                                     , Text.body "[ref. "
-                                    , Element.newTabLink
-                                        [ palette.primary |> SH.toElementColor |> Font.color
-                                        , Element.pointer
-                                        , Border.color (SH.toElementColor palette.background)
-                                        , Border.widthEach
-                                            { bottom = 1
-                                            , left = 0
-                                            , top = 0
-                                            , right = 0
-                                            }
-                                        , Element.mouseOver [ Border.color (SH.toElementColor palette.primary) ]
-                                        ]
-                                        { url = "https://www.lipsum.com/"
-                                        , label = Text.body "www.lipsum.com"
-                                        }
+                                    , Link.externalLink palette "https://www.lipsum.com/" "www.lipsum.com"
                                     , Text.body "]"
                                     ]
                       , {}
@@ -277,6 +263,22 @@ main =
                       , {}
                       )
                     , ( "h4", \_ -> toHtml <| Text.text Text.H4 [ Element.Region.heading 4 ] "App Config Info", {} )
+                    ]
+                , storiesOf
+                    "Link"
+                    [ ( "external"
+                      , \_ ->
+                            toHtml <|
+                                Text.p []
+                                    [ Text.body "Exosphere is a user-friendly, extensible client for cloud computing. Check out our "
+                                    , Link.externalLink
+                                        palette
+                                        "https://gitlab.com/exosphere/exosphere/blob/master/README.md"
+                                        "README on GitLab"
+                                    , Element.text "."
+                                    ]
+                      , {}
+                      )
                     ]
                 , storiesOf
                     "Icon"
