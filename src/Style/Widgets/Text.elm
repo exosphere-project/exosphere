@@ -1,4 +1,4 @@
-module Style.Widgets.Text exposing (TextVariant(..), body, bold, heading, p, subheading, text, underline)
+module Style.Widgets.Text exposing (TextVariant(..), body, bold, heading, headingStyleAttrs, p, subheading, subheadingStyleAttrs, text, typography, underline)
 
 import Element
 import Element.Border as Border
@@ -88,6 +88,28 @@ defaultTypeface =
         ]
 
 
+headingStyleAttrs : ExoPalette -> List (Element.Attribute msg)
+headingStyleAttrs palette =
+    [ Region.heading 2
+    , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
+    , Border.color (palette.muted |> SH.toElementColor)
+    , Element.width Element.fill
+    , Element.paddingEach { bottom = 8, left = 0, right = 0, top = 0 }
+    , Element.spacing 12
+    ]
+
+
+subheadingStyleAttrs : ExoPalette -> List (Element.Attribute msg)
+subheadingStyleAttrs palette =
+    [ Region.heading 3
+    , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
+    , Border.color (palette.muted |> SH.toElementColor)
+    , Element.width Element.fill
+    , Element.paddingEach { bottom = 8, left = 0, right = 0, top = 0 }
+    , Element.spacing 12
+    ]
+
+
 p : List (Element.Attribute msg) -> List (Element.Element msg) -> Element.Element msg
 p styleAttrs lines =
     Element.paragraph
@@ -159,13 +181,7 @@ underline label =
 heading : ExoPalette -> List (Element.Attribute msg) -> Element.Element msg -> String -> Element.Element msg
 heading palette styleAttrs icon label =
     row
-        ([ Region.heading 2
-         , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
-         , Border.color (palette.muted |> SH.toElementColor)
-         , Element.width Element.fill
-         , Element.paddingEach { bottom = 8, left = 0, right = 0, top = 0 }
-         , Element.spacing 12
-         ]
+        (headingStyleAttrs palette
             ++ styleAttrs
         )
         [ icon
@@ -176,13 +192,7 @@ heading palette styleAttrs icon label =
 subheading : ExoPalette -> List (Element.Attribute msg) -> Element.Element msg -> String -> Element.Element msg
 subheading palette styleAttrs icon label =
     row
-        ([ Region.heading 3
-         , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
-         , Border.color (palette.muted |> SH.toElementColor)
-         , Element.width Element.fill
-         , Element.paddingEach { bottom = 8, left = 0, right = 0, top = 0 }
-         , Element.spacing 12
-         ]
+        (subheadingStyleAttrs palette
             ++ styleAttrs
         )
         [ icon
