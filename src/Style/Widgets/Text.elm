@@ -89,32 +89,32 @@ defaultTypeface =
 
 
 p : List (Element.Attribute msg) -> List (Element.Element msg) -> Element.Element msg
-p options lines =
+p styleAttrs lines =
     Element.paragraph
         ([ defaultTypeface
          , Element.spacing 8
          ]
-            ++ options
+            ++ styleAttrs
         )
         lines
 
 
 row : List (Element.Attribute msg) -> List (Element.Element msg) -> Element.Element msg
-row options elements =
+row styleAttrs elements =
     Element.row
-        options
+        styleAttrs
         elements
 
 
 el : List (Element.Attribute msg) -> String -> Element.Element msg
-el options label =
+el styleAttrs label =
     Element.el
-        options
+        styleAttrs
         (Element.text label)
 
 
 text : TextVariant -> List (Element.Attribute msg) -> String -> Element.Element msg
-text variant options label =
+text variant styleAttrs label =
     let
         typo =
             typography variant
@@ -124,7 +124,7 @@ text variant options label =
          , Font.size typo.size
          , fontWeightAttr typo.weight
          ]
-            ++ options
+            ++ styleAttrs
         )
         label
 
@@ -157,7 +157,7 @@ underline label =
 
 
 heading : ExoPalette -> List (Element.Attribute msg) -> Element.Element msg -> String -> Element.Element msg
-heading palette options icon label =
+heading palette styleAttrs icon label =
     row
         ([ Region.heading 2
          , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
@@ -166,7 +166,7 @@ heading palette options icon label =
          , Element.paddingEach { bottom = 8, left = 0, right = 0, top = 0 }
          , Element.spacing 12
          ]
-            ++ options
+            ++ styleAttrs
         )
         [ icon
         , text H2 [] label
@@ -174,7 +174,7 @@ heading palette options icon label =
 
 
 subheading : ExoPalette -> List (Element.Attribute msg) -> Element.Element msg -> String -> Element.Element msg
-subheading palette options icon label =
+subheading palette styleAttrs icon label =
     row
         ([ Region.heading 3
          , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
@@ -183,7 +183,7 @@ subheading palette options icon label =
          , Element.paddingEach { bottom = 8, left = 0, right = 0, top = 0 }
          , Element.spacing 12
          ]
-            ++ options
+            ++ styleAttrs
         )
         [ icon
         , text H3 [] label
