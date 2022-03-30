@@ -79,6 +79,7 @@ import Style.Helpers as SH exposing (shadowDefaults)
 import Style.Types exposing (ExoPalette)
 import Style.Widgets.Button as Button
 import Style.Widgets.StatusBadge as StatusBadge
+import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip as ToggleTip
 import Types.Error exposing (ErrorLevel(..), toFriendlyErrorLevel)
 import Types.HelperTypes
@@ -131,33 +132,25 @@ inputItemAttributes backgroundColor =
 
 heading2 : ExoPalette -> List (Element.Attribute msg)
 heading2 palette =
-    [ Region.heading 2
-    , Font.bold
-    , Font.size 24
-    , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
-    , Border.color (palette.muted |> SH.toElementColor)
-    , Element.width Element.fill
-    , Element.paddingEach { bottom = 8, left = 0, right = 0, top = 0 }
-    ]
+    Text.headingStyleAttrs palette
+        ++ [ Text.fontWeightAttr (Text.typography Text.H2).weight
+           , Font.size (Text.typography Text.H2).size
+           ]
 
 
 heading3 : ExoPalette -> List (Element.Attribute msg)
 heading3 palette =
-    [ Region.heading 3
-    , Font.bold
-    , Font.size 20
-    , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
-    , Border.color (palette.muted |> SH.toElementColor)
-    , Element.width Element.fill
-    , Element.paddingEach { bottom = 8, left = 0, right = 0, top = 0 }
-    ]
+    Text.subheadingStyleAttrs palette
+        ++ [ Text.fontWeightAttr (Text.typography Text.H3).weight
+           , Font.size (Text.typography Text.H3).size
+           ]
 
 
 heading4 : List (Element.Attribute msg)
 heading4 =
     [ Region.heading 4
-    , Font.bold
-    , Font.size 16
+    , Text.fontWeightAttr (Text.typography Text.H4).weight
+    , Font.size (Text.typography Text.H4).size
     , Element.width Element.fill
     ]
 

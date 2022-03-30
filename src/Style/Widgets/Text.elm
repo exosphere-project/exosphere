@@ -1,4 +1,4 @@
-module Style.Widgets.Text exposing (TextVariant(..), body, bold, heading, headingStyleAttrs, p, subheading, subheadingStyleAttrs, text, typography, underline)
+module Style.Widgets.Text exposing (TextVariant(..), body, bold, fontWeightAttr, heading, headingStyleAttrs, p, subheading, subheadingStyleAttrs, text, typography, underline)
 
 import Element
 import Element.Border as Border
