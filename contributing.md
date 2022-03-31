@@ -36,6 +36,7 @@ Maintainers, please ensure the MR passes this checklist before approving or merg
   - `config.js`
   - all files in `environment-configs/`, including `docker-config.js`
   - "Runtime configuration options" section in README.md
+- MR does not use hard-coded representations of localized strings in the UI
 - If MR uncovers or causes any new issues worth following up on, follow-up issues are created with descriptions that refer to the MR
   - If MR introduces any technical debt, follow-up issues should be assigned to MR author
 
