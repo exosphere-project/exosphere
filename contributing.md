@@ -57,6 +57,8 @@ The most frequent cause of CI pipeline failure is due to issues found by `elm-an
  npm run elm:analyse
  ```
 
+Please consider [configuring your editor](https://github.com/avh4/elm-format#editor-integration) to run `elm-format` whenever you save a file. It automatically formats your code! If you save early and often, this saves you lots of typing and indenting work.
+
 ### Enabling CI On Your Fork
 
 Before submitting a merge request, we request that you *enable GitLab CI/CD on your fork project*. It is easier and safer for us to accept contributions that show passing tests!
