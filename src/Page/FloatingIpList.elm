@@ -12,10 +12,11 @@ import Page.QuotaUsage
 import Route
 import Set
 import Style.Helpers as SH
+import Style.Types as ST
 import Style.Widgets.Button as Button
 import Style.Widgets.CopyableText
 import Style.Widgets.DataList as DataList
-import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
+import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirmAttribs)
 import Style.Widgets.Icon as Icon
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.Project exposing (Project)
@@ -281,16 +282,15 @@ floatingIpView model context project floatingIpRecord =
         deleteIpButton =
             Element.el
                 (if showDeletePopconfirm then
-                    [ Element.below <|
-                        deletePopconfirm context.palette
-                            { confirmationText =
-                                "Are you sure you want to delete this "
-                                    ++ context.localization.floatingIpAddress
-                                    ++ "?"
-                            , onConfirm = Just <| GotDeleteConfirm floatingIpRecord.id
-                            , onCancel = Just <| ShowDeletePopconfirm floatingIpRecord.id False
-                            }
-                    ]
+                    deletePopconfirmAttribs ST.PositionBottomRight
+                        context.palette
+                        { confirmationText =
+                            "Are you sure you want to delete this "
+                                ++ context.localization.floatingIpAddress
+                                ++ "?"
+                        , onConfirm = Just <| GotDeleteConfirm floatingIpRecord.id
+                        , onCancel = Just <| ShowDeletePopconfirm floatingIpRecord.id False
+                        }
 
                  else
                     []

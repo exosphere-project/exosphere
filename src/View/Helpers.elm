@@ -3,7 +3,6 @@ module View.Helpers exposing
     , compactKVSubRow
     , contentContainer
     , createdAgoByFromSize
-    , dropdownAttributes
     , edges
     , ellipsizedText
     , exoColumnAttributes
@@ -78,8 +77,8 @@ import OpenStack.Types as OSTypes
 import Regex
 import RemoteData
 import Route
-import Style.Helpers as SH exposing (shadowDefaults)
-import Style.Types exposing (ExoPalette)
+import Style.Helpers as SH
+import Style.Types as ST exposing (ExoPalette)
 import Style.Widgets.Button as Button
 import Style.Widgets.StatusBadge as StatusBadge
 import Style.Widgets.ToggleTip as ToggleTip
@@ -216,28 +215,6 @@ edges =
     , bottom = 0
     , left = 0
     }
-
-
-dropdownAttributes : View.Types.Context -> List (Element.Attribute msg)
-dropdownAttributes context =
-    [ Element.alignRight
-    , Element.moveDown 5
-    , Element.spacing 5
-    , Element.paddingEach
-        { top = 5
-        , right = 6
-        , bottom = 5
-        , left = 6
-        }
-    , Background.color <| SH.toElementColor context.palette.background
-    , Border.shadow
-        { shadowDefaults
-            | color = SH.toElementColorWithOpacity context.palette.muted 0.2
-        }
-    , Border.width 1
-    , Border.color <| SH.toElementColor context.palette.muted
-    , Border.rounded 4
-    ]
 
 
 ellipsizedText : String -> Element.Element msg
@@ -487,7 +464,7 @@ loginPickerButton context =
         }
 
 
-serverStatusBadge : Style.Types.ExoPalette -> Server -> Element.Element msg
+serverStatusBadge : ExoPalette -> Server -> Element.Element msg
 serverStatusBadge palette server =
     let
         contents =
@@ -1278,6 +1255,7 @@ flavorPicker context project restrictFlavorIds computeQuota selectedFlavorGroupT
                                 in
                                 ToggleTip.toggleTip context.palette
                                     (Element.text description)
+                                    ST.PositionRight
                                     selected
                                     (selectFlavorGroupToggleTipMsg
                                         (if selected then

@@ -23,6 +23,7 @@ import Page.ServerResourceUsageCharts
 import RemoteData
 import Route
 import Style.Helpers as SH exposing (shadowDefaults)
+import Style.Types as ST
 import Style.Widgets.Card
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon as Icon
@@ -223,6 +224,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                 , Style.Widgets.ToggleTip.toggleTip
                     context.palette
                     toggleTipContents
+                    ST.PositionBottomLeft
                     model.showCreatedTimeToggleTip
                     (GotShowCreatedTimeToggleTip (not model.showCreatedTimeToggleTip))
                 ]
@@ -286,6 +288,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                             Style.Widgets.ToggleTip.toggleTip
                                 context.palette
                                 toggleTipContents
+                                ST.PositionBottomRight
                                 model.showFlavorToggleTip
                                 (GotShowFlavorToggleTip (not model.showFlavorToggleTip))
                     in
@@ -772,7 +775,7 @@ serverStatus context model server =
 
                 contents =
                     -- TODO nicer layout here?
-                    Element.column []
+                    Element.column [ Element.spacing 6, Element.padding 6 ]
                         [ Element.text ("OpenStack Status: " ++ friendlyOpenstackStatus details.openstackStatus)
                         , case server.exoProps.targetOpenstackStatus of
                             Just expectedStatusList ->
@@ -807,6 +810,7 @@ serverStatus context model server =
             in
             Style.Widgets.ToggleTip.toggleTip context.palette
                 contents
+                ST.PositionLeft
                 model.verboseStatus
                 (GotShowVerboseStatus (not model.verboseStatus))
     in
@@ -904,6 +908,7 @@ interactions context project server currentTime tlsReverseProxyHostname model =
                     Style.Widgets.ToggleTip.toggleTip
                         context.palette
                         contents
+                        ST.PositionRightBottom
                         shown
                         (showHideMsg interaction)
             in
@@ -1070,7 +1075,9 @@ serverActionsDropdown context project model server =
     let
         contents =
             Element.column
-                (VH.dropdownAttributes context ++ [ Element.padding 10 ])
+                (SH.popoverStyleDefaults context.palette
+                    ++ [ Element.spacing 8, Element.padding 20 ]
+                )
             <|
                 List.map
                     (renderServerActionButton context project model server)
@@ -1084,7 +1091,9 @@ serverActionsDropdown context project model server =
 
         ( attribs, icon ) =
             if model.showActionsDropdown then
-                ( [ Element.below contents ], FeatherIcons.chevronUp )
+                ( SH.popoverAttribs contents ST.PositionBottomRight Nothing
+                , FeatherIcons.chevronUp
+                )
 
             else
                 ( [], FeatherIcons.chevronDown )
@@ -1166,6 +1175,7 @@ serverEventHistory context model currentTime serverEventsRDPP =
                                         in
                                         Style.Widgets.ToggleTip.toggleTip context.palette
                                             (Element.text (Helpers.Time.humanReadableDateAndTime event.startTime))
+                                            ST.PositionBottomRight
                                             shown
                                             showHideMsg
                                 in
