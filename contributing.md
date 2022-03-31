@@ -14,6 +14,31 @@ Exosphere is hosted on [gitlab.com](https://gitlab.com), an open-source service 
 
 If you have used GitHub, this should feel familiar. If not, feel free to ask the maintainers for help. We are happy to provide an orientation.
 
+## Submitting a Contribution (Merge Request)
+
+When creating a merge request (MR), please begin the MR title with "Draft: " until you believe it passes the MR Quality Checklist below. When you're done, mark the MR as ready (i.e. remove the "Draft: " prefix), and it will be reviewed within one working day or so.
+
+Maintainers are happy to provide guidance as needed, even if your MR is still in early draft status. Just ask in the Exosphere development chat. To request review from a specific person, please add them to the "Reviewers" section, leaving the MR assigned to yourself.
+
+If your MR fixes one or more issues, please do not close them before your MR is merged. The merge should close the issues automatically.
+
+## MR Quality Checklist
+
+Maintainers, please ensure the MR passes this checklist before approving or merging. Consider offering to help if the contributor is new.
+
+- All applicable sections are populated in the MR description
+- MR effectively addresses all issues that it claims to fix
+- MR is not a net decrease in the consistency or polish of Exosphere's UI
+- MR is not a net decrease in Exosphere's code quality
+- MR does not break existing functionality or behavior that users are likely to care about
+- If MR adds/changes/removes widgets in `src/Style/Widgets/`, then `src/Style/StyleGuide.elm` shows example usage of that widget
+- If MR adds/changes/removes app flags (in `src/Types/Flags.elm`), then the following are updated accordingly:
+  - `config.js`
+  - all files in `environment-configs/`, including `docker-config.js`
+  - "Runtime configuration options" section in README.md
+- If MR uncovers or causes any new issues worth following up on, follow-up issues are created with descriptions that refer to the MR
+  - If MR introduces any technical debt, follow-up issues should be assigned to MR author
+
 ## Continuous Integration
 
 Our continuous integration (CI) pipeline runs:
