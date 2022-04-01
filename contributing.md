@@ -1,3 +1,5 @@
+# Contributing to Exosphere
+
 ## Contributor Guidelines
 
 - Be respectful
@@ -6,7 +8,7 @@
 
 ## About GitLab
 
-Exosphere is hosted on [gitlab.com](https://gitlab.com), an open-source service which is similar to GitHub in many ways. One difference is that a code contribution on GitLab is called a _merge request_ instead of a _pull request_ -- but the concept is the same, as is the contribution workflow:
+Exosphere is hosted on [gitlab.com](https://gitlab.com), an open-source service that is similar to GitHub in many ways. One difference is that a code contribution on GitLab is called a _merge request_ (MR) instead of a _pull request_ (PR) -- but the concept is the same, as is the contribution workflow:
 
 1. Create your own fork of the [exosphere/exosphere](https://gitlab.com/exosphere/exosphere) project
 2. On that fork project, create a branch for your work, and push one or more commits to that branch
@@ -14,31 +16,34 @@ Exosphere is hosted on [gitlab.com](https://gitlab.com), an open-source service 
 
 If you have used GitHub, this should feel familiar. If not, feel free to ask the maintainers for help. We are happy to provide an orientation.
 
-## Submitting a Contribution (Merge Request)
+## Submitting a Contribution
 
-When creating a merge request (MR), please begin the MR title with "Draft: " until you believe it passes the MR Quality Checklist below. When you're done, mark the MR as ready (i.e. remove the "Draft: " prefix), and it will be reviewed within one working day or so.
+When creating a merge request (MR), please assign it to yourself, and begin the title with `Draft: ` until you believe it passes the MR Quality Checklist below. Then, mark the MR as ready (i.e. remove the `Draft: ` prefix).
 
-Maintainers are happy to provide guidance as needed, even if your MR is still in early draft status. Just ask in the Exosphere development chat. To request review from a specific person, please add them to the "Reviewers" section, leaving the MR assigned to yourself.
+Maintainers are happy to provide guidance as needed, even if your MR is still in early draft status. Feel free to ask in the Exosphere development chat. To request review from a specific person, you can add them to the "Reviewers" section, leaving the MR assigned to yourself.
+
+MRs are generally reviewed within 1-2 working days. An MR should be merged as soon as it is approved by two maintainers, and it has a passing CI pipeline (see below). The two-maintainer rule is occasionally relaxed for periods of decreased maintainer availability.
 
 If your MR fixes one or more issues, please do not close them before your MR is merged. The merge should close the issues automatically.
 
 ## MR Quality Checklist
 
-Maintainers, please ensure the MR passes this checklist before approving or merging. Consider offering to help if the contributor is new.
+Maintainers, please ensure the MR passes this checklist before approving. Consult co-maintainers when making the occasional exception. Offer to help new contributors.
 
-- All applicable sections are populated in the MR description
-- MR effectively addresses all issues that it claims to fix
-- MR is not a net decrease in the consistency or polish of Exosphere's UI
-- MR is not a net decrease in Exosphere's code quality
+- MR description is fully populated
+- MR effectively fixes all issues that it claims to fix
+- MR does not decrease the overall consistency or polish of Exosphere's UI
+- MR does not decrease Exosphere's overall code quality
 - MR does not break existing functionality or behavior that users are likely to care about
-- If MR adds/changes/removes widgets in `src/Style/Widgets/`, then `src/Style/StyleGuide.elm` shows example usage of that widget
+- If MR adds/changes/removes UI elements in `src/Style/Widgets/`, then `src/Style/StyleGuide.elm` shows example usage of that widget
 - If MR adds/changes/removes app flags (in `src/Types/Flags.elm`), then the following are updated accordingly:
   - `config.js`
-  - all files in `environment-configs/`, including `docker-config.js`
+  - all files in `environment-configs/` **(else you may break production sites!)**
   - "Runtime configuration options" section in README.md
 - MR does not use hard-coded representations of [localized strings](docs/nomenclature-reference.md) in the UI
-- If MR uncovers or causes any new issues worth following up on, follow-up issues are created with descriptions that refer to the MR
-  - If MR introduces any technical debt, follow-up issues should be assigned to MR author
+- Follow-up issues are created for any new issues that the MR causes or uncovers
+  - If MR introduces any technical debt, these issues are assigned to MR author
+
 
 ## Continuous Integration
 
@@ -58,7 +63,7 @@ The most frequent cause of CI pipeline failure is due to issues found by `elm-an
  npm run elm:analyse
  ```
 
-Please consider [configuring your editor](https://github.com/avh4/elm-format#editor-integration) to run `elm-format` whenever you save a file. It automatically formats your code! If you save early and often, this saves you lots of typing and indenting work.
+**Please consider [configuring your editor](https://github.com/avh4/elm-format#editor-integration) to run `elm-format` whenever you save a file.** It automatically formats your code! If you save early and often, this saves you lots of typing and indenting work.
 
 ### Enabling CI On Your Fork
 
