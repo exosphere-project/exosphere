@@ -12,17 +12,29 @@ import Style.Types exposing (ExoPalette)
 --- model
 
 
+{-| Font weight is (loosely) how "heavy" or "light" a font appears to us.
+
+    Bold, Regular, etc.
+
+-}
 type FontWeight
     = Bold
     | Regular
 
 
+{-| A typoghraphy captures the size, weight, etc. of fonts that we display.
+-}
 type alias Typography =
     { size : Int
     , weight : FontWeight
     }
 
 
+{-| Text variants are the different typographies available to us.
+
+    H1, H2, Body, etc.
+
+-}
 type TextVariant
     = H1
     | H2
@@ -36,6 +48,8 @@ type TextVariant
 --- component
 
 
+{-| Returns a typography object for the chosen variant.
+-}
 typography : TextVariant -> Typography
 typography variant =
     case variant of
@@ -70,6 +84,8 @@ typography variant =
             }
 
 
+{-| Returns an element attribute for chosen font weight.
+-}
 fontWeightAttr : FontWeight -> Element.Attribute msg
 fontWeightAttr weight =
     case weight of
@@ -80,6 +96,8 @@ fontWeightAttr weight =
             Font.regular
 
 
+{-| Element attribute for the default font family.
+-}
 defaultTypeface : Element.Attribute msg
 defaultTypeface =
     Font.family
@@ -88,6 +106,15 @@ defaultTypeface =
         ]
 
 
+{-| Creates element attributes for the given typography.
+
+    typographyAttrs H1
+
+    or
+
+    typographyAttrs Body
+
+-}
 typographyAttrs : TextVariant -> List (Element.Attribute msg)
 typographyAttrs variant =
     let
@@ -100,6 +127,8 @@ typographyAttrs variant =
     ]
 
 
+{-| Returns element attributes for standard headings, including element spacing & a border.
+-}
 headingStyleAttrs : ExoPalette -> List (Element.Attribute msg)
 headingStyleAttrs palette =
     [ Region.heading 2
@@ -111,6 +140,8 @@ headingStyleAttrs palette =
     ]
 
 
+{-| Returns element attributes for standard subheadings, including element spacing & a border.
+-}
 subheadingStyleAttrs : ExoPalette -> List (Element.Attribute msg)
 subheadingStyleAttrs palette =
     [ Region.heading 3
@@ -122,17 +153,32 @@ subheadingStyleAttrs palette =
     ]
 
 
+{-| Display a paragraph element with typography defaults for body text & line spacing.
+
+    Text.p []
+        [ Text.body "Hello, "
+        , Text.bold "World"
+        , Element.text "!"
+        ]
+
+-}
 p : List (Element.Attribute msg) -> List (Element.Element msg) -> Element.Element msg
 p styleAttrs lines =
     Element.paragraph
-        ([ defaultTypeface
-         , Element.spacing 8
-         ]
+        (Element.spacing 8
+            :: typographyAttrs Body
             ++ styleAttrs
         )
         lines
 
 
+{-| Display a text element using a predefined typography variant.
+
+    Text.text Text.Body
+        []
+        "Hello, World!"
+
+-}
 text : TextVariant -> List (Element.Attribute msg) -> String -> Element.Element msg
 text variant styleAttrs label =
     Element.el
@@ -146,16 +192,31 @@ text variant styleAttrs label =
 --- helpers
 
 
+{-| A convience method for showing body text.
+
+    Text.body "Welcome back."
+
+-}
 body : String -> Element.Element msg
 body label =
     text Body [] label
 
 
+{-| A convience method for bold font weight text.
+
+    Text.bold "Hello!"
+
+-}
 bold : String -> Element.Element msg
 bold label =
     text Strong [] label
 
 
+{-| A convience method for underlined body text.
+
+    Text.underline "Emphasis is important."
+
+-}
 underline : String -> Element.Element msg
 underline label =
     text Body
@@ -169,6 +230,22 @@ underline label =
         label
 
 
+{-| Shows an underlined top-level heading (using H2 typography) with an optional icon.
+
+    Text.heading context.palette [] Element.none "App Config Info"
+
+    or
+
+    Text.heading context.palette
+        []
+        (FeatherIcons.helpCircle
+            |> FeatherIcons.toHtml []
+            |> Element.html
+            |> Element.el []
+        )
+        "Get Support"
+
+-}
 heading : ExoPalette -> List (Element.Attribute msg) -> Element.Element msg -> String -> Element.Element msg
 heading palette styleAttrs icon label =
     Element.row
@@ -180,6 +257,27 @@ heading palette styleAttrs icon label =
         ]
 
 
+{-| Shows an underlined second-level heading (using H3 typography) with an optional icon.
+
+    Text.subheading context.palette
+        [ Element.width Element.shrink ]
+        Element.none
+        "Status"
+
+    or
+
+    Text.subheading context.palette
+        [ Element.paddingEach { bottom = 0, left = 0, right = 0, top = 0 }
+        , Border.width 0
+        ]
+        (FeatherIcons.server
+            |> FeatherIcons.toHtml []
+            |> Element.html
+            |> Element.el []
+        )
+        "Server A"
+
+-}
 subheading : ExoPalette -> List (Element.Attribute msg) -> Element.Element msg -> String -> Element.Element msg
 subheading palette styleAttrs icon label =
     Element.row

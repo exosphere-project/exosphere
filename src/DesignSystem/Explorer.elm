@@ -193,7 +193,7 @@ main =
                     , ( "p"
                       , \_ ->
                             toHtml <|
-                                Text.p []
+                                Text.p [ Font.justify ]
                                     [ Text.body veryLongCopy
                                     , Text.body "[ref. "
                                     , Element.newTabLink
