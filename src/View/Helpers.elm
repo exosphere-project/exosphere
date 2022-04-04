@@ -132,26 +132,21 @@ inputItemAttributes backgroundColor =
 heading2 : ExoPalette -> List (Element.Attribute msg)
 heading2 palette =
     Text.headingStyleAttrs palette
-        ++ [ Text.fontWeightAttr (Text.typography Text.H2).weight
-           , Font.size (Text.typography Text.H2).size
-           ]
+        ++ Text.typographyAttrs Text.H2
 
 
 heading3 : ExoPalette -> List (Element.Attribute msg)
 heading3 palette =
     Text.subheadingStyleAttrs palette
-        ++ [ Text.fontWeightAttr (Text.typography Text.H3).weight
-           , Font.size (Text.typography Text.H3).size
-           ]
+        ++ Text.typographyAttrs Text.H3
 
 
 heading4 : List (Element.Attribute msg)
 heading4 =
-    [ Region.heading 4
-    , Text.fontWeightAttr (Text.typography Text.H4).weight
-    , Font.size (Text.typography Text.H4).size
-    , Element.width Element.fill
-    ]
+    Text.typographyAttrs Text.H4
+        ++ [ Region.heading 4
+           , Element.width Element.fill
+           ]
 
 
 contentContainer : List (Element.Attribute msg)

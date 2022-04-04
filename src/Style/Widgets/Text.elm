@@ -1,4 +1,4 @@
-module Style.Widgets.Text exposing (TextVariant(..), body, bold, fontWeightAttr, heading, headingStyleAttrs, p, subheading, subheadingStyleAttrs, text, typography, underline)
+module Style.Widgets.Text exposing (TextVariant(..), body, bold, fontWeightAttr, heading, headingStyleAttrs, p, subheading, subheadingStyleAttrs, text, typography, typographyAttrs, underline)
 
 import Element
 import Element.Border as Border
@@ -88,6 +88,18 @@ defaultTypeface =
         ]
 
 
+typographyAttrs : TextVariant -> List (Element.Attribute msg)
+typographyAttrs variant =
+    let
+        typo =
+            typography variant
+    in
+    [ defaultTypeface
+    , Font.size typo.size
+    , fontWeightAttr typo.weight
+    ]
+
+
 headingStyleAttrs : ExoPalette -> List (Element.Attribute msg)
 headingStyleAttrs palette =
     [ Region.heading 2
@@ -121,34 +133,13 @@ p styleAttrs lines =
         lines
 
 
-row : List (Element.Attribute msg) -> List (Element.Element msg) -> Element.Element msg
-row styleAttrs elements =
-    Element.row
-        styleAttrs
-        elements
-
-
-el : List (Element.Attribute msg) -> String -> Element.Element msg
-el styleAttrs label =
-    Element.el
-        styleAttrs
-        (Element.text label)
-
-
 text : TextVariant -> List (Element.Attribute msg) -> String -> Element.Element msg
 text variant styleAttrs label =
-    let
-        typo =
-            typography variant
-    in
-    el
-        ([ defaultTypeface
-         , Font.size typo.size
-         , fontWeightAttr typo.weight
-         ]
+    Element.el
+        (typographyAttrs variant
             ++ styleAttrs
         )
-        label
+        (Element.text label)
 
 
 
@@ -180,7 +171,7 @@ underline label =
 
 heading : ExoPalette -> List (Element.Attribute msg) -> Element.Element msg -> String -> Element.Element msg
 heading palette styleAttrs icon label =
-    row
+    Element.row
         (headingStyleAttrs palette
             ++ styleAttrs
         )
@@ -191,7 +182,7 @@ heading palette styleAttrs icon label =
 
 subheading : ExoPalette -> List (Element.Attribute msg) -> Element.Element msg -> String -> Element.Element msg
 subheading palette styleAttrs icon label =
-    row
+    Element.row
         (subheadingStyleAttrs palette
             ++ styleAttrs
         )

@@ -338,9 +338,8 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                     (List.concat
                         [ [ Element.row
                                 (Text.subheadingStyleAttrs context.palette
-                                    ++ [ Font.size (Text.typography Text.H3).size
-                                       , Border.width 0
-                                       ]
+                                    ++ Text.typographyAttrs Text.H3
+                                    ++ [ Border.width 0 ]
                                 )
                                 headerContents
                           ]
