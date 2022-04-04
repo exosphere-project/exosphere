@@ -25,6 +25,11 @@
 - Where possible, try to use content representative of the context the widget will be used in.
 
 
+### Text & Typography
+
+We have started to use text helper functions in `Style.Widgets.Text` in order to style text throughout the app more consistently. These helpers add some commonly-used style attributes to the lower-level `Element` functions from `elm-ui`. Some older parts of the codebase haven't been converted to using these `Text` functions yet, but the functions should be used where possible when building new parts (or re-working existing parts) of the UI.
+
+
 ### Style Guide (Legacy)
 
 - There is an Exosphere "style guide" demonstrating the use of Exosphere's custom widgets.
