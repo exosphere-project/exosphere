@@ -382,14 +382,10 @@ requestCreateServer project createServerRequest =
                 ErrorCrit
                 (Just <| "It's possible your quota is not large enough to launch the requested server" ++ plural)
 
-        resultToMsg_ =
-            resultToMsgErrorBody
-                errorContext
-                (\serverUuid ->
-                    ProjectMsg
-                        (GetterSetters.projectIdentifier project)
-                        (ReceiveCreateServer serverUuid)
-                )
+        resultToMsg result =
+            ProjectMsg
+                (GetterSetters.projectIdentifier project)
+                (ReceiveCreateServer errorContext result)
     in
     Cmd.batch
         (requestBodies
@@ -402,7 +398,7 @@ requestCreateServer project createServerRequest =
                         (project.endpoints.nova ++ "/servers")
                         (Http.jsonBody requestBody)
                         (expectJsonWithErrorBody
-                            resultToMsg_
+                            resultToMsg
                             (Decode.field "server" serverUuidDecoder)
                         )
                 )

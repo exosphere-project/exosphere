@@ -38,6 +38,7 @@ import Types.HelperTypes as HelperTypes
         )
 import Types.Project exposing (Project)
 import Types.Server exposing (NewServerNetworkOptions(..))
+import Types.SharedModel
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH exposing (edges)
 import View.Types
@@ -361,8 +362,8 @@ enforceQuotaCompliance project model =
             model
 
 
-view : View.Types.Context -> Project -> Model -> Element.Element Msg
-view context project model =
+view : View.Types.Context -> Project -> List Types.SharedModel.LogMessage -> Model -> Element.Element Msg
+view context project logMessages model =
     let
         invalidNameReasons =
             serverNameValidator (Just context.localization.virtualComputer) model.serverName
@@ -507,7 +508,14 @@ view context project model =
         createButton =
             case maybeInvalidFormReasons of
                 Nothing ->
-                    if model.createServerAttempted then
+                    if model.createServerAttempted && not (List.isEmpty logMessages) then
+                        Button.primary
+                            context.palette
+                            { text = "Create"
+                            , onPress = createOnPress
+                            }
+
+                    else if model.createServerAttempted then
                         loading ("Creating " ++ context.localization.virtualComputer |> Helpers.String.toTitleCase)
 
                     else

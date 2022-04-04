@@ -69,7 +69,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveImages (List OSTypes.Image)
     | ReceiveServer OSTypes.ServerUuid ErrorContext (Result HttpErrorWithBody OSTypes.Server)
     | ReceiveServers ErrorContext (Result HttpErrorWithBody (List OSTypes.Server))
-    | ReceiveCreateServer OSTypes.ServerUuid
+    | ReceiveCreateServer ErrorContext (Result HttpErrorWithBody OSTypes.ServerUuid)
     | ReceiveFlavors (List OSTypes.Flavor)
     | ReceiveKeypairs (List OSTypes.Keypair)
     | ReceiveCreateKeypair OSTypes.Keypair
