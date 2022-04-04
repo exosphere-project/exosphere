@@ -13,9 +13,10 @@ import Page.QuotaUsage
 import Route
 import Set
 import Style.Helpers as SH
+import Style.Types as ST
 import Style.Widgets.Button as Button
 import Style.Widgets.DataList as DataList
-import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
+import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirmAttribs)
 import Style.Widgets.Text as Text
 import Time
 import Types.Project exposing (Project)
@@ -264,16 +265,15 @@ volumeView model context project currentTime volumeRecord =
                     Element.row [ Element.spacing 12 ]
                         [ Element.el
                             (if showDeletePopconfirm then
-                                [ Element.below <|
-                                    deletePopconfirm context.palette
-                                        { confirmationText =
-                                            "Are you sure you want to delete this "
-                                                ++ context.localization.blockDevice
-                                                ++ "?"
-                                        , onConfirm = Just <| GotDeleteConfirm volumeRecord.id
-                                        , onCancel = Just <| ShowDeletePopconfirm volumeRecord.id False
-                                        }
-                                ]
+                                deletePopconfirmAttribs ST.PositionBottomRight
+                                    context.palette
+                                    { confirmationText =
+                                        "Are you sure you want to delete this "
+                                            ++ context.localization.blockDevice
+                                            ++ "?"
+                                    , onConfirm = Just <| GotDeleteConfirm volumeRecord.id
+                                    , onCancel = Just <| ShowDeletePopconfirm volumeRecord.id False
+                                    }
 
                              else
                                 []

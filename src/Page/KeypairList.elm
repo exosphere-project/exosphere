@@ -14,9 +14,10 @@ import RemoteData
 import Route
 import Set
 import Style.Helpers as SH
+import Style.Types as ST
 import Style.Widgets.CopyableText
 import Style.Widgets.DataList as DataList
-import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
+import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirmAttribs)
 import Style.Widgets.Text as Text
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
@@ -222,16 +223,15 @@ keypairView model context keypairRecord =
         deleteKeypairButton =
             Element.el
                 (if showDeletePopconfirm then
-                    [ Element.below <|
-                        deletePopconfirm context.palette
-                            { confirmationText =
-                                "Are you sure you want to delete this "
-                                    ++ context.localization.pkiPublicKeyForSsh
-                                    ++ "?"
-                            , onConfirm = Just <| GotDeleteConfirm keypairId
-                            , onCancel = Just <| ShowDeletePopconfirm keypairId False
-                            }
-                    ]
+                    deletePopconfirmAttribs ST.PositionBottomRight
+                        context.palette
+                        { confirmationText =
+                            "Are you sure you want to delete this "
+                                ++ context.localization.pkiPublicKeyForSsh
+                                ++ "?"
+                        , onConfirm = Just <| GotDeleteConfirm keypairId
+                        , onCancel = Just <| ShowDeletePopconfirm keypairId False
+                        }
 
                  else
                     []

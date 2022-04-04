@@ -1,4 +1,8 @@
-module Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
+module Style.Widgets.DeleteButton exposing
+    ( deleteIconButton
+    , deletePopconfirm
+    , deletePopconfirmAttribs
+    )
 
 import Element
 import FeatherIcons
@@ -7,6 +11,13 @@ import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
 import Style.Widgets.Button as Button
 import Widget
+
+
+type alias Popconfirm msg =
+    { confirmationText : String
+    , onConfirm : Maybe msg
+    , onCancel : Maybe msg
+    }
 
 
 deleteIconButton : ExoPalette -> Bool -> String -> Maybe msg -> Element.Element msg
@@ -45,38 +56,47 @@ deleteIconButton palette styleIsPrimary text onPress =
         }
 
 
-deletePopconfirm :
-    ExoPalette
-    ->
-        { confirmationText : String
-        , onConfirm : Maybe msg
-        , onCancel : Maybe msg
-        }
-    -> Element.Element msg
+deletePopconfirm : ExoPalette -> Popconfirm msg -> Element.Element msg
 deletePopconfirm palette { confirmationText, onConfirm, onCancel } =
-    Element.el [ Element.paddingXY 0 6, Element.alignRight ] <|
-        Element.column
-            (SH.popoverStyleDefaults palette
-                ++ [ Element.padding 16, Element.spacing 16 ]
-            )
-            [ Element.row [ Element.spacing 8 ]
-                [ FeatherIcons.alertCircle
-                    |> FeatherIcons.withSize 20
-                    |> FeatherIcons.toHtml []
-                    |> Element.html
-                    |> Element.el []
-                , Element.text confirmationText
-                ]
-            , Element.row [ Element.spacing 10, Element.alignRight ]
-                [ Button.default
-                    palette
-                    { text = "Cancel"
-                    , onPress = onCancel
-                    }
-                , Button.button Button.Danger
-                    palette
-                    { text = "Delete"
-                    , onPress = onConfirm
-                    }
-                ]
+    Element.column
+        (SH.popoverStyleDefaults palette
+            ++ [ Element.padding 16, Element.spacing 16 ]
+        )
+        [ Element.row [ Element.spacing 8 ]
+            [ FeatherIcons.alertCircle
+                |> FeatherIcons.withSize 20
+                |> FeatherIcons.toHtml []
+                |> Element.html
+                |> Element.el []
+            , Element.text confirmationText
             ]
+        , Element.row [ Element.spacing 10, Element.alignRight ]
+            [ Button.default
+                palette
+                { text = "Cancel"
+                , onPress = onCancel
+                }
+            , Button.button Button.Danger
+                palette
+                { text = "Delete"
+                , onPress = onConfirm
+                }
+            ]
+        ]
+
+
+deletePopconfirmAttribs :
+    Style.Types.PopoverPosition
+    -> ExoPalette
+    -> Popconfirm msg
+    -> List (Element.Attribute msg)
+deletePopconfirmAttribs position palette { confirmationText, onConfirm, onCancel } =
+    SH.popoverAttribs
+        (deletePopconfirm palette
+            { confirmationText = confirmationText
+            , onConfirm = onConfirm
+            , onCancel = onCancel
+            }
+        )
+        position
+        Nothing

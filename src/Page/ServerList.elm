@@ -19,8 +19,9 @@ import Page.QuotaUsage
 import Route
 import Set
 import Style.Helpers as SH
+import Style.Types as ST
 import Style.Widgets.DataList as DataList
-import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
+import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirmAttribs)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.StatusBadge as StatusBadge
 import Style.Widgets.Text as Text
@@ -345,56 +346,31 @@ serverView model context currentTime project serverRecord =
                 _ ->
                     Element.none
 
-        dropdownItemStyle =
-            let
-                textButtonDefaults =
-                    (SH.materialStyle context.palette).textButton
-            in
-            { textButtonDefaults
-                | container =
-                    textButtonDefaults.container
-                        ++ [ Element.width Element.fill
-                           , Font.size 16
-                           , Font.medium
-                           , Font.letterSpacing 0.8
-                           , Element.paddingXY 8 12
-                           , Element.height Element.shrink
-                           ]
-            }
-
         interactionPopover =
-            Element.el [ Element.paddingXY 0 6 ] <|
-                Element.column
-                    (SH.popoverStyleDefaults context.palette ++ [ Element.padding 10 ])
-                    (List.map
-                        (\{ interactionStatus, interactionDetails } ->
-                            Widget.button
-                                dropdownItemStyle
-                                { text = interactionDetails.name
-                                , icon =
-                                    Element.el
-                                        [ Element.paddingEach
-                                            { top = 0
-                                            , right = 5
-                                            , left = 0
-                                            , bottom = 0
-                                            }
-                                        ]
-                                        (interactionDetails.icon (SH.toElementColor context.palette.primary) 18)
-                                , onPress =
-                                    case interactionStatus of
-                                        ITypes.Ready url ->
-                                            Just <| OpenInteraction url
+            Element.column
+                (SH.popoverStyleDefaults context.palette)
+                (List.map
+                    (\{ interactionStatus, interactionDetails } ->
+                        Widget.button
+                            (SH.dropdownItemStyle context.palette)
+                            { text = interactionDetails.name
+                            , icon =
+                                Element.el []
+                                    (interactionDetails.icon (SH.toElementColor context.palette.primary) 18)
+                            , onPress =
+                                case interactionStatus of
+                                    ITypes.Ready url ->
+                                        Just <| OpenInteraction url
 
-                                        ITypes.Warn url _ ->
-                                            Just <| OpenInteraction url
+                                    ITypes.Warn url _ ->
+                                        Just <| OpenInteraction url
 
-                                        _ ->
-                                            Nothing
-                                }
-                        )
-                        serverRecord.interactions
+                                    _ ->
+                                        Nothing
+                            }
                     )
+                    serverRecord.interactions
+                )
 
         interactionButton =
             let
@@ -408,14 +384,14 @@ serverView model context currentTime project serverRecord =
 
                 ( attribs, buttonIcon ) =
                     if showInteractionPopover then
-                        ( [ Element.below interactionPopover ], FeatherIcons.chevronUp )
+                        ( SH.popoverAttribs interactionPopover ST.PositionBottomLeft Nothing
+                        , FeatherIcons.chevronUp
+                        )
 
                     else
                         ( [], FeatherIcons.chevronDown )
             in
-            Element.el
-                ([] ++ attribs)
-            <|
+            Element.el attribs <|
                 Widget.iconButton
                     (SH.materialStyle context.palette).button
                     { text = "Connect to"
@@ -445,16 +421,15 @@ serverView model context currentTime project serverRecord =
 
                 popconfirmAttribs =
                     if showDeletePopconfirm then
-                        [ Element.below <|
-                            deletePopconfirm context.palette
-                                { confirmationText =
-                                    "Are you sure you want to delete this "
-                                        ++ context.localization.virtualComputer
-                                        ++ "?"
-                                , onConfirm = Just <| GotDeleteConfirm serverRecord.id
-                                , onCancel = Just <| ShowDeletePopconfirm serverRecord.id False
-                                }
-                        ]
+                        deletePopconfirmAttribs ST.PositionBottomRight
+                            context.palette
+                            { confirmationText =
+                                "Are you sure you want to delete this "
+                                    ++ context.localization.virtualComputer
+                                    ++ "?"
+                            , onConfirm = Just <| GotDeleteConfirm serverRecord.id
+                            , onCancel = Just <| ShowDeletePopconfirm serverRecord.id False
+                            }
 
                     else
                         []

@@ -16,7 +16,6 @@ module Style.Widgets.DataList exposing
 
 import Dict
 import Element
-import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
@@ -634,60 +633,56 @@ filtersView model toMsg palette filters data =
             }
 
         filtersDropdown =
-            Element.el [ Element.paddingXY 0 6 ] <|
-                Element.column
-                    [ Element.padding 24
-                    , Element.spacingXY 0 24
-                    , Background.color <| SH.toElementColor palette.background
-                    , Border.width 1
-                    , Border.color <|
-                        SH.toElementColorWithOpacity palette.on.background 0.16
-                    , Border.shadow SH.shadowDefaults
+            Element.column
+                (SH.popoverStyleDefaults palette
+                    ++ [ Element.padding 24
+                       , Element.spacingXY 0 24
+                       ]
+                )
+                (Element.row [ Element.width Element.fill ]
+                    [ Element.el [ Font.size 18 ]
+                        (Element.text "Apply Filters")
+                    , Element.el [ Element.alignRight ]
+                        (Widget.iconButton
+                            (iconButtonStyle 0)
+                            { icon =
+                                FeatherIcons.x
+                                    |> FeatherIcons.withSize 16
+                                    |> FeatherIcons.toHtml []
+                                    |> Element.html
+                            , text = "Close"
+                            , onPress = Just <| ToggleFiltersDropdownVisiblity
+                            }
+                            |> Element.map toMsg
+                        )
                     ]
-                    (Element.row [ Element.width Element.fill ]
-                        [ Element.el [ Font.size 18 ]
-                            (Element.text "Apply Filters")
-                        , Element.el [ Element.alignRight ]
-                            (Widget.iconButton
-                                (iconButtonStyle 0)
-                                { icon =
-                                    FeatherIcons.x
-                                        |> FeatherIcons.withSize 16
-                                        |> FeatherIcons.toHtml []
-                                        |> Element.html
-                                , text = "Close"
-                                , onPress = Just <| ToggleFiltersDropdownVisiblity
-                                }
-                                |> Element.map toMsg
-                            )
-                        ]
-                        :: List.map
-                            (\filter ->
-                                if Dict.isEmpty <| filter.filterOptions data then
-                                    Element.none
+                    :: List.map
+                        (\filter ->
+                            if Dict.isEmpty <| filter.filterOptions data then
+                                Element.none
 
-                                else
-                                    case
-                                        ( filter.filterTypeAndDefaultValue
-                                        , selectedFilterOptionValue filter.id model
-                                        )
-                                    of
-                                        ( MultiselectOption _, Just (MultiselectOption selectedOptionValues) ) ->
-                                            Element.row [ Element.spacing 15 ]
-                                                (Element.text (filter.label ++ ":")
-                                                    :: List.map
-                                                        (filtOptCheckbox filter selectedOptionValues)
-                                                        (filter.filterOptions data |> Dict.keys)
-                                                )
+                            else
+                                case
+                                    ( filter.filterTypeAndDefaultValue
+                                    , selectedFilterOptionValue filter.id model
+                                    )
+                                of
+                                    ( MultiselectOption _, Just (MultiselectOption selectedOptionValues) ) ->
+                                        Element.row [ Element.spacing 15 ]
+                                            (Element.text (filter.label ++ ":")
+                                                :: List.map
+                                                    (filtOptCheckbox filter selectedOptionValues)
+                                                    (filter.filterOptions data |> Dict.keys)
+                                            )
 
-                                        ( UniselectOption _, Just (UniselectOption selectedOptionValue) ) ->
-                                            filtOptsRadioSelector filter selectedOptionValue
+                                    ( UniselectOption _, Just (UniselectOption selectedOptionValue) ) ->
+                                        filtOptsRadioSelector filter selectedOptionValue
 
-                                        _ ->
-                                            Element.none
-                            )
-                            filters
-                    )
+                                    _ ->
+                                        Element.none
+                        )
+                        filters
+                )
 
         addFilterBtn =
             let
@@ -862,7 +857,7 @@ filtersView model toMsg palette filters data =
              , Element.alignTop
              ]
                 ++ (if model.showFiltersDropdown then
-                        [ Element.below filtersDropdown ]
+                        SH.popoverAttribs filtersDropdown Style.Types.PositionBottomLeft Nothing
 
                     else
                         []

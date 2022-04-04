@@ -3,6 +3,7 @@ module Style.Types exposing
     , DeployerColors
     , ElmUiWidgetStyle
     , ExoPalette
+    , PopoverPosition(..)
     , StyleMode
     , Theme(..)
     , ThemeChoice(..)
@@ -97,6 +98,24 @@ type alias DeployerColors =
     { primary : Color.Color
     , secondary : Color.Color
     }
+
+
+{-| Based on position prop in <https://www.patternfly.org/v4/components/popover#popover>
+See interactive demo at <https://ant.design/components/popover/#components-popover-demo-placement>
+-}
+type PopoverPosition
+    = PositionTopLeft
+    | PositionTop
+    | PositionTopRight
+    | PositionRightTop
+    | PositionRight
+    | PositionRightBottom
+    | PositionBottomRight
+    | PositionBottom
+    | PositionBottomLeft
+    | PositionLeftBottom
+    | PositionLeft
+    | PositionLeftTop
 
 
 defaultColors : DeployerColorThemes

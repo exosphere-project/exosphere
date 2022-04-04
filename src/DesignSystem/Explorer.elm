@@ -82,13 +82,21 @@ type alias ExpandoCardState =
     { expanded : Bool }
 
 
+type alias PopoverState =
+    { isShown : Bool }
+
+
 type alias Model =
-    { expandoCard : ExpandoCardState }
+    { expandoCard : ExpandoCardState
+    , popover : PopoverState
+    }
 
 
 initialModel : Model
 initialModel =
-    { expandoCard = { expanded = False } }
+    { expandoCard = { expanded = False }
+    , popover = { isShown = False }
+    }
 
 
 type alias PluginOptions =
@@ -102,6 +110,7 @@ type alias PluginOptions =
 type Msg
     = NoOp
     | ToggleExpandoCard Bool
+    | ShowHidePopover
 
 
 
@@ -142,6 +151,16 @@ config =
                       }
                     , Cmd.none
                     )
+
+                ShowHidePopover ->
+                    ( { m
+                        | customModel =
+                            { model
+                                | popover = { isShown = not model.popover.isShown }
+                            }
+                      }
+                    , Cmd.none
+                    )
     , menuViewEnhancer = \_ v -> v
     , viewEnhancer = \_ stories -> stories
     , onModeChanged = Nothing
@@ -151,6 +170,19 @@ config =
 
 main : UIExplorerProgram Model Msg PluginOptions ()
 main =
+    let
+        popover =
+            Element.paragraph
+                (SH.popoverStyleDefaults palette
+                    ++ [ Element.padding 20
+                       , Element.width <| Element.px 300
+                       , Font.size 16
+                       ]
+                )
+                [ Element.text
+                    "I'm a popover that can be used as dropdown, toggle tip, etc."
+                ]
+    in
     exploreWithCategories
         config
         (createCategories
@@ -386,6 +418,47 @@ main =
                     [ ( "default", \_ -> toHtml <| chip palette Nothing (Element.text "assigned"), {} )
                     , ( "with badge", \_ -> toHtml <| chip palette Nothing (Element.row [ Element.spacing 5 ] [ Element.text "ubuntu", badge "10" ]), {} )
                     ]
+                , storiesOf
+                    "Popover"
+                    (List.map
+                        (\positionTuple ->
+                            ( "position: " ++ Tuple.first positionTuple
+                            , \m ->
+                                toHtml <|
+                                    Element.el [ Element.paddingXY 400 100 ]
+                                        (Element.el
+                                            (if m.customModel.popover.isShown then
+                                                SH.popoverAttribs
+                                                    popover
+                                                    (Tuple.second positionTuple)
+                                                    Nothing
+
+                                             else
+                                                []
+                                            )
+                                            (Button.primary palette
+                                                { text = "Click me"
+                                                , onPress = Just ShowHidePopover
+                                                }
+                                            )
+                                        )
+                            , {}
+                            )
+                        )
+                        [ ( "TopLeft", Style.Types.PositionTopLeft )
+                        , ( "Top", Style.Types.PositionTop )
+                        , ( "TopRight", Style.Types.PositionTopRight )
+                        , ( "RightTop", Style.Types.PositionRightTop )
+                        , ( "Right", Style.Types.PositionRight )
+                        , ( "RightBottom", Style.Types.PositionRightBottom )
+                        , ( "BottomRight", Style.Types.PositionBottomRight )
+                        , ( "Bottom", Style.Types.PositionBottom )
+                        , ( "BottomLeft", Style.Types.PositionBottomLeft )
+                        , ( "LeftBottom", Style.Types.PositionLeftBottom )
+                        , ( "Left", Style.Types.PositionLeft )
+                        , ( "LeftTop", Style.Types.PositionLeftTop )
+                        ]
+                    )
                 ]
             |> category "Templates"
                 [ storiesOf

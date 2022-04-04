@@ -22,6 +22,7 @@ import RemoteData
 import Route
 import ServerDeploy exposing (cloudInitUserDataTemplate)
 import Style.Helpers as SH
+import Style.Types as ST
 import Style.Widgets.Button as Button
 import Style.Widgets.Card exposing (badge)
 import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
@@ -508,14 +509,15 @@ view context project model =
                     let
                         formInvalidHintView =
                             Element.column
-                                [ Element.width
-                                    (Element.fill
-                                        |> Element.minimum 100
-                                    )
-                                ]
+                                (SH.popoverStyleDefaults context.palette
+                                    ++ [ Element.width
+                                            (Element.fill
+                                                |> Element.minimum 100
+                                            )
+                                       ]
+                                )
                                 [ Element.column
                                     [ Element.spacing 10
-                                    , Element.padding 5
                                     ]
                                     (maybeInvalidFormReasons
                                         |> Maybe.withDefault [ "Please correct problems with the form" ]
@@ -525,7 +527,7 @@ view context project model =
                     in
                     Element.el
                         (if model.showFormInvalidToggleTip then
-                            Style.Widgets.ToggleTip.floatingMessageShownAttributes context.palette formInvalidHintView
+                            SH.popoverAttribs formInvalidHintView ST.PositionTopRight (Just 8)
 
                          else
                             []
@@ -1035,6 +1037,7 @@ customWorkflowInputExperimental context model =
                         ]
                     ]
                 )
+                ST.PositionTop
                 model.showWorkflowExplanationToggleTip
                 GotShowWorkFlowExplanationToggleTip
 
