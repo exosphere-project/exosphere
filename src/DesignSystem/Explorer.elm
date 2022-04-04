@@ -266,7 +266,20 @@ main =
                     ]
                 , storiesOf
                     "Link"
-                    [ ( "external"
+                    [ ( "internal"
+                      , \_ ->
+                            toHtml <|
+                                Text.p []
+                                    [ Text.body "Compare this to plain, old "
+                                    , Link.link
+                                        palette
+                                        "http://localhost:8002/#Atoms/Text/underline"
+                                        "underlined text"
+                                    , Text.body "."
+                                    ]
+                      , {}
+                      )
+                    , ( "external"
                       , \_ ->
                             toHtml <|
                                 Text.p []
