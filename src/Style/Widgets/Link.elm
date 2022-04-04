@@ -13,6 +13,8 @@ import Types.HelperTypes
 --- model
 
 
+{-| How does this link behave when clicked? Does it navigate using the current window or open in a new tab?
+-}
 type Behaviour
     = Direct
     | NewTab
@@ -22,6 +24,8 @@ type Behaviour
 --- styles
 
 
+{-| Returns element attributes for link styling, including color & underline on mouseover.
+-}
 linkStyle : ExoPalette -> List (Element.Attribute msg)
 linkStyle palette =
     [ palette.primary |> SH.toElementColor |> Font.color
@@ -41,6 +45,11 @@ linkStyle palette =
 --- component
 
 
+{-| Creates a link element which behaves as specified when clicked & has a label element.
+
+    Link.navigate Link.Direct context.palette "http://app.exosphere.localhost:8000/home" (Element.text "Home")
+
+-}
 navigate : Behaviour -> ExoPalette -> Types.HelperTypes.Url -> Element.Element msg -> Element.Element msg
 navigate behaviour palette url label =
     let
@@ -59,11 +68,21 @@ navigate behaviour palette url label =
         }
 
 
+{-| Creates a link element which navigates using the current window & uses default body text.
+
+    Link.link context.palette "http://app.exosphere.localhost:8000/home" "Home"
+
+-}
 link : ExoPalette -> Types.HelperTypes.Url -> String -> Element.Element msg
 link palette url label =
     navigate Direct palette url (Text.body label)
 
 
+{-| Creates a link element which opens a new tab & uses default body text.
+
+    Link.externalLink context.palette "https://gitlab.com/exosphere/exosphere" "Visit Exosphere"
+
+-}
 externalLink : ExoPalette -> Types.HelperTypes.Url -> String -> Element.Element msg
 externalLink palette url label =
     navigate NewTab palette url (Text.body label)
