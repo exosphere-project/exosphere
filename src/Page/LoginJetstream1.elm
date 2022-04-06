@@ -4,6 +4,7 @@ import Element
 import Element.Font as Font
 import Element.Input as Input
 import Style.Helpers as SH
+import Style.Widgets.Link as Link
 import Style.Widgets.Text as Text
 import Types.HelperTypes exposing (Jetstream1Creds, Jetstream1Provider(..))
 import Types.SharedModel exposing (SharedModel)
@@ -129,8 +130,8 @@ helpText context =
         [ Element.paragraph
             []
             [ Element.text "To use Exosphere with "
-            , VH.externalLink
-                context
+            , Link.externalLink
+                context.palette
                 "https://jetstream-cloud.org"
                 "Jetstream1"
             , Element.text ", you need access to a Jetstream1 allocation. Possible ways to get this:"
@@ -138,13 +139,13 @@ helpText context =
         , Element.paragraph
             []
             [ Element.text "- Request access to the Exosphere Trial Allocation; please create an account on "
-            , VH.externalLink
-                context
+            , Link.externalLink
+                context.palette
                 "https://portal.xsede.org"
                 "XSEDE User Portal"
             , Element.text ", then "
-            , VH.externalLink
-                context
+            , Link.externalLink
+                context.palette
                 "https://gitlab.com/exosphere/exosphere/issues/new"
                 "create an issue"
             , Element.text " asking for access and providing your XSEDE username."
@@ -152,8 +153,8 @@ helpText context =
         , Element.paragraph
             []
             [ Element.text "- If you know someone else who already has an allocation, they can add you to it. (See \"How do I let other XSEDE accounts use my allocation?\" on "
-            , VH.externalLink
-                context
+            , Link.externalLink
+                context.palette
                 "https://iujetstream.atlassian.net/wiki/spaces/JWT/pages/537460937/Jetstream+Allocations+FAQ"
                 "this FAQ"
             , Element.text ")"
@@ -161,8 +162,8 @@ helpText context =
         , Element.paragraph
             []
             [ Element.text "- "
-            , VH.externalLink
-                context
+            , Link.externalLink
+                context.palette
                 "https://iujetstream.atlassian.net/wiki/spaces/JWT/pages/49184781/Jetstream+Allocations"
                 "Apply for your own Startup Allocation"
             ]
@@ -174,16 +175,16 @@ helpText context =
         , Element.paragraph
             []
             [ Element.text "1. TACC username (usually looks like 'tg******'); "
-            , VH.externalLink
-                context
+            , Link.externalLink
+                context.palette
                 "https://portal.tacc.utexas.edu/password-reset/-/password/forgot-username"
                 "look up your TACC username"
             ]
         , Element.paragraph
             []
             [ Element.text "2. TACC password; "
-            , VH.externalLink
-                context
+            , Link.externalLink
+                context.palette
                 "https://portal.tacc.utexas.edu/password-reset/-/password/request-reset"
                 "set your TACC password"
             ]

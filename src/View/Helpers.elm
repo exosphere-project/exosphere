@@ -9,7 +9,6 @@ module View.Helpers exposing
     , exoElementAttributes
     , exoPaddingSpacingAttributes
     , exoRowAttributes
-    , externalLink
     , featuredImageNamePrefixLookup
     , flavorPicker
     , formContainer
@@ -23,7 +22,6 @@ module View.Helpers exposing
     , inputItemAttributes
     , invalidInputAttributes
     , invalidInputHelperText
-    , linkAttribs
     , loginPickerButton
     , possiblyUntitledResource
     , renderIf
@@ -77,6 +75,7 @@ import Route
 import Style.Helpers as SH
 import Style.Types as ST exposing (ExoPalette)
 import Style.Widgets.Button as Button
+import Style.Widgets.Link as Link
 import Style.Widgets.StatusBadge as StatusBadge
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip as ToggleTip
@@ -312,30 +311,6 @@ renderMessageAsString message =
     , message.message
     ]
         |> String.concat
-
-
-linkAttribs : View.Types.Context -> List (Element.Attribute msg)
-linkAttribs context =
-    [ context.palette.primary |> SH.toElementColor |> Font.color
-    , Element.pointer
-    , Border.color (SH.toElementColor context.palette.background)
-    , Border.widthEach
-        { bottom = 1
-        , left = 0
-        , top = 0
-        , right = 0
-        }
-    , Element.mouseOver [ Border.color (SH.toElementColor context.palette.primary) ]
-    ]
-
-
-externalLink : View.Types.Context -> Types.HelperTypes.Url -> String -> Element.Element msg
-externalLink context url label =
-    Element.newTabLink
-        (linkAttribs context)
-        { url = url
-        , label = Element.text label
-        }
 
 
 possiblyUntitledResource : String -> String -> String
@@ -861,12 +836,11 @@ elmUiRenderer context =
         Element.text
     , link =
         \{ destination } body ->
-            Element.newTabLink (linkAttribs context)
+            Element.newTabLink (Link.linkStyle context.palette)
                 { url = destination
                 , label =
                     Element.paragraph
                         [ context.palette.primary |> SH.toElementColor |> Font.color
-                        , Font.underline
                         , Element.pointer
                         ]
                         body
