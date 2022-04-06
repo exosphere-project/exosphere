@@ -17,6 +17,7 @@ import Helpers.String
 import Helpers.Time
 import OpenStack.ServerActions as ServerActions
 import OpenStack.ServerNameValidator exposing (serverNameValidator)
+import OpenStack.ServerVolumes exposing (isServerAvailable)
 import OpenStack.Types as OSTypes
 import Page.ServerResourceUsageAlerts
 import Page.ServerResourceUsageCharts
@@ -417,17 +418,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                         }
 
                 attachButton =
-                    if
-                        not <|
-                            List.member
-                                server.osProps.details.openstackStatus
-                                [ OSTypes.ServerShelved
-                                , OSTypes.ServerShelvedOffloaded
-                                , OSTypes.ServerError
-                                , OSTypes.ServerSoftDeleted
-                                , OSTypes.ServerBuild
-                                ]
-                    then
+                    if isServerAvailable server then
                         case details.lockStatus of
                             OSTypes.ServerLocked ->
                                 buttonLabel Nothing

@@ -1,6 +1,7 @@
-module OpenStack.ServerVolumes exposing (requestAttachVolume, requestDetachVolume)
+module OpenStack.ServerVolumes exposing (isServerAvailable, requestAttachVolume, requestDetachVolume, serversInStateToReceiveVolume)
 
 import Helpers.GetterSetters as GetterSetters
+import Helpers.RemoteDataPlusPlus as RDPP
 import Http
 import Json.Decode as Decode
 import Json.Encode
@@ -15,6 +16,7 @@ import Rest.Helpers
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.HelperTypes exposing (HttpRequestMethod(..))
 import Types.Project exposing (Project)
+import Types.Server exposing (Server)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
 
 
@@ -92,3 +94,26 @@ novaVolumeAttachmentDecoder =
         (Decode.field "serverId" Decode.string)
         (Decode.field "id" Decode.string)
         (Decode.field "device" Decode.string)
+
+
+serversInStateToReceiveVolume : RDPP.RemoteDataPlusPlus error (List Server) -> List Server
+serversInStateToReceiveVolume serverList =
+    RDPP.withDefault [] serverList
+        |> List.filter
+            (\s ->
+                isServerAvailable s
+            )
+        |> List.filter (\s -> s.osProps.details.lockStatus == OSTypes.ServerUnlocked)
+
+
+isServerAvailable : Server -> Bool
+isServerAvailable server =
+    not <|
+        List.member
+            server.osProps.details.openstackStatus
+            [ OSTypes.ServerShelved
+            , OSTypes.ServerShelvedOffloaded
+            , OSTypes.ServerError
+            , OSTypes.ServerSoftDeleted
+            , OSTypes.ServerBuild
+            ]

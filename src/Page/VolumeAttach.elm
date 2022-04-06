@@ -3,8 +3,8 @@ module Page.VolumeAttach exposing (Model, Msg(..), init, update, view)
 import Element
 import Element.Font as Font
 import Helpers.GetterSetters as GetterSetters
-import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
+import OpenStack.ServerVolumes exposing (serversInStateToReceiveVolume)
 import OpenStack.Types as OSTypes
 import RemoteData
 import Route
@@ -73,20 +73,7 @@ view : View.Types.Context -> Project -> Model -> Element.Element Msg
 view context project model =
     let
         serverChoices =
-            RDPP.withDefault [] project.servers
-                |> List.filter
-                    (\s ->
-                        not <|
-                            List.member
-                                s.osProps.details.openstackStatus
-                                [ OSTypes.ServerShelved
-                                , OSTypes.ServerShelvedOffloaded
-                                , OSTypes.ServerError
-                                , OSTypes.ServerSoftDeleted
-                                , OSTypes.ServerBuild
-                                ]
-                    )
-                |> List.filter (\s -> s.osProps.details.lockStatus == OSTypes.ServerUnlocked)
+            serversInStateToReceiveVolume project.servers
                 |> List.map
                     (\s ->
                         ( s.osProps.uuid, VH.possiblyUntitledResource s.osProps.name context.localization.virtualComputer )
