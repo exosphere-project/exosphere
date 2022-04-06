@@ -73,7 +73,6 @@ view : View.Types.Context -> Project -> Model -> Element.Element Msg
 view context project model =
     let
         serverChoices =
-            -- Future TODO instead of hiding servers that are ineligible to have a newly attached volume, show them grayed out with mouseover text like "volume cannot be attached to this server because X"
             RDPP.withDefault [] project.servers
                 |> List.filter
                     (\s ->
@@ -87,6 +86,7 @@ view context project model =
                                 , OSTypes.ServerBuild
                                 ]
                     )
+                |> List.filter (\s -> s.osProps.details.lockStatus == OSTypes.ServerUnlocked)
                 |> List.map
                     (\s ->
                         ( s.osProps.uuid, VH.possiblyUntitledResource s.osProps.name context.localization.virtualComputer )

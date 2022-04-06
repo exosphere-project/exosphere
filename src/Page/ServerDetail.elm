@@ -409,6 +409,13 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
         secondColumnContents : List (Element.Element Msg)
         secondColumnContents =
             let
+                buttonLabel onPress =
+                    Widget.textButton
+                        (SH.materialStyle context.palette).button
+                        { text = "Attach " ++ context.localization.blockDevice
+                        , onPress = onPress
+                        }
+
                 attachButton =
                     if
                         not <|
@@ -421,19 +428,19 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                                 , OSTypes.ServerBuild
                                 ]
                     then
-                        Element.link []
-                            { url =
-                                Route.toUrl context.urlPathPrefix
-                                    (Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
-                                        Route.VolumeAttach (Just server.osProps.uuid) Nothing
-                                    )
-                            , label =
-                                Widget.textButton
-                                    (SH.materialStyle context.palette).button
-                                    { text = "Attach " ++ context.localization.blockDevice
-                                    , onPress = Just NoOp
+                        case details.lockStatus of
+                            OSTypes.ServerLocked ->
+                                buttonLabel Nothing
+
+                            OSTypes.ServerUnlocked ->
+                                Element.link []
+                                    { url =
+                                        Route.toUrl context.urlPathPrefix
+                                            (Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
+                                                Route.VolumeAttach (Just server.osProps.uuid) Nothing
+                                            )
+                                    , label = buttonLabel <| Just NoOp
                                     }
-                            }
 
                     else
                         Element.none
@@ -449,7 +456,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                     |> Element.text
                 ]
                 [ serverVolumes context project server
-                , Element.el [ Element.centerX ] attachButton
+                , Element.el [ Element.centerX, Font.color <| SH.toElementColor context.palette.muted ] attachButton
                 ]
             , tile
                 [ Icon.history (SH.toElementColor context.palette.on.background) 20
