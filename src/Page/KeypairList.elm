@@ -18,6 +18,7 @@ import Style.Types as ST
 import Style.Widgets.CopyableText
 import Style.Widgets.DataList as DataList
 import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirmAttribs)
+import Style.Widgets.Text as Text
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import View.Helpers as VH
@@ -168,14 +169,13 @@ view context project model =
     Element.column
         [ Element.spacing 20, Element.width Element.fill ]
         [ if model.showHeading then
-            Element.row (VH.heading2 context.palette ++ [ Element.spacing 15 ])
-                [ FeatherIcons.key |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
-                , Element.text
-                    (context.localization.pkiPublicKeyForSsh
-                        |> Helpers.String.pluralize
-                        |> Helpers.String.toTitleCase
-                    )
-                ]
+            Text.heading context.palette
+                []
+                (FeatherIcons.key |> FeatherIcons.toHtml [] |> Element.html |> Element.el [])
+                (context.localization.pkiPublicKeyForSsh
+                    |> Helpers.String.pluralize
+                    |> Helpers.String.toTitleCase
+                )
 
           else
             Element.none

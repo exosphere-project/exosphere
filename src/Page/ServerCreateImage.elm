@@ -7,6 +7,7 @@ import Helpers.String
 import OpenStack.Types as OSTypes
 import Route
 import Style.Widgets.Button as Button
+import Style.Widgets.Text as Text
 import Types.Project exposing (Project)
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..))
@@ -57,20 +58,20 @@ update msg { viewContext } project model =
 view : View.Types.Context -> Model -> Element.Element Msg
 view context model =
     Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-        [ Element.el
-            (VH.heading2 context.palette)
-            (Element.text <|
-                String.join
-                    " "
-                    [ String.join " "
-                        [ "Create"
-                        , context.localization.staticRepresentationOfBlockDeviceContents
-                            |> Helpers.String.toTitleCase
-                        , "from"
-                        ]
-                    , context.localization.virtualComputer
+        [ Text.heading context.palette
+            []
+            Element.none
+            (String.join
+                " "
+                [ String.join " "
+                    [ "Create"
+                    , context.localization.staticRepresentationOfBlockDeviceContents
                         |> Helpers.String.toTitleCase
+                    , "from"
                     ]
+                , context.localization.virtualComputer
+                    |> Helpers.String.toTitleCase
+                ]
             )
         , Element.column VH.formContainer
             [ Input.text

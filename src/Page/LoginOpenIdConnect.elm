@@ -7,6 +7,7 @@ import Element.Background as Background
 import Element.Border as Border
 import Style.Helpers as SH
 import Style.Widgets.Button as Button
+import Style.Widgets.Text as Text
 import Types.HelperTypes as HelperTypes
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
@@ -27,8 +28,7 @@ init oidcLoginConfig =
 view : View.Types.Context -> SharedModel -> Model -> Element.Element SharedMsg.SharedMsg
 view context _ model =
     Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-        [ Element.el (VH.heading2 context.palette)
-            (Element.text model.oidcLoginButtonLabel)
+        [ Text.heading context.palette [] Element.none model.oidcLoginButtonLabel
         , Element.column VH.contentContainer
             [ Element.el
                 [ Element.width <| Element.px 380

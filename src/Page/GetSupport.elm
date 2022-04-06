@@ -11,6 +11,7 @@ import Set
 import Style.Widgets.Button as Button
 import Style.Widgets.CopyableText
 import Style.Widgets.Select
+import Style.Widgets.Text as Text
 import Types.HelperTypes as HelperTypes
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg exposing (SharedMsg(..))
@@ -84,14 +85,14 @@ view context sharedModel model =
                , Element.width Element.fill
                ]
         )
-        [ Element.row
-            (VH.heading2 context.palette ++ [ Element.spacing 12 ])
-            [ FeatherIcons.helpCircle
+        [ Text.heading context.palette
+            []
+            (FeatherIcons.helpCircle
                 |> FeatherIcons.toHtml []
                 |> Element.html
                 |> Element.el []
-            , Element.text ("Get Support for " ++ sharedModel.style.appTitle)
-            ]
+            )
+            ("Get Support for " ++ sharedModel.style.appTitle)
         , case sharedModel.style.supportInfoMarkdown of
             Just markdown ->
                 Element.column VH.contentContainer <|
@@ -250,8 +251,8 @@ view context sharedModel model =
             , if model.isSubmitted then
                 Element.column
                     [ Element.spacing 10, Element.width Element.fill ]
-                    [ Element.paragraph
-                        [ Element.spacing 10 ]
+                    [ Text.p
+                        []
                         [ Element.text "Please copy all of the text below and paste it into an email message to: "
                         , Element.el [ Font.extraBold ] <|
                             Style.Widgets.CopyableText.copyableText context.palette [] sharedModel.style.userSupportEmail

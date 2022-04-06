@@ -19,9 +19,6 @@ module View.Helpers exposing
     , getServerUiStatus
     , getServerUiStatusBadgeState
     , getServerUiStatusStr
-    , heading2
-    , heading3
-    , heading4
     , hint
     , inputItemAttributes
     , invalidInputAttributes
@@ -81,6 +78,7 @@ import Style.Helpers as SH
 import Style.Types as ST exposing (ExoPalette)
 import Style.Widgets.Button as Button
 import Style.Widgets.StatusBadge as StatusBadge
+import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip as ToggleTip
 import Types.Error exposing (ErrorLevel(..), toFriendlyErrorLevel)
 import Types.HelperTypes
@@ -133,35 +131,22 @@ inputItemAttributes backgroundColor =
 
 heading2 : ExoPalette -> List (Element.Attribute msg)
 heading2 palette =
-    [ Region.heading 2
-    , Font.bold
-    , Font.size 24
-    , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
-    , Border.color (palette.muted |> SH.toElementColor)
-    , Element.width Element.fill
-    , Element.paddingEach { bottom = 8, left = 0, right = 0, top = 0 }
-    ]
+    Text.headingStyleAttrs palette
+        ++ Text.typographyAttrs Text.H2
 
 
 heading3 : ExoPalette -> List (Element.Attribute msg)
 heading3 palette =
-    [ Region.heading 3
-    , Font.bold
-    , Font.size 20
-    , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
-    , Border.color (palette.muted |> SH.toElementColor)
-    , Element.width Element.fill
-    , Element.paddingEach { bottom = 8, left = 0, right = 0, top = 0 }
-    ]
+    Text.subheadingStyleAttrs palette
+        ++ Text.typographyAttrs Text.H3
 
 
 heading4 : List (Element.Attribute msg)
 heading4 =
-    [ Region.heading 4
-    , Font.bold
-    , Font.size 16
-    , Element.width Element.fill
-    ]
+    Text.typographyAttrs Text.H4
+        ++ [ Region.heading 4
+           , Element.width Element.fill
+           ]
 
 
 contentContainer : List (Element.Attribute msg)

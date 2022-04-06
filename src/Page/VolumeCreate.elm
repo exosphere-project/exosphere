@@ -11,6 +11,7 @@ import Style.Helpers as SH
 import Style.Widgets.Button as Button
 import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
+import Style.Widgets.Text as Text
 import Types.Project exposing (Project)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import View.Helpers as VH
@@ -82,12 +83,14 @@ view context project model =
                     ( True, Nothing )
     in
     Element.column (List.append VH.exoColumnAttributes [ Element.spacing 20, Element.width Element.fill ])
-        [ Element.el (VH.heading2 context.palette)
-            (Element.text <|
-                String.join " "
-                    [ "Create"
-                    , context.localization.blockDevice |> Helpers.String.toTitleCase
-                    ]
+        [ Text.heading context.palette
+            []
+            Element.none
+            (String.join
+                " "
+                [ "Create"
+                , context.localization.blockDevice |> Helpers.String.toTitleCase
+                ]
             )
         , Element.column VH.formContainer
             [ Input.text

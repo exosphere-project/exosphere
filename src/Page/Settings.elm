@@ -5,6 +5,7 @@ import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons
 import Style.Types as ST
+import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
@@ -62,13 +63,14 @@ view context sharedModel model =
     in
     Element.column
         (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-        [ Element.row (VH.heading2 context.palette ++ [ Element.spacing 12 ])
-            [ FeatherIcons.settings
+        [ Text.heading context.palette
+            []
+            (FeatherIcons.settings
                 |> FeatherIcons.toHtml []
                 |> Element.html
                 |> Element.el []
-            , Element.text "Settings"
-            ]
+            )
+            "Settings"
         , Element.column VH.formContainer
             [ Input.radio
                 VH.exoColumnAttributes
@@ -80,7 +82,7 @@ view context sharedModel model =
                     ]
                 , selected =
                     Just sharedModel.style.styleMode.theme
-                , label = Input.labelAbove VH.heading4 (Element.text "Color theme")
+                , label = Input.labelAbove [] (Text.text Text.H4 [] "Color theme")
                 }
             , Input.radio
                 VH.exoColumnAttributes
@@ -94,11 +96,12 @@ view context sharedModel model =
                 , selected =
                     Just sharedModel.viewContext.experimentalFeaturesEnabled
                 , label =
-                    Input.labelAbove VH.heading4
-                        (Element.el
+                    Input.labelAbove
+                        []
+                        (Text.text Text.H4
                             [ Element.onRight experimentalFeatureToggleTip
                             ]
-                            (Element.text "Experimental features")
+                            "Experimental features"
                         )
                 }
             ]

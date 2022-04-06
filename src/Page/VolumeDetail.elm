@@ -13,6 +13,7 @@ import Style.Widgets.Button as Button
 import Style.Widgets.Card
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.DeleteButton exposing (deleteIconButton)
+import Style.Widgets.Text as Text
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import View.Helpers as VH
@@ -83,10 +84,13 @@ view context project model =
     if model.showHeading then
         Element.column
             (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-            [ Element.el (VH.heading2 context.palette) <|
-                Element.text <|
-                    String.join " "
-                        [ context.localization.blockDevice |> Helpers.String.toTitleCase ]
+            [ Text.heading context.palette
+                []
+                Element.none
+                (String.join
+                    " "
+                    [ context.localization.blockDevice |> Helpers.String.toTitleCase ]
+                )
             , volumeDetail context project model
             ]
 
@@ -115,12 +119,10 @@ volumeDetail context project model =
                     [ Style.Widgets.Card.exoCard context.palette
                         (Element.column
                             VH.contentContainer
-                            [ Element.row []
-                                [ Element.el
-                                    (VH.heading3 context.palette)
-                                  <|
-                                    Element.text "Status"
-                                ]
+                            [ Text.subheading context.palette
+                                [ Element.width Element.shrink ]
+                                Element.none
+                                "Status"
                             , Element.row []
                                 [ Element.el [] (Element.text <| OSTypes.volumeStatusToString volume.status) ]
                             , case volume.description of
@@ -212,13 +214,11 @@ renderAttachments context project volume =
 
         _ ->
             Element.column []
-                [ Element.row [ Element.paddingXY 0 15 ]
-                    [ Element.el
-                        (VH.heading3 context.palette)
-                      <|
-                        Element.text "Attached to"
-                    ]
-                , Element.row []
+                [ Text.subheading context.palette
+                    [ Element.width Element.shrink ]
+                    Element.none
+                    "Attached to"
+                , Element.row [ Element.paddingXY 0 15 ]
                     [ Element.row (VH.exoColumnAttributes ++ [ Element.padding 0 ]) <| List.map (renderAttachment context project) volume.attachments
                     ]
                 ]

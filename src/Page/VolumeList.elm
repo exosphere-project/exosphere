@@ -17,6 +17,7 @@ import Style.Types as ST
 import Style.Widgets.Button as Button
 import Style.Widgets.DataList as DataList
 import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirmAttribs)
+import Style.Widgets.Text as Text
 import Time
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
@@ -111,14 +112,13 @@ view context project currentTime model =
     Element.column
         [ Element.spacing 20, Element.width Element.fill ]
         [ if model.showHeading then
-            Element.row (VH.heading2 context.palette ++ [ Element.spacing 15 ])
-                [ FeatherIcons.hardDrive |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
-                , Element.text
-                    (context.localization.blockDevice
-                        |> Helpers.String.pluralize
-                        |> Helpers.String.toTitleCase
-                    )
-                ]
+            Text.heading context.palette
+                []
+                (FeatherIcons.hardDrive |> FeatherIcons.toHtml [] |> Element.html |> Element.el [])
+                (context.localization.blockDevice
+                    |> Helpers.String.pluralize
+                    |> Helpers.String.toTitleCase
+                )
 
           else
             Element.none

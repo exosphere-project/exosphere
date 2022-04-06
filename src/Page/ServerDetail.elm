@@ -28,6 +28,7 @@ import Style.Widgets.Card
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton
+import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
 import Time
 import Types.HelperTypes exposing (FloatingIpOption(..), ServerResourceQtys, UserAppProxyHostname)
@@ -336,10 +337,9 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                 (Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
                     (List.concat
                         [ [ Element.row
-                                (VH.heading3 context.palette
-                                    ++ [ Element.spacing 10
-                                       , Border.width 0
-                                       ]
+                                (Text.subheadingStyleAttrs context.palette
+                                    ++ Text.typographyAttrs Text.H3
+                                    ++ [ Border.width 0 ]
                                 )
                                 headerContents
                           ]
@@ -508,11 +508,12 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
     Element.column (VH.exoColumnAttributes ++ [ Element.spacing 15 ])
         [ Element.column [ Element.width Element.fill ]
             [ Element.row
-                (VH.heading2 context.palette ++ [ Element.spacing 10 ])
+                (Text.headingStyleAttrs context.palette)
                 [ FeatherIcons.server |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
                 , Element.column [ Element.spacing 5 ]
                     [ Element.row [ Element.spacing 10 ]
-                        [ Element.text
+                        [ Text.text Text.H2
+                            []
                             (context.localization.virtualComputer
                                 |> Helpers.String.toTitleCase
                             )
@@ -578,7 +579,7 @@ serverNameView context model server =
         serverNameViewPlain =
             Element.row
                 [ Element.spacing 10 ]
-                [ Element.text server.osProps.name
+                [ Text.text Text.H2 [] server.osProps.name
                 , Widget.iconButton
                     (SH.materialStyle context.palette).button
                     { text = "Edit"
