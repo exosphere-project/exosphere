@@ -1081,29 +1081,28 @@ serverActionsDropdown context project model server =
                         server.osProps.details.lockStatus
                     )
 
-        target =
-            \isShown ->
-                Widget.iconButton
-                    (SH.materialStyle context.palette).button
-                    { text = "Actions"
-                    , icon =
-                        Element.row
-                            [ Element.spacing 5 ]
-                            [ Element.text "Actions"
-                            , Element.el []
-                                ((if isShown then
-                                    FeatherIcons.chevronUp
+        target togglePopoverMsg popoverIsShown =
+            Widget.iconButton
+                (SH.materialStyle context.palette).button
+                { text = "Actions"
+                , icon =
+                    Element.row
+                        [ Element.spacing 5 ]
+                        [ Element.text "Actions"
+                        , Element.el []
+                            ((if popoverIsShown then
+                                FeatherIcons.chevronUp
 
-                                  else
-                                    FeatherIcons.chevronDown
-                                 )
-                                    |> FeatherIcons.withSize 18
-                                    |> FeatherIcons.toHtml []
-                                    |> Element.html
-                                )
-                            ]
-                    , onPress = Just (SharedMsg SharedMsg.ToggleServerActionsPopover)
-                    }
+                              else
+                                FeatherIcons.chevronDown
+                             )
+                                |> FeatherIcons.withSize 18
+                                |> FeatherIcons.toHtml []
+                                |> Element.html
+                            )
+                        ]
+                , onPress = Just <| SharedMsg togglePopoverMsg
+                }
     in
     case server.exoProps.targetOpenstackStatus of
         Nothing ->

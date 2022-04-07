@@ -4,6 +4,7 @@ import Element
 import Html.Attributes
 import Style.Helpers as SH
 import Style.Types as ST
+import Types.SharedMsg
 import View.Types
 
 
@@ -17,7 +18,7 @@ import View.Types
 
 popover :
     View.Types.Context
-    -> (Bool -> Element.Element msg)
+    -> (Types.SharedMsg.SharedMsg -> Bool -> Element.Element msg)
     -> { styleAttrs : List (Element.Attribute msg), contents : Element.Element msg }
     -> ST.PopoverPosition
     -> Maybe Int
@@ -41,4 +42,6 @@ popover context target panel position distance =
                     []
                )
         )
-        (target context.showServerActionsPopover)
+        (target Types.SharedMsg.ToggleServerActionsPopover
+            context.showServerActionsPopover
+        )
