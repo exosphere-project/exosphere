@@ -1574,9 +1574,25 @@ processProjectSpecificMsg outerModel project msg =
                     )
 
                 Err httpError ->
+                    let
+                        newOuterModel =
+                            case outerModel.viewState of
+                                ProjectView projectId projectViewModel (ServerCreate serverCreateModel) ->
+                                    let
+                                        newViewState =
+                                            ProjectView
+                                                projectId
+                                                projectViewModel
+                                                (ServerCreate { serverCreateModel | createServerAttempted = False })
+                                    in
+                                    { outerModel | viewState = newViewState }
+
+                                _ ->
+                                    outerModel
+                    in
                     State.Error.processStringError sharedModel errorContext httpError.body
                         |> mapToOuterMsg
-                        |> mapToOuterModel outerModel
+                        |> mapToOuterModel newOuterModel
 
         ReceiveNetworks errorContext result ->
             case result of

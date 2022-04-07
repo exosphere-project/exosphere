@@ -508,14 +508,7 @@ view context project logMessages model =
         createButton =
             case maybeInvalidFormReasons of
                 Nothing ->
-                    if model.createServerAttempted && not (List.isEmpty logMessages) then
-                        Button.primary
-                            context.palette
-                            { text = "Create"
-                            , onPress = createOnPress
-                            }
-
-                    else if model.createServerAttempted then
+                    if model.createServerAttempted then
                         loading ("Creating " ++ context.localization.virtualComputer |> Helpers.String.toTitleCase)
 
                     else
