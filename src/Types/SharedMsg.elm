@@ -40,6 +40,7 @@ type SharedMsg
     | MsgChangeWindowSize Int Int
     | SelectTheme ST.ThemeChoice
     | SetExperimentalFeaturesEnabled Bool
+    | ToggleServerActionsPopover
     | NoOp
 
 

@@ -1,8 +1,10 @@
 module Style.Widgets.Popover exposing (popover)
 
 import Element
+import Html.Attributes
 import Style.Helpers as SH
 import Style.Types as ST
+import View.Types
 
 
 
@@ -13,13 +15,30 @@ import Style.Types as ST
 -- seaparte ids because we need to check if click target was descendant of a specific popover
 
 
-popover : Element.Element msg -> Element.Element msg -> ST.PopoverPosition -> Maybe Int -> Element.Element msg
-popover target panel position distance =
+popover :
+    View.Types.Context
+    -> (Bool -> Element.Element msg)
+    -> { styleAttrs : List (Element.Attribute msg), contents : Element.Element msg }
+    -> ST.PopoverPosition
+    -> Maybe Int
+    -> Element.Element msg
+popover context target panel position distance =
     Element.el
-        (if model.shown then
-            SH.popoverAttribs (Element.el SH.popoverStyleDefaults panel) position distance
+        ((Element.htmlAttribute <| Html.Attributes.id "SA-popover")
+            :: (if context.showServerActionsPopover then
+                    SH.popoverAttribs
+                        (Element.el
+                            (SH.popoverStyleDefaults context.palette
+                                -- Add or override default style with passed style attributes
+                                ++ panel.styleAttrs
+                            )
+                            panel.contents
+                        )
+                        position
+                        distance
 
-         else
-            []
+                else
+                    []
+               )
         )
-        target
+        (target context.showServerActionsPopover)

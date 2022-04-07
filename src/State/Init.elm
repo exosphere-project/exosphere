@@ -201,6 +201,7 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
                 , palette = toExoPalette style
                 , urlPathPrefix = flags.urlPathPrefix
                 , windowSize = { width = flags.width, height = flags.height }
+                , showServerActionsPopover = False
                 }
             , sentryConfig = flags.sentryConfig
             }

@@ -19,6 +19,9 @@ type alias Context =
     , experimentalFeaturesEnabled : Bool
     , urlPathPrefix : Maybe String
     , navigationKey : Browser.Navigation.Key
+
+    -- TODO: make it a set of ids of popovers that are open?
+    , showServerActionsPopover : Bool
     }
 
 

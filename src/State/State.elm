@@ -967,6 +967,17 @@ processSharedMsg sharedMsg outerModel =
             ( { sharedModel | viewContext = { viewContext | experimentalFeaturesEnabled = choice } }, Cmd.none )
                 |> mapToOuterModel outerModel
 
+        ToggleServerActionsPopover ->
+            ( { sharedModel
+                | viewContext =
+                    { viewContext
+                        | showServerActionsPopover = not sharedModel.viewContext.showServerActionsPopover
+                    }
+              }
+            , Cmd.none
+            )
+                |> mapToOuterModel outerModel
+
 
 processTick : OuterModel -> TickInterval -> Time.Posix -> ( SharedModel, Cmd OuterMsg )
 processTick outerModel interval time =

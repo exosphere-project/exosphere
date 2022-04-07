@@ -30,6 +30,7 @@ import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton
 import Style.Widgets.Link as Link
+import Style.Widgets.Popover exposing (popover)
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
 import Time
@@ -1068,12 +1069,8 @@ serverPassphrase context model server =
 serverActionsDropdown : View.Types.Context -> Project -> Model -> Server -> Element.Element Msg
 serverActionsDropdown context project model server =
     let
-        contents =
-            Element.column
-                (SH.popoverStyleDefaults context.palette
-                    ++ [ Element.spacing 8, Element.padding 20 ]
-                )
-            <|
+        panelContents =
+            Element.column [ Element.spacing 8 ] <|
                 List.map
                     (renderServerActionButton context project model server)
                     (ServerActions.getAllowed
@@ -1084,20 +1081,9 @@ serverActionsDropdown context project model server =
                         server.osProps.details.lockStatus
                     )
 
-        ( attribs, icon ) =
-            if model.showActionsDropdown then
-                ( SH.popoverAttribs contents ST.PositionBottomRight Nothing
-                , FeatherIcons.chevronUp
-                )
-
-            else
-                ( [], FeatherIcons.chevronDown )
-    in
-    case server.exoProps.targetOpenstackStatus of
-        Nothing ->
-            Element.column
-                attribs
-                [ Widget.iconButton
+        target =
+            \isShown ->
+                Widget.iconButton
                     (SH.materialStyle context.palette).button
                     { text = "Actions"
                     , icon =
@@ -1105,15 +1091,29 @@ serverActionsDropdown context project model server =
                             [ Element.spacing 5 ]
                             [ Element.text "Actions"
                             , Element.el []
-                                (icon
+                                ((if isShown then
+                                    FeatherIcons.chevronUp
+
+                                  else
+                                    FeatherIcons.chevronDown
+                                 )
                                     |> FeatherIcons.withSize 18
                                     |> FeatherIcons.toHtml []
                                     |> Element.html
                                 )
                             ]
-                    , onPress = Just (GotShowActionsDropdown (not model.showActionsDropdown))
+                    , onPress = Just (SharedMsg SharedMsg.ToggleServerActionsPopover)
                     }
-                ]
+    in
+    case server.exoProps.targetOpenstackStatus of
+        Nothing ->
+            popover context
+                target
+                { styleAttrs = [ Element.padding 20 ]
+                , contents = panelContents
+                }
+                ST.PositionBottomRight
+                Nothing
 
         Just _ ->
             Element.none
