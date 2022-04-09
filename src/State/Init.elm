@@ -15,6 +15,7 @@ import Ports
 import Random
 import Rest.ApiModelHelpers as ApiModelHelpers
 import Rest.Keystone
+import Set
 import State.ViewState
 import Style.Theme
 import Style.Types as ST
@@ -201,7 +202,7 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
                 , palette = toExoPalette style
                 , urlPathPrefix = flags.urlPathPrefix
                 , windowSize = { width = flags.width, height = flags.height }
-                , showServerActionsPopover = False
+                , showPopovers = Set.empty
                 }
             , sentryConfig = flags.sentryConfig
             }

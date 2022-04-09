@@ -50,6 +50,7 @@ import Rest.Keystone
 import Rest.Neutron
 import Rest.Nova
 import Route
+import Set
 import State.Auth
 import State.Error
 import State.ViewState as ViewStateHelpers
@@ -967,11 +968,16 @@ processSharedMsg sharedMsg outerModel =
             ( { sharedModel | viewContext = { viewContext | experimentalFeaturesEnabled = choice } }, Cmd.none )
                 |> mapToOuterModel outerModel
 
-        ToggleServerActionsPopover ->
+        TogglePopover popoverId ->
             ( { sharedModel
                 | viewContext =
                     { viewContext
-                        | showServerActionsPopover = not sharedModel.viewContext.showServerActionsPopover
+                        | showPopovers =
+                            if Set.member popoverId sharedModel.viewContext.showPopovers then
+                                Set.remove popoverId sharedModel.viewContext.showPopovers
+
+                            else
+                                Set.insert popoverId sharedModel.viewContext.showPopovers
                     }
               }
             , Cmd.none

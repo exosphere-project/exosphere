@@ -16,6 +16,7 @@ import Types.Guacamole as GuacTypes
 import Types.HelperTypes as HelperTypes
 import Types.Jetstream2Accounting
 import Url
+import View.Types
 
 
 type SharedMsg
@@ -40,7 +41,7 @@ type SharedMsg
     | MsgChangeWindowSize Int Int
     | SelectTheme ST.ThemeChoice
     | SetExperimentalFeaturesEnabled Bool
-    | ToggleServerActionsPopover
+    | TogglePopover View.Types.PopoverId
     | NoOp
 
 

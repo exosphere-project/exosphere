@@ -2,6 +2,7 @@ module Style.Widgets.Popover exposing (popover)
 
 import Element
 import Html.Attributes
+import Set
 import Style.Helpers as SH
 import Style.Types as ST
 import Types.SharedMsg
@@ -18,15 +19,23 @@ import View.Types
 
 popover :
     View.Types.Context
+    -> View.Types.PopoverId
     -> (Types.SharedMsg.SharedMsg -> Bool -> Element.Element msg)
     -> { styleAttrs : List (Element.Attribute msg), contents : Element.Element msg }
     -> ST.PopoverPosition
     -> Maybe Int
     -> Element.Element msg
-popover context target panel position distance =
+popover context id target panel position distance =
+    let
+        popoverId =
+            "popover-" ++ id
+
+        popoverIsShown =
+            Set.member popoverId context.showPopovers
+    in
     Element.el
-        ((Element.htmlAttribute <| Html.Attributes.id "SA-popover")
-            :: (if context.showServerActionsPopover then
+        ((Element.htmlAttribute <| Html.Attributes.id popoverId)
+            :: (if popoverIsShown then
                     SH.popoverAttribs
                         (Element.el
                             (SH.popoverStyleDefaults context.palette
@@ -42,6 +51,6 @@ popover context target panel position distance =
                     []
                )
         )
-        (target Types.SharedMsg.ToggleServerActionsPopover
-            context.showServerActionsPopover
+        (target (Types.SharedMsg.TogglePopover popoverId)
+            popoverIsShown
         )

@@ -42,6 +42,7 @@ import Route
 import Style.Helpers as SH exposing (shadowDefaults)
 import Style.Toast
 import Style.Types as ST
+import Style.Widgets.Popover exposing (popover)
 import Style.Widgets.Text as Text
 import Toasty
 import Types.Error exposing (AppError)
@@ -414,9 +415,9 @@ createButton context projectId expanded =
                         }
                 }
 
-        dropdown =
+        dropdownContents =
             Element.column
-                (SH.popoverStyleDefaults context.palette)
+                []
                 [ renderButton
                     (FeatherIcons.server |> FeatherIcons.withSize 18 |> FeatherIcons.toHtml [] |> Element.html)
                     (context.localization.virtualComputer
@@ -437,37 +438,34 @@ createButton context projectId expanded =
                     (Route.ProjectRoute projectId <| Route.KeypairCreate)
                 ]
 
-        ( attribs, icon ) =
-            if expanded then
-                ( SH.popoverAttribs dropdown ST.PositionBottomRight Nothing
-                , FeatherIcons.chevronUp
-                )
+        target togglePopoverMsg popoverIsShown =
+            Widget.iconButton
+                (SH.materialStyle context.palette).primaryButton
+                { text = "Create"
+                , icon =
+                    Element.row
+                        [ Element.spacing 5 ]
+                        [ Element.text "Create"
+                        , Element.el []
+                            ((if popoverIsShown then
+                                FeatherIcons.chevronUp
 
-            else
-                ( []
-                , FeatherIcons.chevronDown
-                )
+                              else
+                                FeatherIcons.chevronDown
+                             )
+                                |> FeatherIcons.withSize 18
+                                |> FeatherIcons.toHtml []
+                                |> Element.html
+                            )
+                        ]
+                , onPress =
+                    Just <|
+                        SharedMsg togglePopoverMsg
+                }
     in
-    Element.column
-        attribs
-        [ Widget.iconButton
-            (SH.materialStyle context.palette).primaryButton
-            { text = "Create"
-            , icon =
-                Element.row
-                    [ Element.spacing 5 ]
-                    [ Element.text "Create"
-                    , Element.el []
-                        (icon
-                            |> FeatherIcons.withSize 18
-                            |> FeatherIcons.toHtml []
-                            |> Element.html
-                        )
-                    ]
-            , onPress =
-                Just <|
-                    SharedMsg <|
-                        SharedMsg.ProjectMsg projectId <|
-                            SharedMsg.ToggleCreatePopup
-            }
-        ]
+    popover context
+        (projectId.projectUuid ++ "-createButton")
+        target
+        { styleAttrs = [], contents = dropdownContents }
+        ST.PositionBottomRight
+        Nothing
