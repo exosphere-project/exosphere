@@ -1,7 +1,7 @@
 {
     "git-dependencies": {
         "direct": {
-            "git@github.com:LordParsley/elm-ui-explorer.git": "9.0.1"
+            "https://github.com/LordParsley/elm-ui-explorer.git": "9.0.1"
         },
         "indirect": {}
     }
