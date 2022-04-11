@@ -1,6 +1,7 @@
 {
     "type": "application",
     "source-directories": [
+        "elm-stuff/gitdeps/github.com/LordParsley/elm-ui-explorer.git/src",
         "src"
     ],
     "elm-version": "0.19.1",
@@ -27,7 +28,6 @@
             "elm-community/random-extra": "3.1.0",
             "feathericons/elm-feather": "1.5.0",
             "jweir/elm-iso8601": "6.0.1",
-            "kalutheo/elm-ui-explorer": "9.0.0",
             "krisajenkins/remotedata": "6.0.1",
             "mdgriffith/elm-ui": "1.1.8",
             "pablen/toasty": "1.2.0",
