@@ -464,7 +464,7 @@ createButton context projectId expanded =
                 }
     in
     popover context
-        (projectId.projectUuid ++ "-createButton")
+        ("createBtnDropdown-" ++ projectId.projectUuid)
         target
         { styleAttrs = [], contents = dropdownContents }
         ST.PositionBottomRight

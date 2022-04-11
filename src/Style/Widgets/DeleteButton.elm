@@ -1,7 +1,7 @@
 module Style.Widgets.DeleteButton exposing
     ( deleteIconButton
-    , deletePopconfirm
     , deletePopconfirmAttribs
+    , deletePopconfirmPanel
     )
 
 import Element
@@ -56,12 +56,10 @@ deleteIconButton palette styleIsPrimary text onPress =
         }
 
 
-deletePopconfirm : ExoPalette -> Popconfirm msg -> Element.Element msg
-deletePopconfirm palette { confirmationText, onConfirm, onCancel } =
+deletePopconfirmPanel : ExoPalette -> Popconfirm msg -> Element.Element msg
+deletePopconfirmPanel palette { confirmationText, onConfirm, onCancel } =
     Element.column
-        (SH.popoverStyleDefaults palette
-            ++ [ Element.padding 16, Element.spacing 16 ]
-        )
+        [ Element.spacing 16, Element.padding 6 ]
         [ Element.row [ Element.spacing 8 ]
             [ FeatherIcons.alertCircle
                 |> FeatherIcons.withSize 20
@@ -92,11 +90,12 @@ deletePopconfirmAttribs :
     -> List (Element.Attribute msg)
 deletePopconfirmAttribs position palette { confirmationText, onConfirm, onCancel } =
     SH.popoverAttribs
-        (deletePopconfirm palette
-            { confirmationText = confirmationText
-            , onConfirm = onConfirm
-            , onCancel = onCancel
-            }
+        (Element.el (SH.popoverStyleDefaults palette) <|
+            deletePopconfirmPanel palette
+                { confirmationText = confirmationText
+                , onConfirm = onConfirm
+                , onCancel = onCancel
+                }
         )
         position
         Nothing

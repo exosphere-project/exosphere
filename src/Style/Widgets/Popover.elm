@@ -10,11 +10,9 @@ import View.Types
 
 
 
--- create model in this widget so that each operates independent of others in single consumer
--- make use of shared msg and shared model
--- for unique id, do something like copyable text widget: "popover-uuid"
--- and each popover should subscribe when panel is shown so save id data in shared model
--- seaparte ids because we need to check if click target was descendant of a specific popover
+-- We need unique id for each popover because we need to check if a click target was descendant of a specific popover
+-- TODO: remove `popoverId` as parameter - consumer shouldn't bother about it.
+-- Generate a unique id in widget itself, something like CopyableText but there's no string to hash
 
 
 popover :
@@ -25,11 +23,8 @@ popover :
     -> ST.PopoverPosition
     -> Maybe Int
     -> Element.Element msg
-popover context id target panel position distance =
+popover context popoverId target panel position distance =
     let
-        popoverId =
-            "popover-" ++ id
-
         popoverIsShown =
             Set.member popoverId context.showPopovers
     in
@@ -42,6 +37,8 @@ popover context id target panel position distance =
                                 -- Add or override default style with passed style attributes
                                 ++ panel.styleAttrs
                             )
+                            -- TODO: find a way to close popover whenever an action happens from panel
+                            -- how to combine panel's message with TogglePopover SharedMsg?
                             panel.contents
                         )
                         position
