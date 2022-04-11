@@ -32,6 +32,7 @@
   },
   "devDependencies": {
     "elm-analyse": "^0.16.5",
+    "elm-git-install": "^0.1.4",
     "elm-live": "^4.0.2",
     "elm-tooling": "^1.3.0",
     "husky": "^7.0.0",
