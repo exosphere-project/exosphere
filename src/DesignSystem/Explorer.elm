@@ -313,18 +313,23 @@ main =
                     ]
                 , storiesOf
                     "Icon"
-                    [ ( "bell", \m -> toHtml (palette m.colorMode) <| defaultIcon (palette m.colorMode) <| bell, {} )
-                    , ( "console", \m -> toHtml (palette m.colorMode) <| defaultIcon (palette m.colorMode) <| console, {} )
-                    , ( "copyToClipboard", \m -> toHtml (palette m.colorMode) <| defaultIcon (palette m.colorMode) <| copyToClipboard, {} )
-                    , ( "history", \m -> toHtml (palette m.colorMode) <| defaultIcon (palette m.colorMode) <| history, {} )
-                    , ( "ipAddress", \m -> toHtml (palette m.colorMode) <| defaultIcon (palette m.colorMode) <| ipAddress, {} )
-                    , ( "lock", \m -> toHtml (palette m.colorMode) <| defaultIcon (palette m.colorMode) <| lock, {} )
-                    , ( "lockOpen", \m -> toHtml (palette m.colorMode) <| defaultIcon (palette m.colorMode) <| lockOpen, {} )
-                    , ( "plusCircle", \m -> toHtml (palette m.colorMode) <| defaultIcon (palette m.colorMode) <| plusCircle, {} )
-                    , ( "remove", \m -> toHtml (palette m.colorMode) <| defaultIcon (palette m.colorMode) <| remove, {} )
-                    , ( "roundRect", \m -> toHtml (palette m.colorMode) <| defaultIcon (palette m.colorMode) <| roundRect, {} )
-                    , ( "timesCircle", \m -> toHtml (palette m.colorMode) <| defaultIcon (palette m.colorMode) <| timesCircle, {} )
-                    ]
+                    (List.map
+                        (\icon ->
+                            ( Tuple.first icon, \m -> toHtml (palette m.colorMode) <| defaultIcon (palette m.colorMode) <| Tuple.second icon, {} )
+                        )
+                        [ ( "bell", bell )
+                        , ( "console", console )
+                        , ( "copyToClipboard", copyToClipboard )
+                        , ( "history", history )
+                        , ( "ipAddress", ipAddress )
+                        , ( "lock", lock )
+                        , ( "lockOpen", lockOpen )
+                        , ( "plusCircle", plusCircle )
+                        , ( "remove", remove )
+                        , ( "roundRect", roundRect )
+                        , ( "timesCircle", timesCircle )
+                        ]
+                    )
                 , storiesOf
                     "Button"
                     [ ( "primary"
