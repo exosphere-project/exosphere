@@ -35,7 +35,6 @@ type alias Model =
 type Msg
     = DetachVolume OSTypes.VolumeUuid
     | GotDeleteConfirm OSTypes.VolumeUuid
-    | ToggleDeletePopconfirm View.Types.PopoverId
     | SharedMsg SharedMsg.SharedMsg
     | DataListMsg DataList.Msg
     | NoOp
@@ -62,12 +61,6 @@ update msg project model =
             , Cmd.none
             , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
                 SharedMsg.RequestDeleteVolume volumeUuid
-            )
-
-        ToggleDeletePopconfirm popoverId ->
-            ( model
-            , Cmd.none
-            , SharedMsg.TogglePopover popoverId
             )
 
         SharedMsg sharedMsg ->
@@ -255,6 +248,7 @@ volumeView model context project currentTime volumeRecord =
                     in
                     Element.row [ Element.spacing 12 ]
                         [ popover context
+                            SharedMsg
                             popoverId
                             (\togglePopoverMsg _ ->
                                 deleteIconButton
@@ -271,9 +265,7 @@ volumeView model context project currentTime volumeRecord =
                                             ++ context.localization.blockDevice
                                             ++ "?"
                                     , onConfirm = Just <| GotDeleteConfirm volumeRecord.id
-
-                                    -- TODO: remove it? let popover widget handle toggling popover
-                                    , onCancel = Just <| ToggleDeletePopconfirm popoverId
+                                    , onCancel = Just NoOp
                                     }
                             }
                             ST.PositionBottomRight

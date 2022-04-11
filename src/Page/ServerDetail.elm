@@ -1107,6 +1107,7 @@ serverActionsDropdown context project model server =
     case server.exoProps.targetOpenstackStatus of
         Nothing ->
             popover context
+                SharedMsg
                 "serverActionsDropdown"
                 target
                 { styleAttrs = [ Element.padding 20 ]

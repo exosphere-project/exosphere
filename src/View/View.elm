@@ -464,6 +464,7 @@ createButton context projectId expanded =
                 }
     in
     popover context
+        SharedMsg
         ("createBtnDropdown-" ++ projectId.projectUuid)
         target
         { styleAttrs = [], contents = dropdownContents }
