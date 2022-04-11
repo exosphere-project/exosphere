@@ -70,14 +70,13 @@ palette maybeColorMode =
         { theme = Style.Types.Override theme, systemPreference = Nothing }
 
 
-{-| Log changes in color mode to the console.
+{-| Stub listener which is intended for use with ports.
+
+    e.g. https://github.com/kalutheo/elm-ui-explorer/blob/master/examples/button/ExplorerWithNotes.elm#L22
+
 -}
 onColorModeChanged : ColorMode -> Cmd msg
-onColorModeChanged colorMode =
-    let
-        _ =
-            Debug.log "onColorModeChanged" colorMode
-    in
+onColorModeChanged _ =
     Cmd.none
 
 
@@ -422,10 +421,6 @@ main =
                     "Meter"
                     [ ( "default", \m -> toHtml (palette m.colorMode) <| meter (palette m.colorMode) "Space used" "6 of 10 GB" 6 10, {} )
                     ]
-                , storiesOf
-                    "Input"
-                    [ ( "default", \m -> Html.text "//TODO: Add components to this section.", {} )
-                    ]
                 ]
             |> category "Organisms"
                 [ storiesOf
@@ -514,18 +509,6 @@ main =
             |> category "Templates"
                 [ storiesOf
                     "Login"
-                    [ ( "default", \_ -> Html.text "//TODO: Add components to this section.", {} )
-                    ]
-                , storiesOf
-                    "Create"
-                    [ ( "default", \_ -> Html.text "//TODO: Add components to this section.", {} )
-                    ]
-                , storiesOf
-                    "List"
-                    [ ( "default", \_ -> Html.text "//TODO: Add components to this section.", {} )
-                    ]
-                , storiesOf
-                    "Detail"
                     [ ( "default", \_ -> Html.text "//TODO: Add components to this section.", {} )
                     ]
                 ]
