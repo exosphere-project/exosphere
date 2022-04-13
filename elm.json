@@ -1,7 +1,7 @@
 {
     "type": "application",
     "source-directories": [
-        "elm-stuff/gitdeps/github.com/LordParsley/elm-ui-explorer.git/src",
+        "elm-stuff/gitdeps/github.com/exosphere-project/elm-ui-explorer.git/src",
         "src"
     ],
     "elm-version": "0.19.1",
