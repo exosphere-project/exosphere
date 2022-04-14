@@ -1,4 +1,4 @@
-module Style.Widgets.Text exposing (TextVariant(..), body, bold, fontWeightAttr, heading, headingStyleAttrs, p, subheading, subheadingStyleAttrs, text, typography, typographyAttrs, underline)
+module Style.Widgets.Text exposing (TextVariant(..), body, bold, fontWeightAttr, heading, headingStyleAttrs, mono, p, subheading, subheadingStyleAttrs, text, typography, typographyAttrs, underline)
 
 import Element
 import Element.Border as Border
@@ -210,6 +210,16 @@ body label =
 bold : String -> Element.Element msg
 bold label =
     text Strong [] label
+
+
+{-| A convience method for monospace text.
+
+    Text.mono "198.123.0.1"
+
+-}
+mono : String -> Element.Element msg
+mono label =
+    text Body [ Font.family [ Font.monospace ] ] label
 
 
 {-| A convience method for underlined body text.
