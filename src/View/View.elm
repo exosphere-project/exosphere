@@ -281,7 +281,7 @@ project model context p projectViewModel viewConstructor =
                         |> Element.map KeypairListMsg
 
                 ServerCreate pageModel ->
-                    Page.ServerCreate.view context p model.logMessages pageModel
+                    Page.ServerCreate.view context p pageModel
                         |> Element.map ServerCreateMsg
 
                 ServerCreateImage pageModel ->

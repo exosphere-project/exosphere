@@ -38,7 +38,6 @@ import Types.HelperTypes as HelperTypes
         )
 import Types.Project exposing (Project)
 import Types.Server exposing (NewServerNetworkOptions(..))
-import Types.SharedModel
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH exposing (edges)
 import View.Types
@@ -362,8 +361,8 @@ enforceQuotaCompliance project model =
             model
 
 
-view : View.Types.Context -> Project -> List Types.SharedModel.LogMessage -> Model -> Element.Element Msg
-view context project logMessages model =
+view : View.Types.Context -> Project -> Model -> Element.Element Msg
+view context project model =
     let
         invalidNameReasons =
             serverNameValidator (Just context.localization.virtualComputer) model.serverName
