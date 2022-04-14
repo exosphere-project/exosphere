@@ -19,38 +19,38 @@ import View.Types
 popover :
     View.Types.Context
     -> (Types.SharedMsg.SharedMsg -> msg)
-    -> View.Types.PopoverId
-    -> (Types.SharedMsg.SharedMsg -> Bool -> Element.Element msg)
-    -> { styleAttrs : List (Element.Attribute msg), contents : Element.Element msg }
-    -> ST.PopoverPosition
-    -> Maybe Int
+    ->
+        { id : View.Types.PopoverId
+        , styleAttrs : List (Element.Attribute msg)
+        , content : Element.Attribute msg -> Element.Element msg
+        , position : ST.PopoverPosition
+        , distance : Maybe Int
+        , target : msg -> Bool -> Element.Element msg
+        }
     -> Element.Element msg
-popover context sharedMsgMapper popoverId target panel position distance =
+popover context sharedMsgMapper { id, styleAttrs, content, position, distance, target } =
+    -- TODO: add doc to explain record fields
     let
         popoverIsShown =
-            Set.member popoverId context.showPopovers
+            Set.member id context.showPopovers
 
-        -- close popover whenever an actionable component inside panel is clicked
-        -- FIXME: a popover shouldn't ideally close when clicking inside it on a non-actionable component
-        -- but this solution closes popover on evey click (preventing uses to copy text from it)
-        closePopoverAttrib =
+        -- close popover when an action happens in the content
+        closePopover =
             (Element.htmlAttribute <|
-                Html.Events.onClick <|
-                    Types.SharedMsg.TogglePopover popoverId
+                Html.Events.onClick (Types.SharedMsg.TogglePopover id)
             )
                 |> Element.mapAttribute sharedMsgMapper
     in
     Element.el
-        ((Element.htmlAttribute <| Html.Attributes.id popoverId)
+        ((Element.htmlAttribute <| Html.Attributes.id id)
             :: (if popoverIsShown then
                     SH.popoverAttribs
                         (Element.el
-                            (closePopoverAttrib
-                                :: SH.popoverStyleDefaults context.palette
+                            (SH.popoverStyleDefaults context.palette
                                 -- Add or override default style with passed style attributes
-                                ++ panel.styleAttrs
+                                ++ styleAttrs
                             )
-                            panel.contents
+                            (content closePopover)
                         )
                         position
                         distance
@@ -59,6 +59,6 @@ popover context sharedMsgMapper popoverId target panel position distance =
                     []
                )
         )
-        (target (Types.SharedMsg.TogglePopover popoverId)
+        (target (sharedMsgMapper <| Types.SharedMsg.TogglePopover id)
             popoverIsShown
         )

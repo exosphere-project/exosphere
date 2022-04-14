@@ -1,7 +1,7 @@
 module Style.Widgets.DeleteButton exposing
     ( deleteIconButton
+    , deletePopconfirm
     , deletePopconfirmAttribs
-    , deletePopconfirmPanel
     )
 
 import Element
@@ -56,8 +56,8 @@ deleteIconButton palette styleIsPrimary text onPress =
         }
 
 
-deletePopconfirmPanel : ExoPalette -> Popconfirm msg -> Element.Element msg
-deletePopconfirmPanel palette { confirmationText, onConfirm, onCancel } =
+deletePopconfirm : ExoPalette -> Popconfirm msg -> Element.Attribute msg -> Element.Element msg
+deletePopconfirm palette { confirmationText, onConfirm, onCancel } closePopconfirm =
     Element.column
         [ Element.spacing 16, Element.padding 6 ]
         [ Element.row [ Element.spacing 8 ]
@@ -69,16 +69,18 @@ deletePopconfirmPanel palette { confirmationText, onConfirm, onCancel } =
             , Element.text confirmationText
             ]
         , Element.row [ Element.spacing 10, Element.alignRight ]
-            [ Button.default
-                palette
-                { text = "Cancel"
-                , onPress = onCancel
-                }
-            , Button.button Button.Danger
-                palette
-                { text = "Delete"
-                , onPress = onConfirm
-                }
+            [ Element.el [ closePopconfirm ] <|
+                Button.default
+                    palette
+                    { text = "Cancel"
+                    , onPress = onCancel
+                    }
+            , Element.el [ closePopconfirm ] <|
+                Button.button Button.Danger
+                    palette
+                    { text = "Delete"
+                    , onPress = onConfirm
+                    }
             ]
         ]
 
@@ -91,11 +93,13 @@ deletePopconfirmAttribs :
 deletePopconfirmAttribs position palette { confirmationText, onConfirm, onCancel } =
     SH.popoverAttribs
         (Element.el (SH.popoverStyleDefaults palette) <|
-            deletePopconfirmPanel palette
+            deletePopconfirm palette
                 { confirmationText = confirmationText
                 , onConfirm = onConfirm
                 , onCancel = onCancel
                 }
+                --FIXME: it's a workaround, pass closePopconfirm as List instead?
+                (Element.padding 0)
         )
         position
         Nothing

@@ -16,7 +16,7 @@ import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.Button as Button
 import Style.Widgets.DataList as DataList
-import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirmPanel)
+import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
 import Style.Widgets.Popover exposing (popover)
 import Style.Widgets.Text as Text
 import Time
@@ -92,7 +92,7 @@ view context project currentTime model =
                 DataListMsg
                 context.palette
                 []
-                (volumeView model context project currentTime)
+                (volumeView context project currentTime)
                 (volumeRecords project volumes_)
                 []
                 (filters currentTime)
@@ -151,13 +151,12 @@ volumeRecords project volumes =
 
 
 volumeView :
-    Model
-    -> View.Types.Context
+    View.Types.Context
     -> Project
     -> Time.Posix
     -> VolumeRecord
     -> Element.Element Msg
-volumeView model context project currentTime volumeRecord =
+volumeView context project currentTime volumeRecord =
     let
         volumeLink =
             Element.link []
@@ -243,33 +242,39 @@ volumeView model context project currentTime volumeRecord =
                 OSTypes.Available ->
                     -- Volume can be either deleted or attached
                     let
-                        popoverId =
-                            "volumeListDeletePopconfirm-" ++ project.auth.project.uuid ++ volumeRecord.id
+                        deleteVolumeBtn togglePopoverMsg _ =
+                            deleteIconButton
+                                context.palette
+                                False
+                                "Delete Volume"
+                                (Just togglePopoverMsg)
+
+                        deletePopconfirmId =
+                            [ "volumeListDeletePopconfirm"
+                            , project.auth.project.uuid
+                            , volumeRecord.id
+                            ]
+                                |> List.intersperse "-"
+                                |> String.concat
                     in
                     Element.row [ Element.spacing 12 ]
                         [ popover context
                             SharedMsg
-                            popoverId
-                            (\togglePopoverMsg _ ->
-                                deleteIconButton
-                                    context.palette
-                                    False
-                                    "Delete Volume"
-                                    (Just <| SharedMsg togglePopoverMsg)
-                            )
-                            { styleAttrs = []
-                            , contents =
-                                deletePopconfirmPanel context.palette
+                            { id = deletePopconfirmId
+                            , styleAttrs = []
+                            , content =
+                                deletePopconfirm context.palette
                                     { confirmationText =
                                         "Are you sure you want to delete this "
                                             ++ context.localization.blockDevice
                                             ++ "?"
-                                    , onConfirm = Just <| GotDeleteConfirm volumeRecord.id
                                     , onCancel = Just NoOp
+                                    , onConfirm = Just <| GotDeleteConfirm volumeRecord.id
                                     }
+                            , position = ST.PositionBottomRight
+                            , distance = Nothing
+                            , target = deleteVolumeBtn
                             }
-                            ST.PositionBottomRight
-                            Nothing
                         , Element.link []
                             { url =
                                 Route.toUrl context.urlPathPrefix

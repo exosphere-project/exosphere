@@ -58,7 +58,6 @@ type alias Model =
     , activeInteractionToggleTip : Maybe Interaction
     , activeEventHistoryAbsoluteTimeToggleTip : Maybe Time.Posix
     , retainFloatingIpsWhenDeleting : Bool
-    , showActionsDropdown : Bool
     }
 
 
@@ -87,7 +86,6 @@ type Msg
     | GotActiveInteractionToggleTip (Maybe Interaction)
     | GotActiveEventHistoryAbsoluteTimeToggleTip (Maybe Time.Posix)
     | GotRetainFloatingIpsWhenDeleting Bool
-    | GotShowActionsDropdown Bool
     | GotSetServerName String
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
@@ -106,7 +104,6 @@ init serverUuid =
     , activeInteractionToggleTip = Nothing
     , activeEventHistoryAbsoluteTimeToggleTip = Nothing
     , retainFloatingIpsWhenDeleting = False
-    , showActionsDropdown = False
     }
 
 
@@ -143,9 +140,6 @@ update msg project model =
         GotRetainFloatingIpsWhenDeleting retain ->
             ( { model | retainFloatingIpsWhenDeleting = retain }, Cmd.none, SharedMsg.NoOp )
 
-        GotShowActionsDropdown shown ->
-            ( { model | showActionsDropdown = shown }, Cmd.none, SharedMsg.NoOp )
-
         GotSetServerName validName ->
             ( model
             , Cmd.none
@@ -156,7 +150,7 @@ update msg project model =
 
         SharedMsg msg_ ->
             -- TODO convert other pages to use this style
-            ( { model | showActionsDropdown = False }, Cmd.none, msg_ )
+            ( model, Cmd.none, msg_ )
 
         NoOp ->
             ( model, Cmd.none, SharedMsg.NoOp )
@@ -1069,10 +1063,15 @@ serverPassphrase context model server =
 serverActionsDropdown : View.Types.Context -> Project -> Model -> Server -> Element.Element Msg
 serverActionsDropdown context project model server =
     let
-        panelContents =
+        dropdownId =
+            [ "serverActionsDropdown", project.auth.project.uuid, server.osProps.uuid ]
+                |> List.intersperse "-"
+                |> String.concat
+
+        dropdownContent closeDropdown =
             Element.column [ Element.spacing 8 ] <|
                 List.map
-                    (renderServerActionButton context project model server)
+                    (renderServerActionButton context project model server closeDropdown)
                     (ServerActions.getAllowed
                         (Just context.localization.virtualComputer)
                         (Just context.localization.staticRepresentationOfBlockDeviceContents)
@@ -1081,7 +1080,7 @@ serverActionsDropdown context project model server =
                         server.osProps.details.lockStatus
                     )
 
-        target togglePopoverMsg popoverIsShown =
+        dropdownTarget toggleDropdownMsg dropdownIsShown =
             Widget.iconButton
                 (SH.materialStyle context.palette).button
                 { text = "Actions"
@@ -1090,7 +1089,7 @@ serverActionsDropdown context project model server =
                         [ Element.spacing 5 ]
                         [ Element.text "Actions"
                         , Element.el []
-                            ((if popoverIsShown then
+                            ((if dropdownIsShown then
                                 FeatherIcons.chevronUp
 
                               else
@@ -1101,20 +1100,20 @@ serverActionsDropdown context project model server =
                                 |> Element.html
                             )
                         ]
-                , onPress = Just <| SharedMsg togglePopoverMsg
+                , onPress = Just toggleDropdownMsg
                 }
     in
     case server.exoProps.targetOpenstackStatus of
         Nothing ->
             popover context
                 SharedMsg
-                "serverActionsDropdown"
-                target
-                { styleAttrs = [ Element.padding 20 ]
-                , contents = panelContents
+                { id = dropdownId
+                , styleAttrs = [ Element.padding 20 ]
+                , content = dropdownContent
+                , position = ST.PositionBottomRight
+                , distance = Nothing
+                , target = dropdownTarget
                 }
-                ST.PositionBottomRight
-                Nothing
 
         Just _ ->
             Element.none
@@ -1195,8 +1194,15 @@ serverEventHistory context model currentTime serverEventsRDPP =
             Element.none
 
 
-renderServerActionButton : View.Types.Context -> Project -> Model -> Server -> ServerActions.ServerAction -> Element.Element Msg
-renderServerActionButton context project model server serverAction =
+renderServerActionButton :
+    View.Types.Context
+    -> Project
+    -> Model
+    -> Server
+    -> Element.Attribute Msg
+    -> ServerActions.ServerAction
+    -> Element.Element Msg
+renderServerActionButton context project model server closeActionsDropdown serverAction =
     let
         displayConfirmation =
             case model.serverActionNamePendingConfirmation of
@@ -1212,7 +1218,7 @@ renderServerActionButton context project model server serverAction =
                 updateAction =
                     GotServerActionNamePendingConfirmation <| Just serverAction.name
             in
-            renderActionButton context serverAction (Just updateAction) serverAction.name
+            renderActionButton context serverAction (Just updateAction) serverAction.name closeActionsDropdown
 
         ( True, True ) ->
             let
@@ -1281,6 +1287,7 @@ renderServerActionButton context project model server serverAction =
                             serverAction
                             (Just NoOp)
                             (Helpers.String.toTitleCase context.localization.staticRepresentationOfBlockDeviceContents)
+                            closeActionsDropdown
                     }
                 -- This is similarly ugly
 
@@ -1298,6 +1305,7 @@ renderServerActionButton context project model server serverAction =
                             serverAction
                             (Just NoOp)
                             (Helpers.String.toTitleCase "Resize")
+                            closeActionsDropdown
                     }
 
             else
@@ -1308,7 +1316,7 @@ renderServerActionButton context project model server serverAction =
                     title =
                         serverAction.name
                 in
-                renderActionButton context serverAction actionMsg title
+                renderActionButton context serverAction actionMsg title closeActionsDropdown
 
 
 confirmationMessage : ServerActions.ServerAction -> String
@@ -1347,13 +1355,13 @@ serverActionSelectModButton context selectMod =
         }
 
 
-renderActionButton : View.Types.Context -> ServerActions.ServerAction -> Maybe Msg -> String -> Element.Element Msg
-renderActionButton context serverAction actionMsg title =
+renderActionButton : View.Types.Context -> ServerActions.ServerAction -> Maybe Msg -> String -> Element.Attribute Msg -> Element.Element Msg
+renderActionButton context serverAction actionMsg title closeActionsDropdown =
     Element.row
         [ Element.spacing 10, Element.width Element.fill ]
         [ Element.text serverAction.description
         , Element.el
-            [ Element.width <| Element.px 100, Element.alignRight ]
+            [ Element.width <| Element.px 100, Element.alignRight, closeActionsDropdown ]
           <|
             serverActionSelectModButton context
                 serverAction.selectMod
