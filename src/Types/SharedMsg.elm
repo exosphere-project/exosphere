@@ -52,7 +52,6 @@ type alias TickInterval =
 type ProjectSpecificMsgConstructor
     = ReceiveAppCredential OSTypes.ApplicationCredential
     | PrepareCredentialedRequest (Maybe HelperTypes.Url -> OSTypes.AuthTokenString -> Cmd SharedMsg) Time.Posix
-    | ToggleCreatePopup
     | RemoveProject
     | ServerMsg OSTypes.ServerUuid ServerSpecificMsgConstructor
     | RequestServers

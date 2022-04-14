@@ -44,7 +44,7 @@ navMenu outerModel context =
 
                 status =
                     case outerModel.viewState of
-                        ProjectView p _ _ ->
+                        ProjectView p _ ->
                             if p == GetterSetters.projectIdentifier project then
                                 MenuItem.Active
 

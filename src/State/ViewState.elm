@@ -200,7 +200,7 @@ routeToViewStateModelCmd sharedModel route =
                 Just project ->
                     let
                         projectViewProto =
-                            ProjectView projectId { createPopup = False }
+                            ProjectView projectId
                     in
                     case projectPage of
                         Route.ProjectOverview ->
@@ -490,5 +490,5 @@ viewStateToSupportableItem viewState =
         NonProjectView _ ->
             Nothing
 
-        ProjectView projectUuid _ projectViewConstructor ->
+        ProjectView projectUuid projectViewConstructor ->
             Just <| supportableProjectItem projectUuid projectViewConstructor
