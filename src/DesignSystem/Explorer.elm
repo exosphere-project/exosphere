@@ -67,6 +67,7 @@ palette maybeColorMode =
                     Style.Types.Light
     in
     SH.toExoPalette
+        -- TODO: Add support for flags so that environment config can change the palette.
         Style.Types.defaultColors
         { theme = Style.Types.Override theme, systemPreference = Nothing }
 
