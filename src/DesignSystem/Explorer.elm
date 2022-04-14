@@ -1,5 +1,6 @@
 module DesignSystem.Explorer exposing (main)
 
+import DesignSystem.Stories.ColorPalette as ColorPalette
 import Element
 import Element.Font as Font
 import Element.Region
@@ -204,7 +205,8 @@ main =
         config
         (createCategories
             |> category "Atoms"
-                [ storiesOf
+                [ ColorPalette.stories toHtml palette {}
+                , storiesOf
                     "Text"
                     [ ( "unstyled", \m -> toHtml (palette m.colorMode) <| Element.text "This is text rendered using `Element.text` and no styling. It will inherit attributes from the document layout.", {} )
                     , ( "p"
