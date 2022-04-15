@@ -1,8 +1,6 @@
 {
     "git-dependencies": {
-        "direct": {
-            "https://github.com/exosphere-project/elm-ui-explorer.git": "9.0.1"
-        },
+        "direct": {},
         "indirect": {}
     }
 }
