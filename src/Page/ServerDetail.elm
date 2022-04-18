@@ -17,7 +17,7 @@ import Helpers.String
 import Helpers.Time
 import OpenStack.ServerActions as ServerActions
 import OpenStack.ServerNameValidator exposing (serverNameValidator)
-import OpenStack.ServerVolumes exposing (isServerAvailable)
+import OpenStack.ServerVolumes exposing (serverCanHaveVolumeAttached)
 import OpenStack.Types as OSTypes
 import Page.ServerResourceUsageAlerts
 import Page.ServerResourceUsageCharts
@@ -418,20 +418,15 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                         }
 
                 attachButton =
-                    if isServerAvailable server then
-                        case details.lockStatus of
-                            OSTypes.ServerLocked ->
-                                buttonLabel Nothing
-
-                            OSTypes.ServerUnlocked ->
-                                Element.link []
-                                    { url =
-                                        Route.toUrl context.urlPathPrefix
-                                            (Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
-                                                Route.VolumeAttach (Just server.osProps.uuid) Nothing
-                                            )
-                                    , label = buttonLabel <| Just NoOp
-                                    }
+                    if serverCanHaveVolumeAttached server then
+                        Element.link []
+                            { url =
+                                Route.toUrl context.urlPathPrefix
+                                    (Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
+                                        Route.VolumeAttach (Just server.osProps.uuid) Nothing
+                                    )
+                            , label = buttonLabel <| Just NoOp
+                            }
 
                     else
                         Element.none
@@ -447,7 +442,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                     |> Element.text
                 ]
                 [ serverVolumes context project server
-                , Element.el [ Element.centerX, Font.color <| SH.toElementColor context.palette.muted ] attachButton
+                , Element.el [ Element.centerX ] attachButton
                 ]
             , tile
                 [ Icon.history (SH.toElementColor context.palette.on.background) 20
