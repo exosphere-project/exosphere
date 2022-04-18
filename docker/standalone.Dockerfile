@@ -19,6 +19,7 @@ RUN apt-get update && \
 COPY package*.json ./
 COPY elm.json ./
 COPY elm-tooling.json ./
+COPY elm-git.json ./
 RUN npm install
 
 # Copy Elm source

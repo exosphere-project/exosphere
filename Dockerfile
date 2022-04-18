@@ -17,6 +17,7 @@ RUN apt-get update && \
 COPY package*.json ./
 COPY elm.json ./
 COPY elm-tooling.json ./
+COPY elm-git.json ./
 RUN npm install \
     && npm install --no-save elm-live
 
