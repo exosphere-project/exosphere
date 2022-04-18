@@ -71,7 +71,6 @@ type SelectedFilterOptions
 type alias Model =
     { selectedRowIds : Set.Set RowId
     , selectedFilters : SelectedFilterOptions
-    , showFiltersDropdown : Bool
     , searchText : String
     }
 
@@ -94,7 +93,6 @@ init : SelectedFilterOptions -> Model
 init selectedFilters =
     { selectedRowIds = Set.empty
     , selectedFilters = selectedFilters
-    , showFiltersDropdown = False
     , searchText = ""
     }
 
@@ -111,7 +109,6 @@ type Msg
     | ChangeAllRowsSelection (Set.Set RowId)
     | ChangeFiltOptCheckboxSelection FilterId FilterOptionValue Bool
     | ChangeFiltOptRadioSelection FilterId UniselectOptionIdentifier
-    | ToggleFiltersDropdownVisiblity
     | GotSearchText String
     | ClearFilter FilterId
     | ClearAllFilters
@@ -169,9 +166,6 @@ update msg model =
                                     (UniselectOption uniselectOptValue)
                                     selectedFiltOptsDict
             }
-
-        ToggleFiltersDropdownVisiblity ->
-            { model | showFiltersDropdown = not model.showFiltersDropdown }
 
         GotSearchText searchText ->
             { model | searchText = searchText }
