@@ -461,9 +461,10 @@ createButton context projectId =
     popover context
         SharedMsg
         { id = "createBtnDropdown-" ++ projectId.projectUuid
-        , styleAttrs = []
         , content = dropdownContent
+        , contentStyleAttrs = []
         , position = ST.PositionBottomRight
-        , distance = Nothing
+        , distanceToTarget = Nothing
         , target = dropdownTarget
+        , targetStyleAttrs = []
         }

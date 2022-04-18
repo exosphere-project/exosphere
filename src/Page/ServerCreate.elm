@@ -52,7 +52,6 @@ type Msg
     = GotServerName String
     | GotCount Int
     | GotCreateServerButtonPressed OSTypes.NetworkUuid OSTypes.FlavorId
-    | GotSelectedFlavorGroupToggleTip (Maybe HelperTypes.FlavorGroupTitle)
     | GotFlavorId OSTypes.FlavorId
     | GotFlavorList
     | GotVolSizeTextInput (Maybe NumericTextInput)
@@ -71,7 +70,6 @@ type Msg
     | GotWorkflowReference String
     | GotWorkflowPath String
     | GotWorkflowInputLoseFocus
-    | GotShowWorkFlowExplanationToggleTip
     | GotCreateCluster Bool
     | GotDisabledCreateButtonPressed
     | SharedMsg SharedMsg.SharedMsg
@@ -85,7 +83,6 @@ init imageUuid imageName restrictFlavorIds deployGuacamole =
     , imageName = imageName
     , restrictFlavorIds = restrictFlavorIds
     , count = 1
-    , selectedFlavorGroupToggleTip = Nothing
     , flavorId = Nothing
     , volSizeTextInput = Nothing
     , userDataTemplate = cloudInitUserDataTemplate
@@ -101,9 +98,7 @@ init imageUuid imageName restrictFlavorIds deployGuacamole =
     , workflowInputReference = ""
     , workflowInputPath = ""
     , workflowInputIsValid = Nothing
-    , showWorkflowExplanationToggleTip = False
     , createCluster = False
-    , showClusterExplanationToggleTip = False
     , showFormInvalidToggleTip = False
     , createServerAttempted = False
     }
@@ -122,18 +117,6 @@ update msg project model =
             ( { model | createServerAttempted = True }
             , Cmd.none
             , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) (SharedMsg.RequestCreateServer model netUuid flavorId)
-            )
-
-        GotSelectedFlavorGroupToggleTip maybeFlavorGroupTitle ->
-            let
-                newModel =
-                    { model
-                        | selectedFlavorGroupToggleTip = maybeFlavorGroupTitle
-                    }
-            in
-            ( newModel
-            , Cmd.none
-            , SharedMsg.NoOp
             )
 
         GotFlavorId flavorId ->
@@ -286,14 +269,6 @@ update msg project model =
         GotWorkflowPath path ->
             ( { model
                 | workflowInputPath = path
-              }
-            , Cmd.none
-            , SharedMsg.NoOp
-            )
-
-        GotShowWorkFlowExplanationToggleTip ->
-            ( { model
-                | showWorkflowExplanationToggleTip = not model.showWorkflowExplanationToggleTip
               }
             , Cmd.none
             , SharedMsg.NoOp
@@ -621,15 +596,15 @@ view context project model =
                 project
                 model.restrictFlavorIds
                 computeQuota
-                model.selectedFlavorGroupToggleTip
-                GotSelectedFlavorGroupToggleTip
+                SharedMsg
+                (Helpers.String.hyphenate [ "serverCreateFlavorGroupTip", project.auth.project.uuid ])
                 Nothing
                 model.flavorId
                 GotFlavorId
             , volBackedPrompt context model volumeQuota flavor
             , countPicker context model computeQuota volumeQuota flavor
             , desktopEnvironmentPicker context project model
-            , customWorkflowInput context model
+            , customWorkflowInput context project model
             , Element.column
                 [ Element.spacing 24 ]
               <|
@@ -930,10 +905,10 @@ countPicker context model computeQuota volumeQuota flavor =
         ]
 
 
-customWorkflowInput : View.Types.Context -> Model -> Element.Element Msg
-customWorkflowInput context model =
+customWorkflowInput : View.Types.Context -> Project -> Model -> Element.Element Msg
+customWorkflowInput context project model =
     if context.experimentalFeaturesEnabled then
-        customWorkflowInputExperimental context model
+        customWorkflowInputExperimental context project model
 
     else
         Element.none
@@ -954,8 +929,8 @@ workflowInputIsValid ( repository, reference, path ) =
     (repository /= "") && not (workflowInputIsEmpty ( repository, reference, path ))
 
 
-customWorkflowInputExperimental : View.Types.Context -> Model -> Element.Element Msg
-customWorkflowInputExperimental context model =
+customWorkflowInputExperimental : View.Types.Context -> Project -> Model -> Element.Element Msg
+customWorkflowInputExperimental context project model =
     let
         workflowInput =
             let
@@ -1056,7 +1031,9 @@ customWorkflowInputExperimental context model =
 
         workflowExplanationToggleTip =
             Style.Widgets.ToggleTip.toggleTip
-                context.palette
+                context
+                SharedMsg
+                ("workflowExplainationTip" ++ project.auth.project.uuid)
                 (Element.column
                     [ Element.width
                         (Element.fill
@@ -1071,8 +1048,6 @@ customWorkflowInputExperimental context model =
                     ]
                 )
                 ST.PositionTop
-                model.showWorkflowExplanationToggleTip
-                GotShowWorkFlowExplanationToggleTip
 
         experimentalBadge =
             badge "Experimental"

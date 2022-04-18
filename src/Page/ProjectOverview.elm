@@ -32,34 +32,31 @@ import View.Types
 
 
 type alias Model =
-    { showJetstream2AllocationToggleTip : Bool }
+    {}
 
 
 type Msg
-    = ShowHideJetstream2AllocationToggleTip
+    = SharedMsg SharedMsg.SharedMsg
     | NoOp
 
 
 init : Model
 init =
-    Model False
+    Model
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
 update msg _ model =
     case msg of
-        ShowHideJetstream2AllocationToggleTip ->
-            ( { model | showJetstream2AllocationToggleTip = not model.showJetstream2AllocationToggleTip }
-            , Cmd.none
-            , SharedMsg.NoOp
-            )
+        SharedMsg sharedMsg ->
+            ( model, Cmd.none, sharedMsg )
 
         NoOp ->
             ( model, Cmd.none, SharedMsg.NoOp )
 
 
 view : View.Types.Context -> Project -> Time.Posix -> Model -> Element.Element Msg
-view context project currentTime model =
+view context project currentTime _ =
     let
         renderTile : Element.Element Msg -> String -> Route.ProjectRouteConstructor -> Element.Element Msg -> Element.Element Msg -> Element.Element Msg
         renderTile icon str projRouteConstructor quotaMeter contents =
@@ -93,7 +90,7 @@ view context project currentTime model =
     Element.column
         [ Element.spacing 25, Element.width Element.fill ]
         [ Element.row [ Element.spacing 20 ]
-            [ renderJetstream2Allocation context project currentTime model
+            [ renderJetstream2Allocation context project currentTime
             , VH.renderMaybe project.description renderDescription
             ]
         , Element.wrappedRow [ Element.spacing 25, Element.width Element.fill ]
@@ -162,8 +159,8 @@ view context project currentTime model =
         ]
 
 
-renderJetstream2Allocation : View.Types.Context -> Project -> Time.Posix -> Model -> Element.Element Msg
-renderJetstream2Allocation context project currentTime model =
+renderJetstream2Allocation : View.Types.Context -> Project -> Time.Posix -> Element.Element Msg
+renderJetstream2Allocation context project currentTime =
     let
         meter : Types.Jetstream2Accounting.Allocation -> Element.Element Msg
         meter allocation =
@@ -213,13 +210,19 @@ renderJetstream2Allocation context project currentTime model =
                     ]
                         |> List.map Element.text
                         |> Element.column []
+
+                toggleTipId =
+                    Helpers.String.hyphenate
+                        [ "JS2AllocationTip"
+                        , project.auth.project.uuid
+                        ]
             in
             Style.Widgets.ToggleTip.toggleTip
-                context.palette
+                context
+                SharedMsg
+                toggleTipId
                 contents
                 ST.PositionRight
-                model.showJetstream2AllocationToggleTip
-                ShowHideJetstream2AllocationToggleTip
 
         renderRDPPSuccess : Maybe Types.Jetstream2Accounting.Allocation -> Element.Element Msg
         renderRDPPSuccess maybeAllocation =

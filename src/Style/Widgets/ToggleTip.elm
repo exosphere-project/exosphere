@@ -1,4 +1,4 @@
-module Style.Widgets.ToggleTip exposing (toggleTip, toggleTip2)
+module Style.Widgets.ToggleTip exposing (toggleTip)
 
 import Element
 import Element.Border as Border
@@ -13,57 +13,14 @@ import Types.SharedMsg
 import View.Types
 
 
-tipPopover : Style.Types.ExoPalette -> Element.Element msg -> Element.Element msg
-tipPopover palette content =
-    Element.el
-        (SH.popoverStyleDefaults palette
-            ++ [ Element.htmlAttribute (Html.Attributes.style "pointerEvents" "none")
-               , Border.rounded 4
-               , Font.color (SH.toElementColorWithOpacity palette.on.surface 0.8)
-               , Font.size 15
-               ]
-        )
-        content
-
-
-toggleTip : Style.Types.ExoPalette -> Element.Element msg -> Style.Types.PopoverPosition -> Bool -> msg -> Element.Element msg
-toggleTip palette content position shown showHideTipMsg =
-    let
-        clickOrHoverStyle =
-            [ -- darken the icon color
-              Font.color (palette.on.background |> SH.toElementColor)
-            ]
-    in
-    FeatherIcons.info
-        |> FeatherIcons.withSize 20
-        |> FeatherIcons.toHtml []
-        |> Element.html
-        |> Element.el
-            (List.concat
-                [ [ Element.paddingXY 5 0
-                  , Events.onClick showHideTipMsg
-                  , Element.pointer
-                  , Font.color (palette.muted |> SH.toElementColor)
-                  , Element.mouseOver clickOrHoverStyle
-                  ]
-                , if shown then
-                    SH.popoverAttribs (tipPopover palette content) position Nothing
-                        ++ clickOrHoverStyle
-
-                  else
-                    []
-                ]
-            )
-
-
-toggleTip2 :
+toggleTip :
     View.Types.Context
     -> (Types.SharedMsg.SharedMsg -> msg)
     -> View.Types.PopoverId
     -> Element.Element msg
     -> Style.Types.PopoverPosition
     -> Element.Element msg
-toggleTip2 context sharedMsgMapper id content position =
+toggleTip context sharedMsgMapper id content position =
     let
         tipStyle =
             [ Element.htmlAttribute (Html.Attributes.style "pointerEvents" "none")
@@ -100,9 +57,10 @@ toggleTip2 context sharedMsgMapper id content position =
     popover context
         sharedMsgMapper
         { id = id
-        , styleAttrs = tipStyle
         , content = \_ -> content
+        , contentStyleAttrs = tipStyle
         , position = position
-        , distance = Nothing
+        , distanceToTarget = Nothing
         , target = tipIconBtn
+        , targetStyleAttrs = []
         }

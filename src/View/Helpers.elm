@@ -1020,13 +1020,13 @@ flavorPicker :
     -> Project
     -> Maybe (List OSTypes.FlavorId)
     -> OSTypes.ComputeQuota
-    -> Maybe Types.HelperTypes.FlavorGroupTitle
-    -> (Maybe Types.HelperTypes.FlavorGroupTitle -> msg)
+    -> (SharedMsg.SharedMsg -> msg)
+    -> View.Types.PopoverId
     -> Maybe OSTypes.FlavorId
     -> Maybe OSTypes.FlavorId
     -> (OSTypes.FlavorId -> msg)
     -> Element.Element msg
-flavorPicker context project restrictFlavorIds computeQuota selectedFlavorGroupToggleTip selectFlavorGroupToggleTipMsg maybeCurrentFlavorId selectedFlavorId changeMsg =
+flavorPicker context project restrictFlavorIds computeQuota sharedMsgMapper flavorGroupToggleTipId maybeCurrentFlavorId selectedFlavorId changeMsg =
     let
         { locale } =
             context
@@ -1210,21 +1210,17 @@ flavorPicker context project restrictFlavorIds computeQuota selectedFlavorGroupT
                         , case flavorGroup.description of
                             Just description ->
                                 let
-                                    selected =
-                                        selectedFlavorGroupToggleTip |> Maybe.map (\n -> flavorGroup.title == n) |> Maybe.withDefault False
+                                    toggleTipId =
+                                        Helpers.String.hyphenate
+                                            [ flavorGroupToggleTipId
+                                            , flavorGroup.title
+                                            ]
                                 in
-                                ToggleTip.toggleTip context.palette
+                                ToggleTip.toggleTip context
+                                    sharedMsgMapper
+                                    toggleTipId
                                     (Element.text description)
                                     ST.PositionRight
-                                    selected
-                                    (selectFlavorGroupToggleTipMsg
-                                        (if selected then
-                                            Nothing
-
-                                         else
-                                            Just flavorGroup.title
-                                        )
-                                    )
 
                             Nothing ->
                                 Element.none

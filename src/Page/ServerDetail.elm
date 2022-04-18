@@ -195,10 +195,15 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
             Element.row
                 [ Element.spacing 5 ]
                 [ Element.text timeDistanceStr
-                , Style.Widgets.ToggleTip.toggleTip2
+                , Style.Widgets.ToggleTip.toggleTip
                     context
                     SharedMsg
-                    (Helpers.String.hyphenate [ "createdTimeTip", project.auth.project.uuid, server.osProps.uuid ])
+                    (Helpers.String.hyphenate
+                        [ "createdTimeTip"
+                        , project.auth.project.uuid
+                        , server.osProps.uuid
+                        ]
+                    )
                     toggleTipContents
                     ST.PositionBottomLeft
                 ]
@@ -259,7 +264,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                                 ]
 
                         toggleTip =
-                            Style.Widgets.ToggleTip.toggleTip2
+                            Style.Widgets.ToggleTip.toggleTip
                                 context
                                 SharedMsg
                                 (Helpers.String.hyphenate [ "flavorToggleTip", project.auth.project.uuid, server.osProps.uuid ])
@@ -781,7 +786,7 @@ serverStatus context project server =
                         , friendlyOpenstackStatus details.openstackStatus
                         ]
             in
-            Style.Widgets.ToggleTip.toggleTip2
+            Style.Widgets.ToggleTip.toggleTip
                 context
                 SharedMsg
                 toggleTipId
@@ -866,7 +871,7 @@ interactions context project server currentTime tlsReverseProxyHostname =
                                 , interactionDetails.name
                                 ]
                     in
-                    Style.Widgets.ToggleTip.toggleTip2
+                    Style.Widgets.ToggleTip.toggleTip
                         context
                         SharedMsg
                         toggleTipId
@@ -1079,11 +1084,12 @@ serverActionsDropdown context project model server =
             popover context
                 SharedMsg
                 { id = dropdownId
-                , styleAttrs = [ Element.padding 20 ]
                 , content = dropdownContent
+                , contentStyleAttrs = [ Element.padding 20 ]
                 , position = ST.PositionBottomRight
-                , distance = Nothing
+                , distanceToTarget = Nothing
                 , target = dropdownTarget
+                , targetStyleAttrs = []
                 }
 
         Just _ ->
@@ -1135,7 +1141,7 @@ serverEventHistory context project server currentTime =
                                                     , event.startTime |> Time.posixToMillis |> String.fromInt
                                                     ]
                                         in
-                                        Style.Widgets.ToggleTip.toggleTip2
+                                        Style.Widgets.ToggleTip.toggleTip
                                             context
                                             SharedMsg
                                             toggleTipId

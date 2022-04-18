@@ -8,7 +8,6 @@ import RemoteData
 import Route
 import Style.Widgets.Button as Button
 import Style.Widgets.Text as Text
-import Types.HelperTypes as HelperTypes
 import Types.Project exposing (Project)
 import Types.Server exposing (Server)
 import Types.SharedModel exposing (SharedModel)
@@ -20,19 +19,18 @@ import View.Types
 type alias Model =
     { serverUuid : OSTypes.ServerUuid
     , flavorId : Maybe OSTypes.FlavorId
-    , selectedFlavorGroupToggleTip : Maybe HelperTypes.FlavorGroupTitle
     }
 
 
 type Msg
     = GotFlavorId OSTypes.FlavorId
-    | GotSelectedFlavorGroupToggleTip (Maybe HelperTypes.FlavorGroupTitle)
     | GotSubmit OSTypes.FlavorId
+    | SharedMsg SharedMsg.SharedMsg
 
 
 init : OSTypes.ServerUuid -> Model
 init serverUuid =
-    Model serverUuid Nothing Nothing
+    Model serverUuid Nothing
 
 
 update : Msg -> SharedModel -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
@@ -48,18 +46,6 @@ update msg { viewContext } project model =
             , SharedMsg.NoOp
             )
 
-        GotSelectedFlavorGroupToggleTip maybeFlavorGroupTitle ->
-            let
-                newModel =
-                    { model
-                        | selectedFlavorGroupToggleTip = maybeFlavorGroupTitle
-                    }
-            in
-            ( newModel
-            , Cmd.none
-            , SharedMsg.NoOp
-            )
-
         GotSubmit flavorId ->
             ( model
             , Route.pushUrl viewContext <|
@@ -69,6 +55,9 @@ update msg { viewContext } project model =
                 ServerMsg model.serverUuid <|
                     RequestResizeServer flavorId
             )
+
+        SharedMsg sharedMsg ->
+            ( model, Cmd.none, sharedMsg )
 
 
 view : View.Types.Context -> Project -> Model -> Element.Element Msg
@@ -136,8 +125,8 @@ view_ context project model computeQuota =
                 project
                 restrictFlavorIds
                 computeQuota
-                model.selectedFlavorGroupToggleTip
-                GotSelectedFlavorGroupToggleTip
+                SharedMsg
+                (Helpers.String.hyphenate [ "serverResizeFlavorGroupTip", project.auth.project.uuid ])
                 currentFlavorId
                 model.flavorId
                 GotFlavorId
