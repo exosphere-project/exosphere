@@ -1548,28 +1548,51 @@ processProjectSpecificMsg outerModel project msg =
                     ( newSharedModel, Cmd.none )
                         |> mapToOuterModel outerModel
 
-        ReceiveCreateServer _ ->
-            let
-                newRoute =
-                    Route.ProjectRoute
-                        (GetterSetters.projectIdentifier project)
-                        Route.ProjectOverview
+        ReceiveCreateServer errorContext result ->
+            case result of
+                Ok _ ->
+                    let
+                        newRoute =
+                            Route.ProjectRoute
+                                (GetterSetters.projectIdentifier project)
+                                Route.ProjectOverview
 
-                ( newSharedModel, newCmd ) =
-                    ( sharedModel, Cmd.none )
-                        |> Helpers.pipelineCmd
-                            (ApiModelHelpers.requestServers (GetterSetters.projectIdentifier project))
-                        |> Helpers.pipelineCmd
-                            (ApiModelHelpers.requestNetworks (GetterSetters.projectIdentifier project))
-                        |> Helpers.pipelineCmd
-                            (ApiModelHelpers.requestPorts (GetterSetters.projectIdentifier project))
-            in
-            ( { outerModel | sharedModel = newSharedModel }
-            , Cmd.batch
-                [ Cmd.map SharedMsg newCmd
-                , Route.pushUrl sharedModel.viewContext newRoute
-                ]
-            )
+                        ( newSharedModel, newCmd ) =
+                            ( sharedModel, Cmd.none )
+                                |> Helpers.pipelineCmd
+                                    (ApiModelHelpers.requestServers (GetterSetters.projectIdentifier project))
+                                |> Helpers.pipelineCmd
+                                    (ApiModelHelpers.requestNetworks (GetterSetters.projectIdentifier project))
+                                |> Helpers.pipelineCmd
+                                    (ApiModelHelpers.requestPorts (GetterSetters.projectIdentifier project))
+                    in
+                    ( { outerModel | sharedModel = newSharedModel }
+                    , Cmd.batch
+                        [ Cmd.map SharedMsg newCmd
+                        , Route.pushUrl sharedModel.viewContext newRoute
+                        ]
+                    )
+
+                Err httpError ->
+                    let
+                        newOuterModel =
+                            case outerModel.viewState of
+                                ProjectView projectId projectViewModel (ServerCreate serverCreateModel) ->
+                                    let
+                                        newViewState =
+                                            ProjectView
+                                                projectId
+                                                projectViewModel
+                                                (ServerCreate { serverCreateModel | createServerAttempted = False })
+                                    in
+                                    { outerModel | viewState = newViewState }
+
+                                _ ->
+                                    outerModel
+                    in
+                    State.Error.processStringError sharedModel errorContext httpError.body
+                        |> mapToOuterMsg
+                        |> mapToOuterModel newOuterModel
 
         ReceiveNetworks errorContext result ->
             case result of

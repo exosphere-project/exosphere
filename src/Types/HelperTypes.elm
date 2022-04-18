@@ -302,4 +302,5 @@ type alias CreateServerPageModel =
     , createCluster : Bool
     , showClusterExplanationToggleTip : Bool
     , showFormInvalidToggleTip : Bool
+    , createServerAttempted : Bool
     }
