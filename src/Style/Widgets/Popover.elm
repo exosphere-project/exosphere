@@ -21,14 +21,15 @@ popover :
     -> (Types.SharedMsg.SharedMsg -> msg)
     ->
         { id : View.Types.PopoverId
-        , styleAttrs : List (Element.Attribute msg)
         , content : Element.Attribute msg -> Element.Element msg
+        , contentStyleAttrs : List (Element.Attribute msg)
         , position : ST.PopoverPosition
-        , distance : Maybe Int
+        , distanceToTarget : Maybe Int
         , target : msg -> Bool -> Element.Element msg
+        , targetStyleAttrs : List (Element.Attribute msg)
         }
     -> Element.Element msg
-popover context sharedMsgMapper { id, styleAttrs, content, position, distance, target } =
+popover context sharedMsgMapper { id, content, contentStyleAttrs, position, distanceToTarget, target, targetStyleAttrs } =
     -- TODO: add doc to explain record fields
     let
         popoverIsShown =
@@ -48,16 +49,17 @@ popover context sharedMsgMapper { id, styleAttrs, content, position, distance, t
                         (Element.el
                             (SH.popoverStyleDefaults context.palette
                                 -- Add or override default style with passed style attributes
-                                ++ styleAttrs
+                                ++ contentStyleAttrs
                             )
                             (content closePopover)
                         )
                         position
-                        distance
+                        distanceToTarget
 
                 else
                     []
                )
+            ++ targetStyleAttrs
         )
         (target (sharedMsgMapper <| Types.SharedMsg.TogglePopover id)
             popoverIsShown

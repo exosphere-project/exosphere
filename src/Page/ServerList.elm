@@ -53,7 +53,7 @@ type Msg
     | ShowDeletePopconfirm OSTypes.ServerUuid Bool
     | OpenInteraction String
     | ToggleInteractionPopover OSTypes.ServerUuid
-    | DataListMsg DataList.Msg
+    | DataListMsg DataList.Msg SharedMsg.SharedMsg
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
 
@@ -116,13 +116,13 @@ update msg project model =
             , SharedMsg.NoOp
             )
 
-        DataListMsg dataListMsg ->
+        DataListMsg dataListMsg sharedMsg ->
             ( { model
                 | dataListModel =
                     DataList.update dataListMsg model.dataListModel
               }
             , Cmd.none
-            , SharedMsg.NoOp
+            , sharedMsg
             )
 
         SharedMsg sharedMsg ->
@@ -187,7 +187,7 @@ view context project currentTime model =
                         DataList.view
                             model.dataListModel
                             DataListMsg
-                            context.palette
+                            context
                             []
                             (serverView model context currentTime project)
                             serversList

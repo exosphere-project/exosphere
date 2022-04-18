@@ -36,7 +36,7 @@ type Msg
     = DetachVolume OSTypes.VolumeUuid
     | GotDeleteConfirm OSTypes.VolumeUuid
     | SharedMsg SharedMsg.SharedMsg
-    | DataListMsg DataList.Msg
+    | DataListMsg DataList.Msg SharedMsg.SharedMsg
     | NoOp
 
 
@@ -66,13 +66,13 @@ update msg project model =
         SharedMsg sharedMsg ->
             ( model, Cmd.none, sharedMsg )
 
-        DataListMsg dataListMsg ->
+        DataListMsg dataListMsg sharedMsg ->
             ( { model
                 | dataListModel =
                     DataList.update dataListMsg model.dataListModel
               }
             , Cmd.none
-            , SharedMsg.NoOp
+            , sharedMsg
             )
 
         NoOp ->
@@ -90,7 +90,7 @@ view context project currentTime model =
             DataList.view
                 model.dataListModel
                 DataListMsg
-                context.palette
+                context
                 []
                 (volumeView context project currentTime)
                 (volumeRecords project volumes_)
@@ -261,7 +261,6 @@ volumeView context project currentTime volumeRecord =
                         [ popover context
                             SharedMsg
                             { id = deletePopconfirmId
-                            , styleAttrs = []
                             , content =
                                 deletePopconfirm context.palette
                                     { confirmationText =
@@ -271,9 +270,11 @@ volumeView context project currentTime volumeRecord =
                                     , onCancel = Just NoOp
                                     , onConfirm = Just <| GotDeleteConfirm volumeRecord.id
                                     }
+                            , contentStyleAttrs = []
                             , position = ST.PositionBottomRight
-                            , distance = Nothing
+                            , distanceToTarget = Nothing
                             , target = deleteVolumeBtn
+                            , targetStyleAttrs = []
                             }
                         , Element.link []
                             { url =

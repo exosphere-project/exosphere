@@ -25,7 +25,10 @@ import Set
 import Style.Helpers as SH
 import Style.Types
 import Style.Widgets.Icon as Icon
+import Style.Widgets.Popover exposing (popover)
+import Types.SharedMsg
 import View.Helpers as VH
+import View.Types
 import Widget
 
 
@@ -265,8 +268,8 @@ getFilterOptionText filter data filterOptionValue =
 
 view :
     Model
-    -> (Msg -> msg) -- convert local Msg to a consumer's msg
-    -> Style.Types.ExoPalette
+    -> (Msg -> Types.SharedMsg.SharedMsg -> msg) -- convert DataList.Msg, SharedMsg to a consumer's msg
+    -> View.Types.Context
     -> List (Element.Attribute msg)
     -> (DataRecord record -> Element.Element msg)
     -> List (DataRecord record)
@@ -274,14 +277,24 @@ view :
     -> List (Filter record)
     -> Maybe (SearchFilter record)
     -> Element.Element msg
-view model toMsg palette styleAttrs listItemView data bulkActions filters searchFilter =
+view model toMsg context styleAttrs listItemView data bulkActions filters searchFilter =
     let
+        dataListMsgMapper : Msg -> msg
+        dataListMsgMapper dataListMsg =
+            -- convert DataList.Msg to a consumer's msg
+            toMsg dataListMsg Types.SharedMsg.NoOp
+
+        sharedMsgMapper : Types.SharedMsg.SharedMsg -> msg
+        sharedMsgMapper sharedMsg =
+            -- convert SharedMsg produced by DataList to a consumer's Msg
+            toMsg NoOp sharedMsg
+
         defaultRowStyle =
             [ Element.padding 24
             , Element.spacing 20
             , Border.widthEach { top = 0, bottom = 1, left = 0, right = 0 }
             , Border.color <|
-                SH.toElementColorWithOpacity palette.on.background 0.16
+                SH.toElementColorWithOpacity context.palette.on.background 0.16
             , Element.width Element.fill
             ]
 
@@ -351,7 +364,7 @@ view model toMsg palette styleAttrs listItemView data bulkActions filters search
                 [ Element.column
                     (rowStyle -1
                         ++ [ Font.color <|
-                                SH.toElementColorWithOpacity palette.on.background 0.62
+                                SH.toElementColorWithOpacity context.palette.on.background 0.62
                            ]
                     )
                     [ FeatherIcons.search
@@ -362,7 +375,7 @@ view model toMsg palette styleAttrs listItemView data bulkActions filters search
                     , Element.el
                         [ Element.centerX
                         , Font.size 18
-                        , Font.color <| SH.toElementColor palette.on.background
+                        , Font.color <| SH.toElementColor context.palette.on.background
                         ]
                         (Element.text "No data found!")
                     , if not (List.isEmpty data) then
@@ -381,21 +394,22 @@ view model toMsg palette styleAttrs listItemView data bulkActions filters search
 
             else
                 List.indexedMap
-                    (rowView model toMsg palette rowStyle listItemView showRowCheckbox)
+                    (rowView model dataListMsgMapper context.palette rowStyle listItemView showRowCheckbox)
                     filteredData
     in
     Element.column
         ([ Element.width Element.fill
          , Border.width 1
-         , Border.color <| SH.toElementColorWithOpacity palette.on.background 0.1
+         , Border.color <| SH.toElementColorWithOpacity context.palette.on.background 0.1
          , Border.rounded 4
          ]
             -- Add or override default style with passed style attributes
             ++ styleAttrs
         )
         (toolbarView model
-            toMsg
-            palette
+            dataListMsgMapper
+            sharedMsgMapper
+            context
             defaultRowStyle
             { complete = data, filtered = filteredData }
             bulkActions
@@ -407,7 +421,7 @@ view model toMsg palette styleAttrs listItemView data bulkActions filters search
 
 rowView :
     Model
-    -> (Msg -> msg) -- convert local Msg to a consumer's msg
+    -> (Msg -> msg) -- convert DataList.Msg to a consumer's msg
     -> Style.Types.ExoPalette
     -> (Int -> List (Element.Attribute msg))
     -> (DataRecord record -> Element.Element msg)
@@ -450,8 +464,9 @@ rowView model toMsg palette rowStyle listItemView showRowCheckbox i dataRecord =
 
 toolbarView :
     Model
-    -> (Msg -> msg) -- convert local Msg to a consumer's msg
-    -> Style.Types.ExoPalette
+    -> (Msg -> msg) -- convert DataList.Msg to a consumer's msg
+    -> (Types.SharedMsg.SharedMsg -> msg) -- convert SharedMsg to a consumer's Msg
+    -> View.Types.Context
     -> List (Element.Attribute msg)
     ->
         { complete : List (DataRecord record)
@@ -461,7 +476,7 @@ toolbarView :
     -> List (Filter record)
     -> Maybe (SearchFilter record)
     -> Element.Element msg
-toolbarView model toMsg palette rowStyle data bulkActions filters searchFilter =
+toolbarView model dataListMsgMapper sharedMsgMapper context rowStyle data bulkActions filters searchFilter =
     let
         selectableRecords =
             List.filter (\record -> record.selectable) data.filtered
@@ -505,7 +520,7 @@ toolbarView model toMsg palette rowStyle data bulkActions filters searchFilter =
                     , label =
                         Input.labelHidden "Select all rows"
                     }
-                    |> Element.map toMsg
+                    |> Element.map dataListMsgMapper
 
         bulkActionsView =
             -- show only when bulkActions are passed and atleast 1 row is selected
@@ -513,25 +528,22 @@ toolbarView model toMsg palette rowStyle data bulkActions filters searchFilter =
                 Element.none
 
             else
-                Element.row
-                    [ Element.alignRight
-                    , Element.spacing 15
-                    , Element.alignTop
-                    ]
-                    (Element.text
-                        ("Apply action to "
-                            ++ String.fromInt (Set.size selectedRowIds)
-                            ++ " row(s):"
+                Element.el [ Element.alignTop ] <|
+                    Element.row [ Element.spacing 15 ]
+                        (Element.text
+                            ("Apply action to "
+                                ++ String.fromInt (Set.size selectedRowIds)
+                                ++ " row(s):"
+                            )
+                            :: List.map (\bulkAction -> bulkAction selectedRowIds)
+                                bulkActions
                         )
-                        :: List.map (\bulkAction -> bulkAction selectedRowIds)
-                            bulkActions
-                    )
 
         searchFilterView =
             case searchFilter of
                 Just searchFilter_ ->
                     Input.text
-                        (VH.inputItemAttributes palette.background
+                        (VH.inputItemAttributes context.palette.background
                             ++ [ Element.htmlAttribute <| HtmlA.style "height" "calc(1em + 16px)" ]
                         )
                         { text = model.searchText
@@ -547,7 +559,7 @@ toolbarView model toMsg palette rowStyle data bulkActions filters searchFilter =
                             Input.labelLeft []
                                 (Element.text searchFilter_.label)
                         }
-                        |> Element.map toMsg
+                        |> Element.map dataListMsgMapper
 
                 Nothing ->
                     Element.none
@@ -559,9 +571,9 @@ toolbarView model toMsg palette rowStyle data bulkActions filters searchFilter =
         Element.column
             (rowStyle ++ [ Element.spacing 16 ])
             [ searchFilterView
-            , Element.row [ Element.spacing 20 ]
+            , Element.row [ Element.spacing 20, Element.width Element.fill ]
                 [ selectAllCheckbox
-                , filtersView model toMsg palette filters data.complete
+                , filtersView model dataListMsgMapper sharedMsgMapper context filters data.complete
                 , bulkActionsView
                 ]
             ]
@@ -570,11 +582,12 @@ toolbarView model toMsg palette rowStyle data bulkActions filters searchFilter =
 filtersView :
     Model
     -> (Msg -> msg)
-    -> Style.Types.ExoPalette
+    -> (Types.SharedMsg.SharedMsg -> msg)
+    -> View.Types.Context
     -> List (Filter record)
     -> List (DataRecord record)
     -> Element.Element msg
-filtersView model toMsg palette filters data =
+filtersView model dataListMsgMapper sharedMsgMapper context filters data =
     let
         filtOptCheckbox : Filter record -> MultiselectOptionIdentifier -> FilterOptionValue -> Element.Element msg
         filtOptCheckbox filter optionValues filterOptionValue =
@@ -592,7 +605,7 @@ filtersView model toMsg palette filters data =
                             |> Element.text
                         )
                 }
-                |> Element.map toMsg
+                |> Element.map dataListMsgMapper
 
         filtOptsRadioSelector : Filter record -> UniselectOptionIdentifier -> Element.Element msg
         filtOptsRadioSelector filter uniselectOptValue =
@@ -618,10 +631,10 @@ filtersView model toMsg palette filters data =
                         -- ensure that they pass text for UniselectNoChoice
                         ++ [ Input.option UniselectNoChoice (Element.text "No choice") ]
                 }
-                |> Element.map toMsg
+                |> Element.map dataListMsgMapper
 
         iconButtonStyleDefaults =
-            (SH.materialStyle palette).iconButton
+            (SH.materialStyle context.palette).iconButton
 
         iconButtonStyle padding =
             { iconButtonStyleDefaults
@@ -632,17 +645,14 @@ filtersView model toMsg palette filters data =
                            ]
             }
 
-        filtersDropdown =
+        filtersDropdown closeDropdown =
             Element.column
-                (SH.popoverStyleDefaults palette
-                    ++ [ Element.padding 24
-                       , Element.spacingXY 0 24
-                       ]
-                )
+                [ Element.spacingXY 0 24
+                ]
                 (Element.row [ Element.width Element.fill ]
                     [ Element.el [ Font.size 18 ]
                         (Element.text "Apply Filters")
-                    , Element.el [ Element.alignRight ]
+                    , Element.el [ Element.alignRight, closeDropdown ]
                         (Widget.iconButton
                             (iconButtonStyle 0)
                             { icon =
@@ -651,9 +661,9 @@ filtersView model toMsg palette filters data =
                                     |> FeatherIcons.toHtml []
                                     |> Element.html
                             , text = "Close"
-                            , onPress = Just <| ToggleFiltersDropdownVisiblity
+                            , onPress = Just NoOp
                             }
-                            |> Element.map toMsg
+                            |> Element.map dataListMsgMapper
                         )
                     ]
                     :: List.map
@@ -684,10 +694,10 @@ filtersView model toMsg palette filters data =
                         filters
                 )
 
-        addFilterBtn =
+        addFilterBtn toggleDropdownMsg =
             let
                 buttonStyleDefaults =
-                    (SH.materialStyle palette).button
+                    (SH.materialStyle context.palette).button
 
                 buttonStyle =
                     { buttonStyleDefaults
@@ -716,9 +726,8 @@ filtersView model toMsg palette filters data =
                                 |> Element.html
                             )
                     , text = "Add Filters"
-                    , onPress = Just <| ToggleFiltersDropdownVisiblity
+                    , onPress = Just toggleDropdownMsg
                     }
-                    |> Element.map toMsg
                 )
 
         filterChipView : Filter record -> List (Element.Element msg) -> Element.Element msg
@@ -726,7 +735,7 @@ filtersView model toMsg palette filters data =
             Element.row
                 [ Border.width 1
                 , Border.color <|
-                    SH.toElementColorWithOpacity palette.on.background 0.16
+                    SH.toElementColorWithOpacity context.palette.on.background 0.16
                 , Border.rounded 4
                 ]
                 [ Element.row
@@ -735,7 +744,7 @@ filtersView model toMsg palette filters data =
                     ]
                     (Element.el
                         [ Font.color <|
-                            SH.toElementColorWithOpacity palette.on.background 0.62
+                            SH.toElementColorWithOpacity context.palette.on.background 0.62
                         ]
                         (Element.text filter.chipPrefix)
                         :: selectedOptContent
@@ -751,7 +760,7 @@ filtersView model toMsg palette filters data =
                             )
                     , onPress = Just <| ClearFilter filter.id
                     }
-                    |> Element.map toMsg
+                    |> Element.map dataListMsgMapper
                 ]
 
         selectedFiltersChips =
@@ -775,7 +784,7 @@ filtersView model toMsg palette filters data =
                                         |> List.intersperse
                                             (Element.el
                                                 [ Font.color <|
-                                                    SH.toElementColorWithOpacity palette.on.background 0.62
+                                                    SH.toElementColorWithOpacity context.palette.on.background 0.62
                                                 ]
                                                 (Element.text " or ")
                                             )
@@ -800,7 +809,7 @@ filtersView model toMsg palette filters data =
         clearAllBtn =
             let
                 textBtnStyleDefaults =
-                    (SH.materialStyle palette).textButton
+                    (SH.materialStyle context.palette).textButton
 
                 textBtnStyle =
                     { textBtnStyleDefaults
@@ -842,7 +851,7 @@ filtersView model toMsg palette filters data =
                     { text = "Clear filters"
                     , onPress = Just <| ClearAllFilters
                     }
-                    |> Element.map toMsg
+                    |> Element.map dataListMsgMapper
 
             else
                 Element.none
@@ -851,21 +860,31 @@ filtersView model toMsg palette filters data =
         Element.none
 
     else
-        Element.wrappedRow
-            ([ Element.spacing 10
-             , Element.width Element.fill
-             , Element.alignTop
-             ]
-                ++ (if model.showFiltersDropdown then
-                        SH.popoverAttribs filtersDropdown Style.Types.PositionBottomLeft Nothing
-
-                    else
-                        []
-                   )
-            )
-            (List.concat
-                [ [ Element.text "Filters: " ]
-                , selectedFiltersChips
-                , [ addFilterBtn, clearAllBtn ]
+        popover context
+            sharedMsgMapper
+            -- TODO: make id unique, possibly by passing a param for dataListPopoverId
+            { id = "dataListDropdown"
+            , content = filtersDropdown
+            , contentStyleAttrs = [ Element.padding 24 ]
+            , position = Style.Types.PositionBottomLeft
+            , distanceToTarget = Nothing
+            , target =
+                \toggleDropdownMsg _ ->
+                    Element.wrappedRow
+                        [ Element.spacing 10
+                        , Element.width Element.fill
+                        , Element.alignTop
+                        ]
+                        (List.concat
+                            [ [ Element.text "Filters: " ]
+                            , selectedFiltersChips
+                            , [ addFilterBtn toggleDropdownMsg, clearAllBtn ]
+                            ]
+                        )
+            , targetStyleAttrs =
+                [ Element.alignTop
+                , Element.htmlAttribute <|
+                    -- to let wrappedRow take all available width
+                    HtmlA.style "flex-grow" "1"
                 ]
-            )
+            }

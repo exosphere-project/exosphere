@@ -41,7 +41,7 @@ type alias Model =
 type Msg
     = GotDeleteConfirm OSTypes.ImageUuid
     | ShowDeletePopconfirm OSTypes.ImageUuid Bool
-    | DataListMsg DataList.Msg
+    | DataListMsg DataList.Msg SharedMsg.SharedMsg
     | NoOp
 
 
@@ -81,13 +81,13 @@ update msg project model =
             , SharedMsg.NoOp
             )
 
-        DataListMsg dataListMsg ->
+        DataListMsg dataListMsg sharedMsg ->
             ( { model
                 | dataListModel =
                     DataList.update dataListMsg model.dataListModel
               }
             , Cmd.none
-            , SharedMsg.NoOp
+            , sharedMsg
             )
 
         NoOp ->
@@ -130,7 +130,7 @@ view context project model =
                 , DataList.view
                     model.dataListModel
                     DataListMsg
-                    context.palette
+                    context
                     []
                     (imageView model context project)
                     (imageRecords context project imagesInCustomOrder)

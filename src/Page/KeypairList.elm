@@ -38,7 +38,7 @@ type Msg
     = GotExpandPublicKey OSTypes.KeypairIdentifier Bool
     | GotDeleteConfirm OSTypes.KeypairIdentifier
     | ShowDeletePopconfirm OSTypes.KeypairIdentifier Bool
-    | DataListMsg DataList.Msg
+    | DataListMsg DataList.Msg SharedMsg.SharedMsg
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
 
@@ -86,13 +86,13 @@ update msg project model =
             , SharedMsg.NoOp
             )
 
-        DataListMsg dataListMsg ->
+        DataListMsg dataListMsg sharedMsg ->
             ( { model
                 | dataListModel =
                     DataList.update dataListMsg model.dataListModel
               }
             , Cmd.none
-            , SharedMsg.NoOp
+            , sharedMsg
             )
 
         SharedMsg sharedMsg ->
@@ -152,7 +152,7 @@ view context project model =
                     [ DataList.view
                         model.dataListModel
                         DataListMsg
-                        context.palette
+                        context
                         []
                         (keypairView model context)
                         (keypairRecords keypairs)
