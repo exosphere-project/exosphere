@@ -21,6 +21,7 @@ import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons
 import Html.Attributes as HtmlA
+import Murmur3
 import Set
 import Style.Helpers as SH
 import Style.Types
@@ -533,10 +534,10 @@ toolbarView model dataListMsgMapper sharedMsgMapper context rowStyle data bulkAc
                                 bulkActions
                         )
 
-        searchFilterView =
+        ( searchFilterView, searchFilterIsActive ) =
             case searchFilter of
                 Just searchFilter_ ->
-                    Input.text
+                    ( Input.text
                         (VH.inputItemAttributes context.palette.background
                             ++ [ Element.htmlAttribute <| HtmlA.style "height" "calc(1em + 16px)" ]
                         )
@@ -554,11 +555,13 @@ toolbarView model dataListMsgMapper sharedMsgMapper context rowStyle data bulkAc
                                 (Element.text searchFilter_.label)
                         }
                         |> Element.map dataListMsgMapper
+                    , True
+                    )
 
                 Nothing ->
-                    Element.none
+                    ( Element.none, False )
     in
-    if List.isEmpty bulkActions && List.isEmpty filters then
+    if List.isEmpty bulkActions && List.isEmpty filters && not searchFilterIsActive then
         Element.none
 
     else
@@ -638,6 +641,21 @@ filtersView model dataListMsgMapper sharedMsgMapper context filters data =
                            , Element.height Element.shrink
                            ]
             }
+
+        filtersDropdownId =
+            -- an ugly workaround to generate a unique id for filtersDropdown
+            -- (until we make popover widget capable of generating unique ids internallly)
+            "dataListfiltersDropdown-"
+                ++ (List.foldl
+                        (\filter allFilterOptionTexts ->
+                            allFilterOptionTexts ++ (Dict.values <| filter.filterOptions data)
+                        )
+                        []
+                        filters
+                        |> String.join ""
+                        |> Murmur3.hashString 4321
+                        |> String.fromInt
+                   )
 
         filtersDropdown closeDropdown =
             Element.column
@@ -856,8 +874,7 @@ filtersView model dataListMsgMapper sharedMsgMapper context filters data =
     else
         popover context
             sharedMsgMapper
-            -- TODO: make id unique, possibly by passing a param for dataListPopoverId
-            { id = "dataListDropdown"
+            { id = filtersDropdownId
             , content = filtersDropdown
             , contentStyleAttrs = [ Element.padding 24 ]
             , position = Style.Types.PositionBottomLeft
