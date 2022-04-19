@@ -460,7 +460,7 @@ createButton context projectId =
     in
     popover context
         SharedMsg
-        { id = "createBtnDropdown-" ++ projectId.projectUuid
+        { id = Helpers.String.hyphenate [ "createBtnDropdown", projectId.projectUuid ]
         , content = dropdownContent
         , contentStyleAttrs = []
         , position = ST.PositionBottomRight

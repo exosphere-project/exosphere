@@ -17,7 +17,7 @@ import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.CopyableText
 import Style.Widgets.DataList as DataList
-import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirmAttribs)
+import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
 import Style.Widgets.Text as Text
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
@@ -29,7 +29,6 @@ import Widget
 type alias Model =
     { showHeading : Bool
     , expandedPublicKeys : Set.Set OSTypes.KeypairIdentifier
-    , shownDeletePopconfirm : Maybe OSTypes.KeypairIdentifier
     , dataListModel : DataList.Model
     }
 
@@ -37,7 +36,6 @@ type alias Model =
 type Msg
     = GotExpandPublicKey OSTypes.KeypairIdentifier Bool
     | GotDeleteConfirm OSTypes.KeypairIdentifier
-    | ShowDeletePopconfirm OSTypes.KeypairIdentifier Bool
     | DataListMsg DataList.Msg SharedMsg.SharedMsg
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
@@ -47,7 +45,6 @@ init : Bool -> Model
 init showHeading =
     Model showHeading
         Set.empty
-        Nothing
         (DataList.init <| DataList.getDefaultFilterOptions [])
 
 
@@ -68,22 +65,9 @@ update msg project model =
             )
 
         GotDeleteConfirm keypairId ->
-            ( { model | shownDeletePopconfirm = Nothing }
+            ( model
             , Cmd.none
             , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <| SharedMsg.RequestDeleteKeypair keypairId
-            )
-
-        ShowDeletePopconfirm keypairId toBeShown ->
-            ( { model
-                | shownDeletePopconfirm =
-                    if toBeShown then
-                        Just keypairId
-
-                    else
-                        Nothing
-              }
-            , Cmd.none
-            , SharedMsg.NoOp
             )
 
         DataListMsg dataListMsg sharedMsg ->
@@ -154,7 +138,7 @@ view context project model =
                         DataListMsg
                         context
                         []
-                        (keypairView model context)
+                        (keypairView model context project)
                         (keypairRecords keypairs)
                         []
                         []
@@ -206,42 +190,40 @@ keypairRecords keypairs =
         keypairs
 
 
-keypairView : Model -> View.Types.Context -> KeypairRecord -> Element.Element Msg
-keypairView model context keypairRecord =
+keypairView : Model -> View.Types.Context -> Project -> KeypairRecord -> Element.Element Msg
+keypairView model context project keypairRecord =
     let
         keypairId =
             ( keypairRecord.keypair.name, keypairRecord.keypair.fingerprint )
 
-        showDeletePopconfirm =
-            case model.shownDeletePopconfirm of
-                Just shownDeletePopconfirmKeypairId ->
-                    shownDeletePopconfirmKeypairId == keypairId
+        deletePopconfirmId =
+            Helpers.String.hyphenate
+                [ "keypairListDeletePopconfirm"
+                , project.auth.project.uuid
+                , keypairRecord.keypair.name
+                , keypairRecord.keypair.fingerprint
+                ]
 
-                Nothing ->
-                    False
+        deleteKeypairButton togglePopconfirmMsg _ =
+            deleteIconButton
+                context.palette
+                False
+                ("Delete " ++ context.localization.pkiPublicKeyForSsh)
+                (Just togglePopconfirmMsg)
 
-        deleteKeypairButton =
-            Element.el
-                (if showDeletePopconfirm then
-                    deletePopconfirmAttribs ST.PositionBottomRight
-                        context.palette
-                        { confirmationText =
-                            "Are you sure you want to delete this "
-                                ++ context.localization.pkiPublicKeyForSsh
-                                ++ "?"
-                        , onConfirm = Just <| GotDeleteConfirm keypairId
-                        , onCancel = Just <| ShowDeletePopconfirm keypairId False
-                        }
-
-                 else
-                    []
-                )
-                (deleteIconButton
-                    context.palette
-                    False
-                    ("Delete " ++ context.localization.pkiPublicKeyForSsh)
-                    (Just <| ShowDeletePopconfirm keypairId True)
-                )
+        deleteKeypairBtnWithPopconfirm =
+            deletePopconfirm context
+                SharedMsg
+                deletePopconfirmId
+                { confirmationText =
+                    "Are you sure you want to delete this "
+                        ++ context.localization.pkiPublicKeyForSsh
+                        ++ "?"
+                , onConfirm = Just <| GotDeleteConfirm keypairId
+                , onCancel = Just NoOp
+                }
+                ST.PositionBottomRight
+                deleteKeypairButton
 
         ( publicKeyLabelStyle, publicKeyValue ) =
             if Set.member keypairId model.expandedPublicKeys then
@@ -302,7 +284,7 @@ keypairView model context keypairRecord =
                 , Font.color (SH.toElementColor context.palette.on.background)
                 ]
                 (Element.text keypairRecord.keypair.name)
-            , Element.el [ Element.alignRight ] deleteKeypairButton
+            , Element.el [ Element.alignRight ] deleteKeypairBtnWithPopconfirm
             ]
         , Element.row []
             [ Element.el

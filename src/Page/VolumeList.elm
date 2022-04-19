@@ -17,7 +17,6 @@ import Style.Types as ST
 import Style.Widgets.Button as Button
 import Style.Widgets.DataList as DataList
 import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
-import Style.Widgets.Popover exposing (popover)
 import Style.Widgets.Text as Text
 import Time
 import Types.Project exposing (Project)
@@ -242,40 +241,33 @@ volumeView context project currentTime volumeRecord =
                 OSTypes.Available ->
                     -- Volume can be either deleted or attached
                     let
-                        deleteVolumeBtn togglePopoverMsg _ =
+                        deleteVolumeBtn togglePopconfirmMsg _ =
                             deleteIconButton
                                 context.palette
                                 False
-                                "Delete Volume"
-                                (Just togglePopoverMsg)
+                                ("Delete " ++ context.localization.blockDevice)
+                                (Just togglePopconfirmMsg)
 
                         deletePopconfirmId =
-                            [ "volumeListDeletePopconfirm"
-                            , project.auth.project.uuid
-                            , volumeRecord.id
-                            ]
-                                |> List.intersperse "-"
-                                |> String.concat
+                            Helpers.String.hyphenate
+                                [ "volumeListDeletePopconfirm"
+                                , project.auth.project.uuid
+                                , volumeRecord.id
+                                ]
                     in
                     Element.row [ Element.spacing 12 ]
-                        [ popover context
+                        [ deletePopconfirm context
                             SharedMsg
-                            { id = deletePopconfirmId
-                            , content =
-                                deletePopconfirm context.palette
-                                    { confirmationText =
-                                        "Are you sure you want to delete this "
-                                            ++ context.localization.blockDevice
-                                            ++ "?"
-                                    , onCancel = Just NoOp
-                                    , onConfirm = Just <| GotDeleteConfirm volumeRecord.id
-                                    }
-                            , contentStyleAttrs = []
-                            , position = ST.PositionBottomRight
-                            , distanceToTarget = Nothing
-                            , target = deleteVolumeBtn
-                            , targetStyleAttrs = []
+                            deletePopconfirmId
+                            { confirmationText =
+                                "Are you sure you want to delete this "
+                                    ++ context.localization.blockDevice
+                                    ++ "?"
+                            , onCancel = Just NoOp
+                            , onConfirm = Just <| GotDeleteConfirm volumeRecord.id
                             }
+                            ST.PositionBottomRight
+                            deleteVolumeBtn
                         , Element.link []
                             { url =
                                 Route.toUrl context.urlPathPrefix

@@ -1,7 +1,6 @@
 module Style.Widgets.DeleteButton exposing
     ( deleteIconButton
     , deletePopconfirm
-    , deletePopconfirmAttribs
     )
 
 import Element
@@ -10,10 +9,13 @@ import Html.Attributes as HtmlA
 import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
 import Style.Widgets.Button as Button
+import Style.Widgets.Popover exposing (popover)
+import Types.SharedMsg
+import View.Types
 import Widget
 
 
-type alias Popconfirm msg =
+type alias PopconfirmContent msg =
     { confirmationText : String
     , onConfirm : Maybe msg
     , onCancel : Maybe msg
@@ -56,8 +58,8 @@ deleteIconButton palette styleIsPrimary text onPress =
         }
 
 
-deletePopconfirm : ExoPalette -> Popconfirm msg -> Element.Attribute msg -> Element.Element msg
-deletePopconfirm palette { confirmationText, onConfirm, onCancel } closePopconfirm =
+deletePopconfirmContent : ExoPalette -> PopconfirmContent msg -> Element.Attribute msg -> Element.Element msg
+deletePopconfirmContent palette { confirmationText, onConfirm, onCancel } closePopconfirm =
     Element.column
         [ Element.spacing 16, Element.padding 6 ]
         [ Element.row [ Element.spacing 8 ]
@@ -85,21 +87,27 @@ deletePopconfirm palette { confirmationText, onConfirm, onCancel } closePopconfi
         ]
 
 
-deletePopconfirmAttribs :
-    Style.Types.PopoverPosition
-    -> ExoPalette
-    -> Popconfirm msg
-    -> List (Element.Attribute msg)
-deletePopconfirmAttribs position palette { confirmationText, onConfirm, onCancel } =
-    SH.popoverAttribs
-        (Element.el (SH.popoverStyleDefaults palette) <|
-            deletePopconfirm palette
-                { confirmationText = confirmationText
-                , onConfirm = onConfirm
-                , onCancel = onCancel
+deletePopconfirm :
+    View.Types.Context
+    -> (Types.SharedMsg.SharedMsg -> msg)
+    -> View.Types.PopoverId
+    -> PopconfirmContent msg
+    -> Style.Types.PopoverPosition
+    -> (msg -> Bool -> Element.Element msg)
+    -> Element.Element msg
+deletePopconfirm context sharedMsgMapper id content position target =
+    popover context
+        sharedMsgMapper
+        { id = id
+        , content =
+            deletePopconfirmContent context.palette
+                { confirmationText = content.confirmationText
+                , onCancel = content.onCancel
+                , onConfirm = content.onConfirm
                 }
-                --FIXME: it's a workaround, pass closePopconfirm as List instead?
-                (Element.padding 0)
-        )
-        position
-        Nothing
+        , contentStyleAttrs = []
+        , position = position
+        , distanceToTarget = Nothing
+        , target = target
+        , targetStyleAttrs = []
+        }

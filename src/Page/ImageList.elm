@@ -20,7 +20,7 @@ import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.Button as Button
 import Style.Widgets.DataList as DataList
-import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirmAttribs)
+import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
 import Style.Widgets.Text as Text
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg
@@ -33,15 +33,14 @@ type alias Model =
     { deletionsAttempted : Set.Set OSTypes.ImageUuid
     , showDeleteButtons : Bool
     , showHeading : Bool
-    , shownDeletePopconfirm : Maybe OSTypes.ImageUuid
     , dataListModel : DataList.Model
     }
 
 
 type Msg
     = GotDeleteConfirm OSTypes.ImageUuid
-    | ShowDeletePopconfirm OSTypes.ImageUuid Bool
     | DataListMsg DataList.Msg SharedMsg.SharedMsg
+    | SharedMsg SharedMsg.SharedMsg
     | NoOp
 
 
@@ -50,7 +49,6 @@ init showDeleteButtons showHeading =
     { deletionsAttempted = Set.empty
     , showDeleteButtons = showDeleteButtons
     , showHeading = showHeading
-    , shownDeletePopconfirm = Nothing
     , dataListModel = DataList.init <| DataList.getDefaultFilterOptions filters
     }
 
@@ -61,24 +59,10 @@ update msg project model =
         GotDeleteConfirm imageId ->
             ( { model
                 | deletionsAttempted = Set.insert imageId model.deletionsAttempted
-                , shownDeletePopconfirm = Nothing
               }
             , Cmd.none
             , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
                 SharedMsg.RequestDeleteImage imageId
-            )
-
-        ShowDeletePopconfirm imageId toBeShown ->
-            ( { model
-                | shownDeletePopconfirm =
-                    if toBeShown then
-                        Just imageId
-
-                    else
-                        Nothing
-              }
-            , Cmd.none
-            , SharedMsg.NoOp
             )
 
         DataListMsg dataListMsg sharedMsg ->
@@ -89,6 +73,9 @@ update msg project model =
             , Cmd.none
             , sharedMsg
             )
+
+        SharedMsg sharedMsg ->
+            ( model, Cmd.none, sharedMsg )
 
         NoOp ->
             ( model, Cmd.none, SharedMsg.NoOp )
@@ -192,43 +179,47 @@ imageView model context project imageRecord =
     let
         deleteImageBtn =
             let
-                showDeletePopconfirm =
-                    case model.shownDeletePopconfirm of
-                        Just shownDeletePopconfirmImageId ->
-                            shownDeletePopconfirmImageId == imageRecord.id
+                deleteBtn togglePopconfirmMsg _ =
+                    let
+                        ( deleteBtnText, deleteBtnOnPress ) =
+                            if imageRecord.image.protected then
+                                ( "Can't delete protected "
+                                    ++ context.localization.staticRepresentationOfBlockDeviceContents
+                                , Nothing
+                                )
 
-                        Nothing ->
-                            False
+                            else
+                                ( "Delete "
+                                    ++ context.localization.staticRepresentationOfBlockDeviceContents
+                                , Just togglePopconfirmMsg
+                                )
+                    in
+                    deleteIconButton
+                        context.palette
+                        False
+                        deleteBtnText
+                        deleteBtnOnPress
 
-                ( deleteBtnText, deleteBtnOnPress ) =
-                    if imageRecord.image.protected then
-                        ( "Can't delete protected " ++ context.localization.staticRepresentationOfBlockDeviceContents, Nothing )
-
-                    else
-                        ( "Delete " ++ context.localization.staticRepresentationOfBlockDeviceContents, Just <| ShowDeletePopconfirm imageRecord.id True )
+                deletePopconfirmId =
+                    Helpers.String.hyphenate
+                        [ "ImageListDeletePopconfirm"
+                        , project.auth.project.uuid
+                        , imageRecord.id
+                        ]
 
                 deleteBtnWithPopconfirm =
-                    Element.el
-                        (if showDeletePopconfirm then
-                            deletePopconfirmAttribs ST.PositionBottomRight
-                                context.palette
-                                { confirmationText =
-                                    "Are you sure you want to delete this "
-                                        ++ context.localization.staticRepresentationOfBlockDeviceContents
-                                        ++ "?"
-                                , onConfirm = Just <| GotDeleteConfirm imageRecord.id
-                                , onCancel = Just <| ShowDeletePopconfirm imageRecord.id False
-                                }
-
-                         else
-                            []
-                        )
-                        (deleteIconButton
-                            context.palette
-                            False
-                            deleteBtnText
-                            deleteBtnOnPress
-                        )
+                    deletePopconfirm context
+                        SharedMsg
+                        deletePopconfirmId
+                        { confirmationText =
+                            "Are you sure you want to delete this "
+                                ++ context.localization.staticRepresentationOfBlockDeviceContents
+                                ++ "?"
+                        , onConfirm = Just <| GotDeleteConfirm imageRecord.id
+                        , onCancel = Just NoOp
+                        }
+                        ST.PositionBottomRight
+                        deleteBtn
 
                 deletionAttempted =
                     Set.member imageRecord.id model.deletionsAttempted
