@@ -13,63 +13,70 @@ import UIExplorer exposing (storiesOf)
 import UIExplorer.ColorMode exposing (ColorMode(..))
 
 
-stories : (Style.Types.ExoPalette -> Element.Element msg -> Html.Html msg) -> (Maybe ColorMode -> Style.Types.ExoPalette) -> plugins -> UIExplorer.UI model msg plugins
+{-| Creates stores for UIExplorer.
+
+    renderer – An elm-ui to html converter
+    palette  – Takes a UIExplorer.Model and produces an ExoPalette
+    plugins  – UIExplorer plugins (can be empty {})
+
+-}
+stories : (Style.Types.ExoPalette -> Element.Element msg -> Html.Html msg) -> (UIExplorer.Model { model | deployerColors : Style.Types.DeployerColorThemes } msg plugins -> Style.Types.ExoPalette) -> plugins -> UIExplorer.UI { model | deployerColors : Style.Types.DeployerColorThemes } msg plugins
 stories renderer palette plugins =
     storiesOf
         "Color Palette"
         [ ( "brand"
           , \m ->
-                renderer (palette m.colorMode) <|
+                renderer (palette m) <|
                     collection
                         [ swatch
-                            [ namedBlock "primary" <| (palette m.colorMode).primary
-                            , namedBlock "secondary" <| (palette m.colorMode).secondary
-                            , namedBlock "background" <| (palette m.colorMode).background
-                            , namedBlock "surface" <| (palette m.colorMode).surface
-                            , namedBlock "error" <| (palette m.colorMode).error
-                            , namedBlock "warn" <| (palette m.colorMode).warn
-                            , namedBlock "readyGood" <| (palette m.colorMode).readyGood
-                            , namedBlock "muted" <| (palette m.colorMode).muted
+                            [ namedBlock "primary" <| (palette m).primary
+                            , namedBlock "secondary" <| (palette m).secondary
+                            , namedBlock "background" <| (palette m).background
+                            , namedBlock "surface" <| (palette m).surface
+                            , namedBlock "error" <| (palette m).error
+                            , namedBlock "warn" <| (palette m).warn
+                            , namedBlock "readyGood" <| (palette m).readyGood
+                            , namedBlock "muted" <| (palette m).muted
                             ]
                         , swatch
-                            [ namedBlock "on.primary" <| (palette m.colorMode).on.primary
-                            , namedBlock "on.secondary" <| (palette m.colorMode).on.secondary
-                            , namedBlock "on.background" <| (palette m.colorMode).on.background
-                            , namedBlock "on.surface" <| (palette m.colorMode).on.surface
-                            , namedBlock "on.error" <| (palette m.colorMode).on.error
-                            , namedBlock "on.warn" <| (palette m.colorMode).on.warn
-                            , namedBlock "on.readyGood" <| (palette m.colorMode).on.readyGood
-                            , namedBlock "on.muted" <| (palette m.colorMode).on.muted
+                            [ namedBlock "on.primary" <| (palette m).on.primary
+                            , namedBlock "on.secondary" <| (palette m).on.secondary
+                            , namedBlock "on.background" <| (palette m).on.background
+                            , namedBlock "on.surface" <| (palette m).on.surface
+                            , namedBlock "on.error" <| (palette m).on.error
+                            , namedBlock "on.warn" <| (palette m).on.warn
+                            , namedBlock "on.readyGood" <| (palette m).on.readyGood
+                            , namedBlock "on.muted" <| (palette m).on.muted
                             ]
                         , swatch
-                            [ wcagBlock "primary" (palette m.colorMode).on.primary (palette m.colorMode).primary
-                            , wcagBlock "secondary" (palette m.colorMode).on.secondary (palette m.colorMode).secondary
-                            , wcagBlock "background" (palette m.colorMode).on.background (palette m.colorMode).background
-                            , wcagBlock "surface" (palette m.colorMode).on.surface (palette m.colorMode).surface
-                            , wcagBlock "error" (palette m.colorMode).on.error (palette m.colorMode).error
-                            , wcagBlock "warn" (palette m.colorMode).on.warn (palette m.colorMode).warn
-                            , wcagBlock "readyGood" (palette m.colorMode).on.readyGood (palette m.colorMode).readyGood
-                            , wcagBlock "muted" (palette m.colorMode).on.muted (palette m.colorMode).muted
+                            [ wcagBlock "primary" (palette m).on.primary (palette m).primary
+                            , wcagBlock "secondary" (palette m).on.secondary (palette m).secondary
+                            , wcagBlock "background" (palette m).on.background (palette m).background
+                            , wcagBlock "surface" (palette m).on.surface (palette m).surface
+                            , wcagBlock "error" (palette m).on.error (palette m).error
+                            , wcagBlock "warn" (palette m).on.warn (palette m).warn
+                            , wcagBlock "readyGood" (palette m).on.readyGood (palette m).readyGood
+                            , wcagBlock "muted" (palette m).on.muted (palette m).muted
                             ]
                         ]
           , plugins
           )
         , ( "menu"
           , \m ->
-                renderer (palette m.colorMode) <|
+                renderer (palette m) <|
                     collection
                         [ swatch
-                            [ namedBlock "background" <| (palette m.colorMode).menu.background
-                            , namedBlock "surface" <| (palette m.colorMode).menu.surface
-                            , namedBlock "secondary" <| (palette m.colorMode).menu.secondary
+                            [ namedBlock "background" <| (palette m).menu.background
+                            , namedBlock "surface" <| (palette m).menu.surface
+                            , namedBlock "secondary" <| (palette m).menu.secondary
                             ]
                         , swatch
-                            [ namedBlock "on.background" <| (palette m.colorMode).menu.on.background
-                            , namedBlock "on.surface" <| (palette m.colorMode).menu.on.surface
+                            [ namedBlock "on.background" <| (palette m).menu.on.background
+                            , namedBlock "on.surface" <| (palette m).menu.on.surface
                             ]
                         , swatch
-                            [ wcagBlock "background" (palette m.colorMode).menu.on.background (palette m.colorMode).menu.background
-                            , wcagBlock "surface" (palette m.colorMode).menu.on.surface (palette m.colorMode).menu.surface
+                            [ wcagBlock "background" (palette m).menu.on.background (palette m).menu.background
+                            , wcagBlock "surface" (palette m).menu.on.surface (palette m).menu.surface
                             ]
                         ]
           , plugins
