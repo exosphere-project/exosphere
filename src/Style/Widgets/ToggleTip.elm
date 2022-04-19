@@ -8,7 +8,8 @@ import FeatherIcons
 import Html.Attributes
 import Style.Helpers as SH
 import Style.Types
-import Style.Widgets.Popover exposing (popover)
+import Style.Widgets.Popover.Popover exposing (popover)
+import Style.Widgets.Popover.Types exposing (PopoverId)
 import Types.SharedMsg
 import View.Types
 
@@ -16,7 +17,7 @@ import View.Types
 toggleTip :
     View.Types.Context
     -> (Types.SharedMsg.SharedMsg -> msg)
-    -> View.Types.PopoverId
+    -> PopoverId
     -> Element.Element msg
     -> Style.Types.PopoverPosition
     -> Element.Element msg

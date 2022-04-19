@@ -1,4 +1,4 @@
-module Style.Widgets.Popover exposing (popover, popoverAttribs, popoverStyleDefaults)
+module Style.Widgets.Popover.Popover exposing (popover, popoverAttribs, popoverStyleDefaults)
 
 import Element
 import Element.Background as Background
@@ -8,6 +8,7 @@ import Html.Events
 import Set
 import Style.Helpers as SH
 import Style.Types as ST exposing (ExoPalette, PopoverPosition(..))
+import Style.Widgets.Popover.Types exposing (PopoverId)
 import Types.SharedMsg
 import View.Types
 
@@ -153,7 +154,7 @@ popover :
     View.Types.Context
     -> (Types.SharedMsg.SharedMsg -> msg)
     ->
-        { id : View.Types.PopoverId
+        { id : PopoverId
         , content : Element.Attribute msg -> Element.Element msg
         , contentStyleAttrs : List (Element.Attribute msg)
         , position : ST.PopoverPosition

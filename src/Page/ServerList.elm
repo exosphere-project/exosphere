@@ -23,7 +23,7 @@ import Style.Types as ST
 import Style.Widgets.DataList as DataList
 import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
 import Style.Widgets.Icon as Icon
-import Style.Widgets.Popover exposing (popover)
+import Style.Widgets.Popover.Popover exposing (popover)
 import Style.Widgets.StatusBadge as StatusBadge
 import Style.Widgets.Text as Text
 import Time

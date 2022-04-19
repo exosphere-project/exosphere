@@ -9,7 +9,8 @@ import Html.Attributes as HtmlA
 import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
 import Style.Widgets.Button as Button
-import Style.Widgets.Popover exposing (popover)
+import Style.Widgets.Popover.Popover exposing (popover)
+import Style.Widgets.Popover.Types exposing (PopoverId)
 import Types.SharedMsg
 import View.Types
 import Widget
@@ -90,7 +91,7 @@ deletePopconfirmContent palette { confirmationText, onConfirm, onCancel } closeP
 deletePopconfirm :
     View.Types.Context
     -> (Types.SharedMsg.SharedMsg -> msg)
-    -> View.Types.PopoverId
+    -> PopoverId
     -> PopconfirmContent msg
     -> Style.Types.PopoverPosition
     -> (msg -> Bool -> Element.Element msg)

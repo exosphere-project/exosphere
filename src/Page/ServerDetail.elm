@@ -30,7 +30,7 @@ import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton
 import Style.Widgets.Link as Link
-import Style.Widgets.Popover exposing (popover)
+import Style.Widgets.Popover.Popover exposing (popover)
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
 import Time

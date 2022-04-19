@@ -26,7 +26,7 @@ import Set
 import Style.Helpers as SH
 import Style.Types
 import Style.Widgets.Icon as Icon
-import Style.Widgets.Popover exposing (popover)
+import Style.Widgets.Popover.Popover exposing (popover)
 import Types.SharedMsg
 import View.Helpers as VH
 import View.Types

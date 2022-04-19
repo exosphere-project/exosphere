@@ -42,7 +42,7 @@ import Route
 import Style.Helpers as SH exposing (shadowDefaults)
 import Style.Toast
 import Style.Types as ST
-import Style.Widgets.Popover exposing (popover)
+import Style.Widgets.Popover.Popover exposing (popover)
 import Style.Widgets.Text as Text
 import Toasty
 import Types.Error exposing (AppError)

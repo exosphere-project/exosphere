@@ -6,12 +6,12 @@ import Ports exposing (changeThemePreference)
 import Set
 import Style.Theme exposing (decodeThemePreference)
 import Style.Types as ST
+import Style.Widgets.Popover.Types exposing (PopoverId)
 import Time
 import Types.Error exposing (AppError)
 import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.SharedMsg exposing (SharedMsg(..))
-import View.Types exposing (PopoverId)
 
 
 subscriptions : Result AppError OuterModel -> Sub OuterMsg

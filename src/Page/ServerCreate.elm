@@ -27,7 +27,7 @@ import Style.Widgets.Button as Button
 import Style.Widgets.Card exposing (badge)
 import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
-import Style.Widgets.Popover as Popover
+import Style.Widgets.Popover.Popover as Popover
 import Style.Widgets.Select
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
