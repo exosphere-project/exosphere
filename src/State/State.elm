@@ -1577,12 +1577,11 @@ processProjectSpecificMsg outerModel project msg =
                     let
                         newOuterModel =
                             case outerModel.viewState of
-                                ProjectView projectId projectViewModel (ServerCreate serverCreateModel) ->
+                                ProjectView projectId (ServerCreate serverCreateModel) ->
                                     let
                                         newViewState =
                                             ProjectView
                                                 projectId
-                                                projectViewModel
                                                 (ServerCreate { serverCreateModel | createServerAttempted = False })
                                     in
                                     { outerModel | viewState = newViewState }
