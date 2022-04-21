@@ -1,10 +1,16 @@
-module Style.Widgets.Popover.Popover exposing (popover, popoverAttribs, popoverStyleDefaults)
+module Style.Widgets.Popover.Popover exposing
+    ( popover
+    , popoverAttribs
+    , popoverStyleDefaults
+    , toggleIfTargetIsOutside
+    )
 
 import Element
 import Element.Background as Background
 import Element.Border as Border
 import Html.Attributes
 import Html.Events
+import Json.Decode as Decode
 import Set
 import Style.Helpers as SH
 import Style.Types as ST exposing (ExoPalette, PopoverPosition(..))
@@ -216,3 +222,41 @@ popover context msgMapper { id, content, contentStyleAttrs, position, distanceTo
             ++ targetStyleAttrs
         )
         (target (msgMapper id) popoverIsShown)
+
+
+
+-- DECODERS
+
+
+toggleIfTargetIsOutside : PopoverId -> (PopoverId -> msg) -> Decode.Decoder msg
+toggleIfTargetIsOutside popoverId togglePopoverMsg =
+    Decode.field "target" (isNodeOutsidePopover popoverId)
+        |> Decode.andThen
+            (\isOutside ->
+                if isOutside then
+                    Decode.succeed (togglePopoverMsg popoverId)
+
+                else
+                    Decode.fail "inside dropdown"
+            )
+
+
+isNodeOutsidePopover : PopoverId -> Decode.Decoder Bool
+isNodeOutsidePopover popoverId =
+    Decode.oneOf
+        [ Decode.field "id" Decode.string
+            |> Decode.andThen
+                (\id ->
+                    if popoverId == id then
+                        -- found match by id
+                        Decode.succeed False
+
+                    else
+                        -- try next decoder
+                        Decode.fail "check parent node"
+                )
+        , Decode.lazy (\_ -> isNodeOutsidePopover popoverId |> Decode.field "parentNode")
+
+        -- fallback if all previous decoders failed
+        , Decode.succeed True
+        ]

@@ -1,5 +1,6 @@
 module DesignSystem.Explorer exposing (main)
 
+import Browser.Events
 import Color
 import DesignSystem.Stories.ColorPalette as ColorPalette
 import Element
@@ -18,7 +19,7 @@ import Style.Widgets.Icon exposing (bell, console, copyToClipboard, history, ipA
 import Style.Widgets.IconButton exposing (chip)
 import Style.Widgets.Link as Link
 import Style.Widgets.Meter exposing (meter)
-import Style.Widgets.Popover.Popover exposing (popover)
+import Style.Widgets.Popover.Popover exposing (popover, toggleIfTargetIsOutside)
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.StatusBadge exposing (StatusBadgeState(..), statusBadge)
 import Style.Widgets.Text as Text
@@ -234,7 +235,15 @@ config =
             }
     , init = \f m -> { m | deployerColors = deployerColors f }
     , enableDarkMode = True
-    , subscriptions = \_ -> Sub.none
+    , subscriptions =
+        \m ->
+            Sub.batch <|
+                List.map
+                    (\popoverId ->
+                        Browser.Events.onMouseDown
+                            (toggleIfTargetIsOutside popoverId TogglePopover)
+                    )
+                    (Set.toList m.customModel.popover.showPopovers)
     , update =
         \msg m ->
             let
@@ -542,11 +551,12 @@ main =
                                 let
                                     demoPopoverContent _ =
                                         Element.paragraph
-                                            [ Element.width <| Element.px 250
+                                            [ Element.width <| Element.px 275
                                             , Font.size 16
                                             ]
-                                            [ Element.text
-                                                "I'm a popover that can be used as dropdown, toggle tip, etc."
+                                            [ Element.text <|
+                                                "I'm a popover that can be used as dropdown, toggle tip, etc. "
+                                                    ++ "Clicking outside of me will close me."
                                             ]
 
                                     demoPopoverTarget togglePopoverMsg _ =
