@@ -35,7 +35,7 @@ type Msg
     = DetachVolume OSTypes.VolumeUuid
     | GotDeleteConfirm OSTypes.VolumeUuid
     | SharedMsg SharedMsg.SharedMsg
-    | DataListMsg DataList.Msg SharedMsg.SharedMsg
+    | DataListMsg DataList.Msg
     | NoOp
 
 
@@ -65,13 +65,13 @@ update msg project model =
         SharedMsg sharedMsg ->
             ( model, Cmd.none, sharedMsg )
 
-        DataListMsg dataListMsg sharedMsg ->
+        DataListMsg dataListMsg ->
             ( { model
                 | dataListModel =
                     DataList.update dataListMsg model.dataListModel
               }
             , Cmd.none
-            , sharedMsg
+            , SharedMsg.NoOp
             )
 
         NoOp ->
@@ -94,7 +94,13 @@ view context project currentTime model =
                 (volumeView context project currentTime)
                 (volumeRecords project volumes_)
                 []
-                (filters currentTime)
+                (Just
+                    { filters = filters currentTime
+                    , dropdownMsgMapper =
+                        \dropdownId ->
+                            SharedMsg <| SharedMsg.TogglePopover dropdownId
+                    }
+                )
                 Nothing
     in
     Element.column
@@ -257,7 +263,7 @@ volumeView context project currentTime volumeRecord =
                     in
                     Element.row [ Element.spacing 12 ]
                         [ deletePopconfirm context
-                            SharedMsg
+                            (\deletePopconfirmId_ -> SharedMsg <| SharedMsg.TogglePopover deletePopconfirmId_)
                             deletePopconfirmId
                             { confirmationText =
                                 "Are you sure you want to delete this "

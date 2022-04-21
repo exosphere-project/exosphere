@@ -47,7 +47,7 @@ view context sharedModel _ =
         experimentalFeatureToggleTip =
             Style.Widgets.ToggleTip.toggleTip
                 context
-                SharedMsg
+                (\experimentalFeaturesTipId -> SharedMsg <| SharedMsg.TogglePopover experimentalFeaturesTipId)
                 "settingsExperimentalFeaturesToggleTip"
                 (Element.paragraph
                     [ Element.width (Element.fill |> Element.minimum 300)

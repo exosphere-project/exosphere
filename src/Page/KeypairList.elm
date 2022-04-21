@@ -36,7 +36,7 @@ type alias Model =
 type Msg
     = GotExpandPublicKey OSTypes.KeypairIdentifier Bool
     | GotDeleteConfirm OSTypes.KeypairIdentifier
-    | DataListMsg DataList.Msg SharedMsg.SharedMsg
+    | DataListMsg DataList.Msg
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
 
@@ -70,13 +70,13 @@ update msg project model =
             , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <| SharedMsg.RequestDeleteKeypair keypairId
             )
 
-        DataListMsg dataListMsg sharedMsg ->
+        DataListMsg dataListMsg ->
             ( { model
                 | dataListModel =
                     DataList.update dataListMsg model.dataListModel
               }
             , Cmd.none
-            , sharedMsg
+            , SharedMsg.NoOp
             )
 
         SharedMsg sharedMsg ->
@@ -141,7 +141,7 @@ view context project model =
                         (keypairView model context project)
                         (keypairRecords keypairs)
                         []
-                        []
+                        Nothing
                         Nothing
                     ]
 
@@ -213,7 +213,7 @@ keypairView model context project keypairRecord =
 
         deleteKeypairBtnWithPopconfirm =
             deletePopconfirm context
-                SharedMsg
+                (\deletePopconfirmId_ -> SharedMsg <| SharedMsg.TogglePopover deletePopconfirmId_)
                 deletePopconfirmId
                 { confirmationText =
                     "Are you sure you want to delete this "

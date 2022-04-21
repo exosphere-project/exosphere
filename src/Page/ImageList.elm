@@ -39,7 +39,7 @@ type alias Model =
 
 type Msg
     = GotDeleteConfirm OSTypes.ImageUuid
-    | DataListMsg DataList.Msg SharedMsg.SharedMsg
+    | DataListMsg DataList.Msg
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
 
@@ -65,13 +65,13 @@ update msg project model =
                 SharedMsg.RequestDeleteImage imageId
             )
 
-        DataListMsg dataListMsg sharedMsg ->
+        DataListMsg dataListMsg ->
             ( { model
                 | dataListModel =
                     DataList.update dataListMsg model.dataListModel
               }
             , Cmd.none
-            , sharedMsg
+            , SharedMsg.NoOp
             )
 
         SharedMsg sharedMsg ->
@@ -122,7 +122,13 @@ view context project model =
                     (imageView model context project)
                     (imageRecords context project imagesInCustomOrder)
                     []
-                    filters
+                    (Just
+                        { filters = filters
+                        , dropdownMsgMapper =
+                            \dropdownId ->
+                                SharedMsg <| SharedMsg.TogglePopover dropdownId
+                        }
+                    )
                     (Just searchByNameFilter)
                 ]
     in
@@ -209,7 +215,7 @@ imageView model context project imageRecord =
 
                 deleteBtnWithPopconfirm =
                     deletePopconfirm context
-                        SharedMsg
+                        (\deletePopconfirmId_ -> SharedMsg <| SharedMsg.TogglePopover deletePopconfirmId_)
                         deletePopconfirmId
                         { confirmationText =
                             "Are you sure you want to delete this "

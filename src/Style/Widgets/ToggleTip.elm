@@ -10,18 +10,17 @@ import Style.Helpers as SH
 import Style.Types
 import Style.Widgets.Popover.Popover exposing (popover)
 import Style.Widgets.Popover.Types exposing (PopoverId)
-import Types.SharedMsg
 import View.Types
 
 
 toggleTip :
     View.Types.Context
-    -> (Types.SharedMsg.SharedMsg -> msg)
+    -> (PopoverId -> msg)
     -> PopoverId
     -> Element.Element msg
     -> Style.Types.PopoverPosition
     -> Element.Element msg
-toggleTip context sharedMsgMapper id content position =
+toggleTip context msgMapper id content position =
     let
         tipStyle =
             [ Element.htmlAttribute (Html.Attributes.style "pointerEvents" "none")
@@ -56,7 +55,7 @@ toggleTip context sharedMsgMapper id content position =
                     )
     in
     popover context
-        sharedMsgMapper
+        msgMapper
         { id = id
         , content = \_ -> content
         , contentStyleAttrs = tipStyle

@@ -597,7 +597,7 @@ view context project model =
                 project
                 model.restrictFlavorIds
                 computeQuota
-                SharedMsg
+                (\flavorGroupTipId -> SharedMsg <| SharedMsg.TogglePopover flavorGroupTipId)
                 (Helpers.String.hyphenate [ "serverCreateFlavorGroupTip", project.auth.project.uuid ])
                 Nothing
                 model.flavorId
@@ -1033,8 +1033,8 @@ customWorkflowInputExperimental context project model =
         workflowExplanationToggleTip =
             Style.Widgets.ToggleTip.toggleTip
                 context
-                SharedMsg
-                ("workflowExplainationTip" ++ project.auth.project.uuid)
+                (\workflowExplainationTipId -> SharedMsg <| SharedMsg.TogglePopover workflowExplainationTipId)
+                (Helpers.String.hyphenate [ "workflowExplainationTip", project.auth.project.uuid ])
                 (Element.column
                     [ Element.width
                         (Element.fill

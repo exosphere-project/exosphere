@@ -219,7 +219,7 @@ renderJetstream2Allocation context project currentTime =
             in
             Style.Widgets.ToggleTip.toggleTip
                 context
-                SharedMsg
+                (\toggleTipId_ -> SharedMsg <| SharedMsg.TogglePopover toggleTipId_)
                 toggleTipId
                 contents
                 ST.PositionRight

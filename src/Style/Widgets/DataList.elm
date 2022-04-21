@@ -27,7 +27,7 @@ import Style.Helpers as SH
 import Style.Types
 import Style.Widgets.Icon as Icon
 import Style.Widgets.Popover.Popover exposing (popover)
-import Types.SharedMsg
+import Style.Widgets.Popover.Types exposing (PopoverId)
 import View.Helpers as VH
 import View.Types
 import Widget
@@ -244,6 +244,12 @@ type alias Filter record =
     }
 
 
+type alias SelectionFilters record msg =
+    { filters : List (Filter record)
+    , dropdownMsgMapper : PopoverId -> msg
+    }
+
+
 type alias SearchFilter record =
     { label : String
     , placeholder : Maybe String
@@ -263,27 +269,17 @@ getFilterOptionText filter data filterOptionValue =
 
 view :
     Model
-    -> (Msg -> Types.SharedMsg.SharedMsg -> msg) -- convert DataList.Msg, SharedMsg to a consumer's msg
+    -> (Msg -> msg) -- convert DataList.Msg to a consumer's msg
     -> View.Types.Context
     -> List (Element.Attribute msg)
     -> (DataRecord record -> Element.Element msg)
     -> List (DataRecord record)
     -> List (Set.Set RowId -> Element.Element msg)
-    -> List (Filter record)
+    -> Maybe (SelectionFilters record msg)
     -> Maybe (SearchFilter record)
     -> Element.Element msg
-view model toMsg context styleAttrs listItemView data bulkActions filters searchFilter =
+view model toMsg context styleAttrs listItemView data bulkActions selectionFilters searchFilter =
     let
-        dataListMsgMapper : Msg -> msg
-        dataListMsgMapper dataListMsg =
-            -- convert DataList.Msg to a consumer's msg
-            toMsg dataListMsg Types.SharedMsg.NoOp
-
-        sharedMsgMapper : Types.SharedMsg.SharedMsg -> msg
-        sharedMsgMapper sharedMsg =
-            -- convert SharedMsg produced by DataList to a consumer's Msg
-            toMsg NoOp sharedMsg
-
         defaultRowStyle =
             [ Element.padding 24
             , Element.spacing 20
@@ -346,13 +342,18 @@ view model toMsg context styleAttrs listItemView data bulkActions filters search
                     \_ -> True
 
         filteredData =
-            List.foldl
-                (\filter dataRecords ->
-                    List.filter (keepARecord filter) dataRecords
-                )
-                data
-                filters
-                |> List.filter filterRecordsBySearchText
+            case selectionFilters of
+                Just selectionFilters_ ->
+                    List.foldl
+                        (\filter dataRecords ->
+                            List.filter (keepARecord filter) dataRecords
+                        )
+                        data
+                        selectionFilters_.filters
+                        |> List.filter filterRecordsBySearchText
+
+                Nothing ->
+                    data |> List.filter filterRecordsBySearchText
 
         rows =
             if List.isEmpty filteredData then
@@ -389,7 +390,7 @@ view model toMsg context styleAttrs listItemView data bulkActions filters search
 
             else
                 List.indexedMap
-                    (rowView model dataListMsgMapper context.palette rowStyle listItemView showRowCheckbox)
+                    (rowView model toMsg context.palette rowStyle listItemView showRowCheckbox)
                     filteredData
     in
     Element.column
@@ -402,13 +403,12 @@ view model toMsg context styleAttrs listItemView data bulkActions filters search
             ++ styleAttrs
         )
         (toolbarView model
-            dataListMsgMapper
-            sharedMsgMapper
+            toMsg
             context
             defaultRowStyle
             { complete = data, filtered = filteredData }
             bulkActions
-            filters
+            selectionFilters
             searchFilter
             :: rows
         )
@@ -460,7 +460,6 @@ rowView model toMsg palette rowStyle listItemView showRowCheckbox i dataRecord =
 toolbarView :
     Model
     -> (Msg -> msg) -- convert DataList.Msg to a consumer's msg
-    -> (Types.SharedMsg.SharedMsg -> msg) -- convert SharedMsg to a consumer's Msg
     -> View.Types.Context
     -> List (Element.Attribute msg)
     ->
@@ -468,10 +467,10 @@ toolbarView :
         , filtered : List (DataRecord record)
         }
     -> List (Set.Set RowId -> Element.Element msg)
-    -> List (Filter record)
+    -> Maybe (SelectionFilters record msg)
     -> Maybe (SearchFilter record)
     -> Element.Element msg
-toolbarView model dataListMsgMapper sharedMsgMapper context rowStyle data bulkActions filters searchFilter =
+toolbarView model toMsg context rowStyle data bulkActions selectionFilters searchFilter =
     let
         selectableRecords =
             List.filter (\record -> record.selectable) data.filtered
@@ -515,7 +514,7 @@ toolbarView model dataListMsgMapper sharedMsgMapper context rowStyle data bulkAc
                     , label =
                         Input.labelHidden "Select all rows"
                     }
-                    |> Element.map dataListMsgMapper
+                    |> Element.map toMsg
 
         bulkActionsView =
             -- show only when bulkActions are passed and atleast 1 row is selected
@@ -533,6 +532,22 @@ toolbarView model dataListMsgMapper sharedMsgMapper context rowStyle data bulkAc
                             :: List.map (\bulkAction -> bulkAction selectedRowIds)
                                 bulkActions
                         )
+
+        ( selectionFiltersView, selectionFiltersAreActive ) =
+            case selectionFilters of
+                Just selectionFilters_ ->
+                    ( filtersView model
+                        toMsg
+                        context
+                        selectionFilters_
+                        data.complete
+                    , True
+                    )
+
+                Nothing ->
+                    ( Element.none
+                    , False
+                    )
 
         ( searchFilterView, searchFilterIsActive ) =
             case searchFilter of
@@ -554,14 +569,14 @@ toolbarView model dataListMsgMapper sharedMsgMapper context rowStyle data bulkAc
                             Input.labelLeft []
                                 (Element.text searchFilter_.label)
                         }
-                        |> Element.map dataListMsgMapper
+                        |> Element.map toMsg
                     , True
                     )
 
                 Nothing ->
                     ( Element.none, False )
     in
-    if List.isEmpty bulkActions && List.isEmpty filters && not searchFilterIsActive then
+    if List.isEmpty bulkActions && not selectionFiltersAreActive && not searchFilterIsActive then
         Element.none
 
     else
@@ -570,7 +585,7 @@ toolbarView model dataListMsgMapper sharedMsgMapper context rowStyle data bulkAc
             [ searchFilterView
             , Element.row [ Element.spacing 20, Element.width Element.fill ]
                 [ selectAllCheckbox
-                , filtersView model dataListMsgMapper sharedMsgMapper context filters data.complete
+                , selectionFiltersView
                 , bulkActionsView
                 ]
             ]
@@ -579,12 +594,11 @@ toolbarView model dataListMsgMapper sharedMsgMapper context rowStyle data bulkAc
 filtersView :
     Model
     -> (Msg -> msg)
-    -> (Types.SharedMsg.SharedMsg -> msg)
     -> View.Types.Context
-    -> List (Filter record)
+    -> SelectionFilters record msg
     -> List (DataRecord record)
     -> Element.Element msg
-filtersView model dataListMsgMapper sharedMsgMapper context filters data =
+filtersView model toMsg context { filters, dropdownMsgMapper } data =
     let
         filtOptCheckbox : Filter record -> MultiselectOptionIdentifier -> FilterOptionValue -> Element.Element msg
         filtOptCheckbox filter optionValues filterOptionValue =
@@ -602,7 +616,7 @@ filtersView model dataListMsgMapper sharedMsgMapper context filters data =
                             |> Element.text
                         )
                 }
-                |> Element.map dataListMsgMapper
+                |> Element.map toMsg
 
         filtOptsRadioSelector : Filter record -> UniselectOptionIdentifier -> Element.Element msg
         filtOptsRadioSelector filter uniselectOptValue =
@@ -628,7 +642,7 @@ filtersView model dataListMsgMapper sharedMsgMapper context filters data =
                         -- ensure that they pass text for UniselectNoChoice
                         ++ [ Input.option UniselectNoChoice (Element.text "No choice") ]
                 }
-                |> Element.map dataListMsgMapper
+                |> Element.map toMsg
 
         iconButtonStyleDefaults =
             (SH.materialStyle context.palette).iconButton
@@ -675,7 +689,7 @@ filtersView model dataListMsgMapper sharedMsgMapper context filters data =
                             , text = "Close"
                             , onPress = Just NoOp
                             }
-                            |> Element.map dataListMsgMapper
+                            |> Element.map toMsg
                         )
                     ]
                     :: List.map
@@ -772,7 +786,7 @@ filtersView model dataListMsgMapper sharedMsgMapper context filters data =
                             )
                     , onPress = Just <| ClearFilter filter.id
                     }
-                    |> Element.map dataListMsgMapper
+                    |> Element.map toMsg
                 ]
 
         selectedFiltersChips =
@@ -863,7 +877,7 @@ filtersView model dataListMsgMapper sharedMsgMapper context filters data =
                     { text = "Clear filters"
                     , onPress = Just <| ClearAllFilters
                     }
-                    |> Element.map dataListMsgMapper
+                    |> Element.map toMsg
 
             else
                 Element.none
@@ -873,7 +887,7 @@ filtersView model dataListMsgMapper sharedMsgMapper context filters data =
 
     else
         popover context
-            sharedMsgMapper
+            dropdownMsgMapper
             { id = filtersDropdownId
             , content = filtersDropdown
             , contentStyleAttrs = [ Element.padding 24 ]

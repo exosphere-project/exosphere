@@ -125,7 +125,7 @@ view_ context project model computeQuota =
                 project
                 restrictFlavorIds
                 computeQuota
-                SharedMsg
+                (\flavorGroupTipId -> SharedMsg <| SharedMsg.TogglePopover flavorGroupTipId)
                 (Helpers.String.hyphenate [ "serverResizeFlavorGroupTip", project.auth.project.uuid ])
                 currentFlavorId
                 model.flavorId

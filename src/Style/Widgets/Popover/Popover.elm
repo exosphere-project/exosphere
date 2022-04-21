@@ -9,7 +9,6 @@ import Set
 import Style.Helpers as SH
 import Style.Types as ST exposing (ExoPalette, PopoverPosition(..))
 import Style.Widgets.Popover.Types exposing (PopoverId)
-import Types.SharedMsg
 import View.Types
 
 
@@ -152,7 +151,7 @@ Generate a unique id in widget itself, something like CopyableText but there's n
 -}
 popover :
     View.Types.Context
-    -> (Types.SharedMsg.SharedMsg -> msg)
+    -> (PopoverId -> msg)
     ->
         { id : PopoverId
         , content : Element.Attribute msg -> Element.Element msg
@@ -163,7 +162,7 @@ popover :
         , targetStyleAttrs : List (Element.Attribute msg)
         }
     -> Element.Element msg
-popover context sharedMsgMapper { id, content, contentStyleAttrs, position, distanceToTarget, target, targetStyleAttrs } =
+popover context msgMapper { id, content, contentStyleAttrs, position, distanceToTarget, target, targetStyleAttrs } =
     -- TODO: add doc to explain record fields
     let
         popoverIsShown =
@@ -171,10 +170,8 @@ popover context sharedMsgMapper { id, content, contentStyleAttrs, position, dist
 
         -- close popover when an action happens in the content
         closePopover =
-            (Element.htmlAttribute <|
-                Html.Events.onClick (Types.SharedMsg.TogglePopover id)
-            )
-                |> Element.mapAttribute sharedMsgMapper
+            Element.htmlAttribute <|
+                Html.Events.onClick (msgMapper id)
     in
     Element.el
         ((Element.htmlAttribute <| Html.Attributes.id id)
@@ -195,6 +192,4 @@ popover context sharedMsgMapper { id, content, contentStyleAttrs, position, dist
                )
             ++ targetStyleAttrs
         )
-        (target (sharedMsgMapper <| Types.SharedMsg.TogglePopover id)
-            popoverIsShown
-        )
+        (target (msgMapper id) popoverIsShown)

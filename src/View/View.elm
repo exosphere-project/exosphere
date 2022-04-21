@@ -459,7 +459,7 @@ createButton context projectId =
                 }
     in
     popover context
-        SharedMsg
+        (\createBtnDropdownId -> SharedMsg <| SharedMsg.TogglePopover createBtnDropdownId)
         { id = Helpers.String.hyphenate [ "createBtnDropdown", projectId.projectUuid ]
         , content = dropdownContent
         , contentStyleAttrs = []

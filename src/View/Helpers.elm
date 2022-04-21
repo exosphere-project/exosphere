@@ -1021,13 +1021,13 @@ flavorPicker :
     -> Project
     -> Maybe (List OSTypes.FlavorId)
     -> OSTypes.ComputeQuota
-    -> (SharedMsg.SharedMsg -> msg)
+    -> (PopoverId -> msg)
     -> PopoverId
     -> Maybe OSTypes.FlavorId
     -> Maybe OSTypes.FlavorId
     -> (OSTypes.FlavorId -> msg)
     -> Element.Element msg
-flavorPicker context project restrictFlavorIds computeQuota sharedMsgMapper flavorGroupToggleTipId maybeCurrentFlavorId selectedFlavorId changeMsg =
+flavorPicker context project restrictFlavorIds computeQuota flavorGroupToggleTipMsgMapper flavorGroupToggleTipId maybeCurrentFlavorId selectedFlavorId changeMsg =
     let
         { locale } =
             context
@@ -1218,7 +1218,7 @@ flavorPicker context project restrictFlavorIds computeQuota sharedMsgMapper flav
                                             ]
                                 in
                                 ToggleTip.toggleTip context
-                                    sharedMsgMapper
+                                    flavorGroupToggleTipMsgMapper
                                     toggleTipId
                                     (Element.text description)
                                     ST.PositionRight

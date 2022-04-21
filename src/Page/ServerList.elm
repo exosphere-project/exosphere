@@ -45,7 +45,7 @@ type alias Model =
 type Msg
     = GotDeleteConfirm OSTypes.ServerUuid
     | OpenInteraction String
-    | DataListMsg DataList.Msg SharedMsg.SharedMsg
+    | DataListMsg DataList.Msg
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
 
@@ -76,13 +76,13 @@ update msg project model =
             , SharedMsg.OpenNewWindow url
             )
 
-        DataListMsg dataListMsg sharedMsg ->
+        DataListMsg dataListMsg ->
             ( { model
                 | dataListModel =
                     DataList.update dataListMsg model.dataListModel
               }
             , Cmd.none
-            , sharedMsg
+            , SharedMsg.NoOp
             )
 
         SharedMsg sharedMsg ->
@@ -152,7 +152,13 @@ view context project currentTime model =
                             (serverView context currentTime project)
                             serversList
                             [ deletionAction context project ]
-                            (filters project.auth.user.name currentTime)
+                            (Just
+                                { filters = filters project.auth.user.name currentTime
+                                , dropdownMsgMapper =
+                                    \dropdownId ->
+                                        SharedMsg <| SharedMsg.TogglePopover dropdownId
+                                }
+                            )
                             Nothing
     in
     Element.column [ Element.width Element.fill ]
@@ -356,7 +362,7 @@ serverView context currentTime project serverRecord =
                         , onPress = Just togglePopover
                         }
 
-                popoverId =
+                interactionPopoverId =
                     Helpers.String.hyphenate
                         [ "serverListInteractionPopover"
                         , project.auth.project.uuid
@@ -364,8 +370,8 @@ serverView context currentTime project serverRecord =
                         ]
             in
             popover context
-                SharedMsg
-                { id = popoverId
+                (\interactionPopoverId_ -> SharedMsg <| SharedMsg.TogglePopover interactionPopoverId_)
+                { id = interactionPopoverId
                 , content = interactionPopover
                 , contentStyleAttrs = []
                 , position = ST.PositionBottomLeft
@@ -396,7 +402,7 @@ serverView context currentTime project serverRecord =
                         ]
             in
             deletePopconfirm context
-                SharedMsg
+                (\deletePopconfirmId_ -> SharedMsg <| SharedMsg.TogglePopover deletePopconfirmId_)
                 deletePopconfirmId
                 { confirmationText =
                     "Are you sure you want to delete this "

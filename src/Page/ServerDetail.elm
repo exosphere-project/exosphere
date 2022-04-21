@@ -31,6 +31,7 @@ import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton
 import Style.Widgets.Link as Link
 import Style.Widgets.Popover.Popover exposing (popover)
+import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
 import Time
@@ -132,6 +133,11 @@ update msg project model =
             ( model, Cmd.none, SharedMsg.NoOp )
 
 
+popoverMsgMapper : PopoverId -> Msg
+popoverMsgMapper popoverId =
+    SharedMsg <| SharedMsg.TogglePopover popoverId
+
+
 view : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> Model -> Element.Element Msg
 view context project currentTimeAndZone model =
     {- Attempt to look up a given server UUID; if a Server type is found, call rendering function serverDetail_ -}
@@ -197,7 +203,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                 [ Element.text timeDistanceStr
                 , Style.Widgets.ToggleTip.toggleTip
                     context
-                    SharedMsg
+                    popoverMsgMapper
                     (Helpers.String.hyphenate
                         [ "createdTimeTip"
                         , project.auth.project.uuid
@@ -266,7 +272,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                         toggleTip =
                             Style.Widgets.ToggleTip.toggleTip
                                 context
-                                SharedMsg
+                                popoverMsgMapper
                                 (Helpers.String.hyphenate [ "flavorToggleTip", project.auth.project.uuid, server.osProps.uuid ])
                                 toggleTipContents
                                 ST.PositionBottomRight
@@ -788,7 +794,7 @@ serverStatus context project server =
             in
             Style.Widgets.ToggleTip.toggleTip
                 context
-                SharedMsg
+                popoverMsgMapper
                 toggleTipId
                 contents
                 ST.PositionLeft
@@ -873,7 +879,7 @@ interactions context project server currentTime tlsReverseProxyHostname =
                     in
                     Style.Widgets.ToggleTip.toggleTip
                         context
-                        SharedMsg
+                        popoverMsgMapper
                         toggleTipId
                         contents
                         ST.PositionRightBottom
@@ -1082,7 +1088,7 @@ serverActionsDropdown context project model server =
     case server.exoProps.targetOpenstackStatus of
         Nothing ->
             popover context
-                SharedMsg
+                popoverMsgMapper
                 { id = dropdownId
                 , content = dropdownContent
                 , contentStyleAttrs = [ Element.padding 20 ]
@@ -1143,7 +1149,7 @@ serverEventHistory context project server currentTime =
                                         in
                                         Style.Widgets.ToggleTip.toggleTip
                                             context
-                                            SharedMsg
+                                            popoverMsgMapper
                                             toggleTipId
                                             (Element.text (Helpers.Time.humanReadableDateAndTime event.startTime))
                                             ST.PositionBottomRight

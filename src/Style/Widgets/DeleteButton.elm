@@ -11,7 +11,6 @@ import Style.Types exposing (ExoPalette)
 import Style.Widgets.Button as Button
 import Style.Widgets.Popover.Popover exposing (popover)
 import Style.Widgets.Popover.Types exposing (PopoverId)
-import Types.SharedMsg
 import View.Types
 import Widget
 
@@ -90,15 +89,15 @@ deletePopconfirmContent palette { confirmationText, onConfirm, onCancel } closeP
 
 deletePopconfirm :
     View.Types.Context
-    -> (Types.SharedMsg.SharedMsg -> msg)
+    -> (PopoverId -> msg)
     -> PopoverId
     -> PopconfirmContent msg
     -> Style.Types.PopoverPosition
     -> (msg -> Bool -> Element.Element msg)
     -> Element.Element msg
-deletePopconfirm context sharedMsgMapper id content position target =
+deletePopconfirm context msgMapper id content position target =
     popover context
-        sharedMsgMapper
+        msgMapper
         { id = id
         , content =
             deletePopconfirmContent context.palette

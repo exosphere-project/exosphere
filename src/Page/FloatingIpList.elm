@@ -35,7 +35,7 @@ type alias Model =
 type Msg
     = GotUnassign OSTypes.IpAddressUuid
     | GotDeleteConfirm OSTypes.IpAddressUuid
-    | DataListMsg DataList.Msg SharedMsg.SharedMsg
+    | DataListMsg DataList.Msg
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
 
@@ -70,13 +70,13 @@ update msg project model =
                 (SharedMsg.RequestDeleteFloatingIp errorContext ipUuid)
             )
 
-        DataListMsg dataListMsg sharedMsg ->
+        DataListMsg dataListMsg ->
             ( { model
                 | dataListModel =
                     DataList.update dataListMsg model.dataListModel
               }
             , Cmd.none
-            , sharedMsg
+            , SharedMsg.NoOp
             )
 
         SharedMsg sharedMsg ->
@@ -163,7 +163,13 @@ view context project model =
                         (floatingIpView context project)
                         (floatingIpRecords ipsSorted)
                         []
-                        filters
+                        (Just
+                            { filters = filters
+                            , dropdownMsgMapper =
+                                \dropdownId ->
+                                    SharedMsg <| SharedMsg.TogglePopover dropdownId
+                            }
+                        )
                         Nothing
                     ]
     in
@@ -272,7 +278,7 @@ floatingIpView context project floatingIpRecord =
                         ]
             in
             deletePopconfirm context
-                SharedMsg
+                (\deletePopconfirmId_ -> SharedMsg <| SharedMsg.TogglePopover deletePopconfirmId_)
                 deletePopconfirmId
                 { confirmationText =
                     "Are you sure you want to delete this "
