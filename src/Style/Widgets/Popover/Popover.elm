@@ -9,7 +9,6 @@ import Set
 import Style.Helpers as SH
 import Style.Types as ST exposing (ExoPalette, PopoverPosition(..))
 import Style.Widgets.Popover.Types exposing (PopoverId)
-import View.Types
 
 
 popoverStyleDefaults : ExoPalette -> List (Element.Attribute msg)
@@ -145,12 +144,37 @@ popoverAttribs popoverContent position distanceToTarget =
     ]
 
 
-{-| We need unique id for each popover because we need to check if a click target was descendant of a specific popover
+{-| Popover widget that can auto-close on clicking outside of it. Parameters:
+
+  - `context` - State of the popover, intends to take `View.Types.Context` (but
+    doesn't explicitly define so to keep it generic for use in style guide etc.)
+  - `msgMapper` - Maps popoverId to a consumer's msg.
+  - `id` - Unique id of the popover so that it can be checked if the element
+    where click event happened in app, was descendant of specifically this
+    popover (not others).
+  - `content` - Content of the popover - takes close-popover event (attribute)
+    and produces an element. If you want to close the popover after an action
+    hapens within the content, trigger the closePopover event by adding it in
+    attributes of the element that produces action.
+  - `contentStyleAttrs` - Style to be used to override the default popover style.
+  - `position` - Where popover should appear w.r.t. its target.
+  - `distanceToTarget` - Distance of popover to its target in px.
+  - `target` - Element that opens/closes popover - takes a toggle popover message
+    and a boolean indicating if the popover is shown, to produce an element. The
+    message should be emitted when an action happens on target (element) like
+    button click, etc. The boolean can be used to created a distinguished look
+    ofthe target when popover is opened and closed.
+  - `targetStyleAttrs` - Style of target's wrapper (element containing the
+    element passed in `target` parameter). You'll rarely need this, only in the
+    cases where style don't work as expected due to target being wrapped in
+    another container.
+
 TODO: remove `popoverId` as parameter - consumer shouldn't bother about it.
 Generate a unique id in widget itself, something like CopyableText but there's no string to hash
+
 -}
 popover :
-    View.Types.Context
+    { viewContext | palette : ExoPalette, showPopovers : Set.Set PopoverId }
     -> (PopoverId -> msg)
     ->
         { id : PopoverId
@@ -163,7 +187,6 @@ popover :
         }
     -> Element.Element msg
 popover context msgMapper { id, content, contentStyleAttrs, position, distanceToTarget, target, targetStyleAttrs } =
-    -- TODO: add doc to explain record fields
     let
         popoverIsShown =
             Set.member id context.showPopovers

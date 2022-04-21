@@ -6,12 +6,12 @@ module Style.Widgets.DeleteButton exposing
 import Element
 import FeatherIcons
 import Html.Attributes as HtmlA
+import Set
 import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
 import Style.Widgets.Button as Button
 import Style.Widgets.Popover.Popover exposing (popover)
 import Style.Widgets.Popover.Types exposing (PopoverId)
-import View.Types
 import Widget
 
 
@@ -88,7 +88,7 @@ deletePopconfirmContent palette { confirmationText, onConfirm, onCancel } closeP
 
 
 deletePopconfirm :
-    View.Types.Context
+    { viewContext | palette : ExoPalette, showPopovers : Set.Set PopoverId }
     -> (PopoverId -> msg)
     -> PopoverId
     -> PopconfirmContent msg

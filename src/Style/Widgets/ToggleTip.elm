@@ -6,15 +6,15 @@ import Element.Events as Events
 import Element.Font as Font
 import FeatherIcons
 import Html.Attributes
+import Set
 import Style.Helpers as SH
-import Style.Types
+import Style.Types exposing (ExoPalette)
 import Style.Widgets.Popover.Popover exposing (popover)
 import Style.Widgets.Popover.Types exposing (PopoverId)
-import View.Types
 
 
 toggleTip :
-    View.Types.Context
+    { viewContext | palette : ExoPalette, showPopovers : Set.Set PopoverId }
     -> (PopoverId -> msg)
     -> PopoverId
     -> Element.Element msg

@@ -24,12 +24,11 @@ import Html.Attributes as HtmlA
 import Murmur3
 import Set
 import Style.Helpers as SH
-import Style.Types
+import Style.Types exposing (ExoPalette)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.Popover.Popover exposing (popover)
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import View.Helpers as VH
-import View.Types
 import Widget
 
 
@@ -270,7 +269,7 @@ getFilterOptionText filter data filterOptionValue =
 view :
     Model
     -> (Msg -> msg) -- convert DataList.Msg to a consumer's msg
-    -> View.Types.Context
+    -> { viewContext | palette : ExoPalette, showPopovers : Set.Set PopoverId }
     -> List (Element.Attribute msg)
     -> (DataRecord record -> Element.Element msg)
     -> List (DataRecord record)
@@ -460,7 +459,7 @@ rowView model toMsg palette rowStyle listItemView showRowCheckbox i dataRecord =
 toolbarView :
     Model
     -> (Msg -> msg) -- convert DataList.Msg to a consumer's msg
-    -> View.Types.Context
+    -> { viewContext | palette : ExoPalette, showPopovers : Set.Set PopoverId }
     -> List (Element.Attribute msg)
     ->
         { complete : List (DataRecord record)
@@ -594,7 +593,7 @@ toolbarView model toMsg context rowStyle data bulkActions selectionFilters searc
 filtersView :
     Model
     -> (Msg -> msg)
-    -> View.Types.Context
+    -> { viewContext | palette : ExoPalette, showPopovers : Set.Set PopoverId }
     -> SelectionFilters record msg
     -> List (DataRecord record)
     -> Element.Element msg
