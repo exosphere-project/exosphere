@@ -5,6 +5,7 @@ import Element.Font as Font
 import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
+import OpenStack.ServerVolumes exposing (serversCanHaveVolumeAttached)
 import OpenStack.Types as OSTypes
 import RemoteData
 import Route
@@ -74,19 +75,9 @@ view context project model =
     let
         serverChoices =
             -- Future TODO instead of hiding servers that are ineligible to have a newly attached volume, show them grayed out with mouseover text like "volume cannot be attached to this server because X"
-            RDPP.withDefault [] project.servers
-                |> List.filter
-                    (\s ->
-                        not <|
-                            List.member
-                                s.osProps.details.openstackStatus
-                                [ OSTypes.ServerShelved
-                                , OSTypes.ServerShelvedOffloaded
-                                , OSTypes.ServerError
-                                , OSTypes.ServerSoftDeleted
-                                , OSTypes.ServerBuild
-                                ]
-                    )
+            project.servers
+                |> RDPP.withDefault []
+                |> serversCanHaveVolumeAttached
                 |> List.map
                     (\s ->
                         ( s.osProps.uuid, VH.possiblyUntitledResource s.osProps.name context.localization.virtualComputer )

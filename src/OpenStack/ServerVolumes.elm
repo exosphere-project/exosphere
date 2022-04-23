@@ -1,4 +1,4 @@
-module OpenStack.ServerVolumes exposing (requestAttachVolume, requestDetachVolume)
+module OpenStack.ServerVolumes exposing (requestAttachVolume, requestDetachVolume, serverCanHaveVolumeAttached, serversCanHaveVolumeAttached)
 
 import Helpers.GetterSetters as GetterSetters
 import Http
@@ -15,6 +15,7 @@ import Rest.Helpers
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.HelperTypes exposing (HttpRequestMethod(..))
 import Types.Project exposing (Project)
+import Types.Server exposing (Server)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
 
 
@@ -92,3 +93,28 @@ novaVolumeAttachmentDecoder =
         (Decode.field "serverId" Decode.string)
         (Decode.field "id" Decode.string)
         (Decode.field "device" Decode.string)
+
+
+serversCanHaveVolumeAttached : List Server -> List Server
+serversCanHaveVolumeAttached serverList =
+    serverList
+        |> List.filter
+            (\s ->
+                serverCanHaveVolumeAttached s
+            )
+
+
+serverCanHaveVolumeAttached : Server -> Bool
+serverCanHaveVolumeAttached server =
+    (not <|
+        List.member
+            server.osProps.details.openstackStatus
+            [ OSTypes.ServerShelved
+            , OSTypes.ServerShelvedOffloaded
+            , OSTypes.ServerError
+            , OSTypes.ServerSoftDeleted
+            , OSTypes.ServerBuild
+            ]
+    )
+        && server.osProps.details.lockStatus
+        == OSTypes.ServerUnlocked

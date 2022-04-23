@@ -17,6 +17,7 @@ import Helpers.String
 import Helpers.Time
 import OpenStack.ServerActions as ServerActions
 import OpenStack.ServerNameValidator exposing (serverNameValidator)
+import OpenStack.ServerVolumes exposing (serverCanHaveVolumeAttached)
 import OpenStack.Types as OSTypes
 import Page.ServerResourceUsageAlerts
 import Page.ServerResourceUsageCharts
@@ -409,30 +410,22 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
         secondColumnContents : List (Element.Element Msg)
         secondColumnContents =
             let
+                buttonLabel onPress =
+                    Widget.textButton
+                        (SH.materialStyle context.palette).button
+                        { text = "Attach " ++ context.localization.blockDevice
+                        , onPress = onPress
+                        }
+
                 attachButton =
-                    if
-                        not <|
-                            List.member
-                                server.osProps.details.openstackStatus
-                                [ OSTypes.ServerShelved
-                                , OSTypes.ServerShelvedOffloaded
-                                , OSTypes.ServerError
-                                , OSTypes.ServerSoftDeleted
-                                , OSTypes.ServerBuild
-                                ]
-                    then
+                    if serverCanHaveVolumeAttached server then
                         Element.link []
                             { url =
                                 Route.toUrl context.urlPathPrefix
                                     (Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
                                         Route.VolumeAttach (Just server.osProps.uuid) Nothing
                                     )
-                            , label =
-                                Widget.textButton
-                                    (SH.materialStyle context.palette).button
-                                    { text = "Attach " ++ context.localization.blockDevice
-                                    , onPress = Just NoOp
-                                    }
+                            , label = buttonLabel <| Just NoOp
                             }
 
                     else
