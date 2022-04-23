@@ -364,6 +364,27 @@ enforceQuotaCompliance project model =
 view : View.Types.Context -> Project -> Model -> Element.Element Msg
 view context project model =
     let
+        serverNameExists =
+            case project.servers.data of
+                RDPP.DoHave servers _ ->
+                    servers
+                        |> List.map .osProps
+                        |> List.map .name
+                        |> List.member model.serverName
+
+                _ ->
+                    False
+
+        serverNameExistsMessage =
+            "This " ++ context.localization.virtualComputer ++ " name already exists for this project. You can append your username or date to this name to avoid duplication"
+
+        renderServerNameExists =
+            if serverNameExists then
+                [ VH.warnMessageHelperText context.palette serverNameExistsMessage ]
+
+            else
+                []
+
         invalidNameReasons =
             serverNameValidator (Just context.localization.virtualComputer) model.serverName
 
@@ -585,6 +606,7 @@ view context project model =
                             (VH.requiredLabel context.palette (Element.text "Name"))
                     }
                     :: renderInvalidNameReasons
+                    ++ renderServerNameExists
                 )
             , Element.row []
                 [ Element.text <|

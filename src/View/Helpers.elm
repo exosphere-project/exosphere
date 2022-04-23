@@ -38,6 +38,7 @@ module View.Helpers exposing
     , toExoPalette
     , userAppProxyLookup
     , validInputAttributes
+    , warnMessageHelperText
     )
 
 import Color
@@ -1402,6 +1403,24 @@ invalidInputHelperText palette helperText =
             )
         , Element.el
             [ Font.color (SH.toElementColor palette.error)
+            , Font.size 16
+            ]
+            (Element.text helperText)
+        ]
+
+
+warnMessageHelperText : ExoPalette -> String -> Element.Element msg
+warnMessageHelperText palette helperText =
+    Element.row [ Element.spacingXY 10 0 ]
+        [ Element.el
+            [ Font.color (palette.warn |> SH.toElementColor)
+            ]
+            (FeatherIcons.alertTriangle
+                |> FeatherIcons.toHtml []
+                |> Element.html
+            )
+        , Element.el
+            [ Font.color (SH.toElementColor palette.warn)
             , Font.size 16
             ]
             (Element.text helperText)
