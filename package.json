@@ -16,6 +16,7 @@
     "live-style-guide": "npx elm-live src/Style/StyleGuide.elm --port 8001 --open --start-page styleguide.html -- --output=styleguide.html --debug",
     "live-design-system": "npx elm-live src/DesignSystem/Explorer.elm --port 8002 --open --start-page=explorer.html -- --output=explorer.js --debug",
     "test": "npx elm-test-rs",
+    "js:format": "prettier --check .",
     "elm:format": "npx elm-format --validate src",
     "elm:analyse": "npx elm-analyse",
     "elm:git": "npx elm-git-install",
@@ -37,6 +38,7 @@
     "elm-live": "^4.0.2",
     "elm-tooling": "^1.3.0",
     "husky": "^7.0.0",
+    "prettier": "^2.6.2",
     "uglify-js": "^3.14.2"
   },
   "repository": {

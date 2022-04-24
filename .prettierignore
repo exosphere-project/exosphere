@@ -1,0 +1,22 @@
+# Ignore markdown.
+*.md
+
+# Ignore bundled js assets (since they include minified files & libs).
+/assets
+
+# Ignore yaml (such as pipelines & ansible files).
+*.yml
+
+# Ignore elm built files.
+elm.json
+elm-stuff
+repl-temp-*
+elm.js
+elm-web.js
+explorer.js
+node_modules/
+/dist/
+styleguide.html
+.idea
+.DS_Store
+public/

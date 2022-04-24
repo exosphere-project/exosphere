@@ -4,3 +4,4 @@
 npm run test
 npm run elm:analyse
 npm run elm:format
+npm run js:format
