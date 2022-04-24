@@ -57,7 +57,7 @@ const themePreference = (detector) => {
 var flags = {
   // Flags that Exosphere sets dynamically, not intended to be modified by deployer
   localeGuessingString: new Intl.NumberFormat(navigator.language).format(
-    Math.PI * -1000000,
+    Math.PI * -1000000
   ),
   width: window.innerWidth,
   height: window.innerHeight,
@@ -137,5 +137,5 @@ app.ports.pushUrlAndTitleToMatomo.subscribe(function (args) {
 // Notify app of OS color scheme changes, if we can
 themeDetector &&
   themeDetector.addEventListener("change", (detector) =>
-    app.ports.changeThemePreference.send(themePreference(detector)),
+    app.ports.changeThemePreference.send(themePreference(detector))
   );
