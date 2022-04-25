@@ -1198,7 +1198,7 @@ renderServerActionButton context project model server closeActionsDropdown serve
                 updateAction =
                     GotServerActionNamePendingConfirmation <| Just serverAction.name
             in
-            renderActionButton context serverAction (Just updateAction) serverAction.name closeActionsDropdown
+            renderActionButton context serverAction (Just updateAction) serverAction.name Nothing
 
         ( True, True ) ->
             let
@@ -1244,7 +1244,7 @@ renderServerActionButton context project model server closeActionsDropdown serve
                 [ Element.spacing 5 ]
             <|
                 List.concat
-                    [ [ renderConfirmationButton context serverAction actionMsg cancelMsg title ]
+                    [ [ renderConfirmationButton context serverAction actionMsg cancelMsg title closeActionsDropdown ]
                     , renderKeepFloatingIpCheckbox
                     ]
 
@@ -1267,7 +1267,7 @@ renderServerActionButton context project model server closeActionsDropdown serve
                             serverAction
                             (Just NoOp)
                             (Helpers.String.toTitleCase context.localization.staticRepresentationOfBlockDeviceContents)
-                            closeActionsDropdown
+                            (Just closeActionsDropdown)
                     }
                 -- This is similarly ugly
 
@@ -1285,7 +1285,7 @@ renderServerActionButton context project model server closeActionsDropdown serve
                             serverAction
                             (Just NoOp)
                             (Helpers.String.toTitleCase "Resize")
-                            closeActionsDropdown
+                            (Just closeActionsDropdown)
                     }
 
             else
@@ -1296,7 +1296,7 @@ renderServerActionButton context project model server closeActionsDropdown serve
                     title =
                         serverAction.name
                 in
-                renderActionButton context serverAction actionMsg title closeActionsDropdown
+                renderActionButton context serverAction actionMsg title (Just closeActionsDropdown)
 
 
 confirmationMessage : ServerActions.ServerAction -> String
@@ -1335,13 +1335,22 @@ serverActionSelectModButton context selectMod =
         }
 
 
-renderActionButton : View.Types.Context -> ServerActions.ServerAction -> Maybe Msg -> String -> Element.Attribute Msg -> Element.Element Msg
+renderActionButton : View.Types.Context -> ServerActions.ServerAction -> Maybe Msg -> String -> Maybe (Element.Attribute Msg) -> Element.Element Msg
 renderActionButton context serverAction actionMsg title closeActionsDropdown =
+    let
+        additionalBtnAttribs =
+            case closeActionsDropdown of
+                Just closeActionsDropdown_ ->
+                    [ closeActionsDropdown_ ]
+
+                Nothing ->
+                    []
+    in
     Element.row
         [ Element.spacing 10, Element.width Element.fill ]
         [ Element.text serverAction.description
         , Element.el
-            [ Element.width <| Element.px 100, Element.alignRight, closeActionsDropdown ]
+            ([ Element.width <| Element.px 100, Element.alignRight ] ++ additionalBtnAttribs)
           <|
             serverActionSelectModButton context
                 serverAction.selectMod
@@ -1351,13 +1360,13 @@ renderActionButton context serverAction actionMsg title closeActionsDropdown =
         ]
 
 
-renderConfirmationButton : View.Types.Context -> ServerActions.ServerAction -> Maybe SharedMsg.SharedMsg -> Maybe Msg -> String -> Element.Element Msg
-renderConfirmationButton context serverAction actionMsg cancelMsg title =
+renderConfirmationButton : View.Types.Context -> ServerActions.ServerAction -> Maybe SharedMsg.SharedMsg -> Maybe Msg -> String -> Element.Attribute Msg -> Element.Element Msg
+renderConfirmationButton context serverAction actionMsg cancelMsg title closeActionsDropdown =
     Element.row
         [ Element.spacing 10 ]
         [ Element.text title
         , Element.el
-            []
+            [ closeActionsDropdown ]
           <|
             serverActionSelectModButton context
                 serverAction.selectMod
