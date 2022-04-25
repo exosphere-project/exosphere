@@ -43,7 +43,7 @@ import Types.SharedMsg as SharedMsg
 import View.Helpers as VH exposing (edges)
 import View.Types
 import Widget
-
+import Helpers.Random as RandomHelpers
 
 type alias Model =
     HelperTypes.CreateServerPageModel
@@ -354,12 +354,42 @@ view context project model =
         serverNameExistsMessage =
             "This " ++ context.localization.virtualComputer ++ " name already exists for this project. You can append your username or date to this name to avoid duplication"
 
+
         renderServerNameExists =
             if serverNameExists then
                 [ VH.warnMessageHelperText context.palette serverNameExistsMessage ]
 
             else
                 []
+
+        nameSuggestionButtons = 
+            let
+                randomName = 
+                    RandomHelpers.generateServerName
+                        (\serverName ->
+                            GotServerName serverName
+                        )
+                
+                suggestedName = model.serverName ++ " " ++ project.auth.user.name
+            in
+            if serverNameExists then
+                [
+                    Element.row [] 
+                    [ 
+                        -- Button.primary
+                        -- context.palette
+                        -- { text = "Name String 1"
+                        -- , onPress = Just randomName
+                        -- }
+                        Button.default
+                        context.palette
+                        { text = suggestedName
+                        , onPress = Just (GotServerName suggestedName)
+                        }
+                    ]
+                ]
+            else
+            [ Element.none ]
 
         invalidNameReasons =
             serverNameValidator (Just context.localization.virtualComputer) model.serverName
@@ -583,6 +613,7 @@ view context project model =
                     }
                     :: renderInvalidNameReasons
                     ++ renderServerNameExists
+                    ++ nameSuggestionButtons
                 )
             , Element.row []
                 [ Element.text <|
