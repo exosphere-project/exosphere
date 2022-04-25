@@ -1,5 +1,6 @@
 module Page.ServerCreate exposing (Model, Msg(..), init, update, view)
 
+import DateFormat
 import Element
 import Element.Background as Background
 import Element.Border as Border
@@ -31,6 +32,7 @@ import Style.Widgets.Popover.Popover as Popover
 import Style.Widgets.Select
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
+import Time
 import Types.HelperTypes as HelperTypes
     exposing
         ( FloatingIpAssignmentStatus(..)
@@ -43,7 +45,7 @@ import Types.SharedMsg as SharedMsg
 import View.Helpers as VH exposing (edges)
 import View.Types
 import Widget
-import Helpers.Random as RandomHelpers
+
 
 type alias Model =
     HelperTypes.CreateServerPageModel
@@ -51,6 +53,7 @@ type alias Model =
 
 type Msg
     = GotServerName String
+    | GotRandomServerName String
     | GotCount Int
     | GotCreateServerButtonPressed OSTypes.NetworkUuid OSTypes.FlavorId
     | GotFlavorId OSTypes.FlavorId
@@ -102,12 +105,16 @@ init imageUuid imageName restrictFlavorIds deployGuacamole =
     , createCluster = False
     , showFormInvalidToggleTip = False
     , createServerAttempted = False
+    , randomServerName = ""
     }
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
 update msg project model =
     case msg of
+        GotRandomServerName name ->
+            ( { model | randomServerName = name, serverName = name }, Cmd.none, SharedMsg.NoOp )
+
         GotServerName name ->
             ( { model | serverName = name }, Cmd.none, SharedMsg.NoOp )
 
@@ -337,69 +344,113 @@ enforceQuotaCompliance project model =
             model
 
 
-view : View.Types.Context -> Project -> Model -> Element.Element Msg
-view context project model =
+view : View.Types.Context -> Project -> Time.Posix -> Model -> Element.Element Msg
+view context project currentTime model =
     let
-        serverNameExists =
+        serverNameExists serverName =
             case project.servers.data of
                 RDPP.DoHave servers _ ->
                     servers
                         |> List.map .osProps
                         |> List.map .name
-                        |> List.member model.serverName
+                        |> List.member serverName
 
                 _ ->
                     False
 
         serverNameExistsMessage =
-            "This " ++ context.localization.virtualComputer ++ " name already exists for this project. You can append your username or date to this name to avoid duplication"
-
+            "This " ++ context.localization.virtualComputer ++ " name already exists for this project. You can select any of our name suggestions or modify the current name to avoid duplication"
 
         renderServerNameExists =
-            if serverNameExists then
+            if serverNameExists model.serverName then
                 [ VH.warnMessageHelperText context.palette serverNameExistsMessage ]
 
             else
                 []
 
-        nameSuggestionButtons = 
+        nameSuggestionButtons =
             let
-                randomName = 
-                    RandomHelpers.generateServerName
-                        (\serverName ->
-                            GotServerName serverName
-                        )
-                
-                suggestedName = model.serverName ++ " " ++ project.auth.user.name
+                currentDate =
+                    DateFormat.format
+                        [ DateFormat.monthNumber
+                        , DateFormat.dayOfMonthNumber
+                        , DateFormat.yearNumber
+                        ]
+                        Time.utc
+                        currentTime
+
+                suggestedNameWithUsername =
+                    if not (String.contains project.auth.user.name model.serverName) then
+                        [ model.serverName
+                            ++ " "
+                            ++ project.auth.user.name
+                        ]
+
+                    else
+                        []
+
+                suggestedNameWithDate =
+                    if not (String.contains currentDate model.serverName) then
+                        [ model.serverName
+                            ++ " "
+                            ++ currentDate
+                        ]
+
+                    else
+                        []
+
+                suggestedNameWithUsernameAndDate =
+                    if not (String.contains project.auth.user.name model.serverName) && not (String.contains currentDate model.serverName) then
+                        [ model.serverName
+                            ++ " "
+                            ++ project.auth.user.name
+                            ++ " "
+                            ++ currentDate
+                        ]
+
+                    else
+                        []
+
+                namesSuggestionsNotDuplicated serverName =
+                    not (serverNameExists serverName)
+
+                filteredSuggestedNames =
+                    (model.randomServerName :: suggestedNameWithUsername ++ suggestedNameWithDate ++ suggestedNameWithUsernameAndDate)
+                        |> List.filter namesSuggestionsNotDuplicated
+
+                suggestionButtons =
+                    filteredSuggestedNames
+                        |> List.map
+                            (\name ->
+                                Element.column []
+                                    [ Button.default
+                                        context.palette
+                                        { text = name
+                                        , onPress = Just (GotServerName name)
+                                        }
+                                    ]
+                            )
             in
-            if serverNameExists then
-                [
-                    Element.row [] 
-                    [ 
-                        -- Button.primary
-                        -- context.palette
-                        -- { text = "Name String 1"
-                        -- , onPress = Just randomName
-                        -- }
-                        Button.default
-                        context.palette
-                        { text = suggestedName
-                        , onPress = Just (GotServerName suggestedName)
-                        }
-                    ]
+            if serverNameExists model.serverName then
+                [ Element.row [ Element.paddingXY 75 0 ]
+                    suggestionButtons
                 ]
+
             else
-            [ Element.none ]
+                [ Element.none ]
 
         invalidNameReasons =
             serverNameValidator (Just context.localization.virtualComputer) model.serverName
 
         serverNameValidationStatusAttributes =
-            case invalidNameReasons of
-                Nothing ->
+            case ( invalidNameReasons, serverNameExists model.serverName ) of
+                ( Nothing, False ) ->
                     VH.validInputAttributes context.palette
 
-                Just _ ->
+                ( Nothing, True ) ->
+                    VH.warningInputAttributes context.palette
+
+                ( Just _, _ ) ->
                     VH.invalidInputAttributes context.palette
 
         renderInvalidNameReasons =
@@ -612,8 +663,8 @@ view context project model =
                             (VH.requiredLabel context.palette (Element.text "Name"))
                     }
                     :: renderInvalidNameReasons
-                    ++ renderServerNameExists
                     ++ nameSuggestionButtons
+                    ++ renderServerNameExists
                 )
             , Element.row []
                 [ Element.text <|

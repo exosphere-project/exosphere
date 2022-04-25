@@ -1894,7 +1894,7 @@ processProjectSpecificMsg outerModel project msg =
                 |> mapToOuterModel outerModel
 
         ReceiveRandomServerName serverName ->
-            updateUnderlying (ServerCreateMsg <| Page.ServerCreate.GotServerName serverName) outerModel
+            updateUnderlying (ServerCreateMsg <| Page.ServerCreate.GotRandomServerName serverName) outerModel
 
         RequestDeleteImage imageUuid ->
             ( outerModel, Rest.Glance.requestDeleteImage project imageUuid )

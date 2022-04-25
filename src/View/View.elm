@@ -275,7 +275,7 @@ project model context p viewConstructor =
                         |> Element.map KeypairListMsg
 
                 ServerCreate pageModel ->
-                    Page.ServerCreate.view context p pageModel
+                    Page.ServerCreate.view context p model.clientCurrentTime pageModel
                         |> Element.map ServerCreateMsg
 
                 ServerCreateImage pageModel ->
