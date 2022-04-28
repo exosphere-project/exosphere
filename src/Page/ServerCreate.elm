@@ -359,7 +359,7 @@ view context project currentTime model =
                     False
 
         serverNameExistsMessage =
-            "This " ++ context.localization.virtualComputer ++ " name already exists for this project. You can select any of our name suggestions or modify the current name to avoid duplication"
+            "This " ++ context.localization.virtualComputer ++ " name already exists for this " ++ context.localization.unitOfTenancy ++ ". You can select any of our name suggestions or modify the current name to avoid duplication"
 
         renderServerNameExists =
             if serverNameExists model.serverName then
