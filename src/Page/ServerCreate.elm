@@ -422,7 +422,7 @@ view context project currentTime model =
                     filteredSuggestedNames
                         |> List.map
                             (\name ->
-                                Element.column []
+                                Element.column [ Element.paddingEach { top = 0, right = 10, bottom = 0, left = 0 } ]
                                     [ Button.default
                                         context.palette
                                         { text = name
