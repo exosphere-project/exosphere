@@ -2,8 +2,9 @@ module DesignSystem.Stories.ColorPalette exposing (stories)
 
 import Color
 import Color.Convert exposing (colorToHex)
-import Element
+import Element exposing (rgba)
 import Element.Background as Background
+import Element.Border as Border
 import Element.Font as Font
 import Html
 import Style.Helpers as SH
@@ -93,15 +94,32 @@ blockSize =
     120
 
 
+{-| A border color to create a clear block boundary on pure black or white background.
+-}
+blockBorderColor : Element.Color
+blockBorderColor =
+    rgba 0 0 0 0.1
+
+
+{-| The common attributes of color blocks such as size & border.
+-}
+blockStyleAttributes : List (Element.Attribute msg)
+blockStyleAttributes =
+    [ Element.width (Element.px blockSize)
+    , Element.height (Element.px blockSize)
+    , Border.widthEach { bottom = 1, left = 1, right = 1, top = 1 }
+    , Border.color blockBorderColor
+    ]
+
+
 {-| A square block of a solid color.
 -}
 block : Color.Color -> Element.Element msg
 block color =
     Element.row
-        [ Background.color <| SH.toElementColor <| color
-        , Element.width (Element.px blockSize)
-        , Element.height (Element.px blockSize)
-        ]
+        ((Background.color <| SH.toElementColor <| color)
+            :: blockStyleAttributes
+        )
         []
 
 
@@ -131,10 +149,9 @@ In particular, this visual test supports:
 wcagBlock : String -> Color.Color -> Color.Color -> Element.Element msg
 wcagBlock label foreground background =
     Element.row
-        [ Background.color <| SH.toElementColor <| background
-        , Element.width (Element.px blockSize)
-        , Element.height (Element.px blockSize)
-        ]
+        ((Background.color <| SH.toElementColor <| background)
+            :: blockStyleAttributes
+        )
         [ Text.text Text.Body [ Font.color <| SH.toElementColor <| foreground, Element.centerX ] label ]
 
 
