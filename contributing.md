@@ -51,6 +51,7 @@ Our continuous integration (CI) pipeline runs:
 
 - [elm-format](https://github.com/avh4/elm-format) (to ensure that contributions comply with the   
   [Elm Style Guide](https://elm-lang.org/docs/style-guide))
+- [prettier](https://prettier.io/) (to ensure consistent javascript & html file formatting)
 - [elm-analyse](https://stil4m.github.io/elm-analyse/)
 - [unit tests](tests/README.md)
 - End-to-end tests which exercise the application in real web browsers 
@@ -61,9 +62,10 @@ The most frequent cause of CI pipeline failure is due to issues found by `elm-an
  npm install
  npm run elm:format
  npm run elm:analyse
+ npm run js:format
  ```
 
-**Please consider [configuring your editor](https://github.com/avh4/elm-format#editor-integration) to run `elm-format` whenever you save a file.** It automatically formats your code! If you save early and often, this saves you lots of typing and indenting work.
+**Please consider [configuring your editor](https://github.com/avh4/elm-format#editor-integration) to run `elm-format` whenever you save a file.** It automatically formats your code! If you save early and often, this saves you lots of typing and indenting work. (Similarly, for automatically formatting `js`, `json` or `html` files, a [number of editors have Prettier integration](https://prettier.io/docs/en/editors.html).)
 
 ### Enabling CI On Your Fork
 
