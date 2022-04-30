@@ -9,6 +9,7 @@
 
 # Ignore elm built files.
 elm.json
+elm-git.json
 elm-stuff
 repl-temp-*
 elm.js
