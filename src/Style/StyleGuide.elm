@@ -20,6 +20,7 @@ import Style.Widgets.Icon exposing (bell, history, ipAddress, remove, roundRect,
 import Style.Widgets.IconButton exposing (chip)
 import Style.Widgets.MenuItem exposing (MenuItemState(..), menuItem)
 import Style.Widgets.Meter exposing (meter)
+import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.StatusBadge exposing (StatusBadgeState(..), statusBadge)
 import Widget
 
@@ -30,6 +31,7 @@ type Msg
     | DataListMsg DataList.Msg
     | DeleteServer String
     | DeleteSelectedServers (Set String)
+    | TogglePopover PopoverId
     | NoOp
 
 
@@ -311,7 +313,7 @@ widgets palette model =
     , DataList.view
         model.dataListModel
         DataListMsg
-        palette
+        { palette = palette, showPopovers = model.showPopovers }
         [ Element.width (Element.maximum 900 Element.fill)
         , Font.size 16
         ]
@@ -328,7 +330,7 @@ widgets palette model =
                     }
                 )
         ]
-        filters
+        (Just { filters = filters, dropdownMsgMapper = TogglePopover })
         (Just searchFilter)
     ]
 
@@ -380,6 +382,7 @@ type alias Model =
     , expandoCardExpanded : Bool
     , dataListModel : DataList.Model
     , servers : List Server
+    , showPopovers : Set.Set PopoverId
     }
 
 
@@ -393,6 +396,7 @@ init =
       , expandoCardExpanded = False
       , dataListModel = DataList.init (DataList.getDefaultFilterOptions filters)
       , servers = initServers
+      , showPopovers = Set.empty
       }
     , Cmd.none
     )
@@ -460,6 +464,18 @@ update msg model =
                     List.filter
                         (\server -> not (Set.member server.id serverIds))
                         model.servers
+              }
+            , Cmd.none
+            )
+
+        TogglePopover popoverId ->
+            ( { model
+                | showPopovers =
+                    if Set.member popoverId model.showPopovers then
+                        Set.remove popoverId model.showPopovers
+
+                    else
+                        Set.insert popoverId model.showPopovers
               }
             , Cmd.none
             )

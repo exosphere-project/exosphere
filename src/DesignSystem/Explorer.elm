@@ -1,5 +1,6 @@
 module DesignSystem.Explorer exposing (main)
 
+import Browser.Events
 import Color
 import DesignSystem.Stories.ColorPalette as ColorPalette
 import Element
@@ -8,6 +9,7 @@ import Element.Region
 import FeatherIcons
 import Html
 import Html.Attributes exposing (src, style)
+import Set
 import Style.Helpers as SH
 import Style.Types
 import Style.Widgets.Button as Button
@@ -17,6 +19,8 @@ import Style.Widgets.Icon exposing (bell, console, copyToClipboard, history, ipA
 import Style.Widgets.IconButton exposing (chip)
 import Style.Widgets.Link as Link
 import Style.Widgets.Meter exposing (meter)
+import Style.Widgets.Popover.Popover exposing (popover, toggleIfTargetIsOutside)
+import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.StatusBadge exposing (StatusBadgeState(..), statusBadge)
 import Style.Widgets.Text as Text
 import UIExplorer
@@ -140,10 +144,10 @@ type alias ExpandoCardState =
     { expanded : Bool }
 
 
-{-| Is the Popover visible?
+{-| Which Popovers are visible?
 -}
 type alias PopoverState =
-    { isShown : Bool }
+    { showPopovers : Set.Set PopoverId }
 
 
 type alias Model =
@@ -156,8 +160,8 @@ type alias Model =
 initialModel : Model
 initialModel =
     { expandoCard = { expanded = False }
-    , popover = { isShown = False }
     , deployerColors = Style.Types.defaultColors
+    , popover = { showPopovers = Set.empty }
     }
 
 
@@ -212,7 +216,7 @@ type alias Flags =
 type Msg
     = NoOp
     | ToggleExpandoCard Bool
-    | ShowHidePopover
+    | TogglePopover PopoverId
 
 
 
@@ -231,7 +235,15 @@ config =
             }
     , init = \f m -> { m | deployerColors = deployerColors f }
     , enableDarkMode = True
-    , subscriptions = \_ -> Sub.none
+    , subscriptions =
+        \m ->
+            Sub.batch <|
+                List.map
+                    (\popoverId ->
+                        Browser.Events.onMouseDown
+                            (toggleIfTargetIsOutside popoverId TogglePopover)
+                    )
+                    (Set.toList m.customModel.popover.showPopovers)
     , update =
         \msg m ->
             let
@@ -252,11 +264,18 @@ config =
                     , Cmd.none
                     )
 
-                ShowHidePopover ->
+                TogglePopover popoverId ->
                     ( { m
                         | customModel =
                             { model
-                                | popover = { isShown = not model.popover.isShown }
+                                | popover =
+                                    { showPopovers =
+                                        if Set.member popoverId model.popover.showPopovers then
+                                            Set.remove popoverId model.popover.showPopovers
+
+                                        else
+                                            Set.insert popoverId model.popover.showPopovers
+                                    }
                             }
                       }
                     , Cmd.none
@@ -530,36 +549,40 @@ main =
                             ( "position: " ++ Tuple.first positionTuple
                             , \m ->
                                 let
-                                    popover =
+                                    demoPopoverContent _ =
                                         Element.paragraph
-                                            (SH.popoverStyleDefaults (palette m)
-                                                ++ [ Element.padding 20
-                                                   , Element.width <| Element.px 300
-                                                   , Font.size 16
-                                                   ]
-                                            )
-                                            [ Element.text
-                                                "I'm a popover that can be used as dropdown, toggle tip, etc."
+                                            [ Element.width <| Element.px 275
+                                            , Font.size 16
                                             ]
+                                            [ Element.text <|
+                                                "I'm a popover that can be used as dropdown, toggle tip, etc. "
+                                                    ++ "Clicking outside of me will close me."
+                                            ]
+
+                                    demoPopoverTarget togglePopoverMsg _ =
+                                        Button.primary (palette m)
+                                            { text = "Click me"
+                                            , onPress = Just togglePopoverMsg
+                                            }
+
+                                    demoPopover =
+                                        popover
+                                            { palette = palette m
+                                            , showPopovers = m.customModel.popover.showPopovers
+                                            }
+                                            TogglePopover
+                                            { id = "explorerDemoPopover"
+                                            , content = demoPopoverContent
+                                            , contentStyleAttrs = [ Element.padding 20 ]
+                                            , position = Tuple.second positionTuple
+                                            , distanceToTarget = Nothing
+                                            , target = demoPopoverTarget
+                                            , targetStyleAttrs = []
+                                            }
                                 in
                                 toHtml (palette m) <|
                                     Element.el [ Element.paddingXY 400 100 ]
-                                        (Element.el
-                                            (if m.customModel.popover.isShown then
-                                                SH.popoverAttribs
-                                                    popover
-                                                    (Tuple.second positionTuple)
-                                                    Nothing
-
-                                             else
-                                                []
-                                            )
-                                            (Button.primary (palette m)
-                                                { text = "Click me"
-                                                , onPress = Just ShowHidePopover
-                                                }
-                                            )
-                                        )
+                                        demoPopover
                             , {}
                             )
                         )

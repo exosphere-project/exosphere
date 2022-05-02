@@ -282,7 +282,6 @@ type alias CreateServerPageModel =
     , imageName : String
     , restrictFlavorIds : Maybe (List OSTypes.FlavorId)
     , count : Int
-    , selectedFlavorGroupToggleTip : Maybe FlavorGroupTitle
     , flavorId : Maybe OSTypes.FlavorId
     , volSizeTextInput : Maybe NumericTextInput
     , userDataTemplate : String
@@ -298,9 +297,7 @@ type alias CreateServerPageModel =
     , workflowInputReference : String
     , workflowInputPath : String
     , workflowInputIsValid : Maybe Bool
-    , showWorkflowExplanationToggleTip : Bool
     , createCluster : Bool
-    , showClusterExplanationToggleTip : Bool
     , showFormInvalidToggleTip : Bool
     , createServerAttempted : Bool
     }

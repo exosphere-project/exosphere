@@ -9,6 +9,7 @@ import Browser
 import Http
 import OpenStack.Types as OSTypes
 import Style.Types as ST
+import Style.Widgets.Popover.Types exposing (PopoverId)
 import Time
 import Toasty
 import Types.Error exposing (ErrorContext, HttpErrorWithBody, Toast)
@@ -40,6 +41,7 @@ type SharedMsg
     | MsgChangeWindowSize Int Int
     | SelectTheme ST.ThemeChoice
     | SetExperimentalFeaturesEnabled Bool
+    | TogglePopover PopoverId
     | NoOp
 
 
@@ -50,7 +52,6 @@ type alias TickInterval =
 type ProjectSpecificMsgConstructor
     = ReceiveAppCredential OSTypes.ApplicationCredential
     | PrepareCredentialedRequest (Maybe HelperTypes.Url -> OSTypes.AuthTokenString -> Cmd SharedMsg) Time.Posix
-    | ToggleCreatePopup
     | RemoveProject
     | ServerMsg OSTypes.ServerUuid ServerSpecificMsgConstructor
     | RequestServers

@@ -14,20 +14,18 @@ import View.Types
 
 
 type alias Model =
-    { showExperimentalFeaturesToggleTip : Bool
-    }
+    {}
 
 
 type Msg
     = SelectTheme ST.ThemeChoice
     | GotEnableExperimentalFeatures Bool
-    | GotShowExperimentalFeaturesToggleTip
+    | SharedMsg SharedMsg.SharedMsg
 
 
 init : Model
 init =
-    { showExperimentalFeaturesToggleTip = False
-    }
+    {}
 
 
 update : Msg -> SharedModel -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
@@ -39,16 +37,18 @@ update msg _ model =
         GotEnableExperimentalFeatures choice ->
             ( model, Cmd.none, SharedMsg.SetExperimentalFeaturesEnabled choice )
 
-        GotShowExperimentalFeaturesToggleTip ->
-            ( { model | showExperimentalFeaturesToggleTip = not model.showExperimentalFeaturesToggleTip }, Cmd.none, SharedMsg.NoOp )
+        SharedMsg sharedMsg ->
+            ( model, Cmd.none, sharedMsg )
 
 
 view : View.Types.Context -> SharedModel -> Model -> Element.Element Msg
-view context sharedModel model =
+view context sharedModel _ =
     let
         experimentalFeatureToggleTip =
             Style.Widgets.ToggleTip.toggleTip
-                context.palette
+                context
+                (\experimentalFeaturesTipId -> SharedMsg <| SharedMsg.TogglePopover experimentalFeaturesTipId)
+                "settingsExperimentalFeaturesToggleTip"
                 (Element.paragraph
                     [ Element.width (Element.fill |> Element.minimum 300)
                     , Element.spacing 7
@@ -58,8 +58,6 @@ view context sharedModel model =
                     [ Element.text "New features in development. An example is adding a custom workflow when you launch a server." ]
                 )
                 ST.PositionRight
-                model.showExperimentalFeaturesToggleTip
-                GotShowExperimentalFeaturesToggleTip
     in
     Element.column
         (VH.exoColumnAttributes ++ [ Element.width Element.fill ])

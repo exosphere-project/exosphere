@@ -50,6 +50,7 @@ import Rest.Keystone
 import Rest.Neutron
 import Rest.Nova
 import Route
+import Set
 import State.Auth
 import State.Error
 import State.ViewState as ViewStateHelpers
@@ -278,7 +279,7 @@ updateUnderlying outerMsg outerModel =
                 |> pipelineCmdOuterModelMsg
                     (processSharedMsg sharedMsg)
 
-        ( pageSpecificMsg, ProjectView projectId projectViewModel projectViewConstructor ) ->
+        ( pageSpecificMsg, ProjectView projectId projectViewConstructor ) ->
             case GetterSetters.projectLookup sharedModel projectId of
                 Just project ->
                     case ( pageSpecificMsg, projectViewConstructor ) of
@@ -291,7 +292,7 @@ updateUnderlying outerMsg outerModel =
                             in
                             ( { outerModel
                                 | viewState =
-                                    ProjectView projectId projectViewModel <|
+                                    ProjectView projectId <|
                                         ProjectOverview newSharedModel
                               }
                             , Cmd.map ProjectOverviewMsg cmd
@@ -306,7 +307,7 @@ updateUnderlying outerMsg outerModel =
                             in
                             ( { outerModel
                                 | viewState =
-                                    ProjectView projectId projectViewModel <|
+                                    ProjectView projectId <|
                                         FloatingIpAssign newSharedModel
                               }
                             , Cmd.map FloatingIpAssignMsg cmd
@@ -321,7 +322,7 @@ updateUnderlying outerMsg outerModel =
                             in
                             ( { outerModel
                                 | viewState =
-                                    ProjectView projectId projectViewModel <|
+                                    ProjectView projectId <|
                                         FloatingIpList newSharedModel
                               }
                             , Cmd.map FloatingIpListMsg cmd
@@ -336,7 +337,7 @@ updateUnderlying outerMsg outerModel =
                             in
                             ( { outerModel
                                 | viewState =
-                                    ProjectView projectId projectViewModel <|
+                                    ProjectView projectId <|
                                         ImageList newSharedModel
                               }
                             , Cmd.map ImageListMsg cmd
@@ -351,7 +352,7 @@ updateUnderlying outerMsg outerModel =
                             in
                             ( { outerModel
                                 | viewState =
-                                    ProjectView projectId projectViewModel <|
+                                    ProjectView projectId <|
                                         InstanceSourcePicker newSharedModel
                               }
                             , Cmd.map InstanceSourcePickerMsg cmd
@@ -366,7 +367,7 @@ updateUnderlying outerMsg outerModel =
                             in
                             ( { outerModel
                                 | viewState =
-                                    ProjectView projectId projectViewModel <|
+                                    ProjectView projectId <|
                                         KeypairCreate newSharedModel
                               }
                             , Cmd.map KeypairCreateMsg cmd
@@ -381,7 +382,7 @@ updateUnderlying outerMsg outerModel =
                             in
                             ( { outerModel
                                 | viewState =
-                                    ProjectView projectId projectViewModel <|
+                                    ProjectView projectId <|
                                         KeypairList newSharedModel
                               }
                             , Cmd.map KeypairListMsg cmd
@@ -396,7 +397,7 @@ updateUnderlying outerMsg outerModel =
                             in
                             ( { outerModel
                                 | viewState =
-                                    ProjectView projectId projectViewModel <|
+                                    ProjectView projectId <|
                                         ServerCreate newSharedModel
                               }
                             , Cmd.map ServerCreateMsg cmd
@@ -411,7 +412,7 @@ updateUnderlying outerMsg outerModel =
                             in
                             ( { outerModel
                                 | viewState =
-                                    ProjectView projectId projectViewModel <|
+                                    ProjectView projectId <|
                                         ServerCreateImage newSharedModel
                               }
                             , Cmd.map ServerCreateImageMsg cmd
@@ -426,7 +427,7 @@ updateUnderlying outerMsg outerModel =
                             in
                             ( { outerModel
                                 | viewState =
-                                    ProjectView projectId projectViewModel <|
+                                    ProjectView projectId <|
                                         ServerDetail newSharedModel
                               }
                             , Cmd.map ServerDetailMsg cmd
@@ -441,7 +442,7 @@ updateUnderlying outerMsg outerModel =
                             in
                             ( { outerModel
                                 | viewState =
-                                    ProjectView projectId projectViewModel <|
+                                    ProjectView projectId <|
                                         ServerList newSharedModel
                               }
                             , Cmd.map ServerListMsg cmd
@@ -456,7 +457,7 @@ updateUnderlying outerMsg outerModel =
                             in
                             ( { outerModel
                                 | viewState =
-                                    ProjectView projectId projectViewModel <|
+                                    ProjectView projectId <|
                                         ServerResize newSharedModel
                               }
                             , Cmd.map ServerResizeMsg cmd
@@ -471,7 +472,7 @@ updateUnderlying outerMsg outerModel =
                             in
                             ( { outerModel
                                 | viewState =
-                                    ProjectView projectId projectViewModel <|
+                                    ProjectView projectId <|
                                         VolumeAttach newSharedModel
                               }
                             , Cmd.map VolumeAttachMsg cmd
@@ -486,7 +487,7 @@ updateUnderlying outerMsg outerModel =
                             in
                             ( { outerModel
                                 | viewState =
-                                    ProjectView projectId projectViewModel <|
+                                    ProjectView projectId <|
                                         VolumeCreate newSharedModel
                               }
                             , Cmd.map VolumeCreateMsg cmd
@@ -501,7 +502,7 @@ updateUnderlying outerMsg outerModel =
                             in
                             ( { outerModel
                                 | viewState =
-                                    ProjectView projectId projectViewModel <|
+                                    ProjectView projectId <|
                                         VolumeDetail newSharedModel
                               }
                             , Cmd.map VolumeDetailMsg cmd
@@ -516,7 +517,7 @@ updateUnderlying outerMsg outerModel =
                             in
                             ( { outerModel
                                 | viewState =
-                                    ProjectView projectId projectViewModel <|
+                                    ProjectView projectId <|
                                         VolumeList newSharedModel
                               }
                             , Cmd.map VolumeListMsg cmd
@@ -967,6 +968,22 @@ processSharedMsg sharedMsg outerModel =
             ( { sharedModel | viewContext = { viewContext | experimentalFeaturesEnabled = choice } }, Cmd.none )
                 |> mapToOuterModel outerModel
 
+        TogglePopover popoverId ->
+            ( { sharedModel
+                | viewContext =
+                    { viewContext
+                        | showPopovers =
+                            if Set.member popoverId sharedModel.viewContext.showPopovers then
+                                Set.remove popoverId sharedModel.viewContext.showPopovers
+
+                            else
+                                Set.insert popoverId sharedModel.viewContext.showPopovers
+                    }
+              }
+            , Cmd.none
+            )
+                |> mapToOuterModel outerModel
+
 
 processTick : OuterModel -> TickInterval -> Time.Posix -> ( SharedModel, Cmd OuterMsg )
 processTick outerModel interval time =
@@ -1003,7 +1020,7 @@ processTick outerModel interval time =
                 NonProjectView _ ->
                     ( outerModel.sharedModel, Cmd.none )
 
-                ProjectView projectName _ projectViewState ->
+                ProjectView projectName projectViewState ->
                     case GetterSetters.projectLookup outerModel.sharedModel projectName of
                         Nothing ->
                             {- Should this throw an error? -}
@@ -1156,23 +1173,6 @@ processProjectSpecificMsg outerModel project msg =
                             |> mapToOuterMsg
                             |> mapToOuterModel newOuterModel
 
-        ToggleCreatePopup ->
-            case outerModel.viewState of
-                ProjectView projectId projectViewModel viewConstructor ->
-                    let
-                        newViewState =
-                            ProjectView
-                                projectId
-                                { projectViewModel
-                                    | createPopup = not projectViewModel.createPopup
-                                }
-                                viewConstructor
-                    in
-                    ( { outerModel | viewState = newViewState }, Cmd.none )
-
-                _ ->
-                    ( outerModel, Cmd.none )
-
         RemoveProject ->
             let
                 newProjects =
@@ -1184,7 +1184,7 @@ processProjectSpecificMsg outerModel project msg =
                 cmd =
                     -- if we are in a view specific to this project then navigate to the home page
                     case outerModel.viewState of
-                        ProjectView projectId _ _ ->
+                        ProjectView projectId _ ->
                             if projectId == GetterSetters.projectIdentifier project then
                                 Route.pushUrl sharedModel.viewContext Route.Home
 
@@ -1577,12 +1577,11 @@ processProjectSpecificMsg outerModel project msg =
                     let
                         newOuterModel =
                             case outerModel.viewState of
-                                ProjectView projectId projectViewModel (ServerCreate serverCreateModel) ->
+                                ProjectView projectId (ServerCreate serverCreateModel) ->
                                     let
                                         newViewState =
                                             ProjectView
                                                 projectId
-                                                projectViewModel
                                                 (ServerCreate { serverCreateModel | createServerAttempted = False })
                                     in
                                     { outerModel | viewState = newViewState }
@@ -2067,7 +2066,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
             in
             ( newOuterModel
             , case outerModel.viewState of
-                ProjectView projectId _ (ServerDetail pageModel) ->
+                ProjectView projectId (ServerDetail pageModel) ->
                     if pageModel.serverUuid == server.osProps.uuid then
                         Route.pushUrl sharedModel.viewContext (Route.ProjectRoute projectId Route.ProjectOverview)
 

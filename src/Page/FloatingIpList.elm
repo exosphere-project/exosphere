@@ -16,7 +16,7 @@ import Style.Types as ST
 import Style.Widgets.Button as Button
 import Style.Widgets.CopyableText
 import Style.Widgets.DataList as DataList
-import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirmAttribs)
+import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.Text as Text
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
@@ -28,7 +28,6 @@ import View.Types
 
 type alias Model =
     { showHeading : Bool
-    , shownDeletePopconfirm : Maybe OSTypes.IpAddressUuid
     , dataListModel : DataList.Model
     }
 
@@ -36,7 +35,6 @@ type alias Model =
 type Msg
     = GotUnassign OSTypes.IpAddressUuid
     | GotDeleteConfirm OSTypes.IpAddressUuid
-    | ShowDeletePopconfirm OSTypes.IpAddressUuid Bool
     | DataListMsg DataList.Msg
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
@@ -45,7 +43,6 @@ type Msg
 init : Bool -> Model
 init showHeading =
     { showHeading = showHeading
-    , shownDeletePopconfirm = Nothing
     , dataListModel = DataList.init <| DataList.getDefaultFilterOptions filters
     }
 
@@ -67,23 +64,10 @@ update msg project model =
                         ErrorCrit
                         Nothing
             in
-            ( { model | shownDeletePopconfirm = Nothing }
+            ( model
             , Cmd.none
             , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project)
                 (SharedMsg.RequestDeleteFloatingIp errorContext ipUuid)
-            )
-
-        ShowDeletePopconfirm ipUuid toBeShown ->
-            ( { model
-                | shownDeletePopconfirm =
-                    if toBeShown then
-                        Just ipUuid
-
-                    else
-                        Nothing
-              }
-            , Cmd.none
-            , SharedMsg.NoOp
             )
 
         DataListMsg dataListMsg ->
@@ -174,12 +158,18 @@ view context project model =
                     , DataList.view
                         model.dataListModel
                         DataListMsg
-                        context.palette
+                        context
                         []
-                        (floatingIpView model context project)
+                        (floatingIpView context project)
                         (floatingIpRecords ipsSorted)
                         []
-                        filters
+                        (Just
+                            { filters = filters
+                            , dropdownMsgMapper =
+                                \dropdownId ->
+                                    SharedMsg <| SharedMsg.TogglePopover dropdownId
+                            }
+                        )
                         Nothing
                     ]
     in
@@ -244,8 +234,8 @@ floatingIpRecords floatingIps =
         floatingIps
 
 
-floatingIpView : Model -> View.Types.Context -> Project -> FloatingIpRecord -> Element.Element Msg
-floatingIpView model context project floatingIpRecord =
+floatingIpView : View.Types.Context -> Project -> FloatingIpRecord -> Element.Element Msg
+floatingIpView context project floatingIpRecord =
     let
         assignUnassignIpButton =
             case floatingIpRecord.ip.portUuid of
@@ -271,36 +261,34 @@ floatingIpView model context project floatingIpRecord =
                         , onPress = Just <| GotUnassign floatingIpRecord.ip.uuid
                         }
 
-        showDeletePopconfirm =
-            case model.shownDeletePopconfirm of
-                Just shownDeletePopconfirmIpId ->
-                    shownDeletePopconfirmIpId == floatingIpRecord.id
-
-                Nothing ->
-                    False
-
-        deleteIpButton =
-            Element.el
-                (if showDeletePopconfirm then
-                    deletePopconfirmAttribs ST.PositionBottomRight
+        deleteIpBtnWithPopconfirm =
+            let
+                deleteIpButton togglePopconfirmMsg _ =
+                    deleteIconButton
                         context.palette
-                        { confirmationText =
-                            "Are you sure you want to delete this "
-                                ++ context.localization.floatingIpAddress
-                                ++ "?"
-                        , onConfirm = Just <| GotDeleteConfirm floatingIpRecord.id
-                        , onCancel = Just <| ShowDeletePopconfirm floatingIpRecord.id False
-                        }
+                        False
+                        ("Delete " ++ context.localization.floatingIpAddress)
+                        (Just togglePopconfirmMsg)
 
-                 else
-                    []
-                )
-                (deleteIconButton
-                    context.palette
-                    False
-                    ("Delete " ++ context.localization.floatingIpAddress)
-                    (Just <| ShowDeletePopconfirm floatingIpRecord.id True)
-                )
+                deletePopconfirmId =
+                    Helpers.String.hyphenate
+                        [ "floatingIpListDeletePopconfirm"
+                        , project.auth.project.uuid
+                        , floatingIpRecord.id
+                        ]
+            in
+            deletePopconfirm context
+                (\deletePopconfirmId_ -> SharedMsg <| SharedMsg.TogglePopover deletePopconfirmId_)
+                deletePopconfirmId
+                { confirmationText =
+                    "Are you sure you want to delete this "
+                        ++ context.localization.floatingIpAddress
+                        ++ "?"
+                , onConfirm = Just <| GotDeleteConfirm floatingIpRecord.id
+                , onCancel = Just NoOp
+                }
+                ST.PositionBottomRight
+                deleteIpButton
 
         ipAssignment =
             case floatingIpRecord.ip.portUuid of
@@ -343,7 +331,7 @@ floatingIpView model context project floatingIpRecord =
                     floatingIpRecord.ip.address
                 )
             , Element.row [ Element.spacing 12, Element.alignRight ]
-                [ assignUnassignIpButton, deleteIpButton ]
+                [ assignUnassignIpButton, deleteIpBtnWithPopconfirm ]
             ]
         , Element.row [] [ ipAssignment ]
         ]

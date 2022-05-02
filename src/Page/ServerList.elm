@@ -21,8 +21,9 @@ import Set
 import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.DataList as DataList
-import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirmAttribs)
+import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
 import Style.Widgets.Icon as Icon
+import Style.Widgets.Popover.Popover exposing (popover)
 import Style.Widgets.StatusBadge as StatusBadge
 import Style.Widgets.Text as Text
 import Time
@@ -35,24 +36,15 @@ import View.Types
 import Widget
 
 
-type ServerListShownPopover
-    = InteractionPopover OSTypes.ServerUuid
-    | DeletePopconfirm OSTypes.ServerUuid
-    | NoPopover
-
-
 type alias Model =
     { showHeading : Bool
-    , shownPopover : ServerListShownPopover
     , dataListModel : DataList.Model
     }
 
 
 type Msg
     = GotDeleteConfirm OSTypes.ServerUuid
-    | ShowDeletePopconfirm OSTypes.ServerUuid Bool
     | OpenInteraction String
-    | ToggleInteractionPopover OSTypes.ServerUuid
     | DataListMsg DataList.Msg
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
@@ -61,7 +53,6 @@ type Msg
 init : Project -> Bool -> Model
 init project showHeading =
     Model showHeading
-        NoPopover
         (DataList.init <|
             DataList.getDefaultFilterOptions
                 (filters project.auth.user.name (Time.millisToPosix 0))
@@ -72,48 +63,17 @@ update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
 update msg project model =
     case msg of
         GotDeleteConfirm serverId ->
-            ( { model | shownPopover = NoPopover }
+            ( model
             , Cmd.none
             , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
                 SharedMsg.ServerMsg serverId <|
                     SharedMsg.RequestDeleteServer False
             )
 
-        ShowDeletePopconfirm serverId toBeShown ->
-            ( { model
-                | shownPopover =
-                    if toBeShown then
-                        DeletePopconfirm serverId
-
-                    else
-                        NoPopover
-              }
-            , Cmd.none
-            , SharedMsg.NoOp
-            )
-
         OpenInteraction url ->
-            ( { model | shownPopover = NoPopover }
+            ( model
             , Cmd.none
             , SharedMsg.OpenNewWindow url
-            )
-
-        ToggleInteractionPopover serverId ->
-            ( { model
-                | shownPopover =
-                    case model.shownPopover of
-                        InteractionPopover interactionPopoverServerId ->
-                            if interactionPopoverServerId == serverId then
-                                NoPopover
-
-                            else
-                                InteractionPopover serverId
-
-                        _ ->
-                            InteractionPopover serverId
-              }
-            , Cmd.none
-            , SharedMsg.NoOp
             )
 
         DataListMsg dataListMsg ->
@@ -187,12 +147,18 @@ view context project currentTime model =
                         DataList.view
                             model.dataListModel
                             DataListMsg
-                            context.palette
+                            context
                             []
-                            (serverView model context currentTime project)
+                            (serverView context currentTime project)
                             serversList
                             [ deletionAction context project ]
-                            (filters project.auth.user.name currentTime)
+                            (Just
+                                { filters = filters project.auth.user.name currentTime
+                                , dropdownMsgMapper =
+                                    \dropdownId ->
+                                        SharedMsg <| SharedMsg.TogglePopover dropdownId
+                                }
+                            )
                             Nothing
     in
     Element.column [ Element.width Element.fill ]
@@ -303,13 +269,12 @@ serverRecords context currentTime project servers =
 
 
 serverView :
-    Model
-    -> View.Types.Context
+    View.Types.Context
     -> Time.Posix
     -> Project
     -> ServerRecord Never
     -> Element.Element Msg
-serverView model context currentTime project serverRecord =
+serverView context currentTime project serverRecord =
     let
         serverLink =
             Element.link []
@@ -346,105 +311,108 @@ serverView model context currentTime project serverRecord =
                 _ ->
                     Element.none
 
-        interactionPopover =
-            Element.column
-                (SH.popoverStyleDefaults context.palette)
+        interactionPopover closePopover =
+            Element.column []
                 (List.map
                     (\{ interactionStatus, interactionDetails } ->
-                        Widget.button
-                            (SH.dropdownItemStyle context.palette)
-                            { text = interactionDetails.name
-                            , icon =
-                                Element.el []
-                                    (interactionDetails.icon (SH.toElementColor context.palette.primary) 18)
-                            , onPress =
-                                case interactionStatus of
-                                    ITypes.Ready url ->
-                                        Just <| OpenInteraction url
+                        Element.el [ closePopover, Element.width Element.fill ] <|
+                            Widget.button
+                                (SH.dropdownItemStyle context.palette)
+                                { text = interactionDetails.name
+                                , icon =
+                                    Element.el []
+                                        (interactionDetails.icon (SH.toElementColor context.palette.primary) 18)
+                                , onPress =
+                                    case interactionStatus of
+                                        ITypes.Ready url ->
+                                            Just <| OpenInteraction url
 
-                                    ITypes.Warn url _ ->
-                                        Just <| OpenInteraction url
+                                        ITypes.Warn url _ ->
+                                            Just <| OpenInteraction url
 
-                                    _ ->
-                                        Nothing
-                            }
+                                        _ ->
+                                            Nothing
+                                }
                     )
                     serverRecord.interactions
                 )
 
         interactionButton =
             let
-                showInteractionPopover =
-                    case model.shownPopover of
-                        InteractionPopover interactionPopoverServerId ->
-                            interactionPopoverServerId == serverRecord.id
+                target togglePopover popoverIsShown =
+                    Widget.iconButton
+                        (SH.materialStyle context.palette).button
+                        { text = "Connect to"
+                        , icon =
+                            Element.row
+                                [ Element.spacing 5 ]
+                                [ Element.text "Connect to"
+                                , Element.el []
+                                    ((if popoverIsShown then
+                                        FeatherIcons.chevronUp
 
-                        _ ->
-                            False
+                                      else
+                                        FeatherIcons.chevronDown
+                                     )
+                                        |> FeatherIcons.withSize 18
+                                        |> FeatherIcons.toHtml []
+                                        |> Element.html
+                                    )
+                                ]
+                        , onPress = Just togglePopover
+                        }
 
-                ( attribs, buttonIcon ) =
-                    if showInteractionPopover then
-                        ( SH.popoverAttribs interactionPopover ST.PositionBottomLeft Nothing
-                        , FeatherIcons.chevronUp
+                interactionPopoverId =
+                    Helpers.String.hyphenate
+                        [ "serverListInteractionPopover"
+                        , project.auth.project.uuid
+                        , serverRecord.id
+                        ]
+            in
+            popover context
+                (\interactionPopoverId_ -> SharedMsg <| SharedMsg.TogglePopover interactionPopoverId_)
+                { id = interactionPopoverId
+                , content = interactionPopover
+                , contentStyleAttrs = []
+                , position = ST.PositionBottomLeft
+                , distanceToTarget = Nothing
+                , target = target
+                , targetStyleAttrs = []
+                }
+
+        deleteServerBtnWithPopconfirm =
+            let
+                deleteServerBtn togglePopconfirm _ =
+                    deleteIconButton context.palette
+                        False
+                        ("Delete " ++ context.localization.virtualComputer)
+                        (if serverRecord.selectable then
+                            Just togglePopconfirm
+
+                         else
+                            -- to disable it
+                            Nothing
                         )
 
-                    else
-                        ( [], FeatherIcons.chevronDown )
+                deletePopconfirmId =
+                    Helpers.String.hyphenate
+                        [ "serverListDeletePopconfirm"
+                        , project.auth.project.uuid
+                        , serverRecord.id
+                        ]
             in
-            Element.el attribs <|
-                Widget.iconButton
-                    (SH.materialStyle context.palette).button
-                    { text = "Connect to"
-                    , icon =
-                        Element.row
-                            [ Element.spacing 5 ]
-                            [ Element.text "Connect to"
-                            , Element.el []
-                                (buttonIcon
-                                    |> FeatherIcons.withSize 18
-                                    |> FeatherIcons.toHtml []
-                                    |> Element.html
-                                )
-                            ]
-                    , onPress = Just <| ToggleInteractionPopover serverRecord.id
-                    }
-
-        deleteServerButton =
-            let
-                showDeletePopconfirm =
-                    case model.shownPopover of
-                        DeletePopconfirm deletePopconfirmServerId ->
-                            deletePopconfirmServerId == serverRecord.id
-
-                        _ ->
-                            False
-
-                popconfirmAttribs =
-                    if showDeletePopconfirm then
-                        deletePopconfirmAttribs ST.PositionBottomRight
-                            context.palette
-                            { confirmationText =
-                                "Are you sure you want to delete this "
-                                    ++ context.localization.virtualComputer
-                                    ++ "?"
-                            , onConfirm = Just <| GotDeleteConfirm serverRecord.id
-                            , onCancel = Just <| ShowDeletePopconfirm serverRecord.id False
-                            }
-
-                    else
-                        []
-            in
-            Element.el popconfirmAttribs <|
-                deleteIconButton context.palette
-                    False
-                    "Delete"
-                    (if serverRecord.selectable then
-                        Just <| ShowDeletePopconfirm serverRecord.id True
-
-                     else
-                        -- to disable it
-                        Nothing
-                    )
+            deletePopconfirm context
+                (\deletePopconfirmId_ -> SharedMsg <| SharedMsg.TogglePopover deletePopconfirmId_)
+                deletePopconfirmId
+                { confirmationText =
+                    "Are you sure you want to delete this "
+                        ++ context.localization.virtualComputer
+                        ++ "?"
+                , onConfirm = Just <| GotDeleteConfirm serverRecord.id
+                , onCancel = Just NoOp
+                }
+                ST.PositionBottomRight
+                deleteServerBtn
 
         floatingIpView =
             case serverRecord.floatingIpAddress of
@@ -476,7 +444,7 @@ serverView model context currentTime project serverRecord =
                 Element.none
             , statusTextToDisplay
             , Element.el [ Element.alignRight ] interactionButton
-            , Element.el [ Element.alignRight ] deleteServerButton
+            , Element.el [ Element.alignRight ] deleteServerBtnWithPopconfirm
             ]
         , Element.row
             [ Element.spacing 8

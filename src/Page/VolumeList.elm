@@ -16,7 +16,7 @@ import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.Button as Button
 import Style.Widgets.DataList as DataList
-import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirmAttribs)
+import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
 import Style.Widgets.Text as Text
 import Time
 import Types.Project exposing (Project)
@@ -27,7 +27,6 @@ import View.Types
 
 type alias Model =
     { showHeading : Bool
-    , shownDeletePopconfirm : Maybe OSTypes.VolumeUuid
     , dataListModel : DataList.Model
     }
 
@@ -35,7 +34,7 @@ type alias Model =
 type Msg
     = DetachVolume OSTypes.VolumeUuid
     | GotDeleteConfirm OSTypes.VolumeUuid
-    | ShowDeletePopconfirm OSTypes.VolumeUuid Bool
+    | SharedMsg SharedMsg.SharedMsg
     | DataListMsg DataList.Msg
     | NoOp
 
@@ -43,7 +42,6 @@ type Msg
 init : Bool -> Model
 init showHeading =
     Model showHeading
-        Nothing
         (DataList.init <| DataList.getDefaultFilterOptions (filters (Time.millisToPosix 0)))
 
 
@@ -58,24 +56,14 @@ update msg project model =
             )
 
         GotDeleteConfirm volumeUuid ->
-            ( { model | shownDeletePopconfirm = Nothing }
+            ( model
             , Cmd.none
             , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
                 SharedMsg.RequestDeleteVolume volumeUuid
             )
 
-        ShowDeletePopconfirm volumeUuid toBeShown ->
-            ( { model
-                | shownDeletePopconfirm =
-                    if toBeShown then
-                        Just volumeUuid
-
-                    else
-                        Nothing
-              }
-            , Cmd.none
-            , SharedMsg.NoOp
-            )
+        SharedMsg sharedMsg ->
+            ( model, Cmd.none, sharedMsg )
 
         DataListMsg dataListMsg ->
             ( { model
@@ -101,12 +89,18 @@ view context project currentTime model =
             DataList.view
                 model.dataListModel
                 DataListMsg
-                context.palette
+                context
                 []
-                (volumeView model context project currentTime)
+                (volumeView context project currentTime)
                 (volumeRecords project volumes_)
                 []
-                (filters currentTime)
+                (Just
+                    { filters = filters currentTime
+                    , dropdownMsgMapper =
+                        \dropdownId ->
+                            SharedMsg <| SharedMsg.TogglePopover dropdownId
+                    }
+                )
                 Nothing
     in
     Element.column
@@ -162,13 +156,12 @@ volumeRecords project volumes =
 
 
 volumeView :
-    Model
-    -> View.Types.Context
+    View.Types.Context
     -> Project
     -> Time.Posix
     -> VolumeRecord
     -> Element.Element Msg
-volumeView model context project currentTime volumeRecord =
+volumeView context project currentTime volumeRecord =
     let
         volumeLink =
             Element.link []
@@ -254,36 +247,33 @@ volumeView model context project currentTime volumeRecord =
                 OSTypes.Available ->
                     -- Volume can be either deleted or attached
                     let
-                        showDeletePopconfirm =
-                            case model.shownDeletePopconfirm of
-                                Just shownDeletePopconfirmVolumeId ->
-                                    shownDeletePopconfirmVolumeId == volumeRecord.id
-
-                                Nothing ->
-                                    False
-                    in
-                    Element.row [ Element.spacing 12 ]
-                        [ Element.el
-                            (if showDeletePopconfirm then
-                                deletePopconfirmAttribs ST.PositionBottomRight
-                                    context.palette
-                                    { confirmationText =
-                                        "Are you sure you want to delete this "
-                                            ++ context.localization.blockDevice
-                                            ++ "?"
-                                    , onConfirm = Just <| GotDeleteConfirm volumeRecord.id
-                                    , onCancel = Just <| ShowDeletePopconfirm volumeRecord.id False
-                                    }
-
-                             else
-                                []
-                            )
-                            (deleteIconButton
+                        deleteVolumeBtn togglePopconfirmMsg _ =
+                            deleteIconButton
                                 context.palette
                                 False
-                                "Delete Volume"
-                                (Just <| ShowDeletePopconfirm volumeRecord.id True)
-                            )
+                                ("Delete " ++ context.localization.blockDevice)
+                                (Just togglePopconfirmMsg)
+
+                        deletePopconfirmId =
+                            Helpers.String.hyphenate
+                                [ "volumeListDeletePopconfirm"
+                                , project.auth.project.uuid
+                                , volumeRecord.id
+                                ]
+                    in
+                    Element.row [ Element.spacing 12 ]
+                        [ deletePopconfirm context
+                            (\deletePopconfirmId_ -> SharedMsg <| SharedMsg.TogglePopover deletePopconfirmId_)
+                            deletePopconfirmId
+                            { confirmationText =
+                                "Are you sure you want to delete this "
+                                    ++ context.localization.blockDevice
+                                    ++ "?"
+                            , onCancel = Just NoOp
+                            , onConfirm = Just <| GotDeleteConfirm volumeRecord.id
+                            }
+                            ST.PositionBottomRight
+                            deleteVolumeBtn
                         , Element.link []
                             { url =
                                 Route.toUrl context.urlPathPrefix

@@ -1,5 +1,6 @@
 module Helpers.String exposing
-    ( indefiniteArticle
+    ( hyphenate
+    , indefiniteArticle
     , pluralize
     , toTitleCase
     )
@@ -86,3 +87,8 @@ toTitleCase s =
     String.words s
         |> List.map capitalizeWord
         |> String.join " "
+
+
+hyphenate : List String -> String
+hyphenate strings =
+    strings |> List.intersperse "-" |> String.concat

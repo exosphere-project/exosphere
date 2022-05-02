@@ -79,7 +79,7 @@ breadcrumb_ outerModel context =
                               }
                             ]
 
-                ProjectView projectId _ constructor ->
+                ProjectView projectId constructor ->
                     let
                         projectItem =
                             case GetterSetters.projectLookup outerModel.sharedModel projectId of

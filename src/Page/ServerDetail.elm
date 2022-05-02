@@ -30,11 +30,13 @@ import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton
 import Style.Widgets.Link as Link
+import Style.Widgets.Popover.Popover exposing (popover)
+import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
 import Time
 import Types.HelperTypes exposing (FloatingIpOption(..), ServerResourceQtys, UserAppProxyHostname)
-import Types.Interaction as ITypes exposing (Interaction)
+import Types.Interaction as ITypes
 import Types.Project exposing (Project)
 import Types.Server exposing (ExoSetupStatus(..), Server, ServerOrigin(..))
 import Types.ServerResourceUsage
@@ -47,17 +49,12 @@ import Widget.Style.Material
 
 type alias Model =
     { serverUuid : OSTypes.ServerUuid
-    , showCreatedTimeToggleTip : Bool
-    , showFlavorToggleTip : Bool
     , verboseStatus : VerboseStatus
     , passphraseVisibility : PassphraseVisibility
     , ipInfoLevel : IpInfoLevel
     , serverActionNamePendingConfirmation : Maybe String
     , serverNamePendingConfirmation : Maybe String
-    , activeInteractionToggleTip : Maybe Interaction
-    , activeEventHistoryAbsoluteTimeToggleTip : Maybe Time.Posix
     , retainFloatingIpsWhenDeleting : Bool
-    , showActionsDropdown : Bool
     }
 
 
@@ -76,17 +73,12 @@ type PassphraseVisibility
 
 
 type Msg
-    = GotShowCreatedTimeToggleTip Bool
-    | GotShowFlavorToggleTip Bool
-    | GotShowVerboseStatus Bool
+    = GotShowVerboseStatus Bool
     | GotPassphraseVisibility PassphraseVisibility
     | GotIpInfoLevel IpInfoLevel
     | GotServerActionNamePendingConfirmation (Maybe String)
     | GotServerNamePendingConfirmation (Maybe String)
-    | GotActiveInteractionToggleTip (Maybe Interaction)
-    | GotActiveEventHistoryAbsoluteTimeToggleTip (Maybe Time.Posix)
     | GotRetainFloatingIpsWhenDeleting Bool
-    | GotShowActionsDropdown Bool
     | GotSetServerName String
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
@@ -95,29 +87,18 @@ type Msg
 init : OSTypes.ServerUuid -> Model
 init serverUuid =
     { serverUuid = serverUuid
-    , showCreatedTimeToggleTip = False
-    , showFlavorToggleTip = False
     , verboseStatus = False
     , passphraseVisibility = PassphraseHidden
     , ipInfoLevel = IpSummary
     , serverActionNamePendingConfirmation = Nothing
     , serverNamePendingConfirmation = Nothing
-    , activeInteractionToggleTip = Nothing
-    , activeEventHistoryAbsoluteTimeToggleTip = Nothing
     , retainFloatingIpsWhenDeleting = False
-    , showActionsDropdown = False
     }
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
 update msg project model =
     case msg of
-        GotShowCreatedTimeToggleTip shown ->
-            ( { model | showCreatedTimeToggleTip = shown }, Cmd.none, SharedMsg.NoOp )
-
-        GotShowFlavorToggleTip shown ->
-            ( { model | showFlavorToggleTip = shown }, Cmd.none, SharedMsg.NoOp )
-
         GotShowVerboseStatus shown ->
             ( { model | verboseStatus = shown }, Cmd.none, SharedMsg.NoOp )
 
@@ -133,17 +114,8 @@ update msg project model =
         GotServerNamePendingConfirmation maybeName ->
             ( { model | serverNamePendingConfirmation = maybeName }, Cmd.none, SharedMsg.NoOp )
 
-        GotActiveInteractionToggleTip maybeInteraction ->
-            ( { model | activeInteractionToggleTip = maybeInteraction }, Cmd.none, SharedMsg.NoOp )
-
-        GotActiveEventHistoryAbsoluteTimeToggleTip maybeTime ->
-            ( { model | activeEventHistoryAbsoluteTimeToggleTip = maybeTime }, Cmd.none, SharedMsg.NoOp )
-
         GotRetainFloatingIpsWhenDeleting retain ->
             ( { model | retainFloatingIpsWhenDeleting = retain }, Cmd.none, SharedMsg.NoOp )
-
-        GotShowActionsDropdown shown ->
-            ( { model | showActionsDropdown = shown }, Cmd.none, SharedMsg.NoOp )
 
         GotSetServerName validName ->
             ( model
@@ -155,10 +127,15 @@ update msg project model =
 
         SharedMsg msg_ ->
             -- TODO convert other pages to use this style
-            ( { model | showActionsDropdown = False }, Cmd.none, msg_ )
+            ( model, Cmd.none, msg_ )
 
         NoOp ->
             ( model, Cmd.none, SharedMsg.NoOp )
+
+
+popoverMsgMapper : PopoverId -> Msg
+popoverMsgMapper popoverId =
+    SharedMsg <| SharedMsg.TogglePopover popoverId
 
 
 view : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> Model -> Element.Element Msg
@@ -225,11 +202,16 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                 [ Element.spacing 5 ]
                 [ Element.text timeDistanceStr
                 , Style.Widgets.ToggleTip.toggleTip
-                    context.palette
+                    context
+                    popoverMsgMapper
+                    (Helpers.String.hyphenate
+                        [ "createdTimeTip"
+                        , project.auth.project.uuid
+                        , server.osProps.uuid
+                        ]
+                    )
                     toggleTipContents
                     ST.PositionBottomLeft
-                    model.showCreatedTimeToggleTip
-                    (GotShowCreatedTimeToggleTip (not model.showCreatedTimeToggleTip))
                 ]
 
         creatorName =
@@ -289,11 +271,11 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
 
                         toggleTip =
                             Style.Widgets.ToggleTip.toggleTip
-                                context.palette
+                                context
+                                popoverMsgMapper
+                                (Helpers.String.hyphenate [ "flavorToggleTip", project.auth.project.uuid, server.osProps.uuid ])
                                 toggleTipContents
                                 ST.PositionBottomRight
-                                model.showFlavorToggleTip
-                                (GotShowFlavorToggleTip (not model.showFlavorToggleTip))
                     in
                     Element.row
                         [ Element.spacing 5 ]
@@ -379,7 +361,6 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                     server
                     currentTime
                     (VH.userAppProxyLookup context project)
-                    model
                 ]
             , tile
                 [ FeatherIcons.hash
@@ -450,9 +431,9 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                 ]
                 [ serverEventHistory
                     context
-                    model
+                    project
+                    server
                     currentTime
-                    server.events
                 ]
             ]
 
@@ -519,7 +500,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                     ]
                 , Element.el
                     [ Element.alignRight, Font.size 18, Font.regular ]
-                    (serverStatus context model server)
+                    (serverStatus context project server)
                 , Element.el
                     [ Element.alignRight, Font.size 16, Font.regular ]
                     (serverActionsDropdown context project model server)
@@ -740,8 +721,8 @@ passphraseVulnWarning context server =
                 Element.none
 
 
-serverStatus : View.Types.Context -> Model -> Server -> Element.Element Msg
-serverStatus context model server =
+serverStatus : View.Types.Context -> Project -> Server -> Element.Element Msg
+serverStatus context project server =
     let
         details =
             server.osProps.details
@@ -802,12 +783,21 @@ serverStatus context model server =
                             Nothing ->
                                 Element.none
                         ]
+
+                toggleTipId =
+                    Helpers.String.hyphenate
+                        [ "verboseStatusTip"
+                        , project.auth.project.uuid
+                        , server.osProps.uuid
+                        , friendlyOpenstackStatus details.openstackStatus
+                        ]
             in
-            Style.Widgets.ToggleTip.toggleTip context.palette
+            Style.Widgets.ToggleTip.toggleTip
+                context
+                popoverMsgMapper
+                toggleTipId
                 contents
                 ST.PositionLeft
-                model.verboseStatus
-                (GotShowVerboseStatus (not model.verboseStatus))
     in
     Element.row [ Element.spacing 15 ]
         [ verboseStatusToggleTip
@@ -816,8 +806,8 @@ serverStatus context model server =
         ]
 
 
-interactions : View.Types.Context -> Project -> Server -> Time.Posix -> Maybe UserAppProxyHostname -> Model -> Element.Element Msg
-interactions context project server currentTime tlsReverseProxyHostname model =
+interactions : View.Types.Context -> Project -> Server -> Time.Posix -> Maybe UserAppProxyHostname -> Element.Element Msg
+interactions context project server currentTime tlsReverseProxyHostname =
     let
         renderInteraction interaction =
             let
@@ -879,33 +869,20 @@ interactions context project server currentTime tlsReverseProxyHostname model =
                                 , description
                                 ]
 
-                        shown =
-                            case model.activeInteractionToggleTip of
-                                Just interaction_ ->
-                                    interaction == interaction_
-
-                                _ ->
-                                    False
-
-                        showHideMsg : ITypes.Interaction -> Msg
-                        showHideMsg interaction_ =
-                            let
-                                newValue =
-                                    case model.activeInteractionToggleTip of
-                                        Just _ ->
-                                            Nothing
-
-                                        Nothing ->
-                                            Just <| interaction_
-                            in
-                            GotActiveInteractionToggleTip newValue
+                        toggleTipId =
+                            Helpers.String.hyphenate
+                                [ "interactionToggleTip"
+                                , project.auth.project.uuid
+                                , server.osProps.uuid
+                                , interactionDetails.name
+                                ]
                     in
                     Style.Widgets.ToggleTip.toggleTip
-                        context.palette
+                        context
+                        popoverMsgMapper
+                        toggleTipId
                         contents
                         ST.PositionRightBottom
-                        shown
-                        (showHideMsg interaction)
             in
             case interactionStatus of
                 ITypes.Hidden ->
@@ -1068,14 +1045,15 @@ serverPassphrase context model server =
 serverActionsDropdown : View.Types.Context -> Project -> Model -> Server -> Element.Element Msg
 serverActionsDropdown context project model server =
     let
-        contents =
-            Element.column
-                (SH.popoverStyleDefaults context.palette
-                    ++ [ Element.spacing 8, Element.padding 20 ]
-                )
-            <|
+        dropdownId =
+            [ "serverActionsDropdown", project.auth.project.uuid, server.osProps.uuid ]
+                |> List.intersperse "-"
+                |> String.concat
+
+        dropdownContent closeDropdown =
+            Element.column [ Element.spacing 8 ] <|
                 List.map
-                    (renderServerActionButton context project model server)
+                    (renderServerActionButton context project model server closeDropdown)
                     (ServerActions.getAllowed
                         (Just context.localization.virtualComputer)
                         (Just context.localization.staticRepresentationOfBlockDeviceContents)
@@ -1084,36 +1062,41 @@ serverActionsDropdown context project model server =
                         server.osProps.details.lockStatus
                     )
 
-        ( attribs, icon ) =
-            if model.showActionsDropdown then
-                ( SH.popoverAttribs contents ST.PositionBottomRight Nothing
-                , FeatherIcons.chevronUp
-                )
+        dropdownTarget toggleDropdownMsg dropdownIsShown =
+            Widget.iconButton
+                (SH.materialStyle context.palette).button
+                { text = "Actions"
+                , icon =
+                    Element.row
+                        [ Element.spacing 5 ]
+                        [ Element.text "Actions"
+                        , Element.el []
+                            ((if dropdownIsShown then
+                                FeatherIcons.chevronUp
 
-            else
-                ( [], FeatherIcons.chevronDown )
+                              else
+                                FeatherIcons.chevronDown
+                             )
+                                |> FeatherIcons.withSize 18
+                                |> FeatherIcons.toHtml []
+                                |> Element.html
+                            )
+                        ]
+                , onPress = Just toggleDropdownMsg
+                }
     in
     case server.exoProps.targetOpenstackStatus of
         Nothing ->
-            Element.column
-                attribs
-                [ Widget.iconButton
-                    (SH.materialStyle context.palette).button
-                    { text = "Actions"
-                    , icon =
-                        Element.row
-                            [ Element.spacing 5 ]
-                            [ Element.text "Actions"
-                            , Element.el []
-                                (icon
-                                    |> FeatherIcons.withSize 18
-                                    |> FeatherIcons.toHtml []
-                                    |> Element.html
-                                )
-                            ]
-                    , onPress = Just (GotShowActionsDropdown (not model.showActionsDropdown))
-                    }
-                ]
+            popover context
+                popoverMsgMapper
+                { id = dropdownId
+                , content = dropdownContent
+                , contentStyleAttrs = [ Element.padding 20 ]
+                , position = ST.PositionBottomRight
+                , distanceToTarget = Nothing
+                , target = dropdownTarget
+                , targetStyleAttrs = []
+                }
 
         Just _ ->
             Element.none
@@ -1121,12 +1104,12 @@ serverActionsDropdown context project model server =
 
 serverEventHistory :
     View.Types.Context
-    -> Model
+    -> Project
+    -> Server
     -> Time.Posix
-    -> RDPP.RemoteDataPlusPlus a (List OSTypes.ServerEvent)
     -> Element.Element Msg
-serverEventHistory context model currentTime serverEventsRDPP =
-    case serverEventsRDPP.data of
+serverEventHistory context project server currentTime =
+    case server.events.data of
         RDPP.DoHave serverEvents _ ->
             let
                 renderTableHeader : String -> Element.Element Msg
@@ -1156,23 +1139,20 @@ serverEventHistory context model currentTime serverEventsRDPP =
 
                                     absoluteTime =
                                         let
-                                            shown =
-                                                model.activeEventHistoryAbsoluteTimeToggleTip
-                                                    == Just event.startTime
-
-                                            showHideMsg =
-                                                if shown then
-                                                    GotActiveEventHistoryAbsoluteTimeToggleTip Nothing
-
-                                                else
-                                                    GotActiveEventHistoryAbsoluteTimeToggleTip
-                                                        (Just event.startTime)
+                                            toggleTipId =
+                                                Helpers.String.hyphenate
+                                                    [ "serverEventTimeTip"
+                                                    , project.auth.project.uuid
+                                                    , server.osProps.uuid
+                                                    , event.startTime |> Time.posixToMillis |> String.fromInt
+                                                    ]
                                         in
-                                        Style.Widgets.ToggleTip.toggleTip context.palette
+                                        Style.Widgets.ToggleTip.toggleTip
+                                            context
+                                            popoverMsgMapper
+                                            toggleTipId
                                             (Element.text (Helpers.Time.humanReadableDateAndTime event.startTime))
                                             ST.PositionBottomRight
-                                            shown
-                                            showHideMsg
                                 in
                                 Element.row []
                                     [ Element.text relativeTime
@@ -1194,8 +1174,15 @@ serverEventHistory context model currentTime serverEventsRDPP =
             Element.none
 
 
-renderServerActionButton : View.Types.Context -> Project -> Model -> Server -> ServerActions.ServerAction -> Element.Element Msg
-renderServerActionButton context project model server serverAction =
+renderServerActionButton :
+    View.Types.Context
+    -> Project
+    -> Model
+    -> Server
+    -> Element.Attribute Msg
+    -> ServerActions.ServerAction
+    -> Element.Element Msg
+renderServerActionButton context project model server closeActionsDropdown serverAction =
     let
         displayConfirmation =
             case model.serverActionNamePendingConfirmation of
@@ -1211,7 +1198,7 @@ renderServerActionButton context project model server serverAction =
                 updateAction =
                     GotServerActionNamePendingConfirmation <| Just serverAction.name
             in
-            renderActionButton context serverAction (Just updateAction) serverAction.name
+            renderActionButton context serverAction (Just updateAction) serverAction.name Nothing
 
         ( True, True ) ->
             let
@@ -1257,7 +1244,7 @@ renderServerActionButton context project model server serverAction =
                 [ Element.spacing 5 ]
             <|
                 List.concat
-                    [ [ renderConfirmationButton context serverAction actionMsg cancelMsg title ]
+                    [ [ renderConfirmationButton context serverAction actionMsg cancelMsg title closeActionsDropdown ]
                     , renderKeepFloatingIpCheckbox
                     ]
 
@@ -1280,6 +1267,7 @@ renderServerActionButton context project model server serverAction =
                             serverAction
                             (Just NoOp)
                             (Helpers.String.toTitleCase context.localization.staticRepresentationOfBlockDeviceContents)
+                            (Just closeActionsDropdown)
                     }
                 -- This is similarly ugly
 
@@ -1297,6 +1285,7 @@ renderServerActionButton context project model server serverAction =
                             serverAction
                             (Just NoOp)
                             (Helpers.String.toTitleCase "Resize")
+                            (Just closeActionsDropdown)
                     }
 
             else
@@ -1307,7 +1296,7 @@ renderServerActionButton context project model server serverAction =
                     title =
                         serverAction.name
                 in
-                renderActionButton context serverAction actionMsg title
+                renderActionButton context serverAction actionMsg title (Just closeActionsDropdown)
 
 
 confirmationMessage : ServerActions.ServerAction -> String
@@ -1346,13 +1335,22 @@ serverActionSelectModButton context selectMod =
         }
 
 
-renderActionButton : View.Types.Context -> ServerActions.ServerAction -> Maybe Msg -> String -> Element.Element Msg
-renderActionButton context serverAction actionMsg title =
+renderActionButton : View.Types.Context -> ServerActions.ServerAction -> Maybe Msg -> String -> Maybe (Element.Attribute Msg) -> Element.Element Msg
+renderActionButton context serverAction actionMsg title closeActionsDropdown =
+    let
+        additionalBtnAttribs =
+            case closeActionsDropdown of
+                Just closeActionsDropdown_ ->
+                    [ closeActionsDropdown_ ]
+
+                Nothing ->
+                    []
+    in
     Element.row
         [ Element.spacing 10, Element.width Element.fill ]
         [ Element.text serverAction.description
         , Element.el
-            [ Element.width <| Element.px 100, Element.alignRight ]
+            ([ Element.width <| Element.px 100, Element.alignRight ] ++ additionalBtnAttribs)
           <|
             serverActionSelectModButton context
                 serverAction.selectMod
@@ -1362,13 +1360,13 @@ renderActionButton context serverAction actionMsg title =
         ]
 
 
-renderConfirmationButton : View.Types.Context -> ServerActions.ServerAction -> Maybe SharedMsg.SharedMsg -> Maybe Msg -> String -> Element.Element Msg
-renderConfirmationButton context serverAction actionMsg cancelMsg title =
+renderConfirmationButton : View.Types.Context -> ServerActions.ServerAction -> Maybe SharedMsg.SharedMsg -> Maybe Msg -> String -> Element.Attribute Msg -> Element.Element Msg
+renderConfirmationButton context serverAction actionMsg cancelMsg title closeActionsDropdown =
     Element.row
         [ Element.spacing 10 ]
         [ Element.text title
         , Element.el
-            []
+            [ closeActionsDropdown ]
           <|
             serverActionSelectModButton context
                 serverAction.selectMod

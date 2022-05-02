@@ -21,10 +21,13 @@ import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons
 import Html.Attributes as HtmlA
+import Murmur3
 import Set
 import Style.Helpers as SH
-import Style.Types
+import Style.Types exposing (ExoPalette)
 import Style.Widgets.Icon as Icon
+import Style.Widgets.Popover.Popover exposing (popover)
+import Style.Widgets.Popover.Types exposing (PopoverId)
 import View.Helpers as VH
 import Widget
 
@@ -68,7 +71,6 @@ type SelectedFilterOptions
 type alias Model =
     { selectedRowIds : Set.Set RowId
     , selectedFilters : SelectedFilterOptions
-    , showFiltersDropdown : Bool
     , searchText : String
     }
 
@@ -91,7 +93,6 @@ init : SelectedFilterOptions -> Model
 init selectedFilters =
     { selectedRowIds = Set.empty
     , selectedFilters = selectedFilters
-    , showFiltersDropdown = False
     , searchText = ""
     }
 
@@ -108,7 +109,6 @@ type Msg
     | ChangeAllRowsSelection (Set.Set RowId)
     | ChangeFiltOptCheckboxSelection FilterId FilterOptionValue Bool
     | ChangeFiltOptRadioSelection FilterId UniselectOptionIdentifier
-    | ToggleFiltersDropdownVisiblity
     | GotSearchText String
     | ClearFilter FilterId
     | ClearAllFilters
@@ -166,9 +166,6 @@ update msg model =
                                     (UniselectOption uniselectOptValue)
                                     selectedFiltOptsDict
             }
-
-        ToggleFiltersDropdownVisiblity ->
-            { model | showFiltersDropdown = not model.showFiltersDropdown }
 
         GotSearchText searchText ->
             { model | searchText = searchText }
@@ -246,6 +243,12 @@ type alias Filter record =
     }
 
 
+type alias SelectionFilters record msg =
+    { filters : List (Filter record)
+    , dropdownMsgMapper : PopoverId -> msg
+    }
+
+
 type alias SearchFilter record =
     { label : String
     , placeholder : Maybe String
@@ -265,23 +268,23 @@ getFilterOptionText filter data filterOptionValue =
 
 view :
     Model
-    -> (Msg -> msg) -- convert local Msg to a consumer's msg
-    -> Style.Types.ExoPalette
+    -> (Msg -> msg) -- convert DataList.Msg to a consumer's msg
+    -> { viewContext | palette : ExoPalette, showPopovers : Set.Set PopoverId }
     -> List (Element.Attribute msg)
     -> (DataRecord record -> Element.Element msg)
     -> List (DataRecord record)
     -> List (Set.Set RowId -> Element.Element msg)
-    -> List (Filter record)
+    -> Maybe (SelectionFilters record msg)
     -> Maybe (SearchFilter record)
     -> Element.Element msg
-view model toMsg palette styleAttrs listItemView data bulkActions filters searchFilter =
+view model toMsg context styleAttrs listItemView data bulkActions selectionFilters searchFilter =
     let
         defaultRowStyle =
             [ Element.padding 24
             , Element.spacing 20
             , Border.widthEach { top = 0, bottom = 1, left = 0, right = 0 }
             , Border.color <|
-                SH.toElementColorWithOpacity palette.on.background 0.16
+                SH.toElementColorWithOpacity context.palette.on.background 0.16
             , Element.width Element.fill
             ]
 
@@ -338,20 +341,25 @@ view model toMsg palette styleAttrs listItemView data bulkActions filters search
                     \_ -> True
 
         filteredData =
-            List.foldl
-                (\filter dataRecords ->
-                    List.filter (keepARecord filter) dataRecords
-                )
-                data
-                filters
-                |> List.filter filterRecordsBySearchText
+            case selectionFilters of
+                Just selectionFilters_ ->
+                    List.foldl
+                        (\filter dataRecords ->
+                            List.filter (keepARecord filter) dataRecords
+                        )
+                        data
+                        selectionFilters_.filters
+                        |> List.filter filterRecordsBySearchText
+
+                Nothing ->
+                    data |> List.filter filterRecordsBySearchText
 
         rows =
             if List.isEmpty filteredData then
                 [ Element.column
                     (rowStyle -1
                         ++ [ Font.color <|
-                                SH.toElementColorWithOpacity palette.on.background 0.62
+                                SH.toElementColorWithOpacity context.palette.on.background 0.62
                            ]
                     )
                     [ FeatherIcons.search
@@ -362,7 +370,7 @@ view model toMsg palette styleAttrs listItemView data bulkActions filters search
                     , Element.el
                         [ Element.centerX
                         , Font.size 18
-                        , Font.color <| SH.toElementColor palette.on.background
+                        , Font.color <| SH.toElementColor context.palette.on.background
                         ]
                         (Element.text "No data found!")
                     , if not (List.isEmpty data) then
@@ -381,13 +389,13 @@ view model toMsg palette styleAttrs listItemView data bulkActions filters search
 
             else
                 List.indexedMap
-                    (rowView model toMsg palette rowStyle listItemView showRowCheckbox)
+                    (rowView model toMsg context.palette rowStyle listItemView showRowCheckbox)
                     filteredData
     in
     Element.column
         ([ Element.width Element.fill
          , Border.width 1
-         , Border.color <| SH.toElementColorWithOpacity palette.on.background 0.1
+         , Border.color <| SH.toElementColorWithOpacity context.palette.on.background 0.1
          , Border.rounded 4
          ]
             -- Add or override default style with passed style attributes
@@ -395,11 +403,11 @@ view model toMsg palette styleAttrs listItemView data bulkActions filters search
         )
         (toolbarView model
             toMsg
-            palette
+            context
             defaultRowStyle
             { complete = data, filtered = filteredData }
             bulkActions
-            filters
+            selectionFilters
             searchFilter
             :: rows
         )
@@ -407,7 +415,7 @@ view model toMsg palette styleAttrs listItemView data bulkActions filters search
 
 rowView :
     Model
-    -> (Msg -> msg) -- convert local Msg to a consumer's msg
+    -> (Msg -> msg) -- convert DataList.Msg to a consumer's msg
     -> Style.Types.ExoPalette
     -> (Int -> List (Element.Attribute msg))
     -> (DataRecord record -> Element.Element msg)
@@ -450,18 +458,18 @@ rowView model toMsg palette rowStyle listItemView showRowCheckbox i dataRecord =
 
 toolbarView :
     Model
-    -> (Msg -> msg) -- convert local Msg to a consumer's msg
-    -> Style.Types.ExoPalette
+    -> (Msg -> msg) -- convert DataList.Msg to a consumer's msg
+    -> { viewContext | palette : ExoPalette, showPopovers : Set.Set PopoverId }
     -> List (Element.Attribute msg)
     ->
         { complete : List (DataRecord record)
         , filtered : List (DataRecord record)
         }
     -> List (Set.Set RowId -> Element.Element msg)
-    -> List (Filter record)
+    -> Maybe (SelectionFilters record msg)
     -> Maybe (SearchFilter record)
     -> Element.Element msg
-toolbarView model toMsg palette rowStyle data bulkActions filters searchFilter =
+toolbarView model toMsg context rowStyle data bulkActions selectionFilters searchFilter =
     let
         selectableRecords =
             List.filter (\record -> record.selectable) data.filtered
@@ -513,25 +521,38 @@ toolbarView model toMsg palette rowStyle data bulkActions filters searchFilter =
                 Element.none
 
             else
-                Element.row
-                    [ Element.alignRight
-                    , Element.spacing 15
-                    , Element.alignTop
-                    ]
-                    (Element.text
-                        ("Apply action to "
-                            ++ String.fromInt (Set.size selectedRowIds)
-                            ++ " row(s):"
+                Element.el [ Element.alignTop ] <|
+                    Element.row [ Element.spacing 15 ]
+                        (Element.text
+                            ("Apply action to "
+                                ++ String.fromInt (Set.size selectedRowIds)
+                                ++ " row(s):"
+                            )
+                            :: List.map (\bulkAction -> bulkAction selectedRowIds)
+                                bulkActions
                         )
-                        :: List.map (\bulkAction -> bulkAction selectedRowIds)
-                            bulkActions
+
+        ( selectionFiltersView, selectionFiltersAreActive ) =
+            case selectionFilters of
+                Just selectionFilters_ ->
+                    ( filtersView model
+                        toMsg
+                        context
+                        selectionFilters_
+                        data.complete
+                    , True
                     )
 
-        searchFilterView =
+                Nothing ->
+                    ( Element.none
+                    , False
+                    )
+
+        ( searchFilterView, searchFilterIsActive ) =
             case searchFilter of
                 Just searchFilter_ ->
-                    Input.text
-                        (VH.inputItemAttributes palette.background
+                    ( Input.text
+                        (VH.inputItemAttributes context.palette.background
                             ++ [ Element.htmlAttribute <| HtmlA.style "height" "calc(1em + 16px)" ]
                         )
                         { text = model.searchText
@@ -548,20 +569,22 @@ toolbarView model toMsg palette rowStyle data bulkActions filters searchFilter =
                                 (Element.text searchFilter_.label)
                         }
                         |> Element.map toMsg
+                    , True
+                    )
 
                 Nothing ->
-                    Element.none
+                    ( Element.none, False )
     in
-    if List.isEmpty bulkActions && List.isEmpty filters then
+    if List.isEmpty bulkActions && not selectionFiltersAreActive && not searchFilterIsActive then
         Element.none
 
     else
         Element.column
             (rowStyle ++ [ Element.spacing 16 ])
             [ searchFilterView
-            , Element.row [ Element.spacing 20 ]
+            , Element.row [ Element.spacing 20, Element.width Element.fill ]
                 [ selectAllCheckbox
-                , filtersView model toMsg palette filters data.complete
+                , selectionFiltersView
                 , bulkActionsView
                 ]
             ]
@@ -570,11 +593,11 @@ toolbarView model toMsg palette rowStyle data bulkActions filters searchFilter =
 filtersView :
     Model
     -> (Msg -> msg)
-    -> Style.Types.ExoPalette
-    -> List (Filter record)
+    -> { viewContext | palette : ExoPalette, showPopovers : Set.Set PopoverId }
+    -> SelectionFilters record msg
     -> List (DataRecord record)
     -> Element.Element msg
-filtersView model toMsg palette filters data =
+filtersView model toMsg context { filters, dropdownMsgMapper } data =
     let
         filtOptCheckbox : Filter record -> MultiselectOptionIdentifier -> FilterOptionValue -> Element.Element msg
         filtOptCheckbox filter optionValues filterOptionValue =
@@ -621,7 +644,7 @@ filtersView model toMsg palette filters data =
                 |> Element.map toMsg
 
         iconButtonStyleDefaults =
-            (SH.materialStyle palette).iconButton
+            (SH.materialStyle context.palette).iconButton
 
         iconButtonStyle padding =
             { iconButtonStyleDefaults
@@ -632,17 +655,29 @@ filtersView model toMsg palette filters data =
                            ]
             }
 
-        filtersDropdown =
+        filtersDropdownId =
+            -- an ugly workaround to generate a unique id for filtersDropdown
+            -- (until we make popover widget capable of generating unique ids internallly)
+            "dataListfiltersDropdown-"
+                ++ (List.foldl
+                        (\filter allFilterOptionTexts ->
+                            allFilterOptionTexts ++ (Dict.values <| filter.filterOptions data)
+                        )
+                        []
+                        filters
+                        |> String.join ""
+                        |> Murmur3.hashString 4321
+                        |> String.fromInt
+                   )
+
+        filtersDropdown closeDropdown =
             Element.column
-                (SH.popoverStyleDefaults palette
-                    ++ [ Element.padding 24
-                       , Element.spacingXY 0 24
-                       ]
-                )
+                [ Element.spacingXY 0 24
+                ]
                 (Element.row [ Element.width Element.fill ]
                     [ Element.el [ Font.size 18 ]
                         (Element.text "Apply Filters")
-                    , Element.el [ Element.alignRight ]
+                    , Element.el [ Element.alignRight, closeDropdown ]
                         (Widget.iconButton
                             (iconButtonStyle 0)
                             { icon =
@@ -651,7 +686,7 @@ filtersView model toMsg palette filters data =
                                     |> FeatherIcons.toHtml []
                                     |> Element.html
                             , text = "Close"
-                            , onPress = Just <| ToggleFiltersDropdownVisiblity
+                            , onPress = Just NoOp
                             }
                             |> Element.map toMsg
                         )
@@ -684,10 +719,10 @@ filtersView model toMsg palette filters data =
                         filters
                 )
 
-        addFilterBtn =
+        addFilterBtn toggleDropdownMsg =
             let
                 buttonStyleDefaults =
-                    (SH.materialStyle palette).button
+                    (SH.materialStyle context.palette).button
 
                 buttonStyle =
                     { buttonStyleDefaults
@@ -716,9 +751,8 @@ filtersView model toMsg palette filters data =
                                 |> Element.html
                             )
                     , text = "Add Filters"
-                    , onPress = Just <| ToggleFiltersDropdownVisiblity
+                    , onPress = Just toggleDropdownMsg
                     }
-                    |> Element.map toMsg
                 )
 
         filterChipView : Filter record -> List (Element.Element msg) -> Element.Element msg
@@ -726,7 +760,7 @@ filtersView model toMsg palette filters data =
             Element.row
                 [ Border.width 1
                 , Border.color <|
-                    SH.toElementColorWithOpacity palette.on.background 0.16
+                    SH.toElementColorWithOpacity context.palette.on.background 0.16
                 , Border.rounded 4
                 ]
                 [ Element.row
@@ -735,7 +769,7 @@ filtersView model toMsg palette filters data =
                     ]
                     (Element.el
                         [ Font.color <|
-                            SH.toElementColorWithOpacity palette.on.background 0.62
+                            SH.toElementColorWithOpacity context.palette.on.background 0.62
                         ]
                         (Element.text filter.chipPrefix)
                         :: selectedOptContent
@@ -775,7 +809,7 @@ filtersView model toMsg palette filters data =
                                         |> List.intersperse
                                             (Element.el
                                                 [ Font.color <|
-                                                    SH.toElementColorWithOpacity palette.on.background 0.62
+                                                    SH.toElementColorWithOpacity context.palette.on.background 0.62
                                                 ]
                                                 (Element.text " or ")
                                             )
@@ -800,7 +834,7 @@ filtersView model toMsg palette filters data =
         clearAllBtn =
             let
                 textBtnStyleDefaults =
-                    (SH.materialStyle palette).textButton
+                    (SH.materialStyle context.palette).textButton
 
                 textBtnStyle =
                     { textBtnStyleDefaults
@@ -851,21 +885,30 @@ filtersView model toMsg palette filters data =
         Element.none
 
     else
-        Element.wrappedRow
-            ([ Element.spacing 10
-             , Element.width Element.fill
-             , Element.alignTop
-             ]
-                ++ (if model.showFiltersDropdown then
-                        SH.popoverAttribs filtersDropdown Style.Types.PositionBottomLeft Nothing
-
-                    else
-                        []
-                   )
-            )
-            (List.concat
-                [ [ Element.text "Filters: " ]
-                , selectedFiltersChips
-                , [ addFilterBtn, clearAllBtn ]
+        popover context
+            dropdownMsgMapper
+            { id = filtersDropdownId
+            , content = filtersDropdown
+            , contentStyleAttrs = [ Element.padding 24 ]
+            , position = Style.Types.PositionBottomLeft
+            , distanceToTarget = Nothing
+            , target =
+                \toggleDropdownMsg _ ->
+                    Element.wrappedRow
+                        [ Element.spacing 10
+                        , Element.width Element.fill
+                        , Element.alignTop
+                        ]
+                        (List.concat
+                            [ [ Element.text "Filters: " ]
+                            , selectedFiltersChips
+                            , [ addFilterBtn toggleDropdownMsg, clearAllBtn ]
+                            ]
+                        )
+            , targetStyleAttrs =
+                [ Element.alignTop
+                , Element.htmlAttribute <|
+                    -- to let wrappedRow take all available width
+                    HtmlA.style "flex-grow" "1"
                 ]
-            )
+            }

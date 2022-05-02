@@ -84,7 +84,7 @@ pageTitle outerModel =
                 Settings _ ->
                     "Settings"
 
-        ProjectView projectIdentifier _ projectViewConstructor ->
+        ProjectView projectIdentifier projectViewConstructor ->
             let
                 maybeProject =
                     GetterSetters.projectLookup outerModel.sharedModel projectIdentifier

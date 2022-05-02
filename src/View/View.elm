@@ -42,6 +42,7 @@ import Route
 import Style.Helpers as SH exposing (shadowDefaults)
 import Style.Toast
 import Style.Types as ST
+import Style.Widgets.Popover.Popover exposing (popover)
 import Style.Widgets.Text as Text
 import Toasty
 import Types.Error exposing (AppError)
@@ -179,7 +180,7 @@ elementView windowSize outerModel context =
                                 Page.Settings.view context outerModel.sharedModel pageModel
                                     |> Element.map SettingsMsg
 
-                    ProjectView projectName projectViewModel viewConstructor ->
+                    ProjectView projectName viewConstructor ->
                         case GetterSetters.projectLookup outerModel.sharedModel projectName of
                             Nothing ->
                                 Text.body <|
@@ -195,7 +196,6 @@ elementView windowSize outerModel context =
                                     outerModel.sharedModel
                                     context
                                     project_
-                                    projectViewModel
                                     viewConstructor
                 , Element.html
                     (Toasty.view Style.Toast.toastConfig
@@ -236,19 +236,13 @@ elementView windowSize outerModel context =
         ]
 
 
-type alias ProjectViewModel =
-    { createPopup : Bool
-    }
-
-
 project :
     SharedModel
     -> View.Types.Context
     -> Project
-    -> ProjectViewModel
     -> Types.View.ProjectViewConstructor
     -> Element.Element OuterMsg
-project model context p projectViewModel viewConstructor =
+project model context p viewConstructor =
     let
         v =
             case viewConstructor of
@@ -324,13 +318,13 @@ project model context p projectViewModel viewConstructor =
         (Element.width Element.fill
             :: VH.exoColumnAttributes
         )
-        [ projectNav context p projectViewModel
+        [ projectNav context p
         , v
         ]
 
 
-projectNav : View.Types.Context -> Project -> ProjectViewModel -> Element.Element OuterMsg
-projectNav context p projectViewModel =
+projectNav : View.Types.Context -> Project -> Element.Element OuterMsg
+projectNav context p =
     let
         edges =
             VH.edges
@@ -389,17 +383,18 @@ projectNav context p projectViewModel =
                 , left = 0
                 }
             ]
-            (createButton context (GetterSetters.projectIdentifier p) projectViewModel.createPopup)
+            (createButton context (GetterSetters.projectIdentifier p))
         ]
 
 
-createButton : View.Types.Context -> ProjectIdentifier -> Bool -> Element.Element OuterMsg
-createButton context projectId expanded =
+createButton : View.Types.Context -> ProjectIdentifier -> Element.Element OuterMsg
+createButton context projectId =
     let
-        renderButton : Element.Element Never -> String -> Route.Route -> Element.Element OuterMsg
-        renderButton icon_ text route =
+        renderButton : Element.Element Never -> String -> Route.Route -> Element.Attribute OuterMsg -> Element.Element OuterMsg
+        renderButton icon_ text route closeDropdown =
             Element.link
                 [ Element.width Element.fill
+                , closeDropdown
                 ]
                 { url = Route.toUrl context.urlPathPrefix route
                 , label =
@@ -414,60 +409,62 @@ createButton context projectId expanded =
                         }
                 }
 
-        dropdown =
+        dropdownContent closeDropdown =
             Element.column
-                (SH.popoverStyleDefaults context.palette)
+                []
                 [ renderButton
                     (FeatherIcons.server |> FeatherIcons.withSize 18 |> FeatherIcons.toHtml [] |> Element.html)
                     (context.localization.virtualComputer
                         |> Helpers.String.toTitleCase
                     )
                     (Route.ProjectRoute projectId <| Route.InstanceSourcePicker)
+                    closeDropdown
                 , renderButton
                     (FeatherIcons.hardDrive |> FeatherIcons.withSize 18 |> FeatherIcons.toHtml [] |> Element.html)
                     (context.localization.blockDevice
                         |> Helpers.String.toTitleCase
                     )
                     (Route.ProjectRoute projectId <| Route.VolumeCreate)
+                    closeDropdown
                 , renderButton
                     (FeatherIcons.key |> FeatherIcons.withSize 18 |> FeatherIcons.toHtml [] |> Element.html)
                     (context.localization.pkiPublicKeyForSsh
                         |> Helpers.String.toTitleCase
                     )
                     (Route.ProjectRoute projectId <| Route.KeypairCreate)
+                    closeDropdown
                 ]
 
-        ( attribs, icon ) =
-            if expanded then
-                ( SH.popoverAttribs dropdown ST.PositionBottomRight Nothing
-                , FeatherIcons.chevronUp
-                )
+        dropdownTarget toggleDropdownMsg dropdownIsShown =
+            Widget.iconButton
+                (SH.materialStyle context.palette).primaryButton
+                { text = "Create"
+                , icon =
+                    Element.row
+                        [ Element.spacing 5 ]
+                        [ Element.text "Create"
+                        , Element.el []
+                            ((if dropdownIsShown then
+                                FeatherIcons.chevronUp
 
-            else
-                ( []
-                , FeatherIcons.chevronDown
-                )
+                              else
+                                FeatherIcons.chevronDown
+                             )
+                                |> FeatherIcons.withSize 18
+                                |> FeatherIcons.toHtml []
+                                |> Element.html
+                            )
+                        ]
+                , onPress = Just toggleDropdownMsg
+                }
     in
-    Element.column
-        attribs
-        [ Widget.iconButton
-            (SH.materialStyle context.palette).primaryButton
-            { text = "Create"
-            , icon =
-                Element.row
-                    [ Element.spacing 5 ]
-                    [ Element.text "Create"
-                    , Element.el []
-                        (icon
-                            |> FeatherIcons.withSize 18
-                            |> FeatherIcons.toHtml []
-                            |> Element.html
-                        )
-                    ]
-            , onPress =
-                Just <|
-                    SharedMsg <|
-                        SharedMsg.ProjectMsg projectId <|
-                            SharedMsg.ToggleCreatePopup
-            }
-        ]
+    popover context
+        (\createBtnDropdownId -> SharedMsg <| SharedMsg.TogglePopover createBtnDropdownId)
+        { id = Helpers.String.hyphenate [ "createBtnDropdown", projectId.projectUuid ]
+        , content = dropdownContent
+        , contentStyleAttrs = []
+        , position = ST.PositionBottomRight
+        , distanceToTarget = Nothing
+        , target = dropdownTarget
+        , targetStyleAttrs = []
+        }

@@ -39,7 +39,7 @@ import Types.HelperTypes as HelperTypes
 
 type ViewState
     = NonProjectView NonProjectViewConstructor
-    | ProjectView HelperTypes.ProjectIdentifier { createPopup : Bool } ProjectViewConstructor
+    | ProjectView HelperTypes.ProjectIdentifier ProjectViewConstructor
 
 
 type NonProjectViewConstructor

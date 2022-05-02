@@ -43,7 +43,7 @@ Maintainers, please ensure the MR passes this checklist before approving. Consul
 - MR does not use hard-coded representations of [localized strings](docs/nomenclature-reference.md) in the UI
 - Follow-up issues are created for any new issues that the MR causes or uncovers
   - If MR introduces any technical debt, these issues are assigned to MR author
-
+- If MR adds/changes/removes any popovers, ensure that their IDs are unique.
 
 ## Continuous Integration
 

@@ -6,7 +6,9 @@ module View.Types exposing
 import Browser.Navigation
 import Dict
 import FormatNumber.Locales
+import Set
 import Style.Types exposing (ExoPalette)
+import Style.Widgets.Popover.Types exposing (PopoverId)
 import Types.HelperTypes exposing (CloudSpecificConfig, KeystoneHostname, Localization, WindowSize)
 
 
@@ -19,6 +21,7 @@ type alias Context =
     , experimentalFeaturesEnabled : Bool
     , urlPathPrefix : Maybe String
     , navigationKey : Browser.Navigation.Key
+    , showPopovers : Set.Set PopoverId
     }
 
 
