@@ -155,7 +155,7 @@ build_style_guide:
     - mkdir -p home && rsync -a ~/.elm home
     - mkdir -p home && rsync -a ~/.npm home
 
-elm_analyse:
+static_analysis:
   stage: test
   needs:
     - elm_make
