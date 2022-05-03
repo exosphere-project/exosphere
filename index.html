@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html>
-
   <head>
     <meta charset="utf-8" />
     <!-- This title will display at the top of your app window -->
@@ -11,16 +10,20 @@
     <script src="assets/js/clipboard.min.js"></script>
     <script type="text/javascript" src="./elm-web.js"></script>
     <link rel="icon" type="image/svg+xml" href="assets/img/logo-alt.svg" />
-    <link rel="apple-touch-icon" type="image/png" href="assets/img/logo-196px-maskable.png" />
+    <link
+      rel="apple-touch-icon"
+      type="image/png"
+      href="assets/img/logo-196px-maskable.png"
+    />
     <meta name="theme-color" content="#1d1d1d" />
     <link rel="manifest" href="exosphere.webmanifest" />
     <!-- config.js contains deployer-specified configuration -->
     <script type="text/javascript" src="cloud_configs.js"></script>
     <script type="text/javascript" src="config.js"></script>
     <script>
-    if('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('service-worker.js');
-    };
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("service-worker.js");
+      }
     </script>
     <script type="text/javascript">
       // Pre-load some images using JavaScript
@@ -32,7 +35,7 @@
         "assets/img/jetstream1-logo-white.svg",
         "assets/img/jetstream2-logo-white.svg",
         "assets/img/ubuntu.svg",
-        "assets/img/hat-fedora.svg"
+        "assets/img/hat-fedora.svg",
       ];
 
       let loaded_images = [];
@@ -43,13 +46,12 @@
         loaded_images.push(img);
       }
     </script>
-
-
   </head>
 
   <body>
     <noscript>
-    Exosphere cannot load because JavaScript is disabled in your web browser. Please enable JavaScript for this site.
+      Exosphere cannot load because JavaScript is disabled in your web browser.
+      Please enable JavaScript for this site.
     </noscript>
     <!-- This div is where we will insert our UI -->
     <div id="container"></div>

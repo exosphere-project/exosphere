@@ -1,8 +1,7 @@
 {
-    "checks" : {
-        "TriggerWords": false,
-        "SingleFieldRecord": false
-    },
-    "excludedPaths" : [
-    ]
+  "checks": {
+    "TriggerWords": false,
+    "SingleFieldRecord": false
+  },
+  "excludedPaths": []
 }
