@@ -372,9 +372,11 @@ view context project currentTime model =
             let
                 currentDate =
                     DateFormat.format
-                        [ DateFormat.monthNumber
-                        , DateFormat.dayOfMonthNumber
-                        , DateFormat.yearNumber
+                        [ DateFormat.yearNumber
+                        , DateFormat.text "-"
+                        , DateFormat.monthFixed
+                        , DateFormat.text "-"
+                        , DateFormat.dayOfMonthFixed
                         ]
                         Time.utc
                         currentTime
