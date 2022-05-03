@@ -27,7 +27,6 @@ import Style.Widgets.Button as Button
 import Style.Widgets.Card exposing (badge)
 import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
-import Style.Widgets.Popover.Popover as Popover
 import Style.Widgets.Select
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
@@ -542,54 +541,32 @@ view context project model =
                             in
                             ( Just GotDisabledCreateButtonPressed, Just invalidFormReasons )
 
-                createButton =
+                ( createButton, invalidFormHintView ) =
                     case maybeInvalidFormReasons of
                         Nothing ->
-                            Button.primary
+                            ( Button.primary
                                 context.palette
                                 { text = "Create"
                                 , onPress = createOnPress
                                 }
+                            , Element.none
+                            )
 
                         Just _ ->
-                            let
-                                formInvalidHintView =
-                                    Element.column
-                                        (Popover.popoverStyleDefaults context.palette
-                                            ++ [ Element.width
-                                                    (Element.fill
-                                                        |> Element.minimum 400
-                                                    )
-                                               ]
-                                        )
-                                        [ Element.column
-                                            [ Element.spacing 10
-                                            ]
-                                            (maybeInvalidFormReasons
-                                                |> Maybe.withDefault [ "Please correct problems with the form" ]
-                                                |> List.map (VH.invalidInputHelperText context.palette)
-                                            )
-                                        ]
-                            in
-                            Element.el
-                                (if model.showFormInvalidToggleTip then
-                                    Popover.popoverAttribs formInvalidHintView ST.PositionTopRight (Just 8)
-
-                                 else
-                                    []
+                            ( Button.primary
+                                context.palette
+                                { text = "Create"
+                                , onPress = Nothing
+                                }
+                            , Element.column
+                                [ Element.spacing 10
+                                ]
+                                -- TODO: consider only showing correct problems msg
+                                (maybeInvalidFormReasons
+                                    |> Maybe.withDefault [ "Please correct problems with the form" ]
+                                    |> List.map (VH.invalidInputHelperText context.palette)
                                 )
-                                (Widget.button
-                                    (SH.materialStyle context.palette).warningButton
-                                    { text = "Create"
-                                    , icon =
-                                        FeatherIcons.alertTriangle
-                                            |> FeatherIcons.withSize 20
-                                            |> FeatherIcons.toHtml []
-                                            |> Element.html
-                                            |> Element.el [ Element.paddingEach { edges | right = 5 } ]
-                                    , onPress = createOnPress
-                                    }
-                                )
+                            )
             in
             [ Element.column
                 [ Element.spacing 10
@@ -671,8 +648,11 @@ view context project model =
                             ]
                        )
             , renderNetworkGuidance
-            , Element.el [ Element.alignRight ] <|
-                createButton
+            , Element.row [ Element.width Element.fill ]
+                [ Element.el [ Element.alignTop ] <| invalidFormHintView
+                , Element.el [ Element.alignTop, Element.alignRight ] <|
+                    createButton
+                ]
             ]
 
         loading message =
