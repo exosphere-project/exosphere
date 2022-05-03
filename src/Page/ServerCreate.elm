@@ -27,6 +27,7 @@ import Style.Widgets.Button as Button
 import Style.Widgets.Card exposing (badge)
 import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
+import Style.Widgets.Popover.Popover as Popover
 import Style.Widgets.Select
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
@@ -554,7 +555,7 @@ view context project model =
                             let
                                 formInvalidHintView =
                                     Element.column
-                                        (SH.popoverStyleDefaults context.palette
+                                        (Popover.popoverStyleDefaults context.palette
                                             ++ [ Element.width
                                                     (Element.fill
                                                         |> Element.minimum 400
@@ -572,7 +573,7 @@ view context project model =
                             in
                             Element.el
                                 (if model.showFormInvalidToggleTip then
-                                    SH.popoverAttribs formInvalidHintView ST.PositionTopRight (Just 8)
+                                    Popover.popoverAttribs formInvalidHintView ST.PositionTopRight (Just 8)
 
                                  else
                                     []
