@@ -369,15 +369,15 @@ stepServerPollConsoleLog time project server =
                                             Just 10
                                 in
                                 if
-                                    -- Poll if we have time series data with last data point at least one minute old.
-                                    ((not <| Dict.isEmpty data.timeSeries)
+                                    -- Poll if we have time series data with last data point at least one minute old,
+                                    (((not <| Dict.isEmpty data.timeSeries)
                                         && tsDataOlderThanOneMinute data.timeSeries
+                                     )
+                                        -- Or, poll if server <30 mins old or has <5 polling strikes,
+                                        || (Helpers.serverLessThanThisOld server time thirtyMinMillis || (data.pollingStrikes < 5))
                                     )
-                                        -- Poll if server <30 mins old or has <5 polling strikes,
                                         -- and the last time we polled was at least one minute ago.
-                                        || ((Helpers.serverLessThanThisOld server time thirtyMinMillis || (data.pollingStrikes < 5))
-                                                && atLeastOneMinSinceLogReceived
-                                           )
+                                        && atLeastOneMinSinceLogReceived
                                 then
                                     Just linesToPoll
 
