@@ -285,6 +285,9 @@ stepServerPollConsoleLog time project server =
 
         ServerFromExo exoOriginProps ->
             let
+                thirtySecMillis =
+                    30000
+
                 oneMinMillis =
                     60000
 
@@ -307,26 +310,29 @@ stepServerPollConsoleLog time project server =
                 -- determines whether we poll the whole log (Nothing) or just a set number of lines (Just Int).
                 doPollLinesExoSetupStatus : Maybe (Maybe Int)
                 doPollLinesExoSetupStatus =
+                    let
+                        pollInterval =
+                            -- Poll more frequently if ExoSetupStatus is in a non-terminal state
+                            case exoOriginProps.exoSetupStatus.data of
+                                RDPP.DontHave ->
+                                    thirtySecMillis
+
+                                RDPP.DoHave statusTuple _ ->
+                                    if
+                                        List.member (Tuple.first statusTuple)
+                                            [ ExoSetupUnknown, ExoSetupWaiting, ExoSetupRunning ]
+                                    then
+                                        thirtySecMillis
+
+                                    else
+                                        thirtyMinMillis
+                    in
                     if
                         serverIsActiveEnough server
                             && (exoOriginProps.exoServerVersion >= 4)
-                            && consoleLogNotLoading
+                            && RDPP.isPollableWithInterval exoOriginProps.exoSetupStatus time pollInterval
                     then
-                        case exoOriginProps.exoSetupStatus.data of
-                            RDPP.DontHave ->
-                                -- Get the whole log
-                                Just Nothing
-
-                            RDPP.DoHave ( exoSetupStatus, _ ) recTime ->
-                                -- If setupStatus is in a non-terminal state and we haven't checked in at least 30 seconds, get the whole log
-                                if
-                                    List.member exoSetupStatus [ ExoSetupUnknown, ExoSetupWaiting, ExoSetupRunning ]
-                                        && (Time.posixToMillis recTime + (30 * 1000) < curTimeMillis)
-                                then
-                                    Just Nothing
-
-                                else
-                                    Nothing
+                        Just Nothing
 
                     else
                         Nothing
