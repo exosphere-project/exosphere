@@ -2368,42 +2368,35 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                                     )
 
                                 Ok consoleLog ->
-                                    -- Only do the work to parse and update ExoSetupStatus if it was previously a non-terminal status
-                                    if List.member oldExoSetupStatus [ ExoSetupWaiting, ExoSetupRunning, ExoSetupUnknown ] then
-                                        let
-                                            ( newExoSetupStatus, newTimestamp ) =
-                                                Helpers.ExoSetupStatus.parseConsoleLogExoSetupStatus
-                                                    ( oldExoSetupStatus, oldTimestamp )
-                                                    consoleLog
-                                                    server.osProps.details.created
-                                                    sharedModel.clientCurrentTime
-
-                                            cmd =
-                                                if newExoSetupStatus == oldExoSetupStatus then
-                                                    Cmd.none
-
-                                                else
-                                                    let
-                                                        metadataItem =
-                                                            OSTypes.MetadataItem
-                                                                "exoSetup"
-                                                                (Helpers.ExoSetupStatus.encodeMetadataItem newExoSetupStatus newTimestamp)
-                                                    in
-                                                    Rest.Nova.requestSetServerMetadata project server.osProps.uuid metadataItem
-                                        in
-                                        ( RDPP.RemoteDataPlusPlus
-                                            (RDPP.DoHave
-                                                ( newExoSetupStatus, newTimestamp )
+                                    let
+                                        ( newExoSetupStatus, newTimestamp ) =
+                                            Helpers.ExoSetupStatus.parseConsoleLogExoSetupStatus
+                                                ( oldExoSetupStatus, oldTimestamp )
+                                                consoleLog
+                                                server.osProps.details.created
                                                 sharedModel.clientCurrentTime
-                                            )
-                                            (RDPP.NotLoading Nothing)
-                                        , cmd
-                                        )
 
-                                    else
-                                        ( RDPP.setNotLoading exoOriginProps.exoSetupStatus
-                                        , Cmd.none
+                                        cmd =
+                                            if newExoSetupStatus == oldExoSetupStatus then
+                                                Cmd.none
+
+                                            else
+                                                let
+                                                    metadataItem =
+                                                        OSTypes.MetadataItem
+                                                            "exoSetup"
+                                                            (Helpers.ExoSetupStatus.encodeMetadataItem newExoSetupStatus newTimestamp)
+                                                in
+                                                Rest.Nova.requestSetServerMetadata project server.osProps.uuid metadataItem
+                                    in
+                                    ( RDPP.RemoteDataPlusPlus
+                                        (RDPP.DoHave
+                                            ( newExoSetupStatus, newTimestamp )
+                                            sharedModel.clientCurrentTime
                                         )
+                                        (RDPP.NotLoading Nothing)
+                                    , cmd
+                                    )
 
                         newResourceUsage =
                             case result of
