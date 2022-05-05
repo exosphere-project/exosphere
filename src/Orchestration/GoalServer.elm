@@ -1,10 +1,8 @@
 module Orchestration.GoalServer exposing (goalNewServer, goalPollServers)
 
-import Dict
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
-import Helpers.ServerResourceUsage exposing (getMostRecentDataPoint)
 import Helpers.Url as UrlHelpers
 import OpenStack.ConsoleLog
 import OpenStack.Types as OSTypes
@@ -24,7 +22,6 @@ import Types.HelperTypes
         )
 import Types.Project exposing (Project)
 import Types.Server exposing (ExoSetupStatus(..), Server, ServerFromExoProps, ServerOrigin(..))
-import Types.ServerResourceUsage exposing (TimeSeries)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
 import UUID
 
@@ -285,104 +282,71 @@ stepServerPollConsoleLog time project server =
 
         ServerFromExo exoOriginProps ->
             let
+                thirtySecMillis =
+                    30000
+
                 oneMinMillis =
                     60000
 
                 thirtyMinMillis =
                     1000 * 60 * 30
 
-                curTimeMillis =
-                    Time.posixToMillis time
-
-                consoleLogNotLoading =
-                    -- ugh parallel data structures, should consolidate at some point?
-                    case ( exoOriginProps.exoSetupStatus.refreshStatus, exoOriginProps.resourceUsage.refreshStatus ) of
-                        ( RDPP.NotLoading _, RDPP.NotLoading _ ) ->
-                            True
-
-                        _ ->
-                            False
-
                 -- For return type of next functions, the outer maybe determines whether to poll at all. The inner maybe
                 -- determines whether we poll the whole log (Nothing) or just a set number of lines (Just Int).
                 doPollLinesExoSetupStatus : Maybe (Maybe Int)
                 doPollLinesExoSetupStatus =
+                    let
+                        pollInterval =
+                            -- Poll more frequently if ExoSetupStatus is in a non-terminal state
+                            case exoOriginProps.exoSetupStatus.data of
+                                RDPP.DontHave ->
+                                    thirtySecMillis
+
+                                RDPP.DoHave statusTuple _ ->
+                                    if
+                                        List.member (Tuple.first statusTuple)
+                                            [ ExoSetupUnknown, ExoSetupWaiting, ExoSetupRunning ]
+                                    then
+                                        thirtySecMillis
+
+                                    else
+                                        thirtyMinMillis
+                    in
                     if
                         serverIsActiveEnough server
                             && (exoOriginProps.exoServerVersion >= 4)
-                            && consoleLogNotLoading
+                            && RDPP.isPollableWithInterval exoOriginProps.exoSetupStatus time pollInterval
                     then
-                        case exoOriginProps.exoSetupStatus.data of
-                            RDPP.DontHave ->
-                                -- Get the whole log
-                                Just Nothing
-
-                            RDPP.DoHave ( exoSetupStatus, _ ) recTime ->
-                                -- If setupStatus is in a non-terminal state and we haven't checked in at least 30 seconds, get the whole log
-                                if
-                                    List.member exoSetupStatus [ ExoSetupUnknown, ExoSetupWaiting, ExoSetupRunning ]
-                                        && (Time.posixToMillis recTime + (30 * 1000) < curTimeMillis)
-                                then
-                                    Just Nothing
-
-                                else
-                                    Nothing
+                        Just Nothing
 
                     else
                         Nothing
 
                 doPollLinesResourceUsage : Maybe (Maybe Int)
                 doPollLinesResourceUsage =
+                    let
+                        linesToPoll : Maybe Int
+                        linesToPoll =
+                            case exoOriginProps.resourceUsage.data of
+                                RDPP.DontHave ->
+                                    -- Get all the log if we don't have it at all yet
+                                    Nothing
+
+                                RDPP.DoHave data _ ->
+                                    if Helpers.serverLessThanThisOld server time thirtyMinMillis || (data.pollingStrikes > 0) then
+                                        -- Get all the log if server is new or there were polling failures
+                                        Nothing
+
+                                    else
+                                        -- Only get recent logs
+                                        Just 10
+                    in
                     if
                         serverIsActiveEnough server
                             && (exoOriginProps.exoServerVersion >= 2)
-                            && consoleLogNotLoading
+                            && RDPP.isPollableWithInterval exoOriginProps.resourceUsage time oneMinMillis
                     then
-                        case exoOriginProps.resourceUsage.data of
-                            RDPP.DontHave ->
-                                -- Get a lot of log if we haven't polled for it before
-                                Just Nothing
-
-                            RDPP.DoHave data recTime ->
-                                let
-                                    tsDataOlderThanOneMinute : TimeSeries -> Bool
-                                    tsDataOlderThanOneMinute timeSeries =
-                                        getMostRecentDataPoint timeSeries
-                                            |> Maybe.map Tuple.first
-                                            |> Maybe.map
-                                                (\logTimeMillis ->
-                                                    (curTimeMillis - logTimeMillis) > oneMinMillis
-                                                )
-                                            -- Defaults to False if timeseries is empty
-                                            |> Maybe.withDefault False
-
-                                    atLeastOneMinSinceLogReceived : Bool
-                                    atLeastOneMinSinceLogReceived =
-                                        (curTimeMillis - Time.posixToMillis recTime) > oneMinMillis
-
-                                    linesToPoll : Maybe Int
-                                    linesToPoll =
-                                        if Helpers.serverLessThanThisOld server time thirtyMinMillis || (data.pollingStrikes > 0) then
-                                            Nothing
-
-                                        else
-                                            Just 10
-                                in
-                                if
-                                    -- Poll if we have time series data with last data point at least one minute old,
-                                    (((not <| Dict.isEmpty data.timeSeries)
-                                        && tsDataOlderThanOneMinute data.timeSeries
-                                     )
-                                        -- Or, poll if server <30 mins old or has <5 polling strikes,
-                                        || (Helpers.serverLessThanThisOld server time thirtyMinMillis || (data.pollingStrikes < 5))
-                                    )
-                                        -- and the last time we polled was at least one minute ago.
-                                        && atLeastOneMinSinceLogReceived
-                                then
-                                    Just linesToPoll
-
-                                else
-                                    Nothing
+                        Just linesToPoll
 
                     else
                         Nothing
