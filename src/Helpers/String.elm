@@ -112,8 +112,6 @@ itemsListToString items =
                         firstItem ++ " and " ++ lastItem
 
                     else
-                        firstItem
-                            ++ ", "
-                            ++ String.join ", " intermediateItems
-                            ++ "and "
+                        String.join ", " (firstItem :: intermediateItems)
+                            ++ ", and "
                             ++ lastItem
