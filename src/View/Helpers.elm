@@ -1398,7 +1398,8 @@ invalidInputHelperText palette helperText =
                 |> FeatherIcons.toHtml []
                 |> Element.html
             )
-        , Element.paragraph
+        , -- let text wrap if it exceeds container's width
+          Element.paragraph
             [ Font.color (SH.toElementColor palette.error)
             , Font.size 16
             ]

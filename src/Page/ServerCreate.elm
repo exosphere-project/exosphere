@@ -447,7 +447,7 @@ view context project model =
                     in
                     List.any identity flavorAvailability
 
-                ( createOnPress, maybeInvalidFormReasons ) =
+                ( createOnPress, maybeInvalidFormFields ) =
                     let
                         invalidVolSizeTextInput =
                             case model.volSizeTextInput of
@@ -478,49 +478,50 @@ view context project model =
 
                                 ( _, _ ) ->
                                     let
-                                        invalidNetworkReason =
+                                        invalidNetworkField =
                                             if model.networkUuid == Nothing then
-                                                [ "Choose a network" ]
+                                                [ "network" ]
 
                                             else
                                                 []
 
-                                        invalidFlavorReason =
+                                        invalidFlavorField =
                                             if model.flavorId == Nothing then
-                                                [ "Choose a flavor" ]
+                                                [ "flavor" ]
 
                                             else
                                                 []
 
-                                        invalidFormReasons =
-                                            invalidNetworkReason
-                                                ++ invalidFlavorReason
+                                        invalidFormFields =
+                                            invalidNetworkField
+                                                ++ invalidFlavorField
                                     in
-                                    ( Just GotDisabledCreateButtonPressed, Just invalidFormReasons )
+                                    ( Just GotDisabledCreateButtonPressed, Just invalidFormFields )
 
                         ( _, _ ) ->
                             let
-                                invalidNameFormReason =
+                                invalidNameFormField =
                                     if invalidNameReasons == Nothing then
                                         []
 
                                     else
-                                        [ "Enter a valid " ++ context.localization.virtualComputer ++ " name" ]
+                                        [ context.localization.virtualComputer ++ " name" ]
 
-                                invalidVolSizeReason =
+                                invalidVolSizeField =
                                     if invalidVolSizeTextInput then
-                                        [ "Enter valid custom root disk size" ]
+                                        [ "custom root disk size" ]
 
                                     else
                                         []
 
-                                invalidWorkflowReason =
+                                invalidWorkflowField =
                                     if invalidWorkflowTextInput then
-                                        [ "Enter a valid workflow repository" ]
+                                        [ "workflow repository" ]
 
                                     else
                                         []
 
+                                -- TODO: Make it a form level error overriding other inline errors
                                 noResourcesAvailable =
                                     if hasAvailableResources == False then
                                         [ (context.localization.maxResourcesPerProject
@@ -533,16 +534,16 @@ view context project model =
                                     else
                                         []
 
-                                invalidFormReasons =
-                                    invalidNameFormReason
-                                        ++ invalidVolSizeReason
-                                        ++ invalidWorkflowReason
+                                invalidFormFields =
+                                    invalidNameFormField
+                                        ++ invalidVolSizeField
+                                        ++ invalidWorkflowField
                                         ++ noResourcesAvailable
                             in
-                            ( Just GotDisabledCreateButtonPressed, Just invalidFormReasons )
+                            ( Just GotDisabledCreateButtonPressed, Just invalidFormFields )
 
                 ( createButton, invalidFormHintView ) =
-                    case maybeInvalidFormReasons of
+                    case maybeInvalidFormFields of
                         Nothing ->
                             ( Button.primary
                                 context.palette
@@ -553,19 +554,41 @@ view context project model =
                             )
 
                         Just _ ->
+                            let
+                                genericInvalidFormHint =
+                                    "Please correct problems with the form"
+
+                                invalidFormHint =
+                                    case maybeInvalidFormFields of
+                                        Just invalidFormFields ->
+                                            let
+                                                invalidFormFieldsString =
+                                                    Helpers.String.itemsListToString <|
+                                                        List.map (\s -> "'" ++ s ++ "'")
+                                                            invalidFormFields
+                                            in
+                                            if List.isEmpty invalidFormFields then
+                                                genericInvalidFormHint
+
+                                            else if List.length invalidFormFields == 1 then
+                                                "Please correct problem with "
+                                                    ++ invalidFormFieldsString
+                                                    ++ " field"
+
+                                            else
+                                                "Please correct problems with "
+                                                    ++ invalidFormFieldsString
+                                                    ++ " fields"
+
+                                        Nothing ->
+                                            genericInvalidFormHint
+                            in
                             ( Button.primary
                                 context.palette
                                 { text = "Create"
                                 , onPress = Nothing
                                 }
-                            , Element.column
-                                [ Element.spacing 10
-                                ]
-                                -- TODO: consider only showing correct problems msg
-                                (maybeInvalidFormReasons
-                                    |> Maybe.withDefault [ "Please correct problems with the form" ]
-                                    |> List.map (VH.invalidInputHelperText context.palette)
-                                )
+                            , VH.invalidInputHelperText context.palette invalidFormHint
                             )
             in
             [ Element.column
@@ -648,10 +671,15 @@ view context project model =
                             ]
                        )
             , renderNetworkGuidance
-            , Element.row [ Element.width Element.fill ]
-                [ Element.el [ Element.alignTop ] <| invalidFormHintView
-                , Element.el [ Element.alignTop, Element.alignRight ] <|
-                    createButton
+            , Element.row
+                [ -- to make it look separate from all form fields with uniform 24px spacing
+                  -- inspired from PF demos: https://www.patternfly.org/v4/components/form/#basic
+                  Element.paddingEach { top = 32, bottom = 0, left = 0, right = 0 }
+                , Element.spacing 10
+                , Element.width Element.fill
+                ]
+                [ Element.el [ Element.width Element.fill ] invalidFormHintView
+                , Element.el [ Element.alignRight ] createButton
                 ]
             ]
 
