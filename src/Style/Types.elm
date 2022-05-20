@@ -8,6 +8,7 @@ module Style.Types exposing
     , StyleMode
     , Theme(..)
     , ThemeChoice(..)
+    , UIStateColors
     , defaultColors
     )
 
@@ -76,25 +77,32 @@ type alias StyleMode =
     }
 
 
+type alias UIStateColors =
+    { background : Color.Color
+    , text : Color.Color
+    , border : Color.Color
+    , default : Color.Color
+    }
+
+
 type alias ExoPalette =
     { primary : Color.Color
     , secondary : Color.Color
     , background : Color.Color
     , surface : Color.Color
-    , error : Color.Color
+
+    -- TODO: give usecase-based names and integrate with previous fields
     , on :
         { primary : Color.Color
         , secondary : Color.Color
         , background : Color.Color
         , surface : Color.Color
-        , error : Color.Color
-        , warn : Color.Color
-        , readyGood : Color.Color
-        , muted : Color.Color
         }
-    , warn : Color.Color
-    , readyGood : Color.Color
-    , muted : Color.Color
+    , info : UIStateColors
+    , success : UIStateColors
+    , warning : UIStateColors
+    , danger : UIStateColors
+    , muted : UIStateColors
     , menu :
         { secondary : Color.Color
         , background : Color.Color

@@ -87,20 +87,42 @@ toExoPalette deployerColors { theme, systemPreference } =
             , secondary = deployerColors.light.secondary
             , background = Color.rgb255 255 255 255
             , surface = Color.rgb255 242 242 242
-            , error = Color.rgb255 204 0 0
             , on =
                 { primary = Color.rgb255 255 255 255
                 , secondary = Color.rgb255 0 0 0
                 , background = Color.rgb255 0 0 0
                 , surface = Color.rgb255 0 0 0
-                , error = Color.rgb255 255 255 255
-                , warn = Color.rgb255 0 0 0
-                , readyGood = Color.rgb255 0 0 0
-                , muted = Color.rgb255 255 255 255
                 }
-            , warn = Color.rgb255 252 175 62
-            , readyGood = Color.rgb255 35 209 96
-            , muted = Color.rgb255 122 122 122
+            , info =
+                { background = colorPalette.blue.lightest
+                , text = colorPalette.blue.darkest
+                , border = colorPalette.blue.light
+                , default = colorPalette.blue.base
+                }
+            , success =
+                { background = colorPalette.green.lightest
+                , text = colorPalette.green.darkest
+                , border = colorPalette.green.light
+                , default = colorPalette.green.base
+                }
+            , warning =
+                { background = colorPalette.yellow.lightest
+                , text = colorPalette.yellow.darkest
+                , border = colorPalette.yellow.light
+                , default = colorPalette.yellow.base
+                }
+            , danger =
+                { background = colorPalette.red.lightest
+                , text = colorPalette.red.darkest
+                , border = colorPalette.red.light
+                , default = colorPalette.red.base
+                }
+            , muted =
+                { background = colorPalette.gray.lightest
+                , text = colorPalette.gray.darkest
+                , border = colorPalette.gray.light
+                , default = colorPalette.gray.base
+                }
             , menu =
                 { secondary = Color.rgb255 29 29 29
                 , background = Color.rgb255 36 36 36
@@ -117,20 +139,42 @@ toExoPalette deployerColors { theme, systemPreference } =
             , secondary = deployerColors.dark.primary
             , background = Color.rgb255 36 36 36
             , surface = Color.rgb255 51 51 51
-            , error = Color.rgb255 240 84 84
             , on =
                 { primary = Color.rgb255 221 221 221
                 , secondary = Color.rgb255 221 221 221
                 , background = Color.rgb255 205 205 205
                 , surface = Color.rgb255 255 255 255
-                , error = Color.rgb255 255 255 255
-                , warn = Color.rgb255 0 0 0
-                , readyGood = Color.rgb255 0 0 0
-                , muted = Color.rgb255 255 255 255
                 }
-            , warn = Color.rgb255 252 175 62
-            , readyGood = Color.rgb255 23 183 148
-            , muted = Color.rgb255 122 122 122
+            , info =
+                { background = colorPalette.blue.darkest
+                , text = colorPalette.blue.lightest
+                , border = colorPalette.blue.dark
+                , default = colorPalette.blue.base
+                }
+            , success =
+                { background = colorPalette.green.darkest
+                , text = colorPalette.green.lightest
+                , border = colorPalette.green.dark
+                , default = colorPalette.green.base
+                }
+            , warning =
+                { background = colorPalette.yellow.darkest
+                , text = colorPalette.yellow.lightest
+                , border = colorPalette.yellow.dark
+                , default = colorPalette.yellow.base
+                }
+            , danger =
+                { background = colorPalette.red.darkest
+                , text = colorPalette.red.lightest
+                , border = colorPalette.red.dark
+                , default = colorPalette.red.base
+                }
+            , muted =
+                { background = colorPalette.gray.darkest
+                , text = colorPalette.gray.lightest
+                , border = colorPalette.gray.dark
+                , default = colorPalette.gray.base
+                }
             , menu =
                 { secondary = Color.rgb255 29 29 29
                 , background = Color.rgb255 36 36 36
@@ -150,10 +194,10 @@ materialStyle exoPalette =
             toMaterialPalette exoPalette
 
         warningPalette =
-            { regularPalette | primary = exoPalette.warn }
+            { regularPalette | primary = exoPalette.warning.default }
 
         dangerPalette =
-            { regularPalette | primary = exoPalette.error }
+            { regularPalette | primary = exoPalette.danger.default }
 
         exoButtonAttributes =
             [ Element.htmlAttribute <| Html.Attributes.style "text-transform" "none"
@@ -259,13 +303,13 @@ toMaterialPalette exoPalette =
     , secondary = exoPalette.secondary
     , background = exoPalette.background
     , surface = exoPalette.surface
-    , error = exoPalette.error
+    , error = exoPalette.danger.background
     , on =
         { primary = exoPalette.on.primary
         , secondary = exoPalette.on.secondary
         , background = exoPalette.on.background
         , surface = exoPalette.on.surface
-        , error = exoPalette.on.error
+        , error = exoPalette.danger.text
         }
     }
 
