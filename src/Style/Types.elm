@@ -1,5 +1,6 @@
 module Style.Types exposing
-    ( DeployerColorThemes
+    ( ColorPalette
+    , DeployerColorThemes
     , DeployerColors
     , ElmUiWidgetStyle
     , ExoPalette
@@ -38,6 +39,24 @@ type alias ElmUiWidgetStyle style msg =
         , row : RowStyle msg
         , progressIndicator : ProgressIndicatorStyle msg
         , tab : TabStyle msg
+    }
+
+
+type alias ColorShades5 =
+    { lightest : Color.Color
+    , light : Color.Color
+    , base : Color.Color
+    , dark : Color.Color
+    , darkest : Color.Color
+    }
+
+
+type alias ColorPalette =
+    { gray : ColorShades5
+    , blue : ColorShades5
+    , green : ColorShades5
+    , yellow : ColorShades5
+    , red : ColorShades5
     }
 
 

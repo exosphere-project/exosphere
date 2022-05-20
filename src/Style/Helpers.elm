@@ -1,5 +1,6 @@
 module Style.Helpers exposing
-    ( dropdownItemStyle
+    ( colorPalette
+    , dropdownItemStyle
     , materialStyle
     , shadowDefaults
     , toCssColor
@@ -10,6 +11,7 @@ module Style.Helpers exposing
     )
 
 import Color
+import Color.Convert exposing (hexToColor)
 import Css
 import Element
 import Element.Font as Font
@@ -17,6 +19,53 @@ import Html.Attributes
 import Style.Types as ST exposing (ElmUiWidgetStyle, ExoPalette, StyleMode, Theme(..))
 import Widget.Style
 import Widget.Style.Material as Material
+
+
+colorPalette : ST.ColorPalette
+colorPalette =
+    -- Colors are taken from https://tailwindcss.com/docs/customizing-colors#default-color-palette
+    -- as {lightest=100, light=300, base=500, dark=700, darkest=900}
+    { gray =
+        -- "Gray"
+        { lightest = hexToColor "#f3f4f6" |> Result.withDefault Color.gray
+        , light = hexToColor "#d1d5db" |> Result.withDefault Color.gray
+        , base = hexToColor "#6b7280" |> Result.withDefault Color.gray
+        , dark = hexToColor "#374151" |> Result.withDefault Color.gray
+        , darkest = hexToColor "#111827" |> Result.withDefault Color.gray
+        }
+    , blue =
+        -- "Sky"
+        { lightest = hexToColor "#e0f2fe" |> Result.withDefault Color.blue
+        , light = hexToColor "#7dd3fc" |> Result.withDefault Color.blue
+        , base = hexToColor "#0ea5e9" |> Result.withDefault Color.blue
+        , dark = hexToColor "#0369a1" |> Result.withDefault Color.blue
+        , darkest = hexToColor "#0c4a6e" |> Result.withDefault Color.blue
+        }
+    , green =
+        -- "Lime"
+        { lightest = hexToColor "#ecfccb" |> Result.withDefault Color.green
+        , light = hexToColor "#bef264" |> Result.withDefault Color.green
+        , base = hexToColor "#84cc16" |> Result.withDefault Color.green
+        , dark = hexToColor "#4d7c0f" |> Result.withDefault Color.green
+        , darkest = hexToColor "#365314" |> Result.withDefault Color.green
+        }
+    , yellow =
+        -- "Yellow"
+        { lightest = hexToColor "#fef9c3" |> Result.withDefault Color.yellow
+        , light = hexToColor "#fde047" |> Result.withDefault Color.yellow
+        , base = hexToColor "#eab308" |> Result.withDefault Color.yellow
+        , dark = hexToColor "#a16207" |> Result.withDefault Color.yellow
+        , darkest = hexToColor "#713f12" |> Result.withDefault Color.yellow
+        }
+    , red =
+        -- "Red"
+        { lightest = hexToColor "#fee2e2" |> Result.withDefault Color.red
+        , light = hexToColor "#fca5a5" |> Result.withDefault Color.red
+        , base = hexToColor "#ef4444" |> Result.withDefault Color.red
+        , dark = hexToColor "#b91c1c" |> Result.withDefault Color.red
+        , darkest = hexToColor "#7f1d1d" |> Result.withDefault Color.red
+        }
+    }
 
 
 toExoPalette : ST.DeployerColorThemes -> StyleMode -> ExoPalette
