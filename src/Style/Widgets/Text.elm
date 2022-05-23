@@ -14,11 +14,12 @@ import Style.Types exposing (ExoPalette)
 
 {-| Font weight is (loosely) how "heavy" or "light" a font appears to us.
 
-    Bold, Regular, etc.
+    Bold, Semibold, Regular, etc.
 
 -}
 type FontWeight
     = Bold
+    | Semibold
     | Regular
 
 
@@ -55,22 +56,22 @@ typography variant =
     case variant of
         H1 ->
             { size = 26
-            , weight = Bold
+            , weight = Semibold
             }
 
         H2 ->
             { size = 24
-            , weight = Bold
+            , weight = Semibold
             }
 
         H3 ->
             { size = 20
-            , weight = Bold
+            , weight = Semibold
             }
 
         H4 ->
             { size = 17
-            , weight = Bold
+            , weight = Semibold
             }
 
         Strong ->
@@ -91,6 +92,9 @@ fontWeightAttr weight =
     case weight of
         Bold ->
             Font.bold
+
+        Semibold ->
+            Font.semiBold
 
         Regular ->
             Font.regular
