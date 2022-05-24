@@ -420,141 +420,177 @@ view context project model =
                         [ Element.text guidanceText
                         ]
 
-        ( createOnPress, maybeInvalidFormReasons ) =
+        contents flavor computeQuota volumeQuota =
             let
-                invalidVolSizeTextInput =
-                    case model.volSizeTextInput of
-                        Just input ->
-                            case input of
-                                ValidNumericTextInput _ ->
+                hasAvailableResources =
+                    let
+                        allowedFlavors =
+                            case model.restrictFlavorIds of
+                                Nothing ->
+                                    project.flavors
+
+                                Just restrictedFlavorIds ->
+                                    restrictedFlavorIds
+                                        |> List.filterMap (GetterSetters.flavorLookup project)
+
+                        canBeLaunched quota fl =
+                            case OSQuotas.computeQuotaFlavorAvailServers quota fl of
+                                Nothing ->
                                     False
 
-                                InvalidNumericTextInput _ ->
-                                    True
+                                Just availServers ->
+                                    availServers >= 1
 
-                        Nothing ->
-                            False
+                        flavorAvailability : List Bool
+                        flavorAvailability =
+                            allowedFlavors
+                                |> List.map (canBeLaunched computeQuota)
+                    in
+                    List.any identity flavorAvailability
 
-                invalidWorkflowTextInput =
-                    model.workflowInputRepository == "" && model.workflowInputIsValid == Just False
+                ( createOnPress, maybeInvalidFormReasons ) =
+                    let
+                        invalidVolSizeTextInput =
+                            case model.volSizeTextInput of
+                                Just input ->
+                                    case input of
+                                        ValidNumericTextInput _ ->
+                                            False
 
-                invalidInputs =
-                    invalidVolSizeTextInput || invalidWorkflowTextInput
-            in
-            case ( invalidNameReasons, invalidInputs ) of
-                ( Nothing, False ) ->
-                    case ( model.networkUuid, model.flavorId ) of
-                        ( Just netUuid, Just flavorId ) ->
-                            ( Just (GotCreateServerButtonPressed netUuid flavorId)
-                            , Nothing
-                            )
+                                        InvalidNumericTextInput _ ->
+                                            True
+
+                                Nothing ->
+                                    False
+
+                        invalidWorkflowTextInput =
+                            model.workflowInputRepository == "" && model.workflowInputIsValid == Just False
+
+                        invalidInputs =
+                            invalidVolSizeTextInput || invalidWorkflowTextInput || not hasAvailableResources
+                    in
+                    case ( invalidNameReasons, invalidInputs ) of
+                        ( Nothing, False ) ->
+                            case ( model.networkUuid, model.flavorId ) of
+                                ( Just netUuid, Just flavorId ) ->
+                                    ( Just <| SharedMsg (SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) (SharedMsg.RequestCreateServer model netUuid flavorId))
+                                    , Nothing
+                                    )
+
+                                ( _, _ ) ->
+                                    let
+                                        invalidNetworkReason =
+                                            if model.networkUuid == Nothing then
+                                                [ "Choose a network" ]
+
+                                            else
+                                                []
+
+                                        invalidFlavorReason =
+                                            if model.flavorId == Nothing then
+                                                [ "Choose a flavor" ]
+
+                                            else
+                                                []
+
+                                        invalidFormReasons =
+                                            invalidNetworkReason
+                                                ++ invalidFlavorReason
+                                    in
+                                    ( Just GotDisabledCreateButtonPressed, Just invalidFormReasons )
 
                         ( _, _ ) ->
                             let
-                                invalidNetworkReason =
-                                    if model.networkUuid == Nothing then
-                                        [ "Choose a network" ]
+                                invalidNameFormReason =
+                                    if invalidNameReasons == Nothing then
+                                        []
+
+                                    else
+                                        [ "Enter a valid " ++ context.localization.virtualComputer ++ " name" ]
+
+                                invalidVolSizeReason =
+                                    if invalidVolSizeTextInput then
+                                        [ "Enter valid custom root disk size" ]
 
                                     else
                                         []
 
-                                invalidFlavorReason =
-                                    if model.flavorId == Nothing then
-                                        [ "Choose a flavor" ]
+                                invalidWorkflowReason =
+                                    if invalidWorkflowTextInput then
+                                        [ "Enter a valid workflow repository" ]
+
+                                    else
+                                        []
+
+                                noResourcesAvailable =
+                                    if hasAvailableResources == False then
+                                        [ (context.localization.maxResourcesPerProject
+                                            |> Helpers.String.pluralize
+                                            |> Helpers.String.toTitleCase
+                                          )
+                                            ++ " have been exhausted. Contact your cloud administrator, or delete some stuff"
+                                        ]
 
                                     else
                                         []
 
                                 invalidFormReasons =
-                                    invalidNetworkReason
-                                        ++ invalidFlavorReason
+                                    invalidNameFormReason
+                                        ++ invalidVolSizeReason
+                                        ++ invalidWorkflowReason
+                                        ++ noResourcesAvailable
                             in
                             ( Just GotDisabledCreateButtonPressed, Just invalidFormReasons )
 
-                ( _, _ ) ->
-                    let
-                        invalidNameFormReason =
-                            if invalidNameReasons == Nothing then
-                                []
+                createButton =
+                    case maybeInvalidFormReasons of
+                        Nothing ->
+                            Button.primary
+                                context.palette
+                                { text = "Create"
+                                , onPress = createOnPress
+                                }
 
-                            else
-                                [ "Enter a valid " ++ context.localization.virtualComputer ++ " name" ]
-
-                        invalidVolSizeReason =
-                            if invalidVolSizeTextInput then
-                                [ "Enter valid custom root disk size" ]
-
-                            else
-                                []
-
-                        invalidWorkflowReason =
-                            if invalidWorkflowTextInput then
-                                [ "Enter a valid workflow repository" ]
-
-                            else
-                                []
-
-                        invalidFormReasons =
-                            invalidNameFormReason
-                                ++ invalidVolSizeReason
-                                ++ invalidWorkflowReason
-                    in
-                    ( Just GotDisabledCreateButtonPressed, Just invalidFormReasons )
-
-        createButton =
-            case maybeInvalidFormReasons of
-                Nothing ->
-                    if model.createServerAttempted then
-                        loading ("Creating " ++ context.localization.virtualComputer |> Helpers.String.toTitleCase)
-
-                    else
-                        Button.primary
-                            context.palette
-                            { text = "Create"
-                            , onPress = createOnPress
-                            }
-
-                Just _ ->
-                    let
-                        formInvalidHintView =
-                            Element.column
-                                (Popover.popoverStyleDefaults context.palette
-                                    ++ [ Element.width
-                                            (Element.fill
-                                                |> Element.minimum 100
+                        Just _ ->
+                            let
+                                formInvalidHintView =
+                                    Element.column
+                                        (Popover.popoverStyleDefaults context.palette
+                                            ++ [ Element.width
+                                                    (Element.fill
+                                                        |> Element.minimum 400
+                                                    )
+                                               ]
+                                        )
+                                        [ Element.column
+                                            [ Element.spacing 10
+                                            ]
+                                            (maybeInvalidFormReasons
+                                                |> Maybe.withDefault [ "Please correct problems with the form" ]
+                                                |> List.map (VH.invalidInputHelperText context.palette)
                                             )
-                                       ]
+                                        ]
+                            in
+                            Element.el
+                                (if model.showFormInvalidToggleTip then
+                                    Popover.popoverAttribs formInvalidHintView ST.PositionTopRight (Just 8)
+
+                                 else
+                                    []
                                 )
-                                [ Element.column
-                                    [ Element.spacing 10
-                                    ]
-                                    (maybeInvalidFormReasons
-                                        |> Maybe.withDefault [ "Please correct problems with the form" ]
-                                        |> List.map (VH.invalidInputHelperText context.palette)
-                                    )
-                                ]
-                    in
-                    Element.el
-                        (if model.showFormInvalidToggleTip then
-                            Popover.popoverAttribs formInvalidHintView ST.PositionTopRight (Just 8)
-
-                         else
-                            []
-                        )
-                        (Widget.button
-                            (SH.materialStyle context.palette).warningButton
-                            { text = "Create"
-                            , icon =
-                                FeatherIcons.alertTriangle
-                                    |> FeatherIcons.withSize 20
-                                    |> FeatherIcons.toHtml []
-                                    |> Element.html
-                                    |> Element.el [ Element.paddingEach { edges | right = 5 } ]
-                            , onPress = createOnPress
-                            }
-                        )
-
-        contents flavor computeQuota volumeQuota =
+                                (Widget.button
+                                    (SH.materialStyle context.palette).warningButton
+                                    { text = "Create"
+                                    , icon =
+                                        FeatherIcons.alertTriangle
+                                            |> FeatherIcons.withSize 20
+                                            |> FeatherIcons.toHtml []
+                                            |> Element.html
+                                            |> Element.el [ Element.paddingEach { edges | right = 5 } ]
+                                    , onPress = createOnPress
+                                    }
+                                )
+            in
             [ Element.column
                 [ Element.spacing 10
                 , Element.width Element.fill
