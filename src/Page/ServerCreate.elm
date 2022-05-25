@@ -71,7 +71,6 @@ type Msg
     | GotWorkflowPath String
     | GotWorkflowInputLoseFocus
     | GotCreateCluster Bool
-    | GotDisabledCreateButtonPressed
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
 
@@ -277,14 +276,6 @@ update msg project model =
         GotCreateCluster createCluster ->
             ( { model
                 | createCluster = createCluster
-              }
-            , Cmd.none
-            , SharedMsg.NoOp
-            )
-
-        GotDisabledCreateButtonPressed ->
-            ( { model
-                | showFormInvalidToggleTip = not model.showFormInvalidToggleTip
               }
             , Cmd.none
             , SharedMsg.NoOp
@@ -496,7 +487,7 @@ view context project model =
                                             invalidNetworkField
                                                 ++ invalidFlavorField
                                     in
-                                    ( Just GotDisabledCreateButtonPressed, Just invalidFormFields )
+                                    ( Nothing, Just invalidFormFields )
 
                         ( _, _ ) ->
                             let
@@ -540,18 +531,19 @@ view context project model =
                                         ++ invalidWorkflowField
                                         ++ noResourcesAvailable
                             in
-                            ( Just GotDisabledCreateButtonPressed, Just invalidFormFields )
+                            ( Nothing, Just invalidFormFields )
 
-                ( createButton, invalidFormHintView ) =
+                createButton =
+                    Button.primary
+                        context.palette
+                        { text = "Create"
+                        , onPress = createOnPress
+                        }
+
+                invalidFormHintView =
                     case maybeInvalidFormFields of
                         Nothing ->
-                            ( Button.primary
-                                context.palette
-                                { text = "Create"
-                                , onPress = createOnPress
-                                }
-                            , Element.none
-                            )
+                            Element.none
 
                         Just _ ->
                             let
@@ -583,13 +575,7 @@ view context project model =
                                         Nothing ->
                                             genericInvalidFormHint
                             in
-                            ( Button.primary
-                                context.palette
-                                { text = "Create"
-                                , onPress = Nothing
-                                }
-                            , VH.invalidInputHelperText context.palette invalidFormHint
-                            )
+                            VH.invalidInputHelperText context.palette invalidFormHint
             in
             [ Element.column
                 [ Element.spacing 10
