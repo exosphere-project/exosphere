@@ -512,24 +512,10 @@ view context project model =
                                     else
                                         []
 
-                                -- TODO: Make it a form level error overriding other inline errors
-                                noResourcesAvailable =
-                                    if hasAvailableResources == False then
-                                        [ (context.localization.maxResourcesPerProject
-                                            |> Helpers.String.pluralize
-                                            |> Helpers.String.toTitleCase
-                                          )
-                                            ++ " have been exhausted. Contact your cloud administrator, or delete some stuff"
-                                        ]
-
-                                    else
-                                        []
-
                                 invalidFormFields =
                                     invalidNameFormField
                                         ++ invalidVolSizeField
                                         ++ invalidWorkflowField
-                                        ++ noResourcesAvailable
                             in
                             ( Nothing, Just invalidFormFields )
 
@@ -541,41 +527,54 @@ view context project model =
                         }
 
                 invalidFormHintView =
-                    case maybeInvalidFormFields of
-                        Nothing ->
-                            Element.none
+                    if hasAvailableResources == False then
+                        -- this error isn't form field specific, show it over other errors
+                        let
+                            invalidFormHint =
+                                (context.localization.maxResourcesPerProject
+                                    |> Helpers.String.pluralize
+                                    |> Helpers.String.toTitleCase
+                                )
+                                    ++ " have been exhausted. Contact your cloud administrator, or delete some stuff"
+                        in
+                        VH.invalidInputHelperText context.palette invalidFormHint
 
-                        Just _ ->
-                            let
-                                genericInvalidFormHint =
-                                    "Please correct problems with the form"
+                    else
+                        case maybeInvalidFormFields of
+                            Nothing ->
+                                Element.none
 
-                                invalidFormHint =
-                                    case maybeInvalidFormFields of
-                                        Just invalidFormFields ->
-                                            let
-                                                invalidFormFieldsString =
-                                                    Helpers.String.itemsListToString <|
-                                                        List.map (\s -> "'" ++ s ++ "'")
-                                                            invalidFormFields
-                                            in
-                                            if List.isEmpty invalidFormFields then
+                            Just _ ->
+                                let
+                                    genericInvalidFormHint =
+                                        "Please correct problems with the form"
+
+                                    invalidFormHint =
+                                        case maybeInvalidFormFields of
+                                            Just invalidFormFields ->
+                                                let
+                                                    invalidFormFieldsString =
+                                                        Helpers.String.itemsListToString <|
+                                                            List.map (\s -> "'" ++ s ++ "'")
+                                                                invalidFormFields
+                                                in
+                                                if List.isEmpty invalidFormFields then
+                                                    genericInvalidFormHint
+
+                                                else if List.length invalidFormFields == 1 then
+                                                    "Please correct problem with "
+                                                        ++ invalidFormFieldsString
+                                                        ++ " field"
+
+                                                else
+                                                    "Please correct problems with "
+                                                        ++ invalidFormFieldsString
+                                                        ++ " fields"
+
+                                            Nothing ->
                                                 genericInvalidFormHint
-
-                                            else if List.length invalidFormFields == 1 then
-                                                "Please correct problem with "
-                                                    ++ invalidFormFieldsString
-                                                    ++ " field"
-
-                                            else
-                                                "Please correct problems with "
-                                                    ++ invalidFormFieldsString
-                                                    ++ " fields"
-
-                                        Nothing ->
-                                            genericInvalidFormHint
-                            in
-                            VH.invalidInputHelperText context.palette invalidFormHint
+                                in
+                                VH.invalidInputHelperText context.palette invalidFormHint
             in
             [ Element.column
                 [ Element.spacing 10
