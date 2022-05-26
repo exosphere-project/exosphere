@@ -1,10 +1,12 @@
 module Helpers.String exposing
     ( hyphenate
     , indefiniteArticle
+    , itemsListToString
     , pluralize
     , toTitleCase
     )
 
+import List.Extra
 import Regex
 
 
@@ -92,3 +94,24 @@ toTitleCase s =
 hyphenate : List String -> String
 hyphenate strings =
     strings |> List.intersperse "-" |> String.concat
+
+
+itemsListToString : List String -> String
+itemsListToString items =
+    case items of
+        [] ->
+            ""
+
+        firstItem :: items_ ->
+            case List.Extra.unconsLast items_ of
+                Nothing ->
+                    firstItem
+
+                Just ( lastItem, intermediateItems ) ->
+                    if List.isEmpty intermediateItems then
+                        firstItem ++ " and " ++ lastItem
+
+                    else
+                        String.join ", " (firstItem :: intermediateItems)
+                            ++ ", and "
+                            ++ lastItem

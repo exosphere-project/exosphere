@@ -28,7 +28,6 @@ import Style.Widgets.Button as Button
 import Style.Widgets.Card exposing (badge)
 import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
-import Style.Widgets.Popover.Popover as Popover
 import Style.Widgets.Select
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
@@ -75,7 +74,6 @@ type Msg
     | GotWorkflowPath String
     | GotWorkflowInputLoseFocus
     | GotCreateCluster Bool
-    | GotDisabledCreateButtonPressed
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
 
@@ -285,14 +283,6 @@ update msg project model =
         GotCreateCluster createCluster ->
             ( { model
                 | createCluster = createCluster
-              }
-            , Cmd.none
-            , SharedMsg.NoOp
-            )
-
-        GotDisabledCreateButtonPressed ->
-            ( { model
-                | showFormInvalidToggleTip = not model.showFormInvalidToggleTip
               }
             , Cmd.none
             , SharedMsg.NoOp
@@ -531,7 +521,7 @@ view context project currentTime model =
                     in
                     List.any identity flavorAvailability
 
-                ( createOnPress, maybeInvalidFormReasons ) =
+                ( createOnPress, maybeInvalidFormFields ) =
                     let
                         invalidVolSizeTextInput =
                             case model.volSizeTextInput of
@@ -562,117 +552,112 @@ view context project currentTime model =
 
                                 ( _, _ ) ->
                                     let
-                                        invalidNetworkReason =
+                                        invalidNetworkField =
                                             if model.networkUuid == Nothing then
-                                                [ "Choose a network" ]
+                                                [ "network" ]
 
                                             else
                                                 []
 
-                                        invalidFlavorReason =
+                                        invalidFlavorField =
                                             if model.flavorId == Nothing then
-                                                [ "Choose a flavor" ]
+                                                [ "flavor" ]
 
                                             else
                                                 []
 
-                                        invalidFormReasons =
-                                            invalidNetworkReason
-                                                ++ invalidFlavorReason
+                                        invalidFormFields =
+                                            invalidNetworkField
+                                                ++ invalidFlavorField
                                     in
-                                    ( Just GotDisabledCreateButtonPressed, Just invalidFormReasons )
+                                    ( Nothing, Just invalidFormFields )
 
                         ( _, _ ) ->
                             let
-                                invalidNameFormReason =
+                                invalidNameFormField =
                                     if invalidNameReasons == Nothing then
                                         []
 
                                     else
-                                        [ "Enter a valid " ++ context.localization.virtualComputer ++ " name" ]
+                                        [ context.localization.virtualComputer ++ " name" ]
 
-                                invalidVolSizeReason =
+                                invalidVolSizeField =
                                     if invalidVolSizeTextInput then
-                                        [ "Enter valid custom root disk size" ]
+                                        [ "custom root disk size" ]
 
                                     else
                                         []
 
-                                invalidWorkflowReason =
+                                invalidWorkflowField =
                                     if invalidWorkflowTextInput then
-                                        [ "Enter a valid workflow repository" ]
+                                        [ "workflow repository" ]
 
                                     else
                                         []
 
-                                noResourcesAvailable =
-                                    if hasAvailableResources == False then
-                                        [ (context.localization.maxResourcesPerProject
-                                            |> Helpers.String.pluralize
-                                            |> Helpers.String.toTitleCase
-                                          )
-                                            ++ " have been exhausted. Contact your cloud administrator, or delete some stuff"
-                                        ]
-
-                                    else
-                                        []
-
-                                invalidFormReasons =
-                                    invalidNameFormReason
-                                        ++ invalidVolSizeReason
-                                        ++ invalidWorkflowReason
-                                        ++ noResourcesAvailable
+                                invalidFormFields =
+                                    invalidNameFormField
+                                        ++ invalidVolSizeField
+                                        ++ invalidWorkflowField
                             in
-                            ( Just GotDisabledCreateButtonPressed, Just invalidFormReasons )
+                            ( Nothing, Just invalidFormFields )
 
                 createButton =
-                    case maybeInvalidFormReasons of
-                        Nothing ->
-                            Button.primary
-                                context.palette
-                                { text = "Create"
-                                , onPress = createOnPress
-                                }
+                    Button.primary
+                        context.palette
+                        { text = "Create"
+                        , onPress = createOnPress
+                        }
 
-                        Just _ ->
-                            let
-                                formInvalidHintView =
-                                    Element.column
-                                        (Popover.popoverStyleDefaults context.palette
-                                            ++ [ Element.width
-                                                    (Element.fill
-                                                        |> Element.minimum 400
-                                                    )
-                                               ]
-                                        )
-                                        [ Element.column
-                                            [ Element.spacing 10
-                                            ]
-                                            (maybeInvalidFormReasons
-                                                |> Maybe.withDefault [ "Please correct problems with the form" ]
-                                                |> List.map (VH.invalidInputHelperText context.palette)
-                                            )
-                                        ]
-                            in
-                            Element.el
-                                (if model.showFormInvalidToggleTip then
-                                    Popover.popoverAttribs formInvalidHintView ST.PositionTopRight (Just 8)
+                invalidFormHintView =
+                    if hasAvailableResources == False then
+                        -- this error isn't form field specific, show it over other errors
+                        let
+                            invalidFormHint =
+                                (context.localization.maxResourcesPerProject
+                                    |> Helpers.String.pluralize
+                                    |> Helpers.String.toTitleCase
+                                )
+                                    ++ " have been exhausted. Contact your cloud administrator, or delete some stuff"
+                        in
+                        VH.invalidInputHelperText context.palette invalidFormHint
 
-                                 else
-                                    []
-                                )
-                                (Widget.button
-                                    (SH.materialStyle context.palette).warningButton
-                                    { text = "Create"
-                                    , icon =
-                                        FeatherIcons.alertTriangle
-                                            |> FeatherIcons.withSize 20
-                                            |> FeatherIcons.toHtml []
-                                            |> Element.html
-                                            |> Element.el [ Element.paddingEach { edges | right = 5 } ]
-                                    , onPress = createOnPress
-                                    }
-                                )
+                    else
+                        case maybeInvalidFormFields of
+                            Nothing ->
+                                Element.none
+
+                            Just _ ->
+                                let
+                                    genericInvalidFormHint =
+                                        "Please correct problems with the form"
+
+                                    invalidFormHint =
+                                        case maybeInvalidFormFields of
+                                            Just invalidFormFields ->
+                                                let
+                                                    invalidFormFieldsString =
+                                                        Helpers.String.itemsListToString <|
+                                                            List.map (\s -> "'" ++ s ++ "'")
+                                                                invalidFormFields
+                                                in
+                                                if List.isEmpty invalidFormFields then
+                                                    genericInvalidFormHint
+
+                                                else if List.length invalidFormFields == 1 then
+                                                    "Please correct problem with "
+                                                        ++ invalidFormFieldsString
+                                                        ++ " field"
+
+                                                else
+                                                    "Please correct problems with "
+                                                        ++ invalidFormFieldsString
+                                                        ++ " fields"
+
+                                            Nothing ->
+                                                genericInvalidFormHint
+                                in
+                                VH.invalidInputHelperText context.palette invalidFormHint
             in
             [ Element.column
                 [ Element.spacing 10
@@ -755,8 +740,16 @@ view context project currentTime model =
                             ]
                        )
             , renderNetworkGuidance
-            , Element.el [ Element.alignRight ] <|
-                createButton
+            , Element.row
+                [ -- to make it look separate from all form fields with uniform 24px spacing
+                  -- inspired from PF demos: https://www.patternfly.org/v4/components/form/#basic
+                  Element.paddingEach { top = 32, bottom = 0, left = 0, right = 0 }
+                , Element.spacing 10
+                , Element.width Element.fill
+                ]
+                [ Element.el [ Element.width Element.fill ] invalidFormHintView
+                , Element.el [ Element.alignRight ] createButton
+                ]
             ]
 
         loading message =
