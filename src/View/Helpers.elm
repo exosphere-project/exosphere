@@ -39,6 +39,7 @@ module View.Helpers exposing
     , userAppProxyLookup
     , validInputAttributes
     , warnMessageHelperText
+    , warningInputAttributes
     )
 
 import Color
@@ -1350,6 +1351,11 @@ requiredLabel palette undecoratedLabelView =
 invalidInputAttributes : ExoPalette -> List (Element.Attribute msg)
 invalidInputAttributes palette =
     validOrInvalidInputElementAttributes palette.error FeatherIcons.alertCircle
+
+
+warningInputAttributes : ExoPalette -> List (Element.Attribute msg)
+warningInputAttributes palette =
+    validOrInvalidInputElementAttributes palette.warn FeatherIcons.alertTriangle
 
 
 validInputAttributes : ExoPalette -> List (Element.Attribute msg)
