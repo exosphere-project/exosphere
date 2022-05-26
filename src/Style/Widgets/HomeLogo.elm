@@ -29,7 +29,7 @@ homeLogo context { logoUrl, title } =
                     (\t ->
                         Element.el
                             [ Region.heading 1
-                            , Font.bold
+                            , Font.semiBold
                             , Font.size 26
                             , Font.color (SH.toElementColor context.palette.menu.on.surface)
                             ]

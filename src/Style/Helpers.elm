@@ -108,7 +108,7 @@ materialStyle exoPalette =
 
         exoButtonAttributes =
             [ Element.htmlAttribute <| Html.Attributes.style "text-transform" "none"
-            , Font.bold
+            , Font.semiBold
             ]
 
         outlinedButton palette_ =
