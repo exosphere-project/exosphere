@@ -546,7 +546,7 @@ view context project currentTime model =
                         ( Nothing, False ) ->
                             case ( model.networkUuid, model.flavorId ) of
                                 ( Just netUuid, Just flavorId ) ->
-                                    ( Just <| SharedMsg (SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) (SharedMsg.RequestCreateServer model netUuid flavorId))
+                                    ( Just <| GotCreateServerButtonPressed netUuid flavorId
                                     , Nothing
                                     )
 
@@ -603,11 +603,19 @@ view context project currentTime model =
                             ( Nothing, Just invalidFormFields )
 
                 createButton =
-                    Button.primary
-                        context.palette
-                        { text = "Create"
-                        , onPress = createOnPress
-                        }
+                    if model.createServerAttempted then
+                        loading
+                            ("Creating "
+                                ++ context.localization.virtualComputer
+                                |> Helpers.String.toTitleCase
+                            )
+
+                    else
+                        Button.primary
+                            context.palette
+                            { text = "Create"
+                            , onPress = createOnPress
+                            }
 
                 invalidFormHintView =
                     if hasAvailableResources == False then
