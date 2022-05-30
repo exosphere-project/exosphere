@@ -1,4 +1,4 @@
-module Style.Widgets.Text exposing (TextVariant(..), body, bold, fontWeightAttr, heading, headingStyleAttrs, mono, p, subheading, subheadingStyleAttrs, text, typography, typographyAttrs, underline)
+module Style.Widgets.Text exposing (TextVariant(..), body, bold, defaultFontFamily, defaultFontSize, fontWeightAttr, heading, headingStyleAttrs, mono, p, subheading, subheadingStyleAttrs, text, typography, typographyAttrs, underline)
 
 import Element
 import Element.Border as Border
@@ -100,14 +100,21 @@ fontWeightAttr weight =
             Font.regular
 
 
-{-| Element attribute for the default font family.
+{-| Element attribute for the default font family list.
 -}
-defaultTypeface : Element.Attribute msg
-defaultTypeface =
+defaultFontFamily : Element.Attribute msg
+defaultFontFamily =
     Font.family
         [ Font.typeface "Open Sans"
         , Font.sansSerif
         ]
+
+
+{-| Element attribute for normal body text size.
+-}
+defaultFontSize : Element.Attribute msg
+defaultFontSize =
+    Font.size (typography Body).size
 
 
 {-| Creates element attributes for the given typography.
@@ -125,8 +132,7 @@ typographyAttrs variant =
         typo =
             typography variant
     in
-    [ defaultTypeface
-    , Font.size typo.size
+    [ Font.size typo.size
     , fontWeightAttr typo.weight
     ]
 
