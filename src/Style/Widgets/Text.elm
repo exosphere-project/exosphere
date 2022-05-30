@@ -2,7 +2,7 @@ module Style.Widgets.Text exposing (TextVariant(..), body, bold, defaultFontFami
 
 import Element
 import Element.Border as Border
-import Element.Font as Font
+import Element.Font as Font exposing (Font)
 import Element.Region as Region
 import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
@@ -105,9 +105,25 @@ fontWeightAttr weight =
 defaultFontFamily : Element.Attribute msg
 defaultFontFamily =
     Font.family
-        [ Font.typeface "Open Sans"
-        , Font.sansSerif
-        ]
+        systemFonts
+
+
+{-| System fonts for common browsers & operating systems.
+-}
+systemFonts : List Font
+systemFonts =
+    [ Font.typeface "-apple-system"
+    , Font.typeface "BlinkMacSystemFont"
+    , Font.typeface "Segoe UI"
+    , Font.typeface "Roboto"
+    , Font.typeface "Oxygen"
+    , Font.typeface "Ubuntu"
+    , Font.typeface "Cantarell"
+    , Font.typeface "Fira Sans"
+    , Font.typeface "Droid Sans"
+    , Font.typeface "Helvetica Neue"
+    , Font.sansSerif
+    ]
 
 
 {-| Element attribute for normal body text size.
