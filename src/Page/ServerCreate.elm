@@ -1010,7 +1010,11 @@ countPicker context model computeQuota volumeQuota flavor =
                 { onChange = \c -> GotCount <| round c
                 , label = Input.labelHidden "How many?"
                 , min = 1
-                , max = countAvailPerQuota |> Maybe.withDefault 20 |> toFloat
+                , max =
+                    countAvailPerQuota
+                        |> Maybe.map (\countAvailPerQuota_ -> min countAvailPerQuota_ countAvailPerApp)
+                        |> Maybe.withDefault countAvailPerApp
+                        |> toFloat
                 , step = Just 1
                 , value = toFloat model.count
                 , thumb =
