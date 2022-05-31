@@ -945,7 +945,7 @@ countPicker context model computeQuota volumeQuota flavor =
         { locale } =
             context
 
-        countAvail =
+        countAvailPerQuota =
             OSQuotas.overallQuotaAvailServers
                 (model.volSizeTextInput
                     |> Maybe.andThen Style.Widgets.NumericTextInput.NumericTextInput.toMaybe
@@ -963,14 +963,14 @@ countPicker context model computeQuota volumeQuota flavor =
                     |> Helpers.String.toTitleCase
                 , "?"
                 ]
-        , case countAvail of
-            Just countAvail_ ->
+        , case countAvailPerQuota of
+            Just countAvailPerQuota_ ->
                 Element.text <|
                     String.join " "
                         [ "Your"
                         , context.localization.maxResourcesPerProject
                         , "supports up to"
-                        , humanCount locale countAvail_
+                        , humanCount locale countAvailPerQuota_
                         , "of these."
                         ]
 
@@ -996,7 +996,7 @@ countPicker context model computeQuota volumeQuota flavor =
                 { onChange = \c -> GotCount <| round c
                 , label = Input.labelHidden "How many?"
                 , min = 1
-                , max = countAvail |> Maybe.withDefault 20 |> toFloat
+                , max = countAvailPerQuota |> Maybe.withDefault 20 |> toFloat
                 , step = Just 1
                 , value = toFloat model.count
                 , thumb =
@@ -1005,9 +1005,9 @@ countPicker context model computeQuota volumeQuota flavor =
             , Element.el
                 [ Element.width Element.shrink ]
                 (Element.text (humanCount locale model.count))
-            , case countAvail of
-                Just countAvail_ ->
-                    if model.count == countAvail_ then
+            , case countAvailPerQuota of
+                Just countAvailPerQuota_ ->
+                    if model.count == countAvailPerQuota_ then
                         Element.text ("(" ++ context.localization.maxResourcesPerProject ++ " max)")
 
                     else
