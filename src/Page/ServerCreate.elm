@@ -969,24 +969,28 @@ countPicker context model computeQuota volumeQuota flavor =
                 ]
         , case countAvailPerQuota of
             Just countAvailPerQuota_ ->
-                Element.text <|
-                    String.join " " <|
-                        List.concat
-                            [ [ "Your"
-                              , context.localization.maxResourcesPerProject
-                              , "supports up to"
-                              , humanCount locale countAvailPerQuota_
-                              , "of these."
-                              ]
-                            , if countAvailPerQuota_ > countAvailPerApp then
-                                [ "Exosphere can create up to"
-                                , String.fromInt countAvailPerApp
-                                , "at a time."
-                                ]
+                let
+                    text =
+                        Element.text <|
+                            String.join " " <|
+                                List.concat
+                                    [ [ "Your"
+                                      , context.localization.maxResourcesPerProject
+                                      , "supports up to"
+                                      , humanCount locale countAvailPerQuota_
+                                      , "of these."
+                                      ]
+                                    , if countAvailPerQuota_ > countAvailPerApp then
+                                        [ "Exosphere can create up to"
+                                        , String.fromInt countAvailPerApp
+                                        , "at a time."
+                                        ]
 
-                              else
-                                []
-                            ]
+                                      else
+                                        []
+                                    ]
+                in
+                Element.paragraph [] [ text ]
 
             Nothing ->
                 Element.none
