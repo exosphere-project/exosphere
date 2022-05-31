@@ -953,6 +953,10 @@ countPicker context model computeQuota volumeQuota flavor =
                 flavor
                 computeQuota
                 volumeQuota
+
+        -- Exosphere becomes slow and unresponsive in the browser if the user creates too many instances at a time, this prevents that.
+        countAvailPerApp =
+            25
     in
     Element.column [ Element.spacing 10 ]
         [ Element.text <|
@@ -966,13 +970,23 @@ countPicker context model computeQuota volumeQuota flavor =
         , case countAvailPerQuota of
             Just countAvailPerQuota_ ->
                 Element.text <|
-                    String.join " "
-                        [ "Your"
-                        , context.localization.maxResourcesPerProject
-                        , "supports up to"
-                        , humanCount locale countAvailPerQuota_
-                        , "of these."
-                        ]
+                    String.join " " <|
+                        List.concat
+                            [ [ "Your"
+                              , context.localization.maxResourcesPerProject
+                              , "supports up to"
+                              , humanCount locale countAvailPerQuota_
+                              , "of these."
+                              ]
+                            , if countAvailPerQuota_ > countAvailPerApp then
+                                [ "Exosphere can create up to"
+                                , String.fromInt countAvailPerApp
+                                , "at a time."
+                                ]
+
+                              else
+                                []
+                            ]
 
             Nothing ->
                 Element.none
