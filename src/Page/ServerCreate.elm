@@ -1032,6 +1032,9 @@ countPicker context model computeQuota volumeQuota flavor =
                     if model.count == countAvailPerQuota_ then
                         Element.text ("(" ++ context.localization.maxResourcesPerProject ++ " max)")
 
+                    else if model.count == countAvailPerApp then
+                        Element.text "(max createable at a time)"
+
                     else
                         Element.none
 
