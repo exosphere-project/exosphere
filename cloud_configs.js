@@ -419,7 +419,6 @@ var cloud_configs = {
           logo: "assets/img/ubuntu.svg",
           versions: [
             {
-            {
               friendlyName: "22.04 (latest)",
               isPrimary: true,
               imageFilters: {
@@ -428,7 +427,7 @@ var cloud_configs = {
               },
               restrictFlavorIds: null,
             },
-
+            {
               friendlyName: "20.04",
               isPrimary: false,
               imageFilters: {
