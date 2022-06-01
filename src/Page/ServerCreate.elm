@@ -945,7 +945,7 @@ countPicker context model computeQuota volumeQuota flavor =
         { locale } =
             context
 
-        countAvail =
+        countAvailPerQuota =
             OSQuotas.overallQuotaAvailServers
                 (model.volSizeTextInput
                     |> Maybe.andThen Style.Widgets.NumericTextInput.NumericTextInput.toMaybe
@@ -953,6 +953,10 @@ countPicker context model computeQuota volumeQuota flavor =
                 flavor
                 computeQuota
                 volumeQuota
+
+        -- Exosphere becomes slow and unresponsive in the browser if the user creates too many instances at a time, this prevents that.
+        countAvailPerApp =
+            25
     in
     Element.column [ Element.spacing 10 ]
         [ Element.text <|
@@ -963,16 +967,30 @@ countPicker context model computeQuota volumeQuota flavor =
                     |> Helpers.String.toTitleCase
                 , "?"
                 ]
-        , case countAvail of
-            Just countAvail_ ->
-                Element.text <|
-                    String.join " "
-                        [ "Your"
-                        , context.localization.maxResourcesPerProject
-                        , "supports up to"
-                        , humanCount locale countAvail_
-                        , "of these."
-                        ]
+        , case countAvailPerQuota of
+            Just countAvailPerQuota_ ->
+                let
+                    text =
+                        Element.text <|
+                            String.join " " <|
+                                List.concat
+                                    [ [ "Your"
+                                      , context.localization.maxResourcesPerProject
+                                      , "supports up to"
+                                      , humanCount locale countAvailPerQuota_
+                                      , "of these."
+                                      ]
+                                    , if countAvailPerQuota_ > countAvailPerApp then
+                                        [ "Exosphere can create up to"
+                                        , String.fromInt countAvailPerApp
+                                        , "at a time."
+                                        ]
+
+                                      else
+                                        []
+                                    ]
+                in
+                Element.paragraph [] [ text ]
 
             Nothing ->
                 Element.none
@@ -996,7 +1014,11 @@ countPicker context model computeQuota volumeQuota flavor =
                 { onChange = \c -> GotCount <| round c
                 , label = Input.labelHidden "How many?"
                 , min = 1
-                , max = countAvail |> Maybe.withDefault 20 |> toFloat
+                , max =
+                    countAvailPerQuota
+                        |> Maybe.map (\countAvailPerQuota_ -> min countAvailPerQuota_ countAvailPerApp)
+                        |> Maybe.withDefault countAvailPerApp
+                        |> toFloat
                 , step = Just 1
                 , value = toFloat model.count
                 , thumb =
@@ -1005,10 +1027,13 @@ countPicker context model computeQuota volumeQuota flavor =
             , Element.el
                 [ Element.width Element.shrink ]
                 (Element.text (humanCount locale model.count))
-            , case countAvail of
-                Just countAvail_ ->
-                    if model.count == countAvail_ then
+            , case countAvailPerQuota of
+                Just countAvailPerQuota_ ->
+                    if model.count == countAvailPerQuota_ then
                         Element.text ("(" ++ context.localization.maxResourcesPerProject ++ " max)")
+
+                    else if model.count == countAvailPerApp then
+                        Element.text "(max createable at a time)"
 
                     else
                         Element.none
