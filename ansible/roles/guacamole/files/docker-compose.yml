@@ -6,12 +6,13 @@ networks:
     driver: bridge
 services:
   exo-guac-guacd:
-    image: 'guacamole/guacd:1.4.0'
+    build:
+      context: 'https://github.com/apache/guacamole-server.git#81300052e01f7e544ead82ece1e8398d95e9653e'
     restart: 'always'
     networks:
       exo-guac-net:
   exo-guac-guacamole:
-    image: 'guacamole/guacamole:1.4.0'
+    image: 'guacamole/guacamole@sha256:24a9a494a6d3a3da1371fa04de8b4e608d3e56affefa40282d09f2dfc1e465c0'
     restart: 'always'
     networks:
       exo-guac-net:
