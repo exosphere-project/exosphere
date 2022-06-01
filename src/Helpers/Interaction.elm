@@ -395,22 +395,22 @@ interactionStatusWordColor : Style.Types.ExoPalette -> ITypes.InteractionStatus 
 interactionStatusWordColor palette status =
     case status of
         ITypes.Unavailable _ ->
-            ( "Unavailable", SH.toElementColor palette.muted )
+            ( "Unavailable", SH.toElementColor palette.muted.default )
 
         ITypes.Loading ->
-            ( "Loading", SH.toElementColor palette.warn )
+            ( "Loading", SH.toElementColor palette.info.default )
 
         ITypes.Ready _ ->
-            ( "Ready", SH.toElementColor palette.readyGood )
+            ( "Ready", SH.toElementColor palette.success.default )
 
         ITypes.Warn _ _ ->
-            ( "Warning", SH.toElementColor palette.warn )
+            ( "Warning", SH.toElementColor palette.warning.default )
 
         ITypes.Error _ ->
-            ( "Error", SH.toElementColor palette.error )
+            ( "Error", SH.toElementColor palette.danger.default )
 
         ITypes.Hidden ->
-            ( "Hidden", SH.toElementColor palette.muted )
+            ( "Hidden", SH.toElementColor palette.muted.default )
 
 
 interactionDetails : ITypes.Interaction -> View.Types.Context -> ITypes.InteractionDetails msg

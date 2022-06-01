@@ -295,7 +295,8 @@ serverView context currentTime project serverRecord =
             serverRecord.status
                 |> VH.getServerUiStatusBadgeState
                 |> StatusBadge.toColors context.palette
-                |> Tuple.first
+                |> .default
+                |> SH.toElementColor
 
         statusText =
             VH.getServerUiStatusStr serverRecord.status
