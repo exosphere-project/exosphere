@@ -7,10 +7,11 @@
     - "{{ ansible_distribution }}.yml"
     - "{{ ansible_os_family }}.yml"
 
-- name: 'VNC Server installed'
+- name: 'VNC server packages installed'
   package:
-    name: '{{ vncserver_package_name }}'
+    name: '{{ item }}'
     state: 'present'
+  loop: '{{ vncserver_packages }}'
 
 - name: 'user-specific VNC configuration directory created'
   file:

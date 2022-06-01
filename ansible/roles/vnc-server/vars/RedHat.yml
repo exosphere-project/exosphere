@@ -1,3 +1,4 @@
 ---
 
-vncserver_package_name: 'tigervnc-server'
+vncserver_packages:
+  - 'tigervnc-server'

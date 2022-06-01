@@ -1,3 +1,5 @@
 ---
 
-vncserver_package_name: 'tigervnc-standalone-server'
+vncserver_packages:
+  - 'tigervnc-standalone-server'
+  - 'dbus-x11'
