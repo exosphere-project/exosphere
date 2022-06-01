@@ -26,12 +26,12 @@ colorPalette =
     -- Colors are taken from https://tailwindcss.com/docs/customizing-colors#default-color-palette
     -- as {lightest=100, light=300, base=500, dark=700, darkest=900}
     { gray =
-        -- "Gray"
-        { lightest = hexToColor "#f3f4f6" |> Result.withDefault Color.gray
-        , light = hexToColor "#d1d5db" |> Result.withDefault Color.gray
-        , base = hexToColor "#6b7280" |> Result.withDefault Color.gray
-        , dark = hexToColor "#374151" |> Result.withDefault Color.gray
-        , darkest = hexToColor "#111827" |> Result.withDefault Color.gray
+        -- "Zinc"
+        { lightest = hexToColor "#f4f4f5" |> Result.withDefault Color.gray
+        , light = hexToColor "#d4d4d8" |> Result.withDefault Color.gray
+        , base = hexToColor "#71717a" |> Result.withDefault Color.gray
+        , dark = hexToColor "#3f3f46" |> Result.withDefault Color.gray
+        , darkest = hexToColor "#18181b" |> Result.withDefault Color.gray
         }
     , blue =
         -- "Sky"
