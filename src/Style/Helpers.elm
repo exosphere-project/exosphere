@@ -21,53 +21,80 @@ import Widget.Style
 import Widget.Style.Material as Material
 
 
+{-| Palette of the shades of all major colors
+-}
 colorPalette : ST.ColorPalette
 colorPalette =
     -- Colors are taken from https://tailwindcss.com/docs/customizing-colors#default-color-palette
-    -- as {lightest=100, light=300, base=500, dark=700, darkest=900}
+    -- as {lightest=100, lighter=200, light=300, semiLight=400, base=500,
+    -- semiDark=600, dark=700, darker=800, darkest=900}
     { gray =
         -- "Zinc"
         { lightest = hexToColor "#f4f4f5" |> Result.withDefault Color.gray
+        , lighter = hexToColor "#e4e4e7" |> Result.withDefault Color.gray
         , light = hexToColor "#d4d4d8" |> Result.withDefault Color.gray
+        , semiLight = hexToColor "#a1a1aa" |> Result.withDefault Color.gray
         , base = hexToColor "#71717a" |> Result.withDefault Color.gray
+        , semiDark = hexToColor "#52525b" |> Result.withDefault Color.gray
         , dark = hexToColor "#3f3f46" |> Result.withDefault Color.gray
+        , darker = hexToColor "#27272a" |> Result.withDefault Color.gray
         , darkest = hexToColor "#18181b" |> Result.withDefault Color.gray
         }
     , blue =
         -- "Sky"
         { lightest = hexToColor "#e0f2fe" |> Result.withDefault Color.blue
+        , lighter = hexToColor "#bae6fd" |> Result.withDefault Color.blue
         , light = hexToColor "#7dd3fc" |> Result.withDefault Color.blue
+        , semiLight = hexToColor "#38bdf8" |> Result.withDefault Color.blue
         , base = hexToColor "#0ea5e9" |> Result.withDefault Color.blue
+        , semiDark = hexToColor "#0284c7" |> Result.withDefault Color.blue
         , dark = hexToColor "#0369a1" |> Result.withDefault Color.blue
+        , darker = hexToColor "#075985" |> Result.withDefault Color.blue
         , darkest = hexToColor "#0c4a6e" |> Result.withDefault Color.blue
         }
     , green =
         -- "Lime"
         { lightest = hexToColor "#ecfccb" |> Result.withDefault Color.green
+        , lighter = hexToColor "#d9f99d" |> Result.withDefault Color.green
         , light = hexToColor "#bef264" |> Result.withDefault Color.green
+        , semiLight = hexToColor "#a3e635" |> Result.withDefault Color.green
         , base = hexToColor "#84cc16" |> Result.withDefault Color.green
+        , semiDark = hexToColor "#65a30d" |> Result.withDefault Color.green
         , dark = hexToColor "#4d7c0f" |> Result.withDefault Color.green
+        , darker = hexToColor "#3f6212" |> Result.withDefault Color.green
         , darkest = hexToColor "#365314" |> Result.withDefault Color.green
         }
     , yellow =
         -- "Yellow"
         { lightest = hexToColor "#fef9c3" |> Result.withDefault Color.yellow
+        , lighter = hexToColor "#fef08a" |> Result.withDefault Color.yellow
         , light = hexToColor "#fde047" |> Result.withDefault Color.yellow
+        , semiLight = hexToColor "#facc15" |> Result.withDefault Color.yellow
         , base = hexToColor "#eab308" |> Result.withDefault Color.yellow
+        , semiDark = hexToColor "#ca8a04" |> Result.withDefault Color.yellow
         , dark = hexToColor "#a16207" |> Result.withDefault Color.yellow
+        , darker = hexToColor "#854d0e" |> Result.withDefault Color.yellow
         , darkest = hexToColor "#713f12" |> Result.withDefault Color.yellow
         }
     , red =
         -- "Red"
         { lightest = hexToColor "#fee2e2" |> Result.withDefault Color.red
+        , lighter = hexToColor "#fecaca" |> Result.withDefault Color.red
         , light = hexToColor "#fca5a5" |> Result.withDefault Color.red
+        , semiLight = hexToColor "#f87171" |> Result.withDefault Color.red
         , base = hexToColor "#ef4444" |> Result.withDefault Color.red
+        , semiDark = hexToColor "#dc2626" |> Result.withDefault Color.red
         , dark = hexToColor "#b91c1c" |> Result.withDefault Color.red
+        , darker = hexToColor "#991b1b" |> Result.withDefault Color.red
         , darkest = hexToColor "#7f1d1d" |> Result.withDefault Color.red
         }
     }
 
 
+{-| Prepares a palette of the specific colors used throughout the app
+by picking them from the all colors palette `colorPalette`
+based on the deployer colors and the theme chosen
+-}
 toExoPalette : ST.DeployerColorThemes -> StyleMode -> ExoPalette
 toExoPalette deployerColors { theme, systemPreference } =
     let
@@ -94,32 +121,37 @@ toExoPalette deployerColors { theme, systemPreference } =
                 , surface = Color.rgb255 0 0 0
                 }
             , info =
-                { background = colorPalette.blue.lightest
-                , text = colorPalette.blue.darkest
+                { textOnNeutralBG = colorPalette.blue.semiDark
+                , textOnColoredBG = colorPalette.blue.darkest
+                , background = colorPalette.blue.lightest
                 , border = colorPalette.blue.light
                 , default = colorPalette.blue.base
                 }
             , success =
-                { background = colorPalette.green.lightest
-                , text = colorPalette.green.darkest
+                { textOnNeutralBG = colorPalette.green.semiDark
+                , textOnColoredBG = colorPalette.green.darkest
+                , background = colorPalette.green.lightest
                 , border = colorPalette.green.light
                 , default = colorPalette.green.base
                 }
             , warning =
-                { background = colorPalette.yellow.lightest
-                , text = colorPalette.yellow.darkest
+                { textOnNeutralBG = colorPalette.yellow.semiDark
+                , textOnColoredBG = colorPalette.yellow.darkest
+                , background = colorPalette.yellow.lightest
                 , border = colorPalette.yellow.light
                 , default = colorPalette.yellow.base
                 }
             , danger =
-                { background = colorPalette.red.lightest
-                , text = colorPalette.red.darkest
+                { textOnNeutralBG = colorPalette.red.semiDark
+                , textOnColoredBG = colorPalette.red.darkest
+                , background = colorPalette.red.lightest
                 , border = colorPalette.red.light
                 , default = colorPalette.red.base
                 }
             , muted =
-                { background = colorPalette.gray.lightest
-                , text = colorPalette.gray.darkest
+                { textOnNeutralBG = colorPalette.gray.semiDark
+                , textOnColoredBG = colorPalette.gray.darkest
+                , background = colorPalette.gray.lightest
                 , border = colorPalette.gray.light
                 , default = colorPalette.gray.base
                 }
@@ -146,32 +178,37 @@ toExoPalette deployerColors { theme, systemPreference } =
                 , surface = Color.rgb255 255 255 255
                 }
             , info =
-                { background = colorPalette.blue.darkest
-                , text = colorPalette.blue.lightest
+                { textOnNeutralBG = colorPalette.blue.semiLight
+                , textOnColoredBG = colorPalette.blue.lightest
+                , background = colorPalette.blue.darkest
                 , border = colorPalette.blue.dark
                 , default = colorPalette.blue.base
                 }
             , success =
-                { background = colorPalette.green.darkest
-                , text = colorPalette.green.lightest
+                { textOnNeutralBG = colorPalette.green.semiLight
+                , textOnColoredBG = colorPalette.green.lightest
+                , background = colorPalette.green.darkest
                 , border = colorPalette.green.dark
                 , default = colorPalette.green.base
                 }
             , warning =
-                { background = colorPalette.yellow.darkest
-                , text = colorPalette.yellow.lightest
+                { textOnNeutralBG = colorPalette.yellow.semiLight
+                , textOnColoredBG = colorPalette.yellow.lightest
+                , background = colorPalette.yellow.darkest
                 , border = colorPalette.yellow.dark
                 , default = colorPalette.yellow.base
                 }
             , danger =
-                { background = colorPalette.red.darkest
-                , text = colorPalette.red.lightest
+                { textOnNeutralBG = colorPalette.red.semiLight
+                , textOnColoredBG = colorPalette.red.lightest
+                , background = colorPalette.red.darkest
                 , border = colorPalette.red.dark
                 , default = colorPalette.red.base
                 }
             , muted =
-                { background = colorPalette.gray.darkest
-                , text = colorPalette.gray.lightest
+                { textOnNeutralBG = colorPalette.gray.semiLight
+                , textOnColoredBG = colorPalette.gray.lightest
+                , background = colorPalette.gray.darkest
                 , border = colorPalette.gray.dark
                 , default = colorPalette.gray.base
                 }
@@ -194,6 +231,7 @@ materialStyle exoPalette =
             toMaterialPalette exoPalette
 
         warningPalette =
+            -- FIXME: check if better shade then default?
             { regularPalette | primary = exoPalette.warning.default }
 
         dangerPalette =
@@ -309,7 +347,7 @@ toMaterialPalette exoPalette =
         , secondary = exoPalette.on.secondary
         , background = exoPalette.on.background
         , surface = exoPalette.on.surface
-        , error = exoPalette.danger.text
+        , error = exoPalette.danger.textOnColoredBG
         }
     }
 

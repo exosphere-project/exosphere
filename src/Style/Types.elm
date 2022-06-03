@@ -1,5 +1,6 @@
 module Style.Types exposing
     ( ColorPalette
+    , ColorShades9
     , DeployerColorThemes
     , DeployerColors
     , ElmUiWidgetStyle
@@ -43,21 +44,25 @@ type alias ElmUiWidgetStyle style msg =
     }
 
 
-type alias ColorShades5 =
+type alias ColorShades9 =
     { lightest : Color.Color
+    , lighter : Color.Color
     , light : Color.Color
+    , semiLight : Color.Color
     , base : Color.Color
+    , semiDark : Color.Color
     , dark : Color.Color
+    , darker : Color.Color
     , darkest : Color.Color
     }
 
 
 type alias ColorPalette =
-    { gray : ColorShades5
-    , blue : ColorShades5
-    , green : ColorShades5
-    , yellow : ColorShades5
-    , red : ColorShades5
+    { gray : ColorShades9
+    , blue : ColorShades9
+    , green : ColorShades9
+    , yellow : ColorShades9
+    , red : ColorShades9
     }
 
 
@@ -78,8 +83,9 @@ type alias StyleMode =
 
 
 type alias UIStateColors =
-    { background : Color.Color
-    , text : Color.Color
+    { textOnNeutralBG : Color.Color
+    , textOnColoredBG : Color.Color
+    , background : Color.Color
     , border : Color.Color
     , default : Color.Color
     }
