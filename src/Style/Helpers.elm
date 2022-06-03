@@ -128,14 +128,14 @@ toExoPalette deployerColors { theme, systemPreference } =
                 , default = colorPalette.blue.base
                 }
             , success =
-                { textOnNeutralBG = colorPalette.green.semiDark
+                { textOnNeutralBG = colorPalette.green.dark -- semiDark has poor contrast since it's a bright color, hence one shade darker
                 , textOnColoredBG = colorPalette.green.darkest
                 , background = colorPalette.green.lightest
                 , border = colorPalette.green.light
                 , default = colorPalette.green.base
                 }
             , warning =
-                { textOnNeutralBG = colorPalette.yellow.semiDark
+                { textOnNeutralBG = colorPalette.yellow.dark -- semiDark has poor contrast since it's a bright color, hence one shade darker
                 , textOnColoredBG = colorPalette.yellow.darkest
                 , background = colorPalette.yellow.lightest
                 , border = colorPalette.yellow.light
@@ -149,7 +149,7 @@ toExoPalette deployerColors { theme, systemPreference } =
                 , default = colorPalette.red.base
                 }
             , muted =
-                { textOnNeutralBG = colorPalette.gray.semiDark
+                { textOnNeutralBG = colorPalette.gray.base -- semiDark relatively blends in with other black text, hence one shade lighter
                 , textOnColoredBG = colorPalette.gray.darkest
                 , background = colorPalette.gray.lightest
                 , border = colorPalette.gray.light
