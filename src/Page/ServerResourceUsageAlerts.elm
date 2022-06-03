@@ -2,15 +2,11 @@ module Page.ServerResourceUsageAlerts exposing (view)
 
 import Dict
 import Element
-import Element.Background as Background
-import Element.Border as Border
-import Element.Font as Font
-import FeatherIcons
 import Helpers.ServerResourceUsage exposing (timeSeriesRecentDataPoints)
-import Style.Helpers as SH
+import Style.Widgets.Alert as Alert
 import Time
 import Tuple
-import Types.ServerResourceUsage exposing (Alert, AlertLevel(..), DataPoint, TimeSeries)
+import Types.ServerResourceUsage exposing (DataPoint, TimeSeries)
 import View.Types
 
 
@@ -38,40 +34,43 @@ view context currentTime timeSeries =
         Just newestDataPoint ->
             dataPointToAlerts context newestDataPoint
                 |> List.map (renderAlert context)
-                |> Element.column [ Element.paddingXY 0 5, Element.spacing 8 ]
+                |> Element.column
+                    [ Element.paddingXY 0 6
+                    , Element.spacing 6
+                    ]
 
         Nothing ->
             Element.none
 
 
-dataPointToAlerts : View.Types.Context -> DataPoint -> List Alert
+dataPointToAlerts : View.Types.Context -> DataPoint -> List ( Alert.AlertState, String )
 dataPointToAlerts context dataPoint =
     let
         diskAlerts =
             if dataPoint.rootfsPctUsed > 95 then
-                [ Alert Crit
-                    ("Root disk is full! Please free some space now, else "
+                [ ( Alert.Danger
+                  , "Root disk is full! Please free some space now, else "
                         ++ context.localization.virtualComputer
                         ++ " will stop working."
-                    )
+                  )
                 ]
 
             else if dataPoint.rootfsPctUsed > 90 then
-                [ Alert Warn "Root disk is nearly full. Be careful not to use up all the space." ]
+                [ ( Alert.Warning, "Root disk is nearly full. Be careful not to use up all the space." ) ]
 
             else
                 []
 
         memAlerts =
             if dataPoint.memPctUsed > 95 then
-                [ Alert Warn "Available memory (RAM) is nearly exhausted." ]
+                [ ( Alert.Warning, "Available memory (RAM) is nearly exhausted." ) ]
 
             else
                 []
 
         cpuAlerts =
             if dataPoint.cpuPctUsed > 95 then
-                [ Alert Info "CPU usage is high." ]
+                [ ( Alert.Info, "CPU usage is high." ) ]
 
             else
                 []
@@ -79,31 +78,12 @@ dataPointToAlerts context dataPoint =
     List.concat [ diskAlerts, memAlerts, cpuAlerts ]
 
 
-renderAlert : View.Types.Context -> Alert -> Element.Element msg
-renderAlert context alert =
-    let
-        ( icon, color, onColor ) =
-            case alert.level of
-                Info ->
-                    ( FeatherIcons.info, context.palette.primary, context.palette.on.primary )
-
-                Warn ->
-                    ( FeatherIcons.alertTriangle, context.palette.warn, context.palette.on.warn )
-
-                Crit ->
-                    ( FeatherIcons.alertOctagon, context.palette.error, context.palette.on.error )
-    in
-    Element.row
-        [ Element.padding 0, Element.spacing 8 ]
-        [ Element.el
-            [ Element.padding 3
-            , Border.rounded 4
-            , Background.color (SH.toElementColor color)
-            , Font.color (SH.toElementColor onColor)
-            ]
-            (icon
-                |> FeatherIcons.toHtml []
-                |> Element.html
-            )
-        , Element.text alert.text
-        ]
+renderAlert : View.Types.Context -> ( Alert.AlertState, String ) -> Element.Element msg
+renderAlert context ( alertState, alertText ) =
+    Alert.alert [ Element.padding 4 ]
+        context.palette
+        { state = alertState
+        , showIcon = True
+        , showContainer = False
+        , content = Element.paragraph [] [ Element.text alertText ]
+        }

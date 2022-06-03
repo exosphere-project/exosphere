@@ -28,7 +28,7 @@ import Svg
 import Time
 import Tuple
 import Types.HelperTypes as HelperTypes
-import Types.ServerResourceUsage exposing (AlertLevel(..), DataPoint, TimeSeries)
+import Types.ServerResourceUsage exposing (DataPoint, TimeSeries)
 import View.Types
 
 

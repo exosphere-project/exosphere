@@ -24,6 +24,7 @@ import Route
 import ServerDeploy exposing (cloudInitUserDataTemplate)
 import Style.Helpers as SH
 import Style.Types as ST
+import Style.Widgets.Alert as Alert
 import Style.Widgets.Button as Button
 import Style.Widgets.Card exposing (badge)
 import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
@@ -487,7 +488,7 @@ view context project currentTime model =
 
                 Just guidanceText ->
                     Element.paragraph
-                        [ Font.color (SH.toElementColor context.palette.error)
+                        [ Font.color (SH.toElementColor context.palette.danger.textOnNeutralBG)
                         , Element.alignRight
                         ]
                         [ Element.text guidanceText
@@ -1267,7 +1268,7 @@ clusterInputExperimental context model =
     in
     Element.column
         [ Element.width Element.fill
-        , Element.spacing 24
+        , Element.spacing 12
         ]
         [ Input.radioRow [ Element.spacing 10 ]
             { label =
@@ -1287,11 +1288,16 @@ clusterInputExperimental context model =
             , selected = Just model.createCluster
             }
         , if model.createCluster then
-            Element.column
-                ([ Background.color (SH.toElementColor context.palette.warn), Font.color (SH.toElementColor context.palette.on.warn) ]
-                    ++ VH.exoElementAttributes
-                )
-                (List.map (\warning -> Element.paragraph [] [ warning ]) warnings)
+            Alert.alert []
+                context.palette
+                { state = Alert.Warning
+                , showIcon = False
+                , showContainer = True
+                , content =
+                    Element.column
+                        [ Element.spacing 12, Element.width Element.fill ]
+                        (List.map (\warning -> Element.paragraph [] [ warning ]) warnings)
+                }
 
           else
             Element.none
@@ -1390,11 +1396,16 @@ desktopEnvironmentPicker context project model =
             , selected = Just model.deployDesktopEnvironment
             }
         , if model.deployDesktopEnvironment then
-            Element.column
-                ([ Background.color (SH.toElementColor context.palette.warn), Font.color (SH.toElementColor context.palette.on.warn) ]
-                    ++ VH.exoElementAttributes
-                )
-                (List.map (\warning -> Element.paragraph [] [ warning ]) warnings)
+            Alert.alert []
+                context.palette
+                { state = Alert.Warning
+                , showIcon = False
+                , showContainer = True
+                , content =
+                    Element.column
+                        [ Element.spacing 12, Element.width Element.fill ]
+                        (List.map (\warning -> Element.paragraph [] [ warning ]) warnings)
+                }
 
           else
             Element.none
@@ -1441,23 +1452,27 @@ skipOperatingSystemUpdatesPicker context model =
             , selected = Just model.installOperatingSystemUpdates
             }
         , if not model.installOperatingSystemUpdates then
-            Element.paragraph
-                ([ Background.color (SH.toElementColor context.palette.warn), Font.color (SH.toElementColor context.palette.on.warn) ]
-                    ++ VH.exoElementAttributes
-                )
-                [ Element.text <|
-                    String.concat
-                        [ "Warning: Skipping operating system updates is a security risk, especially when launching "
-                        , Helpers.String.indefiniteArticle context.localization.virtualComputer
-                        , " "
-                        , context.localization.virtualComputer
-                        , " from an older "
-                        , context.localization.staticRepresentationOfBlockDeviceContents
-                        , ". Do not use this "
-                        , context.localization.virtualComputer
-                        , " for any sensitive information or workloads."
+            Alert.alert []
+                context.palette
+                { state = Alert.Warning
+                , showIcon = False
+                , showContainer = True
+                , content =
+                    Element.paragraph []
+                        [ Element.text <|
+                            String.concat
+                                [ "Warning: Skipping operating system updates is a security risk, especially when launching "
+                                , Helpers.String.indefiniteArticle context.localization.virtualComputer
+                                , " "
+                                , context.localization.virtualComputer
+                                , " from an older "
+                                , context.localization.staticRepresentationOfBlockDeviceContents
+                                , ". Do not use this "
+                                , context.localization.virtualComputer
+                                , " for any sensitive information or workloads."
+                                ]
                         ]
-                ]
+                }
 
           else
             Element.none
@@ -1482,7 +1497,7 @@ networkPicker context project model =
             case maybeStr of
                 Just str ->
                     Element.paragraph
-                        [ Font.color (context.palette.error |> SH.toElementColor) ]
+                        [ Font.color (context.palette.danger.textOnNeutralBG |> SH.toElementColor) ]
                         [ Element.text str ]
 
                 Nothing ->
