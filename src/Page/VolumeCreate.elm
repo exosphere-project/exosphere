@@ -144,7 +144,7 @@ view context project model =
               Element.row (List.append VH.exoRowAttributes [ Element.width Element.fill ])
                 [ case quotaWarnText of
                     Just text ->
-                        Element.el [ Font.color <| SH.toElementColor context.palette.error ] <| Element.text text
+                        Element.el [ Font.color <| SH.toElementColor context.palette.danger.textOnNeutralBG ] <| Element.text text
 
                     Nothing ->
                         Element.none

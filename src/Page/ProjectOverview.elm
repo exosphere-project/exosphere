@@ -361,7 +361,7 @@ imageTileContents context project =
                 |> Element.text
                 |> Element.el
                     [ Element.centerY
-                    , context.palette.muted
+                    , context.palette.muted.textOnNeutralBG
                         |> SH.toElementColor
                         |> Font.color
                     ]
@@ -396,7 +396,7 @@ tileContents context resourceWithAvailabilityMetadata resourceWord renderResourc
         mutedText text =
             Element.el
                 [ Element.centerX
-                , context.palette.muted
+                , context.palette.muted.textOnNeutralBG
                     |> SH.toElementColor
                     |> Font.color
                 ]

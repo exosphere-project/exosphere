@@ -27,7 +27,7 @@ statusBadge palette state status =
         , Border.width 1
         , Border.color <| SH.toElementColor stateColor.border
         , Background.color <| SH.toElementColor stateColor.background
-        , Font.color <| SH.toElementColor stateColor.text
+        , Font.color <| SH.toElementColor stateColor.textOnColoredBG
         , Font.size 16
         , Font.medium
         ]

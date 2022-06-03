@@ -227,7 +227,7 @@ loginOpenstackCredsEntry context model allCredsEntered =
             Element.el
                 (VH.exoElementAttributes
                     ++ [ Element.alignRight
-                       , Font.color (context.palette.error |> SH.toElementColor)
+                       , Font.color (context.palette.danger.textOnNeutralBG |> SH.toElementColor)
                        ]
                 )
                 (Element.text "All fields are required.")

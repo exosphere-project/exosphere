@@ -43,7 +43,7 @@ toggleTip context msgMapper id content position =
                     ([ Element.paddingXY 5 0
                      , Events.onClick toggleMsg
                      , Element.pointer
-                     , Font.color (context.palette.muted |> SH.toElementColor)
+                     , Font.color (context.palette.muted.textOnNeutralBG |> SH.toElementColor)
                      , Element.mouseOver btnClickOrHoverStyle
                      ]
                         ++ (if tipIsShown then

@@ -175,7 +175,7 @@ view context project model =
               Element.row [ Element.width Element.fill ]
                 [ case params.warnText of
                     Just warnText ->
-                        Element.el [ Font.color <| SH.toElementColor context.palette.error ] <| Element.text warnText
+                        Element.el [ Font.color <| SH.toElementColor context.palette.danger.textOnNeutralBG ] <| Element.text warnText
 
                     Nothing ->
                         Element.none
