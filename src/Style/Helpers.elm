@@ -231,11 +231,14 @@ materialStyle exoPalette =
             toMaterialPalette exoPalette
 
         warningPalette =
-            -- FIXME: check if better shade then default?
             { regularPalette | primary = exoPalette.warning.default }
 
         dangerPalette =
-            { regularPalette | primary = exoPalette.danger.default }
+            { regularPalette
+              -- in light theme, white text has relatively poor contrast on red.base (=danger.default)
+              -- hence we need a shade darker i.e. semiDark stored as textOnNeutralBG
+                | primary = exoPalette.danger.textOnNeutralBG
+            }
 
         exoButtonAttributes =
             [ Element.htmlAttribute <| Html.Attributes.style "text-transform" "none"
