@@ -105,7 +105,9 @@ fontWeightAttr weight =
 defaultFontFamily : Element.Attribute msg
 defaultFontFamily =
     Font.family
-        systemFonts
+        (Font.typeface "Open Sans"
+            :: systemFonts
+        )
 
 
 {-| System fonts for common browsers & operating systems.
