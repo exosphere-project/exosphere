@@ -94,11 +94,8 @@ view_ outerModel =
             outerModel.sharedModel
     in
     Element.layout
-        [ Font.size 17
-        , Font.family
-            [ Font.typeface "Open Sans"
-            , Font.sansSerif
-            ]
+        [ Text.defaultFontSize
+        , Text.defaultFontFamily
         , Font.color <| SH.toElementColor <| viewContext.palette.on.background
         , Background.color <| SH.toElementColor <| viewContext.palette.background
         ]

@@ -45,7 +45,10 @@ import View.Helpers as VH
 toHtml : Style.Types.ExoPalette -> Element.Element msg -> Html.Html msg
 toHtml pal a =
     Element.layout
-        [ Font.color <| SH.toElementColor <| pal.on.background ]
+        [ Text.defaultFontSize
+        , Text.defaultFontFamily
+        , Font.color <| SH.toElementColor <| pal.on.background
+        ]
         a
 
 
