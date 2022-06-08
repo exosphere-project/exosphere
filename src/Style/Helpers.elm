@@ -1,5 +1,5 @@
 module Style.Helpers exposing
-    ( colorPalette
+    ( allColorsPalette
     , dropdownItemStyle
     , materialStyle
     , shadowDefaults
@@ -21,10 +21,10 @@ import Widget.Style
 import Widget.Style.Material as Material
 
 
-{-| Palette of the shades of all major colors
+{-| Palette of the shades of all major colors, from which ExoPalette is derived.
 -}
-colorPalette : ST.ColorPalette
-colorPalette =
+allColorsPalette : ST.AllColorsPalette
+allColorsPalette =
     -- Colors are taken from https://tailwindcss.com/docs/customizing-colors#default-color-palette
     -- as {lightest=100, lighter=200, light=300, semiLight=400, base=500,
     -- semiDark=600, dark=700, darker=800, darkest=900}
@@ -92,7 +92,7 @@ colorPalette =
 
 
 {-| Prepares a palette of the specific colors used throughout the app
-by picking them from the all colors palette `colorPalette`
+by picking them from the all colors palette `allColorsPalette`
 based on the deployer colors and the theme chosen
 -}
 toExoPalette : ST.DeployerColorThemes -> StyleMode -> ExoPalette
@@ -121,39 +121,39 @@ toExoPalette deployerColors { theme, systemPreference } =
                 , surface = Color.rgb255 0 0 0
                 }
             , info =
-                { textOnNeutralBG = colorPalette.blue.semiDark
-                , textOnColoredBG = colorPalette.blue.darkest
-                , background = colorPalette.blue.lightest
-                , border = colorPalette.blue.light
-                , default = colorPalette.blue.base
+                { textOnNeutralBG = allColorsPalette.blue.semiDark
+                , textOnColoredBG = allColorsPalette.blue.darkest
+                , background = allColorsPalette.blue.lightest
+                , border = allColorsPalette.blue.light
+                , default = allColorsPalette.blue.base
                 }
             , success =
-                { textOnNeutralBG = colorPalette.green.dark -- semiDark has poor contrast since it's a bright color, hence one shade darker
-                , textOnColoredBG = colorPalette.green.darkest
-                , background = colorPalette.green.lightest
-                , border = colorPalette.green.light
-                , default = colorPalette.green.base
+                { textOnNeutralBG = allColorsPalette.green.dark -- semiDark has poor contrast since it's a bright color, hence one shade darker
+                , textOnColoredBG = allColorsPalette.green.darkest
+                , background = allColorsPalette.green.lightest
+                , border = allColorsPalette.green.light
+                , default = allColorsPalette.green.base
                 }
             , warning =
-                { textOnNeutralBG = colorPalette.yellow.dark -- semiDark has poor contrast since it's a bright color, hence one shade darker
-                , textOnColoredBG = colorPalette.yellow.darkest
-                , background = colorPalette.yellow.lightest
-                , border = colorPalette.yellow.light
-                , default = colorPalette.yellow.base
+                { textOnNeutralBG = allColorsPalette.yellow.dark -- semiDark has poor contrast since it's a bright color, hence one shade darker
+                , textOnColoredBG = allColorsPalette.yellow.darkest
+                , background = allColorsPalette.yellow.lightest
+                , border = allColorsPalette.yellow.light
+                , default = allColorsPalette.yellow.base
                 }
             , danger =
-                { textOnNeutralBG = colorPalette.red.semiDark
-                , textOnColoredBG = colorPalette.red.darkest
-                , background = colorPalette.red.lightest
-                , border = colorPalette.red.light
-                , default = colorPalette.red.base
+                { textOnNeutralBG = allColorsPalette.red.semiDark
+                , textOnColoredBG = allColorsPalette.red.darkest
+                , background = allColorsPalette.red.lightest
+                , border = allColorsPalette.red.light
+                , default = allColorsPalette.red.base
                 }
             , muted =
-                { textOnNeutralBG = colorPalette.gray.base -- semiDark relatively blends in with other black text, hence one shade lighter
-                , textOnColoredBG = colorPalette.gray.darkest
-                , background = colorPalette.gray.lightest
-                , border = colorPalette.gray.light
-                , default = colorPalette.gray.base
+                { textOnNeutralBG = allColorsPalette.gray.base -- semiDark relatively blends in with other black text, hence one shade lighter
+                , textOnColoredBG = allColorsPalette.gray.darkest
+                , background = allColorsPalette.gray.lightest
+                , border = allColorsPalette.gray.light
+                , default = allColorsPalette.gray.base
                 }
             , menu =
                 { secondary = Color.rgb255 29 29 29
@@ -178,39 +178,39 @@ toExoPalette deployerColors { theme, systemPreference } =
                 , surface = Color.rgb255 255 255 255
                 }
             , info =
-                { textOnNeutralBG = colorPalette.blue.semiLight
-                , textOnColoredBG = colorPalette.blue.lightest
-                , background = colorPalette.blue.darkest
-                , border = colorPalette.blue.dark
-                , default = colorPalette.blue.base
+                { textOnNeutralBG = allColorsPalette.blue.semiLight
+                , textOnColoredBG = allColorsPalette.blue.lightest
+                , background = allColorsPalette.blue.darkest
+                , border = allColorsPalette.blue.dark
+                , default = allColorsPalette.blue.base
                 }
             , success =
-                { textOnNeutralBG = colorPalette.green.semiLight
-                , textOnColoredBG = colorPalette.green.lightest
-                , background = colorPalette.green.darkest
-                , border = colorPalette.green.dark
-                , default = colorPalette.green.base
+                { textOnNeutralBG = allColorsPalette.green.semiLight
+                , textOnColoredBG = allColorsPalette.green.lightest
+                , background = allColorsPalette.green.darkest
+                , border = allColorsPalette.green.dark
+                , default = allColorsPalette.green.base
                 }
             , warning =
-                { textOnNeutralBG = colorPalette.yellow.semiLight
-                , textOnColoredBG = colorPalette.yellow.lightest
-                , background = colorPalette.yellow.darkest
-                , border = colorPalette.yellow.dark
-                , default = colorPalette.yellow.base
+                { textOnNeutralBG = allColorsPalette.yellow.semiLight
+                , textOnColoredBG = allColorsPalette.yellow.lightest
+                , background = allColorsPalette.yellow.darkest
+                , border = allColorsPalette.yellow.dark
+                , default = allColorsPalette.yellow.base
                 }
             , danger =
-                { textOnNeutralBG = colorPalette.red.semiLight
-                , textOnColoredBG = colorPalette.red.lightest
-                , background = colorPalette.red.darkest
-                , border = colorPalette.red.dark
-                , default = colorPalette.red.base
+                { textOnNeutralBG = allColorsPalette.red.semiLight
+                , textOnColoredBG = allColorsPalette.red.lightest
+                , background = allColorsPalette.red.darkest
+                , border = allColorsPalette.red.dark
+                , default = allColorsPalette.red.base
                 }
             , muted =
-                { textOnNeutralBG = colorPalette.gray.semiLight
-                , textOnColoredBG = colorPalette.gray.lightest
-                , background = colorPalette.gray.darkest
-                , border = colorPalette.gray.dark
-                , default = colorPalette.gray.base
+                { textOnNeutralBG = allColorsPalette.gray.semiLight
+                , textOnColoredBG = allColorsPalette.gray.lightest
+                , background = allColorsPalette.gray.darkest
+                , border = allColorsPalette.gray.dark
+                , default = allColorsPalette.gray.base
                 }
             , menu =
                 { secondary = Color.rgb255 29 29 29

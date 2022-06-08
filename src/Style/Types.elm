@@ -1,5 +1,5 @@
 module Style.Types exposing
-    ( ColorPalette
+    ( AllColorsPalette
     , ColorShades9
     , DeployerColorThemes
     , DeployerColors
@@ -57,7 +57,7 @@ type alias ColorShades9 =
     }
 
 
-type alias ColorPalette =
+type alias AllColorsPalette =
     { gray : ColorShades9
     , blue : ColorShades9
     , green : ColorShades9
