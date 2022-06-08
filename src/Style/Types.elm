@@ -83,11 +83,11 @@ type alias StyleMode =
 
 
 type alias UIStateColors =
-    { textOnNeutralBG : Color.Color
-    , textOnColoredBG : Color.Color
+    { default : Color.Color
     , background : Color.Color
     , border : Color.Color
-    , default : Color.Color
+    , textOnNeutralBG : Color.Color -- on black/gray/white colored background
+    , textOnColoredBG : Color.Color -- on `background` field colored background
     }
 
 
