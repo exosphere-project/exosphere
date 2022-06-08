@@ -258,7 +258,7 @@ renderMessageAsElement context message =
                     context.palette.warning.textOnNeutralBG |> SH.toElementColor
 
                 ErrorCrit ->
-                    context.palette.warning.textOnNeutralBG |> SH.toElementColor
+                    context.palette.danger.textOnNeutralBG |> SH.toElementColor
     in
     Element.column (exoColumnAttributes ++ [ Element.spacing 13 ])
         [ Element.row [ Element.alignRight ]
