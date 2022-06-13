@@ -1,4 +1,4 @@
-module Style.Widgets.Text exposing (TextVariant(..), body, bold, defaultFontFamily, defaultFontSize, fontWeightAttr, heading, headingStyleAttrs, mono, p, subheading, subheadingStyleAttrs, text, typography, typographyAttrs, underline)
+module Style.Widgets.Text exposing (TextVariant(..), body, defaultFontFamily, defaultFontSize, fontWeightAttr, heading, headingStyleAttrs, mono, p, strong, subheading, subheadingStyleAttrs, text, typography, typographyAttrs, underline)
 
 import Element
 import Element.Border as Border
@@ -76,7 +76,7 @@ typography variant =
 
         Strong ->
             { size = 17
-            , weight = Bold
+            , weight = Semibold
             }
 
         Body ->
@@ -185,7 +185,7 @@ subheadingStyleAttrs palette =
 
     Text.p []
         [ Text.body "Hello, "
-        , Text.bold "World"
+        , Text.strong "World"
         , Element.text "!"
         ]
 
@@ -230,13 +230,13 @@ body label =
     text Body [] label
 
 
-{-| A convience method for bold font weight text.
+{-| A convience method for showing strong text (that uses semiBold font weight).
 
-    Text.bold "Hello!"
+    Text.strong "Hello!"
 
 -}
-bold : String -> Element.Element msg
-bold label =
+strong : String -> Element.Element msg
+strong label =
     text Strong [] label
 
 

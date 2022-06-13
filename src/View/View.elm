@@ -354,7 +354,7 @@ projectNav context p =
             , Element.paddingEach { left = 5, top = 0, bottom = 0, right = 0 }
             ]
             [ Text.body "(logged in as "
-            , Text.bold p.auth.user.name
+            , Text.strong p.auth.user.name
             , Text.body ")"
             ]
         , Element.el

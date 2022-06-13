@@ -129,7 +129,7 @@ namedBlock : String -> Color.Color -> Element.Element msg
 namedBlock label color =
     Element.column
         [ Element.spacing 4 ]
-        [ block color, Text.bold label, Text.mono <| colorToHex color ]
+        [ block color, Text.strong label, Text.mono <| colorToHex color ]
 
 
 {-| This WCAG content block uses foreground & background palette colours to test readability.
