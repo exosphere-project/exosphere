@@ -156,7 +156,7 @@ renderProject context project =
             Element.el
                 [ Element.padding 10
                 , Element.centerX
-                , Font.bold
+                , Font.semiBold
                 ]
             <|
                 Element.row [ Element.spacing 8 ]

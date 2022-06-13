@@ -70,7 +70,7 @@ genericToast context variantClass title actionContext error maybeRecoveryHint =
         ]
         [ Element.el
             [ Region.heading 1
-            , Font.bold
+            , Font.semiBold
             , Font.size 14
             ]
             (Element.text title)

@@ -173,7 +173,7 @@ compactKVRow : String -> Element.Element msg -> Element.Element msg
 compactKVRow key value =
     Element.row
         (exoRowAttributes ++ [ Element.padding 0, Element.spacing 10 ])
-        [ Element.paragraph [ Element.alignTop, Element.width (Element.px 200), Font.bold ] [ Element.text key ]
+        [ Element.paragraph [ Element.alignTop, Element.width (Element.px 200), Font.semiBold ] [ Element.text key ]
         , value
         ]
 
@@ -182,7 +182,7 @@ compactKVSubRow : String -> Element.Element msg -> Element.Element msg
 compactKVSubRow key value =
     Element.row
         (exoRowAttributes ++ [ Element.padding 0, Element.spacing 10, Font.size 14 ])
-        [ Element.paragraph [ Element.width (Element.px 175), Font.bold ] [ Element.text key ]
+        [ Element.paragraph [ Element.width (Element.px 175), Font.semiBold ] [ Element.text key ]
         , Element.el [ Element.width Element.fill ] value
         ]
 
@@ -264,7 +264,7 @@ renderMessageAsElement context message =
         [ Element.row [ Element.alignRight ]
             [ Element.el
                 [ Font.color <| levelColor message.context.level
-                , Font.bold
+                , Font.semiBold
                 ]
                 (Element.text
                     (toFriendlyErrorLevel message.context.level)
@@ -831,7 +831,7 @@ elmUiRenderer context =
             []
     , thematicBreak = Element.none
     , text = Element.text
-    , strong = \content -> Element.row [ Font.bold ] content
+    , strong = \content -> Element.row [ Font.semiBold ] content
     , emphasis = \content -> Element.row [ Font.italic ] content
     , strikethrough = \content -> Element.row [ Font.strike ] content
     , codeSpan =
@@ -1100,7 +1100,7 @@ flavorPicker context project restrictFlavorIds computeQuota flavorGroupToggleTip
 
         headerAttribs =
             [ paddingRight
-            , Font.bold
+            , Font.semiBold
             , Font.center
             ]
 
@@ -1241,7 +1241,7 @@ flavorPicker context project restrictFlavorIds computeQuota flavorGroupToggleTip
     Element.column
         [ Element.spacing 10 ]
         [ Element.el
-            [ Font.bold ]
+            [ Font.semiBold ]
             (Element.text <| Helpers.String.toTitleCase context.localization.virtualComputerHardwareConfig)
         , Element.el flavorEmptyHint <|
             if List.isEmpty flavorGroups then
