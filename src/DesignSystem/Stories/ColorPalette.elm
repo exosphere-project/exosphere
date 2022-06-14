@@ -29,35 +29,39 @@ stories renderer palette plugins =
           , \m ->
                 renderer (palette m) <|
                     collection
+                        -- TODO: redesign swatches in a way that `textOnNeutralBG`, `default`, `border` of UI states (danger, warning, etc.) can also be shown
                         [ swatch
                             [ namedBlock "primary" <| (palette m).primary
                             , namedBlock "secondary" <| (palette m).secondary
                             , namedBlock "background" <| (palette m).background
                             , namedBlock "surface" <| (palette m).surface
-                            , namedBlock "error" <| (palette m).error
-                            , namedBlock "warn" <| (palette m).warn
-                            , namedBlock "readyGood" <| (palette m).readyGood
-                            , namedBlock "muted" <| (palette m).muted
+                            , namedBlock "danger.background" <| (palette m).danger.background
+                            , namedBlock "warning.background" <| (palette m).warning.background
+                            , namedBlock "success.background" <| (palette m).success.background
+                            , namedBlock "info.background" <| (palette m).info.background
+                            , namedBlock "muted.background" <| (palette m).muted.background
                             ]
                         , swatch
                             [ namedBlock "on.primary" <| (palette m).on.primary
                             , namedBlock "on.secondary" <| (palette m).on.secondary
                             , namedBlock "on.background" <| (palette m).on.background
                             , namedBlock "on.surface" <| (palette m).on.surface
-                            , namedBlock "on.error" <| (palette m).on.error
-                            , namedBlock "on.warn" <| (palette m).on.warn
-                            , namedBlock "on.readyGood" <| (palette m).on.readyGood
-                            , namedBlock "on.muted" <| (palette m).on.muted
+                            , namedBlock "danger.textOnColoredBG" <| (palette m).danger.textOnColoredBG
+                            , namedBlock "warning.textOnColoredBG" <| (palette m).warning.textOnColoredBG
+                            , namedBlock "success.textOnColoredBG" <| (palette m).success.textOnColoredBG
+                            , namedBlock "info.textOnColoredBG" <| (palette m).info.textOnColoredBG
+                            , namedBlock "muted.textOnColoredBG" <| (palette m).muted.textOnColoredBG
                             ]
                         , swatch
                             [ wcagBlock "primary" (palette m).on.primary (palette m).primary
                             , wcagBlock "secondary" (palette m).on.secondary (palette m).secondary
                             , wcagBlock "background" (palette m).on.background (palette m).background
                             , wcagBlock "surface" (palette m).on.surface (palette m).surface
-                            , wcagBlock "error" (palette m).on.error (palette m).error
-                            , wcagBlock "warn" (palette m).on.warn (palette m).warn
-                            , wcagBlock "readyGood" (palette m).on.readyGood (palette m).readyGood
-                            , wcagBlock "muted" (palette m).on.muted (palette m).muted
+                            , wcagBlock "danger" (palette m).danger.textOnColoredBG (palette m).danger.background
+                            , wcagBlock "warning" (palette m).warning.textOnColoredBG (palette m).warning.background
+                            , wcagBlock "success" (palette m).success.textOnColoredBG (palette m).success.background
+                            , wcagBlock "info" (palette m).info.textOnColoredBG (palette m).info.background
+                            , wcagBlock "muted" (palette m).muted.textOnColoredBG (palette m).muted.background
                             ]
                         ]
           , plugins
@@ -91,7 +95,7 @@ stories renderer palette plugins =
 -}
 blockSize : number
 blockSize =
-    120
+    108
 
 
 {-| A border color to create a clear block boundary on pure black or white background.
@@ -128,8 +132,11 @@ block color =
 namedBlock : String -> Color.Color -> Element.Element msg
 namedBlock label color =
     Element.column
-        [ Element.spacing 4 ]
-        [ block color, Text.bold label, Text.mono <| colorToHex color ]
+        [ Element.spacing 6, Element.width <| Element.px blockSize, Element.alignTop ]
+        [ block color
+        , Text.mono <| colorToHex color
+        , Element.paragraph [ Font.size 14, Font.semiBold ] [ Element.text label ]
+        ]
 
 
 {-| This WCAG content block uses foreground & background palette colours to test readability.
@@ -160,7 +167,7 @@ wcagBlock label foreground background =
 swatch : List (Element.Element msg) -> Element.Element msg
 swatch blocks =
     Element.row
-        [ Element.spacing 10 ]
+        [ Element.spacing 16 ]
         blocks
 
 
