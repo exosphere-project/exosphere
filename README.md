@@ -337,10 +337,35 @@ This excludes images built by, and intended for the Atmosphere platform.
 
 #### Example Custom Palette
 
-This declares a primary and secondary color in the app.
+This declares a primary and secondary color in the app, for each of dark and light modes.
 
 ```
-palette: { primary: {r: 0, g: 108, b: 163 }, secondary : {r: 96, g: 239, b: 255 } } 
+palette: {
+  "light": {
+    "primary": {
+      "r": 150,
+      "g": 35,
+      "b": 38
+    },
+    "secondary": {
+      "r": 0,
+      "g": 0,
+      "b": 0
+    }
+  },
+  "dark": {
+    "primary": {
+      "r": 221,
+      "g": 0,
+      "b": 49
+    },
+    "secondary": {
+      "r": 0,
+      "g": 0,
+      "b": 0
+    }
+  }
+} 
 ```
 
 #### Example Localization JSON object
