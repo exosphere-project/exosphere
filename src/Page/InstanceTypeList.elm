@@ -145,7 +145,7 @@ view context project instanceTypes =
                             )
                         , Element.el
                             [ Element.centerX
-                            , Font.bold
+                            , Font.semiBold
                             ]
                           <|
                             Element.text instanceType.friendlyName

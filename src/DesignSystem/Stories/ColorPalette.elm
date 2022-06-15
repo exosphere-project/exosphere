@@ -135,7 +135,7 @@ namedBlock label color =
         [ Element.spacing 6, Element.width <| Element.px blockSize, Element.alignTop ]
         [ block color
         , Text.mono <| colorToHex color
-        , Element.paragraph [ Font.size 14, Font.semiBold ] [ Element.text label ]
+        , Element.paragraph [ Font.size 14, Text.strong ] [ Element.text label ]
         ]
 
 

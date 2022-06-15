@@ -338,7 +338,7 @@ widgets palette model =
 intro : List (Element.Element a)
 intro =
     [ Element.el
-        [ Region.heading 2, Font.size 22, Font.bold ]
+        [ Region.heading 2, Font.size 22, Font.semiBold ]
         (Element.text "Exosphere Style Guide")
     , Element.paragraph
         []

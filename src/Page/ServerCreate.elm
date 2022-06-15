@@ -724,7 +724,7 @@ view context project currentTime model =
                 [ Element.spacing 24 ]
               <|
                 [ Input.radioRow [ Element.spacing 10 ]
-                    { label = Input.labelAbove [ Element.paddingXY 0 12, Font.bold ] (Element.text "Advanced Options")
+                    { label = Input.labelAbove [ Element.paddingXY 0 12, Font.semiBold ] (Element.text "Advanced Options")
                     , onChange = GotShowAdvancedOptions
                     , options =
                         [ Input.option False (Element.text "Hide")
@@ -1380,7 +1380,7 @@ desktopEnvironmentPicker context project model =
     Element.column [ Element.spacing 10 ]
         [ Input.radioRow VH.exoElementAttributes
             { label =
-                Input.labelAbove [ Element.paddingXY 0 12, Font.bold ]
+                Input.labelAbove [ Element.paddingXY 0 12, Font.semiBold ]
                     (Element.text <|
                         String.concat
                             [ "Enable "
@@ -1425,7 +1425,7 @@ guacamolePicker context model =
 
         Just deployGuacamole ->
             Input.radioRow [ Element.spacing 10 ]
-                { label = Input.labelAbove [ Element.paddingXY 0 12, Font.bold ] (Element.text "Deploy Guacamole for easy remote access?")
+                { label = Input.labelAbove [ Element.paddingXY 0 12, Font.semiBold ] (Element.text "Deploy Guacamole for easy remote access?")
                 , onChange = \new -> GotDeployGuacamole <| Just new
                 , options =
                     [ Input.option True (Element.text "Yes")
@@ -1441,7 +1441,7 @@ skipOperatingSystemUpdatesPicker : View.Types.Context -> Model -> Element.Elemen
 skipOperatingSystemUpdatesPicker context model =
     Element.column [ Element.spacing 10 ]
         [ Input.radioRow [ Element.spacing 10 ]
-            { label = Input.labelAbove [ Element.paddingXY 0 12, Font.bold ] (Element.text "Install operating system updates?")
+            { label = Input.labelAbove [ Element.paddingXY 0 12, Font.semiBold ] (Element.text "Install operating system updates?")
             , onChange = GotInstallOperatingSystemUpdates
             , options =
                 [ Input.option True (Element.text "Yes")
@@ -1526,7 +1526,7 @@ networkPicker context project model =
     Element.column
         [ Element.spacing 10 ]
         [ VH.requiredLabel context.palette
-            (Element.el [ Font.bold ] <| Element.text "Network")
+            (Element.el [ Font.semiBold ] <| Element.text "Network")
         , guidance
         , picker
         ]
@@ -1599,7 +1599,7 @@ floatingIpPicker context project model =
                     in
                     Element.column
                         [ Element.paddingXY 0 10, Element.spacingXY 0 10 ]
-                        [ Element.el [ Font.bold ] <|
+                        [ Element.el [ Font.semiBold ] <|
                             Element.text <|
                                 String.join " "
                                     [ Helpers.String.toTitleCase context.localization.floatingIpAddress
@@ -1625,7 +1625,7 @@ floatingIpPicker context project model =
     in
     Element.column
         [ Element.spacing 10 ]
-        [ Element.el [ Font.bold ] <|
+        [ Element.el [ Font.semiBold ] <|
             Element.text <|
                 Helpers.String.toTitleCase context.localization.floatingIpAddress
         , optionPicker
@@ -1676,7 +1676,7 @@ keypairPicker context project model =
     Element.column
         [ Element.spacing 10 ]
         [ Element.el
-            [ Font.bold ]
+            [ Font.semiBold ]
             (Element.text
                 (Helpers.String.toTitleCase context.localization.pkiPublicKeyForSsh)
             )
@@ -1717,7 +1717,7 @@ userDataInput context model =
     Element.column
         [ Element.spacing 10 ]
         [ Element.el
-            [ Font.bold ]
+            [ Font.semiBold ]
             (Element.text
                 (Helpers.String.toTitleCase context.localization.cloudInitData)
             )

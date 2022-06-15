@@ -264,7 +264,7 @@ toChartHeading : View.Types.Context -> Element.Element msg -> String -> Element.
 toChartHeading context title subtitle =
     Element.row
         [ Element.width Element.fill, Element.paddingEach { top = 0, bottom = 0, left = 0, right = 25 } ]
-        [ Element.el [ Font.bold ] title
+        [ Element.el [ Font.semiBold ] title
         , Element.el
             [ Font.color (context.palette.muted.textOnNeutralBG |> SH.toElementColor)
             , Element.alignRight

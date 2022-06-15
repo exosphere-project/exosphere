@@ -77,6 +77,7 @@ genericToast stateColor title actionContext error maybeRecoveryHint =
         [ Element.el
             [ Region.heading 1
             , Font.semiBold
+            , Font.size 14
             ]
             (Element.text title)
         , Element.column

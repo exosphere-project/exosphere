@@ -45,7 +45,10 @@ import View.Helpers as VH
 toHtml : Style.Types.ExoPalette -> Element.Element msg -> Html.Html msg
 toHtml pal a =
     Element.layout
-        [ Font.color <| SH.toElementColor <| pal.on.background ]
+        [ Text.defaultFontSize
+        , Text.defaultFontFamily
+        , Font.color <| SH.toElementColor <| pal.on.background
+        ]
         a
 
 
@@ -308,7 +311,7 @@ main =
                                     ]
                       , {}
                       )
-                    , ( "bold", \m -> toHtml (palette m) <| Text.p [] [ Text.body "Logged in as ", Text.bold "@Jimmy:3421", Text.body "." ], {} )
+                    , ( "bold", \m -> toHtml (palette m) <| Text.p [] [ Text.body "Logged in as ", Text.strong "@Jimmy:3421", Text.body "." ], {} )
                     , ( "mono", \m -> toHtml (palette m) <| Text.p [] [ Text.body "Your IP address is ", Text.mono "192.168.1.1", Text.body "." ], {} )
                     , ( "underline"
                       , \m ->

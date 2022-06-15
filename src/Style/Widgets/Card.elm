@@ -73,7 +73,7 @@ exoCardWithTitleAndSubtitle palette title subTitle content =
         List.append
             [ Element.row
                 [ Element.width Element.fill, Element.spacing 10 ]
-                [ Element.el [ Font.bold, Font.size 16 ] title
+                [ Element.el [ Font.semiBold, Font.size 16 ] title
                 , Element.el [ Element.alignRight ] subTitle
                 ]
             ]
@@ -131,7 +131,7 @@ expandoCard palette expanded expandToggleMsg title subTitle content =
             Element.row
                 [ Element.width Element.fill, Element.spacing 15 ]
                 [ expandButton
-                , Element.el [ Font.bold, Font.size 16 ] title
+                , Element.el [ Font.semiBold, Font.size 16 ] title
                 , Element.el [ Element.alignRight, Element.paddingXY 10 0 ] subTitle
                 ]
     in
