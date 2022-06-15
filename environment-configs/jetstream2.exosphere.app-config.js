@@ -19,9 +19,9 @@ var config = {
     },
     dark: {
       primary: {
-        r: 221,
-        g: 0,
-        b: 49,
+        r: 255,
+        g: 70,
+        b: 95,
       },
       secondary: {
         r: 0,
