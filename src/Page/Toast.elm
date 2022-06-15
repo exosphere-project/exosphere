@@ -1,11 +1,13 @@
 module Page.Toast exposing (view)
 
 import Element
+import Element.Background as Background
+import Element.Border as Border
 import Element.Font as Font
 import Element.Region as Region
 import Html exposing (Html)
-import Html.Attributes
 import Style.Helpers as SH
+import Style.Types as ST
 import Types.Error exposing (ErrorLevel(..), Toast)
 import Types.SharedModel exposing (SharedModel)
 import View.Types
@@ -18,24 +20,23 @@ import View.Types
 view : View.Types.Context -> SharedModel -> Toast -> Html msg
 view context sharedModel t =
     let
-        ( class, title ) =
+        ( stateColor, title ) =
             case t.context.level of
                 ErrorDebug ->
-                    ( "toasty-success", "Debug Message" )
+                    ( context.palette.success, "Debug Message" )
 
                 ErrorInfo ->
-                    ( "toasty-success", "Info" )
+                    ( context.palette.info, "Info" )
 
                 ErrorWarn ->
-                    ( "toasty-warning", "Warning" )
+                    ( context.palette.warning, "Warning" )
 
                 ErrorCrit ->
-                    ( "toasty-error", "Error" )
+                    ( context.palette.danger, "Error" )
 
         toastElement =
             genericToast
-                context
-                class
+                stateColor
                 title
                 t.context.actionContext
                 t.error
@@ -59,25 +60,29 @@ view context sharedModel t =
         layoutWith Element.none
 
 
-genericToast : View.Types.Context -> String -> String -> String -> String -> Maybe String -> Element.Element msg
-genericToast context variantClass title actionContext error maybeRecoveryHint =
+genericToast : ST.UIStateColors -> String -> String -> String -> Maybe String -> Element.Element msg
+genericToast stateColor title actionContext error maybeRecoveryHint =
     Element.column
-        [ Element.htmlAttribute (Html.Attributes.class "toasty-container")
-        , Element.htmlAttribute (Html.Attributes.class variantClass)
+        [ Element.pointer
         , Element.padding 10
         , Element.spacing 10
-        , Font.color (SH.toElementColor context.palette.on.error)
+        , Background.color (SH.toElementColor stateColor.background)
+        , Font.color (SH.toElementColor stateColor.textOnColoredBG)
+        , Font.size 14
+        , Border.width 1
+        , Border.color (SH.toElementColor stateColor.border)
+        , Border.rounded 4
+        , Border.shadow SH.shadowDefaults
         ]
         [ Element.el
             [ Region.heading 1
-            , Font.bold
+            , Font.semiBold
             , Font.size 14
             ]
             (Element.text title)
         , Element.column
-            [ Element.htmlAttribute (Html.Attributes.class "toasty-message")
-            , Font.size 12
-            , Element.spacing 10
+            [ Font.size 13
+            , Element.spacing 8
             ]
             [ Element.paragraph []
                 [ Element.text "While trying to "

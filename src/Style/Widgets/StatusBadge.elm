@@ -18,35 +18,33 @@ type StatusBadgeState
 statusBadge : Style.Types.ExoPalette -> StatusBadgeState -> Element.Element msg -> Element.Element msg
 statusBadge palette state status =
     let
-        ( backgroundColor, textColor ) =
+        stateColor =
             toColors palette state
     in
     Element.el
-        [ Element.paddingXY 8 6
-        , Border.rounded 4
-        , Border.shadow SH.shadowDefaults
-        , Background.color backgroundColor
-        , Font.color textColor
+        [ Element.paddingXY 12 6
+        , Border.rounded 24
+        , Border.width 1
+        , Border.color <| SH.toElementColor stateColor.border
+        , Background.color <| SH.toElementColor stateColor.background
+        , Font.color <| SH.toElementColor stateColor.textOnColoredBG
+        , Font.size 16
+        , Font.medium
         ]
         status
 
 
-toColors : Style.Types.ExoPalette -> StatusBadgeState -> ( Element.Color, Element.Color )
+toColors : Style.Types.ExoPalette -> StatusBadgeState -> Style.Types.UIStateColors
 toColors palette state =
-    let
-        ( backgroundAvh4Color, textAvh4Color ) =
-            case state of
-                ReadyGood ->
-                    ( palette.readyGood, palette.on.readyGood )
+    case state of
+        ReadyGood ->
+            palette.success
 
-                Muted ->
-                    ( palette.muted, palette.on.muted )
+        Muted ->
+            palette.muted
 
-                Warning ->
-                    ( palette.warn, palette.on.warn )
+        Warning ->
+            palette.warning
 
-                Error ->
-                    ( palette.error, palette.on.error )
-    in
-    ( backgroundAvh4Color, textAvh4Color )
-        |> Tuple.mapBoth SH.toElementColor SH.toElementColor
+        Error ->
+            palette.danger

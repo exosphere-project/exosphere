@@ -121,7 +121,7 @@ serverView palette server =
         deleteServerButton =
             Widget.iconButton
                 (SH.materialStyle palette).dangerButton
-                { icon = remove (SH.toElementColor palette.on.error) 16
+                { icon = remove (Element.rgb255 255 255 255) 16
                 , text = "Delete"
                 , onPress =
                     if server.selectable then
@@ -323,7 +323,7 @@ widgets palette model =
             Element.el [ Element.alignRight ]
                 (Widget.iconButton
                     (SH.materialStyle palette).dangerButton
-                    { icon = remove (SH.toElementColor palette.on.error) 16
+                    { icon = remove (Element.rgb255 255 255 255) 16
                     , text = "Delete"
                     , onPress =
                         Just <| DeleteSelectedServers serverIds
@@ -338,7 +338,7 @@ widgets palette model =
 intro : List (Element.Element a)
 intro =
     [ Element.el
-        [ Region.heading 2, Font.size 22, Font.bold ]
+        [ Region.heading 2, Font.size 22, Font.semiBold ]
         (Element.text "Exosphere Style Guide")
     , Element.paragraph
         []

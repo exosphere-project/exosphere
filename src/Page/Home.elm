@@ -139,7 +139,7 @@ addProjectCard context sharedModel =
                         |> FeatherIcons.toHtml []
                         |> Element.html
                         |> Element.el
-                            [ context.palette.muted
+                            [ context.palette.muted.textOnNeutralBG
                                 |> SH.toElementColor
                                 |> Font.color
                             ]
@@ -156,12 +156,12 @@ renderProject context project =
             Element.el
                 [ Element.padding 10
                 , Element.centerX
-                , Font.bold
+                , Font.semiBold
                 ]
             <|
                 Element.row [ Element.spacing 8 ]
                     [ Element.el
-                        [ context.palette.muted
+                        [ context.palette.muted.textOnNeutralBG
                             |> SH.toElementColor
                             |> Font.color
                         ]
@@ -191,7 +191,7 @@ renderProject context project =
                 [ Element.height (Element.px 25)
                 , Element.centerX
                 , Element.width Element.fill
-                , context.palette.muted
+                , context.palette.muted.textOnNeutralBG
                     |> SH.toElementColor
                     |> Font.color
                 ]

@@ -127,7 +127,7 @@ view context project model =
                 ]
             )
         , Element.column VH.formContainer
-            [ Element.el [ Font.bold ] <| Element.text selectServerText
+            [ Element.el [ Font.semiBold ] <| Element.text selectServerText
             , if List.isEmpty serverChoices then
                 Element.text <|
                     String.join " "
@@ -148,7 +148,7 @@ view context project model =
                     , options = serverChoices
                     , selected = model.serverUuid
                     }
-            , Element.el [ Font.bold ] <| Element.text selectIpText
+            , Element.el [ Font.semiBold ] <| Element.text selectIpText
             , if List.isEmpty ipChoices then
                 -- TODO suggest user create a floating IP and provide link to that view (once we build it)
                 Element.text <|
@@ -240,7 +240,7 @@ view context project model =
               Element.row [ Element.width Element.fill ]
                 [ case params.warnText of
                     Just warnText ->
-                        Element.el [ Font.color <| SH.toElementColor context.palette.error ] <| Element.text warnText
+                        Element.el [ Font.color <| SH.toElementColor context.palette.danger.textOnNeutralBG ] <| Element.text warnText
 
                     Nothing ->
                         Element.none

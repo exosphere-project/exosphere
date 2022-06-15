@@ -94,11 +94,8 @@ view_ outerModel =
             outerModel.sharedModel
     in
     Element.layout
-        [ Font.size 17
-        , Font.family
-            [ Font.typeface "Open Sans"
-            , Font.sansSerif
-            ]
+        [ Text.defaultFontSize
+        , Text.defaultFontFamily
         , Font.color <| SH.toElementColor <| viewContext.palette.on.background
         , Background.color <| SH.toElementColor <| viewContext.palette.background
         ]
@@ -357,7 +354,7 @@ projectNav context p =
             , Element.paddingEach { left = 5, top = 0, bottom = 0, right = 0 }
             ]
             [ Text.body "(logged in as "
-            , Text.bold p.auth.user.name
+            , Text.strong p.auth.user.name
             , Text.body ")"
             ]
         , Element.el

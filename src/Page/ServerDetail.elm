@@ -3,11 +3,9 @@ module Page.ServerDetail exposing (Model, Msg(..), init, update, view)
 import DateFormat.Relative
 import Dict
 import Element
-import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
-import Element.Region as Region
 import FeatherIcons
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
@@ -23,14 +21,15 @@ import Page.ServerResourceUsageAlerts
 import Page.ServerResourceUsageCharts
 import RemoteData
 import Route
-import Style.Helpers as SH exposing (shadowDefaults)
+import Style.Helpers as SH
 import Style.Types as ST
+import Style.Widgets.Alert as Alert
 import Style.Widgets.Card
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton
 import Style.Widgets.Link as Link
-import Style.Widgets.Popover.Popover exposing (popover)
+import Style.Widgets.Popover.Popover exposing (popover, popoverStyleDefaults)
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
@@ -342,7 +341,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
 
                         _ ->
                             Element.el
-                                [ context.palette.muted
+                                [ context.palette.muted.textOnNeutralBG
                                     |> SH.toElementColor
                                     |> Font.color
                                 ]
@@ -451,31 +450,15 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
         serverFaultView =
             case details.fault of
                 Just serverFault ->
-                    Element.row
-                        [ Element.padding 16
-                        , Element.spacing 8
-                        , Element.width Element.fill
-                        , Region.announceUrgently
-                        , Border.widthEach { bottom = 0, left = 0, right = 0, top = 2 }
-                        , Border.color (SH.toElementColor context.palette.error)
-                        , Background.color (SH.toElementColorWithOpacity context.palette.error 0.1)
-                        ]
-                        [ Element.el
-                            [ Element.padding 3
-                            , Border.rounded 4
-                            , Background.color (SH.toElementColor context.palette.error)
-                            , Font.color (SH.toElementColor context.palette.on.error)
-                            ]
-                            (FeatherIcons.alertOctagon
-                                |> FeatherIcons.toHtml []
-                                |> Element.html
-                            )
-                        , Element.paragraph
-                            [ Font.color (SH.toElementColor context.palette.error)
-                            , Font.bold
-                            ]
-                            [ Element.text serverFault.message ]
-                        ]
+                    Alert.alert [ Element.width Element.fill ]
+                        context.palette
+                        { state = Alert.Danger
+                        , showIcon = True
+                        , showContainer = True
+                        , content =
+                            Element.paragraph [ Font.semiBold ]
+                                [ Element.text serverFault.message ]
+                        }
 
                 Nothing ->
                     Element.none
@@ -495,7 +478,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                         , serverNameView context model server
                         ]
                     , Element.el
-                        [ Font.size 12, Font.color (SH.toElementColor context.palette.muted) ]
+                        [ Font.size 12, Font.color (SH.toElementColor context.palette.muted.textOnNeutralBG) ]
                         (copyableText context.palette [] server.osProps.uuid)
                     ]
                 , Element.el
@@ -505,13 +488,13 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                     [ Element.alignRight, Font.size 16, Font.regular ]
                     (serverActionsDropdown context project model server)
                 ]
-            , passphraseVulnWarning context server
             , VH.createdAgoByFromSize
                 context
                 ( "created", whenCreated )
                 (Just ( "user", creatorName ))
                 (Just ( context.localization.staticRepresentationOfBlockDeviceContents, imageText ))
                 (Just ( context.localization.virtualComputerHardwareConfig, flavorContents ))
+            , passphraseVulnWarning context server
             ]
         , serverFaultView
         , if List.member details.openstackStatus [ OSTypes.ServerActive, OSTypes.ServerVerifyResize ] then
@@ -585,19 +568,15 @@ serverNameView context model server =
                                 |> List.map List.singleton
                                 |> List.map (Element.paragraph [])
                                 |> Element.column
-                                    [ Font.color (SH.toElementColor context.palette.error)
-                                    , Font.size 14
-                                    , Element.alignRight
-                                    , Element.moveDown 6
-                                    , Background.color (SH.toElementColorWithOpacity context.palette.surface 0.9)
-                                    , Element.spacing 10
-                                    , Element.padding 10
-                                    , Border.rounded 4
-                                    , Border.shadow
-                                        { shadowDefaults
-                                            | color = SH.toElementColorWithOpacity context.palette.muted 0.2
-                                        }
-                                    ]
+                                    (popoverStyleDefaults context.palette
+                                        ++ [ Font.color (SH.toElementColor context.palette.danger.textOnNeutralBG)
+                                           , Font.size 14
+                                           , Element.alignRight
+                                           , Element.moveDown 6
+                                           , Element.spacing 10
+                                           , Element.padding 16
+                                           ]
+                                    )
 
                         Nothing ->
                             Element.none
@@ -688,34 +667,41 @@ passphraseVulnWarning context server =
 
         ServerFromExo serverFromExoProps ->
             if serverFromExoProps.exoServerVersion < 1 then
-                Element.paragraph
-                    [ Font.color (SH.toElementColor context.palette.error) ]
-                    [ Element.text <|
-                        String.join " "
-                            [ "Warning: this"
-                            , context.localization.virtualComputer
-                            , "was created with an older version of Exosphere which left the opportunity for unprivileged processes running on the"
-                            , context.localization.virtualComputer
-                            , "to query the instance metadata service and determine the passphrase for exouser (who is a sudoer). This represents a "
-                            ]
-                    , Link.externalLink
+                Element.el [ Element.paddingXY 0 15 ] <|
+                    Alert.alert []
                         context.palette
-                        "https://en.wikipedia.org/wiki/Privilege_escalation"
-                        "privilege escalation vulnerability"
-                    , Element.text <|
-                        String.join " "
-                            [ ". If you have used this"
-                            , context.localization.virtualComputer
-                            , "for anything important or sensitive, consider rotating the passphrase for exouser, or building a new"
-                            , context.localization.virtualComputer
-                            , "and moving to that one instead of this one. For more information, see "
-                            ]
-                    , Link.externalLink
-                        context.palette
-                        "https://gitlab.com/exosphere/exosphere/issues/284"
-                        "issue #284"
-                    , Element.text " on the Exosphere GitLab project."
-                    ]
+                        { state = Alert.Danger
+                        , showIcon = False
+                        , showContainer = True
+                        , content =
+                            Element.paragraph []
+                                [ Element.text <|
+                                    String.join " "
+                                        [ "This"
+                                        , context.localization.virtualComputer
+                                        , "was created with an older version of Exosphere which left the opportunity for unprivileged processes running on the"
+                                        , context.localization.virtualComputer
+                                        , "to query the instance metadata service and determine the passphrase for exouser (who is a sudoer). This represents a "
+                                        ]
+                                , Link.externalLink
+                                    context.palette
+                                    "https://en.wikipedia.org/wiki/Privilege_escalation"
+                                    "privilege escalation vulnerability"
+                                , Element.text <|
+                                    String.join " "
+                                        [ ". If you have used this"
+                                        , context.localization.virtualComputer
+                                        , "for anything important or sensitive, consider rotating the passphrase for exouser, or building a new"
+                                        , context.localization.virtualComputer
+                                        , "and moving to that one instead of this one. For more information, see "
+                                        ]
+                                , Link.externalLink
+                                    context.palette
+                                    "https://gitlab.com/exosphere/exosphere/issues/284"
+                                    "issue #284"
+                                , Element.text " on the Exosphere GitLab project."
+                                ]
+                        }
 
             else
                 Element.none
@@ -830,7 +816,7 @@ interactions context project server currentTime tlsReverseProxyHostname =
                     let
                         status =
                             Element.row []
-                                [ Element.el [ Font.bold ] <| Element.text "Status: "
+                                [ Element.el [ Font.semiBold ] <| Element.text "Status: "
                                 , Element.text statusWord
                                 ]
 
@@ -854,7 +840,7 @@ interactions context project server currentTime tlsReverseProxyHostname =
 
                         description =
                             Element.paragraph []
-                                [ Element.el [ Font.bold ] <| Element.text "Description: "
+                                [ Element.el [ Font.semiBold ] <| Element.text "Description: "
                                 , Element.text interactionDetails.description
                                 ]
 
@@ -929,8 +915,8 @@ interactions context project server currentTime tlsReverseProxyHostname =
                                                 )
 
                                             _ ->
-                                                ( SH.toElementColor context.palette.muted
-                                                , SH.toElementColor context.palette.muted
+                                                ( SH.toElementColor context.palette.muted.default
+                                                , SH.toElementColor context.palette.muted.textOnNeutralBG
                                                 )
                                 in
                                 Element.row
@@ -1027,7 +1013,7 @@ serverPassphrase context model server =
 
                         _ ->
                             Element.el
-                                [ context.palette.muted
+                                [ context.palette.muted.textOnNeutralBG
                                     |> SH.toElementColor
                                     |> Font.color
                                 ]
@@ -1114,7 +1100,7 @@ serverEventHistory context project server currentTime =
             let
                 renderTableHeader : String -> Element.Element Msg
                 renderTableHeader headerText =
-                    Element.el [ Font.bold ] <| Element.text headerText
+                    Element.el [ Font.semiBold ] <| Element.text headerText
 
                 columns : List (Element.Column OSTypes.ServerEvent Msg)
                 columns =
@@ -1165,7 +1151,6 @@ serverEventHistory context project server currentTime =
                 (VH.formContainer
                     ++ [ Element.spacingXY 0 7
                        , Element.width Element.fill
-                       , Border.color (context.palette.muted |> SH.toElementColor)
                        ]
                 )
                 { data = serverEvents, columns = columns }
@@ -1547,7 +1532,7 @@ renderIpAddresses context project server model =
                     [ Font.size 10
                     , Border.width 1
                     , Border.rounded 20
-                    , Border.color (SH.toElementColor context.palette.muted)
+                    , Border.color (SH.toElementColor context.palette.muted.default)
                     , Element.padding 3
                     ]
                     { onPress = Just <| GotIpInfoLevel ipMsg

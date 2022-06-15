@@ -1,3 +1,6 @@
+/* Copy of Toasty/Defaults.css (from toasty package) plugged in our app
+so that its default theme configuration can be used.  */
+
 .toasty-container {
   padding: 1em;
   border-radius: 5px;

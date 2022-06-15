@@ -82,7 +82,7 @@ numericTextInput palette attribs currentVal params onchangeFunc =
 
                 Just reason ->
                     Element.el
-                        [ Font.color <| SH.toElementColor palette.error ]
+                        [ Font.color <| SH.toElementColor palette.danger.textOnNeutralBG ]
                         (Element.text reason)
     in
     Element.column

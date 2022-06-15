@@ -23,7 +23,7 @@ chip palette onPress label =
         , Element.padding 8
         , Border.width 1
         , Font.size 12
-        , Border.color <| SH.toElementColor palette.muted
+        , Border.color <| SH.toElementColor palette.muted.default
         , Border.rounded 3
         ]
         [ label
@@ -43,7 +43,7 @@ goToButton palette onPress =
     Input.button
         [ Border.width 1
         , Border.rounded 6
-        , Border.color (SH.toElementColor palette.muted)
+        , Border.color (SH.toElementColor palette.muted.default)
         , Element.padding 3
         ]
         { onPress = onPress

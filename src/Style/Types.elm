@@ -1,5 +1,7 @@
 module Style.Types exposing
-    ( DeployerColorThemes
+    ( AllColorsPalette
+    , ColorShades9
+    , DeployerColorThemes
     , DeployerColors
     , ElmUiWidgetStyle
     , ExoPalette
@@ -7,6 +9,7 @@ module Style.Types exposing
     , StyleMode
     , Theme(..)
     , ThemeChoice(..)
+    , UIStateColors
     , defaultColors
     )
 
@@ -41,6 +44,28 @@ type alias ElmUiWidgetStyle style msg =
     }
 
 
+type alias ColorShades9 =
+    { lightest : Color.Color
+    , lighter : Color.Color
+    , light : Color.Color
+    , semiLight : Color.Color
+    , base : Color.Color
+    , semiDark : Color.Color
+    , dark : Color.Color
+    , darker : Color.Color
+    , darkest : Color.Color
+    }
+
+
+type alias AllColorsPalette =
+    { gray : ColorShades9
+    , blue : ColorShades9
+    , green : ColorShades9
+    , yellow : ColorShades9
+    , red : ColorShades9
+    }
+
+
 type Theme
     = Light
     | Dark
@@ -57,25 +82,33 @@ type alias StyleMode =
     }
 
 
+type alias UIStateColors =
+    { default : Color.Color
+    , background : Color.Color
+    , border : Color.Color
+    , textOnNeutralBG : Color.Color -- on black/gray/white colored background
+    , textOnColoredBG : Color.Color -- on `background` field colored background
+    }
+
+
 type alias ExoPalette =
     { primary : Color.Color
     , secondary : Color.Color
     , background : Color.Color
     , surface : Color.Color
-    , error : Color.Color
+
+    -- TODO: give usecase-based names and integrate with previous fields
     , on :
         { primary : Color.Color
         , secondary : Color.Color
         , background : Color.Color
         , surface : Color.Color
-        , error : Color.Color
-        , warn : Color.Color
-        , readyGood : Color.Color
-        , muted : Color.Color
         }
-    , warn : Color.Color
-    , readyGood : Color.Color
-    , muted : Color.Color
+    , info : UIStateColors
+    , success : UIStateColors
+    , warning : UIStateColors
+    , danger : UIStateColors
+    , muted : UIStateColors
     , menu :
         { secondary : Color.Color
         , background : Color.Color

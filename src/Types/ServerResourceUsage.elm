@@ -1,7 +1,5 @@
 module Types.ServerResourceUsage exposing
-    ( Alert
-    , AlertLevel(..)
-    , DataPoint
+    ( DataPoint
     , History
     , TimeSeries
     , emptyResourceUsageHistory
@@ -35,15 +33,3 @@ type alias DataPoint =
     , rootfsPctUsed : Int
     , gpuPctUsed : Maybe Int
     }
-
-
-type alias Alert =
-    { level : AlertLevel
-    , text : String
-    }
-
-
-type AlertLevel
-    = Info
-    | Warn
-    | Crit

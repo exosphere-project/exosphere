@@ -11,7 +11,7 @@ renderValidationError : View.Types.Context -> String -> Element.Element a
 renderValidationError context msg =
     Element.row
         [ Element.spacing 5
-        , Font.color <| SH.toElementColor context.palette.error
+        , Font.color <| SH.toElementColor context.palette.danger.textOnNeutralBG
         ]
         [ Element.el
             []

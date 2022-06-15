@@ -2,7 +2,6 @@ module Page.FloatingIpList exposing (Model, Msg(..), init, update, view)
 
 import Dict
 import Element
-import Element.Background as Background
 import Element.Font as Font
 import Helpers.GetterSetters as GetterSetters
 import Helpers.ResourceList exposing (listItemColumnAttribs)
@@ -13,6 +12,7 @@ import Route
 import Set
 import Style.Helpers as SH
 import Style.Types as ST
+import Style.Widgets.Alert as Alert
 import Style.Widgets.Button as Button
 import Style.Widgets.CopyableText
 import Style.Widgets.DataList as DataList
@@ -199,22 +199,25 @@ view context project model =
 
 ipScarcityWarning : View.Types.Context -> Element.Element Msg
 ipScarcityWarning context =
-    Element.paragraph
-        [ Element.padding 10
-        , Background.color (context.palette.warn |> SH.toElementColor)
-        , Font.color (context.palette.on.warn |> SH.toElementColor)
-        ]
-        [ Element.text <|
-            String.join " "
-                [ context.localization.floatingIpAddress
-                    |> Helpers.String.toTitleCase
-                    |> Helpers.String.pluralize
-                , "are a scarce resource. Please delete your unassigned"
-                , context.localization.floatingIpAddress
-                    |> Helpers.String.pluralize
-                , "to free them up for other cloud users, unless you are saving them for a specific purpose."
+    Alert.alert []
+        context.palette
+        { state = Alert.Warning
+        , showIcon = False
+        , showContainer = True
+        , content =
+            Element.paragraph []
+                [ Element.text <|
+                    String.join " "
+                        [ context.localization.floatingIpAddress
+                            |> Helpers.String.toTitleCase
+                            |> Helpers.String.pluralize
+                        , "are a scarce resource. Please delete your unassigned"
+                        , context.localization.floatingIpAddress
+                            |> Helpers.String.pluralize
+                        , "to free them up for other cloud users, unless you are saving them for a specific purpose."
+                        ]
                 ]
-        ]
+        }
 
 
 type alias FloatingIpRecord =

@@ -1,8 +1,8 @@
-module Style.Widgets.Text exposing (TextVariant(..), body, bold, fontWeightAttr, heading, headingStyleAttrs, mono, p, subheading, subheadingStyleAttrs, text, typography, typographyAttrs, underline)
+module Style.Widgets.Text exposing (TextVariant(..), body, defaultFontFamily, defaultFontSize, fontWeightAttr, heading, headingStyleAttrs, mono, p, strong, subheading, subheadingStyleAttrs, text, typography, typographyAttrs, underline)
 
 import Element
 import Element.Border as Border
-import Element.Font as Font
+import Element.Font as Font exposing (Font)
 import Element.Region as Region
 import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
@@ -14,13 +14,12 @@ import Style.Types exposing (ExoPalette)
 
 {-| Font weight is (loosely) how "heavy" or "light" a font appears to us.
 
-    Bold, Semibold, Regular, etc.
+    Regular, Semibold, Bold, etc.
 
 -}
 type FontWeight
-    = Bold
-    | Semibold
-    | Regular
+    = Regular
+    | Semibold -- | Bold
 
 
 {-| A typoghraphy captures the size, weight, etc. of fonts that we display.
@@ -76,7 +75,7 @@ typography variant =
 
         Strong ->
             { size = 17
-            , weight = Bold
+            , weight = Semibold
             }
 
         Body ->
@@ -90,24 +89,46 @@ typography variant =
 fontWeightAttr : FontWeight -> Element.Attribute msg
 fontWeightAttr weight =
     case weight of
-        Bold ->
-            Font.bold
+        Regular ->
+            Font.regular
 
         Semibold ->
             Font.semiBold
 
-        Regular ->
-            Font.regular
 
-
-{-| Element attribute for the default font family.
+{-| Element attribute for the default font family list.
 -}
-defaultTypeface : Element.Attribute msg
-defaultTypeface =
+defaultFontFamily : Element.Attribute msg
+defaultFontFamily =
     Font.family
-        [ Font.typeface "Open Sans"
-        , Font.sansSerif
-        ]
+        (Font.typeface "Open Sans"
+            :: systemFonts
+        )
+
+
+{-| System fonts for common browsers & operating systems.
+-}
+systemFonts : List Font
+systemFonts =
+    [ Font.typeface "-apple-system"
+    , Font.typeface "BlinkMacSystemFont"
+    , Font.typeface "Segoe UI"
+    , Font.typeface "Roboto"
+    , Font.typeface "Oxygen"
+    , Font.typeface "Ubuntu"
+    , Font.typeface "Cantarell"
+    , Font.typeface "Fira Sans"
+    , Font.typeface "Droid Sans"
+    , Font.typeface "Helvetica Neue"
+    , Font.sansSerif
+    ]
+
+
+{-| Element attribute for normal body text size.
+-}
+defaultFontSize : Element.Attribute msg
+defaultFontSize =
+    Font.size (typography Body).size
 
 
 {-| Creates element attributes for the given typography.
@@ -125,8 +146,7 @@ typographyAttrs variant =
         typo =
             typography variant
     in
-    [ defaultTypeface
-    , Font.size typo.size
+    [ Font.size typo.size
     , fontWeightAttr typo.weight
     ]
 
@@ -137,7 +157,7 @@ headingStyleAttrs : ExoPalette -> List (Element.Attribute msg)
 headingStyleAttrs palette =
     [ Region.heading 2
     , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
-    , Border.color (palette.muted |> SH.toElementColor)
+    , Border.color (palette.muted.textOnNeutralBG |> SH.toElementColor)
     , Element.width Element.fill
     , Element.paddingEach { bottom = 8, left = 0, right = 0, top = 0 }
     , Element.spacing 12
@@ -150,7 +170,7 @@ subheadingStyleAttrs : ExoPalette -> List (Element.Attribute msg)
 subheadingStyleAttrs palette =
     [ Region.heading 3
     , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
-    , Border.color (palette.muted |> SH.toElementColor)
+    , Border.color (palette.muted.textOnNeutralBG |> SH.toElementColor)
     , Element.width Element.fill
     , Element.paddingEach { bottom = 8, left = 0, right = 0, top = 0 }
     , Element.spacing 12
@@ -161,7 +181,7 @@ subheadingStyleAttrs palette =
 
     Text.p []
         [ Text.body "Hello, "
-        , Text.bold "World"
+        , Text.strong "World"
         , Element.text "!"
         ]
 
@@ -206,13 +226,13 @@ body label =
     text Body [] label
 
 
-{-| A convience method for bold font weight text.
+{-| A convience method for showing strong text (that uses semiBold font weight).
 
-    Text.bold "Hello!"
+    Text.strong "Hello!"
 
 -}
-bold : String -> Element.Element msg
-bold label =
+strong : String -> Element.Element msg
+strong label =
     text Strong [] label
 
 

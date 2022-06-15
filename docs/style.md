@@ -29,6 +29,15 @@
 
 We have started to use text helper functions in `Style.Widgets.Text` in order to style text throughout the app more consistently. These helpers add some commonly-used style attributes to the lower-level `Element` functions from `elm-ui`. Some older parts of the codebase haven't been converted to using these `Text` functions yet, but the functions should be used where possible when building new parts (or re-working existing parts) of the UI.
 
+### Color Palette
+
+Throughout the app, we use `context.palette` (with `ExoPalette` type) as it automatically changes its colors whenever light/dark theme is changed. This palette stores colors as *meaningfully* named fields, making the choices intuitive.
+
+ExoPalette has 5 fields for 5 UI states: `info`, `success`, `warning`, `danger`, `muted`. Each of them has following subfields that are meant to be used as follows:
+
+- `default`: For coloring indicators/shapes/lines. As the name suggests, you can use it when other options don't make sense. E.g. server state's indicators on ServerList & ServerDetails page, grey border of icon buttons, etc.
+- `background`, `border`, `textOnColoredBG`: These 3 are usually used together for coloring alert/badge type component that is essentially a container with a background, border, and some text in it. E.g. status badge widget, alert widget, etc.
+- `textOnNeutralBG`: For coloring text (and icons, in some cases) on a neutral (aka plain white/black/grey) background. E.g. text input's invalid message text; muted text on Home, ProjectOverview, ServerDetails pages; different colored messages on MessageLog page; etc.
 
 ### Style Guide (Legacy)
 

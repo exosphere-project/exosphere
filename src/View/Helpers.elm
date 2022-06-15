@@ -173,7 +173,7 @@ compactKVRow : String -> Element.Element msg -> Element.Element msg
 compactKVRow key value =
     Element.row
         (exoRowAttributes ++ [ Element.padding 0, Element.spacing 10 ])
-        [ Element.paragraph [ Element.alignTop, Element.width (Element.px 200), Font.bold ] [ Element.text key ]
+        [ Element.paragraph [ Element.alignTop, Element.width (Element.px 200), Font.semiBold ] [ Element.text key ]
         , value
         ]
 
@@ -182,7 +182,7 @@ compactKVSubRow : String -> Element.Element msg -> Element.Element msg
 compactKVSubRow key value =
     Element.row
         (exoRowAttributes ++ [ Element.padding 0, Element.spacing 10, Font.size 14 ])
-        [ Element.paragraph [ Element.width (Element.px 175), Font.bold ] [ Element.text key ]
+        [ Element.paragraph [ Element.width (Element.px 175), Font.semiBold ] [ Element.text key ]
         , Element.el [ Element.width Element.fill ] value
         ]
 
@@ -233,7 +233,7 @@ hint : View.Types.Context -> String -> Element.Attribute msg
 hint context hintText =
     Element.below
         (Element.el
-            [ Font.color (context.palette.error |> SH.toElementColor)
+            [ Font.color (context.palette.danger.textOnNeutralBG |> SH.toElementColor)
             , Font.size 14
             , Element.alignRight
             , Element.moveDown 6
@@ -249,27 +249,27 @@ renderMessageAsElement context message =
         levelColor errLevel =
             case errLevel of
                 ErrorDebug ->
-                    context.palette.readyGood |> SH.toElementColor
+                    context.palette.success.textOnNeutralBG |> SH.toElementColor
 
                 ErrorInfo ->
-                    context.palette.on.background |> SH.toElementColor
+                    context.palette.info.textOnNeutralBG |> SH.toElementColor
 
                 ErrorWarn ->
-                    context.palette.warn |> SH.toElementColor
+                    context.palette.warning.textOnNeutralBG |> SH.toElementColor
 
                 ErrorCrit ->
-                    context.palette.error |> SH.toElementColor
+                    context.palette.danger.textOnNeutralBG |> SH.toElementColor
     in
     Element.column (exoColumnAttributes ++ [ Element.spacing 13 ])
         [ Element.row [ Element.alignRight ]
             [ Element.el
                 [ Font.color <| levelColor message.context.level
-                , Font.bold
+                , Font.semiBold
                 ]
                 (Element.text
                     (toFriendlyErrorLevel message.context.level)
                 )
-            , Element.el [ context.palette.muted |> SH.toElementColor |> Font.color ]
+            , Element.el [ context.palette.muted.textOnNeutralBG |> SH.toElementColor |> Font.color ]
                 (Element.text
                     (" at " ++ humanReadableDateAndTime message.timestamp)
                 )
@@ -831,7 +831,7 @@ elmUiRenderer context =
             []
     , thematicBreak = Element.none
     , text = Element.text
-    , strong = \content -> Element.row [ Font.bold ] content
+    , strong = \content -> Element.row [ Font.semiBold ] content
     , emphasis = \content -> Element.row [ Font.italic ] content
     , strikethrough = \content -> Element.row [ Font.strike ] content
     , codeSpan =
@@ -1100,7 +1100,7 @@ flavorPicker context project restrictFlavorIds computeQuota flavorGroupToggleTip
 
         headerAttribs =
             [ paddingRight
-            , Font.bold
+            , Font.semiBold
             , Font.center
             ]
 
@@ -1203,7 +1203,7 @@ flavorPicker context project restrictFlavorIds computeQuota flavorGroupToggleTip
                     [ Element.spacing 5, Element.paddingXY 0 5 ]
                     [ Element.row []
                         [ Element.el
-                            [ context.palette.muted
+                            [ context.palette.muted.textOnNeutralBG
                                 |> SH.toElementColor
                                 |> Font.color
                             ]
@@ -1241,7 +1241,7 @@ flavorPicker context project restrictFlavorIds computeQuota flavorGroupToggleTip
     Element.column
         [ Element.spacing 10 ]
         [ Element.el
-            [ Font.bold ]
+            [ Font.semiBold ]
             (Element.text <| Helpers.String.toTitleCase context.localization.virtualComputerHardwareConfig)
         , Element.el flavorEmptyHint <|
             if List.isEmpty flavorGroups then
@@ -1277,7 +1277,7 @@ createdAgoByFromSize :
 createdAgoByFromSize context ( agoWord, agoContents ) maybeWhoCreatedTuple maybeFromTuple maybeSizeTuple =
     let
         muted =
-            Font.color (context.palette.muted |> SH.toElementColor)
+            Font.color (context.palette.muted.textOnNeutralBG |> SH.toElementColor)
     in
     Element.wrappedRow
         [ Element.width Element.fill, Element.spaceEvenly ]
@@ -1342,7 +1342,7 @@ requiredLabel palette undecoratedLabelView =
         [ undecoratedLabelView
         , Element.el
             [ Element.paddingXY 4 0
-            , Font.color (SH.toElementColor palette.error)
+            , Font.color (SH.toElementColor palette.danger.textOnNeutralBG)
             ]
             (Element.text "*")
         ]
@@ -1350,17 +1350,17 @@ requiredLabel palette undecoratedLabelView =
 
 invalidInputAttributes : ExoPalette -> List (Element.Attribute msg)
 invalidInputAttributes palette =
-    validOrInvalidInputElementAttributes palette.error FeatherIcons.alertCircle
+    validOrInvalidInputElementAttributes palette.danger.default FeatherIcons.alertCircle
 
 
 warningInputAttributes : ExoPalette -> List (Element.Attribute msg)
 warningInputAttributes palette =
-    validOrInvalidInputElementAttributes palette.warn FeatherIcons.alertTriangle
+    validOrInvalidInputElementAttributes palette.warning.default FeatherIcons.alertTriangle
 
 
 validInputAttributes : ExoPalette -> List (Element.Attribute msg)
 validInputAttributes palette =
-    validOrInvalidInputElementAttributes palette.readyGood FeatherIcons.checkCircle
+    validOrInvalidInputElementAttributes palette.success.default FeatherIcons.checkCircle
 
 
 validOrInvalidInputElementAttributes : Color.Color -> FeatherIcons.Icon -> List (Element.Attribute msg)
@@ -1398,7 +1398,7 @@ invalidInputHelperText : ExoPalette -> String -> Element.Element msg
 invalidInputHelperText palette helperText =
     Element.row [ Element.spacingXY 10 0 ]
         [ Element.el
-            [ Font.color (palette.error |> SH.toElementColor)
+            [ Font.color (palette.danger.textOnNeutralBG |> SH.toElementColor)
             ]
             (FeatherIcons.alertCircle
                 |> FeatherIcons.toHtml []
@@ -1406,7 +1406,7 @@ invalidInputHelperText palette helperText =
             )
         , -- let text wrap if it exceeds container's width
           Element.paragraph
-            [ Font.color (SH.toElementColor palette.error)
+            [ Font.color (SH.toElementColor palette.danger.textOnNeutralBG)
             , Font.size 16
             ]
             [ Element.text helperText ]
@@ -1417,14 +1417,14 @@ warnMessageHelperText : ExoPalette -> String -> Element.Element msg
 warnMessageHelperText palette helperText =
     Element.row [ Element.spacingXY 10 0 ]
         [ Element.el
-            [ Font.color (palette.warn |> SH.toElementColor)
+            [ Font.color (palette.warning.textOnNeutralBG |> SH.toElementColor)
             ]
             (FeatherIcons.alertTriangle
                 |> FeatherIcons.toHtml []
                 |> Element.html
             )
         , Element.el
-            [ Font.color (SH.toElementColor palette.warn)
+            [ Font.color (SH.toElementColor palette.warning.textOnNeutralBG)
             , Font.size 16
             ]
             (Element.text helperText)
