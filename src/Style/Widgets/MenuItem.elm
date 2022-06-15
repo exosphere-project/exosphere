@@ -25,7 +25,7 @@ menuItem palette state icon itemLabel url =
         ( fontWeight, iconColor, backgroundColor ) =
             case state of
                 Active ->
-                    ( Font.bold
+                    ( Font.semiBold
                     , palette.menu.on.surface
                     , palette.menu.surface
                     )

@@ -472,7 +472,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                             )
                         , Element.paragraph
                             [ Font.color (SH.toElementColor context.palette.error)
-                            , Font.bold
+                            , Font.semiBold
                             ]
                             [ Element.text serverFault.message ]
                         ]
@@ -830,7 +830,7 @@ interactions context project server currentTime tlsReverseProxyHostname =
                     let
                         status =
                             Element.row []
-                                [ Element.el [ Font.bold ] <| Element.text "Status: "
+                                [ Element.el [ Font.semiBold ] <| Element.text "Status: "
                                 , Element.text statusWord
                                 ]
 
@@ -854,7 +854,7 @@ interactions context project server currentTime tlsReverseProxyHostname =
 
                         description =
                             Element.paragraph []
-                                [ Element.el [ Font.bold ] <| Element.text "Description: "
+                                [ Element.el [ Font.semiBold ] <| Element.text "Description: "
                                 , Element.text interactionDetails.description
                                 ]
 
@@ -1114,7 +1114,7 @@ serverEventHistory context project server currentTime =
             let
                 renderTableHeader : String -> Element.Element Msg
                 renderTableHeader headerText =
-                    Element.el [ Font.bold ] <| Element.text headerText
+                    Element.el [ Font.semiBold ] <| Element.text headerText
 
                 columns : List (Element.Column OSTypes.ServerEvent Msg)
                 columns =

@@ -1,4 +1,4 @@
-module Style.Widgets.Text exposing (TextVariant(..), body, bold, defaultFontFamily, defaultFontSize, fontWeightAttr, heading, headingStyleAttrs, mono, p, subheading, subheadingStyleAttrs, text, typography, typographyAttrs, underline)
+module Style.Widgets.Text exposing (TextVariant(..), body, defaultFontFamily, defaultFontSize, fontWeightAttr, heading, headingStyleAttrs, mono, p, strong, subheading, subheadingStyleAttrs, text, typography, typographyAttrs, underline)
 
 import Element
 import Element.Border as Border
@@ -14,13 +14,12 @@ import Style.Types exposing (ExoPalette)
 
 {-| Font weight is (loosely) how "heavy" or "light" a font appears to us.
 
-    Bold, Semibold, Regular, etc.
+    Regular, Semibold, Bold, etc.
 
 -}
 type FontWeight
-    = Bold
-    | Semibold
-    | Regular
+    = Regular
+    | Semibold -- | Bold
 
 
 {-| A typoghraphy captures the size, weight, etc. of fonts that we display.
@@ -76,7 +75,7 @@ typography variant =
 
         Strong ->
             { size = 17
-            , weight = Bold
+            , weight = Semibold
             }
 
         Body ->
@@ -90,14 +89,11 @@ typography variant =
 fontWeightAttr : FontWeight -> Element.Attribute msg
 fontWeightAttr weight =
     case weight of
-        Bold ->
-            Font.bold
+        Regular ->
+            Font.regular
 
         Semibold ->
             Font.semiBold
-
-        Regular ->
-            Font.regular
 
 
 {-| Element attribute for the default font family list.
@@ -185,7 +181,7 @@ subheadingStyleAttrs palette =
 
     Text.p []
         [ Text.body "Hello, "
-        , Text.bold "World"
+        , Text.strong "World"
         , Element.text "!"
         ]
 
@@ -230,13 +226,13 @@ body label =
     text Body [] label
 
 
-{-| A convience method for bold font weight text.
+{-| A convience method for showing strong text (that uses semiBold font weight).
 
-    Text.bold "Hello!"
+    Text.strong "Hello!"
 
 -}
-bold : String -> Element.Element msg
-bold label =
+strong : String -> Element.Element msg
+strong label =
     text Strong [] label
 
 
