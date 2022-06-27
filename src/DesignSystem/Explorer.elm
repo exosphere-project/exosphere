@@ -232,7 +232,7 @@ config =
     , customHeader =
         Just
             { title = "Exosphere Design System"
-            , logo = UIExplorer.logoFromHtml (Html.img [ src "/assets/img/logo-alt.svg", style "padding-top" "10px", style "padding-left" "5px" ] [])
+            , logo = UIExplorer.logoFromHtml (Html.img [ src "assets/img/logo-alt.svg", style "padding-top" "10px", style "padding-left" "5px" ] [])
             , titleColor = Just "#FFFFFF"
             , bgColor = Just "#181725"
             }
