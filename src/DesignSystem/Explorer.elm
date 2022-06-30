@@ -560,16 +560,4 @@ main =
                         ]
                     )
                 ]
-            |> category "Templates"
-                [ storiesOf
-                    "Login"
-                    [ ( "default", \_ -> Html.text "//TODO: Add components to this section.", {} )
-                    ]
-                ]
-            |> category "Pages"
-                [ storiesOf
-                    "Jetstream2"
-                    [ ( "default", \_ -> Html.text "//TODO: Add components to this section.", {} )
-                    ]
-                ]
         )
