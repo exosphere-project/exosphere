@@ -2,13 +2,12 @@ module DesignSystem.Stories.ColorPalette exposing (stories)
 
 import Color
 import Color.Convert exposing (colorToHex)
+import DesignSystem.Helpers exposing (Renderer, ThemeModel, palettize)
 import Element exposing (rgba)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
-import Html
 import Style.Helpers as SH
-import Style.Types
 import Style.Widgets.Text as Text
 import UIExplorer exposing (storiesOf)
 import UIExplorer.ColorMode exposing (ColorMode(..))
@@ -21,67 +20,67 @@ import UIExplorer.ColorMode exposing (ColorMode(..))
     plugins  – UIExplorer plugins (can be empty {})
 
 -}
-stories : (Style.Types.ExoPalette -> Element.Element msg -> Html.Html msg) -> (UIExplorer.Model { model | deployerColors : Style.Types.DeployerColorThemes } msg plugins -> Style.Types.ExoPalette) -> plugins -> UIExplorer.UI { model | deployerColors : Style.Types.DeployerColorThemes } msg plugins
-stories renderer palette plugins =
+stories : Renderer msg -> plugins -> UIExplorer.UI (ThemeModel model) msg plugins
+stories renderer plugins =
     storiesOf
         "Color Palette"
         [ ( "brand"
           , \m ->
-                renderer (palette m) <|
+                renderer (palettize m) <|
                     collection
                         -- TODO: redesign swatches in a way that `textOnNeutralBG`, `default`, `border` of UI states (danger, warning, etc.) can also be shown
                         [ swatch
-                            [ namedBlock "primary" <| (palette m).primary
-                            , namedBlock "secondary" <| (palette m).secondary
-                            , namedBlock "background" <| (palette m).background
-                            , namedBlock "surface" <| (palette m).surface
-                            , namedBlock "danger.background" <| (palette m).danger.background
-                            , namedBlock "warning.background" <| (palette m).warning.background
-                            , namedBlock "success.background" <| (palette m).success.background
-                            , namedBlock "info.background" <| (palette m).info.background
-                            , namedBlock "muted.background" <| (palette m).muted.background
+                            [ namedBlock "primary" <| (palettize m).primary
+                            , namedBlock "secondary" <| (palettize m).secondary
+                            , namedBlock "background" <| (palettize m).background
+                            , namedBlock "surface" <| (palettize m).surface
+                            , namedBlock "danger.background" <| (palettize m).danger.background
+                            , namedBlock "warning.background" <| (palettize m).warning.background
+                            , namedBlock "success.background" <| (palettize m).success.background
+                            , namedBlock "info.background" <| (palettize m).info.background
+                            , namedBlock "muted.background" <| (palettize m).muted.background
                             ]
                         , swatch
-                            [ namedBlock "on.primary" <| (palette m).on.primary
-                            , namedBlock "on.secondary" <| (palette m).on.secondary
-                            , namedBlock "on.background" <| (palette m).on.background
-                            , namedBlock "on.surface" <| (palette m).on.surface
-                            , namedBlock "danger.textOnColoredBG" <| (palette m).danger.textOnColoredBG
-                            , namedBlock "warning.textOnColoredBG" <| (palette m).warning.textOnColoredBG
-                            , namedBlock "success.textOnColoredBG" <| (palette m).success.textOnColoredBG
-                            , namedBlock "info.textOnColoredBG" <| (palette m).info.textOnColoredBG
-                            , namedBlock "muted.textOnColoredBG" <| (palette m).muted.textOnColoredBG
+                            [ namedBlock "on.primary" <| (palettize m).on.primary
+                            , namedBlock "on.secondary" <| (palettize m).on.secondary
+                            , namedBlock "on.background" <| (palettize m).on.background
+                            , namedBlock "on.surface" <| (palettize m).on.surface
+                            , namedBlock "danger.textOnColoredBG" <| (palettize m).danger.textOnColoredBG
+                            , namedBlock "warning.textOnColoredBG" <| (palettize m).warning.textOnColoredBG
+                            , namedBlock "success.textOnColoredBG" <| (palettize m).success.textOnColoredBG
+                            , namedBlock "info.textOnColoredBG" <| (palettize m).info.textOnColoredBG
+                            , namedBlock "muted.textOnColoredBG" <| (palettize m).muted.textOnColoredBG
                             ]
                         , swatch
-                            [ wcagBlock "primary" (palette m).on.primary (palette m).primary
-                            , wcagBlock "secondary" (palette m).on.secondary (palette m).secondary
-                            , wcagBlock "background" (palette m).on.background (palette m).background
-                            , wcagBlock "surface" (palette m).on.surface (palette m).surface
-                            , wcagBlock "danger" (palette m).danger.textOnColoredBG (palette m).danger.background
-                            , wcagBlock "warning" (palette m).warning.textOnColoredBG (palette m).warning.background
-                            , wcagBlock "success" (palette m).success.textOnColoredBG (palette m).success.background
-                            , wcagBlock "info" (palette m).info.textOnColoredBG (palette m).info.background
-                            , wcagBlock "muted" (palette m).muted.textOnColoredBG (palette m).muted.background
+                            [ wcagBlock "primary" (palettize m).on.primary (palettize m).primary
+                            , wcagBlock "secondary" (palettize m).on.secondary (palettize m).secondary
+                            , wcagBlock "background" (palettize m).on.background (palettize m).background
+                            , wcagBlock "surface" (palettize m).on.surface (palettize m).surface
+                            , wcagBlock "danger" (palettize m).danger.textOnColoredBG (palettize m).danger.background
+                            , wcagBlock "warning" (palettize m).warning.textOnColoredBG (palettize m).warning.background
+                            , wcagBlock "success" (palettize m).success.textOnColoredBG (palettize m).success.background
+                            , wcagBlock "info" (palettize m).info.textOnColoredBG (palettize m).info.background
+                            , wcagBlock "muted" (palettize m).muted.textOnColoredBG (palettize m).muted.background
                             ]
                         ]
           , plugins
           )
         , ( "menu"
           , \m ->
-                renderer (palette m) <|
+                renderer (palettize m) <|
                     collection
                         [ swatch
-                            [ namedBlock "background" <| (palette m).menu.background
-                            , namedBlock "surface" <| (palette m).menu.surface
-                            , namedBlock "secondary" <| (palette m).menu.secondary
+                            [ namedBlock "background" <| (palettize m).menu.background
+                            , namedBlock "surface" <| (palettize m).menu.surface
+                            , namedBlock "secondary" <| (palettize m).menu.secondary
                             ]
                         , swatch
-                            [ namedBlock "on.background" <| (palette m).menu.on.background
-                            , namedBlock "on.surface" <| (palette m).menu.on.surface
+                            [ namedBlock "on.background" <| (palettize m).menu.on.background
+                            , namedBlock "on.surface" <| (palettize m).menu.on.surface
                             ]
                         , swatch
-                            [ wcagBlock "background" (palette m).menu.on.background (palette m).menu.background
-                            , wcagBlock "surface" (palette m).menu.on.surface (palette m).menu.surface
+                            [ wcagBlock "background" (palettize m).menu.on.background (palettize m).menu.background
+                            , wcagBlock "surface" (palettize m).menu.on.surface (palettize m).menu.surface
                             ]
                         ]
           , plugins
