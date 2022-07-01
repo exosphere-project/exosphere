@@ -97,6 +97,8 @@ view_ outerModel =
         [ Text.defaultFontSize
         , Text.defaultFontFamily
         , Font.color <| SH.toElementColor <| viewContext.palette.on.background
+
+        -- TODO: take it from palette so that it adapts for dark theme
         , Background.color <| SH.toElementColor <| SH.allColorsPalette.gray.lightest
         ]
         (elementView viewContext.windowSize outerModel viewContext)
