@@ -16,6 +16,7 @@ module Style.Widgets.DataList exposing
 
 import Dict
 import Element
+import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
@@ -397,6 +398,7 @@ view model toMsg context styleAttrs listItemView data bulkActions selectionFilte
          , Border.width 1
          , Border.color <| SH.toElementColorWithOpacity context.palette.on.background 0.1
          , Border.rounded 4
+         , Background.color <| SH.toElementColor context.palette.surface
          ]
             -- Add or override default style with passed style attributes
             ++ styleAttrs

@@ -113,7 +113,7 @@ toExoPalette deployerColors { theme, systemPreference } =
             -- I (cmart) don't believe secondary gets used right now, but at some point we'll want to pick a secondary color?
             , secondary = deployerColors.light.secondary
             , background = Color.rgb255 255 255 255
-            , surface = Color.rgb255 242 242 242
+            , surface = Color.white
             , on =
                 { primary = Color.rgb255 255 255 255
                 , secondary = Color.rgb255 0 0 0
