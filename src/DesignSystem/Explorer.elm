@@ -2,6 +2,7 @@ module DesignSystem.Explorer exposing (main)
 
 import Browser.Events
 import Color
+import DesignSystem.Helpers exposing (palettize, toHtml)
 import DesignSystem.Stories.ColorPalette as ColorPalette
 import Element
 import Element.Font as Font
@@ -37,22 +38,6 @@ import View.Helpers as VH
 
 
 
---- elm-ui helpers
-
-
-{-| Convert Elements to HTML & apply global styling attributes.
--}
-toHtml : Style.Types.ExoPalette -> Element.Element msg -> Html.Html msg
-toHtml pal a =
-    Element.layout
-        [ Text.defaultFontSize
-        , Text.defaultFontFamily
-        , Font.color <| SH.toElementColor <| pal.on.background
-        ]
-        a
-
-
-
 --- theme
 
 
@@ -74,35 +59,6 @@ deployerColors flags =
 
         Nothing ->
             Style.Types.defaultColors
-
-
-{-| Creates an ExoPalette based on the light/dark color mode.
--}
-palette : UIExplorer.Model Model Msg PluginOptions -> Style.Types.ExoPalette
-palette m =
-    let
-        colorTheme =
-            m.customModel.deployerColors
-
-        maybeColorMode =
-            m.colorMode
-
-        theme =
-            case maybeColorMode of
-                Just colorMode ->
-                    case colorMode of
-                        Light ->
-                            Style.Types.Light
-
-                        Dark ->
-                            Style.Types.Dark
-
-                Nothing ->
-                    Style.Types.Light
-    in
-    SH.toExoPalette
-        colorTheme
-        { theme = Style.Types.Override theme, systemPreference = Nothing }
 
 
 {-| Stub listener which is intended for use with ports.
@@ -168,7 +124,7 @@ initialModel =
     }
 
 
-type alias PluginOptions =
+type alias Plugins =
     {}
 
 
@@ -226,7 +182,7 @@ type Msg
 --- MAIN
 
 
-config : Config Model Msg PluginOptions Flags
+config : Config Model Msg Plugins Flags
 config =
     { customModel = initialModel
     , customHeader =
@@ -290,32 +246,32 @@ config =
     }
 
 
-main : UIExplorerProgram Model Msg PluginOptions Flags
+main : UIExplorerProgram Model Msg Plugins Flags
 main =
     exploreWithCategories
         config
         (createCategories
             |> category "Atoms"
-                [ ColorPalette.stories toHtml palette {}
+                [ ColorPalette.stories toHtml {}
                 , storiesOf
                     "Text"
-                    [ ( "unstyled", \m -> toHtml (palette m) <| Element.text "This is text rendered using `Element.text` and no styling. It will inherit attributes from the document layout.", {} )
+                    [ ( "unstyled", \m -> toHtml (palettize m) <| Element.text "This is text rendered using `Element.text` and no styling. It will inherit attributes from the document layout.", {} )
                     , ( "p"
                       , \m ->
-                            toHtml (palette m) <|
+                            toHtml (palettize m) <|
                                 Text.p [ Font.justify ]
                                     [ Text.body veryLongCopy
                                     , Text.body "[ref. "
-                                    , Link.externalLink (palette m) "https://www.lipsum.com/" "www.lipsum.com"
+                                    , Link.externalLink (palettize m) "https://www.lipsum.com/" "www.lipsum.com"
                                     , Text.body "]"
                                     ]
                       , {}
                       )
-                    , ( "bold", \m -> toHtml (palette m) <| Text.p [] [ Text.body "Logged in as ", Text.strong "@Jimmy:3421", Text.body "." ], {} )
-                    , ( "mono", \m -> toHtml (palette m) <| Text.p [] [ Text.body "Your IP address is ", Text.mono "192.168.1.1", Text.body "." ], {} )
+                    , ( "bold", \m -> toHtml (palettize m) <| Text.p [] [ Text.body "Logged in as ", Text.strong "@Jimmy:3421", Text.body "." ], {} )
+                    , ( "mono", \m -> toHtml (palettize m) <| Text.p [] [ Text.body "Your IP address is ", Text.mono "192.168.1.1", Text.body "." ], {} )
                     , ( "underline"
                       , \m ->
-                            toHtml (palette m) <|
+                            toHtml (palettize m) <|
                                 Text.p []
                                     [ Text.body "Exosphere is a "
                                     , Text.underline "user-friendly"
@@ -325,8 +281,8 @@ main =
                       )
                     , ( "heading"
                       , \m ->
-                            toHtml (palette m) <|
-                                Text.heading (palette m)
+                            toHtml (palettize m) <|
+                                Text.heading (palettize m)
                                     []
                                     (FeatherIcons.helpCircle
                                         |> FeatherIcons.toHtml []
@@ -338,8 +294,8 @@ main =
                       )
                     , ( "subheading"
                       , \m ->
-                            toHtml (palette m) <|
-                                Text.subheading (palette m)
+                            toHtml (palettize m) <|
+                                Text.subheading (palettize m)
                                     []
                                     (FeatherIcons.hardDrive
                                         |> FeatherIcons.toHtml []
@@ -351,7 +307,7 @@ main =
                       )
                     , ( "h1"
                       , \m ->
-                            toHtml (palette m) <|
+                            toHtml (palettize m) <|
                                 Text.text Text.H1
                                     [ Element.Region.heading 1 ]
                                     "App Config Info"
@@ -359,7 +315,7 @@ main =
                       )
                     , ( "h2"
                       , \m ->
-                            toHtml (palette m) <|
+                            toHtml (palettize m) <|
                                 Text.text Text.H2
                                     [ Element.Region.heading 2 ]
                                     "App Config Info"
@@ -367,23 +323,23 @@ main =
                       )
                     , ( "h3"
                       , \m ->
-                            toHtml (palette m) <|
+                            toHtml (palettize m) <|
                                 Text.text Text.H3
                                     [ Element.Region.heading 3 ]
                                     "App Config Info"
                       , {}
                       )
-                    , ( "h4", \m -> toHtml (palette m) <| Text.text Text.H4 [ Element.Region.heading 4 ] "App Config Info", {} )
+                    , ( "h4", \m -> toHtml (palettize m) <| Text.text Text.H4 [ Element.Region.heading 4 ] "App Config Info", {} )
                     ]
                 , storiesOf
                     "Link"
                     [ ( "internal"
                       , \m ->
-                            toHtml (palette m) <|
+                            toHtml (palettize m) <|
                                 Text.p []
                                     [ Text.body "Compare this to plain, old "
                                     , Link.link
-                                        (palette m)
+                                        (palettize m)
                                         "http://localhost:8002/#Atoms/Text/underline"
                                         "underlined text"
                                     , Text.body "."
@@ -392,11 +348,11 @@ main =
                       )
                     , ( "external"
                       , \m ->
-                            toHtml (palette m) <|
+                            toHtml (palettize m) <|
                                 Text.p []
                                     [ Text.body "Exosphere is a user-friendly, extensible client for cloud computing. Check out our "
                                     , Link.externalLink
-                                        (palette m)
+                                        (palettize m)
                                         "https://gitlab.com/exosphere/exosphere/blob/master/README.md"
                                         "README on GitLab"
                                     , Element.text "."
@@ -408,7 +364,7 @@ main =
                     "Icon"
                     (List.map
                         (\icon ->
-                            ( Tuple.first icon, \m -> toHtml (palette m) <| defaultIcon (palette m) <| Tuple.second icon, {} )
+                            ( Tuple.first icon, \m -> toHtml (palettize m) <| defaultIcon (palettize m) <| Tuple.second icon, {} )
                         )
                         [ ( "bell", bell )
                         , ( "console", console )
@@ -427,51 +383,51 @@ main =
                     "Button"
                     [ ( "primary"
                       , \m ->
-                            toHtml (palette m) <|
-                                Button.primary (palette m) { text = "Create", onPress = Just NoOp }
+                            toHtml (palettize m) <|
+                                Button.primary (palettize m) { text = "Create", onPress = Just NoOp }
                       , {}
                       )
                     , ( "disabled"
                       , \m ->
-                            toHtml (palette m) <|
-                                Button.primary (palette m) { text = "Next", onPress = Nothing }
+                            toHtml (palettize m) <|
+                                Button.primary (palettize m) { text = "Next", onPress = Nothing }
                       , {}
                       )
                     , ( "secondary"
                       , \m ->
-                            toHtml (palette m) <|
-                                Button.default (palette m) { text = "Next", onPress = Just NoOp }
+                            toHtml (palettize m) <|
+                                Button.default (palettize m) { text = "Next", onPress = Just NoOp }
                       , {}
                       )
                     , ( "warning"
                       , \m ->
-                            toHtml (palette m) <|
-                                Button.button Button.Warning (palette m) { text = "Suspend", onPress = Just NoOp }
+                            toHtml (palettize m) <|
+                                Button.button Button.Warning (palettize m) { text = "Suspend", onPress = Just NoOp }
                       , {}
                       )
                     , ( "danger"
                       , \m ->
-                            toHtml (palette m) <|
-                                Button.button Button.Danger (palette m) { text = "Delete All", onPress = Just NoOp }
+                            toHtml (palettize m) <|
+                                Button.button Button.Danger (palettize m) { text = "Delete All", onPress = Just NoOp }
                       , {}
                       )
                     , ( "danger secondary"
                       , \m ->
-                            toHtml (palette m) <|
-                                Button.button Button.DangerSecondary (palette m) { text = "Delete All", onPress = Just NoOp }
+                            toHtml (palettize m) <|
+                                Button.button Button.DangerSecondary (palettize m) { text = "Delete All", onPress = Just NoOp }
                       , {}
                       )
                     ]
                 , storiesOf
                     "Badge"
-                    [ ( "default", \m -> toHtml (palette m) <| badge "Experimental", {} )
+                    [ ( "default", \m -> toHtml (palettize m) <| badge "Experimental", {} )
                     ]
                 , storiesOf
                     "Status Badge"
-                    [ ( "good", \m -> toHtml (palette m) <| statusBadge (palette m) ReadyGood (Element.text "Ready"), {} )
-                    , ( "muted", \m -> toHtml (palette m) <| statusBadge (palette m) Muted (Element.text "Unknown"), {} )
-                    , ( "warning", \m -> toHtml (palette m) <| statusBadge (palette m) Style.Widgets.StatusBadge.Warning (Element.text "Building"), {} )
-                    , ( "error", \m -> toHtml (palette m) <| statusBadge (palette m) Error (Element.text "Error"), {} )
+                    [ ( "good", \m -> toHtml (palettize m) <| statusBadge (palettize m) ReadyGood (Element.text "Ready"), {} )
+                    , ( "muted", \m -> toHtml (palettize m) <| statusBadge (palettize m) Muted (Element.text "Unknown"), {} )
+                    , ( "warning", \m -> toHtml (palettize m) <| statusBadge (palettize m) Style.Widgets.StatusBadge.Warning (Element.text "Building"), {} )
+                    , ( "error", \m -> toHtml (palettize m) <| statusBadge (palettize m) Error (Element.text "Error"), {} )
                     ]
                 ]
             |> category "Molecules"
@@ -479,9 +435,9 @@ main =
                     "Copyable Text"
                     [ ( "default"
                       , \m ->
-                            toHtml (palette m) <|
+                            toHtml (palettize m) <|
                                 Style.Widgets.CopyableText.copyableText
-                                    (palette m)
+                                    (palettize m)
                                     [ Font.family [ Font.monospace ] ]
                                     "192.168.1.1"
                       , {}
@@ -489,20 +445,20 @@ main =
                     ]
                 , storiesOf
                     "Card"
-                    [ ( "default", \m -> toHtml (palette m) <| exoCard (palette m) (Element.text "192.168.1.1"), {} )
+                    [ ( "default", \m -> toHtml (palettize m) <| exoCard (palettize m) (Element.text "192.168.1.1"), {} )
                     , -- TODO: Render a more complete version of this based on Page.Home.
-                      ( "fixed size with hover", \m -> toHtml (palette m) <| clickableCardFixedSize (palette m) 300 300 [ Element.text "Lorem ipsum dolor sit amet." ], {} )
+                      ( "fixed size with hover", \m -> toHtml (palettize m) <| clickableCardFixedSize (palettize m) 300 300 [ Element.text "Lorem ipsum dolor sit amet." ], {} )
                     , ( "title & accessories with hover"
                       , \m ->
-                            toHtml (palette m) <|
-                                exoCardWithTitleAndSubtitle (palette m)
+                            toHtml (palettize m) <|
+                                exoCardWithTitleAndSubtitle (palettize m)
                                     (Style.Widgets.CopyableText.copyableText
-                                        (palette m)
+                                        (palettize m)
                                         [ Font.family [ Font.monospace ] ]
                                         "192.168.1.1"
                                     )
                                     (Button.default
-                                        (palette m)
+                                        (palettize m)
                                         { text = "Unassign"
                                         , onPress = Just NoOp
                                         }
@@ -513,7 +469,7 @@ main =
                     ]
                 , storiesOf
                     "Meter"
-                    [ ( "default", \m -> toHtml (palette m) <| meter (palette m) "Space used" "6 of 10 GB" 6 10, {} )
+                    [ ( "default", \m -> toHtml (palettize m) <| meter (palettize m) "Space used" "6 of 10 GB" 6 10, {} )
                     ]
                 ]
             |> category "Organisms"
@@ -521,8 +477,8 @@ main =
                     "Expandable Card"
                     [ ( "default"
                       , \m ->
-                            toHtml (palette m) <|
-                                expandoCard (palette m)
+                            toHtml (palettize m) <|
+                                expandoCard (palettize m)
                                     m.customModel.expandoCard.expanded
                                     (\next -> ToggleExpandoCard next)
                                     (Element.text "Backup SSD")
@@ -534,7 +490,7 @@ main =
                                         , VH.compactKVRow "Description:" <|
                                             Element.paragraph [ Element.width Element.fill ] <|
                                                 [ Element.text "Solid State Drive" ]
-                                        , VH.compactKVRow "UUID:" <| copyableText (palette m) [] "6205e1a8-9a5d-4325-bb0d-219f09a4d988"
+                                        , VH.compactKVRow "UUID:" <| copyableText (palettize m) [] "6205e1a8-9a5d-4325-bb0d-219f09a4d988"
                                         ]
                                     )
                       , {}
@@ -542,8 +498,8 @@ main =
                     ]
                 , storiesOf
                     "Chip"
-                    [ ( "default", \m -> toHtml (palette m) <| chip (palette m) Nothing (Element.text "assigned"), {} )
-                    , ( "with badge", \m -> toHtml (palette m) <| chip (palette m) Nothing (Element.row [ Element.spacing 5 ] [ Element.text "ubuntu", badge "10" ]), {} )
+                    [ ( "default", \m -> toHtml (palettize m) <| chip (palettize m) Nothing (Element.text "assigned"), {} )
+                    , ( "with badge", \m -> toHtml (palettize m) <| chip (palettize m) Nothing (Element.row [ Element.spacing 5 ] [ Element.text "ubuntu", badge "10" ]), {} )
                     ]
                 , storiesOf
                     "Popover"
@@ -563,14 +519,14 @@ main =
                                             ]
 
                                     demoPopoverTarget togglePopoverMsg _ =
-                                        Button.primary (palette m)
+                                        Button.primary (palettize m)
                                             { text = "Click me"
                                             , onPress = Just togglePopoverMsg
                                             }
 
                                     demoPopover =
                                         popover
-                                            { palette = palette m
+                                            { palette = palettize m
                                             , showPopovers = m.customModel.popover.showPopovers
                                             }
                                             TogglePopover
@@ -583,7 +539,7 @@ main =
                                             , targetStyleAttrs = []
                                             }
                                 in
-                                toHtml (palette m) <|
+                                toHtml (palettize m) <|
                                     Element.el [ Element.paddingXY 400 100 ]
                                         demoPopover
                             , {}
@@ -603,17 +559,5 @@ main =
                         , ( "LeftTop", Style.Types.PositionLeftTop )
                         ]
                     )
-                ]
-            |> category "Templates"
-                [ storiesOf
-                    "Login"
-                    [ ( "default", \_ -> Html.text "//TODO: Add components to this section.", {} )
-                    ]
-                ]
-            |> category "Pages"
-                [ storiesOf
-                    "Jetstream2"
-                    [ ( "default", \_ -> Html.text "//TODO: Add components to this section.", {} )
-                    ]
                 ]
         )
