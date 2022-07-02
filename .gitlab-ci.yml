@@ -155,6 +155,21 @@ build_style_guide:
     - mkdir -p home && rsync -a ~/.elm home
     - mkdir -p home && rsync -a ~/.npm home
 
+build_design_system:
+  stage: test
+  needs:
+    - elm_make
+  before_script:
+    - 'which rsync || ( apt-get update -y && apt-get install rsync -y )'
+    - if [ -d home/.elm ]; then echo "Restoring ~/.elm"; rsync -a home/.elm ~/; fi
+    - if [ -d home/.npm ]; then echo "Restoring ~/.npm"; rsync -a home/.npm ~/; fi
+    - npm install
+  script:
+    - npx elm make --optimize src/DesignSystem/Explorer.elm --output=explorer.js
+  after_script:
+    - mkdir -p home && rsync -a ~/.elm home
+    - mkdir -p home && rsync -a ~/.npm home
+
 static_analysis:
   stage: test
   needs:
