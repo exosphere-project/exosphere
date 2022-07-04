@@ -2,7 +2,7 @@ module DesignSystem.Stories.ColorPalette exposing (stories)
 
 import Color
 import Color.Convert exposing (colorToHex)
-import DesignSystem.Helpers exposing (Renderer, ThemeModel, palettize)
+import DesignSystem.Helpers exposing (Plugins, Renderer, ThemeModel, palettize)
 import Element exposing (rgba)
 import Element.Background as Background
 import Element.Border as Border
@@ -20,8 +20,8 @@ import UIExplorer.ColorMode exposing (ColorMode(..))
     plugins  – UIExplorer plugins (can be empty {})
 
 -}
-stories : Renderer msg -> plugins -> UIExplorer.UI (ThemeModel model) msg plugins
-stories renderer plugins =
+stories : Renderer msg -> UIExplorer.UI (ThemeModel model) msg Plugins
+stories renderer =
     storiesOf
         "Color Palette"
         [ ( "brand"
@@ -63,7 +63,7 @@ stories renderer plugins =
                             , wcagBlock "muted" (palettize m).muted.textOnColoredBG (palettize m).muted.background
                             ]
                         ]
-          , plugins
+          , { note = "" }
           )
         , ( "menu"
           , \m ->
@@ -83,10 +83,8 @@ stories renderer plugins =
                             , wcagBlock "surface" (palettize m).menu.on.surface (palettize m).menu.surface
                             ]
                         ]
-          , plugins
+          , { note = "" }
           )
-
-        --TODO: material palette
         ]
 
 

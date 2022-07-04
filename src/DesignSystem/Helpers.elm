@@ -1,4 +1,4 @@
-module DesignSystem.Helpers exposing (Renderer, ThemeModel, palettize, toHtml)
+module DesignSystem.Helpers exposing (Plugins, Renderer, ThemeModel, palettize, toHtml)
 
 import Element
 import Element.Font as Font
@@ -16,6 +16,10 @@ import UIExplorer.ColorMode exposing (ColorMode(..))
 
 type alias ThemeModel model =
     { model | deployerColors : Style.Types.DeployerColorThemes }
+
+
+type alias Plugins =
+    { note : String }
 
 
 {-| Creates an ExoPalette based on the light/dark color mode.

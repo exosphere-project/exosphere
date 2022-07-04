@@ -1,0 +1,271 @@
+body {
+  background: #151515;
+}
+
+.ui-layout-east {
+  background: #151515;
+}
+
+.markdown-body {
+  color: #eaeaea;
+}
+
+.markdown-body table tr {
+  background: #282828;
+}
+
+.markdown-body table tr:nth-child(2n) {
+  background: #2a2a2a;
+}
+
+.markdown-body .highlight pre,
+.markdown-body pre {
+  background-color: #202020;
+}
+
+.markdown-body pre code {
+  color: #a0a0a0;
+}
+
+.markdown-body .pl-s .pl-s1,
+.markdown-body .pl-smi {
+  color: #f33;
+}
+
+.markdown-body .pl-mi {
+  color: #f33;
+}
+
+.markdown-body .pl-mb {
+  color: #f33;
+}
+
+.hljs {
+  color: #f33;
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-subst {
+  color: #c06050;
+}
+
+.mermaid .label {
+  color: #a0a0a0;
+}
+
+.node circle,
+.node ellipse,
+.node polygon,
+.node rect {
+  fill: #414141;
+  stroke: #606060;
+}
+
+.edgePath .path {
+  stroke: #a0a0a0;
+}
+
+.edgeLabel {
+  color: #a0a0a0;
+  background-color: #282828;
+}
+
+.cluster text {
+  fill: #a0a0a0;
+}
+
+.actor {
+  fill: #414141;
+  stroke: #606060;
+}
+
+text.actor {
+  fill: #a0a0a0;
+}
+
+.messageLine0,
+.messageLine1 {
+  stroke: #a09060;
+}
+
+#arrowhead {
+  fill: #a09060;
+}
+
+#crosshead path {
+  fill: #f33 !important;
+  stroke: #f33 !important
+}
+
+.messageText {
+  fill: #a0a0a0;
+}
+
+.labelBox {
+  fill: #414141;
+  stroke: #606060;
+}
+
+.labelText,
+.loopText {
+  fill: #a0a0a0;
+}
+
+.loopLine {
+  stroke: #8090a0;
+}
+
+.note {
+  fill: #0ff5ad;
+}
+
+.noteText {
+  fill: #a0a0a0;
+}
+
+.sectionTitle0,
+.sectionTitle1,
+.sectionTitle2,
+.sectionTitle3 {
+  fill: #a0a0c0;
+}
+
+.grid .tick text {
+  fill: #a0a0c0;
+}
+
+.taskTextOutsideRight {
+  fill: #f00;
+}
+
+.taskTextOutsideLeft {
+  fill: #f00;
+}
+
+.taskTextOutside0,
+.taskTextOutside1,
+.taskTextOutside2,
+.taskTextOutside3 {
+  fill: #a0a0a0;
+}
+
+.activeText0,
+.activeText1,
+.activeText2,
+.activeText3 {
+  fill: #a0a0a0 !important
+}
+
+.done0,
+.done1,
+.done2,
+.done3 {
+  stroke: #383;
+}
+
+.doneText0,
+.doneText1,
+.doneText2,
+.doneText3 {
+  fill: #a0a0a0 !important
+}
+
+.crit0,
+.crit1,
+.crit2,
+.crit3 {
+  stroke: #f04040;
+}
+
+.activeCrit0,
+.activeCrit1,
+.activeCrit2,
+.activeCrit3 {
+  stroke: #f05030;
+}
+
+.doneCrit0,
+.doneCrit1,
+.doneCrit2,
+.doneCrit3 {
+  stroke: #e07030;
+}
+
+.activeCritText0,
+.activeCritText1,
+.activeCritText2,
+.activeCritText3,
+.doneCritText0,
+.doneCritText1,
+.doneCritText2,
+.doneCritText3 {
+  fill: #a0a0a0 !important;
+}
+
+.titleText {
+  fill: #a0a0a0;
+}
+
+.node text {
+  color: #f00;
+}
+
+.success {
+  color: #dff0d8;
+  background-color: #3c763d;
+}
+
+.info {
+  color: #d9edf7;
+  background-color: #31708f;
+}
+
+.warning {
+  color: #fcf8e3;
+  background-color: #8a6d3b;
+}
+
+.danger {
+  color: #f2dede;
+  background-color: #a94442;
+}
+
+.markdown-body h1,
+.markdown-body h2 {
+  border-bottom: 1px dashed #c0c0c0;
+}
+
+.markdown-body hr {
+  background: #c0c0c0;
+}
+
+hr.footnotes-sep {
+  background: #c0c0c0;
+}
+
+.markdown-body blockquote {
+  border-left: 4px solid #424242
+}
+
+.markdown-body h1 .octicon-link,
+.markdown-body h2 .octicon-link,
+.markdown-body h3 .octicon-link,
+.markdown-body h4 .octicon-link,
+.markdown-body h5 .octicon-link,
+.markdown-body h6 .octicon-link {
+  color: #eaeaea;
+}
+
+.markdown-body a {
+  color: #61AFEF;
+}
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6 {
+  color: #c0c0c0;
+}
