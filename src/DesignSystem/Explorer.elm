@@ -34,6 +34,7 @@ import UIExplorer
         , storiesOf
         )
 import UIExplorer.ColorMode exposing (ColorMode(..))
+import UIExplorer.Plugins.Tabs as TabsPlugin
 import View.Helpers as VH
 
 
@@ -113,6 +114,7 @@ type alias Model =
     { expandoCard : ExpandoCardState
     , popover : PopoverState
     , deployerColors : Style.Types.DeployerColorThemes
+    , tabs : TabsPlugin.Model
     }
 
 
@@ -121,6 +123,7 @@ initialModel =
     { expandoCard = { expanded = False }
     , deployerColors = Style.Types.defaultColors
     , popover = { showPopovers = Set.empty }
+    , tabs = TabsPlugin.initialModel
     }
 
 
@@ -176,6 +179,7 @@ type Msg
     = NoOp
     | ToggleExpandoCard Bool
     | TogglePopover PopoverId
+    | TabMsg TabsPlugin.Msg
 
 
 
@@ -239,8 +243,27 @@ config =
                       }
                     , Cmd.none
                     )
+
+                TabMsg submsg ->
+                    let
+                        cm =
+                            m.customModel
+                    in
+                    ( { m | customModel = { cm | tabs = TabsPlugin.update submsg m.customModel.tabs } }, Cmd.none )
     , menuViewEnhancer = \_ v -> v
-    , viewEnhancer = \_ stories -> stories
+    , viewEnhancer =
+        \m stories ->
+            let
+                colorMode =
+                    m.colorMode |> Maybe.withDefault Light
+            in
+            Html.div []
+                [ stories
+                , TabsPlugin.view colorMode
+                    m.customModel.tabs
+                    []
+                    TabMsg
+                ]
     , onModeChanged = Just (Maybe.withDefault Light >> onColorModeChanged)
     , documentTitle = Just "Exosphere Design System"
     }
