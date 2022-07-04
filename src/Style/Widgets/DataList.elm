@@ -360,7 +360,7 @@ view model toMsg context styleAttrs listItemView data bulkActions selectionFilte
                 [ Element.column
                     (rowStyle -1
                         ++ [ Font.color <|
-                                SH.toElementColorWithOpacity context.palette.on.background 0.62
+                                SH.toElementColor context.palette.muted.textOnNeutralBG
                            ]
                     )
                     [ FeatherIcons.search
@@ -771,7 +771,7 @@ filtersView model toMsg context { filters, dropdownMsgMapper } data =
                     ]
                     (Element.el
                         [ Font.color <|
-                            SH.toElementColorWithOpacity context.palette.on.background 0.62
+                            SH.toElementColor context.palette.muted.textOnNeutralBG
                         ]
                         (Element.text filter.chipPrefix)
                         :: selectedOptContent
@@ -811,7 +811,7 @@ filtersView model toMsg context { filters, dropdownMsgMapper } data =
                                         |> List.intersperse
                                             (Element.el
                                                 [ Font.color <|
-                                                    SH.toElementColorWithOpacity context.palette.on.background 0.62
+                                                    SH.toElementColor context.palette.muted.textOnNeutralBG
                                                 ]
                                                 (Element.text " or ")
                                             )

@@ -25,7 +25,7 @@ toggleTip context msgMapper id content position =
         tipStyle =
             [ Element.htmlAttribute (Html.Attributes.style "pointerEvents" "none")
             , Border.rounded 4
-            , Font.color (SH.toElementColorWithOpacity context.palette.on.surface 0.8)
+            , Font.color (SH.toElementColor context.palette.muted.textOnNeutralBG)
             , Font.size 15
             ]
 

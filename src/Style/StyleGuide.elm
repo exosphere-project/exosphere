@@ -157,7 +157,7 @@ serverView palette server =
         , Element.row
             [ Element.spacing 8
             , Element.width Element.fill
-            , Font.color <| SH.toElementColorWithOpacity palette.on.background 0.62
+            , Font.color <| SH.toElementColor palette.muted.textOnNeutralBG
             ]
             [ Element.el [] (Element.text server.size)
             , Element.text "·"
@@ -170,7 +170,7 @@ serverView palette server =
                     (Element.text server.creator)
                 ]
             , Style.Widgets.Icon.ipAddress
-                (SH.toElementColorWithOpacity palette.on.background 0.62)
+                (SH.toElementColor palette.muted.textOnNeutralBG)
                 16
             , Element.el [] (Element.text server.ip)
             ]
