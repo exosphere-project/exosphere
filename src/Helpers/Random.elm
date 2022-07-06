@@ -26,7 +26,7 @@ serverNameGenerator =
     in
     Random.map3
         (\adverb adjective name ->
-            adverb ++ "_" ++ adjective ++ "_" ++ name
+            adverb ++ "-" ++ adjective ++ "-" ++ name
         )
         randomAdverb
         randomAdjective
