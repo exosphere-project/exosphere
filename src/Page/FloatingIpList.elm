@@ -178,7 +178,10 @@ view context project model =
         [ if model.showHeading then
             Text.heading context.palette
                 []
-                (Icon.ipAddress (SH.toElementColor context.palette.on.background) 24)
+                (Icon.ipAddress
+                    (SH.toElementColor context.palette.neutral.text.default)
+                    24
+                )
                 (context.localization.floatingIpAddress
                     |> Helpers.String.pluralize
                     |> Helpers.String.toTitleCase
@@ -329,7 +332,7 @@ floatingIpView context project floatingIpRecord =
                 (Style.Widgets.CopyableText.copyableText
                     context.palette
                     [ Font.size 18
-                    , Font.color (SH.toElementColor context.palette.on.background)
+                    , Font.color (SH.toElementColor context.palette.neutral.text.default)
                     ]
                     floatingIpRecord.ip.address
                 )

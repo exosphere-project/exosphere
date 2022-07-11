@@ -257,7 +257,7 @@ renderProject context project =
                     (RemoteData.withDefault [] project.volumes)
                 , renderResourceQuantity
                     context.localization.floatingIpAddress
-                    (Icon.ipAddress (SH.toElementColor context.palette.on.background) 24)
+                    (Icon.ipAddress (SH.toElementColor context.palette.neutral.text.default) 24)
                     (RDPP.withDefault [] project.floatingIps)
                 ]
 

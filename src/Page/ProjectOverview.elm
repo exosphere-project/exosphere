@@ -121,7 +121,7 @@ view context project currentTime _ =
                 (Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.Volume project.volumeQuota))
                 (volumeTileContents context project)
             , renderTile
-                (Icon.ipAddress (SH.toElementColor context.palette.on.background) 24)
+                (Icon.ipAddress (SH.toElementColor context.palette.neutral.text.default) 24)
                 (context.localization.floatingIpAddress
                     |> Helpers.String.pluralize
                     |> Helpers.String.toTitleCase

@@ -44,7 +44,7 @@ copyableText palette textAttributes text =
             , label =
                 Element.el
                     [ Element.mouseOver [ Element.transparent True ] ]
-                    (copyToClipboard (SH.toElementColor palette.on.background) 18)
+                    (copyToClipboard (SH.toElementColor palette.neutral.icon) 18)
             }
         ]
 

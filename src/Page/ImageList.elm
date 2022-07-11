@@ -313,7 +313,7 @@ imageView model context project imageRecord =
             if imageRecord.owned then
                 Just <|
                     Element.row []
-                        [ Element.el [ Font.color (SH.toElementColor context.palette.on.background) ]
+                        [ Element.el [ Font.color (SH.toElementColor context.palette.neutral.text.default) ]
                             (Element.text "belongs")
                         , Element.text <|
                             " to this "
@@ -352,7 +352,7 @@ imageView model context project imageRecord =
                 attributesAlwaysShown =
                     [ Element.text size
                     , Element.row []
-                        [ Element.el [ Font.color (SH.toElementColor context.palette.on.background) ]
+                        [ Element.el [ Font.color (SH.toElementColor context.palette.neutral.text.default) ]
                             (Element.text <| String.toLower <| OSTypes.imageVisibilityToString imageRecord.image.visibility)
                         , Element.text <| " " ++ context.localization.staticRepresentationOfBlockDeviceContents
                         ]
@@ -377,7 +377,7 @@ imageView model context project imageRecord =
         [ Element.row [ Element.width Element.fill, Element.spacing 10 ]
             [ Element.el
                 [ Font.size 18
-                , Font.color (SH.toElementColor context.palette.on.background)
+                , Font.color (SH.toElementColor context.palette.neutral.text.default)
                 ]
                 (Element.text imageRecord.image.name)
             , featuredIcon

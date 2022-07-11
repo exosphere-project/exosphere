@@ -96,10 +96,8 @@ view_ outerModel =
     Element.layout
         [ Text.defaultFontSize
         , Text.defaultFontFamily
-        , Font.color <| SH.toElementColor <| viewContext.palette.on.background
-
-        -- TODO: take it from palette so that it adapts for dark theme
-        , Background.color <| SH.toElementColor <| SH.allColorsPalette.gray.lightest
+        , Font.color <| SH.toElementColor <| viewContext.palette.neutral.text.default
+        , Background.color <| SH.toElementColor viewContext.palette.neutral.background.backLayer
         ]
         (elementView viewContext.windowSize outerModel viewContext)
 

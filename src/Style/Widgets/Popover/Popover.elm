@@ -20,9 +20,9 @@ import Style.Widgets.Popover.Types exposing (PopoverId)
 popoverStyleDefaults : ExoPalette -> List (Element.Attribute msg)
 popoverStyleDefaults palette =
     [ Element.padding 10
-    , Background.color <| SH.toElementColor palette.background
+    , Background.color <| SH.toElementColor palette.neutral.background.frontLayer
     , Border.width 1
-    , Border.color <| SH.toElementColorWithOpacity palette.on.background 0.16
+    , Border.color <| SH.toElementColor palette.neutral.border
     , Border.shadow SH.shadowDefaults
     ]
 

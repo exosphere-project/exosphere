@@ -56,7 +56,7 @@ view context sharedModel model =
         (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
         [ Text.heading context.palette
             []
-            (Icon.bell (SH.toElementColor context.palette.on.background) 20)
+            (Icon.bell (SH.toElementColor context.palette.neutral.text.default) 20)
             "Recent Messages"
         , Input.checkbox
             []

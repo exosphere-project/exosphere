@@ -38,7 +38,7 @@ menuItem palette state icon itemLabel url =
 
         menuItemButtonAttrs =
             [ Element.width Element.fill
-            , Border.color (SH.toElementColor palette.on.background)
+            , Border.color (SH.toElementColor palette.neutral.text.default)
             , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
             , Element.spacing 15
             , Element.paddingXY 10 24

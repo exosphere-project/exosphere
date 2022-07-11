@@ -29,11 +29,11 @@ chip palette onPress label =
         [ label
         , Input.button
             [ Element.mouseOver
-                [ Border.color <| SH.toElementColor palette.on.background
+                [ Border.color <| SH.toElementColor palette.neutral.text.default
                 ]
             ]
             { onPress = onPress
-            , label = timesCircle (SH.toElementColor palette.on.background) 12
+            , label = timesCircle (SH.toElementColor palette.neutral.text.default) 12
             }
         ]
 
