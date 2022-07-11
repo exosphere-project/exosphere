@@ -298,12 +298,14 @@ elementColorToSvgColor elColor =
             Element.toRgb elColor
 
         strVals =
-            [ rgb.red, rgb.green, rgb.blue ]
+            ([ rgb.red, rgb.green, rgb.blue ]
                 |> List.map (\float -> float * 255)
+            )
+                ++ [ rgb.alpha ]
                 |> List.map String.fromFloat
                 |> String.join ","
     in
-    "rgb(" ++ strVals ++ ")"
+    "rgba(" ++ strVals ++ ")"
 
 
 fromFeather : FeatherIcons.Icon -> Element.Color -> Int -> Html.Html msg
