@@ -187,7 +187,7 @@ loginOpenstackCredsEntry context model allCredsEntered =
 
         textField text placeholderText onChange labelText =
             Input.text
-                (VH.inputItemAttributes context.palette.background)
+                (VH.inputItemAttributes context.palette)
                 { text = text
                 , placeholder = Just (Input.placeholder [] (Element.text placeholderText))
                 , onChange = onChange
@@ -213,7 +213,7 @@ loginOpenstackCredsEntry context model allCredsEntered =
             GotUsername
             "User Name"
         , Input.currentPassword
-            (VH.inputItemAttributes context.palette.surface)
+            (VH.inputItemAttributes context.palette)
             { text = creds.password
             , placeholder = Just (Input.placeholder [] (Element.text "Password"))
             , show = False
@@ -247,7 +247,7 @@ loginOpenstackOpenRcEntry context model =
             , Element.text " file"
             ]
         , Input.multiline
-            (VH.inputItemAttributes context.palette.background
+            (VH.inputItemAttributes context.palette
                 ++ [ Element.width Element.fill
                    , Element.height (Element.px 250)
                    , Font.size 12

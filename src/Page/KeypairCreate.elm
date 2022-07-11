@@ -64,7 +64,7 @@ view context model =
             )
         , Element.column VH.formContainer
             ([ Input.text
-                (VH.inputItemAttributes context.palette.background)
+                (VH.inputItemAttributes context.palette)
                 { text = model.name
                 , placeholder =
                     Just
@@ -78,7 +78,7 @@ view context model =
                 , label = Input.labelAbove [] (Element.text "Name")
                 }
              , Input.multiline
-                (VH.inputItemAttributes context.palette.background
+                (VH.inputItemAttributes context.palette
                     ++ [ Element.width Element.fill
                        , Element.height (Element.px 300)
                        , Element.padding 7

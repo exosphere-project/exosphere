@@ -72,7 +72,7 @@ view context _ model =
             [ helpText context
             , Element.column VH.formContainer
                 [ Input.text
-                    (VH.inputItemAttributes context.palette.background)
+                    (VH.inputItemAttributes context.palette)
                     { text = model.taccUsername
                     , placeholder = Just (Input.placeholder [] (Element.text "tg******"))
                     , onChange = GotUsername
@@ -80,7 +80,7 @@ view context _ model =
                     }
                 , renderInvalidReasons model.taccUsername "TACC Username"
                 , Input.currentPassword
-                    (VH.inputItemAttributes context.palette.background)
+                    (VH.inputItemAttributes context.palette)
                     { text = model.taccPassword
                     , placeholder = Nothing
                     , onChange = GotPassword

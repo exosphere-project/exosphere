@@ -123,11 +123,12 @@ exoPaddingSpacingAttributes =
     ]
 
 
-inputItemAttributes : Color.Color -> List (Element.Attribute msg)
-inputItemAttributes backgroundColor =
+inputItemAttributes : ExoPalette -> List (Element.Attribute msg)
+inputItemAttributes palette =
     [ Element.width Element.fill
     , Element.spacing 12
-    , Background.color <| SH.toElementColor <| backgroundColor
+    , Background.color <| SH.toElementColor palette.neutral.background.frontLayer
+    , Border.color <| SH.toElementColor palette.neutral.border
     ]
 
 
@@ -862,8 +863,8 @@ elmUiRenderer context =
             Element.column
                 [ Border.widthEach { top = 0, right = 0, bottom = 0, left = 10 }
                 , Element.padding 10
-                , Border.color (SH.toElementColor context.palette.on.background)
-                , Background.color (SH.toElementColor context.palette.surface)
+                , Border.color (SH.toElementColor context.palette.neutral.border)
+                , Background.color (SH.toElementColor context.palette.neutral.background.frontLayer)
                 ]
                 children
     , unorderedList =

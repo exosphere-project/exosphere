@@ -94,7 +94,7 @@ view context project model =
             )
         , Element.column VH.formContainer
             [ Input.text
-                (VH.inputItemAttributes context.palette.background)
+                (VH.inputItemAttributes context.palette)
                 { text = model.name
                 , placeholder = Just (Input.placeholder [] (Element.text "My Important Data"))
                 , onChange = GotName
@@ -109,7 +109,7 @@ view context project model =
                     ]
             , numericTextInput
                 context.palette
-                (VH.inputItemAttributes context.palette.background)
+                (VH.inputItemAttributes context.palette)
                 model.sizeInput
                 { labelText = "Size in GB"
                 , minVal = Just 1
