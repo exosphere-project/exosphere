@@ -30,20 +30,20 @@ If your MR fixes one or more issues, please do not close them before your MR is 
 
 Maintainers, please ensure the MR passes this checklist before approving. Consult co-maintainers when making the occasional exception. Offer to help new contributors.
 
-- MR description is fully populated
-- MR effectively fixes all issues that it claims to fix
-- MR does not decrease the overall consistency or polish of Exosphere's UI
-- MR does not decrease Exosphere's overall code quality
-- MR does not break existing functionality or behavior that users are likely to care about
-- If MR adds/changes/removes UI elements in `src/Style/Widgets/`, then `src/Style/StyleGuide.elm` shows example usage of that widget
-- If MR adds/changes/removes app flags (in `src/Types/Flags.elm`), then the following are updated accordingly:
-  - `config.js`
-  - all files in `environment-configs/` **(else you may break production sites!)**
-  - "Runtime configuration options" section in README.md
-- MR does not use hard-coded representations of [localized strings](docs/nomenclature-reference.md) in the UI
-- Follow-up issues are created for any new issues that the MR causes or uncovers
-  - If MR introduces any technical debt, these issues are assigned to MR author
-- If MR adds/changes/removes any popovers, ensure that their IDs are unique.
+- MR description is fully populated.
+- MR effectively fixes all issues that it claims to fix.
+- MR does not decrease the overall consistency or polish of Exosphere's UI.
+- MR does not decrease Exosphere's overall code quality.
+- MR does not break existing functionality or behavior that users are likely to care about.
+- If the MR adds/changes/removes UI elements in `src/Style/Widgets/`, then `src/DesignSystem/Explorer.elm` shows example usage of that widget.
+- If the MR adds/changes/removes app flags (in `src/Types/Flags.elm`), then the following are updated accordingly:
+  + `config.js`
+  + all files in `environment-configs/` **(else you may break production sites!)**
+  + "Runtime configuration options" section in README.md
+- MR does not use hard-coded representations of [localized strings](docs/nomenclature-reference.md) in the UI.
+- Follow-up issues are created for any new issues that the MR causes or uncovers.
+  - If the MR introduces any technical debt, these issues are assigned to MR author.
+- If the MR adds/changes/removes any popovers, ensure that their IDs are unique.
 
 ## Continuous Integration
 
