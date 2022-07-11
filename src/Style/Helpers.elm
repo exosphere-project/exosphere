@@ -29,8 +29,14 @@ allColorsPalette =
     -- as {lightest=100, lighter=200, light=300, semiLight=400, base=500,
     -- semiDark=600, dark=700, darker=800, darkest=900}
     { gray =
-        -- "Zinc"
-        { lightest = hexToColor "#f4f4f5" |> Result.withDefault Color.gray
+        -- "Zinc" along with white=0 & black=1000, and 2 intemediatory shades
+        -- at both light and dark end: semiWhite=50, semiLightest=150,
+        -- semiDarkest=850, semiBlack=950. Their hex code is derived by
+        -- interpolation, using color blending tool at https://colorkit.io/
+        { white = hexToColor "#ffffff" |> Result.withDefault Color.gray
+        , semiWhite = hexToColor "#fafafa" |> Result.withDefault Color.gray
+        , lightest = hexToColor "#f4f4f5" |> Result.withDefault Color.gray
+        , semiLightest = hexToColor "#ececee" |> Result.withDefault Color.gray
         , lighter = hexToColor "#e4e4e7" |> Result.withDefault Color.gray
         , light = hexToColor "#d4d4d8" |> Result.withDefault Color.gray
         , semiLight = hexToColor "#a1a1aa" |> Result.withDefault Color.gray
@@ -38,7 +44,10 @@ allColorsPalette =
         , semiDark = hexToColor "#52525b" |> Result.withDefault Color.gray
         , dark = hexToColor "#3f3f46" |> Result.withDefault Color.gray
         , darker = hexToColor "#27272a" |> Result.withDefault Color.gray
+        , semiDarkest = hexToColor "#202023" |> Result.withDefault Color.gray
         , darkest = hexToColor "#18181b" |> Result.withDefault Color.gray
+        , semiBlack = hexToColor "#0c0c0e" |> Result.withDefault Color.gray
+        , black = hexToColor "#000000" |> Result.withDefault Color.gray
         }
     , blue =
         -- "Sky"
@@ -112,13 +121,21 @@ toExoPalette deployerColors { theme, systemPreference } =
 
             -- I (cmart) don't believe secondary gets used right now, but at some point we'll want to pick a secondary color?
             , secondary = deployerColors.light.secondary
-            , background = Color.rgb255 255 255 255
-            , surface = Color.white
             , on =
                 { primary = Color.rgb255 255 255 255
                 , secondary = Color.rgb255 0 0 0
-                , background = Color.rgb255 0 0 0
-                , surface = Color.rgb255 0 0 0
+                }
+            , neutral =
+                { background =
+                    { backLayer = allColorsPalette.gray.lightest -- semiWhite?
+                    , frontLayer = allColorsPalette.gray.white
+                    }
+                , border = allColorsPalette.gray.light -- lighter?
+                , icon = allColorsPalette.gray.semiDark
+                , text =
+                    { default = allColorsPalette.gray.darkest
+                    , subdued = allColorsPalette.gray.semiDark
+                    }
                 }
             , info =
                 { default = allColorsPalette.blue.base
@@ -152,11 +169,11 @@ toExoPalette deployerColors { theme, systemPreference } =
                 { default = allColorsPalette.gray.base
                 , background = allColorsPalette.gray.lightest
                 , border = allColorsPalette.gray.light
-                , textOnNeutralBG = allColorsPalette.gray.base -- semiDark relatively blends in with other black text, hence one shade lighter
+                , textOnNeutralBG = allColorsPalette.gray.semiDark
                 , textOnColoredBG = allColorsPalette.gray.darkest
                 }
             , menu =
-                { secondary = Color.rgb255 29 29 29
+                { secondary = allColorsPalette.gray.semiDarkest
                 , background = Color.rgb255 36 36 36
                 , surface = Color.rgb255 51 51 51
                 , on =
@@ -168,14 +185,22 @@ toExoPalette deployerColors { theme, systemPreference } =
 
         Dark ->
             { primary = deployerColors.dark.primary
-            , secondary = deployerColors.dark.primary
-            , background = Color.rgb255 36 36 36
-            , surface = Color.rgb255 51 51 51
+            , secondary = deployerColors.dark.secondary
             , on =
                 { primary = Color.rgb255 221 221 221
                 , secondary = Color.rgb255 221 221 221
-                , background = Color.rgb255 205 205 205
-                , surface = Color.rgb255 255 255 255
+                }
+            , neutral =
+                { background =
+                    { backLayer = allColorsPalette.gray.darkest
+                    , frontLayer = allColorsPalette.gray.darker
+                    }
+                , border = allColorsPalette.gray.dark
+                , icon = allColorsPalette.gray.semiLight
+                , text =
+                    { default = allColorsPalette.gray.lightest
+                    , subdued = allColorsPalette.gray.semiLight
+                    }
                 }
             , info =
                 { default = allColorsPalette.blue.base
@@ -213,7 +238,7 @@ toExoPalette deployerColors { theme, systemPreference } =
                 , textOnColoredBG = allColorsPalette.gray.lightest
                 }
             , menu =
-                { secondary = Color.rgb255 29 29 29
+                { secondary = allColorsPalette.gray.semiDarkest
                 , background = Color.rgb255 36 36 36
                 , surface = Color.rgb255 51 51 51
                 , on =
@@ -342,14 +367,14 @@ toMaterialPalette : ExoPalette -> Material.Palette
 toMaterialPalette exoPalette =
     { primary = exoPalette.primary
     , secondary = exoPalette.secondary
-    , background = exoPalette.background
-    , surface = exoPalette.surface
+    , background = exoPalette.neutral.background.backLayer
+    , surface = exoPalette.neutral.background.frontLayer
     , error = exoPalette.danger.background
     , on =
         { primary = exoPalette.on.primary
         , secondary = exoPalette.on.secondary
-        , background = exoPalette.on.background
-        , surface = exoPalette.on.surface
+        , background = exoPalette.neutral.text.default
+        , surface = exoPalette.neutral.text.default
         , error = exoPalette.danger.textOnColoredBG
         }
     }

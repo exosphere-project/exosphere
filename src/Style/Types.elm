@@ -57,8 +57,27 @@ type alias ColorShades9 =
     }
 
 
+type alias GrayShades13 =
+    { white : Color.Color
+    , semiWhite : Color.Color
+    , lightest : Color.Color
+    , semiLightest : Color.Color
+    , lighter : Color.Color
+    , light : Color.Color
+    , semiLight : Color.Color
+    , base : Color.Color
+    , semiDark : Color.Color
+    , dark : Color.Color
+    , darker : Color.Color
+    , semiDarkest : Color.Color
+    , darkest : Color.Color
+    , semiBlack : Color.Color
+    , black : Color.Color
+    }
+
+
 type alias AllColorsPalette =
-    { gray : ColorShades9
+    { gray : GrayShades13
     , blue : ColorShades9
     , green : ColorShades9
     , yellow : ColorShades9
@@ -82,6 +101,22 @@ type alias StyleMode =
     }
 
 
+{-| Black/grays/white aka Neutral colors used throughout the app
+-}
+type alias NeutralColors =
+    { background :
+        { backLayer : Color.Color
+        , frontLayer : Color.Color
+        }
+    , border : Color.Color
+    , icon : Color.Color
+    , text :
+        { default : Color.Color
+        , subdued : Color.Color
+        }
+    }
+
+
 type alias UIStateColors =
     { default : Color.Color
     , background : Color.Color
@@ -94,16 +129,13 @@ type alias UIStateColors =
 type alias ExoPalette =
     { primary : Color.Color
     , secondary : Color.Color
-    , background : Color.Color
-    , surface : Color.Color
 
     -- TODO: give usecase-based names and integrate with previous fields
     , on :
         { primary : Color.Color
         , secondary : Color.Color
-        , background : Color.Color
-        , surface : Color.Color
         }
+    , neutral : NeutralColors
     , info : UIStateColors
     , success : UIStateColors
     , warning : UIStateColors
