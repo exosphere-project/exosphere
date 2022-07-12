@@ -144,12 +144,6 @@ type alias MenuColors =
 type alias ExoPalette =
     { primary : Color.Color
     , secondary : Color.Color
-
-    -- TODO: remove them since not used anywhere other than elm-ui-widgets material palette?
-    , on :
-        { primary : Color.Color
-        , secondary : Color.Color
-        }
     , neutral : NeutralColors
     , info : UIStateColors
     , success : UIStateColors

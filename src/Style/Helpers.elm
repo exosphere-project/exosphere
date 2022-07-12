@@ -124,13 +124,7 @@ toExoPalette deployerColors { theme, systemPreference } =
     case themeChoice of
         Light ->
             { primary = deployerColors.light.primary
-
-            -- I (cmart) don't believe secondary gets used right now, but at some point we'll want to pick a secondary color?
             , secondary = deployerColors.light.secondary
-            , on =
-                { primary = Color.rgb255 255 255 255
-                , secondary = Color.rgb255 0 0 0
-                }
             , neutral =
                 { background =
                     { backLayer = allColorsPalette.gray.lightest -- semiWhite?
@@ -184,10 +178,6 @@ toExoPalette deployerColors { theme, systemPreference } =
         Dark ->
             { primary = deployerColors.dark.primary
             , secondary = deployerColors.dark.secondary
-            , on =
-                { primary = Color.rgb255 221 221 221
-                , secondary = Color.rgb255 221 221 221
-                }
             , neutral =
                 { background =
                     { backLayer = allColorsPalette.gray.darkest
@@ -361,11 +351,13 @@ toMaterialPalette exoPalette =
     , surface = exoPalette.neutral.background.frontLayer
     , error = exoPalette.danger.background
     , on =
-        { primary = exoPalette.on.primary
-        , secondary = exoPalette.on.secondary
-        , background = exoPalette.neutral.text.default
-        , surface = exoPalette.neutral.text.default
-        , error = exoPalette.danger.textOnColoredBG
+        { -- on.primary is only being used by Material.containedButton for mixing <1 opacity of it with primary color to obtain hover/focussed background color.
+          -- Using neutral.text.default we get sufficiently darker background color in light theme and lighter background color in dark theme.
+          primary = exoPalette.neutral.text.default
+        , secondary = exoPalette.neutral.text.default -- no evident use
+        , background = exoPalette.neutral.text.default -- no evident use
+        , surface = exoPalette.neutral.text.default -- border of Material.outlinedButton, Material.cardColum with 0.14 opacity
+        , error = exoPalette.danger.textOnColoredBG -- no evident use
         }
     }
 
