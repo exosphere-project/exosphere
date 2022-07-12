@@ -12,7 +12,7 @@ import View.Types
 navButton : View.Types.Context -> List (Element.Attribute msg) -> { icon : Icon, label : String, route : Route.Route } -> Element.Element msg
 navButton context attributes { icon, label, route } =
     Element.link
-        (Font.color (SH.toElementColor context.palette.menu.on.surface)
+        (Font.color (SH.toElementColor context.palette.menu.textOrIcon)
             :: attributes
         )
         { url = Route.toUrl context.urlPathPrefix route

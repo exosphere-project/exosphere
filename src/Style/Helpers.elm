@@ -114,6 +114,12 @@ toExoPalette deployerColors { theme, systemPreference } =
 
                 ST.System ->
                     systemPreference |> Maybe.withDefault ST.Light
+
+        menuColors =
+            -- remain same in Light and Dark theme
+            { background = allColorsPalette.gray.semiDarkest
+            , textOrIcon = allColorsPalette.gray.lightest
+            }
     in
     case themeChoice of
         Light ->
@@ -172,15 +178,7 @@ toExoPalette deployerColors { theme, systemPreference } =
                 , textOnNeutralBG = allColorsPalette.gray.semiDark
                 , textOnColoredBG = allColorsPalette.gray.darkest
                 }
-            , menu =
-                { secondary = allColorsPalette.gray.semiDarkest
-                , background = Color.rgb255 36 36 36
-                , surface = Color.rgb255 51 51 51
-                , on =
-                    { background = Color.rgb255 181 181 181
-                    , surface = Color.rgb255 255 255 255
-                    }
-                }
+            , menu = menuColors
             }
 
         Dark ->
@@ -237,15 +235,7 @@ toExoPalette deployerColors { theme, systemPreference } =
                 , textOnNeutralBG = allColorsPalette.gray.semiLight
                 , textOnColoredBG = allColorsPalette.gray.lightest
                 }
-            , menu =
-                { secondary = allColorsPalette.gray.semiDarkest
-                , background = Color.rgb255 36 36 36
-                , surface = Color.rgb255 51 51 51
-                , on =
-                    { background = Color.rgb255 181 181 181
-                    , surface = Color.rgb255 255 255 255
-                    }
-                }
+            , menu = menuColors
             }
 
 

@@ -63,7 +63,7 @@ iconButton context attributes { icon, iconPlacement, label, onClick } =
             Element.text label
 
         iconUI =
-            iconEl [] icon 20 context.palette.menu.on.surface
+            iconEl [] icon 20 context.palette.menu.textOrIcon
     in
     Input.button attributes
         { onPress = onClick

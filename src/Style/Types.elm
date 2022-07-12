@@ -101,7 +101,7 @@ type alias StyleMode =
     }
 
 
-{-| Black/grays/white aka Neutral colors used throughout the app
+{-| Black/grays/white aka Neutral colors used throughout the app.
 -}
 type alias NeutralColors =
     { background :
@@ -117,6 +117,8 @@ type alias NeutralColors =
     }
 
 
+{-| Colors used in each UI state (danger, warning, success, etc.) of the app.
+-}
 type alias UIStateColors =
     { default : Color.Color
     , background : Color.Color
@@ -126,11 +128,24 @@ type alias UIStateColors =
     }
 
 
+{-| Colors used in app's menu/navigation bar.
+
+We have to specify menu colors separately instead of reusing NeutralColors
+because menu uses dark color scheme in both light & dark theme (so we need the
+dark neutral colors being used by menu to be present in the light theme palette).
+
+-}
+type alias MenuColors =
+    { background : Color.Color
+    , textOrIcon : Color.Color
+    }
+
+
 type alias ExoPalette =
     { primary : Color.Color
     , secondary : Color.Color
 
-    -- TODO: give usecase-based names and integrate with previous fields
+    -- TODO: remove them since not used anywhere other than elm-ui-widgets material palette?
     , on :
         { primary : Color.Color
         , secondary : Color.Color
@@ -141,15 +156,7 @@ type alias ExoPalette =
     , warning : UIStateColors
     , danger : UIStateColors
     , muted : UIStateColors
-    , menu :
-        { secondary : Color.Color
-        , background : Color.Color
-        , surface : Color.Color
-        , on :
-            { background : Color.Color
-            , surface : Color.Color
-            }
-        }
+    , menu : MenuColors
     }
 
 

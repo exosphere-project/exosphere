@@ -1,25 +1,18 @@
-module View.Nav exposing (navBar, navBarHeight, navMenu, navMenuWidth)
+module View.Nav exposing (navBar, navBarHeight, navMenuWidth)
 
 import Element
 import Element.Background as Background
-import Element.Font as Font
-import FeatherIcons
 import Helpers.Boolean as HB
-import Helpers.GetterSetters as GetterSetters
-import Helpers.String
 import Route
 import State.ViewState
 import Style.Helpers as SH
 import Style.Widgets.HomeLogo exposing (homeLogo)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton exposing (FlowOrder(..))
-import Style.Widgets.MenuItem as MenuItem
 import Style.Widgets.NavButton exposing (navButton)
 import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
-import Types.Project exposing (Project)
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
-import View.Helpers as VH
 import View.Types
 
 
@@ -33,76 +26,6 @@ navBarHeight =
     70
 
 
-navMenu : OuterModel -> View.Types.Context -> Element.Element OuterMsg
-navMenu outerModel context =
-    let
-        projectMenuItem : Project -> Element.Element OuterMsg
-        projectMenuItem project =
-            let
-                projectTitle =
-                    VH.friendlyProjectTitle outerModel.sharedModel project
-
-                status =
-                    case outerModel.viewState of
-                        ProjectView p _ ->
-                            if p == GetterSetters.projectIdentifier project then
-                                MenuItem.Active
-
-                            else
-                                MenuItem.Inactive
-
-                        _ ->
-                            MenuItem.Inactive
-            in
-            MenuItem.menuItem
-                context.palette
-                status
-                (FeatherIcons.cloud |> FeatherIcons.toHtml [] |> Element.html |> Element.el [] |> Just)
-                projectTitle
-                (Route.toUrl context.urlPathPrefix (Route.ProjectRoute (GetterSetters.projectIdentifier project) Route.ProjectOverview))
-
-        projectMenuItems : List Project -> List (Element.Element OuterMsg)
-        projectMenuItems projects =
-            List.map projectMenuItem projects
-
-        addProjectMenuItem =
-            let
-                active =
-                    case outerModel.viewState of
-                        NonProjectView LoginPicker ->
-                            MenuItem.Active
-
-                        NonProjectView (Login _) ->
-                            MenuItem.Active
-
-                        _ ->
-                            MenuItem.Inactive
-
-                destUrl =
-                    Route.toUrl context.urlPathPrefix
-                        (Route.defaultLoginPage
-                            outerModel.sharedModel.style.defaultLoginView
-                        )
-            in
-            MenuItem.menuItem context.palette
-                active
-                (FeatherIcons.plusCircle |> FeatherIcons.toHtml [] |> Element.html |> Element.el [] |> Just)
-                ("Add " ++ Helpers.String.toTitleCase context.localization.unitOfTenancy)
-                destUrl
-    in
-    Element.column
-        [ Background.color (SH.toElementColor context.palette.menu.background)
-        , Font.color (SH.toElementColor context.palette.menu.on.background)
-        , Element.width (Element.px navMenuWidth)
-        , Element.height Element.shrink
-        , Element.scrollbarY
-        , Element.height Element.fill
-        ]
-        (projectMenuItems outerModel.sharedModel.projects
-            ++ [ addProjectMenuItem ]
-        )
-
-
 navBar : OuterModel -> View.Types.Context -> Element.Element OuterMsg
 navBar outerModel context =
     let
@@ -110,7 +33,7 @@ navBar outerModel context =
             outerModel.sharedModel
 
         navBarContainerAttributes =
-            [ Background.color (SH.toElementColor context.palette.menu.secondary)
+            [ Background.color (SH.toElementColor context.palette.menu.background)
             , Element.width Element.fill
             , Element.height (Element.px navBarHeight)
             ]
