@@ -43,5 +43,5 @@ listItemColumnAttribs : ExoPalette -> List (Element.Attribute msg)
 listItemColumnAttribs palette =
     [ Element.spacing 12
     , Element.width Element.fill
-    , Font.color (SH.toElementColor palette.muted.textOnNeutralBG)
+    , Font.color (SH.toElementColor palette.neutral.text.subdued)
     ]

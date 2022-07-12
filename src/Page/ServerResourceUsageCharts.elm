@@ -266,7 +266,7 @@ toChartHeading context title subtitle =
         [ Element.width Element.fill, Element.paddingEach { top = 0, bottom = 0, left = 0, right = 25 } ]
         [ Element.el [ Font.semiBold ] title
         , Element.el
-            [ Font.color (context.palette.muted.textOnNeutralBG |> SH.toElementColor)
+            [ Font.color (context.palette.neutral.text.subdued |> SH.toElementColor)
             , Element.alignRight
             ]
             (Element.text subtitle)

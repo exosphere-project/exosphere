@@ -341,7 +341,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
 
                         _ ->
                             Element.el
-                                [ context.palette.muted.textOnNeutralBG
+                                [ context.palette.neutral.text.subdued
                                     |> SH.toElementColor
                                     |> Font.color
                                 ]
@@ -478,7 +478,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                         , serverNameView context model server
                         ]
                     , Element.el
-                        [ Font.size 12, Font.color (SH.toElementColor context.palette.muted.textOnNeutralBG) ]
+                        [ Font.size 12, Font.color (SH.toElementColor context.palette.neutral.text.subdued) ]
                         (copyableText context.palette [] server.osProps.uuid)
                     ]
                 , Element.el
@@ -915,8 +915,8 @@ interactions context project server currentTime tlsReverseProxyHostname =
                                                 )
 
                                             _ ->
-                                                ( SH.toElementColor context.palette.muted.default
-                                                , SH.toElementColor context.palette.muted.textOnNeutralBG
+                                                ( SH.toElementColor context.palette.neutral.icon
+                                                , SH.toElementColor context.palette.neutral.text.subdued
                                                 )
                                 in
                                 Element.row
@@ -1013,7 +1013,7 @@ serverPassphrase context model server =
 
                         _ ->
                             Element.el
-                                [ context.palette.muted.textOnNeutralBG
+                                [ context.palette.neutral.text.subdued
                                     |> SH.toElementColor
                                     |> Font.color
                                 ]
@@ -1532,7 +1532,7 @@ renderIpAddresses context project server model =
                     [ Font.size 10
                     , Border.width 1
                     , Border.rounded 20
-                    , Border.color (SH.toElementColor context.palette.muted.default)
+                    , Border.color (SH.toElementColor context.palette.neutral.border)
                     , Element.padding 3
                     ]
                     { onPress = Just <| GotIpInfoLevel ipMsg

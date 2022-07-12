@@ -270,7 +270,7 @@ renderMessageAsElement context message =
                 (Element.text
                     (toFriendlyErrorLevel message.context.level)
                 )
-            , Element.el [ context.palette.muted.textOnNeutralBG |> SH.toElementColor |> Font.color ]
+            , Element.el [ context.palette.neutral.text.subdued |> SH.toElementColor |> Font.color ]
                 (Element.text
                     (" at " ++ humanReadableDateAndTime message.timestamp)
                 )
@@ -1204,7 +1204,7 @@ flavorPicker context project restrictFlavorIds computeQuota flavorGroupToggleTip
                     [ Element.spacing 5, Element.paddingXY 0 5 ]
                     [ Element.row []
                         [ Element.el
-                            [ context.palette.muted.textOnNeutralBG
+                            [ context.palette.neutral.text.subdued
                                 |> SH.toElementColor
                                 |> Font.color
                             ]
@@ -1277,20 +1277,20 @@ createdAgoByFromSize :
     -> Element.Element msg
 createdAgoByFromSize context ( agoWord, agoContents ) maybeWhoCreatedTuple maybeFromTuple maybeSizeTuple =
     let
-        muted =
-            Font.color (context.palette.muted.textOnNeutralBG |> SH.toElementColor)
+        subduedText =
+            Font.color (context.palette.neutral.text.subdued |> SH.toElementColor)
     in
     Element.wrappedRow
         [ Element.width Element.fill, Element.spaceEvenly ]
     <|
         [ Element.row [ Element.paddingXY 5 6 ]
-            [ Element.el [ muted ] (Element.text <| agoWord ++ " ")
+            [ Element.el [ subduedText ] (Element.text <| agoWord ++ " ")
             , agoContents
             ]
         , case maybeWhoCreatedTuple of
             Just ( creatorAdjective, whoCreated ) ->
                 Element.row [ Element.paddingXY 5 6 ]
-                    [ Element.el [ muted ] (Element.text <| "by " ++ creatorAdjective ++ " ")
+                    [ Element.el [ subduedText ] (Element.text <| "by " ++ creatorAdjective ++ " ")
                     , Element.text whoCreated
                     ]
 
@@ -1299,7 +1299,7 @@ createdAgoByFromSize context ( agoWord, agoContents ) maybeWhoCreatedTuple maybe
         , case maybeFromTuple of
             Just ( fromAdjective, whereFrom ) ->
                 Element.row [ Element.paddingXY 5 6 ]
-                    [ Element.el [ muted ] (Element.text <| "from " ++ fromAdjective ++ " ")
+                    [ Element.el [ subduedText ] (Element.text <| "from " ++ fromAdjective ++ " ")
                     , Element.text whereFrom
                     ]
 
@@ -1308,7 +1308,7 @@ createdAgoByFromSize context ( agoWord, agoContents ) maybeWhoCreatedTuple maybe
         , case maybeSizeTuple of
             Just ( sizeAdjective, size ) ->
                 Element.row [ Element.paddingXY 5 6 ]
-                    [ Element.el [ muted ] (Element.text <| sizeAdjective ++ " ")
+                    [ Element.el [ subduedText ] (Element.text <| sizeAdjective ++ " ")
                     , size
                     ]
 

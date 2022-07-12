@@ -157,7 +157,7 @@ headingStyleAttrs : ExoPalette -> List (Element.Attribute msg)
 headingStyleAttrs palette =
     [ Region.heading 2
     , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
-    , Border.color (palette.muted.textOnNeutralBG |> SH.toElementColor)
+    , Border.color (palette.neutral.border |> SH.toElementColor)
     , Element.width Element.fill
     , Element.paddingEach { bottom = 8, left = 0, right = 0, top = 0 }
     , Element.spacing 12
@@ -170,7 +170,7 @@ subheadingStyleAttrs : ExoPalette -> List (Element.Attribute msg)
 subheadingStyleAttrs palette =
     [ Region.heading 3
     , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
-    , Border.color (palette.muted.textOnNeutralBG |> SH.toElementColor)
+    , Border.color (palette.neutral.border |> SH.toElementColor)
     , Element.width Element.fill
     , Element.paddingEach { bottom = 8, left = 0, right = 0, top = 0 }
     , Element.spacing 12
