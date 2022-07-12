@@ -18,7 +18,6 @@ import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.DataList as DataList
 import Style.Widgets.Icon exposing (bell, history, ipAddress, remove, roundRect, timesCircle)
 import Style.Widgets.IconButton exposing (chip)
-import Style.Widgets.MenuItem exposing (MenuItemState(..), menuItem)
 import Style.Widgets.Meter exposing (meter)
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.StatusBadge exposing (StatusBadgeState(..), statusBadge)
@@ -163,10 +162,10 @@ serverView palette server =
             , Element.text "·"
             , Element.paragraph []
                 [ Element.text "created "
-                , Element.el [ Font.color (SH.toElementColor palette.on.background) ]
+                , Element.el [ Font.color (SH.toElementColor palette.neutral.text.default) ]
                     (Element.text server.creationTime.relativeTime)
                 , Element.text " by "
-                , Element.el [ Font.color (SH.toElementColor palette.on.background) ]
+                , Element.el [ Font.color (SH.toElementColor palette.neutral.text.default) ]
                     (Element.text server.creator)
                 ]
             , Style.Widgets.Icon.ipAddress
@@ -256,19 +255,17 @@ searchFilter =
 widgets : Style.Types.ExoPalette -> Model -> List (Element.Element Msg)
 widgets palette model =
     [ Element.text "Style.Widgets.MenuItem.menuItem"
-    , menuItem palette Active Nothing "Active menu item" "https://try.exosphere.app"
-    , menuItem palette Inactive Nothing "Inactive menu item" "https://try.exosphere.app"
     , Element.text "Style.Widgets.Icon.roundRect"
-    , roundRect (palette.on.background |> SH.toElementColor) 40
+    , roundRect (palette.neutral.icon |> SH.toElementColor) 40
     , Element.text "Style.Widgets.Icon.bell"
-    , bell (palette.on.background |> SH.toElementColor) 40
+    , bell (palette.neutral.icon |> SH.toElementColor) 40
     , Element.text "Style.Widgets.Icon.remove"
-    , remove (palette.on.background |> SH.toElementColor) 40
-    , timesCircle (palette.on.background |> SH.toElementColor) 40
+    , remove (palette.neutral.icon |> SH.toElementColor) 40
+    , timesCircle (palette.neutral.icon |> SH.toElementColor) 40
     , Element.text "Style.Widgets.Icon.ipAddress"
-    , ipAddress (palette.on.background |> SH.toElementColor) 40
+    , ipAddress (palette.neutral.icon |> SH.toElementColor) 40
     , Element.text "Style.Widgets.Icon.history"
-    , history (palette.on.background |> SH.toElementColor) 40
+    , history (palette.neutral.icon |> SH.toElementColor) 40
     , Element.text "Style.Widgets.Card.exoCard"
     , exoCard palette (Element.text "Lorem ipsum dolor sit amet.")
     , Element.text "Style.Widgets.Card.exoCardFixedSize"
