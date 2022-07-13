@@ -5,6 +5,7 @@ module Style.Types exposing
     , DeployerColors
     , ElmUiWidgetStyle
     , ExoPalette
+    , GrayShades15
     , PopoverPosition(..)
     , StyleMode
     , Theme(..)
@@ -57,7 +58,7 @@ type alias ColorShades9 =
     }
 
 
-type alias GrayShades13 =
+type alias GrayShades15 =
     { white : Color.Color
     , semiWhite : Color.Color
     , lightest : Color.Color
@@ -77,7 +78,7 @@ type alias GrayShades13 =
 
 
 type alias AllColorsPalette =
-    { gray : GrayShades13
+    { gray : GrayShades15
     , blue : ColorShades9
     , green : ColorShades9
     , yellow : ColorShades9
