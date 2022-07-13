@@ -80,7 +80,7 @@ port onModeChanged : String -> Cmd msg
 -}
 defaultIcon : Style.Types.ExoPalette -> (Element.Color -> number -> icon) -> icon
 defaultIcon pal icon =
-    icon (pal.on.background |> SH.toElementColor) 25
+    icon (pal.neutral.icon |> SH.toElementColor) 25
 
 
 veryLongCopy : String

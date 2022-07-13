@@ -8,6 +8,7 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Style.Helpers as SH
+import Style.Types as ST
 import Style.Widgets.Text as Text
 import UIExplorer exposing (storiesOf)
 import UIExplorer.ColorMode exposing (ColorMode(..))
@@ -24,45 +25,10 @@ stories : Renderer msg -> UIExplorer.UI (ThemeModel model) msg Plugins
 stories renderer =
     storiesOf
         "Color Palette"
-        [ ( "brand"
+        [ ( "Exosphere Colors"
           , \m ->
                 renderer (palettize m) <|
-                    collection
-                        -- TODO: redesign swatches in a way that `textOnNeutralBG`, `default`, `border` of UI states (danger, warning, etc.) can also be shown
-                        [ swatch
-                            [ namedBlock "primary" <| (palettize m).primary
-                            , namedBlock "secondary" <| (palettize m).secondary
-                            , namedBlock "background" <| (palettize m).background
-                            , namedBlock "surface" <| (palettize m).surface
-                            , namedBlock "danger.background" <| (palettize m).danger.background
-                            , namedBlock "warning.background" <| (palettize m).warning.background
-                            , namedBlock "success.background" <| (palettize m).success.background
-                            , namedBlock "info.background" <| (palettize m).info.background
-                            , namedBlock "muted.background" <| (palettize m).muted.background
-                            ]
-                        , swatch
-                            [ namedBlock "on.primary" <| (palettize m).on.primary
-                            , namedBlock "on.secondary" <| (palettize m).on.secondary
-                            , namedBlock "on.background" <| (palettize m).on.background
-                            , namedBlock "on.surface" <| (palettize m).on.surface
-                            , namedBlock "danger.textOnColoredBG" <| (palettize m).danger.textOnColoredBG
-                            , namedBlock "warning.textOnColoredBG" <| (palettize m).warning.textOnColoredBG
-                            , namedBlock "success.textOnColoredBG" <| (palettize m).success.textOnColoredBG
-                            , namedBlock "info.textOnColoredBG" <| (palettize m).info.textOnColoredBG
-                            , namedBlock "muted.textOnColoredBG" <| (palettize m).muted.textOnColoredBG
-                            ]
-                        , swatch
-                            [ wcagBlock "primary" (palettize m).on.primary (palettize m).primary
-                            , wcagBlock "secondary" (palettize m).on.secondary (palettize m).secondary
-                            , wcagBlock "background" (palettize m).on.background (palettize m).background
-                            , wcagBlock "surface" (palettize m).on.surface (palettize m).surface
-                            , wcagBlock "danger" (palettize m).danger.textOnColoredBG (palettize m).danger.background
-                            , wcagBlock "warning" (palettize m).warning.textOnColoredBG (palettize m).warning.background
-                            , wcagBlock "success" (palettize m).success.textOnColoredBG (palettize m).success.background
-                            , wcagBlock "info" (palettize m).info.textOnColoredBG (palettize m).info.background
-                            , wcagBlock "muted" (palettize m).muted.textOnColoredBG (palettize m).muted.background
-                            ]
-                        ]
+                    Element.text "TODO: ExoPalette"
           , { note = """
 ## Palette
 
@@ -87,23 +53,50 @@ In particular, this visual test supports:
 > "Make it easier for users to see and hear content including separating foreground from background."
           """ }
           )
-        , ( "menu"
+        , ( "All Colors"
           , \m ->
                 renderer (palettize m) <|
                     collection
-                        [ swatch
-                            [ namedBlock "background" <| (palettize m).menu.background
-                            , namedBlock "surface" <| (palettize m).menu.surface
-                            , namedBlock "secondary" <| (palettize m).menu.secondary
-                            ]
-                        , swatch
-                            [ namedBlock "on.background" <| (palettize m).menu.on.background
-                            , namedBlock "on.surface" <| (palettize m).menu.on.surface
-                            ]
-                        , swatch
-                            [ wcagBlock "background" (palettize m).menu.on.background (palettize m).menu.background
-                            , wcagBlock "surface" (palettize m).menu.on.surface (palettize m).menu.surface
-                            ]
+                        [ swatch "blue" <|
+                            List.map
+                                (\colorShade ->
+                                    namedBlock
+                                        (Tuple.first colorShade)
+                                        (Tuple.second colorShade <| SH.allColorsPalette.blue)
+                                )
+                                colorShades9
+                        , swatch "green" <|
+                            List.map
+                                (\colorShade ->
+                                    namedBlock
+                                        (Tuple.first colorShade)
+                                        (Tuple.second colorShade <| SH.allColorsPalette.green)
+                                )
+                                colorShades9
+                        , swatch "yellow" <|
+                            List.map
+                                (\colorShade ->
+                                    namedBlock
+                                        (Tuple.first colorShade)
+                                        (Tuple.second colorShade <| SH.allColorsPalette.yellow)
+                                )
+                                colorShades9
+                        , swatch "red" <|
+                            List.map
+                                (\colorShade ->
+                                    namedBlock
+                                        (Tuple.first colorShade)
+                                        (Tuple.second colorShade <| SH.allColorsPalette.red)
+                                )
+                                colorShades9
+                        , swatch "gray" <|
+                            List.map
+                                (\colorShade ->
+                                    namedBlock
+                                        (Tuple.first colorShade)
+                                        (Tuple.second colorShade <| SH.allColorsPalette.gray)
+                                )
+                                grayShades15
                         ]
           , { note = "" }
           )
@@ -114,7 +107,7 @@ In particular, this visual test supports:
 -}
 blockSize : number
 blockSize =
-    108
+    72
 
 
 {-| A border color to create a clear block boundary on pure black or white background.
@@ -130,7 +123,7 @@ blockStyleAttributes : List (Element.Attribute msg)
 blockStyleAttributes =
     [ Element.width (Element.px blockSize)
     , Element.height (Element.px blockSize)
-    , Border.widthEach { bottom = 1, left = 1, right = 1, top = 1 }
+    , Border.width 1
     , Border.color blockBorderColor
     ]
 
@@ -139,11 +132,11 @@ blockStyleAttributes =
 -}
 block : Color.Color -> Element.Element msg
 block color =
-    Element.row
+    Element.el
         ((Background.color <| SH.toElementColor <| color)
             :: blockStyleAttributes
         )
-        []
+        Element.none
 
 
 {-| A labelled block with its hex colour code.
@@ -151,10 +144,15 @@ block color =
 namedBlock : String -> Color.Color -> Element.Element msg
 namedBlock label color =
     Element.column
-        [ Element.spacing 6, Element.width <| Element.px blockSize, Element.alignTop ]
+        [ Element.spacing 6
+        , Element.width <| Element.px blockSize
+        , Element.alignTop
+        , Font.size 12
+        ]
         [ block color
-        , Text.mono <| colorToHex color
-        , Element.paragraph [ Font.size 14, Font.semiBold ] [ Element.text label ]
+        , Element.el [ Font.family [ Font.monospace ] ] <|
+            Element.text (colorToHex color)
+        , Element.paragraph [] [ Element.text label ]
         ]
 
 
@@ -171,11 +169,19 @@ wcagBlock label foreground background =
 
 {-| A row of colored blocks, like a color swatch.
 -}
-swatch : List (Element.Element msg) -> Element.Element msg
-swatch blocks =
+swatch : String -> List (Element.Element msg) -> Element.Element msg
+swatch name blocks =
     Element.row
-        [ Element.spacing 16 ]
-        blocks
+        [ Element.spacing 12 ]
+        ((Element.el
+            [ Element.width <| Element.minimum 60 Element.fill
+            , Font.semiBold
+            ]
+          <|
+            Element.text name
+         )
+            :: blocks
+        )
 
 
 {-| A row of colored blocks, like a color swatch.
@@ -185,3 +191,37 @@ collection swatches =
     Element.column
         [ Element.spacing 30 ]
         swatches
+
+
+colorShades9 : List ( String, ST.ColorShades9 -> Color.Color )
+colorShades9 =
+    [ ( "lightest", .lightest )
+    , ( "lighter", .lighter )
+    , ( "light", .light )
+    , ( "semiLight", .semiLight )
+    , ( "base", .base )
+    , ( "semiDark", .semiDark )
+    , ( "dark", .dark )
+    , ( "darker", .darker )
+    , ( "darkest", .darkest )
+    ]
+
+
+grayShades15 : List ( String, ST.GrayShades15 -> Color.Color )
+grayShades15 =
+    [ ( "white", .white )
+    , ( "semiWhite", .semiWhite )
+    , ( "lightest", .lightest )
+    , ( "semiLightest", .semiLightest )
+    , ( "lighter", .lighter )
+    , ( "light", .light )
+    , ( "semiLight", .semiLight )
+    , ( "base", .base )
+    , ( "semiDark", .semiDark )
+    , ( "dark", .dark )
+    , ( "darker", .darker )
+    , ( "semiDarkest", .semiDarkest )
+    , ( "darkest", .darkest )
+    , ( "semiBlack", .semiBlack )
+    , ( "black", .black )
+    ]
