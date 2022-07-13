@@ -127,10 +127,10 @@ toExoPalette deployerColors { theme, systemPreference } =
             , secondary = deployerColors.light.secondary
             , neutral =
                 { background =
-                    { backLayer = allColorsPalette.gray.lightest -- semiWhite?
+                    { backLayer = allColorsPalette.gray.lightest
                     , frontLayer = allColorsPalette.gray.white
                     }
-                , border = allColorsPalette.gray.light -- lighter?
+                , border = allColorsPalette.gray.light
                 , icon = allColorsPalette.gray.semiDark
                 , text =
                     { default = allColorsPalette.gray.darkest
@@ -148,14 +148,14 @@ toExoPalette deployerColors { theme, systemPreference } =
                 { default = allColorsPalette.green.base
                 , background = allColorsPalette.green.lightest
                 , border = allColorsPalette.green.light
-                , textOnNeutralBG = allColorsPalette.green.dark -- semiDark has poor contrast since it's a bright color, hence one shade darker
+                , textOnNeutralBG = allColorsPalette.green.dark -- `semiDark` has poor contrast since it's a bright color, hence one shade darker
                 , textOnColoredBG = allColorsPalette.green.darkest
                 }
             , warning =
                 { default = allColorsPalette.yellow.base
                 , background = allColorsPalette.yellow.lightest
-                , border = allColorsPalette.yellow.light
-                , textOnNeutralBG = allColorsPalette.yellow.dark -- semiDark has poor contrast since it's a bright color, hence one shade darker
+                , border = allColorsPalette.yellow.semiLight -- `light` has relatively poor contrast w/ `lightest` background, hence a shade darker
+                , textOnNeutralBG = allColorsPalette.yellow.dark -- `semiDark` has poor contrast since it's a bright color, hence one shade darker
                 , textOnColoredBG = allColorsPalette.yellow.darkest
                 }
             , danger =
@@ -167,8 +167,8 @@ toExoPalette deployerColors { theme, systemPreference } =
                 }
             , muted =
                 { default = allColorsPalette.gray.base
-                , background = allColorsPalette.gray.lightest
-                , border = allColorsPalette.gray.light
+                , background = allColorsPalette.gray.lighter -- `lightest` will blend with `neutral.background`, hence a shade darker
+                , border = allColorsPalette.gray.semiLight
                 , textOnNeutralBG = allColorsPalette.gray.semiDark
                 , textOnColoredBG = allColorsPalette.gray.darkest
                 }
@@ -193,35 +193,35 @@ toExoPalette deployerColors { theme, systemPreference } =
             , info =
                 { default = allColorsPalette.blue.base
                 , background = allColorsPalette.blue.darkest
-                , border = allColorsPalette.blue.dark
+                , border = allColorsPalette.blue.semiDark
                 , textOnNeutralBG = allColorsPalette.blue.semiLight
                 , textOnColoredBG = allColorsPalette.blue.lightest
                 }
             , success =
                 { default = allColorsPalette.green.base
                 , background = allColorsPalette.green.darkest
-                , border = allColorsPalette.green.dark
+                , border = allColorsPalette.green.semiDark
                 , textOnNeutralBG = allColorsPalette.green.semiLight
                 , textOnColoredBG = allColorsPalette.green.lightest
                 }
             , warning =
                 { default = allColorsPalette.yellow.base
                 , background = allColorsPalette.yellow.darkest
-                , border = allColorsPalette.yellow.dark
+                , border = allColorsPalette.yellow.semiDark
                 , textOnNeutralBG = allColorsPalette.yellow.semiLight
                 , textOnColoredBG = allColorsPalette.yellow.lightest
                 }
             , danger =
                 { default = allColorsPalette.red.base
                 , background = allColorsPalette.red.darkest
-                , border = allColorsPalette.red.dark
+                , border = allColorsPalette.red.semiDark
                 , textOnNeutralBG = allColorsPalette.red.semiLight
                 , textOnColoredBG = allColorsPalette.red.lightest
                 }
             , muted =
                 { default = allColorsPalette.gray.base
-                , background = allColorsPalette.gray.darkest
-                , border = allColorsPalette.gray.dark
+                , background = allColorsPalette.gray.dark -- `darkest` & `darker` will blend with `neutral.background`, hence `dark`
+                , border = allColorsPalette.gray.base
                 , textOnNeutralBG = allColorsPalette.gray.semiLight
                 , textOnColoredBG = allColorsPalette.gray.lightest
                 }
