@@ -32,11 +32,11 @@
 
 We have started to use text helper functions in `Style.Widgets.Text` in order to style text throughout the app more consistently. These helpers add some commonly-used style attributes to the lower-level `Element` functions from `elm-ui`. Some older parts of the codebase haven't been converted to using these `Text` functions yet, but the functions should be used where possible when building new parts (or re-working existing parts) of the UI.
 
-
 ### Color Palette
 
-Throughout the app, we use `context.palette` (with `ExoPalette` type) as it automatically changes its colors whenever light/dark theme is changed. This palette stores colors as *meaningfully* named fields, making the choices intuitive.
+Throughout the app, we use `context.palette` (with `ExoPalette` type) for coloring things, which automatically changes its colors whenever light/dark theme is changed. This palette stores colors as *meaningfully* named fields, making the choices intuitive.
 
+Please see "Color Palette" part of the [design system explorer](#design-system) for a more thorough orientation of how to use colors.
 
 ### Style Guide (Legacy)
 

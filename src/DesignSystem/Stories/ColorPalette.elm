@@ -71,21 +71,52 @@ stories renderer =
                               ]
                             ]
           , { note = """
-## Palette
+## Exosphere Colors Palette (ExoPalette)
 
-ExoPalette has 5 fields for 5 UI states: `info`, `success`, `warning`, `danger`, `muted`. Each of them has following subfields that are meant to be used as follows:
+This is a palette of the specific colors used throughout the Exosphere app, picked from the [All Colors Palette](#Atoms/Color%20Palette/All%20Colors) based on the theme active (light or dark). 
+It can be accessed as `palette` (type: `Style.Types.ExoPalette`) field of the `context` (type: `View.Types.Context`) record that is passed to almost all `view` functions.
 
-- `default`: For coloring indicators/shapes/lines. As the name suggests, you can use it when other options don't make sense. E.g. server state's indicators on ServerList & ServerDetails page, grey border of icon buttons, etc.
-- `background`, `border`, `textOnColoredBG`: These 3 are usually used together for coloring alert/badge type component that is essentially a container with a background, border, and some text in it. E.g. status badge widget, alert widget, etc.
-- `textOnNeutralBG`: For coloring text (and icons, in some cases) on a neutral (aka plain white/black/grey) background. E.g. text input's invalid message text; muted text on Home, ProjectOverview, ServerDetails pages; different colored messages on MessageLog page; etc.
+ExoPalette has the following fields that are named *meaningfully* to make color choices intuitive:
 
-## Readability
+- `primary`, `secondary` - the brand colors provided by the deployer. They're used in action buttons, meter, etc.
 
-Use WCAG content blocks with foreground colours on background colours to test readability.
+- `neutral` - plain white/black/gray colors used for almost everything in the UI, as indicated by the following subfields:
+    - `background` - atleast 2 [background layers](https://spectrum.adobe.com/page/using-color/#Background-layers) are required in an app to create depth and visual hierarchy. Currently we have:
 
-WCAG are Web Content Accessibility Guidelines.
-(Check out the [official quick reference](https://www.w3.org/WAI/WCAG21/quickref/) or
-read a [summary on Wikipedia](https://en.wikipedia.org/wiki/Web_Content_Accessibility_Guidelines).)
+        - `backLayer` - for coloring background of the outermost container of the app.
+
+        - `frontLayer` - for coloring background of the elements contained by it like card, data list, popover, etc.
+
+    - `border` - for coloring border of the elements in the app.
+
+    - `icon` - for coloring iconography in the app, which means not only the icons but also the shapes, illustrations, etc. - e.g. slider's track, ticks & axes on the graph, etc.
+
+    - `text` - for coloring text content in a way that meets WCAG contrast minimums on each background layer. Depending on the text content, we have:
+
+        - `default` - for coloring default text.
+
+        - `subdued` - for coloring text that is relatively lesser important. It's often paired with default colored text to draw more attention to it and/or lesser attention to itself. E.g. data list on ServerList, VolumeList, etc.
+
+    > Note: Many times, when icons are used along with default colored text, you'll need to use `neutral.text.default` rather than `neutral.icon` for coloring them.
+
+- `info`, `success`, `warning`, `danger`, `muted` - 5 fields to communicate 5 different *UI states* to the user. Each of them has following subfields that are meant to be used as follows:
+
+    - `default` - for coloring icons, shapes, lines, etc. As the name suggests, you can also use it when other options don't make sense. E.g. server state's indicators on ServerList & ServerDetails page, accent line on valid/invalid input, etc.
+
+    - `background`, `border`, `textOnColoredBG` - these 3 are usually used together for coloring alert/badge type component that is essentially a container with a background, border, and some text in it. E.g. status badge widget, alert widget, etc.
+
+    - `textOnNeutralBG`- for coloring text (and icons, in some cases) on a neutral (aka plain white/black/grey) background. E.g. text input's invalid message text, messages with different level of severity on MessageLog page, etc.
+
+- `menu` - for coloring the menu (or navigation bar) that remains same in both light and dark theme. It has two obvious components:
+    
+    - `background` - for coloring the menu background.
+
+    - `textOrIcon` - for coloring the text or icons on the menu.
+
+### Readability
+
+The demos illustrated to the right of each color swatch, also act as a readability test based on WCAG - Web Content Accessibility Guidelines.
+(Check out the [official quick reference](https://www.w3.org/WAI/WCAG21/quickref/) or read a [summary on Wikipedia](https://en.wikipedia.org/wiki/Web_Content_Accessibility_Guidelines).)
 
 In particular, this visual test supports:
 
@@ -139,7 +170,20 @@ In particular, this visual test supports:
                                 )
                                 grayShades15
                         ]
-          , { note = "" }
+          , { note = """
+## All Colors Palette
+
+This is a palette of the shades of all major colors, from which [ExoPalette](#Atoms/Color%20Palette/Exosphere%20Colors) is derived.
+It can be accessed as `allColorsPalette` from `Style.Helpers`.
+
+> This must be used only when ExoPalette can't cater to your needs. Should you choose to use it, you should be aware that the color shade will remain same in both light and dark theme. In most of such scenarios, you might wanna add a new field in ExoPalette that can adapt to both light and dark theme.
+
+As illustrated above, All Colors Palette has:
+
+- 9 shades of each color (except `gray`) - ranging from light on one end to dark on another.
+
+- 15 shades of `gray` color - the 6 extra shades are due to `white` and `black` added on light and dark end respectively, along with two intermediatory shades on each end. Finer gradation is required near the ends of gray palette because multiple layers in the app require different shades and we can't choose the shades closer to the mid or `base` shade (because they look dirty gray as background colors).
+          """ }
           )
         ]
 
