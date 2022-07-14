@@ -19,25 +19,24 @@
 
 ### How to Add New Widgets
 
+- Review the widgets available in the Design System. If you are not convinced a new component is required, please enhance an existing one.
 - Create a module for your widget (or update an existing module) in `src/Style/Widgets`.
+- Add brief Elm `{-| documentation comments -}` to your module's exposed functions.
 - Add example usages of your widget in `src/DesignSystem/Explorer.elm`.
 - Preview your widget's stories in the explorer to ensure they look & behave as intended.
 - Where possible, try to use content representative of the context the widget will be used in.
+- Add notes to your widget's stories. You can link to other widgets to explain why you might "use x instead of y to do z".
 
 
 ### Text & Typography
 
 We have started to use text helper functions in `Style.Widgets.Text` in order to style text throughout the app more consistently. These helpers add some commonly-used style attributes to the lower-level `Element` functions from `elm-ui`. Some older parts of the codebase haven't been converted to using these `Text` functions yet, but the functions should be used where possible when building new parts (or re-working existing parts) of the UI.
 
+
 ### Color Palette
 
 Throughout the app, we use `context.palette` (with `ExoPalette` type) as it automatically changes its colors whenever light/dark theme is changed. This palette stores colors as *meaningfully* named fields, making the choices intuitive.
 
-ExoPalette has 5 fields for 5 UI states: `info`, `success`, `warning`, `danger`, `muted`. Each of them has following subfields that are meant to be used as follows:
-
-- `default`: For coloring indicators/shapes/lines. As the name suggests, you can use it when other options don't make sense. E.g. server state's indicators on ServerList & ServerDetails page, grey border of icon buttons, etc.
-- `background`, `border`, `textOnColoredBG`: These 3 are usually used together for coloring alert/badge type component that is essentially a container with a background, border, and some text in it. E.g. status badge widget, alert widget, etc.
-- `textOnNeutralBG`: For coloring text (and icons, in some cases) on a neutral (aka plain white/black/grey) background. E.g. text input's invalid message text; muted text on Home, ProjectOverview, ServerDetails pages; different colored messages on MessageLog page; etc.
 
 ### Style Guide (Legacy)
 

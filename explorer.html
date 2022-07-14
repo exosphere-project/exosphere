@@ -13,7 +13,12 @@
     <link
       rel="stylesheet"
       type="text/css"
-      href="https://cdn.jsdelivr.net/gh/kalutheo/elm-ui-explorer@master/assets/styles.css"
+      href="assets/css/elm-ui-explorer.css"
+    />
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="assets/css/github-markdown.min.css"
     />
   </head>
 
@@ -24,6 +29,23 @@
       var app = Elm.DesignSystem.Explorer.init({
         node: document.getElementById("root"),
         flags: config,
+      });
+
+      // Subscribe to color mode changes so that we can update markdown css.
+      app.ports.onModeChanged.subscribe(function (mode) {
+        const darkLink = document.getElementById("uie-dark-theme");
+        if (darkLink) {
+          darkLink.remove();
+        }
+        if (mode === "Dark") {
+          const link = document.createElement("link");
+          const head = document.getElementsByTagName("head")[0];
+          link.rel = "stylesheet";
+          link.href = "assets/css/markdown-plus-themes.css";
+          link.id = "uie-dark-theme";
+          link.type = "text/css";
+          head.appendChild(link);
+        }
       });
     </script>
   </body>

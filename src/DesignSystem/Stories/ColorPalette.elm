@@ -2,7 +2,7 @@ module DesignSystem.Stories.ColorPalette exposing (stories)
 
 import Color
 import Color.Convert exposing (colorToHex)
-import DesignSystem.Helpers exposing (Renderer, ThemeModel, palettize)
+import DesignSystem.Helpers exposing (Plugins, Renderer, ThemeModel, palettize)
 import Element exposing (rgba)
 import Element.Background as Background
 import Element.Border as Border
@@ -20,8 +20,8 @@ import UIExplorer.ColorMode exposing (ColorMode(..))
     plugins  – UIExplorer plugins (can be empty {})
 
 -}
-stories : Renderer msg -> plugins -> UIExplorer.UI (ThemeModel model) msg plugins
-stories renderer plugins =
+stories : Renderer msg -> UIExplorer.UI (ThemeModel model) msg Plugins
+stories renderer =
     storiesOf
         "Color Palette"
         [ ( "brand"
@@ -63,7 +63,29 @@ stories renderer plugins =
                             , wcagBlock "muted" (palettize m).muted.textOnColoredBG (palettize m).muted.background
                             ]
                         ]
-          , plugins
+          , { note = """
+## Palette
+
+ExoPalette has 5 fields for 5 UI states: `info`, `success`, `warning`, `danger`, `muted`. Each of them has following subfields that are meant to be used as follows:
+
+- `default`: For coloring indicators/shapes/lines. As the name suggests, you can use it when other options don't make sense. E.g. server state's indicators on ServerList & ServerDetails page, grey border of icon buttons, etc.
+- `background`, `border`, `textOnColoredBG`: These 3 are usually used together for coloring alert/badge type component that is essentially a container with a background, border, and some text in it. E.g. status badge widget, alert widget, etc.
+- `textOnNeutralBG`: For coloring text (and icons, in some cases) on a neutral (aka plain white/black/grey) background. E.g. text input's invalid message text; muted text on Home, ProjectOverview, ServerDetails pages; different colored messages on MessageLog page; etc.
+
+## Readability
+
+Use WCAG content blocks with foreground colours on background colours to test readability.
+
+WCAG are Web Content Accessibility Guidelines.
+(Check out the [official quick reference](https://www.w3.org/WAI/WCAG21/quickref/) or
+read a [summary on Wikipedia](https://en.wikipedia.org/wiki/Web_Content_Accessibility_Guidelines).)
+
+In particular, this visual test supports:
+
+> **Guideline 1.4 – Distinguishable**
+>
+> "Make it easier for users to see and hear content including separating foreground from background."
+          """ }
           )
         , ( "menu"
           , \m ->
@@ -83,10 +105,8 @@ stories renderer plugins =
                             , wcagBlock "surface" (palettize m).menu.on.surface (palettize m).menu.surface
                             ]
                         ]
-          , plugins
+          , { note = "" }
           )
-
-        --TODO: material palette
         ]
 
 
@@ -138,19 +158,7 @@ namedBlock label color =
         ]
 
 
-{-| This WCAG content block uses foreground & background palette colours to test readability.
-
----
-
-WCAG are Web Content Accessibility Guidelines.
-(Check out the [official quick reference](https://www.w3.org/WAI/WCAG21/quickref/) or
-read a [summary on Wikipedia](https://en.wikipedia.org/wiki/Web_Content_Accessibility_Guidelines).)
-
-In particular, this visual test supports:
-
-**Guideline 1.4 – Distinguishable**
-"Make it easier for users to see and hear content including separating foreground from background."
-
+{-| A WCAG content block which places foreground & background palette colours together to test readability.
 -}
 wcagBlock : String -> Color.Color -> Color.Color -> Element.Element msg
 wcagBlock label foreground background =
