@@ -7,9 +7,9 @@ import Element exposing (rgba)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
+import FeatherIcons
 import Style.Helpers as SH
 import Style.Types as ST
-import Style.Widgets.Text as Text
 import UIExplorer exposing (storiesOf)
 import UIExplorer.ColorMode exposing (ColorMode(..))
 
@@ -28,7 +28,48 @@ stories renderer =
         [ ( "Exosphere Colors"
           , \m ->
                 renderer (palettize m) <|
-                    Element.text "TODO: ExoPalette"
+                    Element.column [ Element.spacing 36 ] <|
+                        List.concat
+                            [ [ swatch "brand"
+                                    [ namedBlock "primary" (palettize m).primary
+                                    , namedBlock "secondary" (palettize m).secondary
+                                    ]
+                              , Element.row [ Element.spacing 24 ]
+                                    [ swatch "neutral"
+                                        [ namedBlock "background. backLayer" (palettize m).neutral.background.backLayer
+                                        , namedBlock "background. frontLayer" (palettize m).neutral.background.frontLayer
+                                        , namedBlock "border" (palettize m).neutral.border
+                                        , namedBlock "icon" (palettize m).neutral.icon
+                                        , namedBlock "text.default" (palettize m).neutral.text.default
+                                        , namedBlock "text. subdued" (palettize m).neutral.text.subdued
+                                        ]
+                                    , demoSeperator (palettize m)
+                                    , exoNeutralDemo (palettize m)
+                                    ]
+                              ]
+                            , List.map2
+                                (\stateName toStateColor ->
+                                    Element.row [ Element.spacing 24 ]
+                                        [ swatch stateName
+                                            [ namedBlock "default" (palettize m |> toStateColor).default
+                                            , namedBlock "background" (palettize m |> toStateColor).background
+                                            , namedBlock "border" (palettize m |> toStateColor).border
+                                            , namedBlock "textOnColoredBG" (palettize m |> toStateColor).textOnColoredBG
+                                            , namedBlock "textOnNeutralBG" (palettize m |> toStateColor).textOnNeutralBG
+                                            , Element.el [ Element.width <| Element.px blockSize ] Element.none -- to fill space of 6th block in neutral
+                                            ]
+                                        , demoSeperator (palettize m)
+                                        , exoUIStateDemo (palettize m) stateName toStateColor
+                                        ]
+                                )
+                                [ "info", "success", "warning", "danger", "muted" ]
+                                [ .info, .success, .warning, .danger, .muted ]
+                            , [ swatch "menu"
+                                    [ namedBlock "background" (palettize m).menu.background
+                                    , namedBlock "textOrIcon" (palettize m).menu.textOrIcon
+                                    ]
+                              ]
+                            ]
           , { note = """
 ## Palette
 
@@ -56,7 +97,7 @@ In particular, this visual test supports:
         , ( "All Colors"
           , \m ->
                 renderer (palettize m) <|
-                    collection
+                    Element.column [ Element.spacing 36 ]
                         [ swatch "blue" <|
                             List.map
                                 (\colorShade ->
@@ -105,7 +146,7 @@ In particular, this visual test supports:
 
 {-| The size of the square blocks in the view.
 -}
-blockSize : number
+blockSize : Int
 blockSize =
     72
 
@@ -156,17 +197,6 @@ namedBlock label color =
         ]
 
 
-{-| A WCAG content block which places foreground & background palette colours together to test readability.
--}
-wcagBlock : String -> Color.Color -> Color.Color -> Element.Element msg
-wcagBlock label foreground background =
-    Element.row
-        ((Background.color <| SH.toElementColor <| background)
-            :: blockStyleAttributes
-        )
-        [ Text.text Text.Body [ Font.color <| SH.toElementColor <| foreground, Element.centerX ] label ]
-
-
 {-| A row of colored blocks, like a color swatch.
 -}
 swatch : String -> List (Element.Element msg) -> Element.Element msg
@@ -174,23 +204,16 @@ swatch name blocks =
     Element.row
         [ Element.spacing 12 ]
         ((Element.el
-            [ Element.width <| Element.minimum 60 Element.fill
+            [ Element.width <| Element.minimum 72 Element.fill
             , Font.semiBold
+            , Element.alignTop
+            , Element.paddingXY 0 8
             ]
           <|
             Element.text name
          )
             :: blocks
         )
-
-
-{-| A row of colored blocks, like a color swatch.
--}
-collection : List (Element.Element msg) -> Element.Element msg
-collection swatches =
-    Element.column
-        [ Element.spacing 30 ]
-        swatches
 
 
 colorShades9 : List ( String, ST.ColorShades9 -> Color.Color )
@@ -225,3 +248,93 @@ grayShades15 =
     , ( "semiBlack", .semiBlack )
     , ( "black", .black )
     ]
+
+
+demoColumnAttrs : ST.ExoPalette -> List (Element.Attribute msg)
+demoColumnAttrs palette =
+    [ Element.padding 20
+    , Element.spacing 20
+    , Background.color <| SH.toElementColor palette.neutral.background.backLayer
+    , Border.width 1
+    , Border.color <| SH.toElementColor palette.neutral.border
+    , Font.size 14
+    ]
+
+
+demoSeperator : ST.ExoPalette -> Element.Element msg
+demoSeperator palette =
+    Element.el
+        [ Element.height Element.fill
+        , Element.width <| Element.px 1
+        , Background.color <| SH.toElementColor palette.neutral.border
+        ]
+        Element.none
+
+
+exoNeutralDemo : ST.ExoPalette -> Element.Element msg
+exoNeutralDemo palette =
+    let
+        textDemo layerName =
+            Element.row
+                []
+                [ Element.text "Default text with "
+                , Element.el
+                    [ Font.color <| SH.toElementColor palette.neutral.text.subdued ]
+                    (Element.text "subdued text")
+                , Element.text <| " on " ++ layerName ++ " layer."
+                ]
+
+        iconDemo =
+            FeatherIcons.type_
+                |> FeatherIcons.toHtml []
+                |> Element.html
+                |> Element.el [ Font.color <| SH.toElementColor palette.neutral.icon ]
+
+        textAndIconDemo layerName =
+            Element.row [ Element.spacing 8 ] [ iconDemo, textDemo layerName ]
+    in
+    Element.column
+        (demoColumnAttrs palette
+            ++ [ Font.color <| SH.toElementColor palette.neutral.text.default ]
+        )
+        [ Element.el
+            [ Element.padding 16
+            , Background.color <| SH.toElementColor palette.neutral.background.frontLayer
+            , Border.width 1
+            , Border.color <| SH.toElementColor palette.neutral.border
+            ]
+            (textAndIconDemo "front")
+        , textAndIconDemo "back"
+        ]
+
+
+exoUIStateDemo :
+    ST.ExoPalette
+    -> String
+    -> (ST.ExoPalette -> ST.UIStateColors)
+    -> Element.Element msg
+exoUIStateDemo palette stateName toStateColor =
+    let
+        iconDemo =
+            FeatherIcons.eye
+                |> FeatherIcons.toHtml []
+                |> Element.html
+                |> Element.el [ Font.color <| SH.toElementColor (toStateColor palette).default ]
+    in
+    Element.column
+        (demoColumnAttrs palette)
+        [ Element.el
+            [ Element.padding 16
+            , Background.color <| SH.toElementColor (toStateColor palette).background
+            , Border.width 1
+            , Border.color <| SH.toElementColor (toStateColor palette).border
+            , Font.color <| SH.toElementColor (toStateColor palette).textOnColoredBG
+            ]
+            (Element.text <| stateName ++ " text on colored background.")
+        , Element.row [ Element.spacing 8 ]
+            [ iconDemo
+            , Element.el
+                [ Font.color <| SH.toElementColor (toStateColor palette).textOnNeutralBG ]
+                (Element.text <| stateName ++ " text on neutral background.")
+            ]
+        ]
