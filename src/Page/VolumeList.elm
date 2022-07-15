@@ -177,7 +177,7 @@ volumeView context project currentTime volumeRecord =
                         ]
                         (Element.text <|
                             VH.possiblyUntitledResource
-                                volumeRecord.volume.name
+                                (Maybe.withDefault "" volumeRecord.volume.name)
                                 context.localization.blockDevice
                         )
                 }

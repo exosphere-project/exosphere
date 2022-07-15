@@ -198,7 +198,7 @@ view context sharedModel model =
                                         |> List.map
                                             (\volume ->
                                                 ( volume.uuid
-                                                , volume.name
+                                                , Maybe.withDefault volume.uuid volume.name
                                                 )
                                             )
                                         |> List.sortBy Tuple.second

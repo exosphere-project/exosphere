@@ -250,5 +250,5 @@ volumeName : Maybe Project -> OSTypes.VolumeUuid -> String
 volumeName maybeProject volumeUuid =
     maybeProject
         |> Maybe.andThen (\proj -> GetterSetters.volumeLookup proj volumeUuid)
-        |> Maybe.map (\vol -> vol.name)
+        |> Maybe.andThen (\vol -> vol.name)
         |> Maybe.withDefault volumeUuid

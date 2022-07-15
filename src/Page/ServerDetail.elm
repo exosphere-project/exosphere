@@ -1618,7 +1618,7 @@ serverVolumes context project server =
                                     Nothing ->
                                         ( "Could not determine", "" )
                     in
-                    { name = VH.possiblyUntitledResource v.name "volume"
+                    { name = VH.possiblyUntitledResource (Maybe.withDefault "" v.name) "volume"
                     , device = device
                     , mountpoint = mountpoint
                     , toButton = volDetailsButton v

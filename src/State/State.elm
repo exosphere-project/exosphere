@@ -1821,6 +1821,7 @@ processProjectSpecificMsg outerModel project msg =
                             (\t ->
                                 Tuple.second t
                                     |> .name
+                                    |> Maybe.withDefault ""
                                     |> String.isEmpty
                             )
                         |> List.map
