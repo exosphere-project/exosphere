@@ -84,7 +84,7 @@ view context project model =
     let
         volumeName =
             GetterSetters.volumeLookup project model.volumeUuid
-                |> Maybe.map (\vol -> vol.name)
+                |> Maybe.andThen (\vol -> vol.name)
                 |> Maybe.withDefault model.volumeUuid
     in
     if model.showHeading then

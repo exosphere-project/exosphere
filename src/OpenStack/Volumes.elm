@@ -156,7 +156,7 @@ requestUpdateVolumeName project volumeUuid name =
 volumeDecoder : Decode.Decoder OSTypes.Volume
 volumeDecoder =
     Decode.succeed OSTypes.Volume
-        |> Pipeline.required "name" Decode.string
+        |> Pipeline.required "name" (Decode.nullable Decode.string)
         |> Pipeline.required "id" Decode.string
         |> Pipeline.required "status" (Decode.string |> Decode.andThen volumeStatusDecoder)
         |> Pipeline.required "size" Decode.int

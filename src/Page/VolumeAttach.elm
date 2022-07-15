@@ -90,7 +90,7 @@ view context project model =
                     (\v ->
                         ( v.uuid
                         , String.concat
-                            [ VH.possiblyUntitledResource v.name context.localization.blockDevice
+                            [ VH.possiblyUntitledResource (Maybe.withDefault v.uuid v.name) context.localization.blockDevice
                             , " - "
                             , String.fromInt v.size ++ " GB"
                             ]

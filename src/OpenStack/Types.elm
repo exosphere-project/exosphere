@@ -551,7 +551,7 @@ type alias ServerEvent =
 
 
 type alias Volume =
-    { name : VolumeName
+    { name : Maybe VolumeName
     , uuid : VolumeUuid
     , status : VolumeStatus
     , size : VolumeSize

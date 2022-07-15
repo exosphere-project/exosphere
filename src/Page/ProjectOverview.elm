@@ -276,7 +276,7 @@ volumeTileContents context project =
     let
         renderVolume : OSTypes.Volume -> List (Element.Element Msg)
         renderVolume volume =
-            [ VH.possiblyUntitledResource volume.name context.localization.blockDevice
+            [ VH.possiblyUntitledResource (Maybe.withDefault "" volume.name) context.localization.blockDevice
                 |> VH.ellipsizedText
                 |> Element.el
                     [ Element.centerY
