@@ -4,6 +4,7 @@ import Browser.Events
 import Color
 import DesignSystem.Helpers exposing (Plugins, palettize, toHtml)
 import DesignSystem.Stories.ColorPalette as ColorPalette
+import DesignSystem.Stories.Link as LinkStories
 import DesignSystem.Stories.Text as TextStories
 import Element
 import Element.Font as Font
@@ -17,12 +18,10 @@ import Style.Widgets.Card exposing (badge, clickableCardFixedSize, exoCard, exoC
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon exposing (bell, console, copyToClipboard, history, ipAddress, lock, lockOpen, plusCircle, remove, roundRect, timesCircle)
 import Style.Widgets.IconButton exposing (chip)
-import Style.Widgets.Link as Link
 import Style.Widgets.Meter exposing (meter)
 import Style.Widgets.Popover.Popover exposing (popover, toggleIfTargetIsOutside)
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.StatusBadge exposing (StatusBadgeState(..), statusBadge)
-import Style.Widgets.Text as Text
 import UIExplorer
     exposing
         ( Config
@@ -262,35 +261,7 @@ main =
             |> category "Atoms"
                 [ ColorPalette.stories toHtml
                 , TextStories.stories toHtml
-                , storiesOf
-                    "Link"
-                    [ ( "internal"
-                      , \m ->
-                            toHtml (palettize m) <|
-                                Text.p []
-                                    [ Text.body "Compare this to plain, old "
-                                    , Link.link
-                                        (palettize m)
-                                        "http://localhost:8002/#Atoms/Text/underline"
-                                        "underlined text"
-                                    , Text.body "."
-                                    ]
-                      , { note = "" }
-                      )
-                    , ( "external"
-                      , \m ->
-                            toHtml (palettize m) <|
-                                Text.p []
-                                    [ Text.body "Exosphere is a user-friendly, extensible client for cloud computing. Check out our "
-                                    , Link.externalLink
-                                        (palettize m)
-                                        "https://gitlab.com/exosphere/exosphere/blob/master/README.md"
-                                        "README on GitLab"
-                                    , Element.text "."
-                                    ]
-                      , { note = "" }
-                      )
-                    ]
+                , LinkStories.stories toHtml
                 , storiesOf
                     "Icon"
                     (List.map
