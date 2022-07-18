@@ -81,7 +81,7 @@ ExoPalette has the following fields that are named *meaningfully* to make color 
 - `primary`, `secondary` - the brand colors provided by the deployer. They're used in action buttons, meter, etc.
 
 - `neutral` - plain white/black/gray colors used for almost everything in the UI, as indicated by the following subfields:
-    - `background` - atleast 2 [background layers](https://spectrum.adobe.com/page/using-color/#Background-layers) are required in an app to create depth and visual hierarchy. Currently we have:
+    - `background` - at least two [background layers](https://spectrum.adobe.com/page/using-color/#Background-layers) are required in an app to create depth and visual hierarchy. Currently we have:
 
         - `backLayer` - for coloring background of the outermost container of the app.
 
@@ -176,7 +176,7 @@ In particular, this visual test supports:
 This is a palette of the shades of all major colors, from which [ExoPalette](#Atoms/Color%20Palette/Exosphere%20Colors) is derived.
 It can be accessed as `allColorsPalette` from `Style.Helpers`.
 
-> This must be used only when ExoPalette can't cater to your needs. Should you choose to use it, you should be aware that the color shade will remain same in both light and dark theme. In most of such scenarios, you might wanna add a new field in ExoPalette that can adapt to both light and dark theme.
+> This must be used only when ExoPalette can't cater to your needs. Should you choose to use it, you should be aware that the color shade will remain same in both light and dark theme. In most of such scenarios, you might want to add a new field in ExoPalette that can adapt to both light and dark theme.
 
 As illustrated above, All Colors Palette has:
 
