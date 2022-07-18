@@ -324,7 +324,19 @@ For everything else, use `FeatherIcons`:
                     )
                 , storiesOf
                     "Badge"
-                    [ ( "default", \m -> toHtml (palettize m) <| badge "Experimental", { note = "" } )
+                    [ ( "default", \m -> toHtml (palettize m) <| badge "Experimental", { note = """
+## Usage
+
+Used to mark features as "Experimental".
+
+(Theoretically, can be combined within components to show extra details like counts.)
+
+### Alternatives
+
+If you are looking for a way to display removable tags, consider a [chip](/#Organisms/Chip).
+
+If you want to show a resource's current state or provide feedback on a process, consider using a [status badge](/#Atoms/Status%20Badge).
+                        """ } )
                     ]
                 , storiesOf
                     "Status Badge"
