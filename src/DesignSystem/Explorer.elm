@@ -4,10 +4,9 @@ import Browser.Events
 import Color
 import DesignSystem.Helpers exposing (Plugins, palettize, toHtml)
 import DesignSystem.Stories.ColorPalette as ColorPalette
+import DesignSystem.Stories.Text as TextStories
 import Element
 import Element.Font as Font
-import Element.Region
-import FeatherIcons
 import Html
 import Html.Attributes exposing (src, style)
 import Set
@@ -81,17 +80,6 @@ port onModeChanged : String -> Cmd msg
 defaultIcon : Style.Types.ExoPalette -> (Element.Color -> number -> icon) -> icon
 defaultIcon pal icon =
     icon (pal.neutral.icon |> SH.toElementColor) 25
-
-
-veryLongCopy : String
-veryLongCopy =
-    """
-    Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature from 45 BC,
-    making it over 2000 years old. Richard McClintock, a Latin professor at Hampden-Sydney College in Virginia, looked up one of the more obscure Latin words,
-    consectetur, from a Lorem Ipsum passage, and going through the cites of the word in classical literature, discovered the undoubtable source.
-    Lorem Ipsum comes from sections 1.10.32 and 1.10.33 of "de Finibus Bonorum et Malorum" (The Extremes of Good and Evil) by Cicero, written in 45 BC.
-    This book is a treatise on the theory of ethics, very popular during the Renaissance.
-    """
 
 
 
@@ -273,84 +261,7 @@ main =
         (createCategories
             |> category "Atoms"
                 [ ColorPalette.stories toHtml
-                , storiesOf
-                    "Text"
-                    [ ( "unstyled", \m -> toHtml (palettize m) <| Element.text "This is text rendered using `Element.text` and no styling. It will inherit attributes from the document layout.", { note = "" } )
-                    , ( "p"
-                      , \m ->
-                            toHtml (palettize m) <|
-                                Text.p [ Font.justify ]
-                                    [ Text.body veryLongCopy
-                                    , Text.body "[ref. "
-                                    , Link.externalLink (palettize m) "https://www.lipsum.com/" "www.lipsum.com"
-                                    , Text.body "]"
-                                    ]
-                      , { note = "" }
-                      )
-                    , ( "bold", \m -> toHtml (palettize m) <| Text.p [] [ Text.body "Logged in as ", Text.strong "@Jimmy:3421", Text.body "." ], { note = "" } )
-                    , ( "mono", \m -> toHtml (palettize m) <| Text.p [] [ Text.body "Your IP address is ", Text.mono "192.168.1.1", Text.body "." ], { note = "" } )
-                    , ( "underline"
-                      , \m ->
-                            toHtml (palettize m) <|
-                                Text.p []
-                                    [ Text.body "Exosphere is a "
-                                    , Text.underline "user-friendly"
-                                    , Text.body ", extensible client for cloud computing."
-                                    ]
-                      , { note = "" }
-                      )
-                    , ( "heading"
-                      , \m ->
-                            toHtml (palettize m) <|
-                                Text.heading (palettize m)
-                                    []
-                                    (FeatherIcons.helpCircle
-                                        |> FeatherIcons.toHtml []
-                                        |> Element.html
-                                        |> Element.el []
-                                    )
-                                    "Get Support"
-                      , { note = "" }
-                      )
-                    , ( "subheading"
-                      , \m ->
-                            toHtml (palettize m) <|
-                                Text.subheading (palettize m)
-                                    []
-                                    (FeatherIcons.hardDrive
-                                        |> FeatherIcons.toHtml []
-                                        |> Element.html
-                                        |> Element.el []
-                                    )
-                                    "Volumes"
-                      , { note = "" }
-                      )
-                    , ( "h1"
-                      , \m ->
-                            toHtml (palettize m) <|
-                                Text.text Text.H1
-                                    [ Element.Region.heading 1 ]
-                                    "App Config Info"
-                      , { note = "" }
-                      )
-                    , ( "h2"
-                      , \m ->
-                            toHtml (palettize m) <|
-                                Text.text Text.H2
-                                    [ Element.Region.heading 2 ]
-                                    "App Config Info"
-                      , { note = "" }
-                      )
-                    , ( "h3"
-                      , \m ->
-                            toHtml (palettize m) <|
-                                Text.text Text.H3
-                                    [ Element.Region.heading 3 ]
-                                    "App Config Info"
-                      , { note = "" }
-                      )
-                    , ( "h4", \m -> toHtml (palettize m) <| Text.text Text.H4 [ Element.Region.heading 4 ] "App Config Info", { note = "" } )
-                    ]
+                , TextStories.stories toHtml
                 , storiesOf
                     "Link"
                     [ ( "internal"
