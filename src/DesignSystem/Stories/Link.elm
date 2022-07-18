@@ -52,7 +52,7 @@ stories renderer =
 note : String
 note =
     """
-## Behaviour
+## Usage
 
 Use `link` by default when navigating within the app. It opens links in the current window.
 

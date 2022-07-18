@@ -105,7 +105,7 @@ stories renderer =
 note : String
 note =
     """
-## Elm-UI
+## Usage
 
 Text widgets use `elm-ui` under the hood, particularly [Element.text](https://package.elm-lang.org/packages/mdgriffith/elm-ui/latest/Element#text).
 

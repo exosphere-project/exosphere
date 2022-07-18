@@ -266,7 +266,17 @@ main =
                     "Icon"
                     (List.map
                         (\icon ->
-                            ( Tuple.first icon, \m -> toHtml (palettize m) <| defaultIcon (palettize m) <| Tuple.second icon, { note = "" } )
+                            ( Tuple.first icon, \m -> toHtml (palettize m) <| defaultIcon (palettize m) <| Tuple.second icon, { note = """
+## Usage
+
+Exosphere has several custom icons in `Style.Widgets.Icon`:
+
+    Icon.lockOpen (SH.toElementColor context.palette.on.background) 28
+
+For everything else, use `FeatherIcons`:
+
+    FeatherIcons.logOut |> FeatherIcons.withSize 18 |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
+                            """ } )
                         )
                         [ ( "bell", bell )
                         , ( "console", console )
