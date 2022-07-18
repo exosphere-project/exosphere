@@ -293,43 +293,35 @@ For everything else, use `FeatherIcons`:
                     )
                 , storiesOf
                     "Button"
-                    [ ( "primary"
-                      , \m ->
-                            toHtml (palettize m) <|
-                                Button.primary (palettize m) { text = "Create", onPress = Just NoOp }
-                      , { note = "" }
-                      )
-                    , ( "disabled"
-                      , \m ->
-                            toHtml (palettize m) <|
-                                Button.primary (palettize m) { text = "Next", onPress = Nothing }
-                      , { note = "" }
-                      )
-                    , ( "secondary"
-                      , \m ->
-                            toHtml (palettize m) <|
-                                Button.default (palettize m) { text = "Next", onPress = Just NoOp }
-                      , { note = "" }
-                      )
-                    , ( "warning"
-                      , \m ->
-                            toHtml (palettize m) <|
-                                Button.button Button.Warning (palettize m) { text = "Suspend", onPress = Just NoOp }
-                      , { note = "" }
-                      )
-                    , ( "danger"
-                      , \m ->
-                            toHtml (palettize m) <|
-                                Button.button Button.Danger (palettize m) { text = "Delete All", onPress = Just NoOp }
-                      , { note = "" }
-                      )
-                    , ( "danger secondary"
-                      , \m ->
-                            toHtml (palettize m) <|
-                                Button.button Button.DangerSecondary (palettize m) { text = "Delete All", onPress = Just NoOp }
-                      , { note = "" }
-                      )
-                    ]
+                    (List.map
+                        (\button ->
+                            ( button.name
+                            , \m ->
+                                toHtml (palettize m) <|
+                                    button.widget (palettize m) { text = button.text, onPress = button.onPress }
+                            , { note = """
+## Usage
+
+- Primary: For major positive actions, of which there is normally at most 1 per page.
+
+- Secondary: The most commonly used button variant, also available as `Button.default` for convenience.
+
+- Warning: Used when an action has reversible consequences with a major impact.
+
+- Danger: For when an action has irreversible consequences.
+
+- Danger Secondary: Theoretically, for when an action has irreversible consequences but a minor impact.
+                            """ }
+                            )
+                        )
+                        [ { name = "primary", widget = Button.primary, text = "Create", onPress = Just NoOp }
+                        , { name = "disabled", widget = Button.primary, text = "Next", onPress = Nothing }
+                        , { name = "secondary", widget = Button.default, text = "Next", onPress = Just NoOp }
+                        , { name = "warning", widget = Button.button Button.Warning, text = "Suspend", onPress = Just NoOp }
+                        , { name = "danger", widget = Button.button Button.Danger, text = "Delete All", onPress = Just NoOp }
+                        , { name = "danger secondary", widget = Button.button Button.DangerSecondary, text = "Delete All", onPress = Just NoOp }
+                        ]
+                    )
                 , storiesOf
                     "Badge"
                     [ ( "default", \m -> toHtml (palettize m) <| badge "Experimental", { note = "" } )
