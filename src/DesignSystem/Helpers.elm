@@ -64,6 +64,6 @@ toHtml palette a =
     Element.layout
         [ Text.defaultFontSize
         , Text.defaultFontFamily
-        , Font.color <| SH.toElementColor <| palette.on.background
+        , Font.color <| SH.toElementColor <| palette.neutral.text.default
         ]
         a

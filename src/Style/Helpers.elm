@@ -29,8 +29,14 @@ allColorsPalette =
     -- as {lightest=100, lighter=200, light=300, semiLight=400, base=500,
     -- semiDark=600, dark=700, darker=800, darkest=900}
     { gray =
-        -- "Zinc"
-        { lightest = hexToColor "#f4f4f5" |> Result.withDefault Color.gray
+        -- "Zinc" along with white=0 & black=1000, and 2 intemediatory shades
+        -- at both light and dark end: semiWhite=50, semiLightest=150,
+        -- semiDarkest=850, semiBlack=950. Their hex code is derived by
+        -- interpolation, using color blending tool at https://colorkit.io/
+        { white = hexToColor "#ffffff" |> Result.withDefault Color.gray
+        , semiWhite = hexToColor "#fafafa" |> Result.withDefault Color.gray
+        , lightest = hexToColor "#f4f4f5" |> Result.withDefault Color.gray
+        , semiLightest = hexToColor "#ececee" |> Result.withDefault Color.gray
         , lighter = hexToColor "#e4e4e7" |> Result.withDefault Color.gray
         , light = hexToColor "#d4d4d8" |> Result.withDefault Color.gray
         , semiLight = hexToColor "#a1a1aa" |> Result.withDefault Color.gray
@@ -38,7 +44,10 @@ allColorsPalette =
         , semiDark = hexToColor "#52525b" |> Result.withDefault Color.gray
         , dark = hexToColor "#3f3f46" |> Result.withDefault Color.gray
         , darker = hexToColor "#27272a" |> Result.withDefault Color.gray
+        , semiDarkest = hexToColor "#202023" |> Result.withDefault Color.gray
         , darkest = hexToColor "#18181b" |> Result.withDefault Color.gray
+        , semiBlack = hexToColor "#0c0c0e" |> Result.withDefault Color.gray
+        , black = hexToColor "#000000" |> Result.withDefault Color.gray
         }
     , blue =
         -- "Sky"
@@ -105,20 +114,28 @@ toExoPalette deployerColors { theme, systemPreference } =
 
                 ST.System ->
                     systemPreference |> Maybe.withDefault ST.Light
+
+        menuColors =
+            -- remain same in Light and Dark theme
+            { background = allColorsPalette.gray.semiDarkest
+            , textOrIcon = allColorsPalette.gray.lightest
+            }
     in
     case themeChoice of
         Light ->
             { primary = deployerColors.light.primary
-
-            -- I (cmart) don't believe secondary gets used right now, but at some point we'll want to pick a secondary color?
             , secondary = deployerColors.light.secondary
-            , background = Color.rgb255 255 255 255
-            , surface = Color.rgb255 242 242 242
-            , on =
-                { primary = Color.rgb255 255 255 255
-                , secondary = Color.rgb255 0 0 0
-                , background = Color.rgb255 0 0 0
-                , surface = Color.rgb255 0 0 0
+            , neutral =
+                { background =
+                    { backLayer = allColorsPalette.gray.lightest
+                    , frontLayer = allColorsPalette.gray.white
+                    }
+                , border = allColorsPalette.gray.light
+                , icon = allColorsPalette.gray.semiDark
+                , text =
+                    { default = allColorsPalette.gray.darkest
+                    , subdued = allColorsPalette.gray.semiDark
+                    }
                 }
             , info =
                 { default = allColorsPalette.blue.base
@@ -131,14 +148,14 @@ toExoPalette deployerColors { theme, systemPreference } =
                 { default = allColorsPalette.green.base
                 , background = allColorsPalette.green.lightest
                 , border = allColorsPalette.green.light
-                , textOnNeutralBG = allColorsPalette.green.dark -- semiDark has poor contrast since it's a bright color, hence one shade darker
+                , textOnNeutralBG = allColorsPalette.green.dark -- `semiDark` has poor contrast since it's a bright color, hence one shade darker
                 , textOnColoredBG = allColorsPalette.green.darkest
                 }
             , warning =
                 { default = allColorsPalette.yellow.base
                 , background = allColorsPalette.yellow.lightest
-                , border = allColorsPalette.yellow.light
-                , textOnNeutralBG = allColorsPalette.yellow.dark -- semiDark has poor contrast since it's a bright color, hence one shade darker
+                , border = allColorsPalette.yellow.semiLight -- `light` has relatively poor contrast w/ `lightest` background, hence a shade darker
+                , textOnNeutralBG = allColorsPalette.yellow.dark -- `semiDark` has poor contrast since it's a bright color, hence one shade darker
                 , textOnColoredBG = allColorsPalette.yellow.darkest
                 }
             , danger =
@@ -150,77 +167,65 @@ toExoPalette deployerColors { theme, systemPreference } =
                 }
             , muted =
                 { default = allColorsPalette.gray.base
-                , background = allColorsPalette.gray.lightest
-                , border = allColorsPalette.gray.light
-                , textOnNeutralBG = allColorsPalette.gray.base -- semiDark relatively blends in with other black text, hence one shade lighter
+                , background = allColorsPalette.gray.lighter -- `lightest` will blend with `neutral.background`, hence a shade darker
+                , border = allColorsPalette.gray.semiLight
+                , textOnNeutralBG = allColorsPalette.gray.semiDark
                 , textOnColoredBG = allColorsPalette.gray.darkest
                 }
-            , menu =
-                { secondary = Color.rgb255 29 29 29
-                , background = Color.rgb255 36 36 36
-                , surface = Color.rgb255 51 51 51
-                , on =
-                    { background = Color.rgb255 181 181 181
-                    , surface = Color.rgb255 255 255 255
-                    }
-                }
+            , menu = menuColors
             }
 
         Dark ->
             { primary = deployerColors.dark.primary
-            , secondary = deployerColors.dark.primary
-            , background = Color.rgb255 36 36 36
-            , surface = Color.rgb255 51 51 51
-            , on =
-                { primary = Color.rgb255 221 221 221
-                , secondary = Color.rgb255 221 221 221
-                , background = Color.rgb255 205 205 205
-                , surface = Color.rgb255 255 255 255
+            , secondary = deployerColors.dark.secondary
+            , neutral =
+                { background =
+                    { backLayer = allColorsPalette.gray.darkest
+                    , frontLayer = allColorsPalette.gray.darker
+                    }
+                , border = allColorsPalette.gray.dark
+                , icon = allColorsPalette.gray.semiLight
+                , text =
+                    { default = allColorsPalette.gray.lightest
+                    , subdued = allColorsPalette.gray.semiLight
+                    }
                 }
             , info =
                 { default = allColorsPalette.blue.base
                 , background = allColorsPalette.blue.darkest
-                , border = allColorsPalette.blue.dark
+                , border = allColorsPalette.blue.semiDark
                 , textOnNeutralBG = allColorsPalette.blue.semiLight
                 , textOnColoredBG = allColorsPalette.blue.lightest
                 }
             , success =
                 { default = allColorsPalette.green.base
                 , background = allColorsPalette.green.darkest
-                , border = allColorsPalette.green.dark
+                , border = allColorsPalette.green.semiDark
                 , textOnNeutralBG = allColorsPalette.green.semiLight
                 , textOnColoredBG = allColorsPalette.green.lightest
                 }
             , warning =
                 { default = allColorsPalette.yellow.base
                 , background = allColorsPalette.yellow.darkest
-                , border = allColorsPalette.yellow.dark
+                , border = allColorsPalette.yellow.semiDark
                 , textOnNeutralBG = allColorsPalette.yellow.semiLight
                 , textOnColoredBG = allColorsPalette.yellow.lightest
                 }
             , danger =
                 { default = allColorsPalette.red.base
                 , background = allColorsPalette.red.darkest
-                , border = allColorsPalette.red.dark
+                , border = allColorsPalette.red.semiDark
                 , textOnNeutralBG = allColorsPalette.red.semiLight
                 , textOnColoredBG = allColorsPalette.red.lightest
                 }
             , muted =
                 { default = allColorsPalette.gray.base
-                , background = allColorsPalette.gray.darkest
-                , border = allColorsPalette.gray.dark
+                , background = allColorsPalette.gray.dark -- `darkest` & `darker` will blend with `neutral.background`, hence `dark`
+                , border = allColorsPalette.gray.base
                 , textOnNeutralBG = allColorsPalette.gray.semiLight
                 , textOnColoredBG = allColorsPalette.gray.lightest
                 }
-            , menu =
-                { secondary = Color.rgb255 29 29 29
-                , background = Color.rgb255 36 36 36
-                , surface = Color.rgb255 51 51 51
-                , on =
-                    { background = Color.rgb255 181 181 181
-                    , surface = Color.rgb255 255 255 255
-                    }
-                }
+            , menu = menuColors
             }
 
 
@@ -342,15 +347,17 @@ toMaterialPalette : ExoPalette -> Material.Palette
 toMaterialPalette exoPalette =
     { primary = exoPalette.primary
     , secondary = exoPalette.secondary
-    , background = exoPalette.background
-    , surface = exoPalette.surface
+    , background = exoPalette.neutral.background.backLayer
+    , surface = exoPalette.neutral.background.frontLayer
     , error = exoPalette.danger.background
     , on =
-        { primary = exoPalette.on.primary
-        , secondary = exoPalette.on.secondary
-        , background = exoPalette.on.background
-        , surface = exoPalette.on.surface
-        , error = exoPalette.danger.textOnColoredBG
+        { -- on.primary is only being used by Material.containedButton for mixing <1 opacity of it with primary color to obtain hover/focussed background color.
+          -- Using neutral.text.default we get sufficiently darker background color in light theme and lighter background color in dark theme.
+          primary = exoPalette.neutral.text.default
+        , secondary = exoPalette.neutral.text.default -- no evident use
+        , background = exoPalette.neutral.text.default -- no evident use
+        , surface = exoPalette.neutral.text.default -- border of Material.outlinedButton, Material.cardColum with 0.14 opacity
+        , error = exoPalette.danger.textOnColoredBG -- no evident use
         }
     }
 

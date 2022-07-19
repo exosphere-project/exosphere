@@ -16,6 +16,7 @@ module Style.Widgets.DataList exposing
 
 import Dict
 import Element
+import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
@@ -284,7 +285,7 @@ view model toMsg context styleAttrs listItemView data bulkActions selectionFilte
             , Element.spacing 20
             , Border.widthEach { top = 0, bottom = 1, left = 0, right = 0 }
             , Border.color <|
-                SH.toElementColorWithOpacity context.palette.on.background 0.16
+                SH.toElementColor context.palette.neutral.border
             , Element.width Element.fill
             ]
 
@@ -359,7 +360,7 @@ view model toMsg context styleAttrs listItemView data bulkActions selectionFilte
                 [ Element.column
                     (rowStyle -1
                         ++ [ Font.color <|
-                                SH.toElementColorWithOpacity context.palette.on.background 0.62
+                                SH.toElementColor context.palette.neutral.text.subdued
                            ]
                     )
                     [ FeatherIcons.search
@@ -370,7 +371,7 @@ view model toMsg context styleAttrs listItemView data bulkActions selectionFilte
                     , Element.el
                         [ Element.centerX
                         , Font.size 18
-                        , Font.color <| SH.toElementColor context.palette.on.background
+                        , Font.color <| SH.toElementColor context.palette.neutral.text.default
                         ]
                         (Element.text "No data found!")
                     , if not (List.isEmpty data) then
@@ -395,8 +396,9 @@ view model toMsg context styleAttrs listItemView data bulkActions selectionFilte
     Element.column
         ([ Element.width Element.fill
          , Border.width 1
-         , Border.color <| SH.toElementColorWithOpacity context.palette.on.background 0.1
+         , Border.color <| SH.toElementColor context.palette.neutral.border
          , Border.rounded 4
+         , Background.color <| SH.toElementColor context.palette.neutral.background.frontLayer
          ]
             -- Add or override default style with passed style attributes
             ++ styleAttrs
@@ -442,8 +444,8 @@ rowView model toMsg palette rowStyle listItemView showRowCheckbox i dataRecord =
                         , icon =
                             \_ ->
                                 Icon.lock
-                                    (SH.toElementColorWithOpacity palette.on.background 0.8)
-                                    14
+                                    (SH.toElementColor palette.neutral.icon)
+                                    16
                         , label = Input.labelHidden "locked row cannot be selected"
                         }
 
@@ -552,8 +554,10 @@ toolbarView model toMsg context rowStyle data bulkActions selectionFilters searc
             case searchFilter of
                 Just searchFilter_ ->
                     ( Input.text
-                        (VH.inputItemAttributes context.palette.background
-                            ++ [ Element.htmlAttribute <| HtmlA.style "height" "calc(1em + 16px)" ]
+                        -- TODO: change background color?
+                        (VH.inputItemAttributes context.palette
+                            ++ [ Element.htmlAttribute <| HtmlA.style "height" "calc(1em + 16px)"
+                               ]
                         )
                         { text = model.searchText
                         , placeholder =
@@ -760,7 +764,8 @@ filtersView model toMsg context { filters, dropdownMsgMapper } data =
             Element.row
                 [ Border.width 1
                 , Border.color <|
-                    SH.toElementColorWithOpacity context.palette.on.background 0.16
+                    -- opacity is used to match it with addFilterBtn's border color i.e. determined by elm-ui-widget and non-customizable
+                    SH.toElementColorWithOpacity context.palette.neutral.border 0.8
                 , Border.rounded 4
                 ]
                 [ Element.row
@@ -769,7 +774,7 @@ filtersView model toMsg context { filters, dropdownMsgMapper } data =
                     ]
                     (Element.el
                         [ Font.color <|
-                            SH.toElementColorWithOpacity context.palette.on.background 0.62
+                            SH.toElementColor context.palette.neutral.text.subdued
                         ]
                         (Element.text filter.chipPrefix)
                         :: selectedOptContent
@@ -809,7 +814,7 @@ filtersView model toMsg context { filters, dropdownMsgMapper } data =
                                         |> List.intersperse
                                             (Element.el
                                                 [ Font.color <|
-                                                    SH.toElementColorWithOpacity context.palette.on.background 0.62
+                                                    SH.toElementColor context.palette.neutral.text.subdued
                                                 ]
                                                 (Element.text " or ")
                                             )

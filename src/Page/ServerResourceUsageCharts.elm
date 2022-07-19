@@ -69,11 +69,11 @@ view context widthPx ( currentTime, timeZone ) maybeServerResourceQtys timeSerie
         percentRangeCustomTick percent =
             let
                 label =
-                    Junk.label context.palette.on.background (String.fromInt percent ++ "%")
+                    Junk.label context.palette.neutral.text.subdued (String.fromInt percent ++ "%")
             in
             Tick.custom
                 { position = toFloat percent
-                , color = context.palette.on.background
+                , color = context.palette.neutral.icon
                 , width = 2
                 , length = 2
                 , grid = True
@@ -99,7 +99,7 @@ view context widthPx ( currentTime, timeZone ) maybeServerResourceQtys timeSerie
                 , variable = Just << toFloat << getDataFunc
                 , pixels = 210
                 , range = Range.window 0 100
-                , axisLine = AxisLine.full context.palette.on.background
+                , axisLine = AxisLine.full context.palette.neutral.icon
                 , ticks = percentRangeCustomTicks
                 }
 
@@ -107,11 +107,11 @@ view context widthPx ( currentTime, timeZone ) maybeServerResourceQtys timeSerie
         timeRangeCustomTick time =
             let
                 label =
-                    Svg.g [ Junk.transform [ Junk.offset 0 3 ] ] [ Junk.label context.palette.on.background (millisecond_to_str time) ]
+                    Svg.g [ Junk.transform [ Junk.offset 0 3 ] ] [ Junk.label context.palette.neutral.text.subdued (millisecond_to_str time) ]
             in
             Tick.custom
                 { position = toFloat time
-                , color = context.palette.on.background
+                , color = context.palette.neutral.icon
                 , width = 2
                 , length = 2
                 , grid = True
@@ -149,7 +149,7 @@ view context widthPx ( currentTime, timeZone ) maybeServerResourceQtys timeSerie
                     Range.window
                         (Time.posixToMillis currentTime - thirtyMinMillis |> toFloat)
                         (Time.posixToMillis currentTime |> toFloat)
-                , axisLine = AxisLine.full context.palette.on.background
+                , axisLine = AxisLine.full context.palette.neutral.icon
                 , ticks = Ticks.custom timeRangeCustomTicks
                 }
 
@@ -266,7 +266,7 @@ toChartHeading context title subtitle =
         [ Element.width Element.fill, Element.paddingEach { top = 0, bottom = 0, left = 0, right = 25 } ]
         [ Element.el [ Font.semiBold ] title
         , Element.el
-            [ Font.color (context.palette.muted.textOnNeutralBG |> SH.toElementColor)
+            [ Font.color (context.palette.neutral.text.subdued |> SH.toElementColor)
             , Element.alignRight
             ]
             (Element.text subtitle)

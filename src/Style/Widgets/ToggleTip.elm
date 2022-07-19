@@ -25,13 +25,13 @@ toggleTip context msgMapper id content position =
         tipStyle =
             [ Element.htmlAttribute (Html.Attributes.style "pointerEvents" "none")
             , Border.rounded 4
-            , Font.color (SH.toElementColorWithOpacity context.palette.on.surface 0.8)
+            , Font.color (SH.toElementColor context.palette.neutral.text.subdued)
             , Font.size 15
             ]
 
         btnClickOrHoverStyle =
             [ -- darken the icon color
-              Font.color (context.palette.on.background |> SH.toElementColor)
+              Font.color (context.palette.neutral.text.default |> SH.toElementColor)
             ]
 
         tipIconBtn toggleMsg tipIsShown =
@@ -43,7 +43,7 @@ toggleTip context msgMapper id content position =
                     ([ Element.paddingXY 5 0
                      , Events.onClick toggleMsg
                      , Element.pointer
-                     , Font.color (context.palette.muted.textOnNeutralBG |> SH.toElementColor)
+                     , Font.color (context.palette.neutral.icon |> SH.toElementColor)
                      , Element.mouseOver btnClickOrHoverStyle
                      ]
                         ++ (if tipIsShown then

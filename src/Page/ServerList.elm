@@ -420,9 +420,8 @@ serverView context currentTime project serverRecord =
                 Just floatingIpAddress ->
                     Element.row [ Element.spacing 8 ]
                         [ Icon.ipAddress
-                            (SH.toElementColorWithOpacity
-                                context.palette.on.background
-                                0.62
+                            (SH.toElementColor
+                                context.palette.neutral.icon
                             )
                             16
                         , Element.el [] (Element.text floatingIpAddress)
@@ -455,13 +454,13 @@ serverView context currentTime project serverRecord =
             , Element.text "·"
             , Element.paragraph []
                 [ Element.text "created "
-                , Element.el [ Font.color (SH.toElementColor context.palette.on.background) ]
+                , Element.el [ Font.color (SH.toElementColor context.palette.neutral.text.default) ]
                     (Element.text <|
                         DateFormat.Relative.relativeTime currentTime
                             serverRecord.creationTime
                     )
                 , Element.text " by "
-                , Element.el [ Font.color (SH.toElementColor context.palette.on.background) ]
+                , Element.el [ Font.color (SH.toElementColor context.palette.neutral.text.default) ]
                     (Element.text serverRecord.creator)
                 ]
             , floatingIpView

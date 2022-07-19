@@ -673,7 +673,7 @@ view context project currentTime model =
                 , Element.width Element.fill
                 ]
                 (Input.text
-                    (VH.inputItemAttributes context.palette.background
+                    (VH.inputItemAttributes context.palette
                         ++ serverNameValidationStatusAttributes
                     )
                     { text = model.serverName
@@ -924,7 +924,7 @@ volBackedPrompt context model volumeQuota flavor =
                 Element.row [ Element.spacing 10 ]
                     [ numericTextInput
                         context.palette
-                        (VH.inputItemAttributes context.palette.background)
+                        (VH.inputItemAttributes context.palette)
                         volSizeTextInput
                         defaultVolNumericInputParams
                         (\newInput -> GotVolSizeTextInput <| Just newInput)
@@ -1014,7 +1014,7 @@ countPicker context model computeQuota volumeQuota flavor =
                         [ Element.width Element.fill
                         , Element.height (Element.px 2)
                         , Element.centerY
-                        , Background.color (SH.toElementColor context.palette.on.background)
+                        , Background.color (SH.toElementColor context.palette.neutral.icon)
                         , Border.rounded 2
                         ]
                         Element.none
@@ -1106,7 +1106,7 @@ customWorkflowInputExperimental context project model =
                     Element.column [ Element.width Element.fill, Element.spacing 10 ]
                         [ Input.text
                             (Events.onLoseFocus GotWorkflowInputLoseFocus
-                                :: (VH.inputItemAttributes context.palette.background
+                                :: (VH.inputItemAttributes context.palette
                                         ++ inputValidationStatusAttributes
                                    )
                             )
@@ -1126,7 +1126,7 @@ customWorkflowInputExperimental context project model =
 
                 referenceInput =
                     Input.text
-                        (VH.inputItemAttributes context.palette.background
+                        (VH.inputItemAttributes context.palette
                             ++ [ Events.onLoseFocus GotWorkflowInputLoseFocus ]
                         )
                         { text = model.workflowInputReference
@@ -1152,7 +1152,7 @@ customWorkflowInputExperimental context project model =
                         ]
                         [ Element.text pathInputLabel
                         , Input.text
-                            (VH.inputItemAttributes context.palette.background
+                            (VH.inputItemAttributes context.palette
                                 ++ [ Events.onLoseFocus GotWorkflowInputLoseFocus ]
                             )
                             { text = model.workflowInputPath
@@ -1722,7 +1722,7 @@ userDataInput context model =
                 (Helpers.String.toTitleCase context.localization.cloudInitData)
             )
         , Input.multiline
-            (VH.inputItemAttributes context.palette.background
+            (VH.inputItemAttributes context.palette
                 ++ [ Element.width Element.fill
                    , Element.height (Element.px 500)
                    , Element.spacing 3

@@ -96,8 +96,8 @@ view_ outerModel =
     Element.layout
         [ Text.defaultFontSize
         , Text.defaultFontFamily
-        , Font.color <| SH.toElementColor <| viewContext.palette.on.background
-        , Background.color <| SH.toElementColor <| viewContext.palette.background
+        , Font.color <| SH.toElementColor <| viewContext.palette.neutral.text.default
+        , Background.color <| SH.toElementColor viewContext.palette.neutral.background.backLayer
         ]
         (elementView viewContext.windowSize outerModel viewContext)
 

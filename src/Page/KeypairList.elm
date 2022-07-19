@@ -281,7 +281,7 @@ keypairView model context project keypairRecord =
         [ Element.row [ Element.width Element.fill ]
             [ Element.el
                 [ Font.size 18
-                , Font.color (SH.toElementColor context.palette.on.background)
+                , Font.color (SH.toElementColor context.palette.neutral.text.default)
                 ]
                 (Element.text keypairRecord.keypair.name)
             , Element.el [ Element.alignRight ] deleteKeypairBtnWithPopconfirm

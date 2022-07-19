@@ -121,7 +121,7 @@ view context project currentTime _ =
                 (Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.Volume project.volumeQuota))
                 (volumeTileContents context project)
             , renderTile
-                (Icon.ipAddress (SH.toElementColor context.palette.on.background) 24)
+                (Icon.ipAddress (SH.toElementColor context.palette.neutral.text.default) 24)
                 (context.localization.floatingIpAddress
                     |> Helpers.String.pluralize
                     |> Helpers.String.toTitleCase
@@ -361,7 +361,7 @@ imageTileContents context project =
                 |> Element.text
                 |> Element.el
                     [ Element.centerY
-                    , context.palette.muted.textOnNeutralBG
+                    , context.palette.neutral.text.subdued
                         |> SH.toElementColor
                         |> Font.color
                     ]
@@ -392,11 +392,11 @@ tileContents :
     -> Element.Element Msg
 tileContents context resourceWithAvailabilityMetadata resourceWord renderResource renderItemRowContents showItemInPreview =
     let
-        mutedText : String -> Element.Element Msg
-        mutedText text =
+        subduedText : String -> Element.Element Msg
+        subduedText text =
             Element.el
                 [ Element.centerX
-                , context.palette.muted.textOnNeutralBG
+                , context.palette.neutral.text.subdued
                     |> SH.toElementColor
                     |> Font.color
                 ]
@@ -422,7 +422,7 @@ tileContents context resourceWithAvailabilityMetadata resourceWord renderResourc
             Element.column [ Element.width Element.fill, Element.spacing 15 ] <|
                 List.concat
                     [ if List.isEmpty shownItems then
-                        [ mutedText <|
+                        [ subduedText <|
                             String.join " "
                                 [ "No"
                                 , Helpers.String.pluralize resourceWord
@@ -438,7 +438,7 @@ tileContents context resourceWithAvailabilityMetadata resourceWord renderResourc
                         []
 
                       else
-                        [ mutedText <|
+                        [ subduedText <|
                             String.join " "
                                 [ "and"
                                 , String.fromInt numOtherItems

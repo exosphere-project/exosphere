@@ -2,11 +2,13 @@ module Style.Widgets.Select exposing (Label, Value, select)
 
 import Color
 import Element
+import Element.Background as Background
 import Element.Border as Border
 import FeatherIcons
 import Html exposing (Html)
 import Html.Attributes as HtmlA
 import Html.Events as HtmlE
+import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
 
 
@@ -23,7 +25,10 @@ select :
 select attributes palette { onChange, options, selected, label } =
     let
         fontColor =
-            Color.toCssString palette.on.secondary
+            Color.toCssString palette.neutral.text.default
+
+        backgroundColor =
+            Color.toCssString palette.neutral.background.frontLayer
 
         select_ : Html msg
         select_ =
@@ -44,17 +49,23 @@ select attributes palette { onChange, options, selected, label } =
                 , HtmlA.style "height" "48px"
                 , HtmlA.style "font-size" "18px"
                 , HtmlA.style "color" fontColor
-                , HtmlA.style "background-color" "transparent"
+                , HtmlA.style "background-color" backgroundColor
                 ]
-                (Html.option [ HtmlA.value "" ] [ Html.text label ]
+                (Html.option
+                    [ HtmlA.value ""
+                    , HtmlA.style "background-color" backgroundColor
+                    ]
+                    [ Html.text label ]
                     :: List.map (option selected) options
                 )
 
         option : Maybe Value -> ( Value, Label ) -> Html msg
         option maybeSelectedVal item =
             Html.option
-                (HtmlA.value (Tuple.first item)
-                    :: (case maybeSelectedVal of
+                ([ HtmlA.value (Tuple.first item)
+                 , HtmlA.style "background-color" backgroundColor
+                 ]
+                    ++ (case maybeSelectedVal of
                             Nothing ->
                                 []
 
@@ -66,9 +77,11 @@ select attributes palette { onChange, options, selected, label } =
     in
     Element.row
         ([ Border.width 1
-         , Border.rounded 8
+         , Border.rounded 4
+         , Border.color <| SH.toElementColor palette.neutral.border
          , Element.paddingXY 5 0
          , Element.width Element.fill
+         , Background.color <| SH.toElementColor palette.neutral.background.frontLayer
          ]
             ++ attributes
         )

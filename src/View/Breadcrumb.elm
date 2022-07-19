@@ -315,7 +315,7 @@ breadcrumb_ outerModel context =
                 |> FeatherIcons.withSize 14
                 |> FeatherIcons.toHtml []
                 |> Element.html
-                |> Element.el [ Font.color (context.palette.muted.textOnNeutralBG |> SH.toElementColor) ]
+                |> Element.el [ Font.color (context.palette.neutral.icon |> SH.toElementColor) ]
     in
     Element.wrappedRow
         [ Element.paddingXY 10 4

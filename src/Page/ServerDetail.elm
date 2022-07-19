@@ -341,7 +341,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
 
                         _ ->
                             Element.el
-                                [ context.palette.muted.textOnNeutralBG
+                                [ context.palette.neutral.text.subdued
                                     |> SH.toElementColor
                                     |> Font.color
                                 ]
@@ -425,7 +425,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                 , Element.el [ Element.centerX ] attachButton
                 ]
             , tile
-                [ Icon.history (SH.toElementColor context.palette.on.background) 20
+                [ Icon.history (SH.toElementColor context.palette.neutral.text.default) 20
                 , Element.text "Action History"
                 ]
                 [ serverEventHistory
@@ -478,7 +478,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                         , serverNameView context model server
                         ]
                     , Element.el
-                        [ Font.size 12, Font.color (SH.toElementColor context.palette.muted.textOnNeutralBG) ]
+                        [ Font.size 12, Font.color (SH.toElementColor context.palette.neutral.text.subdued) ]
                         (copyableText context.palette [] server.osProps.uuid)
                     ]
                 , Element.el
@@ -720,10 +720,10 @@ serverStatus context project server =
         lockStatus lockStatus_ =
             case lockStatus_ of
                 OSTypes.ServerLocked ->
-                    Icon.lock (SH.toElementColor context.palette.on.background) 28
+                    Icon.lock (SH.toElementColor context.palette.neutral.icon) 28
 
                 OSTypes.ServerUnlocked ->
-                    Icon.lockOpen (SH.toElementColor context.palette.on.background) 28
+                    Icon.lockOpen (SH.toElementColor context.palette.neutral.icon) 28
 
         verboseStatusToggleTip =
             let
@@ -911,12 +911,12 @@ interactions context project server currentTime tlsReverseProxyHostname =
                                         case interactionStatus of
                                             ITypes.Ready _ ->
                                                 ( SH.toElementColor context.palette.primary
-                                                , SH.toElementColor context.palette.on.surface
+                                                , SH.toElementColor context.palette.neutral.text.default
                                                 )
 
                                             _ ->
-                                                ( SH.toElementColor context.palette.muted.default
-                                                , SH.toElementColor context.palette.muted.textOnNeutralBG
+                                                ( SH.toElementColor context.palette.neutral.icon
+                                                , SH.toElementColor context.palette.neutral.text.subdued
                                                 )
                                 in
                                 Element.row
@@ -1013,7 +1013,7 @@ serverPassphrase context model server =
 
                         _ ->
                             Element.el
-                                [ context.palette.muted.textOnNeutralBG
+                                [ context.palette.neutral.text.subdued
                                     |> SH.toElementColor
                                     |> Font.color
                                 ]
@@ -1532,7 +1532,7 @@ renderIpAddresses context project server model =
                     [ Font.size 10
                     , Border.width 1
                     , Border.rounded 20
-                    , Border.color (SH.toElementColor context.palette.muted.default)
+                    , Border.color (SH.toElementColor context.palette.neutral.border)
                     , Element.padding 3
                     ]
                     { onPress = Just <| GotIpInfoLevel ipMsg

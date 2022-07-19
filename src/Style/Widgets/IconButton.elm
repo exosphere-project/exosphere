@@ -23,17 +23,17 @@ chip palette onPress label =
         , Element.padding 8
         , Border.width 1
         , Font.size 12
-        , Border.color <| SH.toElementColor palette.muted.default
+        , Border.color <| SH.toElementColor palette.neutral.border
         , Border.rounded 3
         ]
         [ label
         , Input.button
             [ Element.mouseOver
-                [ Border.color <| SH.toElementColor palette.on.background
+                [ Border.color <| SH.toElementColor palette.neutral.icon
                 ]
             ]
             { onPress = onPress
-            , label = timesCircle (SH.toElementColor palette.on.background) 12
+            , label = timesCircle (SH.toElementColor palette.neutral.icon) 12
             }
         ]
 
@@ -43,7 +43,7 @@ goToButton palette onPress =
     Input.button
         [ Border.width 1
         , Border.rounded 6
-        , Border.color (SH.toElementColor palette.muted.default)
+        , Border.color (SH.toElementColor palette.neutral.border)
         , Element.padding 3
         ]
         { onPress = onPress
@@ -63,7 +63,7 @@ iconButton context attributes { icon, iconPlacement, label, onClick } =
             Element.text label
 
         iconUI =
-            iconEl [] icon 20 context.palette.menu.on.surface
+            iconEl [] icon 20 context.palette.menu.textOrIcon
     in
     Input.button attributes
         { onPress = onClick

@@ -30,7 +30,7 @@ linkStyle : ExoPalette -> List (Element.Attribute msg)
 linkStyle palette =
     [ palette.primary |> SH.toElementColor |> Font.color
     , Element.pointer
-    , Border.color (SH.toElementColor palette.background)
+    , Border.color <| Element.rgba 0 0 0 0 -- transparent
     , Border.widthEach
         { bottom = 1
         , left = 0

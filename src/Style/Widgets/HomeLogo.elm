@@ -31,7 +31,7 @@ homeLogo context { logoUrl, title } =
                             [ Region.heading 1
                             , Font.semiBold
                             , Font.size 26
-                            , Font.color (SH.toElementColor context.palette.menu.on.surface)
+                            , Font.color (SH.toElementColor context.palette.menu.textOrIcon)
                             ]
                             (Element.text t)
                     )

@@ -212,7 +212,7 @@ volumeView context project currentTime volumeRecord =
                     Nothing ->
                         Element.el
                             [ Font.color
-                                (SH.toElementColorWithOpacity context.palette.on.background 0.86)
+                                (SH.toElementColor context.palette.neutral.text.default)
                             ]
                             (Element.text <| "no " ++ context.localization.virtualComputer)
                 ]
@@ -231,7 +231,7 @@ volumeView context project currentTime volumeRecord =
                         Element.row [ Element.height <| Element.minimum 32 Element.fill ]
                             [ Element.text "as "
                             , Element.el
-                                [ Font.color (SH.toElementColor context.palette.on.background) ]
+                                [ Font.color (SH.toElementColor context.palette.neutral.text.default) ]
                                 (Element.text <| "boot " ++ context.localization.blockDevice)
                             ]
 
@@ -306,13 +306,13 @@ volumeView context project currentTime volumeRecord =
             , Element.text "·"
             , Element.paragraph []
                 [ Element.text "created "
-                , Element.el [ Font.color (SH.toElementColor context.palette.on.background) ]
+                , Element.el [ Font.color (SH.toElementColor context.palette.neutral.text.default) ]
                     (Element.text <|
                         DateFormat.Relative.relativeTime currentTime
                             volumeRecord.volume.createdAt
                     )
                 , Element.text " by "
-                , Element.el [ Font.color (SH.toElementColor context.palette.on.background) ]
+                , Element.el [ Font.color (SH.toElementColor context.palette.neutral.text.default) ]
                     (Element.text volumeRecord.creator)
                 ]
             , Element.el [ Element.alignRight ]
