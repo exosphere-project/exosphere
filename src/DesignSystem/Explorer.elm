@@ -343,7 +343,13 @@ If you want to show a resource's current state or provide feedback on a process,
                     [ ( "good", \m -> toHtml (palettize m) <| statusBadge (palettize m) ReadyGood (Element.text "Ready"), { note = "" } )
                     , ( "muted", \m -> toHtml (palettize m) <| statusBadge (palettize m) Muted (Element.text "Unknown"), { note = "" } )
                     , ( "warning", \m -> toHtml (palettize m) <| statusBadge (palettize m) Style.Widgets.StatusBadge.Warning (Element.text "Building"), { note = "" } )
-                    , ( "error", \m -> toHtml (palettize m) <| statusBadge (palettize m) Error (Element.text "Error"), { note = "" } )
+                    , ( "error", \m -> toHtml (palettize m) <| statusBadge (palettize m) Error (Element.text "Error"), { note = """
+## Usage
+
+Displays a read-only label which clearly provides guidance on the current state of a resource.
+
+(This is most often in the context of server status.)
+                        """ } )
                     ]
                 ]
             |> category "Molecules"
