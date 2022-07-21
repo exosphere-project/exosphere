@@ -362,7 +362,13 @@ Displays a read-only label which clearly provides guidance on the current state 
                                     (palettize m)
                                     [ Font.family [ Font.monospace ] ]
                                     "192.168.1.1"
-                      , { note = "" }
+                      , { note = """
+## Usage
+
+Shows stylable text with an accessory button for copying the text content to the user's clipboard.
+
+This uses [clipboard.js](https://clipboardjs.com/) under the hood & relies on a [port for initialisation](https://gitlab.com/exosphere/exosphere/-/blob/master/ports.js#L101).
+                        """ }
                       )
                     ]
                 , storiesOf
