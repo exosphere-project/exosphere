@@ -98,18 +98,17 @@ view_ outerModel =
         , Font.color <| SH.toElementColor <| viewContext.palette.neutral.text.default
         , Background.color <| SH.toElementColor viewContext.palette.neutral.background.backLayer
         ]
-        (elementView viewContext.windowSize outerModel viewContext)
+        (appView viewContext.windowSize outerModel viewContext)
 
 
-elementView : WindowSize -> OuterModel -> View.Types.Context -> Element.Element OuterMsg
-elementView windowSize outerModel context =
+appView : WindowSize -> OuterModel -> View.Types.Context -> Element.Element OuterMsg
+appView windowSize outerModel context =
     let
         mainContentContainerView =
             Element.column
                 [ Element.padding 10
                 , Element.alignTop
-                , Element.width <|
-                    Element.px windowSize.width
+                , Element.width Element.fill
                 , Element.height Element.fill
                 , Element.scrollbars
                 ]
@@ -197,34 +196,28 @@ elementView windowSize outerModel context =
                     )
                 ]
     in
-    Element.row
+    Element.column
         [ Element.padding 0
         , Element.spacing 0
         , Element.width Element.fill
         , Element.height <|
             Element.px windowSize.height
         ]
-        [ Element.column
+        [ Element.el
+            [ Border.shadow shadowDefaults
+            , Element.width Element.fill
+            ]
+            (View.Nav.navBar outerModel context)
+
+        -- TODO: add header and refactor below to content
+        , Element.el
             [ Element.padding 0
             , Element.spacing 0
             , Element.width Element.fill
             , Element.height <|
-                Element.px windowSize.height
+                Element.px (windowSize.height - View.Nav.navBarHeight)
             ]
-            [ Element.el
-                [ Border.shadow shadowDefaults
-                , Element.width Element.fill
-                ]
-                (View.Nav.navBar outerModel context)
-            , Element.el
-                [ Element.padding 0
-                , Element.spacing 0
-                , Element.width Element.fill
-                , Element.height <|
-                    Element.px (windowSize.height - View.Nav.navBarHeight)
-                ]
-                mainContentContainerView
-            ]
+            mainContentContainerView
         ]
 
 
