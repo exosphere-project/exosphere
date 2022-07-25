@@ -1,4 +1,4 @@
-module Style.Widgets.Text exposing (..)
+module Style.Widgets.Text exposing (TextVariant(..), body, defaultFontFamily, defaultFontSize, fontWeightAttr, heading, headingStyleAttrs, mono, monoFontFamily, p, strong, subheading, subheadingStyleAttrs, text, typography, typographyAttrs, underline)
 
 import Element
 import Element.Border as Border

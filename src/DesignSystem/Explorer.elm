@@ -348,6 +348,11 @@ Displays a read-only label which clearly provides guidance on the current state 
                 ]
             |> category "Molecules"
                 [ storiesOf
+                    "Chip"
+                    [ ( "default", \m -> toHtml (palettize m) <| chip (palettize m) Nothing (Element.text "assigned"), { note = "" } )
+                    , ( "with badge", \m -> toHtml (palettize m) <| chip (palettize m) Nothing (Element.row [ Element.spacing 5 ] [ Element.text "ubuntu", badge "10" ]), { note = "" } )
+                    ]
+                , storiesOf
                     "Copyable Text"
                     [ ( "default"
                       , \m ->
@@ -372,11 +377,6 @@ This uses [clipboard.js](https://clipboardjs.com/) under the hood & relies on a 
                 ]
             |> category "Organisms"
                 [ CardStories.stories toHtml { onPress = Just NoOp, onExpand = \next -> ToggleExpandoCard next }
-                , storiesOf
-                    "Chip"
-                    [ ( "default", \m -> toHtml (palettize m) <| chip (palettize m) Nothing (Element.text "assigned"), { note = "" } )
-                    , ( "with badge", \m -> toHtml (palettize m) <| chip (palettize m) Nothing (Element.row [ Element.spacing 5 ] [ Element.text "ubuntu", badge "10" ]), { note = "" } )
-                    ]
                 , storiesOf
                     "Popover"
                     (List.map
