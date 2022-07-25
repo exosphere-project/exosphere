@@ -383,7 +383,13 @@ This uses [clipboard.js](https://clipboardjs.com/) under the hood & relies on a 
                     ]
                 , storiesOf
                     "Meter"
-                    [ ( "default", \m -> toHtml (palettize m) <| meter (palettize m) "Space used" "6 of 10 GB" 6 10, { note = "" } )
+                    [ ( "default", \m -> toHtml (palettize m) <| meter (palettize m) "Space used" "6 of 10 GB" 6 10, { note = """
+## Usage
+
+Shows a static horizontal progress bar chart which indicates capacity used of a resource.
+
+It has the format "current value <x> of maximum usage <y>".
+                    """ } )
                     ]
                 ]
             |> category "Organisms"
