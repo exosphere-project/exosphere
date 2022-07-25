@@ -5,7 +5,6 @@ import Element
 import Style.Widgets.Button as Button
 import Style.Widgets.Card exposing (clickableCardFixedSize, exoCard, exoCardWithTitleAndSubtitle, expandoCard)
 import Style.Widgets.CopyableText exposing (copyableText)
-import Style.Widgets.Link as Link
 import Style.Widgets.Text as Text
 import UIExplorer
     exposing
@@ -47,8 +46,15 @@ stories renderer { onPress, onExpand } =
                         )
           , { note = note }
           )
-        , -- TODO: Render a more complete version of this based on Page.Home.
-          ( "clickable card with fixed size", \m -> renderer (palettize m) <| clickableCardFixedSize (palettize m) 300 300 [ Text.body "Lorem ipsum dolor sit amet." ], { note = note } )
+        , ( "clickable card with fixed size"
+          , \m ->
+                renderer (palettize m) <|
+                    Element.link []
+                        { url = "/#Organisms/Card"
+                        , label = clickableCardFixedSize (palettize m) 300 300 [ Text.body "Lorem ipsum dolor sit amet." ]
+                        }
+          , { note = note }
+          )
         , ( "exoCard with title & subtitle"
           , \m ->
                 renderer (palettize m) <|

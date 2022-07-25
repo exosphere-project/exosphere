@@ -27,7 +27,7 @@ stories renderer =
                         [ Text.body "Follow this link to the "
                         , Link.link
                             (palettize m)
-                            "http://localhost:8002/#Atoms/Text/underline"
+                            "/#Atoms/Text/underline"
                             "underlined text"
                         , Text.body " widget."
                         ]
