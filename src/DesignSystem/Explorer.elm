@@ -3,6 +3,7 @@ port module DesignSystem.Explorer exposing (main)
 import Browser.Events
 import Color
 import DesignSystem.Helpers exposing (Plugins, palettize, toHtml)
+import DesignSystem.Stories.Card as CardStories
 import DesignSystem.Stories.ColorPalette as ColorPalette
 import DesignSystem.Stories.Link as LinkStories
 import DesignSystem.Stories.Text as TextStories
@@ -14,7 +15,7 @@ import Set
 import Style.Helpers as SH
 import Style.Types
 import Style.Widgets.Button as Button
-import Style.Widgets.Card exposing (badge, clickableCardFixedSize, exoCard, exoCardWithTitleAndSubtitle, expandoCard)
+import Style.Widgets.Card exposing (badge)
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon exposing (bell, console, copyToClipboard, history, ipAddress, lock, lockOpen, plusCircle, remove, roundRect, timesCircle)
 import Style.Widgets.IconButton exposing (chip)
@@ -35,7 +36,6 @@ import UIExplorer.ColorMode exposing (ColorMode(..), colorModeToString)
 import UIExplorer.Plugins.Note as NotePlugin
 import UIExplorer.Plugins.Tabs as TabsPlugin
 import UIExplorer.Plugins.Tabs.Icons as TabsIconsPlugin
-import View.Helpers as VH
 
 
 
@@ -85,12 +85,6 @@ defaultIcon pal icon =
 --- MODEL
 
 
-{-| Is the Expandable Card expanded or collapsed?
--}
-type alias ExpandoCardState =
-    { expanded : Bool }
-
-
 {-| Which Popovers are visible?
 -}
 type alias PopoverState =
@@ -98,7 +92,7 @@ type alias PopoverState =
 
 
 type alias Model =
-    { expandoCard : ExpandoCardState
+    { expandoCard : CardStories.ExpandoCardState
     , popover : PopoverState
     , deployerColors : Style.Types.DeployerColorThemes
     , tabs : TabsPlugin.Model
@@ -358,7 +352,7 @@ Displays a read-only label which clearly provides guidance on the current state 
                     [ ( "default"
                       , \m ->
                             toHtml (palettize m) <|
-                                Style.Widgets.CopyableText.copyableText
+                                copyableText
                                     (palettize m)
                                     [ Font.family [ Font.monospace ] ]
                                     "192.168.1.1"
@@ -372,58 +366,12 @@ This uses [clipboard.js](https://clipboardjs.com/) under the hood & relies on a 
                       )
                     ]
                 , storiesOf
-                    "Card"
-                    [ ( "default", \m -> toHtml (palettize m) <| exoCard (palettize m) (Element.text "192.168.1.1"), { note = "" } )
-                    , -- TODO: Render a more complete version of this based on Page.Home.
-                      ( "fixed size with hover", \m -> toHtml (palettize m) <| clickableCardFixedSize (palettize m) 300 300 [ Element.text "Lorem ipsum dolor sit amet." ], { note = "" } )
-                    , ( "title & accessories with hover"
-                      , \m ->
-                            toHtml (palettize m) <|
-                                exoCardWithTitleAndSubtitle (palettize m)
-                                    (Style.Widgets.CopyableText.copyableText
-                                        (palettize m)
-                                        [ Font.family [ Font.monospace ] ]
-                                        "192.168.1.1"
-                                    )
-                                    (Button.default
-                                        (palettize m)
-                                        { text = "Unassign"
-                                        , onPress = Just NoOp
-                                        }
-                                    )
-                                    (Element.text "Assigned to a resource that Exosphere cannot represent")
-                      , { note = "" }
-                      )
-                    ]
-                , storiesOf
                     "Meter"
                     [ ( "default", \m -> toHtml (palettize m) <| meter (palettize m) "Space used" "6 of 10 GB" 6 10, { note = "" } )
                     ]
                 ]
             |> category "Organisms"
-                [ storiesOf
-                    "Expandable Card"
-                    [ ( "default"
-                      , \m ->
-                            toHtml (palettize m) <|
-                                expandoCard (palettize m)
-                                    m.customModel.expandoCard.expanded
-                                    (\next -> ToggleExpandoCard next)
-                                    (Element.text "Backup SSD")
-                                    (Element.text "25 GB")
-                                    (Element.column
-                                        VH.contentContainer
-                                        [ VH.compactKVRow "Name:" <| Element.text "Backup SSD"
-                                        , VH.compactKVRow "Status:" <| Element.text "Ready"
-                                        , VH.compactKVRow "Description:" <|
-                                            Element.paragraph [ Element.width Element.fill ] <|
-                                                [ Element.text "Solid State Drive" ]
-                                        , VH.compactKVRow "UUID:" <| copyableText (palettize m) [] "6205e1a8-9a5d-4325-bb0d-219f09a4d988"
-                                        ]
-                                    )
-                      , { note = "" }
-                      )
-                    ]
+                [ CardStories.stories toHtml { onPress = Just NoOp, onExpand = \next -> ToggleExpandoCard next }
                 , storiesOf
                     "Chip"
                     [ ( "default", \m -> toHtml (palettize m) <| chip (palettize m) Nothing (Element.text "assigned"), { note = "" } )

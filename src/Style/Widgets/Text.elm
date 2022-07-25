@@ -1,4 +1,4 @@
-module Style.Widgets.Text exposing (TextVariant(..), body, defaultFontFamily, defaultFontSize, fontWeightAttr, heading, headingStyleAttrs, mono, p, strong, subheading, subheadingStyleAttrs, text, typography, typographyAttrs, underline)
+module Style.Widgets.Text exposing (..)
 
 import Element
 import Element.Border as Border
@@ -104,6 +104,13 @@ defaultFontFamily =
         (Font.typeface "Open Sans"
             :: systemFonts
         )
+
+
+{-| Element attribute for the mono font family.
+-}
+monoFontFamily : Element.Attribute msg
+monoFontFamily =
+    Font.family [ Font.monospace ]
 
 
 {-| System fonts for common browsers & operating systems.
@@ -243,7 +250,7 @@ strong label =
 -}
 mono : String -> Element.Element msg
 mono label =
-    text Body [ Font.family [ Font.monospace ] ] label
+    text Body [ monoFontFamily ] label
 
 
 {-| A convience method for underlined body text.
