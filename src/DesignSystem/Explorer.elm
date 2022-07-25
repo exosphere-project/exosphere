@@ -334,22 +334,33 @@ If you want to show a resource's current state or provide feedback on a process,
                     ]
                 , storiesOf
                     "Status Badge"
-                    [ ( "good", \m -> toHtml (palettize m) <| statusBadge (palettize m) ReadyGood (Element.text "Ready"), { note = "" } )
-                    , ( "muted", \m -> toHtml (palettize m) <| statusBadge (palettize m) Muted (Element.text "Unknown"), { note = "" } )
-                    , ( "warning", \m -> toHtml (palettize m) <| statusBadge (palettize m) Style.Widgets.StatusBadge.Warning (Element.text "Building"), { note = "" } )
-                    , ( "error", \m -> toHtml (palettize m) <| statusBadge (palettize m) Error (Element.text "Error"), { note = """
+                    (List.map
+                        (\status ->
+                            ( status.name
+                            , \m ->
+                                toHtml (palettize m) <|
+                                    statusBadge (palettize m) status.variant status.text
+                            , { note = """
 ## Usage
 
 Displays a read-only label which clearly provides guidance on the current state of a resource.
 
 (This is most often in the context of server status.)
-                        """ } )
-                    ]
+                        """ }
+                            )
+                        )
+                        [ { name = "good", variant = ReadyGood, text = Element.text "Ready" }
+                        , { name = "muted", variant = Muted, text = Element.text "Unknown" }
+                        , { name = "warning", variant = Style.Widgets.StatusBadge.Warning, text = Element.text "Building" }
+                        , { name = "error", variant = Error, text = Element.text "Error" }
+                        ]
+                    )
                 ]
             |> category "Molecules"
                 [ storiesOf
                     "Chip"
-                    [ ( "default", \m -> toHtml (palettize m) <| chip (palettize m) Nothing (Element.text "assigned"), { note = "" } )
+                    [ --TODO: Replace this component with the `filterChipView` inside DataList since `chip` is not in use.
+                      ( "default", \m -> toHtml (palettize m) <| chip (palettize m) Nothing (Element.text "assigned"), { note = "" } )
                     , ( "with badge", \m -> toHtml (palettize m) <| chip (palettize m) Nothing (Element.row [ Element.spacing 5 ] [ Element.text "ubuntu", badge "10" ]), { note = "" } )
                     ]
                 , storiesOf
