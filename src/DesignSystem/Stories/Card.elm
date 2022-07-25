@@ -135,4 +135,33 @@ note : String
 note =
     """
 ## Usage
+
+Cards separate logical units of associated information. Their content is very flexible.
+
+### exoCard
+
+The `exoCard` is used for displaying related information, & creates a border around content. It is not interactive; while it's content may be clickable, the card itself does not link to a detail view.
+
+### clickableCardFixedSize
+
+A `clickableCardFixedSize` has a hover effect with the intention that it is wrapped in a link element:
+
+    Element.link []
+        { url = "/#Organisms/Card"
+        , label = clickableCardFixedSize (palettize m) 300 300 [ Text.body "Lorem ipsum dolor sit amet." ]
+        }
+
+This navigates users to a detail page for the represented item e.g. the project, the volume, etc.
+
+### exoCardWithTitleAndSubtitle
+
+An `exoCardWithTitleAndSubtitle` has a hover effect similar to `clickableCardFixedSize` but also separates content into a title & subtitle. The main content of the card should be contained in the subtitle.
+
+_This widget is currently unused._
+
+### expandoCard
+
+The `expandoCard` has a hover effect & can be expanded to reveal additional content using a toggle button.
+
+_This widget is currently unused._
     """
