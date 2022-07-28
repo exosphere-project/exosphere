@@ -123,8 +123,8 @@ appView windowSize outerModel context =
                             )
 
                         Just project_ ->
-                            ( Just <| projectNav context project_
-                            , project
+                            ( Just <| projectHeaderView context project_
+                            , projectContentView
                                 outerModel.sharedModel
                                 context
                                 project_
@@ -273,13 +273,13 @@ nonProjectViews model context viewConstructor =
             )
 
 
-project :
+projectContentView :
     SharedModel
     -> View.Types.Context
     -> Project
     -> Types.View.ProjectViewConstructor
     -> Element.Element OuterMsg
-project model context p viewConstructor =
+projectContentView model context p viewConstructor =
     case viewConstructor of
         ProjectOverview pageModel ->
             Page.ProjectOverview.view context p model.clientCurrentTime pageModel
@@ -350,8 +350,8 @@ project model context p viewConstructor =
                 |> Element.map VolumeMountInstructionsMsg
 
 
-projectNav : View.Types.Context -> Project -> Element.Element OuterMsg
-projectNav context p =
+projectHeaderView : View.Types.Context -> Project -> Element.Element OuterMsg
+projectHeaderView context p =
     let
         edges =
             VH.edges
@@ -410,12 +410,12 @@ projectNav context p =
                 , left = 0
                 }
             ]
-            (createButton context (GetterSetters.projectIdentifier p))
+            (createProjectResourcesButton context (GetterSetters.projectIdentifier p))
         ]
 
 
-createButton : View.Types.Context -> ProjectIdentifier -> Element.Element OuterMsg
-createButton context projectId =
+createProjectResourcesButton : View.Types.Context -> ProjectIdentifier -> Element.Element OuterMsg
+createProjectResourcesButton context projectId =
     let
         renderButton : Element.Element Never -> String -> Route.Route -> Element.Attribute OuterMsg -> Element.Element OuterMsg
         renderButton icon_ text route closeDropdown =
