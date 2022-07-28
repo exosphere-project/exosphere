@@ -107,63 +107,7 @@ appView windowSize outerModel context =
         ( header, content ) =
             case outerModel.viewState of
                 NonProjectView viewConstructor ->
-                    -- TODO: split non-project pages into headerView, contentView in a separate function
-                    ( Just Element.none
-                    , case viewConstructor of
-                        GetSupport pageModel ->
-                            Page.GetSupport.view context outerModel.sharedModel pageModel
-                                |> Element.map GetSupportMsg
-
-                        HelpAbout ->
-                            Page.HelpAbout.view outerModel.sharedModel context
-
-                        Home pageModel ->
-                            Page.Home.view context outerModel.sharedModel pageModel
-                                |> Element.map HomeMsg
-
-                        LoadingUnscopedProjects _ ->
-                            -- TODO put a fidget spinner here
-                            Text.body <|
-                                String.join " "
-                                    [ "Loading"
-                                    , context.localization.unitOfTenancy
-                                        |> Helpers.String.pluralize
-                                        |> Helpers.String.toTitleCase
-                                    ]
-
-                        Login loginView ->
-                            case loginView of
-                                LoginOpenstack pageModel ->
-                                    Page.LoginOpenstack.view context outerModel.sharedModel pageModel
-                                        |> Element.map LoginOpenstackMsg
-
-                                LoginOpenIdConnect pageModel ->
-                                    Page.LoginOpenIdConnect.view context outerModel.sharedModel pageModel
-                                        |> Element.map SharedMsg
-
-                        LoginPicker ->
-                            Page.LoginPicker.view context outerModel.sharedModel
-                                |> Element.map LoginPickerMsg
-
-                        MessageLog pageModel ->
-                            Page.MessageLog.view context outerModel.sharedModel pageModel
-                                |> Element.map MessageLogMsg
-
-                        PageNotFound ->
-                            Text.body "Error: page not found. Perhaps you are trying to reach an invalid URL."
-
-                        SelectProjectRegions pageModel ->
-                            Page.SelectProjectRegions.view context outerModel.sharedModel pageModel
-                                |> Element.map SelectProjectRegionsMsg
-
-                        SelectProjects pageModel ->
-                            Page.SelectProjects.view context outerModel.sharedModel pageModel
-                                |> Element.map SelectProjectsMsg
-
-                        Settings pageModel ->
-                            Page.Settings.view context outerModel.sharedModel pageModel
-                                |> Element.map SettingsMsg
-                    )
+                    nonProjectViews outerModel.sharedModel context viewConstructor
 
                 ProjectView projectName viewConstructor ->
                     case GetterSetters.projectLookup outerModel.sharedModel projectName of
@@ -197,7 +141,9 @@ appView windowSize outerModel context =
                 [ case header of
                     Just header_ ->
                         Element.column
-                            ([ Background.color <| SH.toElementColor context.palette.neutral.background.frontLayer
+                            ([ Background.color <|
+                                SH.toElementColor
+                                    context.palette.neutral.background.frontLayer
                              , Element.width Element.fill
                              ]
                                 ++ VH.exoColumnAttributes
@@ -239,6 +185,92 @@ appView windowSize outerModel context =
             ]
             mainContainerView
         ]
+
+
+nonProjectViews :
+    SharedModel
+    -> View.Types.Context
+    -> Types.View.NonProjectViewConstructor
+    -> ( Maybe (Element.Element OuterMsg), Element.Element OuterMsg )
+nonProjectViews model context viewConstructor =
+    case viewConstructor of
+        GetSupport pageModel ->
+            ( Just Element.none
+            , Page.GetSupport.view context model pageModel
+                |> Element.map GetSupportMsg
+            )
+
+        HelpAbout ->
+            ( Just Element.none
+            , Page.HelpAbout.view model context
+            )
+
+        Home pageModel ->
+            ( Just Element.none
+            , Page.Home.view context model pageModel
+                |> Element.map HomeMsg
+            )
+
+        LoadingUnscopedProjects _ ->
+            ( Just Element.none
+              -- TODO put a fidget spinner here
+            , Text.body <|
+                String.join " "
+                    [ "Loading"
+                    , context.localization.unitOfTenancy
+                        |> Helpers.String.pluralize
+                        |> Helpers.String.toTitleCase
+                    ]
+            )
+
+        Login loginView ->
+            case loginView of
+                LoginOpenstack pageModel ->
+                    ( Just Element.none
+                    , Page.LoginOpenstack.view context model pageModel
+                        |> Element.map LoginOpenstackMsg
+                    )
+
+                LoginOpenIdConnect pageModel ->
+                    ( Just Element.none
+                    , Page.LoginOpenIdConnect.view context model pageModel
+                        |> Element.map SharedMsg
+                    )
+
+        LoginPicker ->
+            ( Just Element.none
+            , Page.LoginPicker.view context model
+                |> Element.map LoginPickerMsg
+            )
+
+        MessageLog pageModel ->
+            ( Just Element.none
+            , Page.MessageLog.view context model pageModel
+                |> Element.map MessageLogMsg
+            )
+
+        PageNotFound ->
+            ( Just Element.none
+            , Text.body "Error: page not found. Perhaps you are trying to reach an invalid URL."
+            )
+
+        SelectProjectRegions pageModel ->
+            ( Just Element.none
+            , Page.SelectProjectRegions.view context model pageModel
+                |> Element.map SelectProjectRegionsMsg
+            )
+
+        SelectProjects pageModel ->
+            ( Just Element.none
+            , Page.SelectProjects.view context model pageModel
+                |> Element.map SelectProjectsMsg
+            )
+
+        Settings pageModel ->
+            ( Just Element.none
+            , Page.Settings.view context model pageModel
+                |> Element.map SettingsMsg
+            )
 
 
 project :
