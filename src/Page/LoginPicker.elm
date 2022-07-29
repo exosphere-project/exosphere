@@ -1,4 +1,4 @@
-module Page.LoginPicker exposing (Msg(..), update, view)
+module Page.LoginPicker exposing (Msg(..), headerView, update, view)
 
 import Browser
 import Color
@@ -32,6 +32,11 @@ update msg =
     case msg of
         SharedMsg sharedMsg ->
             ( (), Cmd.none, sharedMsg )
+
+
+headerView : View.Types.Context -> Element.Element msg
+headerView context =
+    Text.heading context.palette [] Element.none "Choose a Login Method"
 
 
 view : View.Types.Context -> SharedModel -> Element.Element Msg
@@ -117,8 +122,7 @@ view context sharedModel =
                     ]
     in
     Element.column VH.contentContainer
-        [ Text.heading context.palette [] Element.none "Choose a Login Method"
-        , Element.wrappedRow
+        [ Element.wrappedRow
             (VH.exoRowAttributes
                 ++ [ Element.width Element.fill
                    , Element.spacing 40

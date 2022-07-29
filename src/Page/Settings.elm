@@ -1,4 +1,4 @@
-module Page.Settings exposing (Model, Msg(..), init, update, view)
+module Page.Settings exposing (Model, Msg(..), headerView, init, update, view)
 
 import Element
 import Element.Font as Font
@@ -41,6 +41,18 @@ update msg _ model =
             ( model, Cmd.none, sharedMsg )
 
 
+headerView : View.Types.Context -> Element.Element msg
+headerView context =
+    Text.heading context.palette
+        []
+        (FeatherIcons.settings
+            |> FeatherIcons.toHtml []
+            |> Element.html
+            |> Element.el []
+        )
+        "Settings"
+
+
 view : View.Types.Context -> SharedModel -> Model -> Element.Element Msg
 view context sharedModel _ =
     let
@@ -61,15 +73,7 @@ view context sharedModel _ =
     in
     Element.column
         (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-        [ Text.heading context.palette
-            []
-            (FeatherIcons.settings
-                |> FeatherIcons.toHtml []
-                |> Element.html
-                |> Element.el []
-            )
-            "Settings"
-        , Element.column VH.formContainer
+        [ Element.column VH.formContainer
             [ Input.radio
                 VH.exoColumnAttributes
                 { onChange = SelectTheme

@@ -1,4 +1,4 @@
-module Page.MessageLog exposing (Model, Msg(..), init, update, view)
+module Page.MessageLog exposing (Model, Msg(..), headerView, init, update, view)
 
 import Element
 import Element.Input as Input
@@ -37,6 +37,14 @@ update msg { viewContext } model =
             )
 
 
+headerView : View.Types.Context -> Element.Element msg
+headerView context =
+    Text.heading context.palette
+        []
+        (Icon.bell (SH.toElementColor context.palette.neutral.text.default) 20)
+        "Recent Messages"
+
+
 view : View.Types.Context -> SharedModel -> Model -> Element.Element Msg
 view context sharedModel model =
     let
@@ -54,11 +62,7 @@ view context sharedModel model =
     in
     Element.column
         (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-        [ Text.heading context.palette
-            []
-            (Icon.bell (SH.toElementColor context.palette.neutral.text.default) 20)
-            "Recent Messages"
-        , Input.checkbox
+        [ Input.checkbox
             []
             { label = Input.labelRight [] (Element.text "Show low-level debug messages")
             , icon = Input.defaultCheckbox

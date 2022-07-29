@@ -1,4 +1,4 @@
-module Page.LoginOpenIdConnect exposing (Model, init, view)
+module Page.LoginOpenIdConnect exposing (Model, headerView, init, view)
 
 import Browser
 import Color
@@ -25,11 +25,15 @@ init oidcLoginConfig =
     oidcLoginConfig
 
 
+headerView : View.Types.Context -> Model -> Element.Element msg
+headerView context model =
+    Text.heading context.palette [] Element.none model.oidcLoginButtonLabel
+
+
 view : View.Types.Context -> SharedModel -> Model -> Element.Element SharedMsg.SharedMsg
 view context _ model =
     Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-        [ Text.heading context.palette [] Element.none model.oidcLoginButtonLabel
-        , Element.column VH.contentContainer
+        [ Element.column VH.contentContainer
             [ Element.el
                 [ Element.width <| Element.px 380
                 , Element.centerX

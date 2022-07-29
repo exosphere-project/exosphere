@@ -1,4 +1,4 @@
-module Page.LoginOpenstack exposing (EntryType, Model, Msg, defaultCreds, init, update, view)
+module Page.LoginOpenstack exposing (EntryType, Model, Msg, defaultCreds, headerView, init, update, view)
 
 import Element
 import Element.Font as Font
@@ -110,6 +110,11 @@ update msg _ model =
             ( model, Cmd.none, SharedMsg.NoOp )
 
 
+headerView : View.Types.Context -> Element.Element msg
+headerView context =
+    Text.heading context.palette [] Element.none "Add an OpenStack Account"
+
+
 view : View.Types.Context -> SharedModel -> Model -> Element.Element Msg
 view context _ model =
     let
@@ -124,8 +129,7 @@ view context _ model =
                 |> not
     in
     Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-        [ Text.heading context.palette [] Element.none "Add an OpenStack Account"
-        , Element.column VH.formContainer
+        [ Element.column VH.formContainer
             [ case model.entryType of
                 CredsEntry ->
                     loginOpenstackCredsEntry context model allCredsEntered

@@ -1,4 +1,4 @@
-module Page.SelectProjectRegions exposing (Model, Msg(..), init, update, view)
+module Page.SelectProjectRegions exposing (Model, Msg(..), init, update, views)
 
 import Element
 import Element.Input as Input
@@ -56,8 +56,8 @@ update msg _ model =
             )
 
 
-view : View.Types.Context -> SharedModel -> Model -> Element.Element Msg
-view context sharedModel model =
+views : View.Types.Context -> SharedModel -> Model -> ( Maybe (Element.Element msg), Element.Element Msg )
+views context sharedModel model =
     let
         maybeScopedAuthToken =
             sharedModel.scopedAuthTokensWaitingRegionSelection
@@ -83,8 +83,8 @@ view context sharedModel model =
                                 }
                             ]
             in
-            Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-                [ Text.heading context.palette
+            ( Just <|
+                Text.heading context.palette
                     []
                     Element.none
                     (String.join " "
@@ -98,7 +98,8 @@ view context sharedModel model =
                         , scopedAuthToken.project.name
                         ]
                     )
-                , VH.renderWebData
+            , Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
+                [ VH.renderWebData
                     context
                     provider.regionsAvailable
                     (context.localization.openstackSharingKeystoneWithAnother
@@ -106,9 +107,10 @@ view context sharedModel model =
                     )
                     renderSuccessCase
                 ]
+            )
 
         _ ->
-            Element.text "Provider or scoped auth token not found"
+            ( Nothing, Element.text "Provider or scoped auth token not found" )
 
 
 renderRegion : Set.Set OSTypes.RegionId -> OSTypes.Region -> Element.Element Msg

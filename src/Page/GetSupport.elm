@@ -1,4 +1,4 @@
-module Page.GetSupport exposing (Model, Msg(..), init, update, view)
+module Page.GetSupport exposing (Model, Msg(..), headerView, init, update, view)
 
 import Element
 import Element.Font as Font
@@ -77,6 +77,18 @@ update msg _ model =
             ( model, Cmd.none, SharedMsg.NoOp )
 
 
+headerView : View.Types.Context -> SharedModel -> Element.Element msg
+headerView context sharedModel =
+    Text.heading context.palette
+        []
+        (FeatherIcons.helpCircle
+            |> FeatherIcons.toHtml []
+            |> Element.html
+            |> Element.el []
+        )
+        ("Get Support for " ++ sharedModel.style.appTitle)
+
+
 view : View.Types.Context -> SharedModel -> Model -> Element.Element Msg
 view context sharedModel model =
     Element.column
@@ -85,15 +97,7 @@ view context sharedModel model =
                , Element.width Element.fill
                ]
         )
-        [ Text.heading context.palette
-            []
-            (FeatherIcons.helpCircle
-                |> FeatherIcons.toHtml []
-                |> Element.html
-                |> Element.el []
-            )
-            ("Get Support for " ++ sharedModel.style.appTitle)
-        , case sharedModel.style.supportInfoMarkdown of
+        [ case sharedModel.style.supportInfoMarkdown of
             Just markdown ->
                 Element.column VH.contentContainer <|
                     VH.renderMarkdown context markdown

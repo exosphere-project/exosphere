@@ -1,4 +1,4 @@
-module Page.HelpAbout exposing (view)
+module Page.HelpAbout exposing (headerView, view)
 
 import Element
 import Element.Font as Font
@@ -15,18 +15,22 @@ import View.Types
 -- No state or Msgs to keep track of, so there is no Model, Msg, or update here
 
 
+headerView : SharedModel -> View.Types.Context -> Element.Element msg
+headerView model context =
+    Text.heading context.palette
+        []
+        (FeatherIcons.info
+            |> FeatherIcons.toHtml []
+            |> Element.html
+            |> Element.el []
+        )
+        ("About " ++ model.style.appTitle)
+
+
 view : SharedModel -> View.Types.Context -> Element.Element msg
 view model context =
     Element.column (List.append VH.exoColumnAttributes [ Element.spacing 16, Element.width Element.fill ])
-        [ Text.heading context.palette
-            []
-            (FeatherIcons.info
-                |> FeatherIcons.toHtml []
-                |> Element.html
-                |> Element.el []
-            )
-            ("About " ++ model.style.appTitle)
-        , case model.style.aboutAppMarkdown of
+        [ case model.style.aboutAppMarkdown of
             Just aboutAppMarkdown ->
                 Element.column VH.contentContainer <|
                     VH.renderMarkdown context aboutAppMarkdown

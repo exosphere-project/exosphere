@@ -195,18 +195,18 @@ nonProjectViews :
 nonProjectViews model context viewConstructor =
     case viewConstructor of
         GetSupport pageModel ->
-            ( Just Element.none
+            ( Just <| Page.GetSupport.headerView context model
             , Page.GetSupport.view context model pageModel
                 |> Element.map GetSupportMsg
             )
 
         HelpAbout ->
-            ( Just Element.none
+            ( Just <| Page.HelpAbout.headerView model context
             , Page.HelpAbout.view model context
             )
 
         Home pageModel ->
-            ( Just Element.none
+            ( Just (Page.Home.headerView context model |> Element.map HomeMsg)
             , Page.Home.view context model pageModel
                 |> Element.map HomeMsg
             )
@@ -226,25 +226,25 @@ nonProjectViews model context viewConstructor =
         Login loginView ->
             case loginView of
                 LoginOpenstack pageModel ->
-                    ( Just Element.none
+                    ( Just <| Page.LoginOpenstack.headerView context
                     , Page.LoginOpenstack.view context model pageModel
                         |> Element.map LoginOpenstackMsg
                     )
 
                 LoginOpenIdConnect pageModel ->
-                    ( Just Element.none
+                    ( Just <| Page.LoginOpenIdConnect.headerView context pageModel
                     , Page.LoginOpenIdConnect.view context model pageModel
                         |> Element.map SharedMsg
                     )
 
         LoginPicker ->
-            ( Just Element.none
+            ( Just <| Page.LoginPicker.headerView context
             , Page.LoginPicker.view context model
                 |> Element.map LoginPickerMsg
             )
 
         MessageLog pageModel ->
-            ( Just Element.none
+            ( Just <| Page.MessageLog.headerView context
             , Page.MessageLog.view context model pageModel
                 |> Element.map MessageLogMsg
             )
@@ -255,19 +255,15 @@ nonProjectViews model context viewConstructor =
             )
 
         SelectProjectRegions pageModel ->
-            ( Just Element.none
-            , Page.SelectProjectRegions.view context model pageModel
-                |> Element.map SelectProjectRegionsMsg
-            )
+            Page.SelectProjectRegions.views context model pageModel
+                |> Tuple.mapSecond (Element.map SelectProjectRegionsMsg)
 
         SelectProjects pageModel ->
-            ( Just Element.none
-            , Page.SelectProjects.view context model pageModel
-                |> Element.map SelectProjectsMsg
-            )
+            Page.SelectProjects.views context model pageModel
+                |> Tuple.mapSecond (Element.map SelectProjectsMsg)
 
         Settings pageModel ->
-            ( Just Element.none
+            ( Just <| Page.Settings.headerView context
             , Page.Settings.view context model pageModel
                 |> Element.map SettingsMsg
             )
