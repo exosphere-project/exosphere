@@ -27,7 +27,10 @@ init oidcLoginConfig =
 
 headerView : View.Types.Context -> Model -> Element.Element msg
 headerView context model =
-    Text.heading context.palette [] Element.none model.oidcLoginButtonLabel
+    Text.heading context.palette
+        VH.headerHeadingAttributes
+        Element.none
+        model.oidcLoginButtonLabel
 
 
 view : View.Types.Context -> SharedModel -> Model -> Element.Element SharedMsg.SharedMsg

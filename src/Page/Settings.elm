@@ -44,7 +44,7 @@ update msg _ model =
 headerView : View.Types.Context -> Element.Element msg
 headerView context =
     Text.heading context.palette
-        []
+        VH.headerHeadingAttributes
         (FeatherIcons.settings
             |> FeatherIcons.toHtml []
             |> Element.html

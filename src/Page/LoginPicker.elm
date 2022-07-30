@@ -36,7 +36,10 @@ update msg =
 
 headerView : View.Types.Context -> Element.Element msg
 headerView context =
-    Text.heading context.palette [] Element.none "Choose a Login Method"
+    Text.heading context.palette
+        VH.headerHeadingAttributes
+        Element.none
+        "Choose a Login Method"
 
 
 view : View.Types.Context -> SharedModel -> Element.Element Msg

@@ -318,8 +318,7 @@ breadcrumb_ outerModel context =
                 |> Element.el [ Font.color (context.palette.neutral.icon |> SH.toElementColor) ]
     in
     Element.wrappedRow
-        [ Element.paddingXY 10 4
-        , Element.spacingXY 10 4
+        [ Element.spacing 8
         , Font.size 14
         ]
     <|

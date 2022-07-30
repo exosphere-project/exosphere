@@ -85,7 +85,7 @@ views context sharedModel model =
             in
             ( Just <|
                 Text.heading context.palette
-                    []
+                    VH.headerHeadingAttributes
                     Element.none
                     (String.join " "
                         [ "Choose"

@@ -70,7 +70,7 @@ headerView context sharedModel =
     in
     Element.row [ Element.width Element.fill, Element.spacing 25 ]
         [ Text.heading context.palette
-            [ Element.width Element.fill ]
+            VH.headerHeadingAttributes
             Element.none
             "Home"
         , if List.isEmpty <| uniqueKeystoneHostnames sharedModel then

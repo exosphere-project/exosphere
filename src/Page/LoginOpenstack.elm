@@ -112,7 +112,10 @@ update msg _ model =
 
 headerView : View.Types.Context -> Element.Element msg
 headerView context =
-    Text.heading context.palette [] Element.none "Add an OpenStack Account"
+    Text.heading context.palette
+        VH.headerHeadingAttributes
+        Element.none
+        "Add an OpenStack Account"
 
 
 view : View.Types.Context -> SharedModel -> Model -> Element.Element Msg

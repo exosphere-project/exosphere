@@ -53,7 +53,7 @@ import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg exposing (SharedMsg(..))
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
 import View.Breadcrumb
-import View.Helpers as VH
+import View.Helpers as VH exposing (edges)
 import View.Nav
 import View.PageTitle
 import View.Types
@@ -131,6 +131,17 @@ appView windowSize outerModel context =
                                 viewConstructor
                             )
 
+        headerContainerAttrs =
+            [ Background.color <|
+                SH.toElementColor context.palette.neutral.background.frontLayer
+            , Border.widthEach { edges | bottom = 1 }
+            , Border.color <|
+                SH.toElementColor context.palette.neutral.border
+            , Element.width Element.fill
+            , Element.paddingEach { top = 12, right = 16, bottom = 16, left = 16 }
+            , Element.spacing 12
+            ]
+
         mainContainerView =
             Element.column
                 [ Element.alignTop
@@ -141,13 +152,7 @@ appView windowSize outerModel context =
                 [ case header of
                     Just header_ ->
                         Element.column
-                            ([ Background.color <|
-                                SH.toElementColor
-                                    context.palette.neutral.background.frontLayer
-                             , Element.width Element.fill
-                             ]
-                                ++ VH.exoColumnAttributes
-                            )
+                            headerContainerAttrs
                             [ View.Breadcrumb.breadcrumb outerModel context
                                 |> Element.map SharedMsg
                             , header_
@@ -212,7 +217,7 @@ nonProjectViews model context viewConstructor =
             )
 
         LoadingUnscopedProjects _ ->
-            ( Just Element.none
+            ( Nothing
               -- TODO put a fidget spinner here
             , Text.body <|
                 String.join " "
@@ -250,7 +255,7 @@ nonProjectViews model context viewConstructor =
             )
 
         PageNotFound ->
-            ( Just Element.none
+            ( Nothing
             , Text.body "Error: page not found. Perhaps you are trying to reach an invalid URL."
             )
 
@@ -349,24 +354,15 @@ projectContentView model context p viewConstructor =
 projectHeaderView : View.Types.Context -> Project -> Element.Element OuterMsg
 projectHeaderView context p =
     let
-        edges =
-            VH.edges
-
         removeText =
             String.join " "
                 [ "Remove"
                 , Helpers.String.toTitleCase context.localization.unitOfTenancy
                 ]
     in
-    Element.row [ Element.width Element.fill, Element.spacing 10, Element.paddingEach { edges | bottom = 10 } ]
+    Element.row [ Element.width Element.fill, Element.spacing 10 ]
         [ Text.heading context.palette
-            -- Removing bottom border from this heading because it runs into buttons to the right and looks weird
-            -- Removing bottom padding to vertically align it with butttons
-            -- Shrink heading width so that username can be shown right next to it
-            [ Border.width 0
-            , Element.padding 0
-            , Element.width Element.shrink
-            ]
+            VH.headerHeadingAttributes
             Element.none
             (VH.friendlyCloudName
                 context

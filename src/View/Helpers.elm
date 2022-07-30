@@ -18,6 +18,7 @@ module View.Helpers exposing
     , getServerUiStatus
     , getServerUiStatusBadgeState
     , getServerUiStatusStr
+    , headerHeadingAttributes
     , hint
     , inputItemAttributes
     , invalidInputAttributes
@@ -129,6 +130,14 @@ inputItemAttributes palette =
     , Element.spacing 12
     , Background.color <| SH.toElementColor palette.neutral.background.frontLayer
     , Border.color <| SH.toElementColor palette.neutral.border
+    ]
+
+
+headerHeadingAttributes : List (Element.Attribute msg)
+headerHeadingAttributes =
+    [ Border.width 0
+    , Element.padding 0
+    , Element.width Element.shrink
     ]
 
 
