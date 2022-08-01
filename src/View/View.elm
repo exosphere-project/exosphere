@@ -142,12 +142,16 @@ appView windowSize outerModel context =
             , Element.spacing 12
             ]
 
+        contentContainerAttrs =
+            [ Element.padding 16 ]
+
         mainContainerView =
             Element.column
                 [ Element.alignTop
                 , Element.width Element.fill
                 , Element.height Element.fill
                 , Element.scrollbars
+                , Element.spacing 12
                 ]
                 [ case header of
                     Just header_ ->
@@ -160,7 +164,7 @@ appView windowSize outerModel context =
 
                     Nothing ->
                         Element.none
-                , content
+                , Element.el contentContainerAttrs content
                 , Element.html
                     (Toasty.view Style.Toast.toastConfig
                         (Page.Toast.view context outerModel.sharedModel)

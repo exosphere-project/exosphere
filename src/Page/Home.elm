@@ -101,7 +101,6 @@ view : View.Types.Context -> SharedModel -> Model -> Element.Element Msg
 view context sharedModel _ =
     Element.column
         [ Element.width Element.fill
-        , Element.padding 10
         , Element.spacing 20
         ]
         [ if List.isEmpty <| uniqueKeystoneHostnames sharedModel then
