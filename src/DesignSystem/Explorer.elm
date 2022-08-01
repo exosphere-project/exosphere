@@ -215,14 +215,16 @@ config =
                         cm =
                             m.customModel
                     in
-                    ( { m | customModel = { cm | toasts = ToastStories.update ToastMsg submsg m.customModel.toasts } }, Cmd.none )
+                    ( { m | customModel = { cm | toasts = ToastStories.update ToastMsg submsg m.customModel.toasts |> Tuple.first } }, ToastStories.update ToastMsg submsg m.customModel.toasts |> Tuple.second )
 
                 ToastShow ->
                     let
                         cm =
                             m.customModel
                     in
-                    ( { m | customModel = { cm | toasts = ( m.customModel.toasts, Cmd.none ) |> ToastStories.addToastIfUnique (Toasty.Defaults.Success "Unique toast" "Avoid repeated notifications") ToastMsg } }, Cmd.none )
+                    ( { m | customModel = { cm | toasts = ( m.customModel.toasts, Cmd.none ) |> ToastStories.addToastIfUnique (Toasty.Defaults.Success "Unique toast" "Avoid repeated notifications") ToastMsg |> Tuple.first } }
+                    , ( m.customModel.toasts, Cmd.none ) |> ToastStories.addToastIfUnique (Toasty.Defaults.Success "Unique toast" "Avoid repeated notifications") ToastMsg |> Tuple.second
+                    )
     , menuViewEnhancer = \_ v -> v
     , viewEnhancer =
         \m stories ->

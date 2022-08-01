@@ -3,6 +3,7 @@ module DesignSystem.Stories.Toast exposing (ToastModel, ToastState, addToastIfUn
 import DesignSystem.Helpers exposing (Plugins, Renderer, palettize)
 import Element
 import Html
+import Style.Toast
 import Style.Types
 import Style.Widgets.Button as Button
 import Toasty
@@ -32,8 +33,7 @@ initialModel =
 
 config : Toasty.Config msg
 config =
-    Toasty.Defaults.config
-        |> Toasty.delay 5000
+    Style.Toast.toastConfig
 
 
 addToastIfUnique :
@@ -43,14 +43,14 @@ addToastIfUnique :
         ( ToastState
         , Cmd msg
         )
-    -> ToastState
+    -> ( ToastState, Cmd msg )
 addToastIfUnique toast tagger ( model, cmd ) =
-    Tuple.first (Toasty.addToastIfUnique config tagger toast ( model, cmd ))
+    Toasty.addToastIfUnique config tagger toast ( model, cmd )
 
 
-update : (Toasty.Msg Toasty.Defaults.Toast -> msg) -> Toasty.Msg Toasty.Defaults.Toast -> ToastState -> ToastState
+update : (Toasty.Msg Toasty.Defaults.Toast -> msg) -> Toasty.Msg Toasty.Defaults.Toast -> ToastState -> ( ToastState, Cmd msg )
 update tagger msg model =
-    Tuple.first (Toasty.update config tagger msg model)
+    Toasty.update config tagger msg model
 
 
 {-| Creates stories for UIExplorer.
