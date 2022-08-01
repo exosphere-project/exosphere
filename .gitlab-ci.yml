@@ -249,34 +249,6 @@ deploy_prod:
   only:
     - master
 
-deploy_jetstream:
-  stage: deploy
-  resource_group: deploy_jetstream
-  dependencies:
-    - elm_make
-    - minify
-  before_script:
-    # See https://docs.gitlab.com/ee/ci/ssh_keys/README.html
-    - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
-    - eval $(ssh-agent -s)
-    - echo "$DOGFOOD_SSH_PRIV_KEY" | tr -d '\r' | ssh-add - > /dev/null
-    - mkdir -p ~/.ssh
-    - chmod 700 ~/.ssh
-    # https://docs.gitlab.com/ee/ci/ssh_keys/#verifying-the-ssh-host-keys
-    - echo "$DOGFOOD_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
-    - chmod 644 ~/.ssh/known_hosts
-    - 'which rsync || ( apt-get update -y && apt-get install rsync -y )'
-  script:
-    - 'cp environment-configs/exosphere.jetstream-cloud.org-config.js public/config.js'
-    - 'sed -i -e "s/\"instanceConfigMgtRepoCheckout\":.*/\"instanceConfigMgtRepoCheckout\": \"${CI_COMMIT_SHA}\",/g" public/config.js'
-    - 'sed -i -e "s/\"releaseVersion\":.*/\"releaseVersion\":\"${CI_COMMIT_SHA}\",/g" public/config.js'
-    - 'sed -i -e ''s/<base href="\/" \/>/<base href="\/exosphere\/" \/>/g'' public/index.html'
-    - 'rsync -av --delete public exouser@dogfood.exosphere.app:jetstream-deploy/'
-  environment:
-    name: jetstream
-    url: https://exosphere.jetstream-cloud.org/exosphere
-  only:
-    - master
 
 deploy_jetstream2:
   stage: deploy
@@ -433,16 +405,6 @@ mr_e2e_chrome:
   only:
     - master
 
-.jetstream_post_deploy:
-  stage: postdeploy
-  variables:
-    EXOSPHERE_BASE_URL: "https://exosphere.jetstream-cloud.org/exosphere/loginpicker"
-    ENV_NAME: "j7m"
-  needs:
-    - deploy_jetstream
-  only:
-    - master
-
 .jetstream2_post_deploy:
   stage: postdeploy
   variables:
@@ -473,17 +435,6 @@ prod_post_deploy_e2e_firefox:
   extends:
     - .e2e_firefox
     - .prod_post_deploy
-
-jetstream_post_deploy_e2e_chrome:
-  extends:
-    - .e2e_chrome
-    - .jetstream_post_deploy
-
-jetstream_post_deploy_e2e_firefox:
-  extends:
-    - .e2e_firefox
-    - .jetstream_post_deploy
-
 
 jetstream2_post_deploy_e2e_chrome:
   extends:
