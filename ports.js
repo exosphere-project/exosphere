@@ -29,7 +29,7 @@ var electronDeprecationNotice = `
 <html>
 <body>
 <p>This Electron-based desktop application has been deprecated.</p>
-<p>Please start using Exosphere in your browser at https://try.exosphere.app. If you are a Jetstream user, please use https://exosphere.jetstream-cloud.org.</p>
+<p>Please start using Exosphere in your browser at https://try.exosphere.app. If you are a Jetstream2 user, please use https://jetstream2.exosphere.app.</p>
 <p>Both of these sites support installation to your desktop or home screen; see https://gitlab.com/exosphere/exosphere/-/blob/master/docs/pwa-install.md for more information.</p>
 </body>
 </html>

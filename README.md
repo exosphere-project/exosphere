@@ -13,7 +13,7 @@
 ## Quick Start
 
 - **[try.exosphere.app](https://try.exosphere.app)** in your browser, if you have access to an existing OpenStack cloud with internet-facing APIs
-- Use **[exosphere.jetstream-cloud.org](https://exosphere.jetstream-cloud.org)** if you have an allocation on [Jetstream Cloud](https://jetstream-cloud.org/)
+- Use **[jetstream2.exosphere.app](https://jetstream2.exosphere.app)** if you have an allocation on [Jetstream2](https://jetstream-cloud.org/)
 
 ## Overview and Features
 
