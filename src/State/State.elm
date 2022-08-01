@@ -25,7 +25,6 @@ import Page.ImageList
 import Page.InstanceSourcePicker
 import Page.KeypairCreate
 import Page.KeypairList
-import Page.LoginJetstream1
 import Page.LoginOpenstack
 import Page.LoginPicker
 import Page.MessageLog
@@ -184,19 +183,6 @@ updateUnderlying outerMsg outerModel =
                 | viewState = NonProjectView <| Home newPageModel
               }
             , Cmd.map HomeMsg cmd
-            )
-                |> pipelineCmdOuterModelMsg
-                    (processSharedMsg sharedMsg)
-
-        ( LoginJetstream1Msg pageMsg, NonProjectView (Login (LoginJetstream1 pageModel)) ) ->
-            let
-                ( newPageModel, cmd, sharedMsg ) =
-                    Page.LoginJetstream1.update pageMsg sharedModel pageModel
-            in
-            ( { outerModel
-                | viewState = NonProjectView <| Login <| LoginJetstream1 newPageModel
-              }
-            , Cmd.map LoginJetstream1Msg cmd
             )
                 |> pipelineCmdOuterModelMsg
                     (processSharedMsg sharedMsg)

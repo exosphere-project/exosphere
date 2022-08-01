@@ -36,7 +36,6 @@ type Route
     | HelpAbout
     | Home
     | LoadingUnscopedProjects OSTypes.AuthTokenString
-    | LoginJetstream1 (Maybe HelperTypes.Jetstream1Creds)
     | LoginOpenstack (Maybe OSTypes.OpenstackLogin)
     | LoginOpenIdConnect
     | LoginPicker
@@ -93,13 +92,6 @@ toUrl maybePathPrefix route =
         LoadingUnscopedProjects _ ->
             buildUrlFunc
                 [ "loadingprojs"
-                ]
-                []
-
-        LoginJetstream1 _ ->
-            buildUrlFunc
-                [ "login"
-                , "jetstream1"
                 ]
                 []
 
@@ -422,28 +414,6 @@ fromUrl maybePathPrefix defaultRoute_ url =
 
 pathParsers : Route -> List (Parser (Route -> b) b)
 pathParsers defaultRoute_ =
-    let
-        jetstream1ProviderEnumDict =
-            Dict.fromList
-                [ ( "iu", HelperTypes.IUCloud )
-                , ( "tacc", HelperTypes.TACCCloud )
-                , ( "both", HelperTypes.BothJetstream1Clouds )
-                ]
-
-        jetstream1LoginQueryParser =
-            Query.map3
-                HelperTypes.Jetstream1Creds
-                (Query.enum "provider" jetstream1ProviderEnumDict
-                    |> Query.map (Maybe.withDefault HelperTypes.BothJetstream1Clouds)
-                )
-                (Query.string "taccuname"
-                    |> Query.map (Maybe.withDefault "")
-                )
-                -- This parses into a blank password, ugly I know
-                (Query.string ""
-                    |> Query.map (\_ -> "")
-                )
-    in
     [ -- Non-project-specific pages
       map defaultRoute_ top
     , map
@@ -473,14 +443,16 @@ pathParsers defaultRoute_ =
          in
          s "login" </> s "openstack" <?> queryParser
         )
-    , map
-        (\creds -> LoginJetstream1 (Just creds))
-        (s "login" </> s "jetstream1" <?> jetstream1LoginQueryParser)
 
     -- We no longer set this URL in the app but someone may still try to use it
     , map
-        (\creds -> LoginJetstream1 (Just creds))
-        (s "login" </> s "jetstream" <?> jetstream1LoginQueryParser)
+        LoginPicker
+        (s "login" </> s "jetstream1")
+
+    -- We no longer set this URL in the app but someone may still try to use it
+    , map
+        LoginPicker
+        (s "login" </> s "jetstream")
     , map
         LoginOpenIdConnect
         (s "login" </> s "openidconnect")
@@ -716,9 +688,6 @@ defaultLoginPage maybeDefaultLoginView =
             case defaultLoginView of
                 HelperTypes.DefaultLoginOpenstack ->
                     LoginOpenstack Nothing
-
-                HelperTypes.DefaultLoginJetstream1 ->
-                    LoginJetstream1 Nothing
 
                 HelperTypes.DefaultLoginOpenIdConnect ->
                     LoginOpenIdConnect
