@@ -3,11 +3,12 @@ module DesignSystem.Stories.Toast exposing (ToastModel, ToastState, addToastIfUn
 import DesignSystem.Helpers exposing (Plugins, Renderer, palettize)
 import Element
 import Html
+import Page.Toast
 import Style.Toast
 import Style.Types
 import Style.Widgets.Button as Button
 import Toasty
-import Toasty.Defaults
+import Types.Error exposing (Toast)
 import UIExplorer
     exposing
         ( storiesOf
@@ -23,7 +24,7 @@ type alias ToastModel model =
 {-| The stack of toasties used by Toasty.
 -}
 type alias ToastState =
-    { toasties : Toasty.Stack Toasty.Defaults.Toast }
+    { toasties : Toasty.Stack Toast }
 
 
 initialModel : { toasties : Toasty.Stack a }
@@ -37,8 +38,8 @@ config =
 
 
 addToastIfUnique :
-    Toasty.Defaults.Toast
-    -> (Toasty.Msg Toasty.Defaults.Toast -> msg)
+    Toast
+    -> (Toasty.Msg Toast -> msg)
     ->
         ( ToastState
         , Cmd msg
@@ -48,7 +49,7 @@ addToastIfUnique toast tagger ( model, cmd ) =
     Toasty.addToastIfUnique config tagger toast ( model, cmd )
 
 
-update : (Toasty.Msg Toasty.Defaults.Toast -> msg) -> Toasty.Msg Toasty.Defaults.Toast -> ToastState -> ( ToastState, Cmd msg )
+update : (Toasty.Msg Toast -> msg) -> Toasty.Msg Toast -> ToastState -> ( ToastState, Cmd msg )
 update tagger msg model =
     Toasty.update config tagger msg model
 
@@ -62,7 +63,7 @@ update tagger msg model =
 -}
 stories :
     Renderer msg
-    -> (Toasty.Msg Toasty.Defaults.Toast -> msg)
+    -> (Toasty.Msg Toast -> msg)
     ->
         { toast
             | onPress : Maybe msg
@@ -70,8 +71,8 @@ stories :
     ->
         UIExplorer.UI
             { model
-                | toasts : ToastState
-                , deployerColors : Style.Types.DeployerColorThemes
+                | deployerColors : Style.Types.DeployerColorThemes
+                , toasts : ToastState
             }
             msg
             Plugins
@@ -93,7 +94,7 @@ stories renderer tagger { onPress } =
                         [ renderer (palettize m) <|
                             Element.el [ Element.paddingXY 400 100 ]
                                 (button onPress)
-                        , Toasty.view config Toasty.Defaults.view tagger m.customModel.toasts.toasties
+                        , Toasty.view config (Page.Toast.view { palette = palettize m } { showDebugMsgs = True }) tagger m.customModel.toasts.toasties
                         ]
                 , { note = note }
                 )
