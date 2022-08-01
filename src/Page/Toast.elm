@@ -9,15 +9,17 @@ import Html exposing (Html)
 import Style.Helpers as SH
 import Style.Types as ST
 import Types.Error exposing (ErrorLevel(..), Toast)
-import Types.SharedModel exposing (SharedModel)
-import View.Types
 
 
 
 -- No state or Msgs to keep track of, so there is no Model, Msg, init, or update here
 
 
-view : View.Types.Context -> SharedModel -> Toast -> Html msg
+view :
+    { context | palette : ST.ExoPalette }
+    -> { sharedModel | showDebugMsgs : Bool }
+    -> Toast
+    -> Html msg
 view context sharedModel t =
     let
         ( stateColor, title ) =
