@@ -54,7 +54,28 @@ note =
     """
 ## Usage
 
+### Internal Link
+
 Use `link` by default when navigating within the app. It opens links in the current window.
 
+#### Example
+```
+import Style.Widgets.Link as Link
+
+view context _ = 
+    Link.link context.palette "/a/relative/link" "hyperlinked text"    
+```
+
+### External Link
+
 Use `externalLink` for navigating outside of the app, or to deliberately open a new browser tab.
+
+#### Example
+```
+import Style.Widgets.Link as Link
+
+view context _ = 
+    Link.externalLink context.palette "https://link.com" "hyperlinked text"    
+```
+
     """
