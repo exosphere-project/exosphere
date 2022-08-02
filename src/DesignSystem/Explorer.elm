@@ -369,7 +369,9 @@ Use `Style.Widgets.StatusBadge.statusBadge` to display a read-only label which c
                             toHtml (palettize m) <|
                                 copyableText
                                     (palettize m)
-                                    [ Font.family [ Font.monospace ] ]
+                                    [ Font.family [ Font.monospace ]
+                                    , Element.width Element.shrink
+                                    ]
                                     "192.168.1.1"
                       , { note = """
 ## Usage
