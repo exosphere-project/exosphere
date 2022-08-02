@@ -8,7 +8,6 @@ This privacy notice applies only to users of the following sites managed by the 
 - [try.exosphere.app](https://try.exosphere.app/exosphere)
 - [try-dev.exosphere.app](https://try-dev.exosphere.app/exosphere)
 - [jetstream2.exosphere.app](https://jetstream2.exosphere.app/exosphere)
-- [exosphere.jetstream-cloud.org](https://exosphere.jetstream-cloud.org/exosphere)
 
 If you run Exosphere as local software on your own computer, host Exosphere on your own server for others to use, or use Exosphere hosted at a site other than the above, this notice does not apply to you.
 

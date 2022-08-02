@@ -13,7 +13,7 @@
 ## Quick Start
 
 - **[try.exosphere.app](https://try.exosphere.app)** in your browser, if you have access to an existing OpenStack cloud with internet-facing APIs
-- Use **[exosphere.jetstream-cloud.org](https://exosphere.jetstream-cloud.org)** if you have an allocation on [Jetstream Cloud](https://jetstream-cloud.org/)
+- Use **[jetstream2.exosphere.app](https://jetstream2.exosphere.app)** if you have an allocation on [Jetstream2](https://jetstream-cloud.org/)
 
 ## Overview and Features
 
@@ -228,25 +228,25 @@ If your community relies on an operating system that we don't currently support,
 
 These options are primarily intended for cloud operators who wish to offer a customized deployment of Exosphere to their user community. Set these in `config.js`.
 
-| *Option*                      | *Possible Values*                 | *Description*                                                          |
-|-------------------------------|-----------------------------------|------------------------------------------------------------------------|
-| showDebugMsgs                 | false, true                       |                                                                        |
-| cloudCorsProxyUrl             | null, string                      | See `docs/solving-cors-problem.md`; required to use app in web browser |
-| clouds                        | array                             | Imported from `cloud_configs.js`; see example below                    |
-| palette                       | null, JSON object                 | Pass custom colors to style Exosphere, see example below               |
-| logo                          | null, string                      | Path to custom logo to show in top-left corner of app                  |
-| favicon                       | null, string                      | Path to custom favicon                                                 |
-| appTitle                      | null, string                      | Title to show throughout the app                                       |
-| topBarShowAppTitle            | true (default), false             | Whether to show or hide appTitle in the top navigation bar             |
-| defaultLoginView              | null, openstack, jetstream1, oidc | Which login view to display by default                                 |
-| aboutAppMarkdown              | null, string (markdown)           | What to show in the "About the app" section of Help/About view         |
-| supportInfoMarkdown           | null, string (markdown)           | What to show when user clicks "Get support" button                     |
-| userSupportEmail              | null, string (markdown)           | Email address to ask users to send problem report                      |
-| openIdConnectLoginConfig      | null, JSON object                 | See `docs/federated-login.md` for more info and example JSON           |
-| localization                  | null, JSON object                 | Pass custom localization strings for the UI, see example below         |
-| instanceConfigMgtRepoUrl      | null, string                      | Set a custom repository to use for instance provisioning code          |
-| instanceConfigMgtRepoCheckout | null, string                      | Check out specific branch/tag/commit of instance provisioning code     |
-| sentryConfig                  | null, JSON object                 | Pass Sentry DSN for error logging, see example below                   |
+| *Option*                      | *Possible Values*       | *Description*                                                          |
+|-------------------------------|-------------------------|------------------------------------------------------------------------|
+| showDebugMsgs                 | false, true             |                                                                        |
+| cloudCorsProxyUrl             | null, string            | See `docs/solving-cors-problem.md`; required to use app in web browser |
+| clouds                        | array                   | Imported from `cloud_configs.js`; see example below                    |
+| palette                       | null, JSON object       | Pass custom colors to style Exosphere, see example below               |
+| logo                          | null, string            | Path to custom logo to show in top-left corner of app                  |
+| favicon                       | null, string            | Path to custom favicon                                                 |
+| appTitle                      | null, string            | Title to show throughout the app                                       |
+| topBarShowAppTitle            | true (default), false   | Whether to show or hide appTitle in the top navigation bar             |
+| defaultLoginView              | null, openstack, oidc   | Which login view to display by default                                 |
+| aboutAppMarkdown              | null, string (markdown) | What to show in the "About the app" section of Help/About view         |
+| supportInfoMarkdown           | null, string (markdown) | What to show when user clicks "Get support" button                     |
+| userSupportEmail              | null, string (markdown) | Email address to ask users to send problem report                      |
+| openIdConnectLoginConfig      | null, JSON object       | See `docs/federated-login.md` for more info and example JSON           |
+| localization                  | null, JSON object       | Pass custom localization strings for the UI, see example below         |
+| instanceConfigMgtRepoUrl      | null, string            | Set a custom repository to use for instance provisioning code          |
+| instanceConfigMgtRepoCheckout | null, string            | Check out specific branch/tag/commit of instance provisioning code     |
+| sentryConfig                  | null, JSON object       | Pass Sentry DSN for error logging, see example below                   |
 
 #### Example cloud configuration
 

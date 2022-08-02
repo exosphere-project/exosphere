@@ -14,7 +14,6 @@ import Page.ImageList
 import Page.InstanceSourcePicker
 import Page.KeypairCreate
 import Page.KeypairList
-import Page.LoginJetstream1
 import Page.LoginOpenIdConnect
 import Page.LoginOpenstack
 import Page.MessageLog
@@ -58,7 +57,6 @@ type NonProjectViewConstructor
 
 type LoginView
     = LoginOpenstack Page.LoginOpenstack.Model
-    | LoginJetstream1 Page.LoginJetstream1.Model
     | LoginOpenIdConnect Page.LoginOpenIdConnect.Model
 
 

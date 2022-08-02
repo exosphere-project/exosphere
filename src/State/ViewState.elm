@@ -17,7 +17,6 @@ import Page.ImageList
 import Page.InstanceSourcePicker
 import Page.KeypairCreate
 import Page.KeypairList
-import Page.LoginJetstream1
 import Page.LoginOpenIdConnect
 import Page.LoginOpenstack
 import Page.MessageLog
@@ -151,12 +150,6 @@ routeToViewStateModelCmd sharedModel route =
             ( NonProjectView <| LoadingUnscopedProjects authTokenString
             , newSharedModel
             , cmd
-            )
-
-        Route.LoginJetstream1 maybeCreds ->
-            ( NonProjectView <| Login <| LoginJetstream1 <| Page.LoginJetstream1.init maybeCreds
-            , sharedModel
-            , Cmd.none
             )
 
         Route.LoginOpenstack maybeCreds ->

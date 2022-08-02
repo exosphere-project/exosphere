@@ -43,7 +43,7 @@ var config = {
   openIdConnectLoginConfig: {
     keystoneAuthUrl: "https://js2.jetstream-cloud.org:5000/identity/v3",
     webssoKeystoneEndpoint:
-      "/auth/OS-FEDERATION/websso/openid?origin=https://exosphere.jetstream-cloud.org/exosphere/oidc-redirector",
+      "/auth/OS-FEDERATION/websso/openid?origin=https://jetstream2.exosphere.app/exosphere/oidc-redirector",
     oidcLoginIcon: "assets/img/XSEDE_Logo_Black_INF.png",
     oidcLoginButtonLabel: "Add XSEDE Account",
     oidcLoginButtonDescription: "Recommended login method for Jetstream2",
