@@ -132,34 +132,36 @@ def i_press_label_radiobutton(context, label):
 
 @step(u'I click the "{label}" card')
 @persona_vars
-def see_unique_instance_name_within(context, label):
+def i_click_card_with_label(context, label):
     context.execute_steps(f"""
     When I press the last element with xpath "//div[contains(string(),'{label}')]"
     """)
 
 
-@step("I enter TACC credentials")
+@step("I enter OpenStack credentials")
 @persona_vars
 def i_login_to_exosphere(context):
-    taccusername = os.environ.get('taccusername')
-    taccpass = os.environ.get('taccpass')
+    os_auth_url = os.environ.get('OS_AUTH_URL', 'https://js2.jetstream-cloud.org:5000/v3/')
+    os_user_domain_name = os.environ.get('OS_USER_DOMAIN_NAME', 'xsede')
+    os_username = os.environ.get('OS_USERNAME')
+    os_password = os.environ.get('OS_PASSWORD')
     context.execute_steps(f"""
-    Then I fill input labeled "TACC Username" with "{taccusername}"
-    And I fill input labeled "TACC Password" with "{taccpass}"
+    Then I fill input labeled "Keystone auth URL" with "{os_auth_url}"
+    Then I fill input labeled "User Domain (name or ID)" with "{os_user_domain_name}"
+    Then I fill input labeled "User Name" with "{os_username}"
+    Then I fill input labeled "Password" with "{os_password}"
     """)
 
-
-@step('I add a Jetstream1 Account for allocation "{allocation}"')
+@when('I add an OpenStack project "{project}"')
 @persona_vars
-def i_add_jetstream1_account_for_allocation(context, allocation):
+def i_add_openstack_project(context, project):
     context.execute_steps(f"""
-    When I click the "Add Jetstream1 Account" button
-    Then I should see "Add a Jetstream1 Account" within 15 seconds
-    When I enter TACC credentials
-    And I click the "IU Cloud" radio button
+    When I click the "Add OpenStack Account" button
+    Then I should see "Add an OpenStack Account" within 15 seconds
+    When I enter OpenStack credentials
     And I click the "Log In" button
-    And I should see "{allocation}" within 15 seconds
-    When I click the "{allocation}" checkbox
+    Then I should see "{project}" within 15 seconds
+    When I click the "{project}" checkbox
     And I click the "Choose" button
     Then I wait for 2 seconds
     """)

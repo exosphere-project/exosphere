@@ -28,13 +28,13 @@ python3 -m pip install --requirement requirements.txt
 
 ## Usage
 
-Set your TACC credentials as environment variables:
+Set your OpenStack credentials as environment variables:
 
 ```bash
-read -p "Enter your TACC username: " taccusername
-read -p "Enter your TACC password: " -s taccpass
-export taccusername
-export taccpass
+read -p "Enter your OpenStack username: " OS_USERNAME
+read -p "Enter your OpenStack password: " -s OS_PASSWORD
+export OS_USERNAME
+export OS_PASSWORD
 ```
 
 Run all the Exosphere scenarios in order: 
