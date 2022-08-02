@@ -2,7 +2,6 @@ module DesignSystem.Stories.Card exposing (ExpandoCardState, stories)
 
 import DesignSystem.Helpers exposing (Plugins, Renderer, ThemeModel, palettize)
 import Element
-import FeatherIcons
 import Style.Widgets.Button as Button
 import Style.Widgets.Card exposing (clickableCardFixedSize, exoCard, exoCardWithTitleAndSubtitle, expandoCard)
 import Style.Widgets.CopyableText exposing (copyableText)
@@ -69,19 +68,15 @@ stories renderer { onPress, onExpand } =
           , \m ->
                 renderer (palettize m) <|
                     Element.link []
-                        { url = "/#Organisms/Card"
+                        { url = "/#Organisms/Card/exoCard"
                         , label =
                             clickableCardFixedSize (palettize m)
-                                300
                                 200
-                                [ Text.body "Project TNT"
-                                , Element.column
-                                    [ Element.height (Element.px 120), Element.padding 10, Element.spacing 12 ]
-                                    [ Element.row [ Element.spacing 8 ]
-                                        [ FeatherIcons.server |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
-                                        , Text.body "6 instances"
-                                        ]
-                                    ]
+                                200
+                                [ Text.p [ Element.padding 10 ]
+                                    [ Text.strong "Clickable card" ]
+                                , Text.p [ Element.padding 10, Element.spacing 12 ]
+                                    [ Text.body "Click on me anywhere to navigate to exoCard story" ]
                                 ]
                         }
           , { note = note }
