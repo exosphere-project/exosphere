@@ -17,6 +17,8 @@ import Style.Types as ST exposing (ExoPalette, PopoverPosition(..))
 import Style.Widgets.Popover.Types exposing (PopoverId)
 
 
+{-| Style attributes of a standard popover, often passed to the element containing popover contents.
+-}
 popoverStyleDefaults : ExoPalette -> List (Element.Attribute msg)
 popoverStyleDefaults palette =
     [ Element.padding 10
@@ -27,6 +29,14 @@ popoverStyleDefaults palette =
     ]
 
 
+{-| Attributes that are passed to a popover target element when popover is shown.
+This is necessary because in elm-ui popover is a [nearby element](https://package.elm-lang.org/packages/mdgriffith/elm-ui/1.1.8/Element#nearby-elements).
+
+  - `popoverContent` - Content of the popover (or popover body).
+  - `position` - Where popover should appear w.r.t. its target.
+  - `distanceToTarget` - Distance of popover to its target in px.
+
+-}
 popoverAttribs :
     Element.Element msg
     -> PopoverPosition

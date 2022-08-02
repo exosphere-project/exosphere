@@ -394,6 +394,8 @@ It has the format "current value <x> of maximum usage <y>".
                 ]
             |> category "Organisms"
                 [ CardStories.stories toHtml { onPress = Just NoOp, onExpand = \next -> ToggleExpandoCard next }
+
+                -- TODO: also add stories for special popovers
                 , storiesOf
                     "Popover"
                     (List.map
@@ -435,7 +437,26 @@ It has the format "current value <x> of maximum usage <y>".
                                 toHtml (palettize m) <|
                                     Element.el [ Element.paddingXY 400 100 ]
                                         demoPopover
-                            , { note = "" }
+                            , { note = """
+## Usage
+Use `Style.Widgets.Popover.Popover.popover` for creating a popover. Most importantly, it takes a **target** element that opens/closes the popover and a **content** element that is the popover body. To learn about all the parameters it takes, check out the docstring of this function.
+
+`popover` function makes your life easier by controlling opening/closing. But if you want to control that yourself for a specific case (for e.g. when message emitted by a target should not toggle popover visiblity), you can use `Style.Widgets.Popover.Popover.popoverAttribs`. It returns the [nearby element](https://package.elm-lang.org/packages/mdgriffith/elm-ui/1.1.8/Element#nearby-elements) attributes that need to be passed to the target element when popover is shown.
+
+By taking control in your hands, you must remember to style the popover same as all other popover elements in Exosphere. This can be achieved by using `Style.Widgets.Popover.Popover.popoverStyleDefaults` that are the default style attributes for popover body as the name suggests.
+
+### Special Popovers
+
+#### Toggle Tip
+Use `Style.Widgets.ToggleTip.toggleTip` for showing an icon-button that toggles the tip (a popover) on clicking.
+
+#### Dropdown
+We don't have a dedicated function for dropdown yet. But it can be achieved by creating a list of dropdown items as buttons with `Style.Helpers.dropdownItemStyle` applied, and then passing that list as a column to the `content` of `popover` function.
+
+#### Delete Popconfirm
+You can use `Style.Widgets.DeleteButton.deletePopconfirm` to show a confirmation popover on pressing a delete button (since it's an irreversible action).
+
+                            """ }
                             )
                         )
                         [ ( "TopLeft", Style.Types.PositionTopLeft )
