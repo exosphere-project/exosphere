@@ -296,20 +296,24 @@ For everything else, use `FeatherIcons` (learn more on their package [documentat
                             , { note = """
 ## Usage
 
-- Primary: For major positive actions, of which there is normally at most 1 per page.
+Exosphere uses [elm-ui-widgets buttons](https://package.elm-lang.org/packages/Orasund/elm-ui-widgets/latest/Widget#buttons): `Widget.button`, `Widget.textButton`, and `Widget.iconButton`. The styles passed to these functions (`Widget.Style.ButtonStyle msg` type) are usually obtained from "button" containing fields in the record returned by `Style.Helpers.materialStyle`.
 
-- Secondary: The most commonly used button variant, also available as `Button.default` for convenience.
+We have abstracted a significant part of this by our home-made `Style.Widgets.Button` (see issue [#791](https://gitlab.com/exosphere/exosphere/-/issues/791) for more context). You can use `Style.Widgets.Button.button` function for the following variants of text buttons:
 
-- Warning: Used when an action has reversible consequences with a major impact.
+- **Primary**: Used for most important call-to-action button on a page which is normally at most 1 per page.
 
-- Danger: For when an action has irreversible consequences.
+- **Secondary**: The most commonly used button for general actions on a page which need less emphasis than primary button. It is also available as `Style.Widgets.Button.default` for convenience.
 
-- Danger Secondary: Theoretically, for when an action has irreversible consequences but a minor impact.
+- **Warning**: Used when an action has reversible consequences with a major impact.
+
+- **Danger**: Used when an action is destructive and/or has irreversible consequences.
+
+- **Danger Secondary**: Same as Danger but action doesn't have immediate irreversible consequences, mostly becuase it takes to a confirmation page/dialog.
                             """ }
                             )
                         )
                         [ { name = "primary", widget = Button.primary, text = "Create", onPress = Just NoOp }
-                        , { name = "disabled", widget = Button.primary, text = "Next", onPress = Nothing }
+                        , { name = "primary: disabled", widget = Button.primary, text = "Next", onPress = Nothing }
                         , { name = "secondary", widget = Button.default, text = "Next", onPress = Just NoOp }
                         , { name = "warning", widget = Button.button Button.Warning, text = "Suspend", onPress = Just NoOp }
                         , { name = "danger", widget = Button.button Button.Danger, text = "Delete All", onPress = Just NoOp }
