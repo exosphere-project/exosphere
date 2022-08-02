@@ -263,11 +263,11 @@ main =
                             ( Tuple.first icon, \m -> toHtml (palettize m) <| defaultIcon (palettize m) <| Tuple.second icon, { note = """
 ## Usage
 
-Exosphere has several custom icons in `Style.Widgets.Icon`:
+Exosphere has several **custom icons** in `Style.Widgets.Icon` (as shown above). They can be used as:
 
     Icon.lockOpen (SH.toElementColor context.palette.on.background) 28
 
-For everything else, use `FeatherIcons`:
+For everything else, use `FeatherIcons` (learn more on their package [documentation](https://package.elm-lang.org/packages/1602/elm-feather/latest/FeatherIcons)):
 
     FeatherIcons.logOut |> FeatherIcons.withSize 18 |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
                             """ } )
@@ -321,9 +321,9 @@ For everything else, use `FeatherIcons`:
                     [ ( "default", \m -> toHtml (palettize m) <| badge "Experimental", { note = """
 ## Usage
 
-Used to mark features as "Experimental".
+Use `Style.Widgets.Card.badge` to annotate additional but important information like marking features as "Experimental".
 
-(Theoretically, can be combined within components to show extra details like counts.)
+It can also be combined within components to show extra details like counts.
 
 ### Alternatives
 
@@ -343,9 +343,8 @@ If you want to show a resource's current state or provide feedback on a process,
                             , { note = """
 ## Usage
 
-Displays a read-only label which clearly provides guidance on the current state of a resource.
+Use `Style.Widgets.StatusBadge.statusBadge` to display a read-only label which clearly shows the current status of a resource (usually a server).
 
-(This is most often in the context of server status.)
                         """ }
                             )
                         )
@@ -360,8 +359,8 @@ Displays a read-only label which clearly provides guidance on the current state 
                 [ storiesOf
                     "Chip"
                     [ --TODO: Replace this component with the `filterChipView` inside DataList since `chip` is not in use.
-                      ( "default", \m -> toHtml (palettize m) <| chip (palettize m) Nothing (Element.text "assigned"), { note = "" } )
-                    , ( "with badge", \m -> toHtml (palettize m) <| chip (palettize m) Nothing (Element.row [ Element.spacing 5 ] [ Element.text "ubuntu", badge "10" ]), { note = "" } )
+                      ( "default", \m -> toHtml (palettize m) <| chip (palettize m) Nothing (Element.text "assigned"), { note = "*Usage will be updated soon (see issue [#790](https://gitlab.com/exosphere/exosphere/-/issues/790))*" } )
+                    , ( "with badge", \m -> toHtml (palettize m) <| chip (palettize m) Nothing (Element.row [ Element.spacing 5 ] [ Element.text "ubuntu", badge "10" ]), { note = "*Usage will be updated soon (see issue [#790](https://gitlab.com/exosphere/exosphere/-/issues/790))*" } )
                     ]
                 , storiesOf
                     "Copyable Text"
@@ -375,9 +374,9 @@ Displays a read-only label which clearly provides guidance on the current state 
                       , { note = """
 ## Usage
 
-Shows stylable text with an accessory button for copying the text content to the user's clipboard.
+Use `Style.Widgets.CopyableText.copyableText` to show stylable text with an accessory button for copying the text content to the user's clipboard.
 
-This uses [clipboard.js](https://clipboardjs.com/) under the hood & relies on a [port for initialisation](https://gitlab.com/exosphere/exosphere/-/blob/master/ports.js#L101).
+It uses [clipboard.js](https://clipboardjs.com/) under the hood & relies on a [port for initialisation](https://gitlab.com/exosphere/exosphere/-/blob/master/ports.js#L101). This is why copying doesn't work on this design-system page yet.
                         """ }
                       )
                     ]
@@ -386,9 +385,11 @@ This uses [clipboard.js](https://clipboardjs.com/) under the hood & relies on a 
                     [ ( "default", \m -> toHtml (palettize m) <| meter (palettize m) "Space used" "6 of 10 GB" 6 10, { note = """
 ## Usage
 
-Shows a static horizontal progress bar chart which indicates capacity used of a resource.
+Use `Style.Widgets.Meter.meter` to show a static horizontal progress bar chart which indicates capacity used of a resource.
 
-It has the format "current value <x> of maximum usage <y>".
+Besides the obvious `value` and `maximum`, it takes:
+- `title` that is shown on the left side, often representing what meter indicates. 
+- `subtitle` that is shown on the right side, often represnting value and maximum in words. For e.g. "<value> of <maximum> <units>".
                     """ } )
                     ]
                 ]

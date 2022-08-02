@@ -136,7 +136,9 @@ note =
     """
 ## Usage
 
-Cards separate logical units of associated information. Their content is very flexible.
+Cards separate logical units of associated information. Their content is very flexible. 
+
+You can use following functions from `Style.Widgets.Card`:
 
 ### exoCard
 
