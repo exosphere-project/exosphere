@@ -318,7 +318,7 @@ deploy_dev:
     - name: "$SELENIUM_CONTAINER_IMAGE"
       alias: e2e.exosphere.service
   before_script:
-    - if [[ -z "$OS_USERNAME" || -z "$OS_PASSWORD" ]]; then echo "Must provide OS_USERNAME and $OS_PASSWORD in environment" 1>&2; exit 1; fi
+    - if [[ -z "$OS_USERNAME" || -z "$OS_PASSWORD" ]]; then echo "Must provide OS_USERNAME and OS_PASSWORD in environment" 1>&2; exit 1; fi
     - echo -e "section_start:`date +%s`:pip_install[collapsed=true]\r\e[0KInstall Python dependencies"
     - pip install -r integration-tests/requirements.txt
     - echo -e "section_end:`date +%s`:pip_install\r\e[0K"
