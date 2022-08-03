@@ -9,6 +9,7 @@ import FeatherIcons
 import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import Html
+import Html.Attributes
 import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.GetSupport
@@ -185,6 +186,7 @@ appView windowSize outerModel context =
         [ Element.el
             [ Border.shadow shadowDefaults
             , Element.width Element.fill
+            , Element.htmlAttribute <| Html.Attributes.style "z-index" "1"
             ]
             (View.Nav.navBar outerModel context)
         , Element.el
