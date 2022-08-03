@@ -41,7 +41,7 @@ headerView : View.Types.Context -> Element.Element msg
 headerView context =
     Text.heading context.palette
         VH.headerHeadingAttributes
-        (Icon.bell (SH.toElementColor context.palette.neutral.text.default) 20)
+        Element.none
         "Recent Messages"
 
 

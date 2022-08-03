@@ -81,11 +81,7 @@ headerView : View.Types.Context -> SharedModel -> Element.Element msg
 headerView context sharedModel =
     Text.heading context.palette
         VH.headerHeadingAttributes
-        (FeatherIcons.helpCircle
-            |> FeatherIcons.toHtml []
-            |> Element.html
-            |> Element.el []
-        )
+        Element.none
         ("Get Support for " ++ sharedModel.style.appTitle)
 
 
