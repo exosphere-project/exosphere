@@ -106,15 +106,13 @@ views context sharedModel model =
                         , urlLabel
                         ]
                     )
-            , Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-                [ VH.renderWebData
-                    context
-                    provider.projectsAvailable
-                    (context.localization.unitOfTenancy
-                        |> Helpers.String.pluralize
-                    )
-                    renderSuccessCase
-                ]
+            , VH.renderWebData
+                context
+                provider.projectsAvailable
+                (context.localization.unitOfTenancy
+                    |> Helpers.String.pluralize
+                )
+                renderSuccessCase
             )
 
         Nothing ->

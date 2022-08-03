@@ -61,7 +61,7 @@ view context sharedModel model =
                 |> List.filter filter
     in
     Element.column
-        (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
+        [ Element.width Element.fill, Element.spacing 12 ]
         [ Input.checkbox
             []
             { label = Input.labelRight [] (Element.text "Show low-level debug messages")
@@ -73,5 +73,6 @@ view context sharedModel model =
             Element.text "(No Messages)"
 
           else
-            Element.column VH.contentContainer (List.map (VH.renderMessageAsElement context) shownMessages)
+            Element.column (VH.contentContainer ++ [ Element.spacing 36 ])
+                (List.map (VH.renderMessageAsElement context) shownMessages)
         ]

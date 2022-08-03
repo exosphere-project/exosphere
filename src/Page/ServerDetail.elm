@@ -463,7 +463,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                 Nothing ->
                     Element.none
     in
-    Element.column (VH.exoColumnAttributes ++ [ Element.spacing 15 ])
+    Element.column [ Element.spacing 16, Element.width Element.fill ]
         [ Element.column [ Element.width Element.fill ]
             [ Element.row
                 (Text.headingStyleAttrs context.palette)
@@ -1148,11 +1148,10 @@ serverEventHistory context project server currentTime =
                     ]
             in
             Element.table
-                (VH.formContainer
-                    ++ [ Element.spacingXY 0 7
-                       , Element.width Element.fill
-                       ]
-                )
+                [ Element.spacingXY 0 7
+                , Element.paddingXY 0 10
+                , Element.width Element.fill
+                ]
                 { data = serverEvents, columns = columns }
 
         _ ->

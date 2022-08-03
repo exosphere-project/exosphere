@@ -71,40 +71,37 @@ view context sharedModel _ =
                 )
                 ST.PositionRight
     in
-    Element.column
-        (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-        [ Element.column VH.formContainer
-            [ Input.radio
-                VH.exoColumnAttributes
-                { onChange = SelectTheme
-                , options =
-                    [ Input.option (ST.Override ST.Light) (Element.text "Light")
-                    , Input.option (ST.Override ST.Dark) (Element.text "Dark")
-                    , Input.option ST.System (Element.text "System")
-                    ]
-                , selected =
-                    Just sharedModel.style.styleMode.theme
-                , label = Input.labelAbove [] (Text.text Text.H4 [] "Color theme")
-                }
-            , Input.radio
-                VH.exoColumnAttributes
-                { onChange =
-                    \newChoice ->
-                        GotEnableExperimentalFeatures newChoice
-                , options =
-                    [ Input.option False (Element.text "Disabled")
-                    , Input.option True (Element.text "Enabled")
-                    ]
-                , selected =
-                    Just sharedModel.viewContext.experimentalFeaturesEnabled
-                , label =
-                    Input.labelAbove
-                        []
-                        (Text.text Text.H4
-                            [ Element.onRight experimentalFeatureToggleTip
-                            ]
-                            "Experimental features"
-                        )
-                }
-            ]
+    Element.column (VH.formContainer ++ [ Element.spacing 16 ])
+        [ Input.radio
+            VH.exoColumnAttributes
+            { onChange = SelectTheme
+            , options =
+                [ Input.option (ST.Override ST.Light) (Element.text "Light")
+                , Input.option (ST.Override ST.Dark) (Element.text "Dark")
+                , Input.option ST.System (Element.text "System")
+                ]
+            , selected =
+                Just sharedModel.style.styleMode.theme
+            , label = Input.labelAbove [] (Text.text Text.H4 [] "Color theme")
+            }
+        , Input.radio
+            VH.exoColumnAttributes
+            { onChange =
+                \newChoice ->
+                    GotEnableExperimentalFeatures newChoice
+            , options =
+                [ Input.option False (Element.text "Disabled")
+                , Input.option True (Element.text "Enabled")
+                ]
+            , selected =
+                Just sharedModel.viewContext.experimentalFeaturesEnabled
+            , label =
+                Input.labelAbove
+                    []
+                    (Text.text Text.H4
+                        [ Element.onRight experimentalFeatureToggleTip
+                        ]
+                        "Experimental features"
+                    )
+            }
         ]

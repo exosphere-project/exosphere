@@ -165,8 +165,7 @@ contentContainer : List (Element.Attribute msg)
 contentContainer =
     -- Keeps the width from getting too wide for single column
     [ Element.width (Element.maximum 900 Element.fill)
-    , Element.spacing 15
-    , Element.paddingXY 0 10
+    , Element.spacing 24
     ]
 
 
@@ -174,8 +173,7 @@ formContainer : List (Element.Attribute msg)
 formContainer =
     -- Keeps form fields from displaying too wide
     [ Element.width (Element.maximum 600 Element.fill)
-    , Element.spacing 15
-    , Element.paddingXY 0 10
+    , Element.spacing 24
     ]
 
 
@@ -270,7 +268,7 @@ renderMessageAsElement context message =
                 ErrorCrit ->
                     context.palette.danger.textOnNeutralBG |> SH.toElementColor
     in
-    Element.column (exoColumnAttributes ++ [ Element.spacing 13 ])
+    Element.column [ Element.spacing 12 ]
         [ Element.row [ Element.alignRight ]
             [ Element.el
                 [ Font.color <| levelColor message.context.level

@@ -57,7 +57,7 @@ update msg { viewContext } project model =
 
 view : View.Types.Context -> Model -> Element.Element Msg
 view context model =
-    Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
+    Element.column VH.formContainer
         [ Text.heading context.palette
             []
             Element.none
@@ -73,7 +73,7 @@ view context model =
                     |> Helpers.String.toTitleCase
                 ]
             )
-        , Element.column VH.formContainer
+        , Element.column [ Element.spacing 16, Element.width Element.fill ]
             [ Input.text
                 [ Element.spacing 12 ]
                 { text = model.imageName

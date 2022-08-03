@@ -92,19 +92,15 @@ headerView context sharedModel =
 view : View.Types.Context -> SharedModel -> Model -> Element.Element Msg
 view context sharedModel model =
     Element.column
-        (VH.exoColumnAttributes
-            ++ [ Element.spacing 30
-               , Element.width Element.fill
-               ]
-        )
+        (VH.formContainer ++ [ Element.spacing 32 ])
         [ case sharedModel.style.supportInfoMarkdown of
             Just markdown ->
-                Element.column VH.contentContainer <|
+                Element.column [] <|
                     VH.renderMarkdown context markdown
 
             Nothing ->
                 Element.none
-        , Element.column VH.formContainer
+        , Element.column [ Element.spacing 16, Element.width Element.fill ]
             [ Input.radio
                 VH.exoColumnAttributes
                 { onChange =

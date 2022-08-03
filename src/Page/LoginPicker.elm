@@ -124,12 +124,8 @@ view context sharedModel =
                         ]
                     ]
     in
-    Element.column VH.contentContainer
-        [ Element.wrappedRow
-            (VH.exoRowAttributes
-                ++ [ Element.width Element.fill
-                   , Element.spacing 40
-                   ]
-            )
-            (List.map renderLoginMethod loginMethods)
+    Element.wrappedRow
+        [ Element.width Element.fill
+        , Element.spacing 24
         ]
+        (List.map renderLoginMethod loginMethods)

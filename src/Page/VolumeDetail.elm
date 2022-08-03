@@ -89,7 +89,7 @@ view context project model =
     in
     if model.showHeading then
         Element.column
-            (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
+            (VH.contentContainer ++ [ Element.spacing 16 ])
             [ Text.heading context.palette
                 []
                 Element.none
@@ -124,7 +124,7 @@ volumeDetail context project model =
                 Element.column []
                     [ Style.Widgets.Card.exoCard context.palette
                         (Element.column
-                            VH.contentContainer
+                            [ Element.padding 8, Element.spacing 16 ]
                             [ Text.subheading context.palette
                                 []
                                 Element.none
@@ -215,7 +215,7 @@ renderAttachments context project volume =
             Element.column [ Element.width Element.fill ]
                 [ Style.Widgets.Card.exoCard context.palette
                     (Element.column
-                        VH.contentContainer
+                        [ Element.padding 8, Element.spacing 16 ]
                         [ Element.column [ Element.width Element.fill ]
                             [ Text.subheading context.palette
                                 []
@@ -343,7 +343,8 @@ volumeActionButtons context project model volume =
     in
     Style.Widgets.Card.exoCard
         context.palette
-        (Element.column VH.contentContainer
+        (Element.column
+            [ Element.padding 8, Element.spacing 16, Element.width Element.fill ]
             [ volDetachDeleteWarning
             , Element.row [ Element.alignRight, Element.spacing 10 ]
                 [ attachDetachButton

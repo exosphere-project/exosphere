@@ -98,15 +98,13 @@ views context sharedModel model =
                         , scopedAuthToken.project.name
                         ]
                     )
-            , Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-                [ VH.renderWebData
-                    context
-                    provider.regionsAvailable
-                    (context.localization.openstackSharingKeystoneWithAnother
-                        |> Helpers.String.pluralize
-                    )
-                    renderSuccessCase
-                ]
+            , VH.renderWebData
+                context
+                provider.regionsAvailable
+                (context.localization.openstackSharingKeystoneWithAnother
+                    |> Helpers.String.pluralize
+                )
+                renderSuccessCase
             )
 
         _ ->

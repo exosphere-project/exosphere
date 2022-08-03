@@ -131,58 +131,56 @@ view context _ model =
                 |> List.any (\x -> String.isEmpty x)
                 |> not
     in
-    Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-        [ Element.column VH.formContainer
-            [ case model.entryType of
+    Element.column (VH.formContainer ++ [ Element.spacing 16 ])
+        [ case model.entryType of
+            CredsEntry ->
+                loginOpenstackCredsEntry context model allCredsEntered
+
+            OpenRcEntry ->
+                loginOpenstackOpenRcEntry context model
+        , Element.row (VH.exoRowAttributes ++ [ Element.width Element.fill ])
+            (case model.entryType of
                 CredsEntry ->
-                    loginOpenstackCredsEntry context model allCredsEntered
+                    [ Element.el []
+                        (VH.loginPickerButton context
+                            |> Element.map SharedMsg
+                        )
+                    , Button.default
+                        context.palette
+                        { text = "Use OpenRC File"
+                        , onPress = Just GotSelectOpenRcInput
+                        }
+                    , Element.el [ Element.alignRight ]
+                        (Button.primary
+                            context.palette
+                            { text = "Log In"
+                            , onPress =
+                                if allCredsEntered then
+                                    Just (SharedMsg <| SharedMsg.RequestUnscopedToken model.creds)
+
+                                else
+                                    Nothing
+                            }
+                        )
+                    ]
 
                 OpenRcEntry ->
-                    loginOpenstackOpenRcEntry context model
-            , Element.row (VH.exoRowAttributes ++ [ Element.width Element.fill ])
-                (case model.entryType of
-                    CredsEntry ->
-                        [ Element.el []
-                            (VH.loginPickerButton context
-                                |> Element.map SharedMsg
-                            )
-                        , Button.default
+                    [ Element.el VH.exoPaddingSpacingAttributes
+                        (Button.default
                             context.palette
-                            { text = "Use OpenRC File"
-                            , onPress = Just GotSelectOpenRcInput
+                            { text = "Cancel"
+                            , onPress = Just GotSelectCredsInput
                             }
-                        , Element.el [ Element.alignRight ]
-                            (Button.primary
-                                context.palette
-                                { text = "Log In"
-                                , onPress =
-                                    if allCredsEntered then
-                                        Just (SharedMsg <| SharedMsg.RequestUnscopedToken model.creds)
-
-                                    else
-                                        Nothing
-                                }
-                            )
-                        ]
-
-                    OpenRcEntry ->
-                        [ Element.el VH.exoPaddingSpacingAttributes
-                            (Button.default
-                                context.palette
-                                { text = "Cancel"
-                                , onPress = Just GotSelectCredsInput
-                                }
-                            )
-                        , Element.el (VH.exoPaddingSpacingAttributes ++ [ Element.alignRight ])
-                            (Button.primary
-                                context.palette
-                                { text = "Submit"
-                                , onPress = Just GotProcessOpenRc
-                                }
-                            )
-                        ]
-                )
-            ]
+                        )
+                    , Element.el (VH.exoPaddingSpacingAttributes ++ [ Element.alignRight ])
+                        (Button.primary
+                            context.palette
+                            { text = "Submit"
+                            , onPress = Just GotProcessOpenRc
+                            }
+                        )
+                    ]
+            )
         ]
 
 
@@ -202,7 +200,7 @@ loginOpenstackCredsEntry context model allCredsEntered =
                 }
     in
     Element.column
-        VH.formContainer
+        (VH.formContainer ++ [ Element.spacing 16 ])
         [ Element.el [] (Element.text "Enter your credentials")
         , textField
             creds.authUrl
@@ -244,7 +242,7 @@ loginOpenstackCredsEntry context model allCredsEntered =
 loginOpenstackOpenRcEntry : View.Types.Context -> Model -> Element.Element Msg
 loginOpenstackOpenRcEntry context model =
     Element.column
-        VH.formContainer
+        (VH.formContainer ++ [ Element.spacing 16 ])
         [ Element.paragraph []
             [ Element.text "Paste an "
             , Link.externalLink

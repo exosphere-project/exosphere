@@ -104,7 +104,7 @@ view context project currentTime model =
                 Nothing
     in
     Element.column
-        [ Element.spacing 20, Element.width Element.fill ]
+        VH.contentContainer
         [ if model.showHeading then
             Text.heading context.palette
                 []
@@ -116,7 +116,7 @@ view context project currentTime model =
 
           else
             Element.none
-        , Element.column VH.contentContainer
+        , Element.column [ Element.width Element.fill, Element.spacing 16 ]
             [ Page.QuotaUsage.view context Page.QuotaUsage.Full (Page.QuotaUsage.Volume project.volumeQuota)
             , VH.renderWebData
                 context

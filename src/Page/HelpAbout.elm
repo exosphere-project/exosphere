@@ -1,13 +1,12 @@
 module Page.HelpAbout exposing (headerView, view)
 
 import Element
-import Element.Font as Font
 import FeatherIcons
 import Style.Widgets.Link as Link
 import Style.Widgets.Text as Text
 import Types.SharedModel exposing (SharedModel)
 import UUID
-import View.Helpers as VH
+import View.Helpers as VH exposing (edges)
 import View.Types
 
 
@@ -29,16 +28,20 @@ headerView model context =
 
 view : SharedModel -> View.Types.Context -> Element.Element msg
 view model context =
-    Element.column (List.append VH.exoColumnAttributes [ Element.spacing 16, Element.width Element.fill ])
+    Element.column
+        (VH.contentContainer ++ [ Element.spacing 16 ])
         [ case model.style.aboutAppMarkdown of
             Just aboutAppMarkdown ->
-                Element.column VH.contentContainer <|
+                Element.column [ Element.spacing 16 ] <|
                     VH.renderMarkdown context aboutAppMarkdown
 
             Nothing ->
                 defaultHelpAboutText context
-        , Text.heading context.palette [] Element.none "App Config Info"
-        , Element.column VH.contentContainer
+        , Text.heading context.palette
+            [ Element.paddingEach { edges | top = 16, bottom = 8 } ]
+            Element.none
+            "App Config Info"
+        , Element.column [ Element.spacing 16 ]
             [ Text.p [] <|
                 case model.cloudCorsProxyUrl of
                     Nothing ->
@@ -53,7 +56,7 @@ view model context =
 
 defaultHelpAboutText : View.Types.Context -> Element.Element msg
 defaultHelpAboutText context =
-    Element.textColumn (VH.contentContainer ++ [ Font.size 16, Element.spacing 16 ])
+    Element.column [ Element.spacing 16 ]
         [ Text.p []
             [ Element.text "Exosphere is a user-friendly, extensible client for cloud computing. Check out our "
             , Link.externalLink

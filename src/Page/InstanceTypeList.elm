@@ -162,10 +162,9 @@ view context project instanceTypes =
                         )
                     ]
     in
-    Element.column VH.contentContainer
-        [ Element.wrappedRow [ Element.width Element.fill, Element.spacing 40, Element.alignTop ]
-            (List.map renderInstanceType instanceTypes)
-        ]
+    Element.wrappedRow
+        [ Element.width Element.fill, Element.spacing 24, Element.alignTop ]
+        (List.map renderInstanceType instanceTypes)
 
 
 getImageforInstanceTypeVersion : List OSTypes.Image -> HelperTypes.InstanceTypeImageFilters -> Maybe OSTypes.Image

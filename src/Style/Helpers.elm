@@ -316,7 +316,7 @@ materialStyle exoPalette =
             in
             { defaultTab
                 | button = exoTB
-                , containerColumn = defaultTab.containerColumn ++ [ Element.spacing 15 ]
+                , containerColumn = defaultTab.containerColumn ++ [ Element.spacing 24 ]
             }
     in
     { textInput = Material.textInput regularPalette
