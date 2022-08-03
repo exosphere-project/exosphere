@@ -138,12 +138,14 @@ appView windowSize outerModel context =
             , Border.color <|
                 SH.toElementColor context.palette.neutral.border
             , Element.width Element.fill
-            , Element.paddingEach { top = 12, right = 16, bottom = 16, left = 16 }
+            , Element.paddingEach { top = 12, right = 24, bottom = 16, left = 24 }
             , Element.spacing 12
             ]
 
         contentContainerAttrs =
-            [ Element.padding 16 ]
+            [ Element.padding 24
+            , Element.width Element.fill
+            ]
 
         mainContainerView =
             Element.column
@@ -151,7 +153,7 @@ appView windowSize outerModel context =
                 , Element.width Element.fill
                 , Element.height Element.fill
                 , Element.scrollbars
-                , Element.spacing 12
+                , Element.spacing 8
                 ]
                 [ case header of
                     Just header_ ->
