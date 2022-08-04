@@ -55,7 +55,7 @@ import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg exposing (SharedMsg(..))
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
 import View.Breadcrumb
-import View.Helpers as VH exposing (edges)
+import View.Helpers as VH
 import View.Nav
 import View.PageTitle
 import View.Types
@@ -136,7 +136,7 @@ appView windowSize outerModel context =
         headerContainerAttrs =
             [ Background.color <|
                 SH.toElementColor context.palette.neutral.background.frontLayer
-            , Border.widthEach { edges | bottom = 1 }
+            , Border.widthXY 0 1
             , Border.color <|
                 SH.toElementColor context.palette.neutral.border
             , Element.width Element.fill
