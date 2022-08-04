@@ -5,6 +5,7 @@ import Element
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
+import Element.Region as Region
 import FeatherIcons
 import Helpers.GetterSetters as GetterSetters
 import Helpers.String
@@ -369,9 +370,8 @@ projectHeaderView context p =
                 ]
     in
     Element.row [ Element.width Element.fill, Element.spacing 10 ]
-        [ Text.heading context.palette
-            VH.headerHeadingAttributes
-            Element.none
+        [ Text.text Text.H3
+            [ Font.regular, Region.heading 2 ]
             (VH.friendlyCloudName
                 context
                 p
@@ -379,13 +379,13 @@ projectHeaderView context p =
                 ++ p.auth.project.name
             )
         , Text.p
-            [ Font.size 15
+            [ Font.size 14
             , Element.alpha 0.75
             , Element.paddingEach { left = 5, top = 0, bottom = 0, right = 0 }
             ]
-            [ Text.body "(logged in as "
-            , Text.strong p.auth.user.name
-            , Text.body ")"
+            [ Element.text "(logged in as "
+            , Element.el [ Font.semiBold ] <| Element.text p.auth.user.name
+            , Element.text ")"
             ]
         , Element.el
             [ Element.alignRight ]
@@ -402,14 +402,7 @@ projectHeaderView context p =
                     Just <| SharedMsg <| SharedMsg.ProjectMsg (GetterSetters.projectIdentifier p) SharedMsg.RemoveProject
                 }
         , Element.el
-            [ Element.alignRight
-            , Element.paddingEach
-                { top = 0
-                , right = 15
-                , bottom = 0
-                , left = 0
-                }
-            ]
+            [ Element.alignRight ]
             (createProjectResourcesButton context (GetterSetters.projectIdentifier p))
         ]
 
