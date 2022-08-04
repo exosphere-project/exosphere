@@ -443,7 +443,9 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
             else
                 let
                     colWidthPx =
-                        (context.windowSize.width - 100) // 2
+                        -- view is placed in a container of 24px padding
+                        -- each column in dual column has 10px padding
+                        (context.windowSize.width - (24 * 2) - (10 * 2)) // 2
                 in
                 ( True, colWidthPx |> Element.px )
 
