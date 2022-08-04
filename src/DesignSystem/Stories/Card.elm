@@ -19,7 +19,7 @@ type alias ExpandoCardState =
     { expanded : Bool }
 
 
-{-| Creates stores for UIExplorer.
+{-| Creates stories for UIExplorer.
 
     renderer – An elm-ui to html converter
     palette  – Takes a UIExplorer.Model and produces an ExoPalette
@@ -64,24 +64,16 @@ stories renderer { onPress, onExpand } =
                         ]
           , { note = note }
           )
-        , ( "clickable card with fixed size"
+        , ( "clickableCardFixedSize"
           , \m ->
                 renderer (palettize m) <|
                     Element.link []
-                        { url = "/#Organisms/Card/exoCard"
-                        , label =
-                            clickableCardFixedSize (palettize m)
-                                200
-                                200
-                                [ Text.p [ Element.padding 10 ]
-                                    [ Text.strong "Clickable card" ]
-                                , Text.p [ Element.padding 10, Element.spacing 12 ]
-                                    [ Text.body "Click on me anywhere to navigate to exoCard story" ]
-                                ]
+                        { url = "/#Organisms/Card"
+                        , label = clickableCardFixedSize (palettize m) 300 300 [ Text.body "Navigate to first story." ]
                         }
           , { note = note }
           )
-        , ( "exoCard with title & subtitle"
+        , ( "exoCardWithTitleAndSubtitle"
           , \m ->
                 renderer (palettize m) <|
                     Element.column []
@@ -133,32 +125,29 @@ note =
 
 Cards separate logical units of associated information. Their content is very flexible. 
 
-You can use following functions from `Style.Widgets.Card`:
+### Variants
 
-### exoCard
+#### exoCard
 
-The `exoCard` is used for displaying related information, & creates a border around content. It is not interactive; while it's content may be clickable, the card itself does not link to a detail view.
+Used for displaying related information & creates a border around content. It is not interactive; while its content may be clickable, the card itself does not link to a detail view.
 
-### clickableCardFixedSize
+#### clickableCardFixedSize
 
-A `clickableCardFixedSize` has a hover effect with the intention that it is wrapped in a link element:
+Has a hover effect with the intention that it is wrapped in a link element.
 
-    Element.link []
-        { url = "/#Organisms/Card"
-        , label = clickableCardFixedSize (palettize m) 300 300 [ Text.body "Lorem ipsum dolor sit amet." ]
-        }
+It typically navigates users to a detail page for the represented item e.g. the project, the volume, etc.
 
-This navigates users to a detail page for the represented item e.g. the project, the volume, etc.
+#### exoCardWithTitleAndSubtitle
 
-### exoCardWithTitleAndSubtitle
+Has a hover effect similar to `clickableCardFixedSize` but also separates content into a title & subtitle.
 
-An `exoCardWithTitleAndSubtitle` has a hover effect similar to `clickableCardFixedSize` but also separates content into a title & subtitle. The main content of the card should be contained in the subtitle.
+The main content of the card should be contained in the subtitle.
 
 _This widget is currently unused._
 
-### expandoCard
+#### expandoCard
 
-The `expandoCard` has a hover effect & can be expanded to reveal additional content using a toggle button.
+Has a hover effect & can be expanded to reveal additional content using a toggle button.
 
 _This widget is currently unused._
     """

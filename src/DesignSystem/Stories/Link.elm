@@ -9,7 +9,7 @@ import UIExplorer
         )
 
 
-{-| Creates stores for UIExplorer.
+{-| Creates stories for UIExplorer.
 
     renderer – An elm-ui to html converter
     palette  – Takes a UIExplorer.Model and produces an ExoPalette
@@ -56,10 +56,9 @@ note =
 
 ### Internal Link
 
-Use `Style.Widgets.Link.link` by default when navigating within the app. It opens links in the current window.
+Used when navigating within the app. It opens links in the current window.
 
 ### External Link
 
-Use `Style.Widgets.Link.externalLink` for navigating outside of the app, or to deliberately open a new browser tab.
-
+Used for navigating outside of the app, or to deliberately open a new browser tab.
     """

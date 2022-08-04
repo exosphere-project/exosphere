@@ -18,7 +18,6 @@ import Style.Widgets.Button as Button
 import Style.Widgets.Card exposing (badge)
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon exposing (bell, console, copyToClipboard, history, ipAddress, lock, lockOpen, plusCircle, remove, roundRect, timesCircle)
-import Style.Widgets.IconButton exposing (chip)
 import Style.Widgets.Meter exposing (meter)
 import Style.Widgets.Popover.Popover exposing (popover, toggleIfTargetIsOutside)
 import Style.Widgets.Popover.Types exposing (PopoverId)
@@ -68,17 +67,6 @@ deployerColors flags =
 
 -}
 port onModeChanged : String -> Cmd msg
-
-
-
---- component helpers
-
-
-{-| Create an icon with standard size & color.
--}
-defaultIcon : Style.Types.ExoPalette -> (Element.Color -> number -> icon) -> icon
-defaultIcon pal icon =
-    icon (pal.neutral.icon |> SH.toElementColor) 25
 
 
 
@@ -259,18 +247,28 @@ main =
                 , storiesOf
                     "Icon"
                     (List.map
-                        (\icon ->
-                            ( Tuple.first icon, \m -> toHtml (palettize m) <| defaultIcon (palettize m) <| Tuple.second icon, { note = """
+                        (\widget ->
+                            ( Tuple.first widget
+                            , \m ->
+                                let
+                                    palette =
+                                        palettize m
+
+                                    icon =
+                                        Tuple.second widget
+                                in
+                                toHtml palette <|
+                                    icon (palette.neutral.icon |> SH.toElementColor) 25
+                            , { note = """
 ## Usage
 
-Exosphere has several **custom icons** in `Style.Widgets.Icon` (as shown above). They can be used as:
+Exosphere has several **custom icons**.
 
-    Icon.lockOpen (SH.toElementColor context.palette.on.background) 28
-
-For everything else, use `FeatherIcons` (learn more on their package [documentation](https://package.elm-lang.org/packages/1602/elm-feather/latest/FeatherIcons)):
+For everything else, use [FeatherIcons](https://package.elm-lang.org/packages/1602/elm-feather/latest/FeatherIcons):
 
     FeatherIcons.logOut |> FeatherIcons.withSize 18 |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
-                            """ } )
+                            """ }
+                            )
                         )
                         [ ( "bell", bell )
                         , ( "console", console )
@@ -296,19 +294,19 @@ For everything else, use `FeatherIcons` (learn more on their package [documentat
                             , { note = """
 ## Usage
 
-Exosphere uses [elm-ui-widgets buttons](https://package.elm-lang.org/packages/Orasund/elm-ui-widgets/latest/Widget#buttons): `Widget.button`, `Widget.textButton`, and `Widget.iconButton`. The styles passed to these functions (`Widget.Style.ButtonStyle msg` type) are usually obtained from "button" containing fields in the record returned by `Style.Helpers.materialStyle`.
+Exosphere uses buttons from [elm-ui-widgets](https://package.elm-lang.org/packages/Orasund/elm-ui-widgets/latest/Widget#buttons).
 
-We have abstracted a significant part of this by our home-made `Style.Widgets.Button` (see issue [#791](https://gitlab.com/exosphere/exosphere/-/issues/791) for more context). You can use `Style.Widgets.Button.button` function for the following variants of text buttons:
+### Variants
 
-- **Primary**: Used for most important call-to-action button on a page which is normally at most 1 per page.
+- **Primary**: Used for the most important call-to-action on a page.
 
-- **Secondary**: The most commonly used button for general actions on a page which need less emphasis than primary button. It is also available as `Style.Widgets.Button.default` for convenience.
+- **Secondary**: The most commonly used (or default) button.
 
 - **Warning**: Used when an action has reversible consequences with a major impact.
 
 - **Danger**: Used when an action is destructive and/or has irreversible consequences.
 
-- **Danger Secondary**: Same as Danger but action doesn't have immediate irreversible consequences, mostly becuase it takes to a confirmation page/dialog.
+- **Danger Secondary**: For non-immediate but irreversible actions, such as those followed by a confirmation alert.
                             """ }
                             )
                         )
@@ -325,9 +323,9 @@ We have abstracted a significant part of this by our home-made `Style.Widgets.Bu
                     [ ( "default", \m -> toHtml (palettize m) <| badge "Experimental", { note = """
 ## Usage
 
-Use `Style.Widgets.Card.badge` to annotate additional but important information like marking features as "Experimental".
+To annotate additional but important information like marking features as "Experimental".
 
-It can also be combined within components to show extra details like counts.
+_This component is being deprecated._
 
 ### Alternatives
 
@@ -347,8 +345,7 @@ If you want to show a resource's current state or provide feedback on a process,
                             , { note = """
 ## Usage
 
-Use `Style.Widgets.StatusBadge.statusBadge` to display a read-only label which clearly shows the current status of a resource (usually a server).
-
+To display a read-only label which clearly shows the current status of a resource (usually a server).
                         """ }
                             )
                         )
@@ -360,13 +357,8 @@ Use `Style.Widgets.StatusBadge.statusBadge` to display a read-only label which c
                     )
                 ]
             |> category "Molecules"
-                [ storiesOf
-                    "Chip"
-                    [ --TODO: Replace this component with the `filterChipView` inside DataList since `chip` is not in use.
-                      ( "default", \m -> toHtml (palettize m) <| chip (palettize m) Nothing (Element.text "assigned"), { note = "*Usage will be updated soon (see issue [#790](https://gitlab.com/exosphere/exosphere/-/issues/790))*" } )
-                    , ( "with badge", \m -> toHtml (palettize m) <| chip (palettize m) Nothing (Element.row [ Element.spacing 5 ] [ Element.text "ubuntu", badge "10" ]), { note = "*Usage will be updated soon (see issue [#790](https://gitlab.com/exosphere/exosphere/-/issues/790))*" } )
-                    ]
-                , storiesOf
+                [ --TODO: Add `filterChipView` (inside DataList) since `chip` is not in use.
+                  storiesOf
                     "Copyable Text"
                     [ ( "default"
                       , \m ->
@@ -380,9 +372,9 @@ Use `Style.Widgets.StatusBadge.statusBadge` to display a read-only label which c
                       , { note = """
 ## Usage
 
-Use `Style.Widgets.CopyableText.copyableText` to show stylable text with an accessory button for copying the text content to the user's clipboard.
+Shows stylable text with an accessory button for copying the text content to the user's clipboard.
 
-It uses [clipboard.js](https://clipboardjs.com/) under the hood & relies on a [port for initialisation](https://gitlab.com/exosphere/exosphere/-/blob/master/ports.js#L101). This is why copying doesn't work on this design-system page yet.
+It uses [clipboard.js](https://clipboardjs.com/) under the hood & relies on a [port for initialisation](https://gitlab.com/exosphere/exosphere/-/blob/master/ports.js#L101).
                         """ }
                       )
                     ]
@@ -391,18 +383,17 @@ It uses [clipboard.js](https://clipboardjs.com/) under the hood & relies on a [p
                     [ ( "default", \m -> toHtml (palettize m) <| meter (palettize m) "Space used" "6 of 10 GB" 6 10, { note = """
 ## Usage
 
-Use `Style.Widgets.Meter.meter` to show a static horizontal progress bar chart which indicates capacity used of a resource.
+Shows a static horizontal progress bar chart which indicates the capacity of a resource.
 
-Besides the obvious `value` and `maximum`, it takes:
-- `title` that is shown on the left side, often representing what meter indicates. 
-- `subtitle` that is shown on the right side, often represnting value and maximum in words. For e.g. "<value> of <maximum> <units>".
+- `title` indicates the resource.
+- `subtitle` represents the value and maximum in words e.g. "<value> of <maximum> <units>".
                     """ } )
                     ]
                 ]
             |> category "Organisms"
                 [ CardStories.stories toHtml { onPress = Just NoOp, onExpand = \next -> ToggleExpandoCard next }
 
-                -- TODO: also add stories for special popovers
+                -- TODO: Add stories for special popovers.
                 , storiesOf
                     "Popover"
                     (List.map
@@ -446,23 +437,30 @@ Besides the obvious `value` and `maximum`, it takes:
                                         demoPopover
                             , { note = """
 ## Usage
-Use `Style.Widgets.Popover.Popover.popover` for creating a popover. Most importantly, it takes a **target** element that opens/closes the popover and a **content** element that is the popover body. To learn about all the parameters it takes, check out the docstring of this function.
 
-`popover` function makes your life easier by controlling opening/closing. But if you want to control that yourself for a specific case (for e.g. when message emitted by a target should not toggle popover visiblity), you can use `Style.Widgets.Popover.Popover.popoverAttribs`. It returns the [nearby element](https://package.elm-lang.org/packages/mdgriffith/elm-ui/1.1.8/Element#nearby-elements) attributes that need to be passed to the target element when popover is shown.
+Takes a **target** element that opens/closes the popover and a **content** element for the popover body.
 
-By taking control in your hands, you must remember to style the popover same as all other popover elements in Exosphere. This can be achieved by using `Style.Widgets.Popover.Popover.popoverStyleDefaults` that are the default style attributes for popover body as the name suggests.
+### Special Cases
 
-### Special Popovers
+#### Tooltip
 
-#### Toggle Tip
-Use `Style.Widgets.ToggleTip.toggleTip` for showing an icon-button that toggles the tip (a popover) on clicking.
+Use `toggleTip` to show an icon button that toggles a hint when clicked.
 
 #### Dropdown
-We don't have a dedicated function for dropdown yet. But it can be achieved by creating a list of dropdown items as buttons with `Style.Helpers.dropdownItemStyle` applied, and then passing that list as a column to the `content` of `popover` function.
 
-#### Delete Popconfirm
-You can use `Style.Widgets.DeleteButton.deletePopconfirm` to show a confirmation popover on pressing a delete button (since it's an irreversible action).
+Use a list of dropdown items with `dropdownItemStyle` to create a dropdown.
 
+#### Confirmation Popup
+
+Use `deletePopconfirm` to show a confirmation popover after pressing a delete button.
+
+### Advanced
+
+By default, the popover manages its own toggle state.
+
+For advanced usage, `popoverAttribs` returns the [nearby elements](https://package.elm-lang.org/packages/mdgriffith/elm-ui/1.1.8/Element#nearby-elements) required by the target element when the popover is shown.
+
+Use `popoverStyleDefaults` so that the popover style is still consistent with others in the application.
                             """ }
                             )
                         )

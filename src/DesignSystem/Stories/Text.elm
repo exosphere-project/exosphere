@@ -13,7 +13,7 @@ import UIExplorer
         )
 
 
-{-| Creates stores for UIExplorer.
+{-| Creates stories for UIExplorer.
 
     renderer – An elm-ui to html converter
     palette  – Takes a UIExplorer.Model and produces an ExoPalette
