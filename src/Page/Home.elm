@@ -114,7 +114,7 @@ view context sharedModel _ =
           else
             Element.none
         , Element.wrappedRow
-            [ Element.spacing 24, Element.width (Element.maximum 900 Element.fill) ]
+            [ Element.spacing 24 ]
             (List.append (List.map (renderProject context) sharedModel.projects) [ addProjectCard context sharedModel ])
         ]
 
