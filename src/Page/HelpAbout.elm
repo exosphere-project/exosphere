@@ -1,7 +1,6 @@
 module Page.HelpAbout exposing (headerView, view)
 
 import Element
-import FeatherIcons
 import Style.Widgets.Link as Link
 import Style.Widgets.Text as Text
 import Types.SharedModel exposing (SharedModel)

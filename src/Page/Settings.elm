@@ -3,7 +3,6 @@ module Page.Settings exposing (Model, Msg(..), headerView, init, update, view)
 import Element
 import Element.Font as Font
 import Element.Input as Input
-import FeatherIcons
 import Style.Types as ST
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip

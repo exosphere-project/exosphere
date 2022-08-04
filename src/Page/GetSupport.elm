@@ -3,7 +3,6 @@ module Page.GetSupport exposing (Model, Msg(..), headerView, init, update, view)
 import Element
 import Element.Font as Font
 import Element.Input as Input
-import FeatherIcons
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import RemoteData

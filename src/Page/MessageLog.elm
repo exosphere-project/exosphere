@@ -3,8 +3,6 @@ module Page.MessageLog exposing (Model, Msg(..), headerView, init, update, view)
 import Element
 import Element.Input as Input
 import Route
-import Style.Helpers as SH
-import Style.Widgets.Icon as Icon
 import Style.Widgets.Text as Text
 import Types.Error exposing (ErrorLevel(..))
 import Types.SharedModel exposing (SharedModel)
