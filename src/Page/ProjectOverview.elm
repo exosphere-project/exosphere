@@ -27,7 +27,7 @@ import Types.Jetstream2Accounting
 import Types.Project exposing (Project)
 import Types.Server exposing (Server)
 import Types.SharedMsg as SharedMsg
-import View.Helpers as VH
+import View.Helpers as VH exposing (edges)
 import View.Types
 
 
@@ -80,7 +80,22 @@ view context project currentTime _ =
 
         renderDescription : String -> Element.Element Msg
         renderDescription description =
-            Element.el [ Font.italic, Element.width (Element.fill |> Element.maximum 600) ] (VH.ellipsizedText description)
+            let
+                -- view is placed in a container of 24px padding
+                viewWidth =
+                    context.windowSize.width - 24 * 2
+
+                -- 450 is tile width and 24 is the spacing between tiles
+                numTiles =
+                    viewWidth // (450 + (24 // 2))
+
+                tilesColumWidth =
+                    450 * numTiles + 24 * (numTiles - 1)
+            in
+            Element.paragraph
+                -- ugly hack to constraint description to the tiles column width (until we figure out a better way)
+                [ Element.width <| Element.px tilesColumWidth ]
+                [ Element.text description ]
 
         keypairsUsedCount =
             project.keypairs
@@ -88,12 +103,10 @@ view context project currentTime _ =
                 |> List.length
     in
     Element.column
-        [ Element.spacing 25, Element.width Element.fill ]
-        [ Element.row [ Element.spacing 20 ]
-            [ renderJetstream2Allocation context project currentTime
-            , VH.renderMaybe project.description renderDescription
-            ]
-        , Element.wrappedRow [ Element.spacing 25, Element.width Element.fill ]
+        [ Element.spacing 24 ]
+        [ renderJetstream2Allocation context project currentTime
+        , VH.renderMaybe project.description renderDescription
+        , Element.wrappedRow [ Element.spacing 24 ]
             [ renderTile
                 (FeatherIcons.server
                     |> FeatherIcons.toHtml []
@@ -226,12 +239,20 @@ renderJetstream2Allocation context project currentTime =
 
         renderRDPPSuccess : Maybe Types.Jetstream2Accounting.Allocation -> Element.Element Msg
         renderRDPPSuccess maybeAllocation =
-            case maybeAllocation of
-                Nothing ->
-                    Element.text "Jetstream2 allocation information not found."
+            Element.el [ Element.paddingEach { edges | bottom = 12 } ] <|
+                case maybeAllocation of
+                    Nothing ->
+                        Element.text "Jetstream2 allocation information not found."
 
-                Just allocation ->
-                    Element.row [ Element.spacing 8 ] [ meter allocation, toggleTip allocation ]
+                    Just allocation ->
+                        Element.row [ Element.spacing 8 ]
+                            [ meter allocation
+                            , Element.el
+                                [ Element.alignBottom
+                                , Element.paddingEach { edges | bottom = 2 }
+                                ]
+                                (toggleTip allocation)
+                            ]
     in
     case project.endpoints.jetstream2Accounting of
         Just _ ->
