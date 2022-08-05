@@ -9,12 +9,15 @@
 
 ### Design System
 
-- Exosphere has a design system explorer (powered by [elm-ui-explorer](https://github.com/kalutheo/elm-ui-explorer)) showcasing Exosphere's widgets & their "story" variants.
+- Exosphere has a design system explorer (powered by [elm-ui-explorer](https://github.com/kalutheo/elm-ui-explorer)) showcasing Exosphere's widgets.
 - Launch the design system explorer (with live updates) using:
 
     ```bash
     npm run live-design-system
     ```
+
+- Each widget has variations or "stories" with notes to explain their usage.
+- Stories are chosen to be illustrative & you can review the code for each in `src/DesignSystem/Explorer`.
 
 
 ### How to Add New Widgets
@@ -25,7 +28,12 @@
 - Add example usages of your widget in `src/DesignSystem/Explorer.elm`.
 - Preview your widget's stories in the explorer to ensure they look & behave as intended.
 - Where possible, try to use content representative of the context the widget will be used in.
-- Add notes to your widget's stories. You can link to other widgets to explain why you might "use x instead of y to do z".
+- Add notes to your widget's stories.
+    + You can link to other widgets to explain why you might "use x instead of y to do z".
+    + Explain principles or tricky cases.
+    + Avoid referencing code directly.
+        * Otherwise notes may become out of sync with the codebase.
+        * Remember that the _Widgets_ are the source of truth.
 
 
 ### Text & Typography
