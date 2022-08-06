@@ -1,4 +1,4 @@
-module Page.LoginOpenIdConnect exposing (Model, init, view)
+module Page.LoginOpenIdConnect exposing (Model, headerView, init, view)
 
 import Browser
 import Color
@@ -25,54 +25,59 @@ init oidcLoginConfig =
     oidcLoginConfig
 
 
+headerView : View.Types.Context -> Model -> Element.Element msg
+headerView context model =
+    Text.heading context.palette
+        VH.headerHeadingAttributes
+        Element.none
+        model.oidcLoginButtonLabel
+
+
 view : View.Types.Context -> SharedModel -> Model -> Element.Element SharedMsg.SharedMsg
 view context _ model =
-    Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-        [ Text.heading context.palette [] Element.none model.oidcLoginButtonLabel
-        , Element.column VH.contentContainer
-            [ Element.el
-                [ Element.width <| Element.px 380
-                , Element.centerX
-                ]
-              <|
-                Widget.column
-                    (SH.materialStyle context.palette).cardColumn
-                    [ Element.column [ Element.width <| Element.px 300, Element.centerX, Element.paddingXY 10 15, Element.spacing 15 ]
-                        [ Element.el
-                            -- Yes, a hard-coded color when we've otherwise removed them from the app. These logos need a light background to look right.
-                            [ Background.color <| SH.toElementColor <| Color.rgb255 255 255 255
-                            , Element.centerX
-                            , Element.paddingXY 15 0
-                            , Border.rounded 10
-                            , Element.height <| Element.px 100
-                            ]
-                            (Element.image
-                                [ Element.centerX
-                                , Element.centerY
-                                ]
-                                { src = model.oidcLoginIcon
-                                , description = model.oidcLoginButtonDescription
-                                }
-                            )
-                        , Element.el [ Element.centerX ]
-                            (Button.primary
-                                context.palette
-                                { text = model.oidcLoginButtonLabel
-                                , onPress =
-                                    let
-                                        url =
-                                            model.keystoneAuthUrl ++ model.webssoKeystoneEndpoint
-                                    in
-                                    Just <| SharedMsg.LinkClicked <| Browser.External url
-                                }
-                            )
-                        , Element.paragraph
-                            [ Element.height <| Element.minimum 50 Element.shrink ]
-                            [ Element.text model.oidcLoginButtonDescription ]
+    Element.column (VH.contentContainer ++ [ Element.spacing 16 ])
+        [ Element.el
+            [ Element.width <| Element.px 380
+            , Element.centerX
+            ]
+          <|
+            Widget.column
+                (SH.materialStyle context.palette).cardColumn
+                [ Element.column [ Element.width <| Element.px 300, Element.centerX, Element.paddingXY 10 15, Element.spacing 15 ]
+                    [ Element.el
+                        -- Yes, a hard-coded color when we've otherwise removed them from the app. These logos need a light background to look right.
+                        [ Background.color <| SH.toElementColor <| Color.rgb255 255 255 255
+                        , Element.centerX
+                        , Element.paddingXY 15 0
+                        , Border.rounded 10
+                        , Element.height <| Element.px 100
                         ]
+                        (Element.image
+                            [ Element.centerX
+                            , Element.centerY
+                            ]
+                            { src = model.oidcLoginIcon
+                            , description = model.oidcLoginButtonDescription
+                            }
+                        )
+                    , Element.el [ Element.centerX ]
+                        (Button.primary
+                            context.palette
+                            { text = model.oidcLoginButtonLabel
+                            , onPress =
+                                let
+                                    url =
+                                        model.keystoneAuthUrl ++ model.webssoKeystoneEndpoint
+                                in
+                                Just <| SharedMsg.LinkClicked <| Browser.External url
+                            }
+                        )
+                    , Element.paragraph
+                        [ Element.height <| Element.minimum 50 Element.shrink ]
+                        [ Element.text model.oidcLoginButtonDescription ]
                     ]
-            , Element.row [ Element.width Element.fill ]
-                [ Element.el [] (VH.loginPickerButton context)
                 ]
+        , Element.row [ Element.width Element.fill ]
+            [ Element.el [] (VH.loginPickerButton context)
             ]
         ]

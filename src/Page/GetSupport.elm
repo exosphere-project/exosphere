@@ -1,9 +1,8 @@
-module Page.GetSupport exposing (Model, Msg(..), init, update, view)
+module Page.GetSupport exposing (Model, Msg(..), headerView, init, update, view)
 
 import Element
 import Element.Font as Font
 import Element.Input as Input
-import FeatherIcons
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import RemoteData
@@ -77,30 +76,26 @@ update msg _ model =
             ( model, Cmd.none, SharedMsg.NoOp )
 
 
+headerView : View.Types.Context -> SharedModel -> Element.Element msg
+headerView context sharedModel =
+    Text.heading context.palette
+        VH.headerHeadingAttributes
+        Element.none
+        ("Get Support for " ++ sharedModel.style.appTitle)
+
+
 view : View.Types.Context -> SharedModel -> Model -> Element.Element Msg
 view context sharedModel model =
     Element.column
-        (VH.exoColumnAttributes
-            ++ [ Element.spacing 30
-               , Element.width Element.fill
-               ]
-        )
-        [ Text.heading context.palette
-            []
-            (FeatherIcons.helpCircle
-                |> FeatherIcons.toHtml []
-                |> Element.html
-                |> Element.el []
-            )
-            ("Get Support for " ++ sharedModel.style.appTitle)
-        , case sharedModel.style.supportInfoMarkdown of
+        (VH.formContainer ++ [ Element.spacing 32 ])
+        [ case sharedModel.style.supportInfoMarkdown of
             Just markdown ->
-                Element.column VH.contentContainer <|
+                Element.column [] <|
                     VH.renderMarkdown context markdown
 
             Nothing ->
                 Element.none
-        , Element.column VH.formContainer
+        , Element.column [ Element.spacing 16, Element.width Element.fill ]
             [ Input.radio
                 VH.exoColumnAttributes
                 { onChange =

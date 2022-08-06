@@ -131,19 +131,16 @@ view context project model =
                     ]
 
             else
-                Element.column
-                    VH.contentContainer
-                    [ DataList.view
-                        model.dataListModel
-                        DataListMsg
-                        context
-                        []
-                        (keypairView model context project)
-                        (keypairRecords keypairs)
-                        []
-                        Nothing
-                        Nothing
-                    ]
+                DataList.view
+                    model.dataListModel
+                    DataListMsg
+                    context
+                    []
+                    (keypairView model context project)
+                    (keypairRecords keypairs)
+                    []
+                    Nothing
+                    Nothing
 
         keypairsUsedCount =
             project.keypairs
@@ -151,7 +148,7 @@ view context project model =
                 |> List.length
     in
     Element.column
-        [ Element.spacing 20, Element.width Element.fill ]
+        VH.contentContainer
         [ if model.showHeading then
             Text.heading context.palette
                 []
@@ -163,7 +160,7 @@ view context project model =
 
           else
             Element.none
-        , Element.column VH.contentContainer
+        , Element.column [ Element.spacing 16 ]
             [ Page.QuotaUsage.view context Page.QuotaUsage.Full (Page.QuotaUsage.Keypair project.computeQuota keypairsUsedCount)
             , VH.renderWebData
                 context

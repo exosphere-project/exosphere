@@ -443,7 +443,9 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
             else
                 let
                     colWidthPx =
-                        (context.windowSize.width - 100) // 2
+                        -- view is placed in a container of 24px padding
+                        -- each column in dual column has 10px padding
+                        (context.windowSize.width - (24 * 2) - (10 * 2)) // 2
                 in
                 ( True, colWidthPx |> Element.px )
 
@@ -463,7 +465,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                 Nothing ->
                     Element.none
     in
-    Element.column (VH.exoColumnAttributes ++ [ Element.spacing 15 ])
+    Element.column [ Element.spacing 16, Element.width Element.fill ]
         [ Element.column [ Element.width Element.fill ]
             [ Element.row
                 (Text.headingStyleAttrs context.palette)
@@ -1148,11 +1150,10 @@ serverEventHistory context project server currentTime =
                     ]
             in
             Element.table
-                (VH.formContainer
-                    ++ [ Element.spacingXY 0 7
-                       , Element.width Element.fill
-                       ]
-                )
+                [ Element.spacingXY 0 7
+                , Element.paddingXY 0 10
+                , Element.width Element.fill
+                ]
                 { data = serverEvents, columns = columns }
 
         _ ->

@@ -5,10 +5,12 @@ import Element
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
+import Element.Region as Region
 import FeatherIcons
 import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import Html
+import Html.Attributes
 import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.GetSupport
@@ -98,97 +100,75 @@ view_ outerModel =
         , Font.color <| SH.toElementColor <| viewContext.palette.neutral.text.default
         , Background.color <| SH.toElementColor viewContext.palette.neutral.background.backLayer
         ]
-        (elementView viewContext.windowSize outerModel viewContext)
+        (appView viewContext.windowSize outerModel viewContext)
 
 
-elementView : WindowSize -> OuterModel -> View.Types.Context -> Element.Element OuterMsg
-elementView windowSize outerModel context =
+appView : WindowSize -> OuterModel -> View.Types.Context -> Element.Element OuterMsg
+appView windowSize outerModel context =
     let
-        mainContentContainerView =
+        ( header, content ) =
+            case outerModel.viewState of
+                NonProjectView viewConstructor ->
+                    nonProjectViews outerModel.sharedModel context viewConstructor
+
+                ProjectView projectName viewConstructor ->
+                    case GetterSetters.projectLookup outerModel.sharedModel projectName of
+                        Nothing ->
+                            ( Nothing
+                            , Text.body <|
+                                String.join " "
+                                    [ "Oops!"
+                                    , context.localization.unitOfTenancy
+                                        |> Helpers.String.toTitleCase
+                                    , "not found"
+                                    ]
+                            )
+
+                        Just project_ ->
+                            ( Just <| projectHeaderView context project_
+                            , projectContentView
+                                outerModel.sharedModel
+                                context
+                                project_
+                                viewConstructor
+                            )
+
+        headerContainerAttrs =
+            [ Background.color <|
+                SH.toElementColor context.palette.neutral.background.frontLayer
+            , Border.widthXY 0 1
+            , Border.color <|
+                SH.toElementColor context.palette.neutral.border
+            , Element.width Element.fill
+            , Element.paddingEach { top = 12, right = 24, bottom = 16, left = 24 }
+            , Element.spacing 12
+            ]
+
+        contentContainerAttrs =
+            [ Element.padding 24
+            , Element.width Element.fill
+            ]
+
+        mainContainerView =
             Element.column
-                [ Element.padding 10
-                , Element.alignTop
-                , Element.width <|
-                    Element.px windowSize.width
+                [ Element.alignTop
+                , Element.width Element.fill
                 , Element.height Element.fill
                 , Element.scrollbars
+                , Element.spacing 8
                 ]
-                [ View.Breadcrumb.breadcrumb outerModel context
-                    |> Element.map SharedMsg
-                , case outerModel.viewState of
-                    NonProjectView viewConstructor ->
-                        case viewConstructor of
-                            GetSupport pageModel ->
-                                Page.GetSupport.view context outerModel.sharedModel pageModel
-                                    |> Element.map GetSupportMsg
+                [ case header of
+                    Just header_ ->
+                        Element.column
+                            headerContainerAttrs
+                            [ View.Breadcrumb.breadcrumb outerModel context
+                                |> Element.map SharedMsg
+                            , header_
+                            ]
 
-                            HelpAbout ->
-                                Page.HelpAbout.view outerModel.sharedModel context
-
-                            Home pageModel ->
-                                Page.Home.view context outerModel.sharedModel pageModel
-                                    |> Element.map HomeMsg
-
-                            LoadingUnscopedProjects _ ->
-                                -- TODO put a fidget spinner here
-                                Text.body <|
-                                    String.join " "
-                                        [ "Loading"
-                                        , context.localization.unitOfTenancy
-                                            |> Helpers.String.pluralize
-                                            |> Helpers.String.toTitleCase
-                                        ]
-
-                            Login loginView ->
-                                case loginView of
-                                    LoginOpenstack pageModel ->
-                                        Page.LoginOpenstack.view context outerModel.sharedModel pageModel
-                                            |> Element.map LoginOpenstackMsg
-
-                                    LoginOpenIdConnect pageModel ->
-                                        Page.LoginOpenIdConnect.view context outerModel.sharedModel pageModel
-                                            |> Element.map SharedMsg
-
-                            LoginPicker ->
-                                Page.LoginPicker.view context outerModel.sharedModel
-                                    |> Element.map LoginPickerMsg
-
-                            MessageLog pageModel ->
-                                Page.MessageLog.view context outerModel.sharedModel pageModel
-                                    |> Element.map MessageLogMsg
-
-                            PageNotFound ->
-                                Text.body "Error: page not found. Perhaps you are trying to reach an invalid URL."
-
-                            SelectProjectRegions pageModel ->
-                                Page.SelectProjectRegions.view context outerModel.sharedModel pageModel
-                                    |> Element.map SelectProjectRegionsMsg
-
-                            SelectProjects pageModel ->
-                                Page.SelectProjects.view context outerModel.sharedModel pageModel
-                                    |> Element.map SelectProjectsMsg
-
-                            Settings pageModel ->
-                                Page.Settings.view context outerModel.sharedModel pageModel
-                                    |> Element.map SettingsMsg
-
-                    ProjectView projectName viewConstructor ->
-                        case GetterSetters.projectLookup outerModel.sharedModel projectName of
-                            Nothing ->
-                                Text.body <|
-                                    String.join " "
-                                        [ "Oops!"
-                                        , context.localization.unitOfTenancy
-                                            |> Helpers.String.toTitleCase
-                                        , "not found"
-                                        ]
-
-                            Just project_ ->
-                                project
-                                    outerModel.sharedModel
-                                    context
-                                    project_
-                                    viewConstructor
+                    Nothing ->
+                        Element.none
+                , Element.el contentContainerAttrs content
                 , Element.html
                     (Toasty.view Style.Toast.toastConfig
                         (Page.Toast.view context outerModel.sharedModel)
@@ -197,146 +177,201 @@ elementView windowSize outerModel context =
                     )
                 ]
     in
-    Element.row
+    Element.column
         [ Element.padding 0
         , Element.spacing 0
         , Element.width Element.fill
         , Element.height <|
             Element.px windowSize.height
         ]
-        [ Element.column
+        [ Element.el
+            [ Border.shadow shadowDefaults
+            , Element.width Element.fill
+            , Element.htmlAttribute <| Html.Attributes.style "z-index" "1"
+            ]
+            (View.Nav.navBar outerModel context)
+        , Element.el
             [ Element.padding 0
             , Element.spacing 0
             , Element.width Element.fill
             , Element.height <|
-                Element.px windowSize.height
+                Element.px (windowSize.height - View.Nav.navBarHeight)
             ]
-            [ Element.el
-                [ Border.shadow shadowDefaults
-                , Element.width Element.fill
-                ]
-                (View.Nav.navBar outerModel context)
-            , Element.el
-                [ Element.padding 0
-                , Element.spacing 0
-                , Element.width Element.fill
-                , Element.height <|
-                    Element.px (windowSize.height - View.Nav.navBarHeight)
-                ]
-                mainContentContainerView
-            ]
+            mainContainerView
         ]
 
 
-project :
+nonProjectViews :
+    SharedModel
+    -> View.Types.Context
+    -> Types.View.NonProjectViewConstructor
+    -> ( Maybe (Element.Element OuterMsg), Element.Element OuterMsg )
+nonProjectViews model context viewConstructor =
+    case viewConstructor of
+        GetSupport pageModel ->
+            ( Just <| Page.GetSupport.headerView context model
+            , Page.GetSupport.view context model pageModel
+                |> Element.map GetSupportMsg
+            )
+
+        HelpAbout ->
+            ( Just <| Page.HelpAbout.headerView model context
+            , Page.HelpAbout.view model context
+            )
+
+        Home pageModel ->
+            ( Just (Page.Home.headerView context model |> Element.map HomeMsg)
+            , Page.Home.view context model pageModel
+                |> Element.map HomeMsg
+            )
+
+        LoadingUnscopedProjects _ ->
+            ( Nothing
+              -- TODO put a fidget spinner here
+            , Text.body <|
+                String.join " "
+                    [ "Loading"
+                    , context.localization.unitOfTenancy
+                        |> Helpers.String.pluralize
+                        |> Helpers.String.toTitleCase
+                    ]
+            )
+
+        Login loginView ->
+            case loginView of
+                LoginOpenstack pageModel ->
+                    ( Just <| Page.LoginOpenstack.headerView context
+                    , Page.LoginOpenstack.view context model pageModel
+                        |> Element.map LoginOpenstackMsg
+                    )
+
+                LoginOpenIdConnect pageModel ->
+                    ( Just <| Page.LoginOpenIdConnect.headerView context pageModel
+                    , Page.LoginOpenIdConnect.view context model pageModel
+                        |> Element.map SharedMsg
+                    )
+
+        LoginPicker ->
+            ( Just <| Page.LoginPicker.headerView context
+            , Page.LoginPicker.view context model
+                |> Element.map LoginPickerMsg
+            )
+
+        MessageLog pageModel ->
+            ( Just <| Page.MessageLog.headerView context
+            , Page.MessageLog.view context model pageModel
+                |> Element.map MessageLogMsg
+            )
+
+        PageNotFound ->
+            ( Nothing
+            , Text.body "Error: page not found. Perhaps you are trying to reach an invalid URL."
+            )
+
+        SelectProjectRegions pageModel ->
+            Page.SelectProjectRegions.views context model pageModel
+                |> Tuple.mapSecond (Element.map SelectProjectRegionsMsg)
+
+        SelectProjects pageModel ->
+            Page.SelectProjects.views context model pageModel
+                |> Tuple.mapSecond (Element.map SelectProjectsMsg)
+
+        Settings pageModel ->
+            ( Just <| Page.Settings.headerView context
+            , Page.Settings.view context model pageModel
+                |> Element.map SettingsMsg
+            )
+
+
+projectContentView :
     SharedModel
     -> View.Types.Context
     -> Project
     -> Types.View.ProjectViewConstructor
     -> Element.Element OuterMsg
-project model context p viewConstructor =
+projectContentView model context p viewConstructor =
+    case viewConstructor of
+        ProjectOverview pageModel ->
+            Page.ProjectOverview.view context p model.clientCurrentTime pageModel
+                |> Element.map ProjectOverviewMsg
+
+        FloatingIpAssign pageModel ->
+            Page.FloatingIpAssign.view context p pageModel
+                |> Element.map FloatingIpAssignMsg
+
+        FloatingIpList pageModel ->
+            Page.FloatingIpList.view context p pageModel
+                |> Element.map FloatingIpListMsg
+
+        ImageList pageModel ->
+            Page.ImageList.view context p pageModel
+                |> Element.map ImageListMsg
+
+        InstanceSourcePicker pageModel ->
+            Page.InstanceSourcePicker.view context p pageModel
+                |> Element.map InstanceSourcePickerMsg
+
+        KeypairCreate pageModel ->
+            Page.KeypairCreate.view context pageModel
+                |> Element.map KeypairCreateMsg
+
+        KeypairList pageModel ->
+            Page.KeypairList.view context p pageModel
+                |> Element.map KeypairListMsg
+
+        ServerCreate pageModel ->
+            Page.ServerCreate.view context p model.clientCurrentTime pageModel
+                |> Element.map ServerCreateMsg
+
+        ServerCreateImage pageModel ->
+            Page.ServerCreateImage.view context pageModel
+                |> Element.map ServerCreateImageMsg
+
+        ServerDetail pageModel ->
+            Page.ServerDetail.view context p ( model.clientCurrentTime, model.timeZone ) pageModel
+                |> Element.map ServerDetailMsg
+
+        ServerList pageModel ->
+            Page.ServerList.view context p model.clientCurrentTime pageModel
+                |> Element.map ServerListMsg
+
+        ServerResize pageModel ->
+            Page.ServerResize.view context p pageModel
+                |> Element.map ServerResizeMsg
+
+        VolumeAttach pageModel ->
+            Page.VolumeAttach.view context p pageModel
+                |> Element.map VolumeAttachMsg
+
+        VolumeCreate pageModel ->
+            Page.VolumeCreate.view context p pageModel
+                |> Element.map VolumeCreateMsg
+
+        VolumeDetail pageModel ->
+            Page.VolumeDetail.view context p pageModel
+                |> Element.map VolumeDetailMsg
+
+        VolumeList pageModel ->
+            Page.VolumeList.view context p model.clientCurrentTime pageModel
+                |> Element.map VolumeListMsg
+
+        VolumeMountInstructions pageModel ->
+            Page.VolumeMountInstructions.view context p pageModel
+                |> Element.map VolumeMountInstructionsMsg
+
+
+projectHeaderView : View.Types.Context -> Project -> Element.Element OuterMsg
+projectHeaderView context p =
     let
-        v =
-            case viewConstructor of
-                ProjectOverview pageModel ->
-                    Page.ProjectOverview.view context p model.clientCurrentTime pageModel
-                        |> Element.map ProjectOverviewMsg
-
-                FloatingIpAssign pageModel ->
-                    Page.FloatingIpAssign.view context p pageModel
-                        |> Element.map FloatingIpAssignMsg
-
-                FloatingIpList pageModel ->
-                    Page.FloatingIpList.view context p pageModel
-                        |> Element.map FloatingIpListMsg
-
-                ImageList pageModel ->
-                    Page.ImageList.view context p pageModel
-                        |> Element.map ImageListMsg
-
-                InstanceSourcePicker pageModel ->
-                    Page.InstanceSourcePicker.view context p pageModel
-                        |> Element.map InstanceSourcePickerMsg
-
-                KeypairCreate pageModel ->
-                    Page.KeypairCreate.view context pageModel
-                        |> Element.map KeypairCreateMsg
-
-                KeypairList pageModel ->
-                    Page.KeypairList.view context p pageModel
-                        |> Element.map KeypairListMsg
-
-                ServerCreate pageModel ->
-                    Page.ServerCreate.view context p model.clientCurrentTime pageModel
-                        |> Element.map ServerCreateMsg
-
-                ServerCreateImage pageModel ->
-                    Page.ServerCreateImage.view context pageModel
-                        |> Element.map ServerCreateImageMsg
-
-                ServerDetail pageModel ->
-                    Page.ServerDetail.view context p ( model.clientCurrentTime, model.timeZone ) pageModel
-                        |> Element.map ServerDetailMsg
-
-                ServerList pageModel ->
-                    Page.ServerList.view context p model.clientCurrentTime pageModel
-                        |> Element.map ServerListMsg
-
-                ServerResize pageModel ->
-                    Page.ServerResize.view context p pageModel
-                        |> Element.map ServerResizeMsg
-
-                VolumeAttach pageModel ->
-                    Page.VolumeAttach.view context p pageModel
-                        |> Element.map VolumeAttachMsg
-
-                VolumeCreate pageModel ->
-                    Page.VolumeCreate.view context p pageModel
-                        |> Element.map VolumeCreateMsg
-
-                VolumeDetail pageModel ->
-                    Page.VolumeDetail.view context p pageModel
-                        |> Element.map VolumeDetailMsg
-
-                VolumeList pageModel ->
-                    Page.VolumeList.view context p model.clientCurrentTime pageModel
-                        |> Element.map VolumeListMsg
-
-                VolumeMountInstructions pageModel ->
-                    Page.VolumeMountInstructions.view context p pageModel
-                        |> Element.map VolumeMountInstructionsMsg
-    in
-    Element.column
-        (Element.width Element.fill
-            :: VH.exoColumnAttributes
-        )
-        [ projectNav context p
-        , v
-        ]
-
-
-projectNav : View.Types.Context -> Project -> Element.Element OuterMsg
-projectNav context p =
-    let
-        edges =
-            VH.edges
-
         removeText =
             String.join " "
                 [ "Remove"
                 , Helpers.String.toTitleCase context.localization.unitOfTenancy
                 ]
     in
-    Element.row [ Element.width Element.fill, Element.spacing 10, Element.paddingEach { edges | bottom = 10 } ]
-        [ Text.heading context.palette
-            -- Removing bottom border from this heading because it runs into buttons to the right and looks weird
-            -- Removing bottom padding to vertically align it with butttons
-            -- Shrink heading width so that username can be shown right next to it
-            [ Border.width 0
-            , Element.padding 0
-            , Element.width Element.shrink
-            ]
-            Element.none
+    Element.row [ Element.width Element.fill, Element.spacing 10 ]
+        [ Text.text Text.H3
+            [ Font.regular, Region.heading 2 ]
             (VH.friendlyCloudName
                 context
                 p
@@ -344,13 +379,13 @@ projectNav context p =
                 ++ p.auth.project.name
             )
         , Text.p
-            [ Font.size 15
+            [ Font.size 14
             , Element.alpha 0.75
             , Element.paddingEach { left = 5, top = 0, bottom = 0, right = 0 }
             ]
-            [ Text.body "(logged in as "
-            , Text.strong p.auth.user.name
-            , Text.body ")"
+            [ Element.text "(logged in as "
+            , Element.el [ Font.semiBold ] <| Element.text p.auth.user.name
+            , Element.text ")"
             ]
         , Element.el
             [ Element.alignRight ]
@@ -367,20 +402,13 @@ projectNav context p =
                     Just <| SharedMsg <| SharedMsg.ProjectMsg (GetterSetters.projectIdentifier p) SharedMsg.RemoveProject
                 }
         , Element.el
-            [ Element.alignRight
-            , Element.paddingEach
-                { top = 0
-                , right = 15
-                , bottom = 0
-                , left = 0
-                }
-            ]
-            (createButton context (GetterSetters.projectIdentifier p))
+            [ Element.alignRight ]
+            (createProjectResourcesButton context (GetterSetters.projectIdentifier p))
         ]
 
 
-createButton : View.Types.Context -> ProjectIdentifier -> Element.Element OuterMsg
-createButton context projectId =
+createProjectResourcesButton : View.Types.Context -> ProjectIdentifier -> Element.Element OuterMsg
+createProjectResourcesButton context projectId =
     let
         renderButton : Element.Element Never -> String -> Route.Route -> Element.Attribute OuterMsg -> Element.Element OuterMsg
         renderButton icon_ text route closeDropdown =

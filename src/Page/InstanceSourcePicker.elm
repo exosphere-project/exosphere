@@ -71,10 +71,7 @@ view context project model =
 
         imageListOnlyView : Element.Element Msg
         imageListOnlyView =
-            Element.column
-                (VH.exoColumnAttributes
-                    ++ [ Element.width Element.fill ]
-                )
+            Element.column VH.contentContainer
                 [ Text.heading context.palette
                     []
                     Element.none
@@ -90,9 +87,7 @@ view context project model =
         tabbedView : List Types.HelperTypes.InstanceType -> Element.Element Msg
         tabbedView opSysChoices =
             Element.column
-                (VH.exoColumnAttributes
-                    ++ [ Element.width Element.fill ]
-                )
+                (VH.contentContainer ++ [ Element.spacing 16 ])
                 [ Text.heading context.palette
                     []
                     Element.none

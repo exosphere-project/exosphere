@@ -174,7 +174,7 @@ view context project model =
                     ]
     in
     Element.column
-        [ Element.spacing 15, Element.width Element.fill ]
+        VH.contentContainer
         [ if model.showHeading then
             Text.heading context.palette
                 []
@@ -189,7 +189,7 @@ view context project model =
 
           else
             Element.none
-        , Element.column VH.contentContainer
+        , Element.column [ Element.spacing 16 ]
             [ Page.QuotaUsage.view context Page.QuotaUsage.Full (Page.QuotaUsage.FloatingIp project.networkQuota)
             , VH.renderRDPP
                 context

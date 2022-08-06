@@ -35,7 +35,7 @@ update msg _ model =
 
 view : View.Types.Context -> Project -> Model -> Element.Element Msg
 view context project model =
-    Element.column VH.exoColumnAttributes
+    Element.column VH.contentContainer
         [ Text.heading context.palette
             []
             Element.none
@@ -46,7 +46,7 @@ view context project model =
                 , "Attached"
                 ]
             )
-        , Element.column VH.contentContainer
+        , Element.column [ Element.spacing 16 ]
             [ Element.text ("Device: " ++ model.device)
             , case GetterSetters.volDeviceToMountpoint model.device of
                 Just mountpoint ->

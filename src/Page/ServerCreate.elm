@@ -769,12 +769,7 @@ view context project currentTime model =
                 , Element.text message
                 ]
     in
-    Element.column
-        [ Element.spacing 24
-        , Element.padding 10
-        , Element.width Element.fill
-        ]
-    <|
+    Element.column VH.formContainer <|
         [ Text.heading context.palette
             []
             Element.none

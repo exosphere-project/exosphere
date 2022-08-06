@@ -116,7 +116,7 @@ view context project model =
                 , context.localization.virtualComputer
                 ]
     in
-    Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
+    Element.column VH.formContainer
         [ Text.heading context.palette
             []
             Element.none
@@ -126,18 +126,20 @@ view context project model =
                     |> Helpers.String.toTitleCase
                 ]
             )
-        , Element.column VH.formContainer
+        , Element.column [ Element.spacing 16 ]
             [ Element.el [ Font.semiBold ] <| Element.text selectServerText
             , if List.isEmpty serverChoices then
-                Element.text <|
-                    String.join " "
-                        [ "You don't have any"
-                        , context.localization.virtualComputer
-                            |> Helpers.String.pluralize
-                        , "that don't already have a"
-                        , context.localization.floatingIpAddress
-                        , "assigned."
-                        ]
+                Element.paragraph []
+                    [ Element.text <|
+                        String.join " "
+                            [ "You don't have any"
+                            , context.localization.virtualComputer
+                                |> Helpers.String.pluralize
+                            , "that don't already have a"
+                            , context.localization.floatingIpAddress
+                            , "assigned."
+                            ]
+                    ]
 
               else
                 Style.Widgets.Select.select

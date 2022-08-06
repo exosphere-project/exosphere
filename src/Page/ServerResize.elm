@@ -103,7 +103,7 @@ view_ context project model computeQuota =
         currentFlavorId =
             GetterSetters.serverLookup project model.serverUuid |> Maybe.map (\server -> server.osProps.details.flavorId)
     in
-    Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
+    Element.column VH.formContainer
         [ Text.heading context.palette
             []
             Element.none
@@ -120,7 +120,7 @@ view_ context project model computeQuota =
                         ""
                 ]
             )
-        , Element.column VH.formContainer
+        , Element.column [ Element.spacing 16 ]
             [ VH.flavorPicker context
                 project
                 restrictFlavorIds

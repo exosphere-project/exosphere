@@ -82,7 +82,8 @@ view context project model =
                 Nothing ->
                     ( True, Nothing )
     in
-    Element.column (List.append VH.exoColumnAttributes [ Element.spacing 20, Element.width Element.fill ])
+    Element.column
+        VH.formContainer
         [ Text.heading context.palette
             []
             Element.none
@@ -92,7 +93,7 @@ view context project model =
                 , context.localization.blockDevice |> Helpers.String.toTitleCase
                 ]
             )
-        , Element.column VH.formContainer
+        , Element.column [ Element.spacing 16 ]
             [ Input.text
                 (VH.inputItemAttributes context.palette)
                 { text = model.name

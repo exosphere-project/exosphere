@@ -1,4 +1,4 @@
-module Page.SelectProjects exposing (Model, Msg(..), init, update, view)
+module Page.SelectProjects exposing (Model, Msg(..), init, update, views)
 
 import Element
 import Element.Input as Input
@@ -68,8 +68,8 @@ update msg sharedModel model =
             )
 
 
-view : View.Types.Context -> SharedModel -> Model -> Element.Element Msg
-view context sharedModel model =
+views : View.Types.Context -> SharedModel -> Model -> ( Maybe (Element.Element msg), Element.Element Msg )
+views context sharedModel model =
     case GetterSetters.unscopedProviderLookup sharedModel model.providerKeystoneUrl of
         Just provider ->
             let
@@ -92,9 +92,9 @@ view context sharedModel model =
                                 }
                             ]
             in
-            Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-                [ Text.heading context.palette
-                    []
+            ( Just <|
+                Text.heading context.palette
+                    VH.headerHeadingAttributes
                     Element.none
                     (String.join
                         " "
@@ -106,17 +106,17 @@ view context sharedModel model =
                         , urlLabel
                         ]
                     )
-                , VH.renderWebData
-                    context
-                    provider.projectsAvailable
-                    (context.localization.unitOfTenancy
-                        |> Helpers.String.pluralize
-                    )
-                    renderSuccessCase
-                ]
+            , VH.renderWebData
+                context
+                provider.projectsAvailable
+                (context.localization.unitOfTenancy
+                    |> Helpers.String.pluralize
+                )
+                renderSuccessCase
+            )
 
         Nothing ->
-            Element.text "Provider not found"
+            ( Nothing, Element.text "Provider not found" )
 
 
 renderProject : Set.Set OSTypes.ProjectUuid -> UnscopedProviderProject -> Element.Element Msg

@@ -1,4 +1,4 @@
-module Page.Home exposing (Model, Msg, init, update, view)
+module Page.Home exposing (Model, Msg, headerView, init, update, view)
 
 import Element
 import Element.Font as Font
@@ -48,26 +48,17 @@ update msg model =
             ( model, Cmd.none, SharedMsg.Logout )
 
 
-
--- TODO show, as separate cards, any unscoped providers that the user needs to choose projects for
-
-
-view : View.Types.Context -> SharedModel -> Model -> Element.Element Msg
-view context sharedModel _ =
-    let
-        uniqueKeystoneHostnames : List HelperTypes.KeystoneHostname
-        uniqueKeystoneHostnames =
-            sharedModel.projects
-                |> List.map (.endpoints >> .keystone >> UrlHelpers.hostnameFromUrl)
-                -- convert list to set and then back to remove duplicate values
-                |> Set.fromList
-                |> Set.toList
-    in
-    viewWithProjects context sharedModel uniqueKeystoneHostnames
+uniqueKeystoneHostnames : SharedModel -> List HelperTypes.KeystoneHostname
+uniqueKeystoneHostnames sharedModel =
+    sharedModel.projects
+        |> List.map (.endpoints >> .keystone >> UrlHelpers.hostnameFromUrl)
+        -- convert list to set and then back to remove duplicate values
+        |> Set.fromList
+        |> Set.toList
 
 
-viewWithProjects : View.Types.Context -> SharedModel -> List HelperTypes.KeystoneHostname -> Element.Element Msg
-viewWithProjects context sharedModel uniqueKeystoneHostnames =
+headerView : View.Types.Context -> SharedModel -> Element.Element Msg
+headerView context sharedModel =
     let
         removeAllText =
             String.join " "
@@ -77,35 +68,42 @@ viewWithProjects context sharedModel uniqueKeystoneHostnames =
                     |> Helpers.String.pluralize
                 ]
     in
+    Element.row [ Element.width Element.fill, Element.spacing 25 ]
+        [ Text.heading context.palette
+            VH.headerHeadingAttributes
+            Element.none
+            "Home"
+        , if List.isEmpty <| uniqueKeystoneHostnames sharedModel then
+            Element.none
+
+          else
+            Element.el [ Element.alignRight ]
+                (Widget.iconButton
+                    (SH.materialStyle context.palette).button
+                    { icon =
+                        Element.row [ Element.spacing 10 ]
+                            [ Element.text removeAllText
+                            , FeatherIcons.logOut |> FeatherIcons.withSize 18 |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
+                            ]
+                    , text = removeAllText
+                    , onPress =
+                        Just Logout
+                    }
+                )
+        ]
+
+
+
+-- TODO show, as separate cards, any unscoped providers that the user needs to choose projects for
+
+
+view : View.Types.Context -> SharedModel -> Model -> Element.Element Msg
+view context sharedModel _ =
     Element.column
         [ Element.width Element.fill
-        , Element.padding 10
         , Element.spacing 20
         ]
-        [ Element.row [ Element.width Element.fill, Element.spacing 25 ]
-            [ Text.heading context.palette
-                [ Element.width Element.fill ]
-                Element.none
-                "Home"
-            , if List.isEmpty uniqueKeystoneHostnames then
-                Element.none
-
-              else
-                Element.el [ Element.alignRight ]
-                    (Widget.iconButton
-                        (SH.materialStyle context.palette).button
-                        { icon =
-                            Element.row [ Element.spacing 10 ]
-                                [ Element.text removeAllText
-                                , FeatherIcons.logOut |> FeatherIcons.withSize 18 |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
-                                ]
-                        , text = removeAllText
-                        , onPress =
-                            Just Logout
-                        }
-                    )
-            ]
-        , if List.isEmpty uniqueKeystoneHostnames then
+        [ if List.isEmpty <| uniqueKeystoneHostnames sharedModel then
             Element.text <|
                 String.join " "
                     [ "You are not logged into any"
@@ -116,7 +114,7 @@ viewWithProjects context sharedModel uniqueKeystoneHostnames =
           else
             Element.none
         , Element.wrappedRow
-            [ Element.spacing 24, Element.width (Element.maximum 900 Element.fill) ]
+            [ Element.spacing 24 ]
             (List.append (List.map (renderProject context) sharedModel.projects) [ addProjectCard context sharedModel ])
         ]
 
