@@ -80,8 +80,7 @@ type alias PopoverState =
 
 
 type alias Model =
-    { expandoCard : CardStories.ExpandoCardState
-    , popover : PopoverState
+    { popover : PopoverState
     , deployerColors : Style.Types.DeployerColorThemes
     , tabs : TabsPlugin.Model
     }
@@ -89,8 +88,7 @@ type alias Model =
 
 initialModel : Model
 initialModel =
-    { expandoCard = { expanded = False }
-    , deployerColors = Style.Types.defaultColors
+    { deployerColors = Style.Types.defaultColors
     , popover = { showPopovers = Set.empty }
     , tabs = TabsPlugin.initialModel
     }
@@ -142,7 +140,6 @@ type alias Flags =
 
 type Msg
     = NoOp
-    | ToggleExpandoCard Bool
     | TogglePopover PopoverId
     | TabMsg TabsPlugin.Msg
 
@@ -181,16 +178,6 @@ config =
             case msg of
                 NoOp ->
                     ( m, Cmd.none )
-
-                ToggleExpandoCard expanded ->
-                    ( { m
-                        | customModel =
-                            { model
-                                | expandoCard = { expanded = expanded }
-                            }
-                      }
-                    , Cmd.none
-                    )
 
                 TogglePopover popoverId ->
                     ( { m
@@ -391,7 +378,7 @@ Shows a static horizontal progress bar chart which indicates the capacity of a r
                     ]
                 ]
             |> category "Organisms"
-                [ CardStories.stories toHtml { onPress = Just NoOp, onExpand = \next -> ToggleExpandoCard next }
+                [ CardStories.stories toHtml
 
                 -- TODO: Add stories for special popovers.
                 , storiesOf

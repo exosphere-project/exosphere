@@ -1,9 +1,8 @@
-module DesignSystem.Stories.Card exposing (ExpandoCardState, stories)
+module DesignSystem.Stories.Card exposing (stories)
 
 import DesignSystem.Helpers exposing (Plugins, Renderer, ThemeModel, palettize)
 import Element
-import Style.Widgets.Button as Button
-import Style.Widgets.Card exposing (clickableCardFixedSize, exoCard, exoCardWithTitleAndSubtitle, expandoCard)
+import Style.Widgets.Card exposing (clickableCardFixedSize, exoCard)
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Text as Text
 import UIExplorer
@@ -13,28 +12,10 @@ import UIExplorer
 import View.Helpers as VH
 
 
-{-| Is the Expandable Card expanded or collapsed?
--}
-type alias ExpandoCardState =
-    { expanded : Bool }
-
-
-{-| Creates stories for UIExplorer.
-
-    renderer – An elm-ui to html converter
-    palette  – Takes a UIExplorer.Model and produces an ExoPalette
-    plugins  – UIExplorer plugins (can be empty {})
-
--}
 stories :
     Renderer msg
-    ->
-        { card
-            | onPress : Maybe msg
-            , onExpand : Bool -> msg
-        }
-    -> UIExplorer.UI (ThemeModel { model | expandoCard : ExpandoCardState }) msg Plugins
-stories renderer { onPress, onExpand } =
+    -> UIExplorer.UI (ThemeModel model) msg Plugins
+stories renderer =
     storiesOf
         "Card"
         [ ( "exoCard"
@@ -73,48 +54,6 @@ stories renderer { onPress, onExpand } =
                         }
           , { note = note }
           )
-        , ( "exoCardWithTitleAndSubtitle"
-          , \m ->
-                renderer (palettize m) <|
-                    Element.column []
-                        [ exoCardWithTitleAndSubtitle (palettize m)
-                            (copyableText
-                                (palettize m)
-                                [ Text.monoFontFamily ]
-                                "192.168.1.1"
-                            )
-                            (Button.default
-                                (palettize m)
-                                { text = "Unassign"
-                                , onPress = onPress
-                                }
-                            )
-                            (Text.body "Assigned to a resource that Exosphere cannot represent")
-                        ]
-          , { note = note }
-          )
-        , ( "expandoCard"
-          , \m ->
-                renderer (palettize m) <|
-                    Element.column []
-                        [ expandoCard (palettize m)
-                            m.customModel.expandoCard.expanded
-                            onExpand
-                            (Text.body "Backup SSD")
-                            (Text.body "25 GB")
-                            (Element.column
-                                VH.contentContainer
-                                [ VH.compactKVRow "Name:" <| Text.body "Backup SSD"
-                                , VH.compactKVRow "Status:" <| Text.body "Ready"
-                                , VH.compactKVRow "Description:" <|
-                                    Text.p [ Element.width Element.fill ] <|
-                                        [ Element.text "Solid State Drive" ]
-                                , VH.compactKVRow "UUID:" <| copyableText (palettize m) [] "6205e1a8-9a5d-4325-bb0d-219f09a4d988"
-                                ]
-                            )
-                        ]
-          , { note = note }
-          )
         ]
 
 
@@ -136,18 +75,4 @@ Used for displaying related information & creates a border around content. It is
 Has a hover effect with the intention that it is wrapped in a link element.
 
 It typically navigates users to a detail page for the represented item e.g. the project, the volume, etc.
-
-#### exoCardWithTitleAndSubtitle
-
-Has a hover effect similar to `clickableCardFixedSize` but also separates content into a title & subtitle.
-
-The main content of the card should be contained in the subtitle.
-
-_This widget is currently unused._
-
-#### expandoCard
-
-Has a hover effect & can be expanded to reveal additional content using a toggle button.
-
-_This widget is currently unused._
-    """
+"""
