@@ -7,8 +7,7 @@ import Json.Decode as Decode
 import OpenStack.Error as OSError
 import Parser exposing ((|.), (|=))
 import Rest.Sentry
-import Style.Toast exposing (toastConfig)
-import Toasty
+import Style.Widgets.Toast as Toast
 import Types.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody, Toast)
 import Types.SharedModel
     exposing
@@ -47,7 +46,7 @@ processStringError model errorContext error =
                         errorContext
                         error
             in
-            Toasty.addToastIfUnique toastConfig ToastyMsg toast ( newModel, sentryCmd )
+            Toast.showToast toast ToastMsg ( newModel, sentryCmd )
 
 
 processSynchronousApiError : SharedModel -> ErrorContext -> HttpErrorWithBody -> ( SharedModel, Cmd SharedMsg )

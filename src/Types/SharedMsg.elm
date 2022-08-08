@@ -37,7 +37,7 @@ type SharedMsg
     | OpenNewWindow String
     | LinkClicked Browser.UrlRequest
     | UrlChanged Url.Url
-    | ToastyMsg (Toasty.Msg Toast)
+    | ToastMsg (Toasty.Msg Toast)
     | MsgChangeWindowSize Int Int
     | SelectTheme ST.ThemeChoice
     | SetExperimentalFeaturesEnabled Bool

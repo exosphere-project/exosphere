@@ -1,4 +1,4 @@
-module Page.Toast exposing (view)
+module Style.Widgets.Toast exposing (ToastState, config, initialModel, notes, showToast, update, view)
 
 import Element
 import Element.Background as Background
@@ -6,13 +6,64 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Region as Region
 import Html exposing (Html)
+import Html.Attributes
 import Style.Helpers as SH
 import Style.Types as ST
+import Toasty
+import Toasty.Defaults
 import Types.Error exposing (ErrorLevel(..), Toast)
 
 
+notes : String
+notes =
+    """
+## Usage
+    """
 
--- No state or Msgs to keep track of, so there is no Model, Msg, init, or update here
+
+{-| Toasts need to be accumulated in a stack & have their own identifiers.
+-}
+type alias ToastState model =
+    { model | toasties : Toasty.Stack Toast }
+
+
+initialModel : Toasty.Stack a
+initialModel =
+    Toasty.initialState
+
+
+config : Toasty.Config msg
+config =
+    let
+        containerAttrs : List (Html.Attribute msg)
+        containerAttrs =
+            -- copied from Toasty.Defaults.containerAttrs (because it isn't exposed)
+            -- with "top" changed from 0 to 60 px (= nav bar's height - padding)
+            [ Html.Attributes.style "position" "fixed"
+            , Html.Attributes.style "top" "60px"
+            , Html.Attributes.style "right" "0"
+            , Html.Attributes.style "width" "100%"
+            , Html.Attributes.style "max-width" "300px"
+            , Html.Attributes.style "list-style-type" "none"
+            , Html.Attributes.style "padding" "0"
+            , Html.Attributes.style "margin" "0"
+            ]
+
+        itemAttrs =
+            -- copied from Toasty.Defaults.itemAttrs (because it isn't exposed)
+            -- with "max-height" increased from 100px to 500 px
+            -- (and its transition duration decreased to 0.3s)
+            -- since content overflows in 100 px
+            [ Html.Attributes.style "margin" "1em 1em 0 1em"
+            , Html.Attributes.style "max-height" "500px"
+            , Html.Attributes.style "transition" "max-height 0.3s, margin-top 0.6s"
+            ]
+    in
+    -- Toasty.Defaults.config uses classes defined in assets/css/toasty.css
+    Toasty.Defaults.config
+        |> Toasty.delay 60000
+        |> Toasty.containerAttrs containerAttrs
+        |> Toasty.itemAttrs itemAttrs
 
 
 view :
@@ -104,3 +155,17 @@ genericToast stateColor title actionContext error maybeRecoveryHint =
                     Element.none
             ]
         ]
+
+
+showToast :
+    Toast
+    -> (Toasty.Msg Toast -> msg)
+    -> ( ToastState model, Cmd msg )
+    -> ( ToastState model, Cmd msg )
+showToast toast tagger ( model, cmd ) =
+    Toasty.addToastIfUnique config tagger toast ( model, cmd )
+
+
+update : (Toasty.Msg Toast -> msg) -> Toasty.Msg Toast -> ToastState model -> ( ToastState model, Cmd msg )
+update tagger msg model =
+    Toasty.update config tagger msg model

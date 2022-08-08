@@ -23,6 +23,7 @@ import Style.Widgets.Meter exposing (meter)
 import Style.Widgets.Popover.Popover exposing (popover, toggleIfTargetIsOutside)
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.StatusBadge exposing (StatusBadgeState(..), statusBadge)
+import Style.Widgets.Toast as Toast
 import Toasty
 import Types.Error exposing (ErrorLevel(..), Toast)
 import UIExplorer
@@ -86,7 +87,7 @@ type alias Model =
     { popover : PopoverState
     , deployerColors : Style.Types.DeployerColorThemes
     , tabs : TabsPlugin.Model
-    , toasts : ToastStories.ToastState
+    , toasties : Toasty.Stack Toast
     }
 
 
@@ -95,7 +96,7 @@ initialModel =
     { deployerColors = Style.Types.defaultColors
     , popover = { showPopovers = Set.empty }
     , tabs = TabsPlugin.initialModel
-    , toasts = ToastStories.initialModel
+    , toasties = Toast.initialModel
     }
 
 
@@ -211,21 +212,13 @@ config =
                     ( { m | customModel = { cm | tabs = TabsPlugin.update submsg m.customModel.tabs } }, Cmd.none )
 
                 ToastMsg submsg ->
-                    let
-                        cm =
-                            m.customModel
-                    in
-                    ( { m | customModel = { cm | toasts = ToastStories.update ToastMsg submsg m.customModel.toasts |> Tuple.first } }
-                    , ToastStories.update ToastMsg submsg m.customModel.toasts |> Tuple.second
+                    ( { m | customModel = Toast.update ToastMsg submsg m.customModel |> Tuple.first }
+                    , Toast.update ToastMsg submsg m.customModel |> Tuple.second
                     )
 
                 ToastShow level ->
-                    let
-                        cm =
-                            m.customModel
-                    in
-                    ( { m | customModel = { cm | toasts = ( m.customModel.toasts, Cmd.none ) |> ToastStories.showToast level ToastMsg |> Tuple.first } }
-                    , ( m.customModel.toasts, Cmd.none ) |> ToastStories.showToast level ToastMsg |> Tuple.second
+                    ( { m | customModel = ( m.customModel, Cmd.none ) |> Toast.showToast (ToastStories.makeToast level) ToastMsg |> Tuple.first }
+                    , ( m.customModel, Cmd.none ) |> Toast.showToast (ToastStories.makeToast level) ToastMsg |> Tuple.second
                     )
     , menuViewEnhancer = \_ v -> v
     , viewEnhancer =

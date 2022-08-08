@@ -53,11 +53,10 @@ import Set
 import State.Auth
 import State.Error
 import State.ViewState as ViewStateHelpers
-import Style.Toast
 import Style.Widgets.NumericTextInput.NumericTextInput
+import Style.Widgets.Toast as Toast
 import Task
 import Time
-import Toasty
 import Types.Error as Error exposing (AppError, ErrorContext, ErrorLevel(..))
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes as HelperTypes exposing (HttpRequestMethod(..), UnscopedProviderProject)
@@ -564,8 +563,8 @@ processSharedMsg sharedMsg outerModel =
         Logout ->
             ( outerModel, Ports.logout () )
 
-        ToastyMsg subMsg ->
-            Toasty.update Style.Toast.toastConfig ToastyMsg subMsg outerModel.sharedModel
+        ToastMsg subMsg ->
+            Toast.update ToastMsg subMsg outerModel.sharedModel
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
