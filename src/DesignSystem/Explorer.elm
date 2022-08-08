@@ -7,6 +7,7 @@ import DesignSystem.Stories.Card as CardStories
 import DesignSystem.Stories.ColorPalette as ColorPalette
 import DesignSystem.Stories.Link as LinkStories
 import DesignSystem.Stories.Text as TextStories
+import DesignSystem.Stories.Toast as ToastStories
 import Element
 import Element.Font as Font
 import Html
@@ -379,8 +380,7 @@ Shows a static horizontal progress bar chart which indicates the capacity of a r
                 ]
             |> category "Organisms"
                 [ CardStories.stories toHtml
-
-                -- TODO: Add stories for special popovers.
+                , ToastStories.stories toHtml { onPress = Just NoOp }
                 , storiesOf
                     "Popover"
                     (List.map
