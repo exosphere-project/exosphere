@@ -23,6 +23,8 @@ import Style.Widgets.Meter exposing (meter)
 import Style.Widgets.Popover.Popover exposing (popover, toggleIfTargetIsOutside)
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.StatusBadge exposing (StatusBadgeState(..), statusBadge)
+import Toasty
+import Toasty.Defaults
 import UIExplorer
     exposing
         ( Config
@@ -84,6 +86,7 @@ type alias Model =
     { popover : PopoverState
     , deployerColors : Style.Types.DeployerColorThemes
     , tabs : TabsPlugin.Model
+    , toasts : ToastStories.ToastState
     }
 
 
@@ -92,6 +95,7 @@ initialModel =
     { deployerColors = Style.Types.defaultColors
     , popover = { showPopovers = Set.empty }
     , tabs = TabsPlugin.initialModel
+    , toasts = ToastStories.initialModel
     }
 
 
@@ -143,6 +147,8 @@ type Msg
     = NoOp
     | TogglePopover PopoverId
     | TabMsg TabsPlugin.Msg
+    | ToastMsg (Toasty.Msg Toasty.Defaults.Toast)
+    | ToastShow
 
 
 
@@ -203,6 +209,20 @@ config =
                             m.customModel
                     in
                     ( { m | customModel = { cm | tabs = TabsPlugin.update submsg m.customModel.tabs } }, Cmd.none )
+
+                ToastMsg submsg ->
+                    let
+                        cm =
+                            m.customModel
+                    in
+                    ( { m | customModel = { cm | toasts = ToastStories.update ToastMsg submsg m.customModel.toasts } }, Cmd.none )
+
+                ToastShow ->
+                    let
+                        cm =
+                            m.customModel
+                    in
+                    ( { m | customModel = { cm | toasts = ( m.customModel.toasts, Cmd.none ) |> ToastStories.addToastIfUnique (Toasty.Defaults.Success "Unique toast" "Avoid repeated notifications") ToastMsg } }, Cmd.none )
     , menuViewEnhancer = \_ v -> v
     , viewEnhancer =
         \m stories ->
@@ -380,7 +400,7 @@ Shows a static horizontal progress bar chart which indicates the capacity of a r
                 ]
             |> category "Organisms"
                 [ CardStories.stories toHtml
-                , ToastStories.stories toHtml { onPress = Just NoOp }
+                , ToastStories.stories toHtml ToastMsg { onPress = Just ToastShow }
                 , storiesOf
                     "Popover"
                     (List.map

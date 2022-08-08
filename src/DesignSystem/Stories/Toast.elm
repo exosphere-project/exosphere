@@ -1,12 +1,56 @@
-module DesignSystem.Stories.Toast exposing (stories)
+module DesignSystem.Stories.Toast exposing (ToastModel, ToastState, addToastIfUnique, initialModel, stories, update)
 
-import DesignSystem.Helpers exposing (Plugins, Renderer, ThemeModel, palettize)
+import DesignSystem.Helpers exposing (Plugins, Renderer, palettize)
 import Element
+import Html
+import Style.Types
 import Style.Widgets.Button as Button
+import Toasty
+import Toasty.Defaults
 import UIExplorer
     exposing
         ( storiesOf
         )
+
+
+type alias ToastModel model =
+    { model
+        | toasts : ToastState
+    }
+
+
+{-| The stack of toasties used by Toasty.
+-}
+type alias ToastState =
+    { toasties : Toasty.Stack Toasty.Defaults.Toast }
+
+
+initialModel : { toasties : Toasty.Stack a }
+initialModel =
+    { toasties = Toasty.initialState }
+
+
+config : Toasty.Config msg
+config =
+    Toasty.Defaults.config
+        |> Toasty.delay 5000
+
+
+addToastIfUnique :
+    Toasty.Defaults.Toast
+    -> (Toasty.Msg Toasty.Defaults.Toast -> msg)
+    ->
+        ( ToastState
+        , Cmd msg
+        )
+    -> ToastState
+addToastIfUnique toast tagger ( model, cmd ) =
+    Tuple.first (Toasty.addToastIfUnique config tagger toast ( model, cmd ))
+
+
+update : (Toasty.Msg Toasty.Defaults.Toast -> msg) -> Toasty.Msg Toasty.Defaults.Toast -> ToastState -> ToastState
+update tagger msg model =
+    Tuple.first (Toasty.update config tagger msg model)
 
 
 {-| Creates stories for UIExplorer.
@@ -18,12 +62,20 @@ import UIExplorer
 -}
 stories :
     Renderer msg
+    -> (Toasty.Msg Toasty.Defaults.Toast -> msg)
     ->
         { toast
             | onPress : Maybe msg
         }
-    -> UIExplorer.UI (ThemeModel model) msg Plugins
-stories renderer { onPress } =
+    ->
+        UIExplorer.UI
+            { model
+                | toasts : ToastState
+                , deployerColors : Style.Types.DeployerColorThemes
+            }
+            msg
+            Plugins
+stories renderer tagger { onPress } =
     storiesOf
         "Toast"
         (List.map
@@ -37,9 +89,12 @@ stories renderer { onPress } =
                                 , onPress = press
                                 }
                     in
-                    renderer (palettize m) <|
-                        Element.el [ Element.paddingXY 400 100 ]
-                            (button onPress)
+                    Html.div []
+                        [ renderer (palettize m) <|
+                            Element.el [ Element.paddingXY 400 100 ]
+                                (button onPress)
+                        , Toasty.view config Toasty.Defaults.view tagger m.customModel.toasts.toasties
+                        ]
                 , { note = note }
                 )
             )
