@@ -148,7 +148,7 @@ type Msg
     | TogglePopover PopoverId
     | TabMsg TabsPlugin.Msg
     | ToastMsg (Toasty.Msg Toast)
-    | ToastShow
+    | ToastShow ErrorLevel
 
 
 
@@ -219,21 +219,13 @@ config =
                     , ToastStories.update ToastMsg submsg m.customModel.toasts |> Tuple.second
                     )
 
-                ToastShow ->
+                ToastShow level ->
                     let
                         cm =
                             m.customModel
-
-                        toast =
-                            Toast
-                                { actionContext = "log in"
-                                , level = ErrorWarn
-                                , recoveryHint = Just "Please check your internet connection."
-                                }
-                                "No network connection."
                     in
-                    ( { m | customModel = { cm | toasts = ( m.customModel.toasts, Cmd.none ) |> ToastStories.addToastIfUnique toast ToastMsg |> Tuple.first } }
-                    , ( m.customModel.toasts, Cmd.none ) |> ToastStories.addToastIfUnique toast ToastMsg |> Tuple.second
+                    ( { m | customModel = { cm | toasts = ( m.customModel.toasts, Cmd.none ) |> ToastStories.showToast level ToastMsg |> Tuple.first } }
+                    , ( m.customModel.toasts, Cmd.none ) |> ToastStories.showToast level ToastMsg |> Tuple.second
                     )
     , menuViewEnhancer = \_ v -> v
     , viewEnhancer =
@@ -412,7 +404,13 @@ Shows a static horizontal progress bar chart which indicates the capacity of a r
                 ]
             |> category "Organisms"
                 [ CardStories.stories toHtml
-                , ToastStories.stories toHtml ToastMsg { onPress = Just ToastShow }
+                , ToastStories.stories toHtml
+                    ToastMsg
+                    [ { name = "debug", onPress = Just (ToastShow ErrorDebug) }
+                    , { name = "info", onPress = Just (ToastShow ErrorInfo) }
+                    , { name = "warning", onPress = Just (ToastShow ErrorWarn) }
+                    , { name = "critical", onPress = Just (ToastShow ErrorCrit) }
+                    ]
                 , storiesOf
                     "Popover"
                     (List.map
