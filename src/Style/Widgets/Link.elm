@@ -1,4 +1,4 @@
-module Style.Widgets.Link exposing (Behaviour(..), externalLink, link, linkStyle, navigate)
+module Style.Widgets.Link exposing (Behaviour(..), externalLink, link, linkStyle, navigate, notes)
 
 import Element
 import Element.Border as Border
@@ -7,6 +7,21 @@ import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
 import Style.Widgets.Text as Text
 import Types.HelperTypes
+
+
+notes : String
+notes =
+    """
+## Usage
+
+### Internal Link
+
+Used when navigating within the app. It opens links in the current window.
+
+### External Link
+
+Used for navigating outside of the app, or to deliberately open a new browser tab.
+"""
 
 
 

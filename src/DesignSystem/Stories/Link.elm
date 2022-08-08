@@ -9,13 +9,6 @@ import UIExplorer
         )
 
 
-{-| Creates stories for UIExplorer.
-
-    renderer – An elm-ui to html converter
-    palette  – Takes a UIExplorer.Model and produces an ExoPalette
-    plugins  – UIExplorer plugins (can be empty {})
-
--}
 stories : Renderer msg -> UIExplorer.UI (ThemeModel model) msg Plugins
 stories renderer =
     storiesOf
@@ -31,7 +24,7 @@ stories renderer =
                             "underlined text"
                         , Text.body " widget."
                         ]
-          , { note = note }
+          , { note = Link.notes }
           )
         , ( "external"
           , \m ->
@@ -44,21 +37,6 @@ stories renderer =
                             "README on GitLab"
                         , Text.body "."
                         ]
-          , { note = note }
+          , { note = Link.notes }
           )
         ]
-
-
-note : String
-note =
-    """
-## Usage
-
-### Internal Link
-
-Used when navigating within the app. It opens links in the current window.
-
-### External Link
-
-Used for navigating outside of the app, or to deliberately open a new browser tab.
-    """

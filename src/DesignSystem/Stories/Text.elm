@@ -13,18 +13,11 @@ import UIExplorer
         )
 
 
-{-| Creates stories for UIExplorer.
-
-    renderer – An elm-ui to html converter
-    palette  – Takes a UIExplorer.Model and produces an ExoPalette
-    plugins  – UIExplorer plugins (can be empty {})
-
--}
 stories : Renderer msg -> UIExplorer.UI (ThemeModel model) msg Plugins
 stories renderer =
     storiesOf
         "Text"
-        [ ( "unstyled", \m -> renderer (palettize m) <| Element.text "This is text rendered using `Element.text` and no styling. It will inherit attributes from the document layout.", { note = note } )
+        [ ( "unstyled", \m -> renderer (palettize m) <| Element.text "This is text rendered using `Element.text` and no styling. It will inherit attributes from the document layout.", { note = Text.notes } )
         , ( "p"
           , \m ->
                 renderer (palettize m) <|
@@ -34,10 +27,10 @@ stories renderer =
                         , Link.externalLink (palettize m) "https://www.lipsum.com/" "www.lipsum.com"
                         , Text.body "]"
                         ]
-          , { note = note }
+          , { note = Text.notes }
           )
-        , ( "bold", \m -> renderer (palettize m) <| Text.p [] [ Text.body "Logged in as ", Text.strong "@Jimmy:3421", Text.body "." ], { note = note } )
-        , ( "mono", \m -> renderer (palettize m) <| Text.p [] [ Text.body "Your IP address is ", Text.mono "192.168.1.1", Text.body "." ], { note = note } )
+        , ( "bold", \m -> renderer (palettize m) <| Text.p [] [ Text.body "Logged in as ", Text.strong "@Jimmy:3421", Text.body "." ], { note = Text.notes } )
+        , ( "mono", \m -> renderer (palettize m) <| Text.p [] [ Text.body "Your IP address is ", Text.mono "192.168.1.1", Text.body "." ], { note = Text.notes } )
         , ( "underline"
           , \m ->
                 renderer (palettize m) <|
@@ -46,7 +39,7 @@ stories renderer =
                         , Text.underline "user-friendly"
                         , Text.body ", extensible client for cloud computing."
                         ]
-          , { note = note }
+          , { note = Text.notes }
           )
         , ( "heading"
           , \m ->
@@ -59,7 +52,7 @@ stories renderer =
                             |> Element.el []
                         )
                         "Get Support"
-          , { note = note }
+          , { note = Text.notes }
           )
         , ( "subheading"
           , \m ->
@@ -72,7 +65,7 @@ stories renderer =
                             |> Element.el []
                         )
                         "Volumes"
-          , { note = note }
+          , { note = Text.notes }
           )
         , ( "h1"
           , \m ->
@@ -80,7 +73,7 @@ stories renderer =
                     Text.text Text.H1
                         [ Element.Region.heading 1 ]
                         "App Config Info"
-          , { note = note }
+          , { note = Text.notes }
           )
         , ( "h2"
           , \m ->
@@ -88,7 +81,7 @@ stories renderer =
                     Text.text Text.H2
                         [ Element.Region.heading 2 ]
                         "App Config Info"
-          , { note = note }
+          , { note = Text.notes }
           )
         , ( "h3"
           , \m ->
@@ -96,33 +89,10 @@ stories renderer =
                     Text.text Text.H3
                         [ Element.Region.heading 3 ]
                         "App Config Info"
-          , { note = note }
+          , { note = Text.notes }
           )
-        , ( "h4", \m -> renderer (palettize m) <| Text.text Text.H4 [ Element.Region.heading 4 ] "App Config Info", { note = note } )
+        , ( "h4", \m -> renderer (palettize m) <| Text.text Text.H4 [ Element.Region.heading 4 ] "App Config Info", { note = Text.notes } )
         ]
-
-
-note : String
-note =
-    """
-## Usage
-
-Text widgets use `elm-ui` under the hood, particularly [Element.text](https://package.elm-lang.org/packages/mdgriffith/elm-ui/latest/Element#text).
-
-Where possible, use or extend `Text` rather than resorting to `Element.text` or custom styling with `Font` as this helps to ensure:
-
-- Consistent typography, font sizing, etc.
-- Centralised, predictable refactoring of text styles.
-
-## Typeface
-
-Exosphere's default font is [Open Sans](https://gitlab.com/exosphere/exosphere/-/blob/master/src/Style/Widgets/Text.elm#L102).
-
-It is [self-vendored from `/fonts`](https://gitlab.com/exosphere/exosphere/-/blob/master/fonts/open-sans-400-700.css) to:
-
-- Protect end-user privacy, &
-- Provide fast, predictable availability.
-    """
 
 
 veryLongCopy : String

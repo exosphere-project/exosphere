@@ -14,13 +14,83 @@ import UIExplorer exposing (storiesOf)
 import UIExplorer.ColorMode exposing (ColorMode(..))
 
 
-{-| Creates stories for UIExplorer.
+notes : String
+notes =
+    """
+## Usage
 
-    renderer – An elm-ui to html converter
-    palette  – Takes a UIExplorer.Model and produces an ExoPalette
-    plugins  – UIExplorer plugins (can be empty {})
+### Exosphere Colors Palette (ExoPalette)
 
--}
+This is a palette of the specific colors used throughout the Exosphere app, picked from the [All Colors Palette](#Atoms/Color%20Palette/All%20Colors) based on the active theme (light or dark). 
+
+It can be accessed as `palette` field of the `context` record that is passed to almost all `view` functions.
+
+ExoPalette has the following fields that are named *meaningfully* to make color choices intuitive:
+
+- `primary`, `secondary` - the brand colors provided by the deployer. They are used in action buttons, meters, etc.
+
+- `neutral` - plain white/black/gray colors used throughout the UI:
+
+    - `background` - at least two [background layers](https://spectrum.adobe.com/page/using-color/#Background-layers) are required to create depth.
+
+        - `backLayer` - for the background of the outermost container of the app.
+
+        - `frontLayer` - for the background of the elements within the container, such as a card, data list or popover.
+
+    - `border` - for border coloring.
+
+    - `icon` - for iconography; including icons, shapes, illustrations, etc. For example, a slider's track or ticks & axes on a graph.
+
+    - `text` - for text content:
+
+        - `default` - for default text.
+
+        - `subdued` - for text that less important. It is often paired with default colored text to contrast the two. E.g. In the data list on ServerList & VolumeList.
+
+    > Note: When icons are used along with default colored text, use `neutral.text.default` rather than `neutral.icon` for them.
+
+- `info`, `success`, `warning`, `danger`, `muted` - 5 fields to communicate 5 different *UI states* to the user. Each has the following subfields:
+
+    - `default` - for icons, shapes, lines, etc. As the name suggests, use this when other options don't make sense. (e.g. Accent lines on valid/invalid input.)
+
+    - `background`, `border`, `textOnColoredBG` - used together for alert/badge components that have a container with a background, a border, and some text. (e.g. Status badge widgets, alert widgets, etc.)
+
+    - `textOnNeutralBG`- for text (& sometimes icons) on a neutral background. (e.g. A text input's invalid message text.)
+
+- `menu` - for the menu or navigation bar:
+    
+    - `background` - for the menu background.
+
+    - `textOrIcon` - for text or icons in the menu.
+
+#### Readability
+
+The demos to the right of each color swatch are readability tests based on WCAG - Web Content Accessibility Guidelines.
+
+(Check out the [official quick reference](https://www.w3.org/WAI/WCAG21/quickref/) or read a [summary on Wikipedia](https://en.wikipedia.org/wiki/Web_Content_Accessibility_Guidelines).)
+
+In particular, this visual test supports:
+
+> **Guideline 1.4 – Distinguishable**
+>
+> "Make it easier for users to see and hear content including separating foreground from background."
+
+
+### All Colors Palette
+
+This is a palette of the shades of all major colors, from which [ExoPalette](#Atoms/Color%20Palette/Exosphere%20Colors) is derived.
+
+> Note: This must be used only when ExoPalette can't cater to your needs. Be aware that the color shade will remain the same in both light and dark theme. In most cases, add a new field in ExoPalette that can adapt to both the light and dark theme.
+
+As illustrated above, the All Colors Palette has:
+
+- 9 shades of each color (except `gray`), ranging from light on one end to dark on another.
+
+- 15 shades of `gray` color – the 6 extra shades are due to `white` and `black` added on the ends, along with two intermediatory shades. Finer gradation is required near the ends of the gray palette because multiple layers in the app require different shades, and the shades closer to the mid or "base" shade look dirty as background colors.
+
+"""
+
+
 stories : Renderer msg -> UIExplorer.UI (ThemeModel model) msg Plugins
 stories renderer =
     storiesOf
@@ -70,7 +140,7 @@ stories renderer =
                                     ]
                               ]
                             ]
-          , { note = note }
+          , { note = notes }
           )
         , ( "All Colors"
           , \m ->
@@ -117,7 +187,7 @@ stories renderer =
                                 )
                                 grayShades15
                         ]
-          , { note = note }
+          , { note = notes }
           )
         ]
 
@@ -316,80 +386,3 @@ exoUIStateDemo palette stateName toStateColor =
                 (Element.text <| stateName ++ " text on neutral background.")
             ]
         ]
-
-
-note : String
-note =
-    """
-## Usage
-
-### Exosphere Colors Palette (ExoPalette)
-
-This is a palette of the specific colors used throughout the Exosphere app, picked from the [All Colors Palette](#Atoms/Color%20Palette/All%20Colors) based on the active theme (light or dark). 
-
-It can be accessed as `palette` field of the `context` record that is passed to almost all `view` functions.
-
-ExoPalette has the following fields that are named *meaningfully* to make color choices intuitive:
-
-- `primary`, `secondary` - the brand colors provided by the deployer. They are used in action buttons, meters, etc.
-
-- `neutral` - plain white/black/gray colors used throughout the UI:
-
-    - `background` - at least two [background layers](https://spectrum.adobe.com/page/using-color/#Background-layers) are required to create depth.
-
-        - `backLayer` - for the background of the outermost container of the app.
-
-        - `frontLayer` - for the background of the elements within the container, such as a card, data list or popover.
-
-    - `border` - for border coloring.
-
-    - `icon` - for iconography; including icons, shapes, illustrations, etc. For example, a slider's track or ticks & axes on a graph.
-
-    - `text` - for text content:
-
-        - `default` - for default text.
-
-        - `subdued` - for text that less important. It is often paired with default colored text to contrast the two. E.g. In the data list on ServerList & VolumeList.
-
-    > Note: When icons are used along with default colored text, use `neutral.text.default` rather than `neutral.icon` for them.
-
-- `info`, `success`, `warning`, `danger`, `muted` - 5 fields to communicate 5 different *UI states* to the user. Each has the following subfields:
-
-    - `default` - for icons, shapes, lines, etc. As the name suggests, use this when other options don't make sense. (e.g. Accent lines on valid/invalid input.)
-
-    - `background`, `border`, `textOnColoredBG` - used together for alert/badge components that have a container with a background, a border, and some text. (e.g. Status badge widgets, alert widgets, etc.)
-
-    - `textOnNeutralBG`- for text (& sometimes icons) on a neutral background. (e.g. A text input's invalid message text.)
-
-- `menu` - for the menu or navigation bar:
-    
-    - `background` - for the menu background.
-
-    - `textOrIcon` - for text or icons in the menu.
-
-#### Readability
-
-The demos to the right of each color swatch are readability tests based on WCAG - Web Content Accessibility Guidelines.
-
-(Check out the [official quick reference](https://www.w3.org/WAI/WCAG21/quickref/) or read a [summary on Wikipedia](https://en.wikipedia.org/wiki/Web_Content_Accessibility_Guidelines).)
-
-In particular, this visual test supports:
-
-> **Guideline 1.4 – Distinguishable**
->
-> "Make it easier for users to see and hear content including separating foreground from background."
-
-
-### All Colors Palette
-
-This is a palette of the shades of all major colors, from which [ExoPalette](#Atoms/Color%20Palette/Exosphere%20Colors) is derived.
-
-> Note: This must be used only when ExoPalette can't cater to your needs. Be aware that the color shade will remain the same in both light and dark theme. In most cases, add a new field in ExoPalette that can adapt to both the light and dark theme.
-
-As illustrated above, the All Colors Palette has:
-
-- 9 shades of each color (except `gray`), ranging from light on one end to dark on another.
-
-- 15 shades of `gray` color – the 6 extra shades are due to `white` and `black` added on the ends, along with two intermediatory shades. Finer gradation is required near the ends of the gray palette because multiple layers in the app require different shades, and the shades closer to the mid or "base" shade look dirty as background colors.
-
-    """

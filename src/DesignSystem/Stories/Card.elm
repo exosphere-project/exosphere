@@ -2,7 +2,7 @@ module DesignSystem.Stories.Card exposing (stories)
 
 import DesignSystem.Helpers exposing (Plugins, Renderer, ThemeModel, palettize)
 import Element
-import Style.Widgets.Card exposing (clickableCardFixedSize, exoCard)
+import Style.Widgets.Card exposing (clickableCardFixedSize, exoCard, notes)
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Text as Text
 import UIExplorer
@@ -43,7 +43,7 @@ stories renderer =
                                 ]
                             )
                         ]
-          , { note = note }
+          , { note = notes }
           )
         , ( "clickableCardFixedSize"
           , \m ->
@@ -52,27 +52,6 @@ stories renderer =
                         { url = "/#Organisms/Card"
                         , label = clickableCardFixedSize (palettize m) 300 300 [ Text.body "Navigate to first story." ]
                         }
-          , { note = note }
+          , { note = notes }
           )
         ]
-
-
-note : String
-note =
-    """
-## Usage
-
-Cards separate logical units of associated information. Their content is very flexible. 
-
-### Variants
-
-#### exoCard
-
-Used for displaying related information & creates a border around content. It is not interactive; while its content may be clickable, the card itself does not link to a detail view.
-
-#### clickableCardFixedSize
-
-Has a hover effect with the intention that it is wrapped in a link element.
-
-It typically navigates users to a detail page for the represented item e.g. the project, the volume, etc.
-"""
