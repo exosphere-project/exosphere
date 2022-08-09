@@ -480,8 +480,10 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                         , serverNameView context model server
                         ]
                     , Element.el
-                        [ Font.size 12, Font.color (SH.toElementColor context.palette.neutral.text.subdued) ]
-                        (copyableText context.palette [] server.osProps.uuid)
+                        [ Font.size 12
+                        , Font.color (SH.toElementColor context.palette.neutral.text.subdued)
+                        ]
+                        (copyableText context.palette [ Element.width (Element.px 230) ] server.osProps.uuid)
                     ]
                 , Element.el
                     [ Element.alignRight, Font.size 18, Font.regular ]
