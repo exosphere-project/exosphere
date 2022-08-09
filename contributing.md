@@ -93,7 +93,7 @@ For these tests to work, you will need:
 1. An XSEDE account (Go to https://portal.xsede.org/ and create one)
 2. Access to the "Exosphere Integration Testing" (TG-INI210003) Jetstream allocation
 3. A Jetstream administrator to set an OpenStack password for your account
-4Set `OS_USERNAME` and `OS_PASSWORD` environment variables in the GitLab CI/CD settings of your own fork of Exosphere
+4. Set `OS_USERNAME` and `OS_PASSWORD` environment variables in the GitLab CI/CD settings of your own fork of Exosphere
 
 If you do not have access to the TG-INI210003 Jetstream allocation, please ask the maintainers for a set of testing credentials.
 

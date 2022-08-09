@@ -12,7 +12,7 @@ import Set exposing (Set)
 import Style.Helpers as SH
 import Style.Types
 import Style.Widgets.Button as Button
-import Style.Widgets.Card exposing (badge, clickableCardFixedSize, exoCard, exoCardWithTitleAndSubtitle, expandoCard)
+import Style.Widgets.Card exposing (badge, clickableCardFixedSize, exoCard)
 import Style.Widgets.ChipsFilter exposing (chipsFilter)
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.DataList as DataList
@@ -26,7 +26,6 @@ import Widget
 
 type Msg
     = ChipsFilterMsg Style.Widgets.ChipsFilter.ChipsFilterMsg
-    | ToggleExpandoCard Bool
     | DataListMsg DataList.Msg
     | DeleteServer String
     | DeleteSelectedServers (Set String)
@@ -270,15 +269,6 @@ widgets palette model =
     , exoCard palette (Element.text "Lorem ipsum dolor sit amet.")
     , Element.text "Style.Widgets.Card.exoCardFixedSize"
     , clickableCardFixedSize palette 300 300 [ Element.text "Lorem ipsum dolor sit amet." ]
-    , Element.text "Style.Widgets.Card.exoCardWithTitleAndSubtitle"
-    , exoCardWithTitleAndSubtitle palette (Element.text "Title") (Element.text "Subtitle") (Element.text "Lorem ipsum dolor sit amet.")
-    , Element.text "Style.Widgets.Card.expandoCard"
-    , expandoCard palette
-        model.expandoCardExpanded
-        (\new -> ToggleExpandoCard new)
-        (Element.text "Title")
-        (Element.text "Subtitle")
-        (Element.text "contents")
     , Element.text "Style.Widgets.Card.badge"
     , badge "belongs to this project"
     , Element.text "Style.Widgets.button (danger)"
@@ -376,7 +366,6 @@ type alias ChipFilterModel =
 
 type alias Model =
     { chipFilterModel : ChipFilterModel
-    , expandoCardExpanded : Bool
     , dataListModel : DataList.Model
     , servers : List Server
     , showPopovers : Set.Set PopoverId
@@ -390,7 +379,6 @@ init =
             , textInput = ""
             , options = options
             }
-      , expandoCardExpanded = False
       , dataListModel = DataList.init (DataList.getDefaultFilterOptions filters)
       , servers = initServers
       , showPopovers = Set.empty
@@ -431,13 +419,6 @@ update msg model =
             ( { model
                 | chipFilterModel =
                     { cfm | textInput = string }
-              }
-            , Cmd.none
-            )
-
-        ToggleExpandoCard new ->
-            ( { model
-                | expandoCardExpanded = new
               }
             , Cmd.none
             )

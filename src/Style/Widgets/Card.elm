@@ -2,20 +2,37 @@ module Style.Widgets.Card exposing
     ( badge
     , clickableCardFixedSize
     , exoCard
-    , exoCardWithTitleAndSubtitle
-    , expandoCard
+    , notes
     )
 
 import Element exposing (Element)
 import Element.Background as Background
 import Element.Border as Border
-import Element.Events as Events
 import Element.Font as Font
-import Element.Input as Input
-import FeatherIcons
 import Style.Helpers as SH
 import Style.Types
 import Widget
+
+
+notes : String
+notes =
+    """
+## Usage
+
+Cards separate logical units of associated information. Their content is very flexible. 
+
+### Variants
+
+#### exoCard
+
+Used for displaying related information & creates a border around content. It is not interactive; while its content may be clickable, the card itself does not link to a detail view.
+
+#### clickableCardFixedSize
+
+Has a hover effect with the intention that it is wrapped in a link element.
+
+It typically navigates users to a detail page for the represented item e.g. the project, the volume, etc.
+"""
 
 
 exoCard : Style.Types.ExoPalette -> Element msg -> Element msg
@@ -63,107 +80,6 @@ clickableCardFixedSize palette width height content =
     Widget.column
         attribs
         content
-
-
-exoCardWithTitleAndSubtitle : Style.Types.ExoPalette -> Element msg -> Element msg -> Element msg -> Element msg
-exoCardWithTitleAndSubtitle palette title subTitle content =
-    Widget.column
-        (SH.materialStyle palette).cardColumn
-    <|
-        List.append
-            [ Element.row
-                [ Element.width Element.fill, Element.spacing 10 ]
-                [ Element.el [ Font.semiBold, Font.size 16 ] title
-                , Element.el [ Element.alignRight ] subTitle
-                ]
-            ]
-            (if content == Element.none then
-                []
-
-             else
-                [ content ]
-            )
-
-
-expandoCard :
-    Style.Types.ExoPalette
-    -> Bool
-    -> (Bool -> msg)
-    -> Element msg
-    -> Element msg
-    -> Element msg
-    -> Element msg
-expandoCard palette expanded expandToggleMsg title subTitle content =
-    let
-        expandButton : Element.Element msg
-        expandButton =
-            let
-                iconFunction checked =
-                    let
-                        featherIcon =
-                            if checked then
-                                FeatherIcons.chevronDown
-
-                            else
-                                FeatherIcons.chevronRight
-                    in
-                    featherIcon |> FeatherIcons.toHtml [] |> Element.html
-            in
-            Element.el
-                [ Element.alignLeft
-                , Element.centerY
-                , Element.width Element.shrink
-                ]
-                (Input.checkbox [ Element.paddingXY 5 5 ]
-                    { checked = expanded
-                    , onChange = expandToggleMsg
-                    , icon = iconFunction
-                    , label =
-                        Input.labelRight
-                            -- 0 font size is a hack so that screen readers and headless browser tests see the label,
-                            -- but regular users just see the icon.
-                            [ Font.size 0 ]
-                            (Element.text "expand")
-                    }
-                )
-
-        firstRow =
-            Element.row
-                [ Element.width Element.fill, Element.spacing 15 ]
-                [ expandButton
-                , Element.el [ Font.semiBold, Font.size 16 ] title
-                , Element.el [ Element.alignRight, Element.paddingXY 10 0 ] subTitle
-                ]
-    in
-    Widget.column
-        ((SH.materialStyle palette).cardColumn
-            |> (\x ->
-                    { x
-                        | containerColumn =
-                            List.concat
-                                [ (SH.materialStyle palette).cardColumn.containerColumn
-                                , [ Element.padding 0 ]
-                                , if expanded then
-                                    []
-
-                                  else
-                                    [ Events.onClick (expanded |> not |> expandToggleMsg) ]
-                                ]
-                        , element =
-                            (SH.materialStyle palette).cardColumn.element
-                                ++ [ Element.padding 3
-                                   ]
-                    }
-               )
-        )
-        (if expanded then
-            [ firstRow
-            , content
-            ]
-
-         else
-            [ firstRow ]
-        )
 
 
 badge : String -> Element msg

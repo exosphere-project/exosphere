@@ -3,27 +3,25 @@ port module DesignSystem.Explorer exposing (main)
 import Browser.Events
 import Color
 import DesignSystem.Helpers exposing (Plugins, palettize, toHtml)
+import DesignSystem.Stories.Card as CardStories
 import DesignSystem.Stories.ColorPalette as ColorPalette
+import DesignSystem.Stories.Link as LinkStories
+import DesignSystem.Stories.Text as TextStories
 import Element
 import Element.Font as Font
-import Element.Region
-import FeatherIcons
 import Html
 import Html.Attributes exposing (src, style)
 import Set
 import Style.Helpers as SH
 import Style.Types
 import Style.Widgets.Button as Button
-import Style.Widgets.Card exposing (badge, clickableCardFixedSize, exoCard, exoCardWithTitleAndSubtitle, expandoCard)
+import Style.Widgets.Card exposing (badge)
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon exposing (bell, console, copyToClipboard, history, ipAddress, lock, lockOpen, plusCircle, remove, roundRect, timesCircle)
-import Style.Widgets.IconButton exposing (chip)
-import Style.Widgets.Link as Link
 import Style.Widgets.Meter exposing (meter)
 import Style.Widgets.Popover.Popover exposing (popover, toggleIfTargetIsOutside)
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.StatusBadge exposing (StatusBadgeState(..), statusBadge)
-import Style.Widgets.Text as Text
 import UIExplorer
     exposing
         ( Config
@@ -37,7 +35,6 @@ import UIExplorer.ColorMode exposing (ColorMode(..), colorModeToString)
 import UIExplorer.Plugins.Note as NotePlugin
 import UIExplorer.Plugins.Tabs as TabsPlugin
 import UIExplorer.Plugins.Tabs.Icons as TabsIconsPlugin
-import View.Helpers as VH
 
 
 
@@ -73,35 +70,7 @@ port onModeChanged : String -> Cmd msg
 
 
 
---- component helpers
-
-
-{-| Create an icon with standard size & color.
--}
-defaultIcon : Style.Types.ExoPalette -> (Element.Color -> number -> icon) -> icon
-defaultIcon pal icon =
-    icon (pal.neutral.icon |> SH.toElementColor) 25
-
-
-veryLongCopy : String
-veryLongCopy =
-    """
-    Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature from 45 BC,
-    making it over 2000 years old. Richard McClintock, a Latin professor at Hampden-Sydney College in Virginia, looked up one of the more obscure Latin words,
-    consectetur, from a Lorem Ipsum passage, and going through the cites of the word in classical literature, discovered the undoubtable source.
-    Lorem Ipsum comes from sections 1.10.32 and 1.10.33 of "de Finibus Bonorum et Malorum" (The Extremes of Good and Evil) by Cicero, written in 45 BC.
-    This book is a treatise on the theory of ethics, very popular during the Renaissance.
-    """
-
-
-
 --- MODEL
-
-
-{-| Is the Expandable Card expanded or collapsed?
--}
-type alias ExpandoCardState =
-    { expanded : Bool }
 
 
 {-| Which Popovers are visible?
@@ -111,8 +80,7 @@ type alias PopoverState =
 
 
 type alias Model =
-    { expandoCard : ExpandoCardState
-    , popover : PopoverState
+    { popover : PopoverState
     , deployerColors : Style.Types.DeployerColorThemes
     , tabs : TabsPlugin.Model
     }
@@ -120,8 +88,7 @@ type alias Model =
 
 initialModel : Model
 initialModel =
-    { expandoCard = { expanded = False }
-    , deployerColors = Style.Types.defaultColors
+    { deployerColors = Style.Types.defaultColors
     , popover = { showPopovers = Set.empty }
     , tabs = TabsPlugin.initialModel
     }
@@ -173,7 +140,6 @@ type alias Flags =
 
 type Msg
     = NoOp
-    | ToggleExpandoCard Bool
     | TogglePopover PopoverId
     | TabMsg TabsPlugin.Msg
 
@@ -212,16 +178,6 @@ config =
             case msg of
                 NoOp ->
                     ( m, Cmd.none )
-
-                ToggleExpandoCard expanded ->
-                    ( { m
-                        | customModel =
-                            { model
-                                | expandoCard = { expanded = expanded }
-                            }
-                      }
-                    , Cmd.none
-                    )
 
                 TogglePopover popoverId ->
                     ( { m
@@ -273,118 +229,33 @@ main =
         (createCategories
             |> category "Atoms"
                 [ ColorPalette.stories toHtml
-                , storiesOf
-                    "Text"
-                    [ ( "unstyled", \m -> toHtml (palettize m) <| Element.text "This is text rendered using `Element.text` and no styling. It will inherit attributes from the document layout.", { note = "" } )
-                    , ( "p"
-                      , \m ->
-                            toHtml (palettize m) <|
-                                Text.p [ Font.justify ]
-                                    [ Text.body veryLongCopy
-                                    , Text.body "[ref. "
-                                    , Link.externalLink (palettize m) "https://www.lipsum.com/" "www.lipsum.com"
-                                    , Text.body "]"
-                                    ]
-                      , { note = "" }
-                      )
-                    , ( "bold", \m -> toHtml (palettize m) <| Text.p [] [ Text.body "Logged in as ", Text.strong "@Jimmy:3421", Text.body "." ], { note = "" } )
-                    , ( "mono", \m -> toHtml (palettize m) <| Text.p [] [ Text.body "Your IP address is ", Text.mono "192.168.1.1", Text.body "." ], { note = "" } )
-                    , ( "underline"
-                      , \m ->
-                            toHtml (palettize m) <|
-                                Text.p []
-                                    [ Text.body "Exosphere is a "
-                                    , Text.underline "user-friendly"
-                                    , Text.body ", extensible client for cloud computing."
-                                    ]
-                      , { note = "" }
-                      )
-                    , ( "heading"
-                      , \m ->
-                            toHtml (palettize m) <|
-                                Text.heading (palettize m)
-                                    []
-                                    (FeatherIcons.helpCircle
-                                        |> FeatherIcons.toHtml []
-                                        |> Element.html
-                                        |> Element.el []
-                                    )
-                                    "Get Support"
-                      , { note = "" }
-                      )
-                    , ( "subheading"
-                      , \m ->
-                            toHtml (palettize m) <|
-                                Text.subheading (palettize m)
-                                    []
-                                    (FeatherIcons.hardDrive
-                                        |> FeatherIcons.toHtml []
-                                        |> Element.html
-                                        |> Element.el []
-                                    )
-                                    "Volumes"
-                      , { note = "" }
-                      )
-                    , ( "h1"
-                      , \m ->
-                            toHtml (palettize m) <|
-                                Text.text Text.H1
-                                    [ Element.Region.heading 1 ]
-                                    "App Config Info"
-                      , { note = "" }
-                      )
-                    , ( "h2"
-                      , \m ->
-                            toHtml (palettize m) <|
-                                Text.text Text.H2
-                                    [ Element.Region.heading 2 ]
-                                    "App Config Info"
-                      , { note = "" }
-                      )
-                    , ( "h3"
-                      , \m ->
-                            toHtml (palettize m) <|
-                                Text.text Text.H3
-                                    [ Element.Region.heading 3 ]
-                                    "App Config Info"
-                      , { note = "" }
-                      )
-                    , ( "h4", \m -> toHtml (palettize m) <| Text.text Text.H4 [ Element.Region.heading 4 ] "App Config Info", { note = "" } )
-                    ]
-                , storiesOf
-                    "Link"
-                    [ ( "internal"
-                      , \m ->
-                            toHtml (palettize m) <|
-                                Text.p []
-                                    [ Text.body "Compare this to plain, old "
-                                    , Link.link
-                                        (palettize m)
-                                        "http://localhost:8002/#Atoms/Text/underline"
-                                        "underlined text"
-                                    , Text.body "."
-                                    ]
-                      , { note = "" }
-                      )
-                    , ( "external"
-                      , \m ->
-                            toHtml (palettize m) <|
-                                Text.p []
-                                    [ Text.body "Exosphere is a user-friendly, extensible client for cloud computing. Check out our "
-                                    , Link.externalLink
-                                        (palettize m)
-                                        "https://gitlab.com/exosphere/exosphere/blob/master/README.md"
-                                        "README on GitLab"
-                                    , Element.text "."
-                                    ]
-                      , { note = "" }
-                      )
-                    ]
+                , TextStories.stories toHtml
+                , LinkStories.stories toHtml
                 , storiesOf
                     "Icon"
                     (List.map
-                        (\icon ->
-                            ( Tuple.first icon, \m -> toHtml (palettize m) <| defaultIcon (palettize m) <| Tuple.second icon, { note = "" } )
+                        (\widget ->
+                            ( Tuple.first widget
+                            , \m ->
+                                let
+                                    palette =
+                                        palettize m
+
+                                    icon =
+                                        Tuple.second widget
+                                in
+                                toHtml palette <|
+                                    icon (palette.neutral.icon |> SH.toElementColor) 25
+                            , { note = """
+## Usage
+
+Exosphere has several **custom icons**.
+
+For everything else, use [FeatherIcons](https://package.elm-lang.org/packages/1602/elm-feather/latest/FeatherIcons):
+
+    FeatherIcons.logOut |> FeatherIcons.withSize 18 |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
+                            """ }
+                            )
                         )
                         [ ( "bell", bell )
                         , ( "console", console )
@@ -401,126 +272,115 @@ main =
                     )
                 , storiesOf
                     "Button"
-                    [ ( "primary"
-                      , \m ->
-                            toHtml (palettize m) <|
-                                Button.primary (palettize m) { text = "Create", onPress = Just NoOp }
-                      , { note = "" }
-                      )
-                    , ( "disabled"
-                      , \m ->
-                            toHtml (palettize m) <|
-                                Button.primary (palettize m) { text = "Next", onPress = Nothing }
-                      , { note = "" }
-                      )
-                    , ( "secondary"
-                      , \m ->
-                            toHtml (palettize m) <|
-                                Button.default (palettize m) { text = "Next", onPress = Just NoOp }
-                      , { note = "" }
-                      )
-                    , ( "warning"
-                      , \m ->
-                            toHtml (palettize m) <|
-                                Button.button Button.Warning (palettize m) { text = "Suspend", onPress = Just NoOp }
-                      , { note = "" }
-                      )
-                    , ( "danger"
-                      , \m ->
-                            toHtml (palettize m) <|
-                                Button.button Button.Danger (palettize m) { text = "Delete All", onPress = Just NoOp }
-                      , { note = "" }
-                      )
-                    , ( "danger secondary"
-                      , \m ->
-                            toHtml (palettize m) <|
-                                Button.button Button.DangerSecondary (palettize m) { text = "Delete All", onPress = Just NoOp }
-                      , { note = "" }
-                      )
-                    ]
+                    (List.map
+                        (\button ->
+                            ( button.name
+                            , \m ->
+                                toHtml (palettize m) <|
+                                    button.widget (palettize m) { text = button.text, onPress = button.onPress }
+                            , { note = """
+## Usage
+
+Exosphere uses buttons from [elm-ui-widgets](https://package.elm-lang.org/packages/Orasund/elm-ui-widgets/latest/Widget#buttons).
+
+### Variants
+
+- **Primary**: Used for the most important call-to-action on a page.
+
+- **Secondary**: The most commonly used (or default) button.
+
+- **Warning**: Used when an action has reversible consequences with a major impact.
+
+- **Danger**: Used when an action is destructive and/or has irreversible consequences.
+
+- **Danger Secondary**: For non-immediate but irreversible actions, such as those followed by a confirmation alert.
+                            """ }
+                            )
+                        )
+                        [ { name = "primary", widget = Button.primary, text = "Create", onPress = Just NoOp }
+                        , { name = "primary: disabled", widget = Button.primary, text = "Next", onPress = Nothing }
+                        , { name = "secondary", widget = Button.default, text = "Next", onPress = Just NoOp }
+                        , { name = "warning", widget = Button.button Button.Warning, text = "Suspend", onPress = Just NoOp }
+                        , { name = "danger", widget = Button.button Button.Danger, text = "Delete All", onPress = Just NoOp }
+                        , { name = "danger secondary", widget = Button.button Button.DangerSecondary, text = "Delete All", onPress = Just NoOp }
+                        ]
+                    )
                 , storiesOf
                     "Badge"
-                    [ ( "default", \m -> toHtml (palettize m) <| badge "Experimental", { note = "" } )
+                    [ ( "default", \m -> toHtml (palettize m) <| badge "Experimental", { note = """
+## Usage
+
+To annotate additional but important information like marking features as "Experimental".
+
+_This component is being deprecated._
+
+### Alternatives
+
+If you are looking for a way to display removable tags, consider a [chip](/#Organisms/Chip).
+
+If you want to show a resource's current state or provide feedback on a process, consider using a [status badge](/#Atoms/Status%20Badge).
+                        """ } )
                     ]
                 , storiesOf
                     "Status Badge"
-                    [ ( "good", \m -> toHtml (palettize m) <| statusBadge (palettize m) ReadyGood (Element.text "Ready"), { note = "" } )
-                    , ( "muted", \m -> toHtml (palettize m) <| statusBadge (palettize m) Muted (Element.text "Unknown"), { note = "" } )
-                    , ( "warning", \m -> toHtml (palettize m) <| statusBadge (palettize m) Style.Widgets.StatusBadge.Warning (Element.text "Building"), { note = "" } )
-                    , ( "error", \m -> toHtml (palettize m) <| statusBadge (palettize m) Error (Element.text "Error"), { note = "" } )
-                    ]
+                    (List.map
+                        (\status ->
+                            ( status.name
+                            , \m ->
+                                toHtml (palettize m) <|
+                                    statusBadge (palettize m) status.variant status.text
+                            , { note = """
+## Usage
+
+To display a read-only label which clearly shows the current status of a resource (usually a server).
+                        """ }
+                            )
+                        )
+                        [ { name = "good", variant = ReadyGood, text = Element.text "Ready" }
+                        , { name = "muted", variant = Muted, text = Element.text "Unknown" }
+                        , { name = "warning", variant = Style.Widgets.StatusBadge.Warning, text = Element.text "Building" }
+                        , { name = "error", variant = Error, text = Element.text "Error" }
+                        ]
+                    )
                 ]
             |> category "Molecules"
-                [ storiesOf
+                [ --TODO: Add `filterChipView` (inside DataList) since `chip` is not in use.
+                  storiesOf
                     "Copyable Text"
                     [ ( "default"
                       , \m ->
                             toHtml (palettize m) <|
-                                Style.Widgets.CopyableText.copyableText
+                                copyableText
                                     (palettize m)
-                                    [ Font.family [ Font.monospace ] ]
+                                    [ Font.family [ Font.monospace ]
+                                    , Element.width Element.shrink
+                                    ]
                                     "192.168.1.1"
-                      , { note = "" }
-                      )
-                    ]
-                , storiesOf
-                    "Card"
-                    [ ( "default", \m -> toHtml (palettize m) <| exoCard (palettize m) (Element.text "192.168.1.1"), { note = "" } )
-                    , -- TODO: Render a more complete version of this based on Page.Home.
-                      ( "fixed size with hover", \m -> toHtml (palettize m) <| clickableCardFixedSize (palettize m) 300 300 [ Element.text "Lorem ipsum dolor sit amet." ], { note = "" } )
-                    , ( "title & accessories with hover"
-                      , \m ->
-                            toHtml (palettize m) <|
-                                exoCardWithTitleAndSubtitle (palettize m)
-                                    (Style.Widgets.CopyableText.copyableText
-                                        (palettize m)
-                                        [ Font.family [ Font.monospace ] ]
-                                        "192.168.1.1"
-                                    )
-                                    (Button.default
-                                        (palettize m)
-                                        { text = "Unassign"
-                                        , onPress = Just NoOp
-                                        }
-                                    )
-                                    (Element.text "Assigned to a resource that Exosphere cannot represent")
-                      , { note = "" }
+                      , { note = """
+## Usage
+
+Shows stylable text with an accessory button for copying the text content to the user's clipboard.
+
+It uses [clipboard.js](https://clipboardjs.com/) under the hood & relies on a [port for initialisation](https://gitlab.com/exosphere/exosphere/-/blob/master/ports.js#L101).
+                        """ }
                       )
                     ]
                 , storiesOf
                     "Meter"
-                    [ ( "default", \m -> toHtml (palettize m) <| meter (palettize m) "Space used" "6 of 10 GB" 6 10, { note = "" } )
+                    [ ( "default", \m -> toHtml (palettize m) <| meter (palettize m) "Space used" "6 of 10 GB" 6 10, { note = """
+## Usage
+
+Shows a static horizontal progress bar chart which indicates the capacity of a resource.
+
+- `title` indicates the resource.
+- `subtitle` represents the value and maximum in words e.g. "<value> of <maximum> <units>".
+                    """ } )
                     ]
                 ]
             |> category "Organisms"
-                [ storiesOf
-                    "Expandable Card"
-                    [ ( "default"
-                      , \m ->
-                            toHtml (palettize m) <|
-                                expandoCard (palettize m)
-                                    m.customModel.expandoCard.expanded
-                                    (\next -> ToggleExpandoCard next)
-                                    (Element.text "Backup SSD")
-                                    (Element.text "25 GB")
-                                    (Element.column
-                                        VH.contentContainer
-                                        [ VH.compactKVRow "Name:" <| Element.text "Backup SSD"
-                                        , VH.compactKVRow "Status:" <| Element.text "Ready"
-                                        , VH.compactKVRow "Description:" <|
-                                            Element.paragraph [ Element.width Element.fill ] <|
-                                                [ Element.text "Solid State Drive" ]
-                                        , VH.compactKVRow "UUID:" <| copyableText (palettize m) [] "6205e1a8-9a5d-4325-bb0d-219f09a4d988"
-                                        ]
-                                    )
-                      , { note = "" }
-                      )
-                    ]
-                , storiesOf
-                    "Chip"
-                    [ ( "default", \m -> toHtml (palettize m) <| chip (palettize m) Nothing (Element.text "assigned"), { note = "" } )
-                    , ( "with badge", \m -> toHtml (palettize m) <| chip (palettize m) Nothing (Element.row [ Element.spacing 5 ] [ Element.text "ubuntu", badge "10" ]), { note = "" } )
-                    ]
+                [ CardStories.stories toHtml
+
+                -- TODO: Add stories for special popovers.
                 , storiesOf
                     "Popover"
                     (List.map
@@ -562,7 +422,33 @@ main =
                                 toHtml (palettize m) <|
                                     Element.el [ Element.paddingXY 400 100 ]
                                         demoPopover
-                            , { note = "" }
+                            , { note = """
+## Usage
+
+Takes a **target** element that opens/closes the popover and a **content** element for the popover body.
+
+### Special Cases
+
+#### Tooltip
+
+Use `toggleTip` to show an icon button that toggles a hint when clicked.
+
+#### Dropdown
+
+Use a list of dropdown items with `dropdownItemStyle` to create a dropdown.
+
+#### Confirmation Popup
+
+Use `deletePopconfirm` to show a confirmation popover after pressing a delete button.
+
+### Advanced
+
+By default, the popover manages its own toggle state.
+
+For advanced usage, `popoverAttribs` returns the [nearby elements](https://package.elm-lang.org/packages/mdgriffith/elm-ui/1.1.8/Element#nearby-elements) required by the target element when the popover is shown.
+
+Use `popoverStyleDefaults` so that the popover style is still consistent with others in the application.
+                            """ }
                             )
                         )
                         [ ( "TopLeft", Style.Types.PositionTopLeft )

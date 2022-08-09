@@ -1,4 +1,4 @@
-module Style.Widgets.Text exposing (TextVariant(..), body, defaultFontFamily, defaultFontSize, fontWeightAttr, heading, headingStyleAttrs, mono, p, strong, subheading, subheadingStyleAttrs, text, typography, typographyAttrs, underline)
+module Style.Widgets.Text exposing (TextVariant(..), body, defaultFontFamily, defaultFontSize, fontWeightAttr, heading, headingStyleAttrs, mono, monoFontFamily, notes, p, strong, subheading, subheadingStyleAttrs, text, typography, typographyAttrs, underline)
 
 import Element
 import Element.Border as Border
@@ -6,6 +6,29 @@ import Element.Font as Font exposing (Font)
 import Element.Region as Region
 import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
+
+
+notes : String
+notes =
+    """
+## Usage
+
+Text widgets use `elm-ui` under the hood, particularly [Element.text](https://package.elm-lang.org/packages/mdgriffith/elm-ui/latest/Element#text).
+
+Where possible, use or extend `Text` rather than resorting to `Element.text` or custom styling with `Font` as this helps to ensure:
+
+- Consistent typography, font sizing, etc.
+- Centralised, predictable refactoring of text styles.
+
+## Typeface
+
+Exosphere's default font is [Open Sans](https://gitlab.com/exosphere/exosphere/-/blob/master/src/Style/Widgets/Text.elm#L102).
+
+It is [self-vendored from `/fonts`](https://gitlab.com/exosphere/exosphere/-/blob/master/fonts/open-sans-400-700.css) to:
+
+- Protect end-user privacy, &
+- Provide fast, predictable availability.
+"""
 
 
 
@@ -104,6 +127,13 @@ defaultFontFamily =
         (Font.typeface "Open Sans"
             :: systemFonts
         )
+
+
+{-| Element attribute for the mono font family.
+-}
+monoFontFamily : Element.Attribute msg
+monoFontFamily =
+    Font.family [ Font.monospace ]
 
 
 {-| System fonts for common browsers & operating systems.
@@ -243,7 +273,7 @@ strong label =
 -}
 mono : String -> Element.Element msg
 mono label =
-    text Body [ Font.family [ Font.monospace ] ] label
+    text Body [ monoFontFamily ] label
 
 
 {-| A convience method for underlined body text.
