@@ -168,13 +168,15 @@ appView windowSize outerModel context =
 
                     Nothing ->
                         Element.none
-                , Element.el contentContainerAttrs content
-                , Element.html
-                    (Toasty.view Style.Toast.toastConfig
-                        (Page.Toast.view context outerModel.sharedModel)
-                        (\m -> SharedMsg <| ToastyMsg m)
-                        outerModel.sharedModel.toasties
-                    )
+                , Element.column contentContainerAttrs
+                    [ content
+                    , Element.html
+                        (Toasty.view Style.Toast.toastConfig
+                            (Page.Toast.view context outerModel.sharedModel)
+                            (\m -> SharedMsg <| ToastyMsg m)
+                            outerModel.sharedModel.toasties
+                        )
+                    ]
                 ]
     in
     Element.column
