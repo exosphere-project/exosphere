@@ -216,11 +216,8 @@ view context widthPx ( currentTime, timeZone ) maybeServerResourceQtys timeSerie
     in
     Element.row
         [ Element.width Element.fill
-        , Element.height (Element.minimum 229 Element.shrink)
+        , Element.height (Element.minimum 250 Element.shrink)
         , Element.scrollbarX
-
-        -- This is needed to avoid showing a vertical scroll bar
-        , Element.paddingXY 0 1
         ]
         [ Element.column []
             [ toCpuHeading context maybeServerResourceQtys haveGpuData
