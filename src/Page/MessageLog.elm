@@ -69,6 +69,24 @@ view context sharedModel model =
             List.map VH.renderMessageAsString shownMessages
                 |> List.intersperse "\n"
                 |> String.concat
+
+        copyMessagesBtn =
+            if List.isEmpty shownMessages then
+                Element.none
+
+            else
+                Element.el
+                    [ Element.htmlAttribute <| Html.Attributes.class "copy-button"
+                    , Element.htmlAttribute <|
+                        Html.Attributes.attribute "data-clipboard-text" allMessagesStr
+                    , Element.alignRight
+                    ]
+                <|
+                    Widget.textButton
+                        (SH.materialStyle context.palette).textButton
+                        { onPress = Just NoOp
+                        , text = "Copy all messages"
+                        }
     in
     Element.column
         (VH.contentContainer ++ [ Element.spacing 36 ])
@@ -80,18 +98,7 @@ view context sharedModel model =
                 , checked = model.showDebugMsgs
                 , onChange = GotShowDebugMsgs
                 }
-            , Element.el
-                [ Element.htmlAttribute <| Html.Attributes.class "copy-button"
-                , Element.htmlAttribute <|
-                    Html.Attributes.attribute "data-clipboard-text" allMessagesStr
-                , Element.alignRight
-                ]
-              <|
-                Widget.textButton
-                    (SH.materialStyle context.palette).textButton
-                    { onPress = Just NoOp
-                    , text = "Copy all messages"
-                    }
+            , copyMessagesBtn
             ]
         , if List.isEmpty shownMessages then
             Element.text "(No Messages)"
