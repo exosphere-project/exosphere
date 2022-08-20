@@ -268,7 +268,7 @@ renderMessageAsElement context message =
                 ErrorCrit ->
                     context.palette.danger.textOnNeutralBG |> SH.toElementColor
     in
-    Element.column [ Element.spacing 12 ]
+    Element.column [ Element.spacing 12, Element.width Element.fill ]
         [ Element.row [ Element.alignRight ]
             [ Element.el
                 [ Font.color <| levelColor message.context.level

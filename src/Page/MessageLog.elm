@@ -2,13 +2,16 @@ module Page.MessageLog exposing (Model, Msg(..), headerView, init, update, view)
 
 import Element
 import Element.Input as Input
+import Html.Attributes
 import Route
+import Style.Helpers as SH
 import Style.Widgets.Text as Text
 import Types.Error exposing (ErrorLevel(..))
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
+import Widget
 
 
 type alias Model =
@@ -18,6 +21,7 @@ type alias Model =
 
 type Msg
     = GotShowDebugMsgs Bool
+    | NoOp
 
 
 init : Maybe Bool -> Model
@@ -33,6 +37,9 @@ update msg { viewContext } model =
             , Route.replaceUrl viewContext (Route.MessageLog new)
             , SharedMsg.NoOp
             )
+
+        NoOp ->
+            ( model, Cmd.none, SharedMsg.NoOp )
 
 
 headerView : View.Types.Context -> Element.Element msg
@@ -57,20 +64,39 @@ view context sharedModel model =
             in
             sharedModel.logMessages
                 |> List.filter filter
+
+        allMessagesStr =
+            List.map VH.renderMessageAsString shownMessages
+                |> List.intersperse "\n"
+                |> String.concat
     in
     Element.column
-        [ Element.width Element.fill, Element.spacing 12 ]
-        [ Input.checkbox
-            []
-            { label = Input.labelRight [] (Element.text "Show low-level debug messages")
-            , icon = Input.defaultCheckbox
-            , checked = model.showDebugMsgs
-            , onChange = GotShowDebugMsgs
-            }
+        (VH.contentContainer ++ [ Element.spacing 36 ])
+        [ Element.row [ Element.width Element.fill ]
+            [ Input.checkbox
+                []
+                { label = Input.labelRight [] (Element.text "Show low-level debug messages")
+                , icon = Input.defaultCheckbox
+                , checked = model.showDebugMsgs
+                , onChange = GotShowDebugMsgs
+                }
+            , Element.el
+                [ Element.htmlAttribute <| Html.Attributes.class "copy-button"
+                , Element.htmlAttribute <|
+                    Html.Attributes.attribute "data-clipboard-text" allMessagesStr
+                , Element.alignRight
+                ]
+              <|
+                Widget.textButton
+                    (SH.materialStyle context.palette).textButton
+                    { onPress = Just NoOp
+                    , text = "Copy all messages"
+                    }
+            ]
         , if List.isEmpty shownMessages then
             Element.text "(No Messages)"
 
           else
-            Element.column (VH.contentContainer ++ [ Element.spacing 36 ])
+            Element.column [ Element.spacing 36 ]
                 (List.map (VH.renderMessageAsElement context) shownMessages)
         ]
