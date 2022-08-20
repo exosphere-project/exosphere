@@ -71,17 +71,18 @@ view context sharedModel model =
                 |> String.concat
 
         copyMessagesBtn =
-            if List.isEmpty shownMessages then
-                Element.none
+            -- to make ClipboardJS work, we have to keep this "copy-button" class element always in DOM, even when we are not showing the button
+            Element.el
+                [ Element.htmlAttribute <| Html.Attributes.class "copy-button"
+                , Element.htmlAttribute <|
+                    Html.Attributes.attribute "data-clipboard-text" allMessagesStr
+                , Element.alignRight
+                ]
+            <|
+                if List.isEmpty shownMessages then
+                    Element.none
 
-            else
-                Element.el
-                    [ Element.htmlAttribute <| Html.Attributes.class "copy-button"
-                    , Element.htmlAttribute <|
-                        Html.Attributes.attribute "data-clipboard-text" allMessagesStr
-                    , Element.alignRight
-                    ]
-                <|
+                else
                     Widget.textButton
                         (SH.materialStyle context.palette).textButton
                         { onPress = Just NoOp
