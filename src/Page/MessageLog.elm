@@ -95,13 +95,13 @@ view context sharedModel model =
     Element.column
         (VH.contentContainer ++ [ Element.spacing columnSpacing ])
         [ Element.row [ Element.width Element.fill ]
-            [ Input.checkbox
-                []
-                { label = Input.labelRight [] (Element.text "Show low-level debug messages")
-                , icon = Input.defaultCheckbox
-                , checked = model.showDebugMsgs
-                , onChange = GotShowDebugMsgs
-                }
+            [ Element.el [] <|
+                Input.checkbox []
+                    { label = Input.labelRight [] (Element.text "Show low-level debug messages")
+                    , icon = Input.defaultCheckbox
+                    , checked = model.showDebugMsgs
+                    , onChange = GotShowDebugMsgs
+                    }
             , copyMessagesBtn
             ]
         , if List.isEmpty shownMessages then
