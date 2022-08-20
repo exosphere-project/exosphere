@@ -53,6 +53,9 @@ headerView context =
 view : View.Types.Context -> SharedModel -> Model -> Element.Element Msg
 view context sharedModel model =
     let
+        columnSpacing =
+            36
+
         shownMessages =
             let
                 filter =
@@ -90,7 +93,7 @@ view context sharedModel model =
                         }
     in
     Element.column
-        (VH.contentContainer ++ [ Element.spacing 36 ])
+        (VH.contentContainer ++ [ Element.spacing columnSpacing ])
         [ Element.row [ Element.width Element.fill ]
             [ Input.checkbox
                 []
@@ -105,6 +108,9 @@ view context sharedModel model =
             Element.text "(No Messages)"
 
           else
-            Element.column [ Element.spacing 36 ]
+            Element.column
+                [ Element.spacing columnSpacing
+                , Element.width Element.fill
+                ]
                 (List.map (VH.renderMessageAsElement context) shownMessages)
         ]
