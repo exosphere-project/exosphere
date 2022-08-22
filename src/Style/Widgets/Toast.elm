@@ -22,7 +22,18 @@ notes : String
 notes =
     """
 ## Usage
-    """
+
+Exosphere uses [Toasty](https://package.elm-lang.org/packages/pablen/toasty/latest/Toasty) to display toast messages.
+
+Toasts are shown to inform the user of an error. A toast's style is determined by error level.
+
+A toast is dismissed:
+
+- When it is clicked, or
+- After its configured delay is elapsed.
+
+Toasts accumulate under each other in a list. New toasts with the same underlying error are ignored.
+"""
 
 
 {-| Toasts need to be accumulated in a stack & have their own identifiers.
