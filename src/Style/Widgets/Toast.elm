@@ -9,6 +9,8 @@ import Html exposing (Html)
 import Html.Attributes
 import Style.Helpers as SH
 import Style.Types as ST
+import Style.Widgets.Link as Link
+import Style.Widgets.Text as Text
 import Toasty
 import Toasty.Defaults
 import Types.Error exposing (ErrorLevel(..), Toast)
@@ -89,6 +91,7 @@ view context sharedModel t =
 
         toastElement =
             genericToast
+                context.palette
                 stateColor
                 title
                 t.context.actionContext
@@ -113,8 +116,8 @@ view context sharedModel t =
         layoutWith Element.none
 
 
-genericToast : ST.UIStateColors -> String -> String -> String -> Maybe String -> Element.Element msg
-genericToast stateColor title actionContext error maybeRecoveryHint =
+genericToast : ST.ExoPalette -> ST.UIStateColors -> String -> String -> String -> Maybe String -> Element.Element msg
+genericToast palette stateColor title actionContext error maybeRecoveryHint =
     Element.column
         [ Element.pointer
         , Element.padding 10
@@ -153,6 +156,15 @@ genericToast stateColor title actionContext error maybeRecoveryHint =
 
                 Nothing ->
                     Element.none
+            , Element.paragraph []
+                [ Element.link
+                    (Link.linkStyle palette
+                        ++ [ Element.alignRight ]
+                    )
+                    { url = "/msglog"
+                    , label = Text.text Text.Small [] "Read more"
+                    }
+                ]
             ]
         ]
 
