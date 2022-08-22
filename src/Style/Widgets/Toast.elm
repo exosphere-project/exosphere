@@ -4,11 +4,13 @@ import Element
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
+import Element.Input as Input
 import Element.Region as Region
 import Html exposing (Html)
 import Html.Attributes
 import Style.Helpers as SH
 import Style.Types as ST
+import Style.Widgets.Icon as Icon
 import Style.Widgets.Link as Link
 import Style.Widgets.Text as Text
 import Toasty
@@ -130,12 +132,24 @@ genericToast palette stateColor title actionContext error maybeRecoveryHint =
         , Border.rounded 4
         , Border.shadow SH.shadowDefaults
         ]
-        [ Element.el
-            [ Region.heading 1
-            , Font.semiBold
-            , Font.size 14
+        [ Element.row
+            [ Element.width Element.fill ]
+            [ Element.el
+                [ Region.heading 1
+                , Font.semiBold
+                , Font.size 14
+                ]
+                (Element.text title)
+            , Input.button
+                [ Element.mouseOver
+                    [ Border.color <| SH.toElementColor palette.neutral.icon
+                    ]
+                , Element.alignRight
+                ]
+                { onPress = Nothing
+                , label = Icon.timesCircle (SH.toElementColor palette.neutral.icon) 12
+                }
             ]
-            (Element.text title)
         , Element.column
             [ Font.size 13
             , Element.spacing 8
