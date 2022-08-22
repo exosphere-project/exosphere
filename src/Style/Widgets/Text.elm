@@ -65,6 +65,7 @@ type TextVariant
     | H4
     | Body
     | Strong
+    | Small
 
 
 
@@ -103,6 +104,11 @@ typography variant =
 
         Body ->
             { size = 17
+            , weight = Regular
+            }
+
+        Small ->
+            { size = 13
             , weight = Regular
             }
 
