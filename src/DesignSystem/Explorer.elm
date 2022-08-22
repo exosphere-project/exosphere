@@ -149,7 +149,7 @@ type Msg
     | TogglePopover PopoverId
     | TabMsg TabsPlugin.Msg
     | ToastMsg (Toasty.Msg Toast)
-    | ToastShow ErrorLevel
+    | ToastShow ErrorLevel String
 
 
 
@@ -216,9 +216,9 @@ config =
                     , Toast.update ToastMsg submsg m.customModel |> Tuple.second
                     )
 
-                ToastShow level ->
-                    ( { m | customModel = ( m.customModel, Cmd.none ) |> Toast.showToast (ToastStories.makeToast level) ToastMsg |> Tuple.first }
-                    , ( m.customModel, Cmd.none ) |> Toast.showToast (ToastStories.makeToast level) ToastMsg |> Tuple.second
+                ToastShow level actionContext ->
+                    ( { m | customModel = ( m.customModel, Cmd.none ) |> Toast.showToast (ToastStories.makeToast level actionContext) ToastMsg |> Tuple.first }
+                    , ( m.customModel, Cmd.none ) |> Toast.showToast (ToastStories.makeToast level actionContext) ToastMsg |> Tuple.second
                     )
     , menuViewEnhancer = \_ v -> v
     , viewEnhancer =
@@ -399,10 +399,11 @@ Shows a static horizontal progress bar chart which indicates the capacity of a r
                 [ CardStories.stories toHtml
                 , ToastStories.stories toHtml
                     ToastMsg
-                    [ { name = "debug", onPress = Just (ToastShow ErrorDebug) }
-                    , { name = "info", onPress = Just (ToastShow ErrorInfo) }
-                    , { name = "warning", onPress = Just (ToastShow ErrorWarn) }
-                    , { name = "critical", onPress = Just (ToastShow ErrorCrit) }
+                    [ { name = "debug", onPress = Just (ToastShow ErrorDebug "request console log for server 5b8ad28f-3a82-4eec-aee6-7389f62ce04e") }
+                    , { name = "info", onPress = Just (ToastShow ErrorInfo "format volume b2b1a743-9c27-41bd-a430-4b38ae65fb5f") }
+                    , { name = "warning", onPress = Just (ToastShow ErrorWarn "decode stored application state retrieved from browser local storage") }
+                    , { name = "critical", onPress = Just (ToastShow ErrorCrit "get a list of volumes") }
+                    , { name = "critical alt", onPress = Just (ToastShow ErrorCrit "get list of ports") }
                     ]
                 , storiesOf
                     "Popover"

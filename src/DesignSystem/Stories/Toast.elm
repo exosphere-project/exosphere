@@ -16,12 +16,12 @@ import UIExplorer
 
 {-| Configure an example toast based on error level.
 -}
-makeToast : ErrorLevel -> Toast
-makeToast level =
+makeToast : ErrorLevel -> String -> Toast
+makeToast level actionContext =
     case level of
         ErrorDebug ->
             Toast
-                { actionContext = "request console log for server 5b8ad28f-3a82-4eec-aee6-7389f62ce04e"
+                { actionContext = actionContext
                 , level = level
                 , recoveryHint = Nothing
                 }
@@ -29,7 +29,7 @@ makeToast level =
 
         ErrorInfo ->
             Toast
-                { actionContext = "format volume b2b1a743-9c27-41bd-a430-4b38ae65fb5f"
+                { actionContext = actionContext
                 , level = level
                 , recoveryHint = Just "Try choose a different volume."
                 }
@@ -37,7 +37,7 @@ makeToast level =
 
         ErrorWarn ->
             Toast
-                { actionContext = "decode stored application state retrieved from browser local storage"
+                { actionContext = actionContext
                 , level = level
                 , recoveryHint = Nothing
                 }
@@ -45,7 +45,7 @@ makeToast level =
 
         ErrorCrit ->
             Toast
-                { actionContext = "get a list of volumes"
+                { actionContext = actionContext
                 , level = level
                 , recoveryHint = Nothing
                 }
