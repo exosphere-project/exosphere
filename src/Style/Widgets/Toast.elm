@@ -157,13 +157,18 @@ genericToast stateColor title actionContext error maybeRecoveryHint =
         ]
 
 
+deduplicate : Toast -> List Toast -> Bool
+deduplicate toast =
+    not << List.any (\t -> t.error == toast.error)
+
+
 showToast :
     Toast
     -> (Toasty.Msg Toast -> msg)
     -> ( ToastState model, Cmd msg )
     -> ( ToastState model, Cmd msg )
 showToast toast tagger ( model, cmd ) =
-    Toasty.addToastIfUnique config tagger toast ( model, cmd )
+    Toasty.addToastIf config tagger (deduplicate toast) toast ( model, cmd )
 
 
 update : (Toasty.Msg Toast -> msg) -> Toasty.Msg Toast -> ToastState model -> ( ToastState model, Cmd msg )
