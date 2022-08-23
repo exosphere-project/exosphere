@@ -444,7 +444,7 @@ Shows a static horizontal progress bar chart which indicates the capacity of a r
                                             }
                                 in
                                 toHtml (palettize m) <|
-                                    Element.el [ Element.paddingXY 400 100 ]
+                                    Element.el [ Element.centerX ]
                                         demoPopover
                             , { note = """
 ## Usage

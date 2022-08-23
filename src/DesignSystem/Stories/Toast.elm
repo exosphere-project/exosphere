@@ -97,8 +97,7 @@ stories renderer tagger levels =
                     in
                     Html.div []
                         [ renderer (palettize m) <|
-                            Element.el [ Element.paddingXY 400 100 ]
-                                (button level.onPress)
+                            Element.el [ Element.centerX ] (button level.onPress)
                         , Toasty.view config (view { palette = palettize m } { showDebugMsgs = True }) tagger m.customModel.toasties
                         ]
                 , { note = notes }
