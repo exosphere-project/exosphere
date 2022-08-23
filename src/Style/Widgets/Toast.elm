@@ -8,6 +8,7 @@ import Element.Input as Input
 import Element.Region as Region
 import Html exposing (Html)
 import Html.Attributes
+import Route exposing (Route(..))
 import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.Icon as Icon
@@ -112,6 +113,7 @@ view context sharedModel t =
                 t.context.actionContext
                 t.error
                 t.context.recoveryHint
+                sharedModel.showDebugMsgs
 
         show =
             case t.context.level of
@@ -131,8 +133,8 @@ view context sharedModel t =
         layoutWith Element.none
 
 
-genericToast : ST.ExoPalette -> ST.UIStateColors -> String -> String -> String -> Maybe String -> Element.Element msg
-genericToast palette stateColor title actionContext error maybeRecoveryHint =
+genericToast : ST.ExoPalette -> ST.UIStateColors -> String -> String -> String -> Maybe String -> Bool -> Element.Element msg
+genericToast palette stateColor title actionContext error maybeRecoveryHint showDebugMsgs =
     Element.column
         [ Element.pointer
         , Element.padding 10
@@ -188,7 +190,7 @@ genericToast palette stateColor title actionContext error maybeRecoveryHint =
                     (Link.linkStyle palette
                         ++ [ Element.alignRight ]
                     )
-                    { url = "/msglog"
+                    { url = Route.toUrl Nothing (MessageLog showDebugMsgs)
                     , label = Text.text Text.Small [] "Read more"
                     }
                 ]
