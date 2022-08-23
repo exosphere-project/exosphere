@@ -26,10 +26,10 @@ import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.Alert as Alert
 import Style.Widgets.Button as Button
-import Style.Widgets.Card exposing (badge)
 import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Style.Widgets.Select
+import Style.Widgets.Tag as Tag
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
 import Time
@@ -1192,8 +1192,8 @@ customWorkflowInputExperimental context project model =
                 )
                 ST.PositionTop
 
-        experimentalBadge =
-            badge "Experimental"
+        experimentalTag =
+            Tag.tag context.palette "Experimental"
     in
     Element.column
         [ Element.width Element.fill
@@ -1207,7 +1207,7 @@ customWorkflowInputExperimental context project model =
                         [ Text.text Text.H4
                             []
                             ("Launch a workflow in the " ++ context.localization.virtualComputer)
-                        , experimentalBadge
+                        , experimentalTag
                         , workflowExplanationToggleTip
                         ]
                     )
@@ -1258,8 +1258,8 @@ clusterInputExperimental context model =
                     ]
             ]
 
-        experimentalBadge =
-            badge "Experimental"
+        experimentalTag =
+            Tag.tag context.palette "Experimental"
     in
     Element.column
         [ Element.width Element.fill
@@ -1270,7 +1270,7 @@ clusterInputExperimental context model =
                 Input.labelAbove [ Element.paddingXY 0 12 ]
                     (Element.row [ Element.spacingXY 10 0 ]
                         [ Text.text Text.H4 [] ("Create your own SLURM cluster with this " ++ context.localization.virtualComputer ++ " as the head node")
-                        , experimentalBadge
+                        , experimentalTag
                         ]
                     )
             , onChange = GotCreateCluster
