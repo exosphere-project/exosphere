@@ -91,7 +91,7 @@ Our CI pipeline also runs end-to-end tests with real browsers.  If you are a reg
 For these tests to work, you will need:
 
 1. An ACCESS account (Go to https://access-ci.org and create one)
-2. Access to the "Exosphere Integration Testing" (TG-INI210003) Jetstream2 allocation. If you do not have access to the TG-INI210003 Jetstream2 allocation, please ask the maintainers.
+2. Access to the "Exosphere Integration Testing" (INI210003) Jetstream2 allocation. If you do not have access to the INI210003 Jetstream2 allocation, please ask the maintainers.
 3. A Jetstream2 administrator to set an OpenStack password for your user account
 4. Set `OS_USERNAME` and `OS_PASSWORD` environment variables in the GitLab CI/CD settings of your own fork of Exosphere
 
