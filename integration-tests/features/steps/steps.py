@@ -142,7 +142,7 @@ def i_click_card_with_label(context, label):
 @persona_vars
 def i_login_to_exosphere(context):
     os_auth_url = os.environ.get('OS_AUTH_URL', 'https://js2.jetstream-cloud.org:5000/v3/')
-    os_user_domain_name = os.environ.get('OS_USER_DOMAIN_NAME', 'xsede')
+    os_user_domain_name = os.environ.get('OS_USER_DOMAIN_NAME', 'access')
     os_username = os.environ.get('OS_USERNAME')
     os_password = os.environ.get('OS_PASSWORD')
     context.execute_steps(f"""
