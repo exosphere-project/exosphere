@@ -19,8 +19,8 @@ var config = {
     keystoneAuthUrl: "https://js2.jetstream-cloud.org:5000/identity/v3",
     webssoKeystoneEndpoint:
       "/auth/OS-FEDERATION/websso/openid?origin=https://try-dev.exosphere.app/exosphere/oidc-redirector",
-    oidcLoginIcon: "assets/img/XSEDE_Logo_Black_INF.png",
-    oidcLoginButtonLabel: "Add XSEDE Account",
+    oidcLoginIcon: "assets/img/access-logo.jpg",
+    oidcLoginButtonLabel: "Add ACCESS Account",
     oidcLoginButtonDescription: "Jetstream 2 only",
   },
   localization: null,
