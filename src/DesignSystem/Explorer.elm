@@ -7,6 +7,7 @@ import DesignSystem.Stories.Card as CardStories
 import DesignSystem.Stories.ColorPalette as ColorPalette
 import DesignSystem.Stories.Link as LinkStories
 import DesignSystem.Stories.Text as TextStories
+import DesignSystem.Stories.Toast as ToastStories
 import Element
 import Element.Font as Font
 import Html
@@ -22,6 +23,9 @@ import Style.Widgets.Meter exposing (meter)
 import Style.Widgets.Popover.Popover exposing (popover, toggleIfTargetIsOutside)
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.StatusBadge exposing (StatusBadgeState(..), statusBadge)
+import Style.Widgets.Toast as Toast
+import Toasty
+import Types.Error exposing (ErrorLevel(..), Toast)
 import UIExplorer
     exposing
         ( Config
@@ -83,6 +87,7 @@ type alias Model =
     { popover : PopoverState
     , deployerColors : Style.Types.DeployerColorThemes
     , tabs : TabsPlugin.Model
+    , toasties : Toasty.Stack Toast
     }
 
 
@@ -91,6 +96,7 @@ initialModel =
     { deployerColors = Style.Types.defaultColors
     , popover = { showPopovers = Set.empty }
     , tabs = TabsPlugin.initialModel
+    , toasties = Toast.initialModel
     }
 
 
@@ -142,6 +148,8 @@ type Msg
     = NoOp
     | TogglePopover PopoverId
     | TabMsg TabsPlugin.Msg
+    | ToastMsg (Toasty.Msg Toast)
+    | ToastShow ErrorLevel String
 
 
 
@@ -202,6 +210,16 @@ config =
                             m.customModel
                     in
                     ( { m | customModel = { cm | tabs = TabsPlugin.update submsg m.customModel.tabs } }, Cmd.none )
+
+                ToastMsg submsg ->
+                    ( { m | customModel = Toast.update ToastMsg submsg m.customModel |> Tuple.first }
+                    , Toast.update ToastMsg submsg m.customModel |> Tuple.second
+                    )
+
+                ToastShow level actionContext ->
+                    ( { m | customModel = ( m.customModel, Cmd.none ) |> Toast.showToast (ToastStories.makeToast level actionContext) ToastMsg |> Tuple.first }
+                    , ( m.customModel, Cmd.none ) |> Toast.showToast (ToastStories.makeToast level actionContext) ToastMsg |> Tuple.second
+                    )
     , menuViewEnhancer = \_ v -> v
     , viewEnhancer =
         \m stories ->
@@ -379,8 +397,14 @@ Shows a static horizontal progress bar chart which indicates the capacity of a r
                 ]
             |> category "Organisms"
                 [ CardStories.stories toHtml
-
-                -- TODO: Add stories for special popovers.
+                , ToastStories.stories toHtml
+                    ToastMsg
+                    [ { name = "debug", onPress = Just (ToastShow ErrorDebug "request console log for server 5b8ad28f-3a82-4eec-aee6-7389f62ce04e") }
+                    , { name = "info", onPress = Just (ToastShow ErrorInfo "format volume b2b1a743-9c27-41bd-a430-4b38ae65fb5f") }
+                    , { name = "warning", onPress = Just (ToastShow ErrorWarn "decode stored application state retrieved from browser local storage") }
+                    , { name = "critical", onPress = Just (ToastShow ErrorCrit "get a list of volumes") }
+                    , { name = "critical alt", onPress = Just (ToastShow ErrorCrit "get list of ports") }
+                    ]
                 , storiesOf
                     "Popover"
                     (List.map
@@ -420,7 +444,7 @@ Shows a static horizontal progress bar chart which indicates the capacity of a r
                                             }
                                 in
                                 toHtml (palettize m) <|
-                                    Element.el [ Element.paddingXY 400 100 ]
+                                    Element.el [ Element.centerX ]
                                         demoPopover
                             , { note = """
 ## Usage

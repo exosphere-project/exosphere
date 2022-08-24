@@ -33,7 +33,6 @@ import Page.ServerDetail
 import Page.ServerList
 import Page.ServerResize
 import Page.Settings
-import Page.Toast
 import Page.VolumeAttach
 import Page.VolumeCreate
 import Page.VolumeDetail
@@ -41,10 +40,10 @@ import Page.VolumeList
 import Page.VolumeMountInstructions
 import Route
 import Style.Helpers as SH exposing (shadowDefaults)
-import Style.Toast
 import Style.Types as ST
 import Style.Widgets.Popover.Popover exposing (popover)
 import Style.Widgets.Text as Text
+import Style.Widgets.Toast as Toast
 import Toasty
 import Types.Error exposing (AppError)
 import Types.HelperTypes exposing (ProjectIdentifier, WindowSize)
@@ -171,9 +170,9 @@ appView windowSize outerModel context =
                 , Element.column contentContainerAttrs
                     [ content
                     , Element.html
-                        (Toasty.view Style.Toast.toastConfig
-                            (Page.Toast.view context outerModel.sharedModel)
-                            (\m -> SharedMsg <| ToastyMsg m)
+                        (Toasty.view Toast.config
+                            (Toast.view context outerModel.sharedModel)
+                            (\m -> SharedMsg <| ToastMsg m)
                             outerModel.sharedModel.toasties
                         )
                     ]
