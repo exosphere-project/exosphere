@@ -11,13 +11,13 @@ Feature: Text presence
         Then I should see "Add an OpenStack Account" within 15 seconds
         When I enter OpenStack credentials
         And I click the "Log In" button
-        Then I should see "TG-INI210003" within 15 seconds
-        When I click the "TG-INI210003" checkbox
+        Then I should see "INI210003" within 15 seconds
+        When I click the "INI210003" checkbox
         And I click the "Choose" button
         Then I wait for 2 seconds
-        Then I should see "TG-INI210003" within 5 seconds
-        When I click the "TG-INI210003" card
-        Then I should see "Jetstream2 IU - TG-INI210003" within 5 seconds
+        Then I should see "INI210003" within 5 seconds
+        When I click the "INI210003" card
+        Then I should see "Jetstream2 IU - INI210003" within 5 seconds
         And I should see an element with xpath "//h3[contains(string(),'Instances')]" within 20 seconds
 
     @launch
@@ -27,10 +27,10 @@ Feature: Text presence
         Then I should see "Add project" within 60 seconds
         When I click the "Add project" card
         Then I should see "Choose a Login Method" within 60 seconds
-        When I add an OpenStack project "TG-INI210003"
-        Then I should see "TG-INI210003" within 5 seconds
-        When I click the "TG-INI210003" card
-        Then I should see "Jetstream2 IU - TG-INI210003" within 15 seconds
+        When I add an OpenStack project "INI210003"
+        Then I should see "INI210003" within 5 seconds
+        When I click the "INI210003" card
+        Then I should see "Jetstream2 IU - INI210003" within 15 seconds
         And I should see an element with xpath "//h3[contains(string(),'Instances')]" within 20 seconds
         Given a unique instance name starting with "ubuntu"
         And I should not see the unique instance name within 30 seconds
@@ -67,10 +67,10 @@ Feature: Text presence
         Then I should see "Add project" within 60 seconds
         When I click the "Add project" card
         Then I should see "Choose a Login Method" within 60 seconds
-        When I add an OpenStack project "TG-INI210003"
-        Then I should see "TG-INI210003" within 5 seconds
-        When I click the "TG-INI210003" card
-        Then I should see "Jetstream2 IU - TG-INI210003" within 15 seconds
+        When I add an OpenStack project "INI210003"
+        Then I should see "INI210003" within 5 seconds
+        When I click the "INI210003" card
+        Then I should see "Jetstream2 IU - INI210003" within 15 seconds
         And I should see an element with xpath "//h3[contains(string(),'Instances')]" within 20 seconds
         When I press the last element with xpath "//h3[contains(string(),'Instances')]"
         Given a unique instance name starting with "ubuntu"
