@@ -139,6 +139,7 @@ genericToast palette stateColor title actionContext error maybeRecoveryHint show
         [ Element.pointer
         , Element.padding 10
         , Element.spacing 10
+        , Element.width Element.fill
         , Background.color (SH.toElementColor stateColor.background)
         , Font.color (SH.toElementColor stateColor.textOnColoredBG)
         , Font.size 14
@@ -168,6 +169,7 @@ genericToast palette stateColor title actionContext error maybeRecoveryHint show
         , Element.column
             [ Font.size 13
             , Element.spacing 8
+            , Element.width Element.fill
             ]
             [ if String.isEmpty actionContext then
                 Element.none
@@ -210,7 +212,7 @@ makeNetworkConnectivityToast online =
             , level = ErrorInfo
             , recoveryHint = Nothing
             }
-            "Your internet connection is back online."
+            "Your internet connection is back online now."
 
     else
         Toast
