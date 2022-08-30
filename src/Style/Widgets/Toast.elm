@@ -171,7 +171,7 @@ genericToast palette stateColor title actionContext error maybeRecoveryHint show
             , Element.spacing 8
             , Element.width Element.fill
             ]
-            [ if String.isEmpty actionContext then
+            [ if String.isEmpty actionContext || List.member actionContext hiddenActionContexts then
                 Element.none
 
               else
@@ -191,24 +191,40 @@ genericToast palette stateColor title actionContext error maybeRecoveryHint show
 
                 Nothing ->
                     Element.none
-            , Element.paragraph []
-                [ Element.link
-                    (Link.linkStyle palette
-                        ++ [ Element.alignRight ]
-                    )
-                    { url = Route.toUrl Nothing (MessageLog showDebugMsgs)
-                    , label = Text.text Text.Small [] "Read more"
-                    }
-                ]
+            , if List.member actionContext hiddenActionContexts then
+                Element.none
+
+              else
+                Element.paragraph []
+                    [ Element.link
+                        (Link.linkStyle palette
+                            ++ [ Element.alignRight ]
+                        )
+                        { url = Route.toUrl Nothing (MessageLog showDebugMsgs)
+                        , label = Text.text Text.Small [] "Read more"
+                        }
+                    ]
             ]
         ]
+
+
+{-| Hidden action contexts are not logged & should not display their action context or the read more button.
+-}
+hiddenActionContexts : List String
+hiddenActionContexts =
+    [ networkConnectivityActionContext ]
+
+
+networkConnectivityActionContext : String
+networkConnectivityActionContext =
+    "check network connectivity"
 
 
 makeNetworkConnectivityToast : Bool -> Toast
 makeNetworkConnectivityToast online =
     if online then
         Toast
-            { actionContext = ""
+            { actionContext = networkConnectivityActionContext
             , level = ErrorInfo
             , recoveryHint = Nothing
             }
@@ -216,7 +232,7 @@ makeNetworkConnectivityToast online =
 
     else
         Toast
-            { actionContext = ""
+            { actionContext = networkConnectivityActionContext
             , level = ErrorCrit
             , recoveryHint = Nothing
             }
