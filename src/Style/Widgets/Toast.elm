@@ -135,6 +135,48 @@ view context sharedModel t =
 
 genericToast : ST.ExoPalette -> ST.UIStateColors -> String -> String -> String -> Maybe String -> Bool -> Element.Element msg
 genericToast palette stateColor title actionContext error maybeRecoveryHint showDebugMsgs =
+    let
+        description =
+            if String.isEmpty actionContext || List.member actionContext hiddenActionContexts then
+                Element.none
+
+            else
+                Element.paragraph []
+                    [ Element.text "While trying to "
+                    , Element.text actionContext
+                    , Element.text ", this happened:"
+                    ]
+
+        message =
+            Element.paragraph []
+                [ Element.text error ]
+
+        hint =
+            case maybeRecoveryHint of
+                Just recoveryHint ->
+                    Element.paragraph []
+                        [ Element.text "Hint: "
+                        , Element.text recoveryHint
+                        ]
+
+                Nothing ->
+                    Element.none
+
+        readMore =
+            if List.member actionContext hiddenActionContexts then
+                Element.none
+
+            else
+                Element.paragraph []
+                    [ Element.link
+                        (Link.linkStyle palette
+                            ++ [ Element.alignRight ]
+                        )
+                        { url = Route.toUrl Nothing (MessageLog showDebugMsgs)
+                        , label = Text.text Text.Small [] "Read more"
+                        }
+                    ]
+    in
     Element.column
         [ Element.pointer
         , Element.padding 10
@@ -171,39 +213,10 @@ genericToast palette stateColor title actionContext error maybeRecoveryHint show
             , Element.spacing 8
             , Element.width Element.fill
             ]
-            [ if String.isEmpty actionContext || List.member actionContext hiddenActionContexts then
-                Element.none
-
-              else
-                Element.paragraph []
-                    [ Element.text "While trying to "
-                    , Element.text actionContext
-                    , Element.text ", this happened:"
-                    ]
-            , Element.paragraph []
-                [ Element.text error ]
-            , case maybeRecoveryHint of
-                Just recoveryHint ->
-                    Element.paragraph []
-                        [ Element.text "Hint: "
-                        , Element.text recoveryHint
-                        ]
-
-                Nothing ->
-                    Element.none
-            , if List.member actionContext hiddenActionContexts then
-                Element.none
-
-              else
-                Element.paragraph []
-                    [ Element.link
-                        (Link.linkStyle palette
-                            ++ [ Element.alignRight ]
-                        )
-                        { url = Route.toUrl Nothing (MessageLog showDebugMsgs)
-                        , label = Text.text Text.Small [] "Read more"
-                        }
-                    ]
+            [ description
+            , message
+            , hint
+            , readMore
             ]
         ]
 
