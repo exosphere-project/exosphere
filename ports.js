@@ -139,3 +139,11 @@ themeDetector &&
   themeDetector.addEventListener("change", (detector) =>
     app.ports.changeThemePreference.send(themePreference(detector))
   );
+
+// Fired when the browser has lost access to the network.
+window.addEventListener("offline", (event) => {
+  app.ports.updateNetworkConnectivity.send(false);
+});
+window.addEventListener("online", (event) => {
+  app.ports.updateNetworkConnectivity.send(true);
+});

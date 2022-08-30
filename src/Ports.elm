@@ -6,12 +6,16 @@ port module Ports exposing
     , pushUrlAndTitleToMatomo
     , setFavicon
     , setStorage
+    , updateNetworkConnectivity
     )
 
 import Json.Encode as Encode
 
 
 port changeThemePreference : (Encode.Value -> msg) -> Sub msg
+
+
+port updateNetworkConnectivity : (Bool -> msg) -> Sub msg
 
 
 port openNewWindow : String -> Cmd msg

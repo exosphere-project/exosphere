@@ -568,6 +568,11 @@ processSharedMsg sharedMsg outerModel =
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
+        NetworkConnection online ->
+            Toast.showToast (Toast.makeNetworkConnectivityToast online) ToastMsg ( sharedModel, Cmd.none )
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
         MsgChangeWindowSize x y ->
             ( { sharedModel
                 | viewContext =
