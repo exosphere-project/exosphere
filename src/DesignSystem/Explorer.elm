@@ -73,6 +73,14 @@ deployerColors flags =
 port onModeChanged : String -> Cmd msg
 
 
+{-| Port for receiving offline/online events from the browser.
+
+    ref. https://developer.mozilla.org/en-US/docs/Web/API/Window/offline_event
+
+-}
+port updateNetworkConnectivity : (Bool -> msg) -> Sub msg
+
+
 
 --- MODEL
 
@@ -150,6 +158,7 @@ type Msg
     | TabMsg TabsPlugin.Msg
     | ToastMsg (Toasty.Msg Toast)
     | ToastShow ErrorLevel String
+    | NetworkConnection Bool
 
 
 
@@ -171,12 +180,13 @@ config =
     , subscriptions =
         \m ->
             Sub.batch <|
-                List.map
-                    (\popoverId ->
-                        Browser.Events.onMouseDown
-                            (toggleIfTargetIsOutside popoverId TogglePopover)
-                    )
-                    (Set.toList m.customModel.popover.showPopovers)
+                updateNetworkConnectivity NetworkConnection
+                    :: List.map
+                        (\popoverId ->
+                            Browser.Events.onMouseDown
+                                (toggleIfTargetIsOutside popoverId TogglePopover)
+                        )
+                        (Set.toList m.customModel.popover.showPopovers)
     , update =
         \msg m ->
             let
@@ -219,6 +229,11 @@ config =
                 ToastShow level actionContext ->
                     ( { m | customModel = ( m.customModel, Cmd.none ) |> Toast.showToast (ToastStories.makeToast level actionContext) ToastMsg |> Tuple.first }
                     , ( m.customModel, Cmd.none ) |> Toast.showToast (ToastStories.makeToast level actionContext) ToastMsg |> Tuple.second
+                    )
+
+                NetworkConnection online ->
+                    ( { m | customModel = ( m.customModel, Cmd.none ) |> Toast.showToast (Toast.makeNetworkConnectivityToast online) ToastMsg |> Tuple.first }
+                    , ( m.customModel, Cmd.none ) |> Toast.showToast (Toast.makeNetworkConnectivityToast online) ToastMsg |> Tuple.second
                     )
     , menuViewEnhancer = \_ v -> v
     , viewEnhancer =
@@ -404,6 +419,8 @@ Shows a static horizontal progress bar chart which indicates the capacity of a r
                     , { name = "warning", onPress = Just (ToastShow ErrorWarn "decode stored application state retrieved from browser local storage") }
                     , { name = "critical", onPress = Just (ToastShow ErrorCrit "get a list of volumes") }
                     , { name = "critical alt", onPress = Just (ToastShow ErrorCrit "get list of ports") }
+                    , { name = "internet offline", onPress = Just (NetworkConnection False) }
+                    , { name = "internet online", onPress = Just (NetworkConnection True) }
                     ]
                 , storiesOf
                     "Popover"

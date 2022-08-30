@@ -1,4 +1,4 @@
-module Style.Widgets.Toast exposing (ToastState, config, initialModel, notes, showToast, update, view)
+module Style.Widgets.Toast exposing (ToastState, config, initialModel, makeNetworkConnectivityToast, notes, showToast, update, view)
 
 import Element
 import Element.Background as Background
@@ -196,6 +196,25 @@ genericToast palette stateColor title actionContext error maybeRecoveryHint show
                 ]
             ]
         ]
+
+
+makeNetworkConnectivityToast : Bool -> Toast
+makeNetworkConnectivityToast online =
+    if online then
+        Toast
+            { actionContext = ""
+            , level = ErrorInfo
+            , recoveryHint = Nothing
+            }
+            "Your internet connection is back online."
+
+    else
+        Toast
+            { actionContext = ""
+            , level = ErrorCrit
+            , recoveryHint = Nothing
+            }
+            "Your internet connection appears to be offline."
 
 
 deduplicate : Toast -> List Toast -> Bool
