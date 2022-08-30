@@ -169,11 +169,15 @@ genericToast palette stateColor title actionContext error maybeRecoveryHint show
             [ Font.size 13
             , Element.spacing 8
             ]
-            [ Element.paragraph []
-                [ Element.text "While trying to "
-                , Element.text actionContext
-                , Element.text ", this happened:"
-                ]
+            [ if String.isEmpty actionContext then
+                Element.none
+
+              else
+                Element.paragraph []
+                    [ Element.text "While trying to "
+                    , Element.text actionContext
+                    , Element.text ", this happened:"
+                    ]
             , Element.paragraph []
                 [ Element.text error ]
             , case maybeRecoveryHint of
