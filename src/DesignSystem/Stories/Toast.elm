@@ -1,4 +1,4 @@
-module DesignSystem.Stories.Toast exposing (makeToast, stories)
+module DesignSystem.Stories.Toast exposing (makeNetworkConnectivityToast, makeToast, stories)
 
 import DesignSystem.Helpers exposing (Plugins, Renderer, palettize)
 import Element
@@ -67,6 +67,25 @@ a padding to disable MSIE and Chrome
 friendly error page -> (response code:
 404)
 """
+
+
+makeNetworkConnectivityToast : Bool -> Toast
+makeNetworkConnectivityToast online =
+    if online then
+        Toast
+            { actionContext = "check network connectivity"
+            , level = ErrorInfo
+            , recoveryHint = Nothing
+            }
+            "Your internet connection is back online now."
+
+    else
+        Toast
+            { actionContext = "check network connectivity"
+            , level = ErrorCrit
+            , recoveryHint = Nothing
+            }
+            "Your internet connection appears to be offline."
 
 
 stories :

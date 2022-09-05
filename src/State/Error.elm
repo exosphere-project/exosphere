@@ -1,4 +1,4 @@
-module State.Error exposing (processStringError, processSynchronousApiError)
+module State.Error exposing (processConnectivityError, processStringError, processSynchronousApiError)
 
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
@@ -15,6 +15,32 @@ import Types.SharedModel
         , SharedModel
         )
 import Types.SharedMsg exposing (SharedMsg(..))
+
+
+processConnectivityError : SharedModel -> Bool -> ( SharedModel, Cmd SharedMsg )
+processConnectivityError model online =
+    let
+        errorLevel =
+            if online then
+                ErrorInfo
+
+            else
+                ErrorCrit
+
+        error =
+            if online then
+                "Your internet connection is back online now."
+
+            else
+                "Your internet connection appears to be offline."
+    in
+    processStringError model
+        (ErrorContext
+            "check network connectivity"
+            errorLevel
+            Nothing
+        )
+        error
 
 
 processStringError : SharedModel -> ErrorContext -> String -> ( SharedModel, Cmd SharedMsg )

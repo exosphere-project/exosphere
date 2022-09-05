@@ -232,8 +232,8 @@ config =
                     )
 
                 NetworkConnection online ->
-                    ( { m | customModel = ( m.customModel, Cmd.none ) |> Toast.showToast (Toast.makeNetworkConnectivityToast online) ToastMsg |> Tuple.first }
-                    , ( m.customModel, Cmd.none ) |> Toast.showToast (Toast.makeNetworkConnectivityToast online) ToastMsg |> Tuple.second
+                    ( { m | customModel = ( m.customModel, Cmd.none ) |> Toast.showToast (ToastStories.makeNetworkConnectivityToast online) ToastMsg |> Tuple.first }
+                    , ( m.customModel, Cmd.none ) |> Toast.showToast (ToastStories.makeNetworkConnectivityToast online) ToastMsg |> Tuple.second
                     )
     , menuViewEnhancer = \_ v -> v
     , viewEnhancer =

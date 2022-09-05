@@ -569,7 +569,7 @@ processSharedMsg sharedMsg outerModel =
                 |> mapToOuterModel outerModel
 
         NetworkConnection online ->
-            Toast.showToast (Toast.makeNetworkConnectivityToast online) ToastMsg ( sharedModel, Cmd.none )
+            State.Error.processConnectivityError sharedModel online
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 

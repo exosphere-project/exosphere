@@ -1,4 +1,4 @@
-module Style.Widgets.Toast exposing (ToastState, config, initialModel, makeNetworkConnectivityToast, notes, showToast, update, view)
+module Style.Widgets.Toast exposing (ToastState, config, initialModel, notes, showToast, update, view)
 
 import Element
 import Element.Background as Background
@@ -163,19 +163,15 @@ genericToast palette stateColor title actionContext error maybeRecoveryHint show
                     Element.none
 
         readMore =
-            if List.member actionContext hiddenActionContexts then
-                Element.none
-
-            else
-                Element.paragraph []
-                    [ Element.link
-                        (Link.linkStyle palette
-                            ++ [ Element.alignRight ]
-                        )
-                        { url = Route.toUrl Nothing (MessageLog showDebugMsgs)
-                        , label = Text.text Text.Small [] "Read more"
-                        }
-                    ]
+            Element.paragraph []
+                [ Element.link
+                    (Link.linkStyle palette
+                        ++ [ Element.alignRight ]
+                    )
+                    { url = Route.toUrl Nothing (MessageLog showDebugMsgs)
+                    , label = Text.text Text.Small [] "Read more"
+                    }
+                ]
     in
     Element.column
         [ Element.pointer
@@ -221,7 +217,7 @@ genericToast palette stateColor title actionContext error maybeRecoveryHint show
         ]
 
 
-{-| Hidden action contexts are not logged & should not display their action context or the read more button.
+{-| Hidden action contexts should not display their action context.
 -}
 hiddenActionContexts : List String
 hiddenActionContexts =
@@ -231,25 +227,6 @@ hiddenActionContexts =
 networkConnectivityActionContext : String
 networkConnectivityActionContext =
     "check network connectivity"
-
-
-makeNetworkConnectivityToast : Bool -> Toast
-makeNetworkConnectivityToast online =
-    if online then
-        Toast
-            { actionContext = networkConnectivityActionContext
-            , level = ErrorInfo
-            , recoveryHint = Nothing
-            }
-            "Your internet connection is back online now."
-
-    else
-        Toast
-            { actionContext = networkConnectivityActionContext
-            , level = ErrorCrit
-            , recoveryHint = Nothing
-            }
-            "Your internet connection appears to be offline."
 
 
 deduplicate : Toast -> List Toast -> Bool
