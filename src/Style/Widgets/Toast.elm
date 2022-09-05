@@ -6,6 +6,7 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Element.Region as Region
+import Helpers.Helpers exposing (hiddenActionContexts)
 import Html exposing (Html)
 import Html.Attributes
 import Route exposing (Route(..))
@@ -106,14 +107,25 @@ view context sharedModel t =
                     ( context.palette.danger, "Error" )
 
         toastElement =
-            genericToast
-                context.palette
-                stateColor
-                title
-                t.context.actionContext
-                t.error
-                t.context.recoveryHint
-                sharedModel.showDebugMsgs
+            if List.member t.context.actionContext hiddenActionContexts then
+                minimalToast
+                    context.palette
+                    stateColor
+                    { title = title
+                    , error = t.error
+                    , showDebugMsgs = sharedModel.showDebugMsgs
+                    }
+
+            else
+                genericToast
+                    context.palette
+                    stateColor
+                    { title = title
+                    , maybeActionContext = Just t.context.actionContext
+                    , error = t.error
+                    , maybeRecoveryHint = t.context.recoveryHint
+                    , showDebugMsgs = sharedModel.showDebugMsgs
+                    }
 
         show =
             case t.context.level of
@@ -133,19 +145,43 @@ view context sharedModel t =
         layoutWith Element.none
 
 
-genericToast : ST.ExoPalette -> ST.UIStateColors -> String -> String -> String -> Maybe String -> Bool -> Element.Element msg
-genericToast palette stateColor title actionContext error maybeRecoveryHint showDebugMsgs =
+minimalToast :
+    ST.ExoPalette
+    -> ST.UIStateColors
+    ->
+        { title : String
+        , error : String
+        , showDebugMsgs : Bool
+        }
+    -> Element.Element msg
+minimalToast palette stateColor { title, error, showDebugMsgs } =
+    genericToast palette stateColor { title = title, maybeActionContext = Nothing, error = error, maybeRecoveryHint = Nothing, showDebugMsgs = showDebugMsgs }
+
+
+genericToast :
+    ST.ExoPalette
+    -> ST.UIStateColors
+    ->
+        { title : String
+        , maybeActionContext : Maybe String
+        , error : String
+        , maybeRecoveryHint : Maybe String
+        , showDebugMsgs : Bool
+        }
+    -> Element.Element msg
+genericToast palette stateColor { title, maybeActionContext, error, maybeRecoveryHint, showDebugMsgs } =
     let
         description =
-            if String.isEmpty actionContext || List.member actionContext hiddenActionContexts then
-                Element.none
+            case maybeActionContext of
+                Just actionContext ->
+                    Element.paragraph []
+                        [ Element.text "While trying to "
+                        , Element.text actionContext
+                        , Element.text ", this happened:"
+                        ]
 
-            else
-                Element.paragraph []
-                    [ Element.text "While trying to "
-                    , Element.text actionContext
-                    , Element.text ", this happened:"
-                    ]
+                Nothing ->
+                    Element.none
 
         message =
             Element.paragraph []
@@ -215,18 +251,6 @@ genericToast palette stateColor title actionContext error maybeRecoveryHint show
             , readMore
             ]
         ]
-
-
-{-| Hidden action contexts should not display their action context.
--}
-hiddenActionContexts : List String
-hiddenActionContexts =
-    [ networkConnectivityActionContext ]
-
-
-networkConnectivityActionContext : String
-networkConnectivityActionContext =
-    "check network connectivity"
 
 
 deduplicate : Toast -> List Toast -> Bool

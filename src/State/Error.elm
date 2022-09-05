@@ -36,7 +36,7 @@ processConnectivityError model online =
     in
     processStringError model
         (ErrorContext
-            "check network connectivity"
+            Helpers.specialActionContexts.networkConnectivity
             errorLevel
             Nothing
         )
