@@ -569,7 +569,11 @@ processSharedMsg sharedMsg outerModel =
                 |> mapToOuterModel outerModel
 
         NetworkConnection online ->
-            State.Error.processConnectivityError sharedModel online
+            let
+                nextSharedModel =
+                    { sharedModel | networkConnectivity = Just online }
+            in
+            State.Error.processConnectivityError nextSharedModel online
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
