@@ -46,10 +46,33 @@ processConnectivityError model online =
 processStringError : SharedModel -> ErrorContext -> String -> ( SharedModel, Cmd SharedMsg )
 processStringError model errorContext error =
     let
+        silenceNetworkErrors =
+            case model.networkConnectivity of
+                Nothing ->
+                    False
+
+                Just online ->
+                    not online
+
+        isNetworkError =
+            error == "NetworkError"
+
+        newErrorContext =
+            { actionContext = errorContext.actionContext
+            , level =
+                -- if we know the network is offline, don't treat each network error as critical
+                if silenceNetworkErrors && isNetworkError then
+                    ErrorDebug
+
+                else
+                    errorContext.level
+            , recoveryHint = errorContext.recoveryHint
+            }
+
         logMessage =
             LogMessage
                 error
-                errorContext
+                newErrorContext
                 model.clientCurrentTime
 
         newLogMessages =
@@ -59,9 +82,9 @@ processStringError model errorContext error =
             { model | logMessages = newLogMessages }
 
         sentryCmd =
-            Rest.Sentry.sendErrorToSentry model errorContext error
+            Rest.Sentry.sendErrorToSentry model newErrorContext error
     in
-    case errorContext.level of
+    case newErrorContext.level of
         ErrorDebug ->
             ( newModel, sentryCmd )
 
@@ -69,7 +92,7 @@ processStringError model errorContext error =
             let
                 toast =
                     Toast
-                        errorContext
+                        newErrorContext
                         error
             in
             Toast.showToast toast ToastMsg ( newModel, sentryCmd )
