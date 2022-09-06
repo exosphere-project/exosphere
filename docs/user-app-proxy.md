@@ -67,7 +67,7 @@ In order for Exosphere to deploy instances with Guacamole support on a given clo
 
 The `clouds` flag is a list containing JSON objects for each cloud with a custom configuration. Each of these JSON objects contains `keystoneHostname` and `userAppProxy` properties (amongst others). `keystoneHostname` is the hostname of the Keystone API for a given OpenStack cloud, and `userAppProxy` is the hostname of the UAP.
 
-Known UAPs are already configured in `ports.js` on the master branch of Exosphere. If you operate an OpenStack cloud, you may wish to add an entry for your UAP to the master branch, so that everyone can benefit from using it; feel free to submit a merge request.
+Known UAPs are already configured in `cloud_configs.js` on the master branch of Exosphere. If you operate an OpenStack cloud, you may wish to add an entry for your UAP to the master branch, so that everyone can benefit from using it; feel free to submit a merge request.
 
 ## Background
 
