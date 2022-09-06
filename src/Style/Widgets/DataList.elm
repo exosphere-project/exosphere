@@ -751,7 +751,8 @@ filtersView model toMsg context { filters, dropdownMsgMapper } data =
         filterChipView : Filter record -> List (Element.Element Msg) -> Element.Element msg
         filterChipView filter selectedOptContent =
             chip context.palette
-                (Element.row [ Font.size 14 ]
+                []
+                (Element.row []
                     (Element.el
                         [ Font.color <|
                             SH.toElementColor context.palette.neutral.text.subdued
