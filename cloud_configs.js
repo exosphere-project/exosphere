@@ -6,7 +6,32 @@ var cloud_configs = {
       keystoneHostname: "js2.jetstream-cloud.org",
       friendlyName: "Jetstream2",
       friendlySubName: null,
-      userAppProxy: "proxy-js2-iu.exosphere.app",
+      userAppProxy: [
+        {
+          region: "ASU",
+          hostname: "proxy-js2-asu.exosphere.app",
+        },
+        {
+          region: "Cornell",
+          hostname: "proxy-js2-cornell.exosphere.app",
+        },
+        {
+          region: "IU",
+          hostname: "proxy-js2-iu.exosphere.app",
+        },
+        {
+          region: "TACC",
+          hostname: "proxy-js2-tacc.exosphere.app",
+        },
+        {
+          region: "UH",
+          hostname: "proxy-js2-uh.exosphere.app",
+        },
+        {
+          region: null,
+          hostname: "proxy-js2-iu.exosphere.app",
+        },
+      ],
       imageExcludeFilter: null,
       featuredImageNamePrefix: "Featured-",
       instanceTypes: [

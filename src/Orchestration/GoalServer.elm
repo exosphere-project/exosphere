@@ -48,7 +48,8 @@ goalPollServers : Time.Posix -> Maybe CloudSpecificConfig -> Project -> ( Projec
 goalPollServers time maybeCloudSpecificConfig project =
     let
         userAppProxy =
-            maybeCloudSpecificConfig |> Maybe.andThen (\csc -> csc.userAppProxy)
+            maybeCloudSpecificConfig
+                |> Maybe.andThen (GetterSetters.getUserAppProxyFromCloudSpecificConfig project)
 
         steps =
             [ stepServerPoll time

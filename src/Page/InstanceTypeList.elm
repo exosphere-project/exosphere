@@ -75,7 +75,7 @@ view context project instanceTypes =
                                     image.uuid
                                     image.name
                                     instanceTypeVersion.restrictFlavorIds
-                                    (VH.userAppProxyLookup context project
+                                    (GetterSetters.getUserAppProxyFromContext project context
                                         |> Maybe.map (\_ -> True)
                                     )
 

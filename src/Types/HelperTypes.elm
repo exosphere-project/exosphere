@@ -29,6 +29,7 @@ module Types.HelperTypes exposing
     , UnscopedProviderProject
     , UnscopedProviderRegion
     , Url
+    , UserAppProxyConfig
     , UserAppProxyHostname
     , Uuid
     , WindowSize
@@ -125,6 +126,12 @@ type alias SentryConfig =
     }
 
 
+type alias UserAppProxyConfig =
+    { regionId : Maybe OSTypes.RegionId
+    , hostname : UserAppProxyHostname
+    }
+
+
 type alias MetadataFilter =
     { filterKey : String
     , filterValue : String
@@ -134,7 +141,7 @@ type alias MetadataFilter =
 type alias CloudSpecificConfig =
     { friendlyName : String
     , friendlySubName : Maybe String
-    , userAppProxy : Maybe UserAppProxyHostname
+    , userAppProxy : Maybe (List UserAppProxyConfig)
     , imageExcludeFilter : Maybe MetadataFilter
     , featuredImageNamePrefix : Maybe String
     , instanceTypes : List InstanceType

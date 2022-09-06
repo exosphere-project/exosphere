@@ -359,7 +359,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                     project
                     server
                     currentTime
-                    (VH.userAppProxyLookup context project)
+                    (GetterSetters.getUserAppProxyFromContext project context)
                 ]
             , tile
                 [ FeatherIcons.hash
