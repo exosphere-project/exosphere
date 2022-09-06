@@ -2,8 +2,6 @@ module Page.ImageList exposing (Model, Msg(..), init, update, view)
 
 import Dict
 import Element
-import Element.Background as Background
-import Element.Border as Border
 import Element.Font as Font
 import FeatherIcons
 import FormatNumber.Locales exposing (Decimals(..))
