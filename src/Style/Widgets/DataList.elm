@@ -26,6 +26,7 @@ import Murmur3
 import Set
 import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
+import Style.Widgets.Chip exposing (chip)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.Popover.Popover exposing (popover)
 import Style.Widgets.Popover.Types exposing (PopoverId)
@@ -647,18 +648,6 @@ filtersView model toMsg context { filters, dropdownMsgMapper } data =
                 }
                 |> Element.map toMsg
 
-        iconButtonStyleDefaults =
-            (SH.materialStyle context.palette).iconButton
-
-        iconButtonStyle padding =
-            { iconButtonStyleDefaults
-                | container =
-                    iconButtonStyleDefaults.container
-                        ++ [ Element.padding padding
-                           , Element.height Element.shrink
-                           ]
-            }
-
         filtersDropdownId =
             -- an ugly workaround to generate a unique id for filtersDropdown
             -- (until we make popover widget capable of generating unique ids internallly)
@@ -683,7 +672,7 @@ filtersView model toMsg context { filters, dropdownMsgMapper } data =
                         (Element.text "Apply Filters")
                     , Element.el [ Element.alignRight, closeDropdown ]
                         (Widget.iconButton
-                            (iconButtonStyle 0)
+                            (SH.materialStyle context.palette).iconButton
                             { icon =
                                 FeatherIcons.x
                                     |> FeatherIcons.withSize 16
@@ -759,19 +748,10 @@ filtersView model toMsg context { filters, dropdownMsgMapper } data =
                     }
                 )
 
-        filterChipView : Filter record -> List (Element.Element msg) -> Element.Element msg
+        filterChipView : Filter record -> List (Element.Element Msg) -> Element.Element msg
         filterChipView filter selectedOptContent =
-            Element.row
-                [ Border.width 1
-                , Border.color <|
-                    -- opacity is used to match it with addFilterBtn's border color i.e. determined by elm-ui-widget and non-customizable
-                    SH.toElementColorWithOpacity context.palette.neutral.border 0.8
-                , Border.rounded 4
-                ]
-                [ Element.row
-                    [ Font.size 14
-                    , Element.paddingEach { top = 0, bottom = 0, left = 6, right = 0 }
-                    ]
+            chip context.palette
+                (Element.row [ Font.size 14 ]
                     (Element.el
                         [ Font.color <|
                             SH.toElementColor context.palette.neutral.text.subdued
@@ -779,20 +759,11 @@ filtersView model toMsg context { filters, dropdownMsgMapper } data =
                         (Element.text filter.chipPrefix)
                         :: selectedOptContent
                     )
-                , Widget.iconButton (iconButtonStyle 6)
-                    { text = "Clear filter"
-                    , icon =
-                        Element.el []
-                            (FeatherIcons.x
-                                |> FeatherIcons.withSize 16
-                                |> FeatherIcons.toHtml []
-                                |> Element.html
-                            )
-                    , onPress = Just <| ClearFilter filter.id
-                    }
-                    |> Element.map toMsg
-                ]
+                )
+                (Just <| ClearFilter filter.id)
+                |> Element.map toMsg
 
+        selectedFiltersChips : List (Element.Element msg)
         selectedFiltersChips =
             List.map
                 (\filter ->
