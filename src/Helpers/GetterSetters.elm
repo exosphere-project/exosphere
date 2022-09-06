@@ -12,6 +12,8 @@ module Helpers.GetterSetters exposing
     , getServerPorts
     , getServersWithVolAttached
     , getServicePublicUrl
+    , getUserAppProxyFromCloudSpecificConfig
+    , getUserAppProxyFromContext
     , getVolsAttachedToServer
     , imageLookup
     , isBootVolume
@@ -57,6 +59,7 @@ import Types.HelperTypes as HelperTypes
 import Types.Project exposing (Project)
 import Types.Server exposing (Server)
 import Types.SharedModel exposing (SharedModel)
+import View.Types
 
 
 
@@ -352,6 +355,46 @@ serverPresentNotDeleting model serverUuid =
                 |> List.map (.osProps >> .uuid)
     in
     List.member serverUuid notDeletingServerUuids
+
+
+getUserAppProxyFromContext : Project -> View.Types.Context -> Maybe HelperTypes.UserAppProxyHostname
+getUserAppProxyFromContext project context =
+    let
+        projectKeystoneHostname =
+            UrlHelpers.hostnameFromUrl project.endpoints.keystone
+
+        getCloudSpecificConfig : Maybe HelperTypes.CloudSpecificConfig
+        getCloudSpecificConfig =
+            Dict.get projectKeystoneHostname context.cloudSpecificConfigs
+    in
+    getCloudSpecificConfig
+        |> Maybe.andThen (getUserAppProxyFromCloudSpecificConfig project)
+
+
+getUserAppProxyFromCloudSpecificConfig : Project -> HelperTypes.CloudSpecificConfig -> Maybe HelperTypes.UserAppProxyHostname
+getUserAppProxyFromCloudSpecificConfig project cloudSpecificConfig =
+    let
+        getUapHostname : List HelperTypes.UserAppProxyConfig -> Maybe HelperTypes.UserAppProxyHostname
+        getUapHostname uapConfig =
+            let
+                hostnameFromMaybeRegionId maybeRegionId =
+                    uapConfig
+                        |> List.filter (\configItem -> configItem.regionId == maybeRegionId)
+                        |> List.head
+                        |> Maybe.map .hostname
+
+                defaultUapIfNoRegionMatch =
+                    hostnameFromMaybeRegionId Nothing
+            in
+            case hostnameFromMaybeRegionId (Maybe.map .id project.region) of
+                Just hostname ->
+                    Just hostname
+
+                Nothing ->
+                    defaultUapIfNoRegionMatch
+    in
+    cloudSpecificConfig.userAppProxy
+        |> Maybe.andThen getUapHostname
 
 
 

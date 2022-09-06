@@ -37,7 +37,6 @@ module View.Helpers exposing
     , sortProjects
     , titleFromHostname
     , toExoPalette
-    , userAppProxyLookup
     , validInputAttributes
     , warnMessageHelperText
     , warningInputAttributes
@@ -1332,16 +1331,6 @@ featuredImageNamePrefixLookup context project =
     in
     Dict.get projectKeystoneHostname context.cloudSpecificConfigs
         |> Maybe.andThen (\csc -> csc.featuredImageNamePrefix)
-
-
-userAppProxyLookup : View.Types.Context -> Project -> Maybe Types.HelperTypes.UserAppProxyHostname
-userAppProxyLookup context project =
-    let
-        projectKeystoneHostname =
-            UrlHelpers.hostnameFromUrl project.endpoints.keystone
-    in
-    Dict.get projectKeystoneHostname context.cloudSpecificConfigs
-        |> Maybe.andThen (\csc -> csc.userAppProxy)
 
 
 requiredLabel : ExoPalette -> Element.Element msg -> Element.Element msg

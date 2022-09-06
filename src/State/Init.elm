@@ -297,7 +297,7 @@ decodeCloudSpecificConfig =
     Decode.map7 HelperTypes.CloudSpecificConfig
         (Decode.field "friendlyName" Decode.string)
         (Decode.field "friendlySubName" (Decode.nullable Decode.string))
-        (Decode.field "userAppProxy" (Decode.nullable Decode.string))
+        (Decode.field "userAppProxy" (Decode.nullable (Decode.list userAppProxyConfigDecoder)))
         (Decode.field "imageExcludeFilter" (Decode.nullable metadataFilterDecoder))
         (Decode.field "featuredImageNamePrefix" (Decode.nullable Decode.string))
         (Decode.field "instanceTypes" (Decode.list instanceTypeDecoder))
@@ -307,6 +307,13 @@ decodeCloudSpecificConfig =
                 Decode.field "keystoneHostname" Decode.string
                     |> Decode.map (\keystoneHostname -> ( keystoneHostname, cloudSpecificConfig ))
             )
+
+
+userAppProxyConfigDecoder : Decode.Decoder HelperTypes.UserAppProxyConfig
+userAppProxyConfigDecoder =
+    Decode.map2 HelperTypes.UserAppProxyConfig
+        (Decode.field "region" (Decode.nullable Decode.string))
+        (Decode.field "hostname" Decode.string)
 
 
 metadataFilterDecoder : Decode.Decoder HelperTypes.MetadataFilter

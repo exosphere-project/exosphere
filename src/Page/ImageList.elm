@@ -263,7 +263,7 @@ imageView model context project imageRecord =
                             imageRecord.image.uuid
                             imageRecord.image.name
                             Nothing
-                            (VH.userAppProxyLookup context project
+                            (GetterSetters.getUserAppProxyFromContext project context
                                 |> Maybe.map (\_ -> True)
                             )
             in

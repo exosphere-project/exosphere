@@ -61,13 +61,43 @@ server {
 
 ```
 
+## Multiple Regions
+
+If your OpenStack cloud has multiple regions, then consider deploying a separate UAP for each region. This keeps upstream traffic (between UAP and cloud instances) on the same Neutron network in the same region, instead of transiting an untrusted WAN. 
+
 ## How to configure Exosphere to know about a new UAP
 
 In order for Exosphere to deploy instances with Guacamole support on a given cloud, Exosphere must know about a UAP at that cloud. UAPs known to Exosphere are configured in `ports.js`, as a list item in the `clouds` flag. This flag is passed to Exosphere on startup.
 
-The `clouds` flag is a list containing JSON objects for each cloud with a custom configuration. Each of these JSON objects contains `keystoneHostname` and `userAppProxy` properties (amongst others). `keystoneHostname` is the hostname of the Keystone API for a given OpenStack cloud, and `userAppProxy` is the hostname of the UAP.
+The `clouds` flag is a list containing JSON objects for each cloud with a custom configuration. Each of these JSON objects contains `keystoneHostname` and `userAppProxy` properties (amongst others). `keystoneHostname` is the hostname of the Keystone API for a given OpenStack cloud. `userAppProxy` is a JSON array containing objects with two keys: `region` and `hostname`.
 
-Known UAPs are already configured in `ports.js` on the master branch of Exosphere. If you operate an OpenStack cloud, you may wish to add an entry for your UAP to the master branch, so that everyone can benefit from using it; feel free to submit a merge request.
+`region` is a string that matches the OpenStack region ID for that UAP, or it can be `null` to designate a catch-all UAP for an unrecognized region (or if you only have one region). `hostname` is simply the hostname of that region's UAP.
+
+Simple example, cloud with only one region:
+
+```
+      "userAppProxy": [
+        { region: null,
+          hostname: "uap.openstack.example.cloud",
+        },
+```
+
+Example of a cloud with multiple regions:
+
+```
+      "userAppProxy": [
+        { region: "Albuquerque",
+          hostname: "uap-abq.openstack.example.cloud",
+        },
+        { region: "Omaha",
+          hostname: "uap-oma.openstack.example.cloud",
+        },
+        { region: null,
+          hostname: "uap.openstack.example.cloud",
+        },
+```
+
+Known UAPs are already configured in `cloud_configs.js` on the master branch of Exosphere. If you operate an OpenStack cloud, you may wish to add an entry for your UAP to the master branch, so that everyone can benefit from using it; feel free to submit a merge request.
 
 ## Background
 

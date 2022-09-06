@@ -244,7 +244,7 @@ serverRecords context currentTime project servers =
                                 interaction
                                 context
                                 currentTime
-                                (VH.userAppProxyLookup context project)
+                                (GetterSetters.getUserAppProxyFromContext project context)
                         , interactionDetails =
                             IHelpers.interactionDetails
                                 interaction
