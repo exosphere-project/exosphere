@@ -16,13 +16,14 @@ import Set
 import Style.Helpers as SH
 import Style.Types
 import Style.Widgets.Button as Button
-import Style.Widgets.Card exposing (badge)
+import Style.Widgets.Chip exposing (chip)
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon exposing (bell, console, copyToClipboard, history, ipAddress, lock, lockOpen, plusCircle, remove, roundRect, timesCircle)
 import Style.Widgets.Meter exposing (meter)
 import Style.Widgets.Popover.Popover exposing (popover, toggleIfTargetIsOutside)
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.StatusBadge exposing (StatusBadgeState(..), statusBadge)
+import Style.Widgets.Tag exposing (tag)
 import Style.Widgets.Toast as Toast
 import Toasty
 import Types.Error exposing (ErrorLevel(..), Toast)
@@ -83,8 +84,15 @@ type alias PopoverState =
     { showPopovers : Set.Set PopoverId }
 
 
+type alias ChipsState =
+    { all : Set.Set String
+    , shown : Set.Set String
+    }
+
+
 type alias Model =
     { popover : PopoverState
+    , chips : ChipsState
     , deployerColors : Style.Types.DeployerColorThemes
     , tabs : TabsPlugin.Model
     , toasties : Toasty.Stack Toast
@@ -93,8 +101,18 @@ type alias Model =
 
 initialModel : Model
 initialModel =
+    let
+        initialChips =
+            Set.fromList
+                [ "Orange"
+                , "Apple"
+                , "Pineapple"
+                , "Kiwi"
+                ]
+    in
     { deployerColors = Style.Types.defaultColors
     , popover = { showPopovers = Set.empty }
+    , chips = { all = initialChips, shown = initialChips }
     , tabs = TabsPlugin.initialModel
     , toasties = Toast.initialModel
     }
@@ -147,6 +165,8 @@ type alias Flags =
 type Msg
     = NoOp
     | TogglePopover PopoverId
+    | CloseChip String
+    | ShowAllChips
     | TabMsg TabsPlugin.Msg
     | ToastMsg (Toasty.Msg Toast)
     | ToastShow ErrorLevel String
@@ -182,6 +202,9 @@ config =
             let
                 model =
                     m.customModel
+
+                chipsModel =
+                    model.chips
             in
             case msg of
                 NoOp ->
@@ -199,6 +222,31 @@ config =
                                         else
                                             Set.insert popoverId model.popover.showPopovers
                                     }
+                            }
+                      }
+                    , Cmd.none
+                    )
+
+                CloseChip chipLabel ->
+                    ( { m
+                        | customModel =
+                            { model
+                                | chips =
+                                    { chipsModel
+                                        | shown =
+                                            Set.remove chipLabel chipsModel.shown
+                                    }
+                            }
+                      }
+                    , Cmd.none
+                    )
+
+                ShowAllChips ->
+                    ( { m
+                        | customModel =
+                            { model
+                                | chips =
+                                    { chipsModel | shown = chipsModel.all }
                             }
                       }
                     , Cmd.none
@@ -324,13 +372,12 @@ Exosphere uses buttons from [elm-ui-widgets](https://package.elm-lang.org/packag
                         ]
                     )
                 , storiesOf
-                    "Badge"
-                    [ ( "default", \m -> toHtml (palettize m) <| badge "Experimental", { note = """
+                    "Tag"
+                    [ ( "default", \m -> toHtml (palettize m) <| tag (palettize m) "Experimental", { note = """
 ## Usage
 
 To annotate additional but important information like marking features as "Experimental".
 
-_This component is being deprecated._
 
 ### Alternatives
 
@@ -396,7 +443,36 @@ Shows a static horizontal progress bar chart which indicates the capacity of a r
                     ]
                 ]
             |> category "Organisms"
-                [ CardStories.stories toHtml
+                [ storiesOf
+                    "Chip"
+                    [ ( "default"
+                      , \m ->
+                            toHtml (palettize m) <|
+                                Element.column [ Element.spacing 24 ]
+                                    [ Element.row [ Element.spacing 12 ]
+                                        (m.customModel.chips.shown
+                                            |> Set.toList
+                                            |> List.map
+                                                (\chipLabel ->
+                                                    chip (palettize m)
+                                                        []
+                                                        (Element.text chipLabel)
+                                                        (Just <| CloseChip chipLabel)
+                                                )
+                                        )
+                                    , Button.default (palettize m)
+                                        { text = "Respawn All"
+                                        , onPress = Just ShowAllChips
+                                        }
+                                    ]
+                      , { note = """
+## Usage
+
+A chip is used to show an object within workflows that involve filtering a set of objects. It has a text content and a close button to remove the chip from the set.
+                      """ }
+                      )
+                    ]
+                , CardStories.stories toHtml
                 , ToastStories.stories toHtml
                     ToastMsg
                     [ { name = "debug", onPress = Just (ToastShow ErrorDebug "request console log for server 5b8ad28f-3a82-4eec-aee6-7389f62ce04e") }
