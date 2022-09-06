@@ -291,7 +291,10 @@ materialStyle exoPalette =
             { tb
                 | container =
                     tb.container
-                        ++ [ Font.color (toElementColor palette_.primary) ]
+                        ++ [ Font.color (toElementColor palette_.primary)
+                           , Element.padding 6
+                           , Element.height Element.shrink -- remove fixed px height
+                           ]
             }
 
         tab =
