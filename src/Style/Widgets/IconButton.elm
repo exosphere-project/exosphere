@@ -1,41 +1,18 @@
-module Style.Widgets.IconButton exposing (FlowOrder(..), chip, goToButton, iconButton)
+module Style.Widgets.IconButton exposing (FlowOrder(..), goToButton, iconButton)
 
 import Element as Element exposing (Element)
 import Element.Border as Border
-import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons
 import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
-import Style.Widgets.Icon exposing (Icon(..), iconEl, timesCircle)
+import Style.Widgets.Icon exposing (Icon(..), iconEl)
 import View.Types
 
 
 type FlowOrder
     = Before
     | After
-
-
-chip : ExoPalette -> Maybe msg -> Element msg -> Element msg
-chip palette onPress label =
-    Element.row
-        [ Element.spacing 8
-        , Element.padding 8
-        , Border.width 1
-        , Font.size 12
-        , Border.color <| SH.toElementColor palette.neutral.border
-        , Border.rounded 3
-        ]
-        [ label
-        , Input.button
-            [ Element.mouseOver
-                [ Border.color <| SH.toElementColor palette.neutral.icon
-                ]
-            ]
-            { onPress = onPress
-            , label = timesCircle (SH.toElementColor palette.neutral.icon) 12
-            }
-        ]
 
 
 goToButton : ExoPalette -> Maybe msg -> Element msg

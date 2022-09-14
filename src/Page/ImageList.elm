@@ -2,8 +2,6 @@ module Page.ImageList exposing (Model, Msg(..), init, update, view)
 
 import Dict
 import Element
-import Element.Background as Background
-import Element.Border as Border
 import Element.Font as Font
 import FeatherIcons
 import FormatNumber.Locales exposing (Decimals(..))
@@ -21,6 +19,7 @@ import Style.Types as ST
 import Style.Widgets.Button as Button
 import Style.Widgets.DataList as DataList
 import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
+import Style.Widgets.Tag as Tag
 import Style.Widgets.Text as Text
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg
@@ -323,18 +322,6 @@ imageView model context project imageRecord =
             else
                 Nothing
 
-        tag text =
-            Element.el
-                [ Background.color (SH.toElementColorWithOpacity context.palette.primary 0.1)
-                , Border.width 1
-                , Border.color (SH.toElementColorWithOpacity context.palette.primary 0.7)
-                , Font.size 12
-                , Font.color (SH.toElementColorWithOpacity context.palette.primary 1)
-                , Border.rounded 20
-                , Element.paddingEach { top = 4, bottom = 4, left = 8, right = 8 }
-                ]
-                (Element.text text)
-
         imageTags =
             if List.isEmpty imageRecord.image.tags then
                 Nothing
@@ -345,7 +332,7 @@ imageView model context project imageRecord =
                         [ Element.spacing 6
                         , Element.paddingEach { left = 6, top = 0, right = 0, bottom = 0 }
                         ]
-                        (List.map tag imageRecord.image.tags)
+                        (List.map (Tag.tag context.palette) imageRecord.image.tags)
 
         imageAttributesView =
             let

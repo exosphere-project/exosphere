@@ -12,15 +12,16 @@ import Set exposing (Set)
 import Style.Helpers as SH
 import Style.Types
 import Style.Widgets.Button as Button
-import Style.Widgets.Card exposing (badge, clickableCardFixedSize, exoCard)
+import Style.Widgets.Card exposing (clickableCardFixedSize, exoCard)
+import Style.Widgets.Chip exposing (chip)
 import Style.Widgets.ChipsFilter exposing (chipsFilter)
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.DataList as DataList
 import Style.Widgets.Icon exposing (bell, history, ipAddress, remove, roundRect, timesCircle)
-import Style.Widgets.IconButton exposing (chip)
 import Style.Widgets.Meter exposing (meter)
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.StatusBadge exposing (StatusBadgeState(..), statusBadge)
+import Style.Widgets.Tag exposing (tag)
 import Widget
 
 
@@ -269,8 +270,8 @@ widgets palette model =
     , exoCard palette (Element.text "Lorem ipsum dolor sit amet.")
     , Element.text "Style.Widgets.Card.exoCardFixedSize"
     , clickableCardFixedSize palette 300 300 [ Element.text "Lorem ipsum dolor sit amet." ]
-    , Element.text "Style.Widgets.Card.badge"
-    , badge "belongs to this project"
+    , Element.text "Style.Widgets.Tag.tag"
+    , tag palette "belongs to this project"
     , Element.text "Style.Widgets.button (danger)"
     , Button.button
         Button.Danger
@@ -283,10 +284,8 @@ widgets palette model =
         { text = "Warning button", onPress = Just NoOp }
     , Element.text "Style.Widgets.CopyableText.CopyableText"
     , copyableText palette [] "foobar"
-    , Element.text "Style.Widgets.IconButton.chip"
-    , chip palette Nothing (Element.text "chip label")
-    , Element.text "Style.Widgets.IconButton.chip (with badge)"
-    , chip palette Nothing (Element.row [ Element.spacing 5 ] [ Element.text "ubuntu", badge "10" ])
+    , Element.text "Style.Widgets.Chip.chip"
+    , chip palette [] (Element.text "chip label") Nothing
     , Element.text "chipsFilter"
     , chipsFilter
         (SH.materialStyle palette)
