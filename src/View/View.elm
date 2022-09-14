@@ -39,7 +39,7 @@ import Page.VolumeDetail
 import Page.VolumeList
 import Page.VolumeMountInstructions
 import Route
-import Style.Helpers as SH exposing (shadowDefaults)
+import Style.Helpers as SH exposing (shadowDefaults, spacer)
 import Style.Types as ST
 import Style.Widgets.Popover.Popover exposing (popover)
 import Style.Widgets.Text as Text
@@ -139,12 +139,17 @@ appView windowSize outerModel context =
             , Border.color <|
                 SH.toElementColor context.palette.neutral.border
             , Element.width Element.fill
-            , Element.paddingEach { top = 12, right = 24, bottom = 16, left = 24 }
-            , Element.spacing 12
+            , Element.paddingEach
+                { top = spacer.px12
+                , right = spacer.px24
+                , bottom = spacer.px16
+                , left = spacer.px24
+                }
+            , Element.spacing spacer.px12
             ]
 
         contentContainerAttrs =
-            [ Element.padding 24
+            [ Element.padding spacer.px24
             , Element.width Element.fill
             ]
 
@@ -154,7 +159,7 @@ appView windowSize outerModel context =
                 , Element.width Element.fill
                 , Element.height Element.fill
                 , Element.scrollbars
-                , Element.spacing 8
+                , Element.spacing spacer.px8
                 ]
                 [ case header of
                     Just header_ ->
@@ -370,7 +375,7 @@ projectHeaderView context p =
                 , Helpers.String.toTitleCase context.localization.unitOfTenancy
                 ]
     in
-    Element.row [ Element.width Element.fill, Element.spacing 10 ]
+    Element.row [ Element.width Element.fill, Element.spacing spacer.px12 ]
         [ Text.text Text.H3
             [ Font.regular, Region.heading 2 ]
             (VH.friendlyCloudName
@@ -382,7 +387,6 @@ projectHeaderView context p =
         , Text.p
             [ Font.size 14
             , Element.alpha 0.75
-            , Element.paddingEach { left = 5, top = 0, bottom = 0, right = 0 }
             ]
             [ Element.text "(logged in as "
             , Element.el [ Font.semiBold ] <| Element.text p.auth.user.name
@@ -394,7 +398,7 @@ projectHeaderView context p =
             Widget.iconButton
                 (SH.materialStyle context.palette).button
                 { icon =
-                    Element.row [ Element.spacing 10 ]
+                    Element.row [ Element.spacing spacer.px8 ]
                         [ Element.text removeText
                         , FeatherIcons.logOut |> FeatherIcons.withSize 18 |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
                         ]
@@ -462,7 +466,7 @@ createProjectResourcesButton context projectId =
                 { text = "Create"
                 , icon =
                     Element.row
-                        [ Element.spacing 5 ]
+                        [ Element.spacing spacer.px4 ]
                         [ Element.text "Create"
                         , Element.el []
                             ((if dropdownIsShown then
