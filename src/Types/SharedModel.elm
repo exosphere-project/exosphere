@@ -17,6 +17,7 @@ type alias SharedModel =
     , scopedAuthTokensWaitingRegionSelection : List OSTypes.ScopedAuthToken
     , projects : List Project
     , toasties : Toasty.Stack Toast
+    , networkConnectivity : Maybe Bool -- assume online, Just False means received offline event
     , cloudCorsProxyUrl : Maybe CloudCorsProxyUrl
     , clientUuid : UUID.UUID
     , clientCurrentTime : Time.Posix

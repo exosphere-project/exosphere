@@ -568,6 +568,15 @@ processSharedMsg sharedMsg outerModel =
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
+        NetworkConnection online ->
+            let
+                nextSharedModel =
+                    { sharedModel | networkConnectivity = Just online }
+            in
+            State.Error.processConnectivityError nextSharedModel online
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
         MsgChangeWindowSize x y ->
             ( { sharedModel
                 | viewContext =

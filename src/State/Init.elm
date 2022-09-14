@@ -171,6 +171,7 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
             , scopedAuthTokensWaitingRegionSelection = []
             , projects = []
             , toasties = Toasty.initialState
+            , networkConnectivity = Nothing
             , cloudCorsProxyUrl = flags.cloudCorsProxyUrl
             , clientUuid = uuid
             , clientCurrentTime = currentTime

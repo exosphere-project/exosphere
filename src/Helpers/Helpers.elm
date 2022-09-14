@@ -2,6 +2,7 @@ module Helpers.Helpers exposing
     ( alwaysRegex
     , decodeFloatingIpOption
     , getNewFloatingIpOption
+    , hiddenActionContexts
     , httpErrorToString
     , httpErrorWithBodyToString
     , naiveUuidParser
@@ -16,6 +17,7 @@ module Helpers.Helpers exposing
     , serverPollIntervalMs
     , serverResourceQtys
     , serviceCatalogToEndpoints
+    , specialActionContexts
     , stringIsUuidOrDefault
     , stripTimeSinceBootFromLogLine
     )
@@ -831,3 +833,13 @@ httpErrorToString httpError =
 
         Http.BadBody string ->
             "BadBody: " ++ string
+
+
+hiddenActionContexts : List String
+hiddenActionContexts =
+    [ specialActionContexts.networkConnectivity ]
+
+
+specialActionContexts : { networkConnectivity : String }
+specialActionContexts =
+    { networkConnectivity = "check network connectivity" }

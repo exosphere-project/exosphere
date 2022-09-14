@@ -32,6 +32,14 @@
         flags: config,
       });
 
+      // Fired when the browser has lost access to the network.
+      window.addEventListener("offline", (event) => {
+        app.ports.updateNetworkConnectivity.send(false);
+      });
+      window.addEventListener("online", (event) => {
+        app.ports.updateNetworkConnectivity.send(true);
+      });
+
       // Subscribe to color mode changes so that we can update markdown css.
       app.ports.onModeChanged.subscribe(function (mode) {
         const darkLink = document.getElementById("uie-dark-theme");

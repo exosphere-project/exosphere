@@ -42,6 +42,7 @@ type SharedMsg
     | SelectTheme ST.ThemeChoice
     | SetExperimentalFeaturesEnabled Bool
     | TogglePopover PopoverId
+    | NetworkConnection Bool
     | NoOp
 
 
