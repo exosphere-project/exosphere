@@ -86,7 +86,7 @@ config =
 
 
 view :
-    { context | palette : ST.ExoPalette }
+    { context | palette : ST.ExoPalette, urlPathPrefix : Maybe String }
     -> { sharedModel | showDebugMsgs : Bool }
     -> Toast
     -> Html msg
@@ -109,7 +109,7 @@ view context sharedModel t =
         toastElement =
             if List.member t.context.actionContext hiddenActionContexts then
                 minimalToast
-                    context.palette
+                    context
                     stateColor
                     { title = title
                     , error = t.error
@@ -118,7 +118,7 @@ view context sharedModel t =
 
             else
                 genericToast
-                    context.palette
+                    context
                     stateColor
                     { title = title
                     , maybeActionContext = Just t.context.actionContext
@@ -146,7 +146,7 @@ view context sharedModel t =
 
 
 minimalToast :
-    ST.ExoPalette
+    { context | palette : ST.ExoPalette, urlPathPrefix : Maybe String }
     -> ST.UIStateColors
     ->
         { title : String
@@ -154,12 +154,12 @@ minimalToast :
         , showDebugMsgs : Bool
         }
     -> Element.Element msg
-minimalToast palette stateColor { title, error, showDebugMsgs } =
-    genericToast palette stateColor { title = title, maybeActionContext = Nothing, error = error, maybeRecoveryHint = Nothing, showDebugMsgs = showDebugMsgs }
+minimalToast context stateColor { title, error, showDebugMsgs } =
+    genericToast context stateColor { title = title, maybeActionContext = Nothing, error = error, maybeRecoveryHint = Nothing, showDebugMsgs = showDebugMsgs }
 
 
 genericToast :
-    ST.ExoPalette
+    { context | palette : ST.ExoPalette, urlPathPrefix : Maybe String }
     -> ST.UIStateColors
     ->
         { title : String
@@ -169,7 +169,7 @@ genericToast :
         , showDebugMsgs : Bool
         }
     -> Element.Element msg
-genericToast palette stateColor { title, maybeActionContext, error, maybeRecoveryHint, showDebugMsgs } =
+genericToast context stateColor { title, maybeActionContext, error, maybeRecoveryHint, showDebugMsgs } =
     let
         description =
             case maybeActionContext of
@@ -201,10 +201,10 @@ genericToast palette stateColor { title, maybeActionContext, error, maybeRecover
         readMore =
             Element.paragraph []
                 [ Element.link
-                    (Link.linkStyle palette
+                    (Link.linkStyle context.palette
                         ++ [ Element.alignRight ]
                     )
-                    { url = Route.toUrl Nothing (MessageLog showDebugMsgs)
+                    { url = Route.toUrl context.urlPathPrefix (MessageLog showDebugMsgs)
                     , label = Text.text Text.Small [] "Read more"
                     }
                 ]
@@ -232,12 +232,12 @@ genericToast palette stateColor { title, maybeActionContext, error, maybeRecover
                 (Element.text title)
             , Input.button
                 [ Element.mouseOver
-                    [ Border.color <| SH.toElementColor palette.neutral.icon
+                    [ Border.color <| SH.toElementColor context.palette.neutral.icon
                     ]
                 , Element.alignRight
                 ]
                 { onPress = Nothing
-                , label = Icon.timesCircle (SH.toElementColor palette.neutral.icon) 12
+                , label = Icon.timesCircle (SH.toElementColor context.palette.neutral.icon) 12
                 }
             ]
         , Element.column
