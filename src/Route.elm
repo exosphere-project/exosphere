@@ -67,6 +67,11 @@ type ProjectRouteConstructor
     | VolumeMountInstructions OSTypes.VolumeAttachment
 
 
+{-| Generates a url to the given route (including the project's path prefix if the app lives in a subdirectory).
+
+    e.g. https://try.exosphere.app/exosphere/helpabout
+
+-}
 toUrl : Maybe String -> Route -> String
 toUrl maybePathPrefix route =
     let
