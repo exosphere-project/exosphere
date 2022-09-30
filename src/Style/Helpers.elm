@@ -293,7 +293,6 @@ materialStyle exoPalette =
                 | container =
                     tb.container
                         ++ [ Font.color (toElementColor palette_.primary)
-                           , Element.padding 6
                            , Element.height Element.shrink -- remove fixed px height
                            ]
             }
