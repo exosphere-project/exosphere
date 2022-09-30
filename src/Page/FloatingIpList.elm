@@ -10,7 +10,7 @@ import OpenStack.Types as OSTypes
 import Page.QuotaUsage
 import Route
 import Set
-import Style.Helpers as SH
+import Style.Helpers as SH exposing (spacer)
 import Style.Types as ST
 import Style.Widgets.Alert as Alert
 import Style.Widgets.Button as Button
@@ -132,7 +132,7 @@ view context project model =
             in
             if List.isEmpty ipsSorted then
                 Element.column
-                    (VH.exoColumnAttributes ++ [ Element.paddingXY 10 0 ])
+                    (VH.exoColumnAttributes ++ [ Element.padding 0 ])
                     [ Element.text <|
                         String.concat
                             [ "You don't have any "
@@ -149,7 +149,7 @@ view context project model =
 
             else
                 Element.column
-                    [ Element.spacing 24, Element.width Element.fill ]
+                    [ Element.spacing spacer.px24, Element.width Element.fill ]
                     [ if List.length ipsNotAssignedToResources >= ipScarcityWarningThreshold then
                         ipScarcityWarning context
 
@@ -189,7 +189,7 @@ view context project model =
 
           else
             Element.none
-        , Element.column [ Element.spacing 16 ]
+        , Element.column [ Element.spacing spacer.px16 ]
             [ Page.QuotaUsage.view context Page.QuotaUsage.Full (Page.QuotaUsage.FloatingIp project.networkQuota)
             , VH.renderRDPP
                 context
@@ -301,7 +301,7 @@ floatingIpView context project floatingIpRecord =
                 Just _ ->
                     case GetterSetters.getFloatingIpServer project floatingIpRecord.ip of
                         Just server ->
-                            Element.row [ Element.spacing 5 ]
+                            Element.row [ Element.spacing spacer.px4 ]
                                 [ Element.text <|
                                     String.join " "
                                         [ "Assigned to"
@@ -336,7 +336,7 @@ floatingIpView context project floatingIpRecord =
                     ]
                     floatingIpRecord.ip.address
                 )
-            , Element.row [ Element.spacing 12, Element.alignRight ]
+            , Element.row [ Element.spacing spacer.px12, Element.alignRight ]
                 [ assignUnassignIpButton, deleteIpBtnWithPopconfirm ]
             ]
         , Element.row [] [ ipAssignment ]

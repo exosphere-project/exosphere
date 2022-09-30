@@ -4,7 +4,7 @@ import Element as Element exposing (Element)
 import Element.Border as Border
 import Element.Input as Input
 import FeatherIcons
-import Style.Helpers as SH
+import Style.Helpers as SH exposing (spacer)
 import Style.Types exposing (ExoPalette)
 import Style.Widgets.Icon exposing (Icon(..), iconEl)
 import View.Types
@@ -21,7 +21,7 @@ goToButton palette onPress =
         [ Border.width 1
         , Border.rounded 6
         , Border.color (SH.toElementColor palette.neutral.border)
-        , Element.padding 3
+        , Element.padding spacer.px4
         ]
         { onPress = onPress
         , label =
@@ -46,8 +46,8 @@ iconButton context attributes { icon, iconPlacement, label, onClick } =
         { onPress = onClick
         , label =
             Element.row
-                [ Element.padding 10
-                , Element.spacing 8
+                [ Element.padding spacer.px8
+                , Element.spacing spacer.px8
                 ]
                 (case iconPlacement of
                     Before ->

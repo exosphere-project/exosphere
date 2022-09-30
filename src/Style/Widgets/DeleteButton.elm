@@ -7,7 +7,7 @@ import Element
 import FeatherIcons
 import Html.Attributes as HtmlA
 import Set
-import Style.Helpers as SH
+import Style.Helpers as SH exposing (spacer)
 import Style.Types exposing (ExoPalette)
 import Style.Widgets.Button as Button
 import Style.Widgets.Popover.Popover exposing (popover)
@@ -42,7 +42,7 @@ deleteIconButton palette styleIsPrimary text onPress =
                 , labelRow =
                     dangerBtnStyleDefaults.labelRow
                         ++ [ Element.width Element.shrink
-                           , Element.paddingXY 4 0
+                           , Element.paddingXY spacer.px4 0
                            ]
             }
     in
@@ -61,8 +61,8 @@ deleteIconButton palette styleIsPrimary text onPress =
 deletePopconfirmContent : ExoPalette -> PopconfirmContent msg -> Element.Attribute msg -> Element.Element msg
 deletePopconfirmContent palette { confirmationText, onConfirm, onCancel } closePopconfirm =
     Element.column
-        [ Element.spacing 16, Element.padding 6 ]
-        [ Element.row [ Element.spacing 8 ]
+        [ Element.spacing spacer.px16, Element.padding spacer.px4 ]
+        [ Element.row [ Element.spacing spacer.px8 ]
             [ FeatherIcons.alertCircle
                 |> FeatherIcons.withSize 20
                 |> FeatherIcons.toHtml []
@@ -70,7 +70,7 @@ deletePopconfirmContent palette { confirmationText, onConfirm, onCancel } closeP
                 |> Element.el []
             , Element.text confirmationText
             ]
-        , Element.row [ Element.spacing 10, Element.alignRight ]
+        , Element.row [ Element.spacing spacer.px12, Element.alignRight ]
             [ Element.el [ closePopconfirm ] <|
                 Button.default
                     palette

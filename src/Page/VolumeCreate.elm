@@ -7,7 +7,7 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import OpenStack.Quotas as OSQuotas
 import RemoteData
-import Style.Helpers as SH
+import Style.Helpers as SH exposing (spacer)
 import Style.Widgets.Button as Button
 import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
@@ -93,7 +93,7 @@ view context project model =
                 , context.localization.blockDevice |> Helpers.String.toTitleCase
                 ]
             )
-        , Element.column [ Element.spacing 16 ]
+        , Element.column [ Element.spacing spacer.px16 ]
             [ Input.text
                 (VH.inputItemAttributes context.palette)
                 { text = model.name

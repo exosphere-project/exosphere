@@ -3,6 +3,7 @@ module Page.ServerResourceUsageAlerts exposing (view)
 import Dict
 import Element
 import Helpers.ServerResourceUsage exposing (timeSeriesRecentDataPoints)
+import Style.Helpers exposing (spacer)
 import Style.Widgets.Alert as Alert
 import Time
 import Tuple
@@ -35,9 +36,7 @@ view context currentTime timeSeries =
             dataPointToAlerts context newestDataPoint
                 |> List.map (renderAlert context)
                 |> Element.column
-                    [ Element.paddingXY 0 6
-                    , Element.spacing 6
-                    ]
+                    [ Element.spacing spacer.px8 ]
 
         Nothing ->
             Element.none
@@ -80,7 +79,7 @@ dataPointToAlerts context dataPoint =
 
 renderAlert : View.Types.Context -> ( Alert.AlertState, String ) -> Element.Element msg
 renderAlert context ( alertState, alertText ) =
-    Alert.alert [ Element.padding 4 ]
+    Alert.alert [ Element.padding spacer.px4 ]
         context.palette
         { state = alertState
         , showIcon = True

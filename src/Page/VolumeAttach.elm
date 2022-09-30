@@ -9,7 +9,7 @@ import OpenStack.ServerVolumes exposing (serversCanHaveVolumeAttached)
 import OpenStack.Types as OSTypes
 import RemoteData
 import Route
-import Style.Helpers as SH
+import Style.Helpers as SH exposing (spacer)
 import Style.Widgets.Button as Button
 import Style.Widgets.Select
 import Style.Widgets.Text as Text
@@ -109,7 +109,7 @@ view context project model =
                 ]
             )
         , Element.column
-            [ Element.spacing 16, Element.width Element.fill ]
+            [ Element.spacing spacer.px16, Element.width Element.fill ]
             [ Style.Widgets.Select.select
                 []
                 context.palette

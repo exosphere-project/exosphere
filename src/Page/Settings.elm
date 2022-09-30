@@ -3,6 +3,7 @@ module Page.Settings exposing (Model, Msg(..), headerView, init, update, view)
 import Element
 import Element.Font as Font
 import Element.Input as Input
+import Style.Helpers exposing (spacer)
 import Style.Types as ST
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
@@ -58,15 +59,14 @@ view context sharedModel _ =
                 "settingsExperimentalFeaturesToggleTip"
                 (Element.paragraph
                     [ Element.width (Element.fill |> Element.minimum 300)
-                    , Element.spacing 7
-                    , Element.padding 6
+                    , Element.spacing spacer.px8
                     , Font.regular
                     ]
                     [ Element.text "New features in development. An example is adding a custom workflow when you launch a server." ]
                 )
                 ST.PositionRight
     in
-    Element.column (VH.formContainer ++ [ Element.spacing 16 ])
+    Element.column (VH.formContainer ++ [ Element.spacing spacer.px16 ])
         [ Input.radio
             VH.exoColumnAttributes
             { onChange = SelectTheme

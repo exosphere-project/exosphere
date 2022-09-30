@@ -14,7 +14,7 @@ import Html.Attributes as HtmlA
 import OpenStack.Types as OSTypes exposing (Image)
 import Route
 import Set
-import Style.Helpers as SH
+import Style.Helpers as SH exposing (spacer)
 import Style.Types as ST
 import Style.Widgets.Button as Button
 import Style.Widgets.DataList as DataList
@@ -277,7 +277,7 @@ imageView model context project imageRecord =
                     Element.el [ Element.htmlAttribute <| HtmlA.title "Image is not active!" ] (textBtn Nothing)
 
         imageActions =
-            Element.row [ Element.alignRight, Element.spacing 10 ]
+            Element.row [ Element.alignRight, Element.spacing spacer.px12 ]
                 [ deleteImageBtn, createServerBtn ]
 
         size =
@@ -329,8 +329,8 @@ imageView model context project imageRecord =
             else
                 Just <|
                     Element.row
-                        [ Element.spacing 6
-                        , Element.paddingEach { left = 6, top = 0, right = 0, bottom = 0 }
+                        [ Element.spacing spacer.px8
+                        , Element.paddingEach { left = spacer.px8, top = 0, right = 0, bottom = 0 }
                         ]
                         (List.map (Tag.tag context.palette) imageRecord.image.tags)
 
@@ -356,12 +356,12 @@ imageView model context project imageRecord =
                 separator =
                     Element.text "·"
             in
-            Element.row [ Element.width Element.fill, Element.spacing 8 ] <|
+            Element.row [ Element.width Element.fill, Element.spacing spacer.px8 ] <|
                 List.intersperse separator attributesShown
     in
     Element.column
         (listItemColumnAttribs context.palette)
-        [ Element.row [ Element.width Element.fill, Element.spacing 10 ]
+        [ Element.row [ Element.width Element.fill, Element.spacing spacer.px12 ]
             [ Element.el
                 [ Font.size 18
                 , Font.color (SH.toElementColor context.palette.neutral.text.default)

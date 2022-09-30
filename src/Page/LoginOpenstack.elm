@@ -5,7 +5,7 @@ import Element.Font as Font
 import Element.Input as Input
 import OpenStack.OpenRc
 import OpenStack.Types as OSTypes
-import Style.Helpers as SH
+import Style.Helpers as SH exposing (spacer)
 import Style.Widgets.Button as Button
 import Style.Widgets.Link as Link
 import Style.Widgets.Text as Text
@@ -131,7 +131,7 @@ view context _ model =
                 |> List.any (\x -> String.isEmpty x)
                 |> not
     in
-    Element.column (VH.formContainer ++ [ Element.spacing 16 ])
+    Element.column (VH.formContainer ++ [ Element.spacing spacer.px16 ])
         [ case model.entryType of
             CredsEntry ->
                 loginOpenstackCredsEntry context model allCredsEntered
@@ -200,7 +200,7 @@ loginOpenstackCredsEntry context model allCredsEntered =
                 }
     in
     Element.column
-        (VH.formContainer ++ [ Element.spacing 16 ])
+        (VH.formContainer ++ [ Element.spacing spacer.px16 ])
         [ Element.el [] (Element.text "Enter your credentials")
         , textField
             creds.authUrl
@@ -242,7 +242,7 @@ loginOpenstackCredsEntry context model allCredsEntered =
 loginOpenstackOpenRcEntry : View.Types.Context -> Model -> Element.Element Msg
 loginOpenstackOpenRcEntry context model =
     Element.column
-        (VH.formContainer ++ [ Element.spacing 16 ])
+        (VH.formContainer ++ [ Element.spacing spacer.px16 ])
         [ Element.paragraph []
             [ Element.text "Paste an "
             , Link.externalLink

@@ -320,7 +320,7 @@ materialStyle exoPalette =
             in
             { defaultTab
                 | button = exoTB
-                , containerColumn = defaultTab.containerColumn ++ [ Element.spacing 24 ]
+                , containerColumn = defaultTab.containerColumn ++ [ Element.spacing spacer.px24 ]
             }
     in
     { textInput = Material.textInput regularPalette
@@ -331,7 +331,7 @@ materialStyle exoPalette =
                 Material.cardColumn regularPalette
         in
         { style
-            | element = style.element ++ [ Element.paddingXY 8 6 ]
+            | element = style.element ++ [ Element.padding spacer.px8 ]
         }
     , primaryButton = containedButton regularPalette
     , button = outlinedButton regularPalette
@@ -422,10 +422,10 @@ dropdownItemStyle palette =
                    , Font.size 16
                    , Font.medium
                    , Font.letterSpacing 0.8
-                   , Element.paddingXY 8 12
+                   , Element.paddingXY spacer.px8 spacer.px12
                    , Element.height Element.shrink
                    ]
-        , labelRow = textButtonDefaults.labelRow ++ [ Element.spacing 12 ]
+        , labelRow = textButtonDefaults.labelRow ++ [ Element.spacing spacer.px12 ]
     }
 
 

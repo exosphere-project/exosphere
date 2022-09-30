@@ -15,7 +15,7 @@ import OpenStack.Types as OSTypes
 import Page.QuotaUsage
 import RemoteData
 import Route
-import Style.Helpers as SH
+import Style.Helpers as SH exposing (spacer)
 import Style.Types as ST
 import Style.Widgets.Card
 import Style.Widgets.Icon as Icon
@@ -64,7 +64,11 @@ view context project currentTime _ =
                 { url = Route.toUrl context.urlPathPrefix (Route.ProjectRoute (GetterSetters.projectIdentifier project) projRouteConstructor)
                 , label =
                     tile context
-                        [ Element.column [ Element.padding 18, Element.width Element.fill, Element.spacing 20 ]
+                        [ Element.column
+                            [ Element.padding spacer.px24
+                            , Element.width Element.fill
+                            , Element.spacing spacer.px16
+                            ]
                             [ Text.subheading context.palette
                                 [ Element.paddingEach { bottom = 0, left = 0, right = 0, top = 0 }
                                 , Border.width 0
@@ -103,10 +107,10 @@ view context project currentTime _ =
                 |> List.length
     in
     Element.column
-        [ Element.spacing 24 ]
+        [ Element.spacing spacer.px24 ]
         [ renderJetstream2Allocation context project currentTime
         , VH.renderMaybe project.description renderDescription
-        , Element.wrappedRow [ Element.spacing 24 ]
+        , Element.wrappedRow [ Element.spacing spacer.px24 ]
             [ renderTile
                 (FeatherIcons.server
                     |> FeatherIcons.toHtml []
@@ -245,7 +249,7 @@ renderJetstream2Allocation context project currentTime =
                         Element.text "Jetstream2 allocation information not found."
 
                     Just allocation ->
-                        Element.row [ Element.spacing 8 ]
+                        Element.row [ Element.spacing spacer.px8 ]
                             [ meter allocation
                             , Element.el
                                 [ Element.alignBottom
@@ -437,10 +441,10 @@ tileContents context resourceWithAvailabilityMetadata resourceWord renderResourc
                 renderItemRow : List (Element.Element msg) -> Element.Element msg
                 renderItemRow contents =
                     Element.row
-                        [ Element.width Element.fill, Element.height (Element.px 30), Element.spacing 10 ]
+                        [ Element.width Element.fill, Element.height (Element.px 30), Element.spacing spacer.px12 ]
                         contents
             in
-            Element.column [ Element.width Element.fill, Element.spacing 15 ] <|
+            Element.column [ Element.width Element.fill, Element.spacing spacer.px12 ] <|
                 List.concat
                     [ if List.isEmpty shownItems then
                         [ subduedText <|
@@ -480,4 +484,4 @@ tileContents context resourceWithAvailabilityMetadata resourceWord renderResourc
 
 tile : View.Types.Context -> List (Element.Element Msg) -> Element.Element Msg
 tile context contents =
-    Style.Widgets.Card.clickableCardFixedSize context.palette 450 350 contents
+    Style.Widgets.Card.clickableCardFixedSize context.palette 450 325 contents

@@ -7,7 +7,7 @@ import Element.Font as Font
 import FeatherIcons
 import Html.Attributes
 import Set
-import Style.Helpers as SH
+import Style.Helpers as SH exposing (spacer)
 import Style.Types exposing (ExoPalette)
 import Style.Widgets.Popover.Popover exposing (popover)
 import Style.Widgets.Popover.Types exposing (PopoverId)
@@ -40,7 +40,7 @@ toggleTip context msgMapper id content position =
                 |> FeatherIcons.toHtml []
                 |> Element.html
                 |> Element.el
-                    ([ Element.paddingXY 5 0
+                    ([ Element.paddingXY spacer.px4 0
                      , Events.onClick toggleMsg
                      , Element.pointer
                      , Font.color (context.palette.neutral.icon |> SH.toElementColor)

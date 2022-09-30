@@ -11,7 +11,7 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import Html.Attributes as HtmlA
 import OpenStack.Types as OSTypes
 import Route
-import Style.Helpers as SH
+import Style.Helpers as SH exposing (spacer)
 import Time
 import Types.HelperTypes as HelperTypes
 import Types.Project exposing (Project)
@@ -119,15 +119,15 @@ view context project instanceTypes =
                     (SH.materialStyle context.palette).cardColumn
                     [ Element.column
                         [ Element.centerX
-                        , Element.paddingXY 10 15
-                        , Element.spacing 15
+                        , Element.paddingXY spacer.px12 spacer.px16
+                        , Element.spacing spacer.px16
                         ]
                       <|
                         [ Element.el
                             -- Yes, a hard-coded color when we've otherwise removed them from the app. These logos need a light background to look right.
                             [ Background.color <| SH.toElementColor <| Color.rgb255 255 255 255
                             , Element.centerX
-                            , Element.paddingXY 15 0
+                            , Element.paddingXY spacer.px16 0
                             , Border.rounded 10
                             , Element.height <| Element.px 100
                             ]
@@ -153,8 +153,8 @@ view context project instanceTypes =
                             VH.renderMarkdown context instanceType.description
                         ]
                     , Element.column
-                        [ Element.padding 10
-                        , Element.spacing 10
+                        [ Element.padding spacer.px12
+                        , Element.spacing spacer.px12
                         , Element.centerX
                         ]
                         (instanceType.versions
@@ -163,7 +163,7 @@ view context project instanceTypes =
                     ]
     in
     Element.wrappedRow
-        [ Element.width Element.fill, Element.spacing 24, Element.alignTop ]
+        [ Element.width Element.fill, Element.spacing spacer.px24, Element.alignTop ]
         (List.map renderInstanceType instanceTypes)
 
 

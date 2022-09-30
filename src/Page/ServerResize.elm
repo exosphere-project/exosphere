@@ -6,6 +6,7 @@ import Helpers.String
 import OpenStack.Types as OSTypes
 import RemoteData
 import Route
+import Style.Helpers exposing (spacer)
 import Style.Widgets.Button as Button
 import Style.Widgets.Text as Text
 import Types.Project exposing (Project)
@@ -120,7 +121,7 @@ view_ context project model computeQuota =
                         ""
                 ]
             )
-        , Element.column [ Element.spacing 16 ]
+        , Element.column [ Element.spacing spacer.px16 ]
             [ VH.flavorPicker context
                 project
                 restrictFlavorIds

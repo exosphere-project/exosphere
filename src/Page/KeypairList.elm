@@ -13,7 +13,7 @@ import Page.QuotaUsage
 import RemoteData
 import Route
 import Set
-import Style.Helpers as SH
+import Style.Helpers as SH exposing (spacer)
 import Style.Types as ST
 import Style.Widgets.CopyableText
 import Style.Widgets.DataList as DataList
@@ -93,7 +93,7 @@ view context project model =
         renderKeypairs keypairs =
             if List.isEmpty keypairs then
                 Element.column
-                    (VH.exoColumnAttributes ++ [ Element.paddingXY 10 0 ])
+                    (VH.exoColumnAttributes ++ [ Element.padding 0 ])
                     [ Element.text <|
                         String.join " "
                             [ "You don't have any"
@@ -116,7 +116,7 @@ view context project model =
                                 { text = text
                                 , icon =
                                     Element.row
-                                        [ Element.spacing 5 ]
+                                        [ Element.spacing spacer.px4 ]
                                         [ Element.text text
                                         , Element.el []
                                             (FeatherIcons.chevronRight
@@ -160,7 +160,7 @@ view context project model =
 
           else
             Element.none
-        , Element.column [ Element.spacing 16 ]
+        , Element.column [ Element.spacing spacer.px16 ]
             [ Page.QuotaUsage.view context Page.QuotaUsage.Full (Page.QuotaUsage.Keypair project.computeQuota keypairsUsedCount)
             , VH.renderWebData
                 context
@@ -274,7 +274,7 @@ keypairView model context project keypairRecord =
                     ]
                 )
     in
-    Element.column (listItemColumnAttribs context.palette ++ [ Element.spacing 12 ])
+    Element.column (listItemColumnAttribs context.palette ++ [ Element.spacing spacer.px12 ])
         [ Element.row [ Element.width Element.fill ]
             [ Element.el
                 [ Font.size 18

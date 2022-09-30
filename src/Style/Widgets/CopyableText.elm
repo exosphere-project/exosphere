@@ -5,7 +5,7 @@ import Element.Input as Input
 import Html
 import Html.Attributes
 import Murmur3
-import Style.Helpers as SH
+import Style.Helpers as SH exposing (spacer)
 import Style.Types exposing (ExoPalette)
 import Style.Widgets.Icon exposing (copyToClipboard)
 
@@ -18,7 +18,7 @@ import Style.Widgets.Icon exposing (copyToClipboard)
 copyableText : ExoPalette -> List (Element.Attribute msg) -> String -> Element msg
 copyableText palette textAttributes text =
     Element.row
-        [ Element.spacing 8, Element.width Element.fill ]
+        [ Element.spacing spacer.px8, Element.width Element.fill ]
         [ Element.paragraph textAttributes <|
             [ Element.html <|
                 Html.div [ Html.Attributes.id ("copy-me-" ++ hash text) ] <|
@@ -33,7 +33,7 @@ copyableText palette textAttributes text =
                 Element.row
                     [ Element.transparent True
                     , Element.mouseOver [ Element.transparent False ]
-                    , Element.spacing 10
+                    , Element.spacing spacer.px8
                     ]
                 <|
                     [ copyToClipboard (SH.toElementColor palette.primary) 18

@@ -10,7 +10,7 @@ import Helpers.Url as UrlHelpers
 import RemoteData
 import Route
 import Set
-import Style.Helpers as SH
+import Style.Helpers as SH exposing (spacer)
 import Style.Types
 import Style.Widgets.Card exposing (clickableCardFixedSize)
 import Style.Widgets.Icon as Icon
@@ -68,7 +68,7 @@ headerView context sharedModel =
                     |> Helpers.String.pluralize
                 ]
     in
-    Element.row [ Element.width Element.fill, Element.spacing 25 ]
+    Element.row [ Element.width Element.fill, Element.spacing spacer.px24 ]
         [ Text.heading context.palette
             VH.headerHeadingAttributes
             Element.none
@@ -81,7 +81,7 @@ headerView context sharedModel =
                 (Widget.iconButton
                     (SH.materialStyle context.palette).button
                     { icon =
-                        Element.row [ Element.spacing 10 ]
+                        Element.row [ Element.spacing spacer.px8 ]
                             [ Element.text removeAllText
                             , FeatherIcons.logOut |> FeatherIcons.withSize 18 |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
                             ]
@@ -101,7 +101,7 @@ view : View.Types.Context -> SharedModel -> Model -> Element.Element Msg
 view context sharedModel _ =
     Element.column
         [ Element.width Element.fill
-        , Element.spacing 20
+        , Element.spacing spacer.px24
         ]
         [ if List.isEmpty <| uniqueKeystoneHostnames sharedModel then
             Element.text <|
@@ -114,7 +114,7 @@ view context sharedModel _ =
           else
             Element.none
         , Element.wrappedRow
-            [ Element.spacing 24 ]
+            [ Element.spacing spacer.px24 ]
             (List.append (List.map (renderProject context) sharedModel.projects) [ addProjectCard context sharedModel ])
         ]
 
@@ -131,7 +131,7 @@ addProjectCard context sharedModel =
             card
                 context.palette
                 [ Element.column
-                    [ Element.centerX, Element.centerY, Element.spacing 24 ]
+                    [ Element.centerX, Element.centerY, Element.spacing spacer.px24 ]
                     [ FeatherIcons.plusCircle
                         |> FeatherIcons.withSize 85
                         |> FeatherIcons.toHtml []
@@ -152,12 +152,12 @@ renderProject context project =
     let
         renderProjectName =
             Element.el
-                [ Element.padding 10
+                [ Element.padding spacer.px8
                 , Element.centerX
                 , Font.semiBold
                 ]
             <|
-                Element.row [ Element.spacing 8 ]
+                Element.row [ Element.spacing spacer.px8 ]
                     [ Element.el
                         [ context.palette.neutral.text.subdued
                             |> SH.toElementColor
@@ -200,7 +200,7 @@ renderProject context project =
 
         renderCloudName =
             Element.wrappedRow
-                [ Element.spacing 10
+                [ Element.spacing spacer.px8
                 , Element.centerX
                 , Element.alignBottom
                 ]
@@ -211,8 +211,8 @@ renderProject context project =
             Element.column
                 [ Element.width Element.fill
                 , Element.height (Element.px 110)
-                , Element.paddingEach { top = 5, bottom = 10, left = 5, right = 5 }
-                , Element.spacing 8
+                , Element.paddingEach { top = spacer.px8, bottom = spacer.px12, left = spacer.px8, right = spacer.px8 }
+                , Element.spacing spacer.px8
                 ]
                 [ renderProjectName
                 , renderProjectDescription
@@ -221,7 +221,7 @@ renderProject context project =
 
         renderResourceCount : String -> Element.Element Msg -> Int -> Element.Element Msg
         renderResourceCount resourceNameSingular icon count =
-            Element.row [ Element.spacing 8 ]
+            Element.row [ Element.spacing spacer.px8 ]
                 [ icon
                 , Element.text <|
                     String.join " "
@@ -244,7 +244,10 @@ renderProject context project =
 
         cardBody =
             Element.column
-                [ Element.height (Element.px 120), Element.padding 10, Element.spacing 12 ]
+                [ Element.height (Element.px 120)
+                , Element.padding spacer.px8
+                , Element.spacing spacer.px12
+                ]
                 [ renderResourceQuantity
                     context.localization.virtualComputer
                     (FeatherIcons.server |> FeatherIcons.toHtml [] |> Element.html |> Element.el [])
@@ -274,4 +277,5 @@ renderProject context project =
 
 card : Style.Types.ExoPalette -> List (Element.Element Msg) -> Element.Element Msg
 card palette content =
-    clickableCardFixedSize palette 320 250 content
+    -- TODO: height shouldn't be hardcoded becuase it needs to be changed everytime content (and its spacing & padding) is changed
+    clickableCardFixedSize palette 320 265 content

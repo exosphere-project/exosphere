@@ -6,6 +6,7 @@ import Helpers.Formatting exposing (Unit(..), humanNumber)
 import Helpers.String
 import OpenStack.Types as OSTypes
 import RemoteData exposing (RemoteData(..), WebData)
+import Style.Helpers exposing (spacer)
 import Style.Widgets.Meter
 import View.Helpers as VH
 import View.Types
@@ -93,7 +94,7 @@ computeInfoItems context display quota =
             Element.wrappedRow
                 (VH.exoRowAttributes
                     ++ [ Element.width Element.fill
-                       , Element.spacing 35
+                       , Element.spacing spacer.px32
                        ]
                 )
                 [ brief
@@ -212,7 +213,7 @@ volumeInfoItems context display quota =
             Element.wrappedRow
                 (VH.exoRowAttributes
                     ++ [ Element.centerX
-                       , Element.spacing 35
+                       , Element.spacing spacer.px32
                        ]
                 )
                 [ brief

@@ -7,6 +7,7 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import RemoteData
 import Set
+import Style.Helpers exposing (spacer)
 import Style.Widgets.Button as Button
 import Style.Widgets.CopyableText
 import Style.Widgets.Select
@@ -87,7 +88,7 @@ headerView context sharedModel =
 view : View.Types.Context -> SharedModel -> Model -> Element.Element Msg
 view context sharedModel model =
     Element.column
-        (VH.formContainer ++ [ Element.spacing 32 ])
+        (VH.formContainer ++ [ Element.spacing spacer.px32 ])
         [ case sharedModel.style.supportInfoMarkdown of
             Just markdown ->
                 Element.column [] <|
@@ -95,7 +96,7 @@ view context sharedModel model =
 
             Nothing ->
                 Element.none
-        , Element.column [ Element.spacing 16, Element.width Element.fill ]
+        , Element.column [ Element.spacing spacer.px16, Element.width Element.fill ]
             [ Input.radio
                 VH.exoColumnAttributes
                 { onChange =
@@ -245,7 +246,7 @@ view context sharedModel model =
                 ]
             , if model.isSubmitted then
                 Element.column
-                    [ Element.spacing 10, Element.width Element.fill ]
+                    [ Element.spacing spacer.px12, Element.width Element.fill ]
                     [ Text.p
                         []
                         [ Element.text "Please copy all of the text below and paste it into an email message to: "
@@ -257,7 +258,7 @@ view context sharedModel model =
                         (VH.exoElementAttributes
                             ++ [ Element.height <| Element.px 200
                                , Element.width Element.fill
-                               , Element.spacing 5
+                               , Element.spacing spacer.px4
                                , Font.family [ Font.monospace ]
                                , Font.size 10
                                ]

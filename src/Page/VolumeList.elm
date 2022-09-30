@@ -12,7 +12,7 @@ import OpenStack.Types as OSTypes
 import Page.QuotaUsage
 import Route
 import Set
-import Style.Helpers as SH
+import Style.Helpers as SH exposing (spacer)
 import Style.Types as ST
 import Style.Widgets.Button as Button
 import Style.Widgets.DataList as DataList
@@ -116,7 +116,7 @@ view context project currentTime model =
 
           else
             Element.none
-        , Element.column [ Element.width Element.fill, Element.spacing 16 ]
+        , Element.column [ Element.width Element.fill, Element.spacing spacer.px16 ]
             [ Page.QuotaUsage.view context Page.QuotaUsage.Full (Page.QuotaUsage.Volume project.volumeQuota)
             , VH.renderWebData
                 context
@@ -261,7 +261,7 @@ volumeView context project currentTime volumeRecord =
                                 , volumeRecord.id
                                 ]
                     in
-                    Element.row [ Element.spacing 12 ]
+                    Element.row [ Element.spacing spacer.px12 ]
                         [ deletePopconfirm context
                             (\deletePopconfirmId_ -> SharedMsg <| SharedMsg.TogglePopover deletePopconfirmId_)
                             deletePopconfirmId
@@ -294,12 +294,12 @@ volumeView context project currentTime volumeRecord =
     in
     Element.column
         (listItemColumnAttribs context.palette)
-        [ Element.row [ Element.spacing 10, Element.width Element.fill ]
+        [ Element.row [ Element.spacing spacer.px12, Element.width Element.fill ]
             [ volumeLink
             , volumeAttachment
             ]
         , Element.row
-            [ Element.spacing 8
+            [ Element.spacing spacer.px8
             , Element.width Element.fill
             ]
             [ Element.el [] (Element.text <| String.fromInt volumeRecord.volume.size ++ " GB")

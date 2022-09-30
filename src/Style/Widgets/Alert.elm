@@ -6,7 +6,7 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Region as Region
 import FeatherIcons
-import Style.Helpers as SH
+import Style.Helpers as SH exposing (spacer)
 import Style.Types as ST
 
 
@@ -80,8 +80,8 @@ alert styleAttrs palette { state, showIcon, showContainer, content } =
                 []
     in
     Element.row
-        ([ Element.padding 16
-         , Element.spacing 12
+        ([ Element.padding spacer.px16
+         , Element.spacing spacer.px12
          , Font.size 16
          , Font.color (stateColor.textOnNeutralBG |> SH.toElementColor)
          ]

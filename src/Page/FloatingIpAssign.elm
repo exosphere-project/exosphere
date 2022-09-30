@@ -7,7 +7,7 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import OpenStack.Types as OSTypes
 import Route
-import Style.Helpers as SH
+import Style.Helpers as SH exposing (spacer)
 import Style.Widgets.Button as Button
 import Style.Widgets.Select
 import Style.Widgets.Text as Text
@@ -126,7 +126,7 @@ view context project model =
                     |> Helpers.String.toTitleCase
                 ]
             )
-        , Element.column [ Element.spacing 16 ]
+        , Element.column [ Element.spacing spacer.px16 ]
             [ Element.el [ Font.semiBold ] <| Element.text selectServerText
             , if List.isEmpty serverChoices then
                 Element.paragraph []

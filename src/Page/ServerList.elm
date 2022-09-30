@@ -18,7 +18,7 @@ import OpenStack.Types as OSTypes
 import Page.QuotaUsage
 import Route
 import Set
-import Style.Helpers as SH
+import Style.Helpers as SH exposing (spacer)
 import Style.Types as ST
 import Style.Widgets.DataList as DataList
 import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
@@ -99,7 +99,7 @@ view context project currentTime model =
             {- Resolve whether we have a loaded list of servers to display; if so, call rendering function serverList_ -}
             case ( project.servers.data, project.servers.refreshStatus ) of
                 ( RDPP.DontHave, RDPP.NotLoading Nothing ) ->
-                    Element.row [ Element.spacing 15 ]
+                    Element.row [ Element.spacing spacer.px16 ]
                         [ Widget.circularProgressIndicator
                             (SH.materialStyle context.palette).progressIndicator
                             Nothing
@@ -119,7 +119,7 @@ view context project currentTime model =
                         ]
 
                 ( RDPP.DontHave, RDPP.Loading ) ->
-                    Element.row [ Element.spacing 15 ]
+                    Element.row [ Element.spacing spacer.px16 ]
                         [ Widget.circularProgressIndicator
                             (SH.materialStyle context.palette).progressIndicator
                             Nothing
@@ -177,7 +177,7 @@ view context project currentTime model =
 
           else
             Element.none
-        , Element.column [ Element.spacing 12 ]
+        , Element.column [ Element.spacing spacer.px12 ]
             [ Page.QuotaUsage.view context Page.QuotaUsage.Full (Page.QuotaUsage.Compute project.computeQuota)
             , serverListContents
             ]
@@ -346,7 +346,7 @@ serverView context currentTime project serverRecord =
                         { text = "Connect to"
                         , icon =
                             Element.row
-                                [ Element.spacing 5 ]
+                                [ Element.spacing spacer.px4 ]
                                 [ Element.text "Connect to"
                                 , Element.el []
                                     ((if popoverIsShown then
@@ -418,7 +418,7 @@ serverView context currentTime project serverRecord =
         floatingIpView =
             case serverRecord.floatingIpAddress of
                 Just floatingIpAddress ->
-                    Element.row [ Element.spacing 8 ]
+                    Element.row [ Element.spacing spacer.px8 ]
                         [ Icon.ipAddress
                             (SH.toElementColor
                                 context.palette.neutral.icon
@@ -432,7 +432,7 @@ serverView context currentTime project serverRecord =
     in
     Element.column
         (listItemColumnAttribs context.palette)
-        [ Element.row [ Element.spacing 10, Element.width Element.fill ]
+        [ Element.row [ Element.spacing spacer.px12, Element.width Element.fill ]
             [ serverLink
             , Element.el
                 [ Element.width (Element.px 12)
@@ -447,7 +447,7 @@ serverView context currentTime project serverRecord =
             , Element.el [ Element.alignRight ] deleteServerBtnWithPopconfirm
             ]
         , Element.row
-            [ Element.spacing 8
+            [ Element.spacing spacer.px8
             , Element.width Element.fill
             ]
             [ Element.el [] (Element.text serverRecord.size)

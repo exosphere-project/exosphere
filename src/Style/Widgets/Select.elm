@@ -8,7 +8,7 @@ import FeatherIcons
 import Html exposing (Html)
 import Html.Attributes as HtmlA
 import Html.Events as HtmlE
-import Style.Helpers as SH
+import Style.Helpers as SH exposing (spacer)
 import Style.Types exposing (ExoPalette)
 
 
@@ -79,7 +79,7 @@ select attributes palette { onChange, options, selected, label } =
         ([ Border.width 1
          , Border.rounded 4
          , Border.color <| SH.toElementColor palette.neutral.border
-         , Element.paddingXY 5 0
+         , Element.paddingXY spacer.px4 0
          , Element.width Element.fill
          , Background.color <| SH.toElementColor palette.neutral.background.frontLayer
          ]
