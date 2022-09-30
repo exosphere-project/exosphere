@@ -25,6 +25,7 @@ module View.Helpers exposing
     , invalidInputHelperText
     , loginPickerButton
     , possiblyUntitledResource
+    , radioRowLabelAttributes
     , renderIf
     , renderMarkdown
     , renderMaybe
@@ -1344,6 +1345,13 @@ requiredLabel palette undecoratedLabelView =
             ]
             (Element.text "*")
         ]
+
+
+radioRowLabelAttributes : List (Element.Attribute msg)
+radioRowLabelAttributes =
+    [ Font.semiBold
+    , Element.paddingEach { edges | bottom = spacer.px12 }
+    ]
 
 
 invalidInputAttributes : ExoPalette -> List (Element.Attribute msg)

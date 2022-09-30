@@ -86,8 +86,7 @@ numericTextInput palette attribs currentVal params onchangeFunc =
                         (Element.text reason)
     in
     Element.column
-        [ Element.paddingXY 0 spacer.px12
-        , Element.spacing spacer.px12
+        [ Element.spacing spacer.px8
         ]
         [ textInput
         , warnText

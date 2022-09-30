@@ -22,7 +22,7 @@ import OpenStack.Types as OSTypes
 import RemoteData
 import Route
 import ServerDeploy exposing (cloudInitUserDataTemplate)
-import Style.Helpers as SH
+import Style.Helpers as SH exposing (spacer)
 import Style.Types as ST
 import Style.Widgets.Alert as Alert
 import Style.Widgets.Button as Button
@@ -425,6 +425,7 @@ view context project currentTime model =
                             )
             in
             if serverNameExists model.serverName then
+                -- 75 is used to align it vertically with name input text box
                 [ Element.row [ Element.paddingXY 75 0 ]
                     suggestionButtons
                 ]
@@ -669,7 +670,7 @@ view context project currentTime model =
                                 VH.invalidInputHelperText context.palette invalidFormHint
             in
             [ Element.column
-                [ Element.spacing 10
+                [ Element.spacing spacer.px8
                 , Element.width Element.fill
                 ]
                 (Input.text
@@ -698,13 +699,14 @@ view context project currentTime model =
                     ++ nameSuggestionButtons
                     ++ renderServerNameExists
                 )
-            , Element.row []
-                [ Element.text <|
-                    String.concat
-                        [ context.localization.staticRepresentationOfBlockDeviceContents
-                            |> Helpers.String.toTitleCase
-                        , ": "
-                        ]
+            , Element.row [ Element.spacing spacer.px8 ]
+                [ Element.el [ Font.semiBold ] <|
+                    Element.text <|
+                        String.concat
+                            [ context.localization.staticRepresentationOfBlockDeviceContents
+                                |> Helpers.String.toTitleCase
+                            , ": "
+                            ]
                 , Element.text model.imageName
                 ]
             , VH.flavorPicker context
@@ -721,10 +723,12 @@ view context project currentTime model =
             , desktopEnvironmentPicker context project model
             , customWorkflowInput context project model
             , Element.column
-                [ Element.spacing 24 ]
+                [ Element.spacing spacer.px32 ]
               <|
-                [ Input.radioRow [ Element.spacing 10 ]
-                    { label = Input.labelAbove [ Element.paddingXY 0 12, Font.semiBold ] (Element.text "Advanced Options")
+                Input.radioRow [ Element.spacing spacer.px32 ]
+                    { label =
+                        Input.labelAbove VH.radioRowLabelAttributes
+                            (Element.text "Advanced Options")
                     , onChange = GotShowAdvancedOptions
                     , options =
                         [ Input.option False (Element.text "Hide")
@@ -734,8 +738,7 @@ view context project currentTime model =
                         ]
                     , selected = Just model.showAdvancedOptions
                     }
-                ]
-                    ++ (if not model.showAdvancedOptions then
+                    :: (if not model.showAdvancedOptions then
                             [ Element.none ]
 
                         else
@@ -750,10 +753,10 @@ view context project currentTime model =
                        )
             , renderNetworkGuidance
             , Element.row
-                [ -- to make it look separate from all form fields with uniform 24px spacing
+                [ -- add extra padding to make it look separate from all form fields with uniform 32px spacing
                   -- inspired from PF demos: https://www.patternfly.org/v4/components/form/#basic
-                  Element.paddingEach { top = 32, bottom = 0, left = 0, right = 0 }
-                , Element.spacing 10
+                  Element.paddingEach { edges | top = spacer.px32 }
+                , Element.spacing spacer.px8
                 , Element.width Element.fill
                 ]
                 [ Element.el [ Element.width Element.fill ] invalidFormHintView
@@ -762,7 +765,7 @@ view context project currentTime model =
             ]
 
         loading message =
-            Element.row [ Element.spacing 15 ]
+            Element.row [ Element.spacing spacer.px16 ]
                 [ Widget.circularProgressIndicator
                     (SH.materialStyle context.palette).progressIndicator
                     Nothing
@@ -783,12 +786,8 @@ view context project currentTime model =
             [ -- Keeps form fields from displaying too wide
               Element.width (Element.maximum 600 Element.fill)
 
-            -- PatternFly guidelines: There should be 24 pixels between field inside a form (spacing)
-            , Element.spacing 24
-
-            -- PatternFly guidelines: There should be 24 pixels between a form and it surroundings (padding)
-            -- It's set to 4 here, because the form is probably already inside two nested elements each with padding of 10
-            , Element.paddingEach { edges | left = 4 }
+            -- PatternFly guidelines: There should be atleast 24 pixels between field inside a form (spacing)
+            , Element.spacing spacer.px32
             ]
           <|
             case
@@ -862,7 +861,7 @@ volBackedPrompt context model volumeQuota flavor =
             }
 
         radioInput =
-            Input.radio []
+            Input.radio [ Element.spacing spacer.px4 ]
                 { label = Input.labelHidden "Root disk size"
                 , onChange =
                     \new ->
@@ -895,8 +894,8 @@ volBackedPrompt context model volumeQuota flavor =
                             Just False
                 }
     in
-    Element.column [ Element.spacing 10 ]
-        [ Element.text "Choose a root disk size"
+    Element.column [ Element.spacing spacer.px12 ]
+        [ Element.el [ Font.semiBold ] <| Element.text "Choose a root disk size"
         , if canLaunchVolBacked then
             radioInput
 
@@ -916,7 +915,7 @@ volBackedPrompt context model volumeQuota flavor =
                 Element.none
 
             Just volSizeTextInput ->
-                Element.row [ Element.spacing 10 ]
+                Element.row [ Element.spacing spacer.px8 ]
                     [ numericTextInput
                         context.palette
                         (VH.inputItemAttributes context.palette)
@@ -962,15 +961,16 @@ countPicker context model computeQuota volumeQuota flavor =
         countAvailPerApp =
             25
     in
-    Element.column [ Element.spacing 10 ]
-        [ Element.text <|
-            String.concat
-                [ "How many "
-                , context.localization.virtualComputer
-                    |> Helpers.String.pluralize
-                    |> Helpers.String.toTitleCase
-                , "?"
-                ]
+    Element.column [ Element.spacing spacer.px12 ]
+        [ Element.el [ Font.semiBold ] <|
+            Element.text <|
+                String.concat
+                    [ "How many "
+                    , context.localization.virtualComputer
+                        |> Helpers.String.pluralize
+                        |> Helpers.String.toTitleCase
+                    , "?"
+                    ]
         , case countAvailPerQuota of
             Just countAvailPerQuota_ ->
                 let
@@ -998,7 +998,7 @@ countPicker context model computeQuota volumeQuota flavor =
 
             Nothing ->
                 Element.none
-        , Element.row [ Element.spacing 10 ]
+        , Element.row [ Element.spacing spacer.px12 ]
             [ Input.slider
                 [ Element.height (Element.px 30)
                 , Element.width (Element.px 100 |> Element.minimum 200)
@@ -1098,7 +1098,7 @@ customWorkflowInputExperimental context project model =
                         []
 
                 repoInput =
-                    Element.column [ Element.width Element.fill, Element.spacing 10 ]
+                    Element.column [ Element.width Element.fill, Element.spacing spacer.px12 ]
                         [ Input.text
                             (Events.onLoseFocus GotWorkflowInputLoseFocus
                                 :: (VH.inputItemAttributes context.palette
@@ -1143,7 +1143,7 @@ customWorkflowInputExperimental context project model =
                     in
                     Element.column
                         [ Element.width Element.fill
-                        , Element.spacing 10
+                        , Element.spacing spacer.px12
                         ]
                         [ Element.text pathInputLabel
                         , Input.text
@@ -1165,7 +1165,7 @@ customWorkflowInputExperimental context project model =
             in
             Element.column
                 [ Element.width Element.fill
-                , Element.spacing 24
+                , Element.spacing spacer.px24
                 ]
                 [ repoInput
                 , referenceInput
@@ -1182,7 +1182,7 @@ customWorkflowInputExperimental context project model =
                         (Element.fill
                             |> Element.minimum 100
                         )
-                    , Element.spacing 7
+                    , Element.spacing spacer.px8
                     ]
                     [ Element.text "Any Binder™-compatible repository can be launched."
                     , Element.paragraph []
@@ -1197,13 +1197,13 @@ customWorkflowInputExperimental context project model =
     in
     Element.column
         [ Element.width Element.fill
-        , Element.spacing 24
+        , Element.spacing spacer.px24
         ]
     <|
-        (Input.radioRow [ Element.spacing 10 ]
+        (Input.radioRow [ Element.spacing spacer.px32 ]
             { label =
-                Input.labelAbove [ Element.paddingXY 0 12 ]
-                    (Element.row [ Element.spacingXY 10 0 ]
+                Input.labelAbove (VH.radioRowLabelAttributes ++ [ Font.regular ])
+                    (Element.row [ Element.spacing spacer.px8 ]
                         [ Text.text Text.H4
                             []
                             ("Launch a workflow in the " ++ context.localization.virtualComputer)
@@ -1263,12 +1263,12 @@ clusterInputExperimental context model =
     in
     Element.column
         [ Element.width Element.fill
-        , Element.spacing 12
+        , Element.spacing spacer.px12
         ]
-        [ Input.radioRow [ Element.spacing 10 ]
+        [ Input.radioRow [ Element.spacing spacer.px32 ]
             { label =
-                Input.labelAbove [ Element.paddingXY 0 12 ]
-                    (Element.row [ Element.spacingXY 10 0 ]
+                Input.labelAbove (VH.radioRowLabelAttributes ++ [ Font.regular ])
+                    (Element.wrappedRow [ Element.spacing spacer.px8 ]
                         [ Text.text Text.H4 [] ("Create your own SLURM cluster with this " ++ context.localization.virtualComputer ++ " as the head node")
                         , experimentalTag
                         ]
@@ -1290,7 +1290,7 @@ clusterInputExperimental context model =
                 , showContainer = True
                 , content =
                     Element.column
-                        [ Element.spacing 12, Element.width Element.fill ]
+                        [ Element.spacing spacer.px12, Element.width Element.fill ]
                         (List.map (\warning -> Element.paragraph [] [ warning ]) warnings)
                 }
 
@@ -1372,10 +1372,11 @@ desktopEnvironmentPicker context project model =
             ]
                 |> List.filterMap identity
     in
-    Element.column [ Element.spacing 10 ]
-        [ Input.radioRow VH.exoElementAttributes
+    Element.column [ Element.spacing spacer.px12 ]
+        [ Input.radioRow [ Element.spacing spacer.px32 ]
             { label =
-                Input.labelAbove [ Element.paddingXY 0 12, Font.semiBold ]
+                Input.labelAbove
+                    VH.radioRowLabelAttributes
                     (Element.text <|
                         String.concat
                             [ "Enable "
@@ -1398,7 +1399,7 @@ desktopEnvironmentPicker context project model =
                 , showContainer = True
                 , content =
                     Element.column
-                        [ Element.spacing 12, Element.width Element.fill ]
+                        [ Element.spacing spacer.px12, Element.width Element.fill ]
                         (List.map (\warning -> Element.paragraph [] [ warning ]) warnings)
                 }
 
@@ -1419,8 +1420,11 @@ guacamolePicker context model =
                     ]
 
         Just deployGuacamole ->
-            Input.radioRow [ Element.spacing 10 ]
-                { label = Input.labelAbove [ Element.paddingXY 0 12, Font.semiBold ] (Element.text "Deploy Guacamole for easy remote access?")
+            Input.radioRow [ Element.spacing spacer.px32 ]
+                { label =
+                    Input.labelAbove
+                        VH.radioRowLabelAttributes
+                        (Element.text "Deploy Guacamole for easy remote access?")
                 , onChange = \new -> GotDeployGuacamole <| Just new
                 , options =
                     [ Input.option True (Element.text "Yes")
@@ -1434,9 +1438,12 @@ guacamolePicker context model =
 
 skipOperatingSystemUpdatesPicker : View.Types.Context -> Model -> Element.Element Msg
 skipOperatingSystemUpdatesPicker context model =
-    Element.column [ Element.spacing 10 ]
-        [ Input.radioRow [ Element.spacing 10 ]
-            { label = Input.labelAbove [ Element.paddingXY 0 12, Font.semiBold ] (Element.text "Install operating system updates?")
+    Element.column [ Element.spacing spacer.px12 ]
+        [ Input.radioRow [ Element.spacing spacer.px32 ]
+            { label =
+                Input.labelAbove
+                    VH.radioRowLabelAttributes
+                    (Element.text "Install operating system updates?")
             , onChange = GotInstallOperatingSystemUpdates
             , options =
                 [ Input.option True (Element.text "Yes")
@@ -1519,7 +1526,7 @@ networkPicker context project model =
                 }
     in
     Element.column
-        [ Element.spacing 10 ]
+        [ Element.spacing spacer.px12 ]
         [ VH.requiredLabel context.palette
             (Element.el [ Font.semiBold ] <| Element.text "Network")
         , guidance
@@ -1552,7 +1559,7 @@ floatingIpPicker context project model =
                         )
                     ]
             in
-            Input.radio []
+            Input.radio [ Element.spacing spacer.px4 ]
                 { label =
                     Input.labelHidden <|
                         String.join " "
@@ -1593,14 +1600,14 @@ floatingIpPicker context project model =
                                 ]
                     in
                     Element.column
-                        [ Element.paddingXY 0 10, Element.spacingXY 0 10 ]
+                        [ Element.spacing spacer.px12 ]
                         [ Element.el [ Font.semiBold ] <|
                             Element.text <|
                                 String.join " "
                                     [ Helpers.String.toTitleCase context.localization.floatingIpAddress
                                     , "Reuse Option"
                                     ]
-                        , Input.radio []
+                        , Input.radio [ Element.spacing spacer.px4 ]
                             { label =
                                 Input.labelHidden <|
                                     String.join " "
@@ -1618,12 +1625,14 @@ floatingIpPicker context project model =
                 _ ->
                     Element.none
     in
-    Element.column
-        [ Element.spacing 10 ]
-        [ Element.el [ Font.semiBold ] <|
-            Element.text <|
-                Helpers.String.toTitleCase context.localization.floatingIpAddress
-        , optionPicker
+    Element.column [ Element.spacing spacer.px24 ]
+        [ Element.column
+            [ Element.spacing spacer.px12 ]
+            [ Element.el [ Font.semiBold ] <|
+                Element.text <|
+                    Helpers.String.toTitleCase context.localization.floatingIpAddress
+            , optionPicker
+            ]
         , reuseOptionPicker
         ]
 
@@ -1636,25 +1645,27 @@ keypairPicker context project model =
 
         renderKeypairs keypairs =
             if List.isEmpty keypairs then
-                Element.text <|
-                    String.concat
-                        [ "(This "
-                        , context.localization.unitOfTenancy
-                        , " has no "
-                        , context.localization.pkiPublicKeyForSsh
-                            |> Helpers.String.pluralize
-                        , " to choose from, but you can still create "
-                        , Helpers.String.indefiniteArticle context.localization.virtualComputer
-                        , " "
-                        , context.localization.virtualComputer
-                        , "!)"
-                        ]
+                Text.p []
+                    [ Element.text <|
+                        String.concat
+                            [ "(This "
+                            , context.localization.unitOfTenancy
+                            , " has no "
+                            , context.localization.pkiPublicKeyForSsh
+                                |> Helpers.String.pluralize
+                            , " to choose from, but you can still create "
+                            , Helpers.String.indefiniteArticle context.localization.virtualComputer
+                            , " "
+                            , context.localization.virtualComputer
+                            , "!)"
+                            ]
+                    ]
 
             else
                 Input.radio []
                     { label =
                         Input.labelAbove
-                            [ Element.paddingXY 0 12 ]
+                            [ Element.paddingXY 0 spacer.px12 ]
                             (Element.text <|
                                 String.join " "
                                     [ "Choose"
@@ -1669,7 +1680,7 @@ keypairPicker context project model =
                     }
     in
     Element.column
-        [ Element.spacing 10 ]
+        [ Element.spacing spacer.px12 ]
         [ Element.el
             [ Font.semiBold ]
             (Element.text
@@ -1692,7 +1703,7 @@ keypairPicker context project model =
                     { text = text
                     , icon =
                         Element.row
-                            [ Element.spacing 5 ]
+                            [ Element.spacing spacer.px4 ]
                             [ Element.text text
                             , Element.el []
                                 (FeatherIcons.chevronRight
@@ -1710,7 +1721,7 @@ keypairPicker context project model =
 userDataInput : View.Types.Context -> Model -> Element.Element Msg
 userDataInput context model =
     Element.column
-        [ Element.spacing 10 ]
+        [ Element.spacing spacer.px12 ]
         [ Element.el
             [ Font.semiBold ]
             (Element.text
@@ -1720,7 +1731,7 @@ userDataInput context model =
             (VH.inputItemAttributes context.palette
                 ++ [ Element.width Element.fill
                    , Element.height (Element.px 500)
-                   , Element.spacing 3
+                   , Element.spacing spacer.px4
                    , Font.family [ Font.monospace ]
                    ]
             )
