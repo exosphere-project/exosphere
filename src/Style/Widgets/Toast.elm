@@ -10,7 +10,7 @@ import Helpers.Helpers exposing (hiddenActionContexts)
 import Html exposing (Html)
 import Html.Attributes
 import Route exposing (Route(..))
-import Style.Helpers as SH
+import Style.Helpers as SH exposing (spacer)
 import Style.Types as ST
 import Style.Widgets.Icon as Icon
 import Style.Widgets.Link as Link
@@ -211,8 +211,8 @@ genericToast context stateColor { title, maybeActionContext, error, maybeRecover
     in
     Element.column
         [ Element.pointer
-        , Element.padding 10
-        , Element.spacing 10
+        , Element.padding spacer.px12
+        , Element.spacing spacer.px12
         , Element.width Element.fill
         , Background.color (SH.toElementColor stateColor.background)
         , Font.color (SH.toElementColor stateColor.textOnColoredBG)
@@ -242,7 +242,7 @@ genericToast context stateColor { title, maybeActionContext, error, maybeRecover
             ]
         , Element.column
             [ Font.size 13
-            , Element.spacing 8
+            , Element.spacing spacer.px8
             , Element.width Element.fill
             ]
             [ description
