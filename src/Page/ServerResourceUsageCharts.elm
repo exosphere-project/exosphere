@@ -218,6 +218,7 @@ view context widthPx ( currentTime, timeZone ) maybeServerResourceQtys timeSerie
         [ Element.width Element.fill
         , Element.height (Element.minimum 250 Element.shrink)
         , Element.scrollbarX
+        , Element.spaceEvenly
         ]
         [ Element.column []
             [ toCpuHeading context maybeServerResourceQtys haveGpuData

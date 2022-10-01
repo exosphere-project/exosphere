@@ -33,10 +33,18 @@ view context currentTime timeSeries =
     in
     case maybeNewestDataPoint of
         Just newestDataPoint ->
-            dataPointToAlerts context newestDataPoint
-                |> List.map (renderAlert context)
-                |> Element.column
-                    [ Element.spacing spacer.px8 ]
+            let
+                alerts =
+                    dataPointToAlerts context newestDataPoint
+            in
+            if List.isEmpty alerts then
+                Element.none
+
+            else
+                alerts
+                    |> List.map (renderAlert context)
+                    |> Element.column
+                        [ Element.spacing spacer.px8 ]
 
         Nothing ->
             Element.none
