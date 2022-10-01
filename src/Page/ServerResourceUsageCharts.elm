@@ -261,7 +261,7 @@ view context widthPx ( currentTime, timeZone ) maybeServerResourceQtys timeSerie
 toChartHeading : View.Types.Context -> Element.Element msg -> String -> Element.Element msg
 toChartHeading context title subtitle =
     Element.row
-        [ Element.width Element.fill, Element.paddingEach { top = 0, bottom = 0, left = 0, right = 25 } ]
+        [ Element.width Element.fill, Element.paddingEach { top = 0, bottom = 0, left = 0, right = spacer.px24 } ]
         [ Element.el [ Font.semiBold ] title
         , Element.el
             [ Font.color (context.palette.neutral.text.subdued |> SH.toElementColor)

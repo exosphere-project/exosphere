@@ -502,7 +502,7 @@ toolbarView model toMsg context rowStyle data bulkActions selectionFilters searc
                     [ Element.width Element.shrink
                     , Element.alignTop
                     , Element.paddingEach
-                        { top = 8, left = 0, right = 0, bottom = 0 }
+                        { top = spacer.px8, left = 0, right = 0, bottom = 0 }
                     ]
                     { checked = areAllRowsSelected
                     , onChange =

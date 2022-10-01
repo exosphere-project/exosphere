@@ -893,7 +893,7 @@ interactions context project server currentTime tlsReverseProxyHostname =
                                         Element.el
                                             [ Element.paddingEach
                                                 { top = 0
-                                                , right = 5
+                                                , right = spacer.px4
                                                 , left = 0
                                                 , bottom = 0
                                                 }
@@ -927,16 +927,10 @@ interactions context project server currentTime tlsReverseProxyHostname =
                                 in
                                 Element.row
                                     [ Font.color fontColor
+                                    , Element.spacing spacer.px8
                                     ]
                                     [ Element.el
-                                        [ Font.color iconColor
-                                        , Element.paddingEach
-                                            { top = 0
-                                            , right = 5
-                                            , left = 0
-                                            , bottom = 0
-                                            }
-                                        ]
+                                        [ Font.color iconColor ]
                                         (interactionDetails.icon iconColor 22)
                                     , Element.text interactionDetails.name
                                     , case interactionStatus of

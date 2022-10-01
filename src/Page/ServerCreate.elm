@@ -415,18 +415,19 @@ view context project currentTime model =
                     filteredSuggestedNames
                         |> List.map
                             (\name ->
-                                Element.column [ Element.paddingEach { top = 0, right = 10, bottom = 0, left = 0 } ]
-                                    [ Button.default
-                                        context.palette
-                                        { text = name
-                                        , onPress = Just (GotServerName name)
-                                        }
-                                    ]
+                                Button.default
+                                    context.palette
+                                    { text = name
+                                    , onPress = Just (GotServerName name)
+                                    }
                             )
             in
             if serverNameExists model.serverName then
-                -- 75 is used to align it vertically with name input text box
-                [ Element.row [ Element.paddingXY 75 0 ]
+                [ Element.row
+                    [ -- 75 is used to align it vertically with name input text box
+                      Element.paddingEach { edges | left = 75 }
+                    , Element.spacing spacer.px8
+                    ]
                     suggestionButtons
                 ]
 

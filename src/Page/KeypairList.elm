@@ -274,7 +274,7 @@ keypairView model context project keypairRecord =
                     ]
                 )
     in
-    Element.column (listItemColumnAttribs context.palette ++ [ Element.spacing spacer.px12 ])
+    Element.column (listItemColumnAttribs context.palette ++ [ Element.spacing spacer.px16 ])
         [ Element.row [ Element.width Element.fill ]
             [ Element.el
                 [ Font.size 18
@@ -296,7 +296,6 @@ keypairView model context project keypairRecord =
             ]
         , Element.row
             [ Element.width Element.fill
-            , Element.paddingEach { top = 6, right = 0, bottom = 0, left = 0 }
             ]
             [ Element.el
                 [ Element.width <| Element.minimum 120 Element.shrink

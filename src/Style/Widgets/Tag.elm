@@ -4,7 +4,7 @@ import Element
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
-import Style.Helpers as SH
+import Style.Helpers as SH exposing (spacer)
 import Style.Types
 
 
@@ -17,6 +17,6 @@ tag palette text =
         , Font.size 12
         , Font.color (SH.toElementColor palette.primary)
         , Border.rounded 20
-        , Element.paddingEach { top = 4, bottom = 4, left = 8, right = 8 }
+        , Element.paddingXY spacer.px8 spacer.px4
         ]
         (Element.text text)

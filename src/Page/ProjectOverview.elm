@@ -70,7 +70,7 @@ view context project currentTime _ =
                             , Element.spacing spacer.px16
                             ]
                             [ Text.subheading context.palette
-                                [ Element.paddingEach { bottom = 0, left = 0, right = 0, top = 0 }
+                                [ Element.padding 0
                                 , Border.width 0
                                 , Element.pointer
                                 ]
@@ -243,7 +243,7 @@ renderJetstream2Allocation context project currentTime =
 
         renderRDPPSuccess : Maybe Types.Jetstream2Accounting.Allocation -> Element.Element Msg
         renderRDPPSuccess maybeAllocation =
-            Element.el [ Element.paddingEach { edges | bottom = 12 } ] <|
+            Element.el [ Element.paddingEach { edges | bottom = spacer.px12 } ] <|
                 case maybeAllocation of
                     Nothing ->
                         Element.text "Jetstream2 allocation information not found."

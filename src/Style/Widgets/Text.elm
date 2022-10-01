@@ -195,7 +195,7 @@ headingStyleAttrs palette =
     , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
     , Border.color (palette.neutral.border |> SH.toElementColor)
     , Element.width Element.fill
-    , Element.paddingEach { bottom = 8, left = 0, right = 0, top = 0 }
+    , Element.paddingEach { bottom = spacer.px8, left = 0, right = 0, top = 0 }
     , Element.spacing spacer.px12
     ]
 
@@ -208,7 +208,7 @@ subheadingStyleAttrs palette =
     , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
     , Border.color (palette.neutral.border |> SH.toElementColor)
     , Element.width Element.fill
-    , Element.paddingEach { bottom = 8, left = 0, right = 0, top = 0 }
+    , Element.paddingEach { bottom = spacer.px8, left = 0, right = 0, top = 0 }
     , Element.spacing spacer.px12
     ]
 
