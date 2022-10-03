@@ -59,15 +59,6 @@ var cloud_configs = {
               },
               restrictFlavorIds: null,
             },
-            {
-              friendlyName: "18.04",
-              isPrimary: false,
-              imageFilters: {
-                name: "Featured-Ubuntu18",
-                visibility: "public",
-              },
-              restrictFlavorIds: null,
-            },
           ],
         },
         {
