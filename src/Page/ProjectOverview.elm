@@ -58,7 +58,7 @@ update msg _ model =
 view : View.Types.Context -> Project -> Time.Posix -> Model -> Element.Element Msg
 view context project currentTime _ =
     let
-        renderTile : Element.Element Msg -> String -> Route.ProjectRouteConstructor -> Element.Element Msg -> Element.Element Msg -> Element.Element Msg
+        renderTile : Element.Element Msg -> String -> Route.ProjectRouteConstructor -> Maybe (Element.Element Msg) -> Element.Element Msg -> Element.Element Msg
         renderTile icon str projRouteConstructor quotaMeter contents =
             Element.link []
                 { url = Route.toUrl context.urlPathPrefix (Route.ProjectRoute (GetterSetters.projectIdentifier project) projRouteConstructor)
@@ -67,7 +67,7 @@ view context project currentTime _ =
                         [ Element.column
                             [ Element.padding spacer.px24
                             , Element.width Element.fill
-                            , Element.spacing spacer.px16
+                            , Element.spacing spacer.px32
                             ]
                             [ Text.subheading context.palette
                                 [ Element.padding 0
@@ -76,7 +76,12 @@ view context project currentTime _ =
                                 ]
                                 icon
                                 str
-                            , Element.el [ Element.centerX ] quotaMeter
+                            , case quotaMeter of
+                                Just quotaMeter_ ->
+                                    Element.el [ Element.centerX ] quotaMeter_
+
+                                Nothing ->
+                                    Element.none
                             , contents
                             ]
                         ]
@@ -122,7 +127,7 @@ view context project currentTime _ =
                     |> Helpers.String.toTitleCase
                 )
                 Route.ServerList
-                (Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.Compute project.computeQuota))
+                (Just <| Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.Compute project.computeQuota))
                 (serverTileContents context project)
             , renderTile
                 (FeatherIcons.hardDrive
@@ -135,7 +140,7 @@ view context project currentTime _ =
                     |> Helpers.String.toTitleCase
                 )
                 Route.VolumeList
-                (Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.Volume project.volumeQuota))
+                (Just <| Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.Volume project.volumeQuota))
                 (volumeTileContents context project)
             , renderTile
                 (Icon.ipAddress (SH.toElementColor context.palette.neutral.text.default) 24)
@@ -144,7 +149,7 @@ view context project currentTime _ =
                     |> Helpers.String.toTitleCase
                 )
                 Route.FloatingIpList
-                (Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.FloatingIp project.networkQuota))
+                (Just <| Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.FloatingIp project.networkQuota))
                 (floatingIpTileContents context project)
             , renderTile
                 (FeatherIcons.key
@@ -157,7 +162,7 @@ view context project currentTime _ =
                     |> Helpers.String.toTitleCase
                 )
                 Route.KeypairList
-                (Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.Keypair project.computeQuota keypairsUsedCount))
+                (Just <| Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.Keypair project.computeQuota keypairsUsedCount))
                 (keypairTileContents context project)
             , renderTile
                 (FeatherIcons.package
@@ -170,7 +175,7 @@ view context project currentTime _ =
                     |> Helpers.String.toTitleCase
                 )
                 Route.ImageList
-                Element.none
+                Nothing
                 (imageTileContents context project)
             ]
         ]
@@ -484,4 +489,4 @@ tileContents context resourceWithAvailabilityMetadata resourceWord renderResourc
 
 tile : View.Types.Context -> List (Element.Element Msg) -> Element.Element Msg
 tile context contents =
-    Style.Widgets.Card.clickableCardFixedSize context.palette 450 325 contents
+    Style.Widgets.Card.clickableCardFixedSize context.palette 450 350 contents

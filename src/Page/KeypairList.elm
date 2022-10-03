@@ -93,7 +93,7 @@ view context project model =
         renderKeypairs keypairs =
             if List.isEmpty keypairs then
                 Element.column
-                    (VH.exoColumnAttributes ++ [ Element.padding 0 ])
+                    [ Element.spacing spacer.px12 ]
                     [ Element.text <|
                         String.join " "
                             [ "You don't have any"
@@ -148,7 +148,7 @@ view context project model =
                 |> List.length
     in
     Element.column
-        VH.contentContainer
+        (VH.contentContainer ++ [ Element.spacing spacer.px32 ])
         [ if model.showHeading then
             Text.heading context.palette
                 []
@@ -160,14 +160,12 @@ view context project model =
 
           else
             Element.none
-        , Element.column [ Element.spacing spacer.px16 ]
-            [ Page.QuotaUsage.view context Page.QuotaUsage.Full (Page.QuotaUsage.Keypair project.computeQuota keypairsUsedCount)
-            , VH.renderWebData
-                context
-                project.keypairs
-                (Helpers.String.pluralize context.localization.pkiPublicKeyForSsh)
-                renderKeypairs
-            ]
+        , Page.QuotaUsage.view context Page.QuotaUsage.Full (Page.QuotaUsage.Keypair project.computeQuota keypairsUsedCount)
+        , VH.renderWebData
+            context
+            project.keypairs
+            (Helpers.String.pluralize context.localization.pkiPublicKeyForSsh)
+            renderKeypairs
         ]
 
 

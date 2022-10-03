@@ -132,7 +132,7 @@ view context project model =
             in
             if List.isEmpty ipsSorted then
                 Element.column
-                    (VH.exoColumnAttributes ++ [ Element.padding 0 ])
+                    [ Element.spacing spacer.px12 ]
                     [ Element.text <|
                         String.concat
                             [ "You don't have any "
@@ -174,7 +174,7 @@ view context project model =
                     ]
     in
     Element.column
-        VH.contentContainer
+        (VH.contentContainer ++ [ Element.spacing spacer.px32 ])
         [ if model.showHeading then
             Text.heading context.palette
                 []
@@ -189,14 +189,12 @@ view context project model =
 
           else
             Element.none
-        , Element.column [ Element.spacing spacer.px16 ]
-            [ Page.QuotaUsage.view context Page.QuotaUsage.Full (Page.QuotaUsage.FloatingIp project.networkQuota)
-            , VH.renderRDPP
-                context
-                project.floatingIps
-                (Helpers.String.pluralize context.localization.floatingIpAddress)
-                renderFloatingIps
-            ]
+        , Page.QuotaUsage.view context Page.QuotaUsage.Full (Page.QuotaUsage.FloatingIp project.networkQuota)
+        , VH.renderRDPP
+            context
+            project.floatingIps
+            (Helpers.String.pluralize context.localization.floatingIpAddress)
+            renderFloatingIps
         ]
 
 
