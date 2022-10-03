@@ -5,10 +5,6 @@ module View.Helpers exposing
     , createdAgoByFromSize
     , edges
     , ellipsizedText
-    , exoColumnAttributes
-    , exoElementAttributes
-    , exoPaddingSpacingAttributes
-    , exoRowAttributes
     , featuredImageNamePrefixLookup
     , flavorPicker
     , formContainer
@@ -25,7 +21,7 @@ module View.Helpers exposing
     , invalidInputHelperText
     , loginPickerButton
     , possiblyUntitledResource
-    , radioRowLabelAttributes
+    , radioLabelAttributes
     , renderIf
     , renderMarkdown
     , renderMaybe
@@ -96,33 +92,6 @@ import Widget
 toExoPalette : Style -> ExoPalette
 toExoPalette style =
     SH.toExoPalette style.deployerColors style.styleMode
-
-
-
-{- Elm UI Doodads -}
--- TODO: following 4 should be replaced by 1, maybe something like default field
-
-
-exoRowAttributes : List (Element.Attribute msg)
-exoRowAttributes =
-    exoElementAttributes
-
-
-exoColumnAttributes : List (Element.Attribute msg)
-exoColumnAttributes =
-    exoElementAttributes
-
-
-exoElementAttributes : List (Element.Attribute msg)
-exoElementAttributes =
-    exoPaddingSpacingAttributes
-
-
-exoPaddingSpacingAttributes : List (Element.Attribute msg)
-exoPaddingSpacingAttributes =
-    [ Element.padding spacer.px12
-    , Element.spacing spacer.px12
-    ]
 
 
 inputItemAttributes : ExoPalette -> List (Element.Attribute msg)
@@ -1347,11 +1316,15 @@ requiredLabel palette undecoratedLabelView =
         ]
 
 
-radioRowLabelAttributes : List (Element.Attribute msg)
-radioRowLabelAttributes =
-    [ Font.semiBold
-    , Element.paddingEach { edges | bottom = spacer.px12 }
-    ]
+radioLabelAttributes : Bool -> List (Element.Attribute msg)
+radioLabelAttributes isBold =
+    Element.paddingEach { edges | bottom = spacer.px12 }
+        :: (if isBold then
+                [ Font.semiBold ]
+
+            else
+                []
+           )
 
 
 invalidInputAttributes : ExoPalette -> List (Element.Attribute msg)

@@ -728,7 +728,7 @@ view context project currentTime model =
               <|
                 Input.radioRow [ Element.spacing spacer.px32 ]
                     { label =
-                        Input.labelAbove VH.radioRowLabelAttributes
+                        Input.labelAbove (VH.radioLabelAttributes True)
                             (Element.text "Advanced Options")
                     , onChange = GotShowAdvancedOptions
                     , options =
@@ -1203,7 +1203,7 @@ customWorkflowInputExperimental context project model =
     <|
         (Input.radioRow [ Element.spacing spacer.px32 ]
             { label =
-                Input.labelAbove (VH.radioRowLabelAttributes ++ [ Font.regular ])
+                Input.labelAbove (VH.radioLabelAttributes False)
                     (Element.row [ Element.spacing spacer.px8 ]
                         [ Text.text Text.H4
                             []
@@ -1268,7 +1268,7 @@ clusterInputExperimental context model =
         ]
         [ Input.radioRow [ Element.spacing spacer.px32 ]
             { label =
-                Input.labelAbove (VH.radioRowLabelAttributes ++ [ Font.regular ])
+                Input.labelAbove (VH.radioLabelAttributes False)
                     (Element.wrappedRow [ Element.spacing spacer.px8 ]
                         [ Text.text Text.H4 [] ("Create your own SLURM cluster with this " ++ context.localization.virtualComputer ++ " as the head node")
                         , experimentalTag
@@ -1377,7 +1377,7 @@ desktopEnvironmentPicker context project model =
         [ Input.radioRow [ Element.spacing spacer.px32 ]
             { label =
                 Input.labelAbove
-                    VH.radioRowLabelAttributes
+                    (VH.radioLabelAttributes True)
                     (Element.text <|
                         String.concat
                             [ "Enable "
@@ -1424,7 +1424,7 @@ guacamolePicker context model =
             Input.radioRow [ Element.spacing spacer.px32 ]
                 { label =
                     Input.labelAbove
-                        VH.radioRowLabelAttributes
+                        (VH.radioLabelAttributes True)
                         (Element.text "Deploy Guacamole for easy remote access?")
                 , onChange = \new -> GotDeployGuacamole <| Just new
                 , options =
@@ -1443,7 +1443,7 @@ skipOperatingSystemUpdatesPicker context model =
         [ Input.radioRow [ Element.spacing spacer.px32 ]
             { label =
                 Input.labelAbove
-                    VH.radioRowLabelAttributes
+                    (VH.radioLabelAttributes True)
                     (Element.text "Install operating system updates?")
             , onChange = GotInstallOperatingSystemUpdates
             , options =

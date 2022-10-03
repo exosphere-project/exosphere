@@ -53,22 +53,23 @@ view : View.Types.Context -> SharedModel -> Model -> Element.Element Msg
 view context sharedModel _ =
     let
         experimentalFeatureToggleTip =
-            Style.Widgets.ToggleTip.toggleTip
-                context
-                (\experimentalFeaturesTipId -> SharedMsg <| SharedMsg.TogglePopover experimentalFeaturesTipId)
-                "settingsExperimentalFeaturesToggleTip"
-                (Element.paragraph
-                    [ Element.width (Element.fill |> Element.minimum 300)
-                    , Element.spacing spacer.px8
-                    , Font.regular
-                    ]
-                    [ Element.text "New features in development. An example is adding a custom workflow when you launch a server." ]
-                )
-                ST.PositionRight
+            Element.el [ Element.paddingXY spacer.px8 0 ] <|
+                Style.Widgets.ToggleTip.toggleTip
+                    context
+                    (\experimentalFeaturesTipId -> SharedMsg <| SharedMsg.TogglePopover experimentalFeaturesTipId)
+                    "settingsExperimentalFeaturesToggleTip"
+                    (Element.paragraph
+                        [ Element.width (Element.fill |> Element.minimum 300)
+                        , Element.spacing spacer.px8
+                        , Font.regular
+                        ]
+                        [ Element.text "New features in development. An example is adding a custom workflow when you launch a server." ]
+                    )
+                    ST.PositionRight
     in
-    Element.column (VH.formContainer ++ [ Element.spacing spacer.px16 ])
+    Element.column (VH.formContainer ++ [ Element.spacing spacer.px32 ])
         [ Input.radio
-            VH.exoColumnAttributes
+            [ Element.spacing spacer.px12 ]
             { onChange = SelectTheme
             , options =
                 [ Input.option (ST.Override ST.Light) (Element.text "Light")
@@ -77,10 +78,12 @@ view context sharedModel _ =
                 ]
             , selected =
                 Just sharedModel.style.styleMode.theme
-            , label = Input.labelAbove [] (Text.text Text.H4 [] "Color theme")
+            , label =
+                Input.labelAbove (VH.radioLabelAttributes True)
+                    (Text.text Text.H4 [] "Color theme")
             }
         , Input.radio
-            VH.exoColumnAttributes
+            [ Element.spacing spacer.px12 ]
             { onChange =
                 \newChoice ->
                     GotEnableExperimentalFeatures newChoice
@@ -92,7 +95,7 @@ view context sharedModel _ =
                 Just sharedModel.viewContext.experimentalFeaturesEnabled
             , label =
                 Input.labelAbove
-                    []
+                    (VH.radioLabelAttributes True)
                     (Text.text Text.H4
                         [ Element.onRight experimentalFeatureToggleTip
                         ]

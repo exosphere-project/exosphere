@@ -181,7 +181,7 @@ renderAttachment context project attachment =
                         ]
     in
     Element.column
-        (VH.exoColumnAttributes ++ [ Element.padding 0 ])
+        [ Element.spacing spacer.px12 ]
         [ VH.compactKVRow ((context.localization.virtualComputer |> Helpers.String.toTitleCase) ++ ":") <|
             Element.link []
                 { url =
@@ -222,7 +222,7 @@ renderAttachments context project volume =
                                 Element.none
                                 "Attached to"
                             , Element.row [ Element.paddingXY 0 spacer.px16 ]
-                                [ Element.row (VH.exoColumnAttributes ++ [ Element.padding 0 ]) <| List.map (renderAttachment context project) volume.attachments
+                                [ Element.row [ Element.spacing spacer.px12 ] <| List.map (renderAttachment context project) volume.attachments
                                 ]
                             ]
                         ]
