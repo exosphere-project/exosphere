@@ -571,7 +571,7 @@ projectSetImagesLoading project =
 
 projectSetJetstream2AllocationLoading : Project -> Project
 projectSetJetstream2AllocationLoading project =
-    { project | jetstream2Allocation = RDPP.setLoading project.jetstream2Allocation }
+    { project | jetstream2Allocations = RDPP.setLoading project.jetstream2Allocations }
 
 
 modelUpdateUnscopedProvider : SharedModel -> HelperTypes.UnscopedProvider -> SharedModel

@@ -1,4 +1,4 @@
-module Rest.Jetstream2Accounting exposing (requestAllocation)
+module Rest.Jetstream2Accounting exposing (requestAllocations)
 
 import Helpers.GetterSetters as GetterSetters
 import Http
@@ -11,12 +11,12 @@ import Types.Project exposing (Project)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 
 
-requestAllocation : Project -> Url -> Cmd SharedMsg
-requestAllocation project url =
+requestAllocations : Project -> Url -> Cmd SharedMsg
+requestAllocations project url =
     let
-        resultToMsg : Result Types.Error.HttpErrorWithBody (Maybe Types.Jetstream2Accounting.Allocation) -> SharedMsg
+        resultToMsg : Result Types.Error.HttpErrorWithBody (List Types.Jetstream2Accounting.Allocation) -> SharedMsg
         resultToMsg result =
-            ProjectMsg (GetterSetters.projectIdentifier project) <| ReceiveJetstream2Allocation result
+            ProjectMsg (GetterSetters.projectIdentifier project) <| ReceiveJetstream2Allocations result
     in
     Rest.Helpers.openstackCredentialedRequest
         (GetterSetters.projectIdentifier project)
@@ -24,13 +24,12 @@ requestAllocation project url =
         Nothing
         url
         Http.emptyBody
-        (Rest.Helpers.expectJsonWithErrorBody resultToMsg decodeFirstAllocation)
+        (Rest.Helpers.expectJsonWithErrorBody resultToMsg decodeAllocations)
 
 
-decodeFirstAllocation : Decode.Decoder (Maybe Types.Jetstream2Accounting.Allocation)
-decodeFirstAllocation =
+decodeAllocations : Decode.Decoder (List Types.Jetstream2Accounting.Allocation)
+decodeAllocations =
     Decode.list decodeAllocation
-        |> Decode.map List.head
 
 
 decodeAllocation : Decode.Decoder Types.Jetstream2Accounting.Allocation

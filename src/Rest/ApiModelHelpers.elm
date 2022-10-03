@@ -214,7 +214,7 @@ requestJetstream2Allocation projectIdentifier model =
                     ( project
                         |> GetterSetters.projectSetJetstream2AllocationLoading
                         |> GetterSetters.modelUpdateProject model
-                    , Rest.Jetstream2Accounting.requestAllocation project accountingApiUrl
+                    , Rest.Jetstream2Accounting.requestAllocations project accountingApiUrl
                     )
 
                 Nothing ->

@@ -83,10 +83,10 @@ view context project currentTime =
                 contents
                 ST.PositionRight
 
-        renderRDPPSuccess : Maybe Types.Jetstream2Accounting.Allocation -> Element.Element SharedMsg.SharedMsg
-        renderRDPPSuccess maybeAllocation =
+        renderRDPPSuccess : List Types.Jetstream2Accounting.Allocation -> Element.Element SharedMsg.SharedMsg
+        renderRDPPSuccess allocations =
             Element.el [ Element.paddingEach { edges | bottom = spacer.px12 } ] <|
-                case maybeAllocation of
+                case List.head allocations of
                     Nothing ->
                         Element.text "Jetstream2 allocation information not found."
 
@@ -103,7 +103,7 @@ view context project currentTime =
     case project.endpoints.jetstream2Accounting of
         Just _ ->
             -- Is a Jetstream2 project
-            VH.renderRDPP context project.jetstream2Allocation "allocation" renderRDPPSuccess
+            VH.renderRDPP context project.jetstream2Allocations "allocation" renderRDPPSuccess
 
         Nothing ->
             -- Is not a Jetstream2 project
