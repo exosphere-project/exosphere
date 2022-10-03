@@ -44,6 +44,7 @@ Maintainers, please ensure the MR passes this checklist before approving. Consul
 - Follow-up issues are created for any new issues that the MR causes or uncovers.
   - If the MR introduces any technical debt, these issues are assigned to MR author.
 - If the MR adds/changes/removes any popovers, ensure that their IDs are unique.
+- If the MR adds/changes padding and spacing, numbers from `spacer` must be used, and the guidelines at "Space" section of design system should be followed.
 
 ## Continuous Integration
 
