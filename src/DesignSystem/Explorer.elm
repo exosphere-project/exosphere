@@ -6,6 +6,7 @@ import DesignSystem.Helpers exposing (Plugins, palettize, toHtml)
 import DesignSystem.Stories.Card as CardStories
 import DesignSystem.Stories.ColorPalette as ColorPalette
 import DesignSystem.Stories.Link as LinkStories
+import DesignSystem.Stories.Space as SpaceStories
 import DesignSystem.Stories.Text as TextStories
 import DesignSystem.Stories.Toast as ToastStories
 import Element
@@ -310,6 +311,7 @@ main =
         (createCategories
             |> category "Atoms"
                 [ ColorPalette.stories toHtml
+                , SpaceStories.stories toHtml
                 , TextStories.stories toHtml
                 , LinkStories.stories toHtml
                 , storiesOf

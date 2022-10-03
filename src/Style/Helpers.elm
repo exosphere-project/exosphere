@@ -434,16 +434,7 @@ In elm-ui Element.padding and Element.spacing fields of this record should be us
 The sizes chosen in this record are based on <https://www.refactoringui.com/> book's page number 73 (establishing spacing and sizing system).
 
 -}
-spacer :
-    { px4 : Int
-    , px8 : Int
-    , px12 : Int
-    , px16 : Int
-    , px24 : Int
-    , px32 : Int
-    , px48 : Int
-    , px64 : Int
-    }
+spacer : ST.Spacer
 spacer =
     { px4 = 4
     , px8 = 8
