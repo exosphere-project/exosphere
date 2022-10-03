@@ -8,7 +8,7 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import FeatherIcons
-import Style.Helpers as SH
+import Style.Helpers as SH exposing (spacer)
 import Style.Types as ST
 import UIExplorer exposing (storiesOf)
 import UIExplorer.ColorMode exposing (ColorMode(..))
@@ -98,13 +98,13 @@ stories renderer =
         [ ( "Exosphere Colors"
           , \m ->
                 renderer (palettize m) <|
-                    Element.column [ Element.spacing 36 ] <|
+                    Element.column [ Element.spacing spacer.px32 ] <|
                         List.concat
                             [ [ swatch "brand"
                                     [ namedBlock "primary" (palettize m).primary
                                     , namedBlock "secondary" (palettize m).secondary
                                     ]
-                              , Element.row [ Element.spacing 24 ]
+                              , Element.row [ Element.spacing spacer.px24 ]
                                     [ swatch "neutral"
                                         [ namedBlock "background. backLayer" (palettize m).neutral.background.backLayer
                                         , namedBlock "background. frontLayer" (palettize m).neutral.background.frontLayer
@@ -119,7 +119,7 @@ stories renderer =
                               ]
                             , List.map2
                                 (\stateName toStateColor ->
-                                    Element.row [ Element.spacing 24 ]
+                                    Element.row [ Element.spacing spacer.px24 ]
                                         [ swatch stateName
                                             [ namedBlock "default" (palettize m |> toStateColor).default
                                             , namedBlock "background" (palettize m |> toStateColor).background
@@ -145,7 +145,7 @@ stories renderer =
         , ( "All Colors"
           , \m ->
                 renderer (palettize m) <|
-                    Element.column [ Element.spacing 36 ]
+                    Element.column [ Element.spacing spacer.px32 ]
                         [ swatch "blue" <|
                             List.map
                                 (\colorShade ->
@@ -233,7 +233,7 @@ block color =
 namedBlock : String -> Color.Color -> Element.Element msg
 namedBlock label color =
     Element.column
-        [ Element.spacing 6
+        [ Element.spacing spacer.px4
         , Element.width <| Element.px blockSize
         , Element.alignTop
         , Font.size 12
@@ -250,12 +250,12 @@ namedBlock label color =
 swatch : String -> List (Element.Element msg) -> Element.Element msg
 swatch name blocks =
     Element.row
-        [ Element.spacing 12 ]
+        [ Element.spacing spacer.px12 ]
         ((Element.el
             [ Element.width <| Element.minimum 72 Element.fill
             , Font.semiBold
             , Element.alignTop
-            , Element.paddingXY 0 8
+            , Element.paddingXY 0 spacer.px8
             ]
           <|
             Element.text name
@@ -300,8 +300,8 @@ grayShades15 =
 
 demoColumnAttrs : ST.ExoPalette -> List (Element.Attribute msg)
 demoColumnAttrs palette =
-    [ Element.padding 20
-    , Element.spacing 20
+    [ Element.padding spacer.px16
+    , Element.spacing spacer.px16
     , Background.color <| SH.toElementColor palette.neutral.background.backLayer
     , Border.width 1
     , Border.color <| SH.toElementColor palette.neutral.border
@@ -339,14 +339,14 @@ exoNeutralDemo palette =
                 |> Element.el [ Font.color <| SH.toElementColor palette.neutral.icon ]
 
         textAndIconDemo layerName =
-            Element.row [ Element.spacing 8 ] [ iconDemo, textDemo layerName ]
+            Element.row [ Element.spacing spacer.px8 ] [ iconDemo, textDemo layerName ]
     in
     Element.column
         (demoColumnAttrs palette
             ++ [ Font.color <| SH.toElementColor palette.neutral.text.default ]
         )
         [ Element.el
-            [ Element.padding 16
+            [ Element.padding spacer.px16
             , Background.color <| SH.toElementColor palette.neutral.background.frontLayer
             , Border.width 1
             , Border.color <| SH.toElementColor palette.neutral.border
@@ -372,14 +372,14 @@ exoUIStateDemo palette stateName toStateColor =
     Element.column
         (demoColumnAttrs palette)
         [ Element.el
-            [ Element.padding 16
+            [ Element.padding spacer.px16
             , Background.color <| SH.toElementColor (toStateColor palette).background
             , Border.width 1
             , Border.color <| SH.toElementColor (toStateColor palette).border
             , Font.color <| SH.toElementColor (toStateColor palette).textOnColoredBG
             ]
             (Element.text <| stateName ++ " text on colored background.")
-        , Element.row [ Element.spacing 8 ]
+        , Element.row [ Element.spacing spacer.px8 ]
             [ iconDemo
             , Element.el
                 [ Font.color <| SH.toElementColor (toStateColor palette).textOnNeutralBG ]

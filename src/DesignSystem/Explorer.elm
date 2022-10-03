@@ -13,7 +13,7 @@ import Element.Font as Font
 import Html
 import Html.Attributes exposing (src, style)
 import Set
-import Style.Helpers as SH
+import Style.Helpers as SH exposing (spacer)
 import Style.Types
 import Style.Widgets.Button as Button
 import Style.Widgets.Chip exposing (chip)
@@ -463,8 +463,8 @@ Shows a static horizontal progress bar chart which indicates the capacity of a r
                     [ ( "default"
                       , \m ->
                             toHtml (palettize m) <|
-                                Element.column [ Element.spacing 24 ]
-                                    [ Element.row [ Element.spacing 12 ]
+                                Element.column [ Element.spacing spacer.px24 ]
+                                    [ Element.row [ Element.spacing spacer.px12 ]
                                         (m.customModel.chips.shown
                                             |> Set.toList
                                             |> List.map
@@ -529,7 +529,7 @@ A chip is used to show an object within workflows that involve filtering a set o
                                             TogglePopover
                                             { id = "explorerDemoPopover"
                                             , content = demoPopoverContent
-                                            , contentStyleAttrs = [ Element.padding 20 ]
+                                            , contentStyleAttrs = [ Element.padding spacer.px16 ]
                                             , position = Tuple.second positionTuple
                                             , distanceToTarget = Nothing
                                             , target = demoPopoverTarget
