@@ -103,11 +103,31 @@ view context project currentTime =
 
         renderRDPPSuccess : List Types.Jetstream2Accounting.Allocation -> Element.Element SharedMsg.SharedMsg
         renderRDPPSuccess allocations =
+            let
+                heading =
+                    Text.text Text.H3
+                        [ Font.regular, Region.heading 2 ]
+                        "Allocation Usage"
+
+                headingToggleTip =
+                    let
+                        text =
+                            "Allocation usage is updated every 24 hours. Usage displayed here may be up to a day old."
+
+                        contents =
+                            Element.text text
+                    in
+                    Style.Widgets.ToggleTip.toggleTip
+                        context
+                        (\toggleTipId -> SharedMsg.TogglePopover toggleTipId)
+                        "allocation-usage-heading-toggle-tip"
+                        contents
+                        ST.PositionRight
+            in
             Element.column
                 [ Element.spacing spacer.px24 ]
-                [ Text.text Text.H3
-                    [ Font.regular, Region.heading 2 ]
-                    "Allocation Usage"
+                [ Element.row [ Element.spacing spacer.px12 ]
+                    [ heading, headingToggleTip ]
                 , Element.wrappedRow
                     [ Element.paddingEach { edges | bottom = spacer.px12 }
                     , Element.spacing spacer.px24
