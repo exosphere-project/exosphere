@@ -7,7 +7,7 @@ module Helpers.ResourceList exposing
 import Dict
 import Element
 import Element.Font as Font
-import Style.Helpers as SH
+import Style.Helpers as SH exposing (spacer)
 import Style.Types exposing (ExoPalette)
 import Style.Widgets.DataList exposing (FilterOptionText, FilterOptionValue)
 import Time
@@ -41,7 +41,7 @@ onCreationTimeFilter optionValue resourceCreationTime currentTime =
 
 listItemColumnAttribs : ExoPalette -> List (Element.Attribute msg)
 listItemColumnAttribs palette =
-    [ Element.spacing 12
+    [ Element.spacing spacer.px12
     , Element.width Element.fill
     , Font.color (SH.toElementColor palette.neutral.text.subdued)
     ]

@@ -24,7 +24,7 @@ import FeatherIcons
 import Html.Attributes as HtmlA
 import Murmur3
 import Set
-import Style.Helpers as SH
+import Style.Helpers as SH exposing (spacer)
 import Style.Types exposing (ExoPalette)
 import Style.Widgets.Chip exposing (chip)
 import Style.Widgets.Icon as Icon
@@ -282,8 +282,8 @@ view :
 view model toMsg context styleAttrs listItemView data bulkActions selectionFilters searchFilter =
     let
         defaultRowStyle =
-            [ Element.padding 24
-            , Element.spacing 20
+            [ Element.padding spacer.px24
+            , Element.spacing spacer.px24
             , Border.widthEach { top = 0, bottom = 1, left = 0, right = 0 }
             , Border.color <|
                 SH.toElementColor context.palette.neutral.border
@@ -502,7 +502,7 @@ toolbarView model toMsg context rowStyle data bulkActions selectionFilters searc
                     [ Element.width Element.shrink
                     , Element.alignTop
                     , Element.paddingEach
-                        { top = 8, left = 0, right = 0, bottom = 0 }
+                        { top = spacer.px8, left = 0, right = 0, bottom = 0 }
                     ]
                     { checked = areAllRowsSelected
                     , onChange =
@@ -525,7 +525,7 @@ toolbarView model toMsg context rowStyle data bulkActions selectionFilters searc
 
             else
                 Element.el [ Element.alignTop ] <|
-                    Element.row [ Element.spacing 15 ]
+                    Element.row [ Element.spacing spacer.px16 ]
                         (Element.text
                             ("Apply action to "
                                 ++ String.fromInt (Set.size selectedRowIds)
@@ -564,7 +564,10 @@ toolbarView model toMsg context rowStyle data bulkActions selectionFilters searc
                         , placeholder =
                             Maybe.map
                                 (\placeholderText ->
-                                    Input.placeholder [ Element.paddingXY 12 6 ]
+                                    Input.placeholder
+                                        [ -- based on how placeholder is placed in default text input (hence "spacer" is not used)
+                                          Element.paddingXY 12 6
+                                        ]
                                         (Element.text placeholderText)
                                 )
                                 searchFilter_.placeholder
@@ -585,9 +588,9 @@ toolbarView model toMsg context rowStyle data bulkActions selectionFilters searc
 
     else
         Element.column
-            (rowStyle ++ [ Element.spacing 16 ])
+            (rowStyle ++ [ Element.spacing spacer.px16 ])
             [ searchFilterView
-            , Element.row [ Element.spacing 20, Element.width Element.fill ]
+            , Element.row [ Element.spacing spacer.px24, Element.width Element.fill ]
                 [ selectAllCheckbox
                 , selectionFiltersView
                 , bulkActionsView
@@ -624,13 +627,13 @@ filtersView model toMsg context { filters, dropdownMsgMapper } data =
 
         filtOptsRadioSelector : Filter record -> UniselectOptionIdentifier -> Element.Element msg
         filtOptsRadioSelector filter uniselectOptValue =
-            Input.radioRow [ Element.spacing 18 ]
+            Input.radioRow [ Element.spacing spacer.px16 ]
                 { onChange = ChangeFiltOptRadioSelection filter.id
                 , selected = Just uniselectOptValue
                 , label =
                     Input.labelLeft
                         [ Element.paddingEach
-                            { left = 0, right = 18, top = 0, bottom = 0 }
+                            { left = 0, right = spacer.px16, top = 0, bottom = 0 }
                         ]
                         (Element.text <| filter.label ++ ":")
                 , options =
@@ -665,7 +668,7 @@ filtersView model toMsg context { filters, dropdownMsgMapper } data =
 
         filtersDropdown closeDropdown =
             Element.column
-                [ Element.spacingXY 0 24
+                [ Element.spacingXY 0 spacer.px24
                 ]
                 (Element.row [ Element.width Element.fill ]
                     [ Element.el [ Font.size 18 ]
@@ -696,7 +699,7 @@ filtersView model toMsg context { filters, dropdownMsgMapper } data =
                                     )
                                 of
                                     ( MultiselectOption _, Just (MultiselectOption selectedOptionValues) ) ->
-                                        Element.row [ Element.spacing 15 ]
+                                        Element.row [ Element.spacing spacer.px16 ]
                                             (Element.text (filter.label ++ ":")
                                                 :: List.map
                                                     (filtOptCheckbox filter selectedOptionValues)
@@ -721,7 +724,7 @@ filtersView model toMsg context { filters, dropdownMsgMapper } data =
                     { buttonStyleDefaults
                         | container =
                             buttonStyleDefaults.container
-                                ++ [ Element.padding 4
+                                ++ [ Element.padding spacer.px4
                                    , Element.height Element.shrink
                                    ]
                         , labelRow =
@@ -818,7 +821,6 @@ filtersView model toMsg context { filters, dropdownMsgMapper } data =
                         | container =
                             textBtnStyleDefaults.container
                                 ++ [ Font.medium
-                                   , Element.padding 6
                                    , Element.height Element.shrink
                                    ]
                     }
@@ -866,13 +868,13 @@ filtersView model toMsg context { filters, dropdownMsgMapper } data =
             dropdownMsgMapper
             { id = filtersDropdownId
             , content = filtersDropdown
-            , contentStyleAttrs = [ Element.padding 24 ]
+            , contentStyleAttrs = [ Element.padding spacer.px24 ]
             , position = Style.Types.PositionBottomLeft
             , distanceToTarget = Nothing
             , target =
                 \toggleDropdownMsg _ ->
                     Element.wrappedRow
-                        [ Element.spacing 10
+                        [ Element.spacing spacer.px8
                         , Element.width Element.fill
                         , Element.alignTop
                         ]

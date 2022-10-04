@@ -21,7 +21,7 @@ import Page.ServerResourceUsageAlerts
 import Page.ServerResourceUsageCharts
 import RemoteData
 import Route
-import Style.Helpers as SH
+import Style.Helpers as SH exposing (spacer)
 import Style.Types as ST
 import Style.Widgets.Alert as Alert
 import Style.Widgets.Card
@@ -198,7 +198,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                     Element.column [] [ createdTimeText, setupTimeText ]
             in
             Element.row
-                [ Element.spacing 5 ]
+                [ Element.spacing spacer.px4 ]
                 [ Element.text timeDistanceStr
                 , Style.Widgets.ToggleTip.toggleTip
                     context
@@ -277,7 +277,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                                 ST.PositionBottomRight
                     in
                     Element.row
-                        [ Element.spacing 5 ]
+                        [ Element.spacing spacer.px4 ]
                         [ Element.text flavor.name
                         , toggleTip
                         ]
@@ -317,7 +317,11 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
         tile : List (Element.Element Msg) -> List (Element.Element Msg) -> Element.Element Msg
         tile headerContents contents =
             Style.Widgets.Card.exoCard context.palette
-                (Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
+                (Element.column
+                    [ Element.width Element.fill
+                    , Element.padding spacer.px16
+                    , Element.spacing spacer.px16
+                    ]
                     (List.concat
                         [ [ Element.row
                                 (Text.subheadingStyleAttrs context.palette
@@ -441,13 +445,10 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                 ( False, Element.fill )
 
             else
-                let
-                    colWidthPx =
-                        -- view is placed in a container of 24px padding
-                        -- each column in dual column has 10px padding
-                        (context.windowSize.width - (24 * 2) - (10 * 2)) // 2
-                in
-                ( True, colWidthPx |> Element.px )
+                ( True
+                , -- each column will fill 1 (and equal) portion of available space
+                  Element.fill
+                )
 
         serverFaultView =
             case details.fault of
@@ -465,13 +466,13 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                 Nothing ->
                     Element.none
     in
-    Element.column [ Element.spacing 16, Element.width Element.fill ]
+    Element.column [ Element.spacing spacer.px24, Element.width Element.fill ]
         [ Element.column [ Element.width Element.fill ]
             [ Element.row
                 (Text.headingStyleAttrs context.palette)
                 [ FeatherIcons.server |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
-                , Element.column [ Element.spacing 5 ]
-                    [ Element.row [ Element.spacing 10 ]
+                , Element.column [ Element.spacing spacer.px4 ]
+                    [ Element.row [ Element.spacing spacer.px8 ]
                         [ Text.text Text.H2
                             []
                             (context.localization.virtualComputer
@@ -483,7 +484,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                         [ Font.size 12
                         , Font.color (SH.toElementColor context.palette.neutral.text.subdued)
                         ]
-                        (copyableText context.palette [ Element.width (Element.px 230) ] server.osProps.uuid)
+                        (copyableText context.palette [ Element.width Element.fill ] server.osProps.uuid)
                     ]
                 , Element.el
                     [ Element.alignRight, Font.size 18, Font.regular ]
@@ -512,17 +513,15 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
         , if dualColumn then
             let
                 columnAttributes =
-                    VH.exoColumnAttributes
-                        ++ [ Element.alignTop
-                           , Element.centerX
-                           , Element.width columnWidth
-                           , Element.spacing 25
-                           ]
+                    [ Element.alignTop
+                    , Element.centerX
+                    , Element.width columnWidth
+                    , Element.spacing spacer.px24
+                    ]
             in
             Element.row
                 [ Element.width Element.fill
-                , Element.spacing 5
-                , Element.paddingEach { top = 10, bottom = 0, left = 0, right = 0 }
+                , Element.spacing spacer.px24
                 ]
                 [ Element.column columnAttributes firstColumnContents
                 , Element.column columnAttributes secondColumnContents
@@ -530,7 +529,10 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
 
           else
             Element.column
-                (VH.exoColumnAttributes ++ [ Element.width (Element.maximum 700 Element.fill), Element.centerX, Element.spacing 25 ])
+                [ Element.width (Element.maximum 700 Element.fill)
+                , Element.centerX
+                , Element.spacing spacer.px24
+                ]
                 (List.append firstColumnContents secondColumnContents)
         ]
 
@@ -540,7 +542,7 @@ serverNameView context model server =
     let
         serverNameViewPlain =
             Element.row
-                [ Element.spacing 10 ]
+                [ Element.spacing spacer.px8 ]
                 [ Text.text Text.H2 [] server.osProps.name
                 , Widget.iconButton
                     (SH.materialStyle context.palette).button
@@ -577,8 +579,8 @@ serverNameView context model server =
                                            , Font.size 14
                                            , Element.alignRight
                                            , Element.moveDown 6
-                                           , Element.spacing 10
-                                           , Element.padding 16
+                                           , Element.spacing spacer.px12
+                                           , Element.padding spacer.px16
                                            ]
                                     )
 
@@ -587,7 +589,7 @@ serverNameView context model server =
 
                 rowStyle =
                     { containerRow =
-                        [ Element.spacing 8
+                        [ Element.spacing spacer.px8
                         , Element.width Element.fill
                         ]
                     , element = []
@@ -671,7 +673,7 @@ passphraseVulnWarning context server =
 
         ServerFromExo serverFromExoProps ->
             if serverFromExoProps.exoServerVersion < 1 then
-                Element.el [ Element.paddingXY 0 15 ] <|
+                Element.el [ Element.paddingXY 0 spacer.px16 ] <|
                     Alert.alert []
                         context.palette
                         { state = Alert.Danger
@@ -741,7 +743,7 @@ serverStatus context project server =
 
                 contents =
                     -- TODO nicer layout here?
-                    Element.column [ Element.spacing 6, Element.padding 6 ]
+                    Element.column [ Element.spacing spacer.px8, Element.padding spacer.px4 ]
                         [ Element.text ("OpenStack Status: " ++ friendlyOpenstackStatus details.openstackStatus)
                         , case server.exoProps.targetOpenstackStatus of
                             Just expectedStatusList ->
@@ -789,7 +791,7 @@ serverStatus context project server =
                 contents
                 ST.PositionLeft
     in
-    Element.row [ Element.spacing 15 ]
+    Element.row [ Element.spacing spacer.px16 ]
         [ verboseStatusToggleTip
         , statusBadge
         , lockStatus details.lockStatus
@@ -851,8 +853,8 @@ interactions context project server currentTime tlsReverseProxyHostname =
                         contents =
                             Element.column
                                 [ Element.width (Element.shrink |> Element.minimum 200)
-                                , Element.spacing 10
-                                , Element.padding 5
+                                , Element.spacing spacer.px12
+                                , Element.padding spacer.px4
                                 ]
                                 [ status
                                 , statusReason
@@ -880,7 +882,7 @@ interactions context project server currentTime tlsReverseProxyHostname =
 
                 _ ->
                     Element.row
-                        VH.exoRowAttributes
+                        [ Element.spacing spacer.px12 ]
                         [ Icon.roundRect statusColor 14
                         , case interactionDetails.type_ of
                             ITypes.UrlInteraction ->
@@ -891,7 +893,7 @@ interactions context project server currentTime tlsReverseProxyHostname =
                                         Element.el
                                             [ Element.paddingEach
                                                 { top = 0
-                                                , right = 5
+                                                , right = spacer.px4
                                                 , left = 0
                                                 , bottom = 0
                                                 }
@@ -925,16 +927,10 @@ interactions context project server currentTime tlsReverseProxyHostname =
                                 in
                                 Element.row
                                     [ Font.color fontColor
+                                    , Element.spacing spacer.px8
                                     ]
                                     [ Element.el
-                                        [ Font.color iconColor
-                                        , Element.paddingEach
-                                            { top = 0
-                                            , right = 5
-                                            , left = 0
-                                            , bottom = 0
-                                            }
-                                        ]
+                                        [ Font.color iconColor ]
                                         (interactionDetails.icon iconColor 22)
                                     , Element.text interactionDetails.name
                                     , case interactionStatus of
@@ -958,7 +954,7 @@ interactions context project server currentTime tlsReverseProxyHostname =
     , ITypes.CustomWorkflow
     ]
         |> List.map renderInteraction
-        |> Element.column []
+        |> Element.column [ Element.spacing spacer.px16 ]
 
 
 serverPassphrase : View.Types.Context -> Model -> Server -> Element.Element Msg
@@ -966,7 +962,7 @@ serverPassphrase context model server =
     let
         passphraseShower passphrase =
             Element.column
-                [ Element.spacing 10 ]
+                [ Element.spacing spacer.px12 ]
                 [ case model.passphraseVisibility of
                     PassphraseShown ->
                         copyableText context.palette [] passphrase
@@ -1041,7 +1037,7 @@ serverActionsDropdown context project model server =
                 |> String.concat
 
         dropdownContent closeDropdown =
-            Element.column [ Element.spacing 8 ] <|
+            Element.column [ Element.spacing spacer.px8 ] <|
                 List.map
                     (renderServerActionButton context project model server closeDropdown)
                     (ServerActions.getAllowed
@@ -1058,7 +1054,7 @@ serverActionsDropdown context project model server =
                 { text = "Actions"
                 , icon =
                     Element.row
-                        [ Element.spacing 5 ]
+                        [ Element.spacing spacer.px4 ]
                         [ Element.text "Actions"
                         , Element.el []
                             ((if dropdownIsShown then
@@ -1081,7 +1077,7 @@ serverActionsDropdown context project model server =
                 popoverMsgMapper
                 { id = dropdownId
                 , content = dropdownContent
-                , contentStyleAttrs = [ Element.padding 20 ]
+                , contentStyleAttrs = [ Element.padding spacer.px24 ]
                 , position = ST.PositionBottomRight
                 , distanceToTarget = Nothing
                 , target = dropdownTarget
@@ -1152,8 +1148,7 @@ serverEventHistory context project server currentTime =
                     ]
             in
             Element.table
-                [ Element.spacingXY 0 7
-                , Element.paddingXY 0 10
+                [ Element.spacingXY 0 spacer.px8
                 , Element.width Element.fill
                 ]
                 { data = serverEvents, columns = columns }
@@ -1229,7 +1224,7 @@ renderServerActionButton context project model server closeActionsDropdown serve
                     confirmationMessage serverAction
             in
             Element.column
-                [ Element.spacing 5 ]
+                [ Element.spacing spacer.px8 ]
             <|
                 List.concat
                     [ [ renderConfirmationButton context serverAction actionMsg cancelMsg title closeActionsDropdown ]
@@ -1335,7 +1330,7 @@ renderActionButton context serverAction actionMsg title closeActionsDropdown =
                     []
     in
     Element.row
-        [ Element.spacing 10, Element.width Element.fill ]
+        [ Element.spacing spacer.px12, Element.width Element.fill ]
         [ Element.text serverAction.description
         , Element.el
             ([ Element.width <| Element.px 100, Element.alignRight ] ++ additionalBtnAttribs)
@@ -1351,7 +1346,7 @@ renderActionButton context serverAction actionMsg title closeActionsDropdown =
 renderConfirmationButton : View.Types.Context -> ServerActions.ServerAction -> Maybe SharedMsg.SharedMsg -> Maybe Msg -> String -> Element.Attribute Msg -> Element.Element Msg
 renderConfirmationButton context serverAction actionMsg cancelMsg title closeActionsDropdown =
     Element.row
-        [ Element.spacing 10 ]
+        [ Element.spacing spacer.px12 ]
         [ Element.text title
         , Element.el
             [ closeActionsDropdown ]
@@ -1388,7 +1383,9 @@ resourceUsageCharts context currentTimeAndZone server maybeServerResourceQtys =
         charts_ : Types.ServerResourceUsage.TimeSeries -> Element.Element Msg
         charts_ timeSeries =
             Element.column
-                [ Element.width (Element.px containerWidth) ]
+                [ Element.width Element.fill
+                , Element.spacing spacer.px8
+                ]
                 [ Page.ServerResourceUsageAlerts.view context (Tuple.first currentTimeAndZone) timeSeries
                 , Page.ServerResourceUsageCharts.view
                     context
@@ -1511,7 +1508,7 @@ renderIpAddresses context project server model =
                         (\ipAddress ->
                             VH.compactKVSubRow
                                 (Helpers.String.toTitleCase context.localization.floatingIpAddress)
-                                (Element.row [ Element.spacing 15 ]
+                                (Element.row [ Element.spacing spacer.px16 ]
                                     [ copyableText context.palette [] ipAddress.address
                                     , Widget.textButton
                                         (SH.materialStyle context.palette).button
@@ -1530,18 +1527,17 @@ renderIpAddresses context project server model =
         ipButton : Element.Element Msg -> String -> IpInfoLevel -> Element.Element Msg
         ipButton label displayLabel ipMsg =
             Element.row
-                [ Element.spacing 3 ]
+                [ Element.spacing spacer.px8, Font.size 12 ]
                 [ Input.button
-                    [ Font.size 10
-                    , Border.width 1
+                    [ Border.width 1
                     , Border.rounded 20
                     , Border.color (SH.toElementColor context.palette.neutral.border)
-                    , Element.padding 3
+                    , Element.padding spacer.px4
                     ]
                     { onPress = Just <| GotIpInfoLevel ipMsg
                     , label = label
                     }
-                , Element.el [ Font.size 10 ] (Element.text displayLabel)
+                , Element.text displayLabel
                 ]
     in
     case model.ipInfoLevel of
@@ -1554,7 +1550,7 @@ renderIpAddresses context project server model =
                         |> Element.html
             in
             Element.column
-                []
+                [ Element.spacing spacer.px8 ]
                 (floatingIpAddressRows
                     ++ ipButton icon "IP Details" IpSummary
                     :: fixedIpAddressRows
@@ -1569,7 +1565,7 @@ renderIpAddresses context project server model =
                         |> Element.html
             in
             Element.column
-                []
+                [ Element.spacing spacer.px8 ]
                 (floatingIpAddressRows ++ [ ipButton icon "IP Details" IpDetails ])
 
 

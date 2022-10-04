@@ -15,7 +15,7 @@ import OpenStack.Types as OSTypes
 import Page.QuotaUsage
 import RemoteData
 import Route
-import Style.Helpers as SH
+import Style.Helpers as SH exposing (spacer)
 import Style.Types as ST
 import Style.Widgets.Card
 import Style.Widgets.Icon as Icon
@@ -58,21 +58,30 @@ update msg _ model =
 view : View.Types.Context -> Project -> Time.Posix -> Model -> Element.Element Msg
 view context project currentTime _ =
     let
-        renderTile : Element.Element Msg -> String -> Route.ProjectRouteConstructor -> Element.Element Msg -> Element.Element Msg -> Element.Element Msg
+        renderTile : Element.Element Msg -> String -> Route.ProjectRouteConstructor -> Maybe (Element.Element Msg) -> Element.Element Msg -> Element.Element Msg
         renderTile icon str projRouteConstructor quotaMeter contents =
             Element.link []
                 { url = Route.toUrl context.urlPathPrefix (Route.ProjectRoute (GetterSetters.projectIdentifier project) projRouteConstructor)
                 , label =
                     tile context
-                        [ Element.column [ Element.padding 18, Element.width Element.fill, Element.spacing 20 ]
+                        [ Element.column
+                            [ Element.padding spacer.px24
+                            , Element.width Element.fill
+                            , Element.spacing spacer.px32
+                            ]
                             [ Text.subheading context.palette
-                                [ Element.paddingEach { bottom = 0, left = 0, right = 0, top = 0 }
+                                [ Element.padding 0
                                 , Border.width 0
                                 , Element.pointer
                                 ]
                                 icon
                                 str
-                            , Element.el [ Element.centerX ] quotaMeter
+                            , case quotaMeter of
+                                Just quotaMeter_ ->
+                                    Element.el [ Element.centerX ] quotaMeter_
+
+                                Nothing ->
+                                    Element.none
                             , contents
                             ]
                         ]
@@ -103,10 +112,10 @@ view context project currentTime _ =
                 |> List.length
     in
     Element.column
-        [ Element.spacing 24 ]
+        [ Element.spacing spacer.px24 ]
         [ renderJetstream2Allocation context project currentTime
         , VH.renderMaybe project.description renderDescription
-        , Element.wrappedRow [ Element.spacing 24 ]
+        , Element.wrappedRow [ Element.spacing spacer.px24 ]
             [ renderTile
                 (FeatherIcons.server
                     |> FeatherIcons.toHtml []
@@ -118,7 +127,7 @@ view context project currentTime _ =
                     |> Helpers.String.toTitleCase
                 )
                 Route.ServerList
-                (Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.Compute project.computeQuota))
+                (Just <| Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.Compute project.computeQuota))
                 (serverTileContents context project)
             , renderTile
                 (FeatherIcons.hardDrive
@@ -131,7 +140,7 @@ view context project currentTime _ =
                     |> Helpers.String.toTitleCase
                 )
                 Route.VolumeList
-                (Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.Volume project.volumeQuota))
+                (Just <| Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.Volume project.volumeQuota))
                 (volumeTileContents context project)
             , renderTile
                 (Icon.ipAddress (SH.toElementColor context.palette.neutral.text.default) 24)
@@ -140,7 +149,7 @@ view context project currentTime _ =
                     |> Helpers.String.toTitleCase
                 )
                 Route.FloatingIpList
-                (Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.FloatingIp project.networkQuota))
+                (Just <| Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.FloatingIp project.networkQuota))
                 (floatingIpTileContents context project)
             , renderTile
                 (FeatherIcons.key
@@ -153,7 +162,7 @@ view context project currentTime _ =
                     |> Helpers.String.toTitleCase
                 )
                 Route.KeypairList
-                (Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.Keypair project.computeQuota keypairsUsedCount))
+                (Just <| Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.Keypair project.computeQuota keypairsUsedCount))
                 (keypairTileContents context project)
             , renderTile
                 (FeatherIcons.package
@@ -166,7 +175,7 @@ view context project currentTime _ =
                     |> Helpers.String.toTitleCase
                 )
                 Route.ImageList
-                Element.none
+                Nothing
                 (imageTileContents context project)
             ]
         ]
@@ -239,13 +248,13 @@ renderJetstream2Allocation context project currentTime =
 
         renderRDPPSuccess : Maybe Types.Jetstream2Accounting.Allocation -> Element.Element Msg
         renderRDPPSuccess maybeAllocation =
-            Element.el [ Element.paddingEach { edges | bottom = 12 } ] <|
+            Element.el [ Element.paddingEach { edges | bottom = spacer.px12 } ] <|
                 case maybeAllocation of
                     Nothing ->
                         Element.text "Jetstream2 allocation information not found."
 
                     Just allocation ->
-                        Element.row [ Element.spacing 8 ]
+                        Element.row [ Element.spacing spacer.px8 ]
                             [ meter allocation
                             , Element.el
                                 [ Element.alignBottom
@@ -437,10 +446,10 @@ tileContents context resourceWithAvailabilityMetadata resourceWord renderResourc
                 renderItemRow : List (Element.Element msg) -> Element.Element msg
                 renderItemRow contents =
                     Element.row
-                        [ Element.width Element.fill, Element.height (Element.px 30), Element.spacing 10 ]
+                        [ Element.width Element.fill, Element.height (Element.px 30), Element.spacing spacer.px12 ]
                         contents
             in
-            Element.column [ Element.width Element.fill, Element.spacing 15 ] <|
+            Element.column [ Element.width Element.fill, Element.spacing spacer.px12 ] <|
                 List.concat
                     [ if List.isEmpty shownItems then
                         [ subduedText <|

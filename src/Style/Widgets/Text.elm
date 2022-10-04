@@ -4,7 +4,7 @@ import Element
 import Element.Border as Border
 import Element.Font as Font exposing (Font)
 import Element.Region as Region
-import Style.Helpers as SH
+import Style.Helpers as SH exposing (spacer)
 import Style.Types exposing (ExoPalette)
 
 
@@ -195,8 +195,8 @@ headingStyleAttrs palette =
     , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
     , Border.color (palette.neutral.border |> SH.toElementColor)
     , Element.width Element.fill
-    , Element.paddingEach { bottom = 8, left = 0, right = 0, top = 0 }
-    , Element.spacing 12
+    , Element.paddingEach { bottom = spacer.px8, left = 0, right = 0, top = 0 }
+    , Element.spacing spacer.px12
     ]
 
 
@@ -208,8 +208,8 @@ subheadingStyleAttrs palette =
     , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
     , Border.color (palette.neutral.border |> SH.toElementColor)
     , Element.width Element.fill
-    , Element.paddingEach { bottom = 8, left = 0, right = 0, top = 0 }
-    , Element.spacing 12
+    , Element.paddingEach { bottom = spacer.px8, left = 0, right = 0, top = 0 }
+    , Element.spacing spacer.px12
     ]
 
 
@@ -225,7 +225,7 @@ subheadingStyleAttrs palette =
 p : List (Element.Attribute msg) -> List (Element.Element msg) -> Element.Element msg
 p styleAttrs lines =
     Element.paragraph
-        (Element.spacing 8
+        (Element.spacing spacer.px8
             :: typographyAttrs Body
             ++ styleAttrs
         )

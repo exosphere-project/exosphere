@@ -4,7 +4,7 @@ import Element
 import Element.Font as Font
 import Element.Region as Region
 import Route
-import Style.Helpers as SH
+import Style.Helpers as SH exposing (spacer)
 import View.Helpers as VH
 import View.Types
 
@@ -19,11 +19,10 @@ homeLogo context { logoUrl, title } =
         { url = linkUrl
         , label =
             Element.row
-                [ Element.padding 5
-                , Element.spacing 10
+                [ Element.spacing spacer.px12
                 ]
                 [ Element.image
-                    [ Element.height (Element.px 50) ]
+                    [ Element.height (Element.px 48) ]
                     { src = logoUrl, description = "" }
                 , VH.renderMaybe title
                     (\t ->

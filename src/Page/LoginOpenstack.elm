@@ -5,7 +5,7 @@ import Element.Font as Font
 import Element.Input as Input
 import OpenStack.OpenRc
 import OpenStack.Types as OSTypes
-import Style.Helpers as SH
+import Style.Helpers as SH exposing (spacer)
 import Style.Widgets.Button as Button
 import Style.Widgets.Link as Link
 import Style.Widgets.Text as Text
@@ -131,14 +131,18 @@ view context _ model =
                 |> List.any (\x -> String.isEmpty x)
                 |> not
     in
-    Element.column (VH.formContainer ++ [ Element.spacing 16 ])
+    Element.column (VH.formContainer ++ [ Element.spacing spacer.px16 ])
         [ case model.entryType of
             CredsEntry ->
                 loginOpenstackCredsEntry context model allCredsEntered
 
             OpenRcEntry ->
                 loginOpenstackOpenRcEntry context model
-        , Element.row (VH.exoRowAttributes ++ [ Element.width Element.fill ])
+        , Element.row
+            [ Element.width Element.fill
+            , Element.paddingXY 0 spacer.px16 -- so that it looks separate from form fields
+            , Element.spacing spacer.px12
+            ]
             (case model.entryType of
                 CredsEntry ->
                     [ Element.el []
@@ -165,14 +169,14 @@ view context _ model =
                     ]
 
                 OpenRcEntry ->
-                    [ Element.el VH.exoPaddingSpacingAttributes
+                    [ Element.el []
                         (Button.default
                             context.palette
                             { text = "Cancel"
                             , onPress = Just GotSelectCredsInput
                             }
                         )
-                    , Element.el (VH.exoPaddingSpacingAttributes ++ [ Element.alignRight ])
+                    , Element.el [ Element.alignRight ]
                         (Button.primary
                             context.palette
                             { text = "Submit"
@@ -200,7 +204,7 @@ loginOpenstackCredsEntry context model allCredsEntered =
                 }
     in
     Element.column
-        (VH.formContainer ++ [ Element.spacing 16 ])
+        (VH.formContainer ++ [ Element.spacing spacer.px16 ])
         [ Element.el [] (Element.text "Enter your credentials")
         , textField
             creds.authUrl
@@ -230,11 +234,9 @@ loginOpenstackCredsEntry context model allCredsEntered =
 
           else
             Element.el
-                (VH.exoElementAttributes
-                    ++ [ Element.alignRight
-                       , Font.color (context.palette.danger.textOnNeutralBG |> SH.toElementColor)
-                       ]
-                )
+                [ Element.alignRight
+                , Font.color (context.palette.danger.textOnNeutralBG |> SH.toElementColor)
+                ]
                 (Element.text "All fields are required.")
         ]
 
@@ -242,7 +244,7 @@ loginOpenstackCredsEntry context model allCredsEntered =
 loginOpenstackOpenRcEntry : View.Types.Context -> Model -> Element.Element Msg
 loginOpenstackOpenRcEntry context model =
     Element.column
-        (VH.formContainer ++ [ Element.spacing 16 ])
+        (VH.formContainer ++ [ Element.spacing spacer.px12 ])
         [ Element.paragraph []
             [ Element.text "Paste an "
             , Link.externalLink
@@ -261,7 +263,7 @@ loginOpenstackOpenRcEntry context model =
             { onChange = GotOpenRc
             , text = model.openRc
             , placeholder = Nothing
-            , label = Input.labelLeft [] Element.none
+            , label = Input.labelHidden "Paste an OpenRC file"
             , spellcheck = False
             }
         ]

@@ -12,7 +12,7 @@ import Html.Attributes
 import Html.Events
 import Json.Decode as Decode
 import Set
-import Style.Helpers as SH
+import Style.Helpers as SH exposing (spacer)
 import Style.Types as ST exposing (ExoPalette, PopoverPosition(..))
 import Style.Widgets.Popover.Types exposing (PopoverId)
 
@@ -21,7 +21,7 @@ import Style.Widgets.Popover.Types exposing (PopoverId)
 -}
 popoverStyleDefaults : ExoPalette -> List (Element.Attribute msg)
 popoverStyleDefaults palette =
-    [ Element.padding 10
+    [ Element.padding spacer.px12
     , Background.color <| SH.toElementColor palette.neutral.background.frontLayer
     , Border.width 1
     , Border.color <| SH.toElementColor palette.neutral.border

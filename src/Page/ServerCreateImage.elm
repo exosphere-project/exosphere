@@ -6,6 +6,7 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import OpenStack.Types as OSTypes
 import Route
+import Style.Helpers exposing (spacer)
 import Style.Widgets.Button as Button
 import Style.Widgets.Text as Text
 import Types.Project exposing (Project)
@@ -73,9 +74,9 @@ view context model =
                     |> Helpers.String.toTitleCase
                 ]
             )
-        , Element.column [ Element.spacing 16, Element.width Element.fill ]
+        , Element.column [ Element.spacing spacer.px16, Element.width Element.fill ]
             [ Input.text
-                [ Element.spacing 12 ]
+                [ Element.spacing spacer.px12 ]
                 { text = model.imageName
                 , placeholder = Nothing
                 , onChange = GotImageName

@@ -13,7 +13,7 @@ import Page.QuotaUsage
 import RemoteData
 import Route
 import Set
-import Style.Helpers as SH
+import Style.Helpers as SH exposing (spacer)
 import Style.Types as ST
 import Style.Widgets.CopyableText
 import Style.Widgets.DataList as DataList
@@ -93,7 +93,7 @@ view context project model =
         renderKeypairs keypairs =
             if List.isEmpty keypairs then
                 Element.column
-                    (VH.exoColumnAttributes ++ [ Element.paddingXY 10 0 ])
+                    [ Element.spacing spacer.px12 ]
                     [ Element.text <|
                         String.join " "
                             [ "You don't have any"
@@ -116,7 +116,7 @@ view context project model =
                                 { text = text
                                 , icon =
                                     Element.row
-                                        [ Element.spacing 5 ]
+                                        [ Element.spacing spacer.px4 ]
                                         [ Element.text text
                                         , Element.el []
                                             (FeatherIcons.chevronRight
@@ -148,7 +148,7 @@ view context project model =
                 |> List.length
     in
     Element.column
-        VH.contentContainer
+        (VH.contentContainer ++ [ Element.spacing spacer.px32 ])
         [ if model.showHeading then
             Text.heading context.palette
                 []
@@ -160,14 +160,12 @@ view context project model =
 
           else
             Element.none
-        , Element.column [ Element.spacing 16 ]
-            [ Page.QuotaUsage.view context Page.QuotaUsage.Full (Page.QuotaUsage.Keypair project.computeQuota keypairsUsedCount)
-            , VH.renderWebData
-                context
-                project.keypairs
-                (Helpers.String.pluralize context.localization.pkiPublicKeyForSsh)
-                renderKeypairs
-            ]
+        , Page.QuotaUsage.view context Page.QuotaUsage.Full (Page.QuotaUsage.Keypair project.computeQuota keypairsUsedCount)
+        , VH.renderWebData
+            context
+            project.keypairs
+            (Helpers.String.pluralize context.localization.pkiPublicKeyForSsh)
+            renderKeypairs
         ]
 
 
@@ -274,7 +272,7 @@ keypairView model context project keypairRecord =
                     ]
                 )
     in
-    Element.column (listItemColumnAttribs context.palette ++ [ Element.spacing 12 ])
+    Element.column (listItemColumnAttribs context.palette ++ [ Element.spacing spacer.px16 ])
         [ Element.row [ Element.width Element.fill ]
             [ Element.el
                 [ Font.size 18
@@ -296,7 +294,6 @@ keypairView model context project keypairRecord =
             ]
         , Element.row
             [ Element.width Element.fill
-            , Element.paddingEach { top = 6, right = 0, bottom = 0, left = 0 }
             ]
             [ Element.el
                 [ Element.width <| Element.minimum 120 Element.shrink

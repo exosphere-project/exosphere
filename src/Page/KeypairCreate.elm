@@ -6,6 +6,7 @@ import Element.Input as Input
 import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import Html.Attributes
+import Style.Helpers exposing (spacer)
 import Style.Widgets.Button as Button
 import Style.Widgets.FormValidation as FormValidation
 import Style.Widgets.Text as Text
@@ -61,7 +62,7 @@ view context model =
                     |> Helpers.String.toTitleCase
                 ]
             )
-        , Element.column [ Element.spacing 16, Element.width Element.fill ]
+        , Element.column [ Element.spacing spacer.px16, Element.width Element.fill ]
             ([ Input.text
                 (VH.inputItemAttributes context.palette)
                 { text = model.name
@@ -80,8 +81,8 @@ view context model =
                 (VH.inputItemAttributes context.palette
                     ++ [ Element.width Element.fill
                        , Element.height (Element.px 300)
-                       , Element.padding 7
-                       , Element.spacing 5
+                       , Element.padding spacer.px8
+                       , Element.spacing 0
                        , Html.Attributes.style "word-break" "break-all" |> Element.htmlAttribute
                        , Font.family [ Font.monospace ]
                        , Font.size 12
@@ -92,7 +93,7 @@ view context model =
                 , onChange = GotPublicKey
                 , label =
                     Input.labelAbove
-                        [ Element.paddingXY 0 10
+                        [ Element.paddingXY 0 spacer.px12
                         , Font.family [ Font.sansSerif ]
                         , Font.size 17
                         ]

@@ -7,6 +7,7 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import RemoteData
 import Set
+import Style.Helpers exposing (spacer)
 import Style.Widgets.Button as Button
 import Style.Widgets.CopyableText
 import Style.Widgets.Select
@@ -87,7 +88,7 @@ headerView context sharedModel =
 view : View.Types.Context -> SharedModel -> Model -> Element.Element Msg
 view context sharedModel model =
     Element.column
-        (VH.formContainer ++ [ Element.spacing 32 ])
+        (VH.formContainer ++ [ Element.spacing spacer.px32 ])
         [ case sharedModel.style.supportInfoMarkdown of
             Just markdown ->
                 Element.column [] <|
@@ -95,16 +96,18 @@ view context sharedModel model =
 
             Nothing ->
                 Element.none
-        , Element.column [ Element.spacing 16, Element.width Element.fill ]
+        , Element.column [ Element.spacing spacer.px32, Element.width Element.fill ]
             [ Input.radio
-                VH.exoColumnAttributes
+                [ Element.spacing spacer.px12 ]
                 { onChange =
                     GotResourceType
                 , selected =
                     model.maybeSupportableResource
                         |> Maybe.map Tuple.first
                         |> Just
-                , label = Input.labelAbove [] (Element.text "What do you need help with?")
+                , label =
+                    Input.labelAbove (VH.radioLabelAttributes False)
+                        (Element.text "What do you need help with?")
                 , options =
                     List.map
                         (\itemType ->
@@ -132,93 +135,90 @@ view context sharedModel model =
                 Nothing ->
                     Element.none
 
-                Just ( supportableItemType, _ ) ->
-                    Element.text <|
-                        String.join " "
-                            [ "Which"
-                            , supportableItemTypeStr context supportableItemType
-                            , "do you need help with?"
-                            ]
-            , case model.maybeSupportableResource of
-                Nothing ->
-                    Element.none
-
                 Just ( supportableItemType, maybeSupportableItemUuid ) ->
-                    let
-                        options =
-                            case supportableItemType of
-                                HelperTypes.SupportableProject ->
-                                    sharedModel.projects
-                                        |> List.map
-                                            (\proj ->
-                                                ( proj.auth.project.uuid
-                                                , VH.friendlyProjectTitle sharedModel proj
-                                                )
-                                            )
-
-                                HelperTypes.SupportableImage ->
-                                    sharedModel.projects
-                                        |> List.map .images
-                                        |> List.map (RDPP.withDefault [])
-                                        |> List.concat
-                                        |> List.map
-                                            (\image ->
-                                                ( image.uuid
-                                                , image.name
-                                                )
-                                            )
-                                        -- This removes duplicate values, heh
-                                        |> Set.fromList
-                                        |> Set.toList
-                                        |> List.sortBy Tuple.second
-
-                                HelperTypes.SupportableServer ->
-                                    sharedModel.projects
-                                        |> List.map .servers
-                                        |> List.map (RDPP.withDefault [])
-                                        |> List.concat
-                                        |> List.map
-                                            (\server ->
-                                                ( server.osProps.uuid
-                                                , server.osProps.name
-                                                )
-                                            )
-                                        |> List.sortBy Tuple.second
-
-                                HelperTypes.SupportableVolume ->
-                                    sharedModel.projects
-                                        |> List.map .volumes
-                                        |> List.map (RemoteData.withDefault [])
-                                        |> List.concat
-                                        |> List.map
-                                            (\volume ->
-                                                ( volume.uuid
-                                                , Maybe.withDefault volume.uuid volume.name
-                                                )
-                                            )
-                                        |> List.sortBy Tuple.second
-
-                        label =
-                            let
-                                itemStrProto =
-                                    supportableItemTypeStr context supportableItemType
-                            in
+                    Element.column [ Element.spacing spacer.px12 ]
+                        [ Element.text <|
                             String.join " "
-                                [ "Select"
-                                , Helpers.String.indefiniteArticle itemStrProto
-                                , itemStrProto
+                                [ "Which"
+                                , supportableItemTypeStr context supportableItemType
+                                , "do you need help with?"
                                 ]
-                    in
-                    Style.Widgets.Select.select
-                        []
-                        context.palette
-                        { onChange = GotResourceUuid
-                        , options = options
-                        , selected = maybeSupportableItemUuid
-                        , label = label
-                        }
+                        , let
+                            options =
+                                case supportableItemType of
+                                    HelperTypes.SupportableProject ->
+                                        sharedModel.projects
+                                            |> List.map
+                                                (\proj ->
+                                                    ( proj.auth.project.uuid
+                                                    , VH.friendlyProjectTitle sharedModel proj
+                                                    )
+                                                )
+
+                                    HelperTypes.SupportableImage ->
+                                        sharedModel.projects
+                                            |> List.map .images
+                                            |> List.map (RDPP.withDefault [])
+                                            |> List.concat
+                                            |> List.map
+                                                (\image ->
+                                                    ( image.uuid
+                                                    , image.name
+                                                    )
+                                                )
+                                            -- This removes duplicate values, heh
+                                            |> Set.fromList
+                                            |> Set.toList
+                                            |> List.sortBy Tuple.second
+
+                                    HelperTypes.SupportableServer ->
+                                        sharedModel.projects
+                                            |> List.map .servers
+                                            |> List.map (RDPP.withDefault [])
+                                            |> List.concat
+                                            |> List.map
+                                                (\server ->
+                                                    ( server.osProps.uuid
+                                                    , server.osProps.name
+                                                    )
+                                                )
+                                            |> List.sortBy Tuple.second
+
+                                    HelperTypes.SupportableVolume ->
+                                        sharedModel.projects
+                                            |> List.map .volumes
+                                            |> List.map (RemoteData.withDefault [])
+                                            |> List.concat
+                                            |> List.map
+                                                (\volume ->
+                                                    ( volume.uuid
+                                                    , Maybe.withDefault volume.uuid volume.name
+                                                    )
+                                                )
+                                            |> List.sortBy Tuple.second
+
+                            label =
+                                let
+                                    itemStrProto =
+                                        supportableItemTypeStr context supportableItemType
+                                in
+                                String.join " "
+                                    [ "Select"
+                                    , Helpers.String.indefiniteArticle itemStrProto
+                                    , itemStrProto
+                                    ]
+                          in
+                          Style.Widgets.Select.select
+                            []
+                            context.palette
+                            { onChange = GotResourceUuid
+                            , options = options
+                            , selected = maybeSupportableItemUuid
+                            , label = label
+                            }
+                        ]
             , Input.multiline
-                (VH.exoElementAttributes
+                (VH.inputItemAttributes context.palette
                     ++ [ Element.height <| Element.px 200
                        , Element.width Element.fill
                        ]
@@ -245,7 +245,7 @@ view context sharedModel model =
                 ]
             , if model.isSubmitted then
                 Element.column
-                    [ Element.spacing 10, Element.width Element.fill ]
+                    [ Element.spacing spacer.px12, Element.width Element.fill ]
                     [ Text.p
                         []
                         [ Element.text "Please copy all of the text below and paste it into an email message to: "
@@ -254,10 +254,10 @@ view context sharedModel model =
                         , Element.text "Someone will respond and assist you."
                         ]
                     , Input.multiline
-                        (VH.exoElementAttributes
+                        (VH.inputItemAttributes context.palette
                             ++ [ Element.height <| Element.px 200
                                , Element.width Element.fill
-                               , Element.spacing 5
+                               , Element.spacing spacer.px8
                                , Font.family [ Font.monospace ]
                                , Font.size 10
                                ]

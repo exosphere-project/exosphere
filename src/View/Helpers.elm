@@ -5,10 +5,6 @@ module View.Helpers exposing
     , createdAgoByFromSize
     , edges
     , ellipsizedText
-    , exoColumnAttributes
-    , exoElementAttributes
-    , exoPaddingSpacingAttributes
-    , exoRowAttributes
     , featuredImageNamePrefixLookup
     , flavorPicker
     , formContainer
@@ -25,6 +21,7 @@ module View.Helpers exposing
     , invalidInputHelperText
     , loginPickerButton
     , possiblyUntitledResource
+    , radioLabelAttributes
     , renderIf
     , renderMarkdown
     , renderMaybe
@@ -74,7 +71,7 @@ import OpenStack.Types as OSTypes
 import Regex
 import RemoteData
 import Route
-import Style.Helpers as SH
+import Style.Helpers as SH exposing (spacer)
 import Style.Types as ST exposing (ExoPalette)
 import Style.Widgets.Button as Button
 import Style.Widgets.Link as Link
@@ -97,36 +94,10 @@ toExoPalette style =
     SH.toExoPalette style.deployerColors style.styleMode
 
 
-
-{- Elm UI Doodads -}
-
-
-exoRowAttributes : List (Element.Attribute msg)
-exoRowAttributes =
-    exoElementAttributes
-
-
-exoColumnAttributes : List (Element.Attribute msg)
-exoColumnAttributes =
-    exoElementAttributes
-
-
-exoElementAttributes : List (Element.Attribute msg)
-exoElementAttributes =
-    exoPaddingSpacingAttributes
-
-
-exoPaddingSpacingAttributes : List (Element.Attribute msg)
-exoPaddingSpacingAttributes =
-    [ Element.padding 10
-    , Element.spacing 10
-    ]
-
-
 inputItemAttributes : ExoPalette -> List (Element.Attribute msg)
 inputItemAttributes palette =
     [ Element.width Element.fill
-    , Element.spacing 12
+    , Element.spacing spacer.px12
     , Background.color <| SH.toElementColor palette.neutral.background.frontLayer
     , Border.color <| SH.toElementColor palette.neutral.border
     ]
@@ -164,7 +135,7 @@ contentContainer : List (Element.Attribute msg)
 contentContainer =
     -- Keeps the width from getting too wide for single column
     [ Element.width (Element.maximum 900 Element.fill)
-    , Element.spacing 24
+    , Element.spacing spacer.px24
     ]
 
 
@@ -172,14 +143,14 @@ formContainer : List (Element.Attribute msg)
 formContainer =
     -- Keeps form fields from displaying too wide
     [ Element.width (Element.maximum 600 Element.fill)
-    , Element.spacing 24
+    , Element.spacing spacer.px24
     ]
 
 
 compactKVRow : String -> Element.Element msg -> Element.Element msg
 compactKVRow key value =
     Element.row
-        (exoRowAttributes ++ [ Element.padding 0, Element.spacing 10 ])
+        [ Element.padding 0, Element.spacing spacer.px12 ]
         [ Element.paragraph [ Element.alignTop, Element.width (Element.px 200), Font.semiBold ] [ Element.text key ]
         , value
         ]
@@ -188,7 +159,7 @@ compactKVRow key value =
 compactKVSubRow : String -> Element.Element msg -> Element.Element msg
 compactKVSubRow key value =
     Element.row
-        (exoRowAttributes ++ [ Element.padding 0, Element.spacing 10, Font.size 14 ])
+        [ Element.padding 0, Element.spacing spacer.px12, Font.size 16 ]
         [ Element.paragraph [ Element.width (Element.px 175), Font.semiBold ] [ Element.text key ]
         , Element.el [ Element.width Element.fill ] value
         ]
@@ -267,7 +238,7 @@ renderMessageAsElement context message =
                 ErrorCrit ->
                     context.palette.danger.textOnNeutralBG |> SH.toElementColor
     in
-    Element.column [ Element.spacing 12, Element.width Element.fill ]
+    Element.column [ Element.spacing spacer.px12, Element.width Element.fill ]
         [ Element.row [ Element.alignRight ]
             [ Element.el
                 [ Font.color <| levelColor message.context.level
@@ -358,7 +329,7 @@ titleFromHostname hostname =
 
 loadingStuff : View.Types.Context -> String -> Element.Element msg
 loadingStuff context resourceWord =
-    Element.row [ Element.spacing 15 ]
+    Element.row [ Element.spacing spacer.px16 ]
         [ Widget.circularProgressIndicator
             (SH.materialStyle context.palette).progressIndicator
             Nothing
@@ -868,19 +839,19 @@ elmUiRenderer context =
         \children ->
             Element.column
                 [ Border.widthEach { top = 0, right = 0, bottom = 0, left = 10 }
-                , Element.padding 10
+                , Element.padding spacer.px12
                 , Border.color (SH.toElementColor context.palette.neutral.border)
                 , Background.color (SH.toElementColor context.palette.neutral.background.frontLayer)
                 ]
                 children
     , unorderedList =
         \items ->
-            Element.column [ Element.spacing 10 ]
+            Element.column [ Element.spacing spacer.px12 ]
                 (items
                     |> List.map
                         (\(Markdown.Block.ListItem task children) ->
                             Element.row
-                                [ Element.alignTop, Element.spacing 10 ]
+                                [ Element.alignTop, Element.spacing spacer.px12 ]
                             <|
                                 List.concat
                                     [ [ case task of
@@ -899,11 +870,11 @@ elmUiRenderer context =
                 )
     , orderedList =
         \startingIndex items ->
-            Element.column [ Element.spacing 15 ]
+            Element.column [ Element.spacing spacer.px16 ]
                 (items
                     |> List.indexedMap
                         (\index itemBlocks ->
-                            Element.row [ Element.spacing 5 ]
+                            Element.row [ Element.spacing spacer.px4 ]
                                 [ Element.row [ Element.alignTop ]
                                     (Element.text (String.fromInt (index + startingIndex) ++ " ") :: itemBlocks)
                                 ]
@@ -1103,7 +1074,7 @@ flavorPicker context project restrictFlavorIds computeQuota flavorGroupToggleTip
                         radio_
 
         paddingRight =
-            Element.paddingEach { edges | right = 15 }
+            Element.paddingEach { edges | right = spacer.px16 }
 
         headerAttribs =
             [ paddingRight
@@ -1120,11 +1091,11 @@ flavorPicker context project restrictFlavorIds computeQuota flavorGroupToggleTip
               , width = Element.fill
               , view = \r -> Element.el [ paddingRight ] (Element.text r.name)
               }
-            , { header = Element.el headerAttribs (Element.text "CPUs")
+            , { header = Element.el (headerAttribs ++ [ Font.alignRight ]) (Element.text "CPUs")
               , width = Element.fill
               , view = \r -> Element.el [ paddingRight, Font.alignRight ] (Element.text (humanCount locale r.vcpu))
               }
-            , { header = Element.el headerAttribs (Element.text "RAM")
+            , { header = Element.el (headerAttribs ++ [ Font.alignRight ]) (Element.text "RAM")
               , width = Element.fill
               , view =
                     \r ->
@@ -1207,7 +1178,7 @@ flavorPicker context project restrictFlavorIds computeQuota flavorGroupToggleTip
 
             else
                 Element.column
-                    [ Element.spacing 5, Element.paddingXY 0 5 ]
+                    [ Element.spacing spacer.px8 ]
                     [ Element.row []
                         [ Element.el
                             [ context.palette.neutral.text.subdued
@@ -1240,13 +1211,13 @@ flavorPicker context project restrictFlavorIds computeQuota flavorGroupToggleTip
 
         renderFlavors flavors =
             Element.table
-                []
+                [ Element.spacingXY 0 spacer.px4 ]
                 { data = flavors
                 , columns = columns
                 }
     in
     Element.column
-        [ Element.spacing 10 ]
+        [ Element.spacing spacer.px12 ]
         [ Element.el
             [ Font.semiBold ]
             (Element.text <| Helpers.String.toTitleCase context.localization.virtualComputerHardwareConfig)
@@ -1256,7 +1227,7 @@ flavorPicker context project restrictFlavorIds computeQuota flavorGroupToggleTip
 
             else
                 Element.column
-                    []
+                    [ Element.spacing spacer.px12 ]
                     (flavorGroups |> List.map (renderFlavorGroup (GetterSetters.sortedFlavors allowedFlavors)))
         , if anyFlavorsTooLarge then
             Element.text <|
@@ -1289,13 +1260,13 @@ createdAgoByFromSize context ( agoWord, agoContents ) maybeWhoCreatedTuple maybe
     Element.wrappedRow
         [ Element.width Element.fill, Element.spaceEvenly ]
     <|
-        [ Element.row [ Element.paddingXY 5 6 ]
+        [ Element.row [ Element.padding spacer.px8 ]
             [ Element.el [ subduedText ] (Element.text <| agoWord ++ " ")
             , agoContents
             ]
         , case maybeWhoCreatedTuple of
             Just ( creatorAdjective, whoCreated ) ->
-                Element.row [ Element.paddingXY 5 6 ]
+                Element.row [ Element.padding spacer.px8 ]
                     [ Element.el [ subduedText ] (Element.text <| "by " ++ creatorAdjective ++ " ")
                     , Element.text whoCreated
                     ]
@@ -1304,7 +1275,7 @@ createdAgoByFromSize context ( agoWord, agoContents ) maybeWhoCreatedTuple maybe
                 Element.none
         , case maybeFromTuple of
             Just ( fromAdjective, whereFrom ) ->
-                Element.row [ Element.paddingXY 5 6 ]
+                Element.row [ Element.padding spacer.px8 ]
                     [ Element.el [ subduedText ] (Element.text <| "from " ++ fromAdjective ++ " ")
                     , Element.text whereFrom
                     ]
@@ -1313,7 +1284,7 @@ createdAgoByFromSize context ( agoWord, agoContents ) maybeWhoCreatedTuple maybe
                 Element.none
         , case maybeSizeTuple of
             Just ( sizeAdjective, size ) ->
-                Element.row [ Element.paddingXY 5 6 ]
+                Element.row [ Element.padding spacer.px8 ]
                     [ Element.el [ subduedText ] (Element.text <| sizeAdjective ++ " ")
                     , size
                     ]
@@ -1338,11 +1309,22 @@ requiredLabel palette undecoratedLabelView =
     Element.row []
         [ undecoratedLabelView
         , Element.el
-            [ Element.paddingXY 4 0
+            [ Element.paddingXY spacer.px4 0
             , Font.color (SH.toElementColor palette.danger.textOnNeutralBG)
             ]
             (Element.text "*")
         ]
+
+
+radioLabelAttributes : Bool -> List (Element.Attribute msg)
+radioLabelAttributes isBold =
+    Element.paddingEach { edges | bottom = spacer.px12 }
+        :: (if isBold then
+                [ Font.semiBold ]
+
+            else
+                []
+           )
 
 
 invalidInputAttributes : ExoPalette -> List (Element.Attribute msg)
@@ -1393,7 +1375,7 @@ validOrInvalidInputElementAttributes color icon =
 
 invalidInputHelperText : ExoPalette -> String -> Element.Element msg
 invalidInputHelperText palette helperText =
-    Element.row [ Element.spacingXY 10 0 ]
+    Element.row [ Element.spacingXY spacer.px8 0 ]
         [ Element.el
             [ Font.color (palette.danger.textOnNeutralBG |> SH.toElementColor)
             ]
@@ -1412,7 +1394,7 @@ invalidInputHelperText palette helperText =
 
 warnMessageHelperText : ExoPalette -> String -> Element.Element msg
 warnMessageHelperText palette helperText =
-    Element.row [ Element.spacingXY 10 0 ]
+    Element.row [ Element.spacingXY spacer.px8 0 ]
         [ Element.el
             [ Font.color (palette.warning.textOnNeutralBG |> SH.toElementColor)
             ]

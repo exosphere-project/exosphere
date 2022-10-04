@@ -6,6 +6,7 @@ import Helpers.Formatting exposing (Unit(..), humanNumber)
 import Helpers.String
 import OpenStack.Types as OSTypes
 import RemoteData exposing (RemoteData(..), WebData)
+import Style.Helpers exposing (spacer)
 import Style.Widgets.Meter
 import View.Helpers as VH
 import View.Types
@@ -90,12 +91,7 @@ computeInfoItems context display quota =
             brief
 
         Full ->
-            Element.wrappedRow
-                (VH.exoRowAttributes
-                    ++ [ Element.width Element.fill
-                       , Element.spacing 35
-                       ]
-                )
+            fullQuotaRow
                 [ brief
                 , infoItem context quota.cores ( "Cores used", Count )
                 , infoItem context quota.ram ( "RAM used", MebiBytes )
@@ -117,9 +113,7 @@ quotaDetail context quota infoItemsF =
 
 computeQuotaDetails : View.Types.Context -> Display -> WebData OSTypes.ComputeQuota -> Element.Element msg
 computeQuotaDetails context display quota =
-    Element.row
-        (VH.exoRowAttributes ++ [ Element.width Element.fill ])
-        [ quotaDetail context quota (computeInfoItems context display) ]
+    quotaDetail context quota (computeInfoItems context display)
 
 
 floatingIpInfoItems : View.Types.Context -> Display -> OSTypes.NetworkQuota -> Element.Element msg
@@ -142,17 +136,14 @@ floatingIpInfoItems context display quota =
             brief
 
         Full ->
-            Element.wrappedRow
-                (VH.exoRowAttributes ++ [ Element.centerX ])
+            fullQuotaRow
                 [ brief
                 ]
 
 
 floatingIpQuotaDetails : View.Types.Context -> Display -> WebData OSTypes.NetworkQuota -> Element.Element msg
 floatingIpQuotaDetails context display quota =
-    Element.row
-        (VH.exoRowAttributes ++ [ Element.width Element.fill ])
-        [ quotaDetail context quota (floatingIpInfoItems context display) ]
+    quotaDetail context quota (floatingIpInfoItems context display)
 
 
 keypairInfoItems : View.Types.Context -> Display -> Int -> OSTypes.ComputeQuota -> Element.Element msg
@@ -175,17 +166,14 @@ keypairInfoItems context display keypairsUsed quota =
             brief
 
         Full ->
-            Element.wrappedRow
-                (VH.exoRowAttributes ++ [ Element.centerX ])
+            fullQuotaRow
                 [ brief
                 ]
 
 
 keypairQuotaDetails : View.Types.Context -> Display -> WebData OSTypes.ComputeQuota -> Int -> Element.Element msg
 keypairQuotaDetails context display quota keypairsUsed =
-    Element.row
-        (VH.exoRowAttributes ++ [ Element.width Element.fill ])
-        [ quotaDetail context quota (keypairInfoItems context display keypairsUsed) ]
+    quotaDetail context quota (keypairInfoItems context display keypairsUsed)
 
 
 volumeInfoItems : View.Types.Context -> Display -> OSTypes.VolumeQuota -> Element.Element msg
@@ -209,12 +197,7 @@ volumeInfoItems context display quota =
             brief
 
         Full ->
-            Element.wrappedRow
-                (VH.exoRowAttributes
-                    ++ [ Element.centerX
-                       , Element.spacing 35
-                       ]
-                )
+            fullQuotaRow
                 [ brief
                 , infoItem context quota.gigabytes ( "Storage used", GibiBytes )
                 ]
@@ -222,6 +205,13 @@ volumeInfoItems context display quota =
 
 volumeQuotaDetails : View.Types.Context -> Display -> WebData OSTypes.VolumeQuota -> Element.Element msg
 volumeQuotaDetails context display quota =
-    Element.row
-        (VH.exoRowAttributes ++ [ Element.width Element.fill ])
-        [ quotaDetail context quota (volumeInfoItems context display) ]
+    quotaDetail context quota (volumeInfoItems context display)
+
+
+fullQuotaRow : List (Element.Element msg) -> Element.Element msg
+fullQuotaRow items =
+    Element.wrappedRow
+        [ Element.centerX
+        , Element.spacing spacer.px32
+        ]
+        items

@@ -8,7 +8,7 @@ import OpenStack.Types as OSTypes
 import OpenStack.Volumes
 import Route
 import Set
-import Style.Helpers as SH
+import Style.Helpers as SH exposing (spacer)
 import Style.Widgets.Button as Button
 import Style.Widgets.Card
 import Style.Widgets.CopyableText exposing (copyableText)
@@ -89,7 +89,7 @@ view context project model =
     in
     if model.showHeading then
         Element.column
-            (VH.contentContainer ++ [ Element.spacing 16 ])
+            (VH.contentContainer ++ [ Element.spacing spacer.px16 ])
             [ Text.heading context.palette
                 []
                 Element.none
@@ -124,7 +124,7 @@ volumeDetail context project model =
                 Element.column []
                     [ Style.Widgets.Card.exoCard context.palette
                         (Element.column
-                            [ Element.padding 8, Element.spacing 16 ]
+                            [ Element.padding spacer.px8, Element.spacing spacer.px16 ]
                             [ Text.subheading context.palette
                                 []
                                 Element.none
@@ -181,7 +181,7 @@ renderAttachment context project attachment =
                         ]
     in
     Element.column
-        (VH.exoColumnAttributes ++ [ Element.padding 0 ])
+        [ Element.spacing spacer.px12 ]
         [ VH.compactKVRow ((context.localization.virtualComputer |> Helpers.String.toTitleCase) ++ ":") <|
             Element.link []
                 { url =
@@ -215,14 +215,14 @@ renderAttachments context project volume =
             Element.column [ Element.width Element.fill ]
                 [ Style.Widgets.Card.exoCard context.palette
                     (Element.column
-                        [ Element.padding 8, Element.spacing 16 ]
+                        [ Element.padding spacer.px8, Element.spacing spacer.px16 ]
                         [ Element.column [ Element.width Element.fill ]
                             [ Text.subheading context.palette
                                 []
                                 Element.none
                                 "Attached to"
-                            , Element.row [ Element.paddingXY 0 15 ]
-                                [ Element.row (VH.exoColumnAttributes ++ [ Element.padding 0 ]) <| List.map (renderAttachment context project) volume.attachments
+                            , Element.row [ Element.paddingXY 0 spacer.px16 ]
+                                [ Element.row [ Element.spacing spacer.px12 ] <| List.map (renderAttachment context project) volume.attachments
                                 ]
                             ]
                         ]
@@ -311,7 +311,7 @@ volumeActionButtons context project model volume =
                     Widget.circularProgressIndicator (SH.materialStyle context.palette).progressIndicator Nothing
 
                 ( _, True ) ->
-                    Element.row [ Element.spacing 10 ]
+                    Element.row [ Element.spacing spacer.px8 ]
                         [ Element.text "Confirm delete?"
                         , deleteIconButton
                             context.palette
@@ -344,9 +344,15 @@ volumeActionButtons context project model volume =
     Style.Widgets.Card.exoCard
         context.palette
         (Element.column
-            [ Element.padding 8, Element.spacing 16, Element.width Element.fill ]
+            [ Element.padding spacer.px8
+            , Element.spacing spacer.px16
+            , Element.width Element.fill
+            ]
             [ volDetachDeleteWarning
-            , Element.row [ Element.alignRight, Element.spacing 10 ]
+            , Element.row
+                [ Element.alignRight
+                , Element.spacing spacer.px12
+                ]
                 [ attachDetachButton
                 , deleteButton
                 ]

@@ -5,7 +5,7 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import Page.ImageList
 import Page.InstanceTypeList
-import Style.Helpers as SH
+import Style.Helpers as SH exposing (spacer)
 import Style.Widgets.Text as Text
 import Types.HelperTypes
 import Types.Project exposing (Project)
@@ -87,7 +87,7 @@ view context project model =
         tabbedView : List Types.HelperTypes.InstanceType -> Element.Element Msg
         tabbedView opSysChoices =
             Element.column
-                (VH.contentContainer ++ [ Element.spacing 16 ])
+                (VH.contentContainer ++ [ Element.spacing spacer.px16 ])
                 [ Text.heading context.palette
                     []
                     Element.none

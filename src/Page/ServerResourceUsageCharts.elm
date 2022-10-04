@@ -22,7 +22,7 @@ import LineChart.Interpolation as Interpolation
 import LineChart.Junk as Junk
 import LineChart.Legends as Legends
 import LineChart.Line as Line
-import Style.Helpers as SH
+import Style.Helpers as SH exposing (spacer)
 import Style.Widgets.Icon as Icon
 import Svg
 import Time
@@ -218,6 +218,7 @@ view context widthPx ( currentTime, timeZone ) maybeServerResourceQtys timeSerie
         [ Element.width Element.fill
         , Element.height (Element.minimum 250 Element.shrink)
         , Element.scrollbarX
+        , Element.spaceEvenly
         ]
         [ Element.column []
             [ toCpuHeading context maybeServerResourceQtys haveGpuData
@@ -260,7 +261,7 @@ view context widthPx ( currentTime, timeZone ) maybeServerResourceQtys timeSerie
 toChartHeading : View.Types.Context -> Element.Element msg -> String -> Element.Element msg
 toChartHeading context title subtitle =
     Element.row
-        [ Element.width Element.fill, Element.paddingEach { top = 0, bottom = 0, left = 0, right = 25 } ]
+        [ Element.width Element.fill, Element.paddingEach { top = 0, bottom = 0, left = 0, right = spacer.px24 } ]
         [ Element.el [ Font.semiBold ] title
         , Element.el
             [ Font.color (context.palette.neutral.text.subdued |> SH.toElementColor)
@@ -275,7 +276,7 @@ toCpuHeading context maybeServerResourceQtys haveGpuData =
     toChartHeading
         context
         (if haveGpuData then
-            Element.row [ Element.spacing 5 ]
+            Element.row [ Element.spacing spacer.px4 ]
                 [ Element.text "CPU"
                 , Icon.roundRect (context.palette.primary |> SH.toElementColor) 16
                 , Element.text "and GPU"

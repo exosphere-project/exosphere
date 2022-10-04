@@ -5,7 +5,7 @@ import Element.Background as Background
 import Helpers.Boolean as HB
 import Route
 import State.ViewState
-import Style.Helpers as SH
+import Style.Helpers as SH exposing (spacer)
 import Style.Widgets.HomeLogo exposing (homeLogo)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton exposing (FlowOrder(..))
@@ -45,8 +45,8 @@ navBar outerModel context =
 
         navBarHeaderView =
             Element.row
-                [ Element.padding 10
-                , Element.spacing 10
+                [ Element.padding spacer.px12
+                , Element.spacing spacer.px12
                 , Element.height (Element.px navBarHeight)
                 , Element.width Element.fill
                 ]
@@ -55,7 +55,9 @@ navBar outerModel context =
                     , title = HB.toMaybe style.appTitle style.topBarShowAppTitle
                     }
                 , Element.row
-                    [ Element.alignRight, Element.paddingXY 20 0, Element.spacing 15 ]
+                    [ Element.alignRight
+                    , Element.spacing spacer.px16
+                    ]
                     [ navButton context
                         []
                         { icon = Icon.Bell

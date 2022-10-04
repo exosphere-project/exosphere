@@ -4,7 +4,7 @@ import Element
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
-import Style.Helpers as SH
+import Style.Helpers as SH exposing (spacer)
 import Style.Types
 
 
@@ -22,7 +22,7 @@ statusBadge palette state status =
             toColors palette state
     in
     Element.el
-        [ Element.paddingXY 12 6
+        [ Element.paddingXY spacer.px12 6
         , Border.rounded 24
         , Border.width 1
         , Border.color <| SH.toElementColor stateColor.border

@@ -7,7 +7,7 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import OpenStack.Quotas as OSQuotas
 import RemoteData
-import Style.Helpers as SH
+import Style.Helpers as SH exposing (spacer)
 import Style.Widgets.Button as Button
 import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
@@ -93,21 +93,23 @@ view context project model =
                 , context.localization.blockDevice |> Helpers.String.toTitleCase
                 ]
             )
-        , Element.column [ Element.spacing 16 ]
-            [ Input.text
-                (VH.inputItemAttributes context.palette)
-                { text = model.name
-                , placeholder = Just (Input.placeholder [] (Element.text "My Important Data"))
-                , onChange = GotName
-                , label = Input.labelAbove [] (VH.requiredLabel context.palette (Element.text "Name"))
-                }
-            , renderInvalidReason
-            , Element.text <|
-                String.join " "
-                    [ "(Suggestion: choose a good name that describes what the"
-                    , context.localization.blockDevice
-                    , "will store.)"
-                    ]
+        , Element.column [ Element.spacing spacer.px32 ]
+            [ Element.column [ Element.spacing spacer.px12 ]
+                [ Input.text
+                    (VH.inputItemAttributes context.palette)
+                    { text = model.name
+                    , placeholder = Just (Input.placeholder [] (Element.text "My Important Data"))
+                    , onChange = GotName
+                    , label = Input.labelAbove [] (VH.requiredLabel context.palette (Element.text "Name"))
+                    }
+                , renderInvalidReason
+                , Element.text <|
+                    String.join " "
+                        [ "(Suggestion: choose a good name that describes what the"
+                        , context.localization.blockDevice
+                        , "will store.)"
+                        ]
+                ]
             , numericTextInput
                 context.palette
                 (VH.inputItemAttributes context.palette)
@@ -142,7 +144,7 @@ view context project model =
                                 ]
                         )
               in
-              Element.row (List.append VH.exoRowAttributes [ Element.width Element.fill ])
+              Element.row [ Element.width Element.fill ]
                 [ case quotaWarnText of
                     Just text ->
                         Element.el [ Font.color <| SH.toElementColor context.palette.danger.textOnNeutralBG ] <| Element.text text

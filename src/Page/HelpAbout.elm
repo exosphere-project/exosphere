@@ -1,6 +1,7 @@
 module Page.HelpAbout exposing (headerView, view)
 
 import Element
+import Style.Helpers exposing (spacer)
 import Style.Widgets.Link as Link
 import Style.Widgets.Text as Text
 import Types.SharedModel exposing (SharedModel)
@@ -24,19 +25,19 @@ headerView model context =
 view : SharedModel -> View.Types.Context -> Element.Element msg
 view model context =
     Element.column
-        (VH.contentContainer ++ [ Element.spacing 16 ])
+        (VH.contentContainer ++ [ Element.spacing spacer.px16 ])
         [ case model.style.aboutAppMarkdown of
             Just aboutAppMarkdown ->
-                Element.column [ Element.spacing 16 ] <|
+                Element.column [ Element.spacing spacer.px16 ] <|
                     VH.renderMarkdown context aboutAppMarkdown
 
             Nothing ->
                 defaultHelpAboutText context
         , Text.heading context.palette
-            [ Element.paddingEach { edges | top = 16, bottom = 8 } ]
+            [ Element.paddingEach { edges | top = spacer.px16, bottom = spacer.px8 } ]
             Element.none
             "App Config Info"
-        , Element.column [ Element.spacing 16 ]
+        , Element.column [ Element.spacing spacer.px16 ]
             [ Text.p [] <|
                 case model.cloudCorsProxyUrl of
                     Nothing ->
@@ -51,7 +52,7 @@ view model context =
 
 defaultHelpAboutText : View.Types.Context -> Element.Element msg
 defaultHelpAboutText context =
-    Element.column [ Element.spacing 16 ]
+    Element.column [ Element.spacing spacer.px16 ]
         [ Text.p []
             [ Element.text "Exosphere is a user-friendly, extensible client for cloud computing. Check out our "
             , Link.externalLink

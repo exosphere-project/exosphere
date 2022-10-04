@@ -3,7 +3,7 @@ module Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInpu
 import Element
 import Element.Font as Font
 import Element.Input as Input
-import Style.Helpers as SH
+import Style.Helpers as SH exposing (spacer)
 import Style.Types
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..), NumericTextInputParams)
 
@@ -86,8 +86,7 @@ numericTextInput palette attribs currentVal params onchangeFunc =
                         (Element.text reason)
     in
     Element.column
-        [ Element.padding 10
-        , Element.spacing 10
+        [ Element.spacing spacer.px8
         ]
         [ textInput
         , warnText

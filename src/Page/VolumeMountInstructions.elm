@@ -5,6 +5,7 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import OpenStack.Types as OSTypes
 import Route
+import Style.Helpers exposing (spacer)
 import Style.Widgets.Button as Button
 import Style.Widgets.Text as Text
 import Types.Project exposing (Project)
@@ -46,7 +47,7 @@ view context project model =
                 , "Attached"
                 ]
             )
-        , Element.column [ Element.spacing 16 ]
+        , Element.column [ Element.spacing spacer.px16 ]
             [ Element.text ("Device: " ++ model.device)
             , case GetterSetters.volDeviceToMountpoint model.device of
                 Just mountpoint ->

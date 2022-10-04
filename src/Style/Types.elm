@@ -7,6 +7,7 @@ module Style.Types exposing
     , ExoPalette
     , GrayShades15
     , PopoverPosition(..)
+    , Spacer
     , StyleMode
     , Theme(..)
     , ThemeChoice(..)
@@ -195,4 +196,16 @@ defaultColors =
         { primary = Color.rgb255 83 183 226
         , secondary = Color.rgb255 96 239 255
         }
+    }
+
+
+type alias Spacer =
+    { px4 : Int
+    , px8 : Int
+    , px12 : Int
+    , px16 : Int
+    , px24 : Int
+    , px32 : Int
+    , px48 : Int
+    , px64 : Int
     }

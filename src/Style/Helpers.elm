@@ -3,6 +3,7 @@ module Style.Helpers exposing
     , dropdownItemStyle
     , materialStyle
     , shadowDefaults
+    , spacer
     , toCssColor
     , toElementColor
     , toElementColorWithOpacity
@@ -292,7 +293,6 @@ materialStyle exoPalette =
                 | container =
                     tb.container
                         ++ [ Font.color (toElementColor palette_.primary)
-                           , Element.padding 6
                            , Element.height Element.shrink -- remove fixed px height
                            ]
             }
@@ -319,7 +319,7 @@ materialStyle exoPalette =
             in
             { defaultTab
                 | button = exoTB
-                , containerColumn = defaultTab.containerColumn ++ [ Element.spacing 24 ]
+                , containerColumn = defaultTab.containerColumn ++ [ Element.spacing spacer.px24 ]
             }
     in
     { textInput = Material.textInput regularPalette
@@ -330,7 +330,7 @@ materialStyle exoPalette =
                 Material.cardColumn regularPalette
         in
         { style
-            | element = style.element ++ [ Element.paddingXY 8 6 ]
+            | element = style.element ++ [ Element.padding spacer.px8 ]
         }
     , primaryButton = containedButton regularPalette
     , button = outlinedButton regularPalette
@@ -421,8 +421,27 @@ dropdownItemStyle palette =
                    , Font.size 16
                    , Font.medium
                    , Font.letterSpacing 0.8
-                   , Element.paddingXY 8 12
+                   , Element.paddingXY spacer.px8 spacer.px12
                    , Element.height Element.shrink
                    ]
-        , labelRow = textButtonDefaults.labelRow ++ [ Element.spacing 12 ]
+        , labelRow = textButtonDefaults.labelRow ++ [ Element.spacing spacer.px12 ]
+    }
+
+
+{-| Fixed amount of space between elements that should be used to maintain consistency.
+
+In elm-ui Element.padding and Element.spacing fields of this record should be used instead of hardcoded numbers.
+The sizes chosen in this record are based on <https://www.refactoringui.com/> book's page number 73 (establishing spacing and sizing system).
+
+-}
+spacer : ST.Spacer
+spacer =
+    { px4 = 4
+    , px8 = 8
+    , px12 = 12
+    , px16 = 16
+    , px24 = 24
+    , px32 = 32
+    , px48 = 48
+    , px64 = 64
     }
