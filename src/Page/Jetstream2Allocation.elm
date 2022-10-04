@@ -2,6 +2,8 @@ module Page.Jetstream2Allocation exposing (view)
 
 import DateFormat.Relative
 import Element
+import Element.Font as Font
+import Element.Region as Region
 import FormatNumber.Locales
 import Helpers.Formatting
 import Helpers.String
@@ -9,6 +11,7 @@ import Helpers.Time
 import Style.Helpers exposing (spacer)
 import Style.Types as ST
 import Style.Widgets.Meter
+import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
 import Time
 import Types.Jetstream2Accounting
@@ -80,6 +83,7 @@ view context project currentTime =
                     Helpers.String.hyphenate
                         [ "JS2AllocationTip"
                         , project.auth.project.uuid
+                        , Types.Jetstream2Accounting.resourceToStr allocation.resource
                         ]
             in
             Style.Widgets.ToggleTip.toggleTip
@@ -89,22 +93,30 @@ view context project currentTime =
                 contents
                 ST.PositionRight
 
+        renderAllocation : Types.Jetstream2Accounting.Allocation -> Element.Element SharedMsg.SharedMsg
+        renderAllocation allocation =
+            Element.row [ Element.spacing spacer.px8 ]
+                [ meter allocation
+                , Element.el
+                    [ Element.alignBottom
+                    , Element.paddingEach { edges | bottom = 2 }
+                    ]
+                    (toggleTip allocation)
+                ]
+
         renderRDPPSuccess : List Types.Jetstream2Accounting.Allocation -> Element.Element SharedMsg.SharedMsg
         renderRDPPSuccess allocations =
-            Element.el [ Element.paddingEach { edges | bottom = spacer.px12 } ] <|
-                case List.head allocations of
-                    Nothing ->
-                        Element.text "Jetstream2 allocation information not found."
-
-                    Just allocation ->
-                        Element.row [ Element.spacing spacer.px8 ]
-                            [ meter allocation
-                            , Element.el
-                                [ Element.alignBottom
-                                , Element.paddingEach { edges | bottom = 2 }
-                                ]
-                                (toggleTip allocation)
-                            ]
+            Element.column
+                [ Element.spacing spacer.px24 ]
+                [ Text.text Text.H3
+                    [ Font.regular, Region.heading 2 ]
+                    "Allocation Usage"
+                , Element.wrappedRow
+                    [ Element.paddingEach { edges | bottom = spacer.px12 }
+                    , Element.spacing spacer.px24
+                    ]
+                    (List.map renderAllocation allocations)
+                ]
     in
     case project.endpoints.jetstream2Accounting of
         Just _ ->
