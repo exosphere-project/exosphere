@@ -1,4 +1,4 @@
-module Types.Jetstream2Accounting exposing (Allocation, Resource, resourceFromStr, resourceToStr, sortedAllocations)
+module Types.Jetstream2Accounting exposing (Allocation, Resource, resourceFromStr, resourceToStr, shownAllocations, sortedAllocations)
 
 import Time
 
@@ -12,6 +12,13 @@ type alias Allocation =
     , endDate : Time.Posix
     , resource : Resource
     }
+
+
+shownAllocations : List Allocation -> List Allocation
+shownAllocations allocations =
+    -- Not showing storage allocation right now, per
+    -- https://jetstream-cloud.slack.com/archives/G01GD9MUUHF/p1664901636186179?thread_ts=1664844400.359949&cid=G01GD9MUUHF
+    List.filter (\a -> a.resource /= Storage) allocations
 
 
 sortedAllocations : List Allocation -> List Allocation

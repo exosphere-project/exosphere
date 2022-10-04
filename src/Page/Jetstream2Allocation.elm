@@ -104,8 +104,11 @@ view context project currentTime =
         renderRDPPSuccess : List Accounting.Allocation -> Element.Element SharedMsg.SharedMsg
         renderRDPPSuccess allocations =
             let
-                sortedAllocations =
-                    Accounting.sortedAllocations allocations
+                shownAllocations =
+                    Accounting.shownAllocations allocations
+
+                shownAndSortedAllocations =
+                    Accounting.sortedAllocations shownAllocations
 
                 heading =
                     Text.text Text.H3
@@ -135,7 +138,7 @@ view context project currentTime =
                     [ Element.paddingEach { edges | bottom = spacer.px12 }
                     , Element.spacing spacer.px24
                     ]
-                    (List.map renderAllocation sortedAllocations)
+                    (List.map renderAllocation shownAndSortedAllocations)
                 ]
     in
     case project.endpoints.jetstream2Accounting of
