@@ -27,6 +27,12 @@ view context project currentTime =
                 serviceUnitsUsed =
                     allocation.serviceUnitsUsed |> Maybe.map round |> Maybe.withDefault 0
 
+                title =
+                    String.join " "
+                        [ Types.Jetstream2Accounting.resourceToStr allocation.resource
+                        , "usage"
+                        ]
+
                 subtitle =
                     -- Hard-coding USA locale to work around some kind of bug in elm-format-number where 1000000 is rendered as 10,00,000.
                     -- Don't worry, approximately all Jetstream2 users are USA-based, and nobody else will see this.
@@ -42,7 +48,7 @@ view context project currentTime =
             in
             Style.Widgets.Meter.meter
                 context.palette
-                "Allocation usage"
+                title
                 subtitle
                 serviceUnitsUsed
                 (round allocation.serviceUnitsAllocated)

@@ -34,10 +34,26 @@ decodeAllocations =
 
 decodeAllocation : Decode.Decoder Types.Jetstream2Accounting.Allocation
 decodeAllocation =
-    Decode.map6 Types.Jetstream2Accounting.Allocation
+    Decode.map7 Types.Jetstream2Accounting.Allocation
         (Decode.field "description" Decode.string)
         (Decode.field "abstract" Decode.string)
         (Decode.field "service_units_allocated" Decode.float)
         (Decode.field "service_units_used" (Decode.nullable Decode.float))
         (Decode.field "start_date" Decode.string |> Decode.andThen Rest.Helpers.iso8601StringToPosixDecodeError)
         (Decode.field "end_date" Decode.string |> Decode.andThen Rest.Helpers.iso8601StringToPosixDecodeError)
+        (Decode.field "resource" decodeResource)
+
+
+decodeResource : Decode.Decoder Types.Jetstream2Accounting.Resource
+decodeResource =
+    Decode.string |> Decode.andThen decodeResource_
+
+
+decodeResource_ : String -> Decode.Decoder Types.Jetstream2Accounting.Resource
+decodeResource_ str =
+    case Types.Jetstream2Accounting.resourceFromStr str of
+        Just resource ->
+            Decode.succeed resource
+
+        Nothing ->
+            Decode.fail "Could not decode Jetstream2 allocation, unrecognized resource type"
