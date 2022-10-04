@@ -31,10 +31,7 @@ view context project currentTime =
                     allocation.serviceUnitsUsed |> Maybe.map round |> Maybe.withDefault 0
 
                 title =
-                    String.join " "
-                        [ Types.Jetstream2Accounting.resourceToStr allocation.resource
-                        , "usage"
-                        ]
+                    Types.Jetstream2Accounting.resourceToStr context.localization.virtualComputer allocation.resource
 
                 subtitle =
                     -- Hard-coding USA locale to work around some kind of bug in elm-format-number where 1000000 is rendered as 10,00,000.
@@ -83,7 +80,7 @@ view context project currentTime =
                     Helpers.String.hyphenate
                         [ "JS2AllocationTip"
                         , project.auth.project.uuid
-                        , Types.Jetstream2Accounting.resourceToStr allocation.resource
+                        , Types.Jetstream2Accounting.resourceToStr context.localization.virtualComputer allocation.resource
                         ]
             in
             Style.Widgets.ToggleTip.toggleTip

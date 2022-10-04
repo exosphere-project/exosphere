@@ -40,17 +40,17 @@ resourceFromStr str =
             Nothing
 
 
-resourceToStr : Resource -> String
-resourceToStr resource =
+resourceToStr : String -> Resource -> String
+resourceToStr instanceWord resource =
     case resource of
         CPU ->
-            "CPU"
+            "CPU " ++ instanceWord
 
         GPU ->
-            "GPU"
+            "GPU " ++ instanceWord
 
         LargeMemory ->
-            "Large Memory"
+            "Lrg Mem " ++ instanceWord
 
         Storage ->
             "Storage"
