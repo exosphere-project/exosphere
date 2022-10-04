@@ -14,7 +14,7 @@ import Style.Widgets.Meter
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
 import Time
-import Types.Jetstream2Accounting
+import Types.Jetstream2Accounting as Accounting
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH exposing (edges)
@@ -24,14 +24,14 @@ import View.Types
 view : View.Types.Context -> Project -> Time.Posix -> Element.Element SharedMsg.SharedMsg
 view context project currentTime =
     let
-        meter : Types.Jetstream2Accounting.Allocation -> Element.Element SharedMsg.SharedMsg
+        meter : Accounting.Allocation -> Element.Element SharedMsg.SharedMsg
         meter allocation =
             let
                 serviceUnitsUsed =
                     allocation.serviceUnitsUsed |> Maybe.map round |> Maybe.withDefault 0
 
                 title =
-                    Types.Jetstream2Accounting.resourceToStr context.localization.virtualComputer allocation.resource
+                    Accounting.resourceToStr context.localization.virtualComputer allocation.resource
 
                 subtitle =
                     -- Hard-coding USA locale to work around some kind of bug in elm-format-number where 1000000 is rendered as 10,00,000.
@@ -53,7 +53,7 @@ view context project currentTime =
                 serviceUnitsUsed
                 (round allocation.serviceUnitsAllocated)
 
-        toggleTip : Types.Jetstream2Accounting.Allocation -> Element.Element SharedMsg.SharedMsg
+        toggleTip : Accounting.Allocation -> Element.Element SharedMsg.SharedMsg
         toggleTip allocation =
             let
                 contents : Element.Element SharedMsg.SharedMsg
@@ -80,7 +80,7 @@ view context project currentTime =
                     Helpers.String.hyphenate
                         [ "JS2AllocationTip"
                         , project.auth.project.uuid
-                        , Types.Jetstream2Accounting.resourceToStr context.localization.virtualComputer allocation.resource
+                        , Accounting.resourceToStr context.localization.virtualComputer allocation.resource
                         ]
             in
             Style.Widgets.ToggleTip.toggleTip
@@ -90,7 +90,7 @@ view context project currentTime =
                 contents
                 ST.PositionRight
 
-        renderAllocation : Types.Jetstream2Accounting.Allocation -> Element.Element SharedMsg.SharedMsg
+        renderAllocation : Accounting.Allocation -> Element.Element SharedMsg.SharedMsg
         renderAllocation allocation =
             Element.row [ Element.spacing spacer.px8 ]
                 [ meter allocation
@@ -101,11 +101,11 @@ view context project currentTime =
                     (toggleTip allocation)
                 ]
 
-        renderRDPPSuccess : List Types.Jetstream2Accounting.Allocation -> Element.Element SharedMsg.SharedMsg
+        renderRDPPSuccess : List Accounting.Allocation -> Element.Element SharedMsg.SharedMsg
         renderRDPPSuccess allocations =
             let
                 sortedAllocations =
-                    Types.Jetstream2Accounting.sortedAllocations allocations
+                    Accounting.sortedAllocations allocations
 
                 heading =
                     Text.text Text.H3
