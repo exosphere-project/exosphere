@@ -104,6 +104,9 @@ view context project currentTime =
         renderRDPPSuccess : List Types.Jetstream2Accounting.Allocation -> Element.Element SharedMsg.SharedMsg
         renderRDPPSuccess allocations =
             let
+                sortedAllocations =
+                    Types.Jetstream2Accounting.sortedAllocations allocations
+
                 heading =
                     Text.text Text.H3
                         [ Font.regular, Region.heading 2 ]
@@ -132,7 +135,7 @@ view context project currentTime =
                     [ Element.paddingEach { edges | bottom = spacer.px12 }
                     , Element.spacing spacer.px24
                     ]
-                    (List.map renderAllocation allocations)
+                    (List.map renderAllocation sortedAllocations)
                 ]
     in
     case project.endpoints.jetstream2Accounting of

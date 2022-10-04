@@ -1,4 +1,4 @@
-module Types.Jetstream2Accounting exposing (Allocation, Resource, resourceFromStr, resourceToStr)
+module Types.Jetstream2Accounting exposing (Allocation, Resource, resourceFromStr, resourceToStr, sortedAllocations)
 
 import Time
 
@@ -12,6 +12,29 @@ type alias Allocation =
     , endDate : Time.Posix
     , resource : Resource
     }
+
+
+sortedAllocations : List Allocation -> List Allocation
+sortedAllocations allocations =
+    let
+        alphaSortName : Allocation -> String
+        alphaSortName allocation =
+            resourceToStr "this-does-not-matter" allocation.resource
+
+        storageLastSorter : Allocation -> Allocation -> Basics.Order
+        storageLastSorter a b =
+            if a.resource == Storage && b.resource /= Storage then
+                Basics.GT
+
+            else if a.resource /= Storage && b.resource == Storage then
+                Basics.LT
+
+            else
+                Basics.EQ
+    in
+    allocations
+        |> List.sortBy alphaSortName
+        |> List.sortWith storageLastSorter
 
 
 type Resource
