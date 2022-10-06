@@ -1900,13 +1900,13 @@ processProjectSpecificMsg outerModel project msg =
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
-        ReceiveJetstream2Allocation result ->
+        ReceiveJetstream2Allocations result ->
             case result of
                 Ok allocation ->
                     let
                         newProject =
                             { project
-                                | jetstream2Allocation =
+                                | jetstream2Allocations =
                                     RDPP.RemoteDataPlusPlus
                                         (RDPP.DoHave allocation sharedModel.clientCurrentTime)
                                         (RDPP.NotLoading Nothing)
@@ -1918,11 +1918,11 @@ processProjectSpecificMsg outerModel project msg =
                 Err httpError ->
                     let
                         oldAllocationData =
-                            project.jetstream2Allocation.data
+                            project.jetstream2Allocations.data
 
                         newProject =
                             { project
-                                | jetstream2Allocation =
+                                | jetstream2Allocations =
                                     RDPP.RemoteDataPlusPlus oldAllocationData
                                         (RDPP.NotLoading (Just ( httpError, sharedModel.clientCurrentTime )))
                             }
@@ -2633,7 +2633,7 @@ createProject_ outerModel description authToken region endpoints =
             , computeQuota = RemoteData.NotAsked
             , volumeQuota = RemoteData.NotAsked
             , networkQuota = RemoteData.NotAsked
-            , jetstream2Allocation = RDPP.empty
+            , jetstream2Allocations = RDPP.empty
             }
 
         newSharedModel =

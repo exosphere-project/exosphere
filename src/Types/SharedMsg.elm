@@ -96,7 +96,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveNetworkQuota OSTypes.NetworkQuota
     | ReceiveRandomServerName String
     | ReceiveDeleteImage OSTypes.ImageUuid
-    | ReceiveJetstream2Allocation (Result HttpErrorWithBody (Maybe Types.Jetstream2Accounting.Allocation))
+    | ReceiveJetstream2Allocations (Result HttpErrorWithBody (List Types.Jetstream2Accounting.Allocation))
 
 
 type ServerSpecificMsgConstructor

@@ -1,33 +1,26 @@
 module Page.ProjectOverview exposing (Model, Msg, init, update, view)
 
-import DateFormat.Relative
 import Element
 import Element.Border as Border
 import Element.Font as Font
 import FeatherIcons
-import FormatNumber.Locales
-import Helpers.Formatting
 import Helpers.GetterSetters as GetterSetters
 import Helpers.String
-import Helpers.Time
 import Html.Attributes
 import OpenStack.Types as OSTypes
+import Page.Jetstream2Allocation
 import Page.QuotaUsage
 import RemoteData
 import Route
 import Style.Helpers as SH exposing (spacer)
-import Style.Types as ST
 import Style.Widgets.Card
 import Style.Widgets.Icon as Icon
-import Style.Widgets.Meter
 import Style.Widgets.Text as Text
-import Style.Widgets.ToggleTip
 import Time
-import Types.Jetstream2Accounting
 import Types.Project exposing (Project)
 import Types.Server exposing (Server)
 import Types.SharedMsg as SharedMsg
-import View.Helpers as VH exposing (edges)
+import View.Helpers as VH
 import View.Types
 
 
@@ -113,7 +106,8 @@ view context project currentTime _ =
     in
     Element.column
         [ Element.spacing spacer.px24 ]
-        [ renderJetstream2Allocation context project currentTime
+        [ Page.Jetstream2Allocation.view context project currentTime
+            |> Element.map SharedMsg
         , VH.renderMaybe project.description renderDescription
         , Element.wrappedRow [ Element.spacing spacer.px24 ]
             [ renderTile
@@ -179,98 +173,6 @@ view context project currentTime _ =
                 (imageTileContents context project)
             ]
         ]
-
-
-renderJetstream2Allocation : View.Types.Context -> Project -> Time.Posix -> Element.Element Msg
-renderJetstream2Allocation context project currentTime =
-    let
-        meter : Types.Jetstream2Accounting.Allocation -> Element.Element Msg
-        meter allocation =
-            let
-                serviceUnitsUsed =
-                    allocation.serviceUnitsUsed |> Maybe.map round |> Maybe.withDefault 0
-
-                subtitle =
-                    -- Hard-coding USA locale to work around some kind of bug in elm-format-number where 1000000 is rendered as 10,00,000.
-                    -- Don't worry, approximately all Jetstream2 users are USA-based, and nobody else will see this.
-                    String.join " "
-                        [ serviceUnitsUsed
-                            |> Helpers.Formatting.humanCount FormatNumber.Locales.usLocale
-                        , "of"
-                        , allocation.serviceUnitsAllocated
-                            |> round
-                            |> Helpers.Formatting.humanCount FormatNumber.Locales.usLocale
-                        , "SUs"
-                        ]
-            in
-            Style.Widgets.Meter.meter
-                context.palette
-                "Allocation usage"
-                subtitle
-                serviceUnitsUsed
-                (round allocation.serviceUnitsAllocated)
-
-        toggleTip : Types.Jetstream2Accounting.Allocation -> Element.Element Msg
-        toggleTip allocation =
-            let
-                contents : Element.Element Msg
-                contents =
-                    [ String.concat
-                        [ "Start: "
-                        , DateFormat.Relative.relativeTime currentTime allocation.startDate
-                        , " ("
-                        , Helpers.Time.humanReadableDate allocation.startDate
-                        , ")"
-                        ]
-                    , String.concat
-                        [ "End: "
-                        , DateFormat.Relative.relativeTime currentTime allocation.endDate
-                        , " ("
-                        , Helpers.Time.humanReadableDate allocation.endDate
-                        , ")"
-                        ]
-                    ]
-                        |> List.map Element.text
-                        |> Element.column []
-
-                toggleTipId =
-                    Helpers.String.hyphenate
-                        [ "JS2AllocationTip"
-                        , project.auth.project.uuid
-                        ]
-            in
-            Style.Widgets.ToggleTip.toggleTip
-                context
-                (\toggleTipId_ -> SharedMsg <| SharedMsg.TogglePopover toggleTipId_)
-                toggleTipId
-                contents
-                ST.PositionRight
-
-        renderRDPPSuccess : Maybe Types.Jetstream2Accounting.Allocation -> Element.Element Msg
-        renderRDPPSuccess maybeAllocation =
-            Element.el [ Element.paddingEach { edges | bottom = spacer.px12 } ] <|
-                case maybeAllocation of
-                    Nothing ->
-                        Element.text "Jetstream2 allocation information not found."
-
-                    Just allocation ->
-                        Element.row [ Element.spacing spacer.px8 ]
-                            [ meter allocation
-                            , Element.el
-                                [ Element.alignBottom
-                                , Element.paddingEach { edges | bottom = 2 }
-                                ]
-                                (toggleTip allocation)
-                            ]
-    in
-    case project.endpoints.jetstream2Accounting of
-        Just _ ->
-            -- Is a Jetstream2 project
-            VH.renderRDPP context project.jetstream2Allocation "allocation" renderRDPPSuccess
-
-        Nothing ->
-            -- Is not a Jetstream2 project
-            Element.none
 
 
 serverTileContents : View.Types.Context -> Project -> Element.Element Msg

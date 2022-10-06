@@ -1,4 +1,4 @@
-module Rest.Jetstream2Accounting exposing (requestAllocation)
+module Rest.Jetstream2Accounting exposing (requestAllocations)
 
 import Helpers.GetterSetters as GetterSetters
 import Http
@@ -11,12 +11,12 @@ import Types.Project exposing (Project)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 
 
-requestAllocation : Project -> Url -> Cmd SharedMsg
-requestAllocation project url =
+requestAllocations : Project -> Url -> Cmd SharedMsg
+requestAllocations project url =
     let
-        resultToMsg : Result Types.Error.HttpErrorWithBody (Maybe Types.Jetstream2Accounting.Allocation) -> SharedMsg
+        resultToMsg : Result Types.Error.HttpErrorWithBody (List Types.Jetstream2Accounting.Allocation) -> SharedMsg
         resultToMsg result =
-            ProjectMsg (GetterSetters.projectIdentifier project) <| ReceiveJetstream2Allocation result
+            ProjectMsg (GetterSetters.projectIdentifier project) <| ReceiveJetstream2Allocations result
     in
     Rest.Helpers.openstackCredentialedRequest
         (GetterSetters.projectIdentifier project)
@@ -24,21 +24,56 @@ requestAllocation project url =
         Nothing
         url
         Http.emptyBody
-        (Rest.Helpers.expectJsonWithErrorBody resultToMsg decodeFirstAllocation)
+        (Rest.Helpers.expectJsonWithErrorBody resultToMsg decodeAllocations)
 
 
-decodeFirstAllocation : Decode.Decoder (Maybe Types.Jetstream2Accounting.Allocation)
-decodeFirstAllocation =
+decodeAllocations : Decode.Decoder (List Types.Jetstream2Accounting.Allocation)
+decodeAllocations =
     Decode.list decodeAllocation
-        |> Decode.map List.head
 
 
 decodeAllocation : Decode.Decoder Types.Jetstream2Accounting.Allocation
 decodeAllocation =
-    Decode.map6 Types.Jetstream2Accounting.Allocation
+    Decode.map8 Types.Jetstream2Accounting.Allocation
         (Decode.field "description" Decode.string)
         (Decode.field "abstract" Decode.string)
         (Decode.field "service_units_allocated" Decode.float)
         (Decode.field "service_units_used" (Decode.nullable Decode.float))
         (Decode.field "start_date" Decode.string |> Decode.andThen Rest.Helpers.iso8601StringToPosixDecodeError)
         (Decode.field "end_date" Decode.string |> Decode.andThen Rest.Helpers.iso8601StringToPosixDecodeError)
+        (Decode.field "resource" decodeResource)
+        (Decode.field "active" decodeStatus)
+
+
+decodeResource : Decode.Decoder Types.Jetstream2Accounting.Resource
+decodeResource =
+    Decode.string |> Decode.andThen decodeResource_
+
+
+decodeResource_ : String -> Decode.Decoder Types.Jetstream2Accounting.Resource
+decodeResource_ str =
+    case Types.Jetstream2Accounting.resourceFromStr str of
+        Just resource ->
+            Decode.succeed resource
+
+        Nothing ->
+            Decode.fail "Could not decode Jetstream2 allocation, unrecognized resource type"
+
+
+decodeStatus : Decode.Decoder Types.Jetstream2Accounting.AllocationStatus
+decodeStatus =
+    Decode.int
+        |> Decode.andThen intToStatus
+
+
+intToStatus : Int -> Decode.Decoder Types.Jetstream2Accounting.AllocationStatus
+intToStatus i =
+    case i of
+        1 ->
+            Decode.succeed Types.Jetstream2Accounting.Active
+
+        0 ->
+            Decode.succeed Types.Jetstream2Accounting.Inactive
+
+        _ ->
+            Decode.fail "unrecognized value for active field"
