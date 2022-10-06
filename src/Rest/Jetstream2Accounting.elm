@@ -34,7 +34,7 @@ decodeAllocations =
 
 decodeAllocation : Decode.Decoder Types.Jetstream2Accounting.Allocation
 decodeAllocation =
-    Decode.map7 Types.Jetstream2Accounting.Allocation
+    Decode.map8 Types.Jetstream2Accounting.Allocation
         (Decode.field "description" Decode.string)
         (Decode.field "abstract" Decode.string)
         (Decode.field "service_units_allocated" Decode.float)
@@ -42,6 +42,7 @@ decodeAllocation =
         (Decode.field "start_date" Decode.string |> Decode.andThen Rest.Helpers.iso8601StringToPosixDecodeError)
         (Decode.field "end_date" Decode.string |> Decode.andThen Rest.Helpers.iso8601StringToPosixDecodeError)
         (Decode.field "resource" decodeResource)
+        (Decode.field "active" decodeStatus)
 
 
 decodeResource : Decode.Decoder Types.Jetstream2Accounting.Resource
@@ -57,3 +58,22 @@ decodeResource_ str =
 
         Nothing ->
             Decode.fail "Could not decode Jetstream2 allocation, unrecognized resource type"
+
+
+decodeStatus : Decode.Decoder Types.Jetstream2Accounting.AllocationStatus
+decodeStatus =
+    Decode.int
+        |> Decode.andThen intToStatus
+
+
+intToStatus : Int -> Decode.Decoder Types.Jetstream2Accounting.AllocationStatus
+intToStatus i =
+    case i of
+        1 ->
+            Decode.succeed Types.Jetstream2Accounting.Active
+
+        0 ->
+            Decode.succeed Types.Jetstream2Accounting.Inactive
+
+        _ ->
+            Decode.fail "unrecognized value for active field"
