@@ -1308,15 +1308,12 @@ desktopEnvironmentPicker context project model =
             [ Just <|
                 Element.text <|
                     String.concat
-                        [ "Warning: this feature currently only supports "
+                        [ context.localization.graphicalDesktopEnvironment
+                            |> Helpers.String.capitalizeWord
+                        , " works for "
                         , context.localization.staticRepresentationOfBlockDeviceContents
                             |> Helpers.String.pluralize
-                        , " based on Ubuntu 20.04 or newer, Rocky Linux, or AlmaLinux. Support for other operating systems is coming soon, but if you choose "
-                        , context.localization.staticRepresentationOfBlockDeviceContents
-                            |> Helpers.String.indefiniteArticle
-                        , " "
-                        , context.localization.staticRepresentationOfBlockDeviceContents
-                        , " based on a different operating system now, it is unlikely to work."
+                        , " based on Ubuntu 20.04 or newer, Rocky Linux, or AlmaLinux. If you chose a different operating system, it may not work."
                         ]
             , let
                 warningMaxGB =
