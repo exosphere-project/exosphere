@@ -1330,21 +1330,24 @@ desktopEnvironmentPicker context project model =
 
         messages : List (Element.Element Msg)
         messages =
-            [ case imageSpecificMessage of
+            [ -- Prefer image-specific message, failing that show a cloud-specific message, failing that show a generic message
+              (case imageSpecificMessage of
                 Just message ->
-                    Just <| Element.text message
+                    Just message
 
                 Nothing ->
                     case cloudSpecificMessage of
                         Just "" ->
-                            -- Empty string, don't show anything
+                            -- Empty string, cloud operator wants to hide message entirely
                             Nothing
 
                         Just message ->
-                            Just <| Element.text message
+                            Just message
 
                         Nothing ->
-                            Just <| Element.text genericMessage
+                            Just genericMessage
+              )
+                |> Maybe.map Element.text
             , let
                 warningMaxGB =
                     12
