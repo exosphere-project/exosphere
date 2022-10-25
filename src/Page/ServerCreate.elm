@@ -1383,7 +1383,7 @@ desktopEnvironmentPicker context project model =
         , if model.deployDesktopEnvironment then
             Alert.alert []
                 context.palette
-                { state = Alert.Warning
+                { state = Alert.Info
                 , showIcon = False
                 , showContainer = True
                 , content =
