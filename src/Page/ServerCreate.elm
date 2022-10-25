@@ -1313,7 +1313,11 @@ desktopEnvironmentPicker context project model =
                         , " works for "
                         , context.localization.staticRepresentationOfBlockDeviceContents
                             |> Helpers.String.pluralize
-                        , " based on Ubuntu 20.04 or newer, Rocky Linux, or AlmaLinux. If you chose a different operating system, it may not work."
+                        , " based on Ubuntu (20.04 or newer), Rocky Linux, or AlmaLinux. If you selected a different operating system, it may not work. Also, if selected "
+                        , context.localization.staticRepresentationOfBlockDeviceContents
+                        , " does not have a desktop environment pre-installed, "
+                        , context.localization.virtualComputer
+                        , " may take a long time to deploy."
                         ]
             , let
                 warningMaxGB =
@@ -1354,19 +1358,6 @@ desktopEnvironmentPicker context project model =
 
                         _ ->
                             Nothing
-            , if model.deployDesktopEnvironment then
-                Just <|
-                    Element.text <|
-                        String.join " "
-                            [ "Warning: If selected"
-                            , context.localization.staticRepresentationOfBlockDeviceContents
-                            , "does not already include a graphical desktop environment,"
-                            , context.localization.virtualComputer
-                            , "can take 30 minutes or longer to deploy."
-                            ]
-
-              else
-                Nothing
             ]
                 |> List.filterMap identity
     in
