@@ -1307,17 +1307,17 @@ desktopEnvironmentPicker context project model =
         warnings =
             [ Just <|
                 Element.text <|
-                    String.concat
+                    String.join " "
                         [ context.localization.graphicalDesktopEnvironment
                             |> Helpers.String.capitalizeWord
-                        , " works for "
+                        , "works for"
                         , context.localization.staticRepresentationOfBlockDeviceContents
                             |> Helpers.String.pluralize
-                        , " based on Ubuntu (20.04 or newer), Rocky Linux, or AlmaLinux. If you selected a different operating system, it may not work. Also, if selected "
+                        , "based on Ubuntu (20.04 or newer), Rocky Linux, or AlmaLinux. If you selected a different operating system, it may not work. Also, if selected"
                         , context.localization.staticRepresentationOfBlockDeviceContents
-                        , " does not have a desktop environment pre-installed, "
+                        , "does not have a desktop environment pre-installed,"
                         , context.localization.virtualComputer
-                        , " may take a long time to deploy."
+                        , "may take a long time to deploy."
                         ]
             , let
                 warningMaxGB =
