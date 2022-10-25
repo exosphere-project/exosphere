@@ -1384,7 +1384,7 @@ desktopEnvironmentPicker context project model =
                 ]
             , selected = Just model.deployDesktopEnvironment
             }
-        , if model.deployDesktopEnvironment then
+        , if model.deployDesktopEnvironment && not (List.isEmpty messages) then
             Alert.alert []
                 context.palette
                 { state = Alert.Info
