@@ -1303,8 +1303,8 @@ clusterInputExperimental context model =
 desktopEnvironmentPicker : View.Types.Context -> Project -> Model -> Element.Element Msg
 desktopEnvironmentPicker context project model =
     let
-        warnings : List (Element.Element Msg)
-        warnings =
+        messages : List (Element.Element Msg)
+        messages =
             [ Just <|
                 Element.text <|
                     String.join " "
@@ -1389,7 +1389,7 @@ desktopEnvironmentPicker context project model =
                 , content =
                     Element.column
                         [ Element.spacing spacer.px12, Element.width Element.fill ]
-                        (List.map (\warning -> Element.paragraph [] [ warning ]) warnings)
+                        (List.map (\message -> Element.paragraph [] [ message ]) messages)
                 }
 
           else
