@@ -86,6 +86,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveCreateExoSecurityGroup OSTypes.SecurityGroup
     | ReceiveCreateVolume
     | ReceiveVolumes (List OSTypes.Volume)
+    | ReceiveVolumeSnapshots (List OSTypes.VolumeSnapshot)
     | ReceiveDeleteVolume
     | ReceiveUpdateVolumeName
     | ReceiveAttachVolume OSTypes.VolumeAttachment

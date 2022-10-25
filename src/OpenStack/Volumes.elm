@@ -2,6 +2,7 @@ module OpenStack.Volumes exposing
     ( requestCreateVolume
     , requestDeleteVolume
     , requestUpdateVolumeName
+    , requestVolumeSnapshots
     , requestVolumes
     , volumeLookup
     )
@@ -100,6 +101,37 @@ requestVolumes project =
         )
 
 
+requestVolumeSnapshots : Project -> Cmd SharedMsg
+requestVolumeSnapshots project =
+    let
+        errorContext =
+            ErrorContext
+                "get a list of volume snapshots"
+                ErrorWarn
+                Nothing
+
+        resultToMsg_ =
+            resultToMsgErrorBody
+                errorContext
+                (\snapshots ->
+                    ProjectMsg
+                        (GetterSetters.projectIdentifier project)
+                        (ReceiveVolumeSnapshots snapshots)
+                )
+    in
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Get
+        Nothing
+        []
+        (project.endpoints.cinder ++ "/snapshots")
+        Http.emptyBody
+        (expectJsonWithErrorBody
+            resultToMsg_
+            (Decode.field "snapshots" <| Decode.list volumeSnapshotDecoder)
+        )
+
+
 requestDeleteVolume : Project -> OSTypes.VolumeUuid -> Cmd SharedMsg
 requestDeleteVolume project volumeUuid =
     let
@@ -169,6 +201,12 @@ volumeDecoder =
         |> Pipeline.optional "volume_image_metadata" (imageMetadataDecoder |> Decode.andThen (\a -> Decode.succeed <| Just a)) Nothing
         |> Pipeline.required "created_at" (Decode.string |> Decode.andThen iso8601StringToPosixDecodeError)
         |> Pipeline.required "user_id" Decode.string
+
+
+volumeSnapshotDecoder : Decode.Decoder OSTypes.VolumeSnapshot
+volumeSnapshotDecoder =
+    Decode.succeed OSTypes.VolumeSnapshot
+        |> Pipeline.required "size" Decode.int
 
 
 volumeStatusDecoder : String -> Decode.Decoder OSTypes.VolumeStatus

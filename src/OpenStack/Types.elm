@@ -64,6 +64,7 @@ module OpenStack.Types exposing
     , VolumeName
     , VolumeQuota
     , VolumeSize
+    , VolumeSnapshot
     , VolumeStatus(..)
     , VolumeUuid
     , imageVisibilityToString
@@ -560,6 +561,11 @@ type alias Volume =
     , imageMetadata : Maybe NameAndUuid
     , createdAt : Time.Posix
     , userUuid : UserUuid
+    }
+
+
+type alias VolumeSnapshot =
+    { sizeInGiB : Int
     }
 
 

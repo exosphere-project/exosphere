@@ -1844,6 +1844,18 @@ processProjectSpecificMsg outerModel project msg =
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
+        ReceiveVolumeSnapshots snapshots ->
+            let
+                newProject =
+                    { project | volumeSnapshots = RemoteData.succeed snapshots }
+
+                newSharedModel =
+                    GetterSetters.modelUpdateProject sharedModel newProject
+            in
+            ( newSharedModel, Cmd.none )
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
         ReceiveDeleteVolume ->
             ( outerModel, OSVolumes.requestVolumes project )
                 |> mapToOuterMsg
@@ -2628,6 +2640,7 @@ createProject_ outerModel description authToken region endpoints =
             , flavors = []
             , keypairs = RemoteData.NotAsked
             , volumes = RemoteData.NotAsked
+            , volumeSnapshots = RemoteData.NotAsked
             , networks = RDPP.empty
             , autoAllocatedNetworkUuid = RDPP.empty
             , floatingIps = RDPP.empty

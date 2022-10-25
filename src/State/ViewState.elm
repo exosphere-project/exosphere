@@ -201,6 +201,7 @@ routeToViewStateModelCmd sharedModel route =
                                     ( sharedModel
                                     , Cmd.batch
                                         [ OSVolumes.requestVolumes project
+                                        , OSVolumes.requestVolumeSnapshots project
                                         , Rest.Nova.requestKeypairs project
                                         , OSQuotas.requestComputeQuota project
                                         , OSQuotas.requestVolumeQuota project

@@ -24,6 +24,7 @@ type alias Project =
     , flavors : List OSTypes.Flavor
     , keypairs : WebData (List OSTypes.Keypair)
     , volumes : WebData (List OSTypes.Volume)
+    , volumeSnapshots : WebData (List OSTypes.VolumeSnapshot)
     , networks : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Network)
     , autoAllocatedNetworkUuid : RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.NetworkUuid
     , floatingIps : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.FloatingIp)
