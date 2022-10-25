@@ -76,7 +76,7 @@ view context model =
             )
         , Element.column [ Element.spacing spacer.px16, Element.width Element.fill ]
             [ Input.text
-                [ Element.spacing spacer.px12 ]
+                (VH.inputItemAttributes context.palette)
                 { text = model.imageName
                 , placeholder = Nothing
                 , onChange = GotImageName
