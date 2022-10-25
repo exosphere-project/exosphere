@@ -1303,22 +1303,26 @@ clusterInputExperimental context model =
 desktopEnvironmentPicker : View.Types.Context -> Project -> Model -> Element.Element Msg
 desktopEnvironmentPicker context project model =
     let
+        genericMessage : String
+        genericMessage =
+            String.join " "
+                [ context.localization.graphicalDesktopEnvironment
+                    |> Helpers.String.capitalizeWord
+                , "works for"
+                , context.localization.staticRepresentationOfBlockDeviceContents
+                    |> Helpers.String.pluralize
+                , "based on Ubuntu (20.04 or newer), Rocky Linux, or AlmaLinux. If you selected a different operating system, it may not work. Also, if selected"
+                , context.localization.staticRepresentationOfBlockDeviceContents
+                , "does not have a desktop environment pre-installed,"
+                , context.localization.virtualComputer
+                , "may take a long time to deploy."
+                ]
+
         messages : List (Element.Element Msg)
         messages =
             [ Just <|
                 Element.text <|
-                    String.join " "
-                        [ context.localization.graphicalDesktopEnvironment
-                            |> Helpers.String.capitalizeWord
-                        , "works for"
-                        , context.localization.staticRepresentationOfBlockDeviceContents
-                            |> Helpers.String.pluralize
-                        , "based on Ubuntu (20.04 or newer), Rocky Linux, or AlmaLinux. If you selected a different operating system, it may not work. Also, if selected"
-                        , context.localization.staticRepresentationOfBlockDeviceContents
-                        , "does not have a desktop environment pre-installed,"
-                        , context.localization.virtualComputer
-                        , "may take a long time to deploy."
-                        ]
+                    genericMessage
             , let
                 warningMaxGB =
                     12
