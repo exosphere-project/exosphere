@@ -264,6 +264,7 @@ Each of these JSON objects contains the following properties:
 - `featuredImageNamePrefix` (null, string): A (public) image is 'featured' if the name starts with this string
 - `instanceTypes` (array): An array of instance types specific to this cloud, can be left empty. See `docs/instance-types.md` for more information.
 - `flavorGroups` (array): An array of flavor groups specific to this cloud, can be left empty. See `docs/flavor-groups.md` for more information.
+- `desktopMessage` (null, string): Override message to show users who select a graphical desktop environment when creating an instance. `null` will display a default message, while an empty string will display no message.
 
 ```javascript
 var cloud_configs = {
@@ -326,7 +327,8 @@ var cloud_configs = {
           "title":"GPU",
           "description":"These have a graphics processing unit."
         }        
-      ]
+      ],
+      "desktopMessage":null
     }
   ]
 }

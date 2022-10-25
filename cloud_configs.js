@@ -114,6 +114,7 @@ var cloud_configs = {
           description: "These have a graphics processing unit.",
         },
       ],
+      desktopMessage: "",
     },
     {
       keystoneHostname: "keystone.rc.nectar.org.au",
@@ -124,6 +125,7 @@ var cloud_configs = {
       featuredImageNamePrefix: null,
       instanceTypes: [],
       flavorGroups: [],
+      desktopMessage: null,
     },
   ],
 };

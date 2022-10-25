@@ -1318,11 +1318,23 @@ desktopEnvironmentPicker context project model =
                 , "may take a long time to deploy."
                 ]
 
+        cloudSpecificMessage : Maybe String
+        cloudSpecificMessage =
+            GetterSetters.cloudSpecificConfigLookup context.cloudSpecificConfigs project
+                |> Maybe.andThen .desktopMessage
+
         messages : List (Element.Element Msg)
         messages =
-            [ Just <|
-                Element.text <|
-                    genericMessage
+            [ case cloudSpecificMessage of
+                Just "" ->
+                    -- Empty string, don't show anything
+                    Nothing
+
+                Just message ->
+                    Just <| Element.text message
+
+                Nothing ->
+                    Just <| Element.text genericMessage
             , let
                 warningMaxGB =
                     12
