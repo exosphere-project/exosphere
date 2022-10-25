@@ -15,6 +15,7 @@ module Helpers.GetterSetters exposing
     , getUserAppProxyFromCloudSpecificConfig
     , getUserAppProxyFromContext
     , getVolsAttachedToServer
+    , imageGetDesktopMessage
     , imageLookup
     , isBootVolume
     , modelUpdateProject
@@ -120,6 +121,12 @@ imageLookup : Project -> OSTypes.ImageUuid -> Maybe OSTypes.Image
 imageLookup project imageUuid =
     RDPP.withDefault [] project.images
         |> List.Extra.find (\i -> i.uuid == imageUuid)
+
+
+imageGetDesktopMessage : OSTypes.Image -> Maybe String
+imageGetDesktopMessage image =
+    image.additionalProperties
+        |> Dict.get "exoDesktopMessage"
 
 
 volumeLookup : Project -> OSTypes.VolumeUuid -> Maybe OSTypes.Volume

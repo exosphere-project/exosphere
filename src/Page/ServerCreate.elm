@@ -1323,18 +1323,28 @@ desktopEnvironmentPicker context project model =
             GetterSetters.cloudSpecificConfigLookup context.cloudSpecificConfigs project
                 |> Maybe.andThen .desktopMessage
 
+        imageSpecificMessage : Maybe String
+        imageSpecificMessage =
+            GetterSetters.imageLookup project model.imageUuid
+                |> Maybe.andThen GetterSetters.imageGetDesktopMessage
+
         messages : List (Element.Element Msg)
         messages =
-            [ case cloudSpecificMessage of
-                Just "" ->
-                    -- Empty string, don't show anything
-                    Nothing
-
+            [ case imageSpecificMessage of
                 Just message ->
                     Just <| Element.text message
 
                 Nothing ->
-                    Just <| Element.text genericMessage
+                    case cloudSpecificMessage of
+                        Just "" ->
+                            -- Empty string, don't show anything
+                            Nothing
+
+                        Just message ->
+                            Just <| Element.text message
+
+                        Nothing ->
+                            Just <| Element.text genericMessage
             , let
                 warningMaxGB =
                     12
