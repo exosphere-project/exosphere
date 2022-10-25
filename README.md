@@ -61,6 +61,7 @@ We discuss project progress and priorities on a **weekly video call** Mondays at
 - [User Application Proxy (UAP)](docs/user-app-proxy.md)
 - [Solving the CORS Problem (Cloud CORS Proxy)](docs/solving-cors-problem.md)
 - [Configuring Instance Types](docs/instance-types.md)
+- [Message for desktop environment users](docs/desktop-message.md)
 - [Federated Login Support](docs/federated-login.md)
 
 ### For Exosphere Contributors
