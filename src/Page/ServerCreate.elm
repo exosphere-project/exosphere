@@ -1332,6 +1332,10 @@ desktopEnvironmentPicker context project model =
         messages =
             [ -- Prefer image-specific message, failing that show a cloud-specific message, failing that show a generic message
               (case imageSpecificMessage of
+                Just "" ->
+                    -- Empty string, cloud operator wants to hide message entirely
+                    Nothing
+
                 Just message ->
                     Just message
 
