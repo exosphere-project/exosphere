@@ -1663,7 +1663,10 @@ keypairPicker : View.Types.Context -> Project -> Model -> Element.Element Msg
 keypairPicker context project model =
     let
         keypairAsOption keypair =
-            Input.option keypair.name (Element.text keypair.name)
+            Input.option (Just keypair.name) (Element.text keypair.name)
+
+        noneOption =
+            Input.option Nothing (Element.text "None")
 
         renderKeypairs keypairs =
             if List.isEmpty keypairs then
@@ -1696,9 +1699,9 @@ keypairPicker context project model =
                                     , "(this is optional, skip if unsure)"
                                     ]
                             )
-                    , onChange = \keypairName -> GotKeypairName <| Just keypairName
-                    , options = List.map keypairAsOption keypairs
-                    , selected = Just (Maybe.withDefault "" model.keypairName)
+                    , onChange = \keypairName -> GotKeypairName <| keypairName
+                    , options = noneOption :: List.map keypairAsOption keypairs
+                    , selected = Just model.keypairName
                     }
     in
     Element.column
