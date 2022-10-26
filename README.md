@@ -179,7 +179,10 @@ When it's time to cleanup, press Ctrl-C in the terminal window running `elm-live
 
 ### Build and Run Exosphere Locally (not using Docker)
 
-First [install node.js + npm](https://www.npmjs.com/get-npm). (If you use Ubuntu/Debian you may also need to `apt-get install nodejs-legacy`.)
+First [install node.js + npm](https://www.npmjs.com/get-npm).
+
+- If you use Ubuntu/Debian you may also need to `apt-get install nodejs-legacy`.
+- If you are using Mac OS X, you may need to add `127.0.0.1       app.exosphere.localhost` to `/etc/hosts`
 
 Then install the project's dependencies (including Elm). Convenience command to do this (run from the root of the exosphere repo):
 
