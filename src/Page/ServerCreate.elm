@@ -986,14 +986,40 @@ countPicker context model computeQuota volumeQuota flavor =
     in
     Element.column [ Element.spacing spacer.px12 ]
         [ Element.el [ Font.semiBold ] <|
-            Element.text <|
-                String.concat
-                    [ "How many "
-                    , context.localization.virtualComputer
-                        |> Helpers.String.pluralize
-                        |> Helpers.String.toTitleCase
-                    , "?"
-                    ]
+            Element.row [ Element.spacing spacer.px12 ]
+                [ Element.text <|
+                    String.concat
+                        [ "How many "
+                        , context.localization.virtualComputer
+                            |> Helpers.String.pluralize
+                            |> Helpers.String.toTitleCase
+                        , "?"
+                        ]
+                , Style.Widgets.ToggleTip.toggleTip
+                    context
+                    (\multipleInstancesNamingTipId -> SharedMsg <| SharedMsg.TogglePopover multipleInstancesNamingTipId)
+                    "multipleInstancesNamingToggleTip"
+                    (Element.paragraph
+                        [ Element.width (Element.fill |> Element.minimum 300)
+                        , Element.spacing spacer.px8
+                        , Font.regular
+                        ]
+                        [ Element.text <|
+                            String.concat
+                                [ "If more than one instance is chosen, each will be named, for example, \""
+                                , model.serverName
+                                , " 1 of "
+                                , if model.count == 1 then
+                                    "n"
+
+                                  else
+                                    String.fromInt model.count
+                                , "\""
+                                ]
+                        ]
+                    )
+                    ST.PositionRight
+                ]
         , case countAvailPerQuota of
             Just countAvailPerQuota_ ->
                 let
