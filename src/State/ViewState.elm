@@ -407,6 +407,7 @@ routeToViewStateModelCmd sharedModel route =
                             , sharedModel
                             , Cmd.batch
                                 [ OSVolumes.requestVolumes project
+                                , OSVolumes.requestVolumeSnapshots project
                                 , Ports.instantiateClipboardJs ()
                                 , OSQuotas.requestVolumeQuota project
                                 ]
