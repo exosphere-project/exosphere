@@ -1303,21 +1303,55 @@ clusterInputExperimental context model =
 desktopEnvironmentPicker : View.Types.Context -> Project -> Model -> Element.Element Msg
 desktopEnvironmentPicker context project model =
     let
-        warnings : List (Element.Element Msg)
-        warnings =
-            [ Just <|
-                Element.text <|
-                    String.concat
-                        [ "Warning: this feature currently only supports "
-                        , context.localization.staticRepresentationOfBlockDeviceContents
-                            |> Helpers.String.pluralize
-                        , " based on Ubuntu 20.04 or newer, Rocky Linux, or AlmaLinux. Support for other operating systems is coming soon, but if you choose "
-                        , context.localization.staticRepresentationOfBlockDeviceContents
-                            |> Helpers.String.indefiniteArticle
-                        , " "
-                        , context.localization.staticRepresentationOfBlockDeviceContents
-                        , " based on a different operating system now, it is unlikely to work."
-                        ]
+        genericMessage : String
+        genericMessage =
+            String.join " "
+                [ context.localization.graphicalDesktopEnvironment
+                    |> Helpers.String.capitalizeWord
+                , "works for"
+                , context.localization.staticRepresentationOfBlockDeviceContents
+                    |> Helpers.String.pluralize
+                , "based on Ubuntu (20.04 or newer), Rocky Linux, or AlmaLinux. If you selected a different operating system, it may not work. Also, if selected"
+                , context.localization.staticRepresentationOfBlockDeviceContents
+                , "does not have a desktop environment pre-installed,"
+                , context.localization.virtualComputer
+                , "may take a long time to deploy."
+                ]
+
+        cloudSpecificMessage : Maybe String
+        cloudSpecificMessage =
+            GetterSetters.cloudSpecificConfigLookup context.cloudSpecificConfigs project
+                |> Maybe.andThen .desktopMessage
+
+        imageSpecificMessage : Maybe String
+        imageSpecificMessage =
+            GetterSetters.imageLookup project model.imageUuid
+                |> Maybe.andThen GetterSetters.imageGetDesktopMessage
+
+        messages : List (Element.Element Msg)
+        messages =
+            [ -- Prefer image-specific message, failing that show a cloud-specific message, failing that show a generic message
+              (case imageSpecificMessage of
+                Just "" ->
+                    -- Empty string, cloud operator wants to hide message entirely
+                    Nothing
+
+                Just message ->
+                    Just message
+
+                Nothing ->
+                    case cloudSpecificMessage of
+                        Just "" ->
+                            -- Empty string, cloud operator wants to hide message entirely
+                            Nothing
+
+                        Just message ->
+                            Just message
+
+                        Nothing ->
+                            Just genericMessage
+              )
+                |> Maybe.map Element.text
             , let
                 warningMaxGB =
                     12
@@ -1357,19 +1391,6 @@ desktopEnvironmentPicker context project model =
 
                         _ ->
                             Nothing
-            , if model.deployDesktopEnvironment then
-                Just <|
-                    Element.text <|
-                        String.join " "
-                            [ "Warning: If selected"
-                            , context.localization.staticRepresentationOfBlockDeviceContents
-                            , "does not already include a graphical desktop environment,"
-                            , context.localization.virtualComputer
-                            , "can take 30 minutes or longer to deploy."
-                            ]
-
-              else
-                Nothing
             ]
                 |> List.filterMap identity
     in
@@ -1392,16 +1413,16 @@ desktopEnvironmentPicker context project model =
                 ]
             , selected = Just model.deployDesktopEnvironment
             }
-        , if model.deployDesktopEnvironment then
+        , if model.deployDesktopEnvironment && not (List.isEmpty messages) then
             Alert.alert []
                 context.palette
-                { state = Alert.Warning
+                { state = Alert.Info
                 , showIcon = False
                 , showContainer = True
                 , content =
                     Element.column
                         [ Element.spacing spacer.px12, Element.width Element.fill ]
-                        (List.map (\warning -> Element.paragraph [] [ warning ]) warnings)
+                        (List.map (\message -> Element.paragraph [] [ message ]) messages)
                 }
 
           else

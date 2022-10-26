@@ -259,6 +259,7 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
                         |> Helpers.pipelineCmd (ApiModelHelpers.requestVolumes projectId)
                         |> Helpers.pipelineCmd (ApiModelHelpers.requestFloatingIps projectId)
                         |> Helpers.pipelineCmd (ApiModelHelpers.requestPorts projectId)
+                        |> Helpers.pipelineCmd (ApiModelHelpers.requestImages projectId)
             in
             hydratedModel.projects
                 |> List.map GetterSetters.projectIdentifier
@@ -295,7 +296,7 @@ decodeCloudSpecificConfigs value =
 
 decodeCloudSpecificConfig : Decode.Decoder ( HelperTypes.KeystoneHostname, HelperTypes.CloudSpecificConfig )
 decodeCloudSpecificConfig =
-    Decode.map7 HelperTypes.CloudSpecificConfig
+    Decode.map8 HelperTypes.CloudSpecificConfig
         (Decode.field "friendlyName" Decode.string)
         (Decode.field "friendlySubName" (Decode.nullable Decode.string))
         (Decode.field "userAppProxy" (Decode.nullable (Decode.list userAppProxyConfigDecoder)))
@@ -303,6 +304,7 @@ decodeCloudSpecificConfig =
         (Decode.field "featuredImageNamePrefix" (Decode.nullable Decode.string))
         (Decode.field "instanceTypes" (Decode.list instanceTypeDecoder))
         (Decode.field "flavorGroups" (Decode.list flavorGroupDecoder))
+        (Decode.field "desktopMessage" (Decode.nullable Decode.string))
         |> Decode.andThen
             (\cloudSpecificConfig ->
                 Decode.field "keystoneHostname" Decode.string

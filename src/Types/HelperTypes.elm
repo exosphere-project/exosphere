@@ -146,6 +146,7 @@ type alias CloudSpecificConfig =
     , featuredImageNamePrefix : Maybe String
     , instanceTypes : List InstanceType
     , flavorGroups : List FlavorGroup
+    , desktopMessage : Maybe String
     }
 
 

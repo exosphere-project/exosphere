@@ -1,5 +1,6 @@
 module Helpers.String exposing
-    ( hyphenate
+    ( capitalizeWord
+    , hyphenate
     , indefiniteArticle
     , itemsListToString
     , pluralize
