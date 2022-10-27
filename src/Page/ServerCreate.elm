@@ -13,6 +13,7 @@ import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (Unit(..), humanCount)
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
+import Helpers.Random as RandomHelper
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import Maybe
@@ -53,6 +54,7 @@ type alias Model =
 
 type Msg
     = GotServerName String
+    | GotChooseRandomServerName
     | GotRandomServerName String
     | GotCount Int
     | GotCreateServerButtonPressed OSTypes.NetworkUuid OSTypes.FlavorId
@@ -81,7 +83,7 @@ type Msg
 
 init : OSTypes.ImageUuid -> String -> Maybe (List OSTypes.FlavorId) -> Maybe Bool -> Model
 init imageUuid imageName restrictFlavorIds deployGuacamole =
-    { serverName = imageName
+    { serverName = ""
     , imageUuid = imageUuid
     , imageName = imageName
     , restrictFlavorIds = restrictFlavorIds
@@ -113,6 +115,16 @@ update msg project model =
     case msg of
         GotRandomServerName name ->
             ( { model | randomServerName = name, serverName = name }, Cmd.none, SharedMsg.NoOp )
+
+        GotChooseRandomServerName ->
+            let
+                generateCmd =
+                    RandomHelper.generateServerName
+                        (\serverName ->
+                            GotRandomServerName serverName
+                        )
+            in
+            ( model, generateCmd, SharedMsg.NoOp )
 
         GotServerName name ->
             ( { model | serverName = name }, Cmd.none, SharedMsg.NoOp )
@@ -674,28 +686,38 @@ view context project currentTime model =
                 [ Element.spacing spacer.px8
                 , Element.width Element.fill
                 ]
-                (Input.text
-                    (VH.inputItemAttributes context.palette
-                        ++ serverNameValidationStatusAttributes
-                    )
-                    { text = model.serverName
-                    , placeholder =
-                        Just
-                            (Input.placeholder
-                                []
-                                (Element.text <|
-                                    String.join " "
-                                        [ "Example, My"
-                                        , context.localization.virtualComputer
-                                            |> Helpers.String.toTitleCase
-                                        ]
+                (Element.row
+                    [ Element.spacing spacer.px8
+                    , Element.width Element.fill
+                    ]
+                    [ Input.text
+                        (VH.inputItemAttributes context.palette
+                            ++ serverNameValidationStatusAttributes
+                        )
+                        { text = model.serverName
+                        , placeholder =
+                            Just
+                                (Input.placeholder
+                                    []
+                                    (Element.text <|
+                                        String.join " "
+                                            [ "Example, My"
+                                            , context.localization.virtualComputer
+                                                |> Helpers.String.toTitleCase
+                                            ]
+                                    )
                                 )
-                            )
-                    , onChange = GotServerName
-                    , label =
-                        Input.labelLeft []
-                            (VH.requiredLabel context.palette (Element.text "Name"))
-                    }
+                        , onChange = GotServerName
+                        , label =
+                            Input.labelLeft []
+                                (VH.requiredLabel context.palette (Element.text "Name"))
+                        }
+                    , Button.default
+                        context.palette
+                        { text = "Random Name"
+                        , onPress = Just GotChooseRandomServerName
+                        }
+                    ]
                     :: renderInvalidNameReasons
                     ++ nameSuggestionButtons
                     ++ renderServerNameExists

@@ -1888,9 +1888,6 @@ processProjectSpecificMsg outerModel project msg =
             ( GetterSetters.modelUpdateProject sharedModel newProject, Cmd.none )
                 |> mapToOuterModel outerModel
 
-        ReceiveRandomServerName serverName ->
-            updateUnderlying (ServerCreateMsg <| Page.ServerCreate.GotRandomServerName serverName) outerModel
-
         RequestDeleteImage imageUuid ->
             ( outerModel, Rest.Glance.requestDeleteImage project imageUuid )
                 |> mapToOuterMsg
