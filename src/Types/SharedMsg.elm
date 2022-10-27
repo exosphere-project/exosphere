@@ -94,7 +94,6 @@ type ProjectSpecificMsgConstructor
     | ReceiveComputeQuota OSTypes.ComputeQuota
     | ReceiveVolumeQuota OSTypes.VolumeQuota
     | ReceiveNetworkQuota OSTypes.NetworkQuota
-    | ReceiveRandomServerName String
     | ReceiveDeleteImage OSTypes.ImageUuid
     | ReceiveJetstream2Allocations (Result HttpErrorWithBody (List Types.Jetstream2Accounting.Allocation))
 
