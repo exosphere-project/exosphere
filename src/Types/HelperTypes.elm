@@ -98,6 +98,7 @@ type alias Localization =
     , unitOfTenancy : String
     , maxResourcesPerProject : String
     , pkiPublicKeyForSsh : String
+    , pkiPublicKeyForSshValue : String
     , virtualComputer : String
     , virtualComputerHardwareConfig : String
     , cloudInitData : String

@@ -10,6 +10,7 @@ localization =
     , unitOfTenancy = "project"
     , maxResourcesPerProject = "resource limit"
     , pkiPublicKeyForSsh = "SSH public key"
+    , pkiPublicKeyForSshValue = "SSH public key value"
     , virtualComputer = "instance"
     , virtualComputerHardwareConfig = "size"
     , cloudInitData = "boot script"

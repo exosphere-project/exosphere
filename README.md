@@ -393,6 +393,7 @@ localization: {
     unitOfTenancy: "project",
     maxResourcesPerProject: "resource limits",
     pkiPublicKeyForSsh: "SSH public key",
+    pkiPublicKeyForSshValue: "SSH public key value",
     virtualComputer: "instance",
     virtualComputerHardwareConfig: "size",
     cloudInitData: "boot script",

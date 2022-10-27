@@ -1,4 +1,4 @@
-module Page.KeypairCreate exposing (Model, Msg(..), createKeyPairButton, init, update, view)
+module Page.KeypairCreate exposing (Model, Msg(..), init, update, view)
 
 import Element
 import Element.Font as Font
@@ -6,9 +6,8 @@ import Element.Input as Input
 import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import Html.Attributes
-import Style.Helpers exposing (spacer)
+import Style.Helpers as SH exposing (spacer)
 import Style.Widgets.Button as Button
-import Style.Widgets.FormValidation as FormValidation
 import Style.Widgets.Text as Text
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg
@@ -52,7 +51,39 @@ update msg project model =
 
 view : View.Types.Context -> Model -> Element.Element Msg
 view context model =
-    Element.column VH.formContainer
+    let
+        uppercasePublicKey : String
+        uppercasePublicKey =
+            String.toUpper model.publicKey
+
+        renderInvalidReasonsFunction reason condition =
+            reason |> VH.invalidInputHelperText context.palette |> VH.renderIf condition
+
+        ( renderInvalidKeyNameReason, isKeyNameValid ) =
+            if String.isEmpty model.name then
+                ( renderInvalidReasonsFunction "Name is required" True, False )
+
+            else if String.left 1 model.name == " " then
+                ( renderInvalidReasonsFunction "Name cannot start with a space" True, False )
+
+            else if String.right 1 model.name == " " then
+                ( renderInvalidReasonsFunction "Name cannot end with a space" True, False )
+
+            else
+                ( Element.none, True )
+
+        ( renderInvalidKeyValueReason, isKeyValueValid ) =
+            if String.length model.publicKey <= 0 then
+                ( renderInvalidReasonsFunction "Public key is required" True, False )
+
+            else if String.contains "PRIVATE" uppercasePublicKey then
+                ( renderInvalidReasonsFunction "Private key detected! Enter a public key instead. Public keys are usually found in a .pub file" True, False )
+
+            else
+                ( Element.none, True )
+    in
+    Element.column
+        VH.formContainer
         [ Text.heading context.palette
             []
             Element.none
@@ -63,7 +94,7 @@ view context model =
                 ]
             )
         , Element.column [ Element.spacing spacer.px16, Element.width Element.fill ]
-            ([ Input.text
+            [ Input.text
                 (VH.inputItemAttributes context.palette)
                 { text = model.name
                 , placeholder =
@@ -75,64 +106,63 @@ view context model =
                             )
                         )
                 , onChange = GotName
-                , label = Input.labelAbove [] (Element.text "Name")
-                }
-             , Input.multiline
-                (VH.inputItemAttributes context.palette
-                    ++ [ Element.width Element.fill
-                       , Element.height (Element.px 300)
-                       , Element.padding spacer.px8
-                       , Element.spacing 0
-                       , Html.Attributes.style "word-break" "break-all" |> Element.htmlAttribute
-                       , Font.family [ Font.monospace ]
-                       , Font.size 12
-                       ]
-                )
-                { text = model.publicKey
-                , placeholder = Just (Input.placeholder [] (Element.text "ssh-rsa ..."))
-                , onChange = GotPublicKey
                 , label =
-                    Input.labelAbove
-                        [ Element.paddingXY 0 spacer.px12
-                        , Font.family [ Font.sansSerif ]
-                        , Font.size 17
-                        ]
-                        (Element.text "Public Key Value")
-                , spellcheck = False
+                    Input.labelAbove []
+                        (Element.text <|
+                            String.join " "
+                                [ context.localization.pkiPublicKeyForSsh, "name" ]
+                        )
                 }
-             ]
-                ++ createKeyPairButton context model
+            , renderInvalidKeyNameReason
+            ]
+        , Input.multiline
+            (VH.inputItemAttributes context.palette
+                ++ [ Element.width Element.fill
+                   , Element.height (Element.px 300)
+                   , Element.padding spacer.px8
+                   , Element.spacing 0
+                   , Html.Attributes.style "word-break" "break-all" |> Element.htmlAttribute
+                   , Font.family [ Font.monospace ]
+                   , Font.size 12
+                   ]
             )
-        ]
-
-
-createKeyPairButton : View.Types.Context -> Model -> List (Element.Element Msg)
-createKeyPairButton context model =
-    let
-        isValid =
-            List.all
-                identity
-                [ String.length model.name > 0
-                , String.length model.publicKey > 0
-                ]
-
-        ( maybeCmd, validation ) =
-            if isValid then
-                ( Just GotSubmit
-                , Element.none
-                )
-
-            else
-                ( Nothing
-                , FormValidation.renderValidationError context "All fields are required"
-                )
-    in
-    [ Element.el [ Element.alignRight ] <|
-        Button.primary
-            context.palette
-            { text = "Create"
-            , onPress = maybeCmd
+            { text = model.publicKey
+            , placeholder = Just (Input.placeholder [] (Element.text "ssh-rsa ..."))
+            , onChange = GotPublicKey
+            , label =
+                Input.labelAbove
+                    [ Element.paddingXY 0 spacer.px12
+                    , Font.family [ Font.sansSerif ]
+                    , Font.size 17
+                    ]
+                    (Element.text context.localization.pkiPublicKeyForSshValue)
+            , spellcheck = False
             }
-    , Element.el [ Element.alignRight ] <|
-        validation
-    ]
+        , renderInvalidKeyValueReason
+        , let
+            ( createKey, keyWarnText ) =
+                if isKeyNameValid && isKeyValueValid then
+                    ( Just GotSubmit
+                    , Nothing
+                    )
+
+                else
+                    ( Nothing
+                    , Just <| "All fields are required"
+                    )
+          in
+          Element.row [ Element.width Element.fill ]
+            [ case keyWarnText of
+                Just text ->
+                    Element.el [ Font.color <| SH.toElementColor context.palette.danger.textOnNeutralBG ] <| Element.text text
+
+                Nothing ->
+                    Element.none
+            , Element.el [ Element.alignRight ] <|
+                Button.primary
+                    context.palette
+                    { text = "Create"
+                    , onPress = createKey
+                    }
+            ]
+        ]
