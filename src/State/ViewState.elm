@@ -5,7 +5,6 @@ module State.ViewState exposing
 
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
-import Helpers.Random as RandomHelpers
 import OpenStack.Quotas as OSQuotas
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes as OSVolumes
@@ -296,11 +295,6 @@ routeToViewStateModelCmd sharedModel route =
                                     Cmd.batch
                                         [ Rest.Nova.requestFlavors project
                                         , Rest.Nova.requestKeypairs project
-                                        , RandomHelpers.generateServerName
-                                            (\serverName ->
-                                                ProjectMsg (GetterSetters.projectIdentifier project) <|
-                                                    ReceiveRandomServerName serverName
-                                            )
                                         ]
 
                                 ( newSharedModel, newCmd ) =
