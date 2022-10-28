@@ -34,6 +34,7 @@ Maintainers, please ensure the MR passes this checklist before approving. Consul
 - MR effectively fixes all issues that it claims to fix.
 - MR does not decrease the overall consistency or polish of Exosphere's UI.
 - MR does not decrease Exosphere's overall code quality.
+- If MR significantly changes organization structure of codebase (e.g. modules and directories), `docs/code-tour.md` is updated appropriately.
 - MR does not break existing functionality or behavior that users are likely to care about.
 - If the MR adds/changes/removes UI elements in `src/Style/Widgets/`, then `src/DesignSystem/Explorer.elm` shows example usage of that widget.
 - If the MR adds/changes/removes app flags (in `src/Types/Flags.elm`), then the following are updated accordingly:

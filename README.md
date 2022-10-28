@@ -67,6 +67,7 @@ We discuss project progress and priorities on a **weekly video call** Mondays at
 ### For Exosphere Contributors
 
 - [Contributing to Exosphere](contributing.md)
+- [Tour of Exosphere Codebase](docs/code-tour.md)
 - [UI, Layout, Style & Design System](docs/style.md)
 - [Architecture Decision Records](docs/adr/README.md)
 - [Exosphere Tests](tests/README.md)
