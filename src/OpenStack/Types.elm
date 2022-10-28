@@ -565,7 +565,12 @@ type alias Volume =
 
 
 type alias VolumeSnapshot =
-    { sizeInGiB : Int
+    { uuid : String
+    , name : Maybe String
+    , description : String
+    , volumeId : String
+    , sizeInGiB : Int
+    , createdAt : Time.Posix
     }
 
 

@@ -199,7 +199,7 @@ volumeInfoItems context display quota =
         Full ->
             fullQuotaRow
                 [ brief
-                , infoItem context quota.gigabytes ( "Storage used", GibiBytes )
+                , infoItem context quota.gigabytes ( "Storage used", CinderGB )
                 ]
 
 

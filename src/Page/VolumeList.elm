@@ -5,11 +5,14 @@ import Dict
 import Element
 import Element.Font as Font
 import FeatherIcons
+import FormatNumber.Locales exposing (Decimals(..))
+import Helpers.Formatting exposing (Unit(..), humanNumber)
 import Helpers.GetterSetters as GetterSetters
 import Helpers.ResourceList exposing (creationTimeFilterOptions, listItemColumnAttribs, onCreationTimeFilter)
 import Helpers.String
 import OpenStack.Types as OSTypes
 import Page.QuotaUsage
+import RemoteData
 import Route
 import Set
 import Style.Helpers as SH
@@ -85,8 +88,8 @@ update msg project model =
 view : View.Types.Context -> Project -> Time.Posix -> Model -> Element.Element Msg
 view context project currentTime model =
     let
-        renderSuccessCase : List OSTypes.Volume -> Element.Element Msg
-        renderSuccessCase volumes_ =
+        renderSuccessCase : ( List OSTypes.Volume, List OSTypes.VolumeSnapshot ) -> Element.Element Msg
+        renderSuccessCase ( volumes_, snapshots ) =
             DataList.view
                 context.localization.blockDevice
                 model.dataListModel
@@ -94,7 +97,7 @@ view context project currentTime model =
                 context
                 []
                 (volumeView context project currentTime)
-                (volumeRecords project volumes_)
+                (volumeRecords project ( volumes_, snapshots ))
                 []
                 (Just
                     { filters = filters currentTime
@@ -121,7 +124,7 @@ view context project currentTime model =
         , Page.QuotaUsage.view context Page.QuotaUsage.Full (Page.QuotaUsage.Volume project.volumeQuota)
         , VH.renderWebData
             context
-            project.volumes
+            (RemoteData.map2 Tuple.pair project.volumes project.volumeSnapshots)
             (Helpers.String.pluralize context.localization.blockDevice)
             renderSuccessCase
         ]
@@ -130,12 +133,13 @@ view context project currentTime model =
 type alias VolumeRecord =
     DataList.DataRecord
         { volume : OSTypes.Volume
+        , snapshots : List OSTypes.VolumeSnapshot
         , creator : String
         }
 
 
-volumeRecords : Project -> List OSTypes.Volume -> List VolumeRecord
-volumeRecords project volumes =
+volumeRecords : Project -> ( List OSTypes.Volume, List OSTypes.VolumeSnapshot ) -> List VolumeRecord
+volumeRecords project ( volumes, snapshots ) =
     let
         creator volume =
             if volume.userUuid == project.auth.user.uuid then
@@ -143,12 +147,20 @@ volumeRecords project volumes =
 
             else
                 "other user"
+
+        isVolumeSnapshot : OSTypes.Volume -> OSTypes.VolumeSnapshot -> Bool
+        isVolumeSnapshot { uuid } { volumeId } =
+            uuid == volumeId
+
+        volumeSnapshots volume =
+            List.filter (\snapshot -> isVolumeSnapshot volume snapshot) snapshots
     in
     List.map
         (\volume ->
             { id = volume.uuid
             , selectable = False
             , volume = volume
+            , snapshots = volumeSnapshots volume
             , creator = creator volume
             }
         )
@@ -163,6 +175,15 @@ volumeView :
     -> Element.Element Msg
 volumeView context project currentTime volumeRecord =
     let
+        neutralColor =
+            SH.toElementColor context.palette.neutral.text.default
+
+        primaryColor =
+            SH.toElementColor context.palette.primary
+
+        secondaryColor =
+            SH.toElementColor context.palette.secondary
+
         volumeLink =
             Element.link []
                 { url =
@@ -290,34 +311,106 @@ volumeView context project currentTime volumeRecord =
 
                 _ ->
                     Element.none
+
+        sizeString bytes =
+            let
+                locale =
+                    context.locale
+
+                ( sizeDisplay, sizeLabel ) =
+                    humanNumber { locale | decimals = Exact 0 } CinderGB bytes
+            in
+            sizeDisplay ++ " " ++ sizeLabel
+
+        snapshotRows =
+            case volumeRecord.snapshots of
+                [] ->
+                    []
+
+                snapshots ->
+                    [ Element.row [ Element.spacing spacer.px8, Font.color neutralColor ] [ Element.text "Snapshots" ]
+                    , Element.table
+                        [ Element.spacing spacer.px12 ]
+                        { data = snapshots
+                        , columns =
+                            [ { header = Element.none
+                              , width = Element.shrink
+                              , view = \snapshot -> Element.text (sizeString snapshot.sizeInGiB)
+                              }
+                            , { header = Element.none
+                              , width = Element.shrink
+                              , view =
+                                    \{ name, description } ->
+                                        case ( name, description ) of
+                                            ( Just "", "" ) ->
+                                                Element.el [] (Element.text "(Unnamed)")
+
+                                            ( Just "", _ ) ->
+                                                Element.el [] (Element.text description)
+
+                                            ( Just realName, "" ) ->
+                                                Element.el [ Font.color neutralColor ] (Element.text realName)
+
+                                            _ ->
+                                                Element.column
+                                                    [ Element.spacing spacer.px4 ]
+                                                    [ Element.el [ Font.color neutralColor ] (Element.text (Maybe.withDefault "" name))
+                                                    , Element.text description
+                                                    ]
+                              }
+                            , { header = Element.none
+                              , width = Element.fill
+                              , view =
+                                    \snapshot ->
+                                        let
+                                            createTime =
+                                                DateFormat.Relative.relativeTime currentTime
+                                                    snapshot.createdAt
+                                        in
+                                        Element.text ("created " ++ createTime)
+                              }
+                            , { header = Element.none
+                              , width = Element.shrink
+                              , view =
+                                    \_ ->
+                                        deleteIconButton context.palette
+                                            False
+                                            ("Delete " ++ context.localization.blockDevice)
+                                            Nothing
+                              }
+                            ]
+                        }
+                    ]
     in
     Element.column
         (listItemColumnAttribs context.palette)
-        [ Element.row [ Element.spacing spacer.px12, Element.width Element.fill ]
-            [ volumeLink
-            , volumeAttachment
-            ]
-        , Element.row
-            [ Element.spacing spacer.px8
-            , Element.width Element.fill
-            ]
-            [ Element.el [] (Element.text <| String.fromInt volumeRecord.volume.size ++ " GB")
-            , Element.text "·"
-            , Element.paragraph []
-                [ Element.text "created "
-                , Element.el [ Font.color (SH.toElementColor context.palette.neutral.text.default) ]
-                    (Element.text <|
-                        DateFormat.Relative.relativeTime currentTime
-                            volumeRecord.volume.createdAt
-                    )
-                , Element.text " by "
-                , Element.el [ Font.color (SH.toElementColor context.palette.neutral.text.default) ]
-                    (Element.text volumeRecord.creator)
+        (Element.column
+            (listItemColumnAttribs context.palette)
+            [ Element.row [ Element.spacing spacer.px12, Element.width Element.fill ]
+                [ volumeLink
+                , volumeAttachment
                 ]
-            , Element.el [ Element.alignRight ]
-                volumeActions
+            , Element.row
+                [ Element.spacing spacer.px8, Element.width Element.fill ]
+                [ Element.el [] (Element.text (sizeString volumeRecord.volume.size))
+                , Element.text "·"
+                , Element.paragraph []
+                    [ Element.text "created "
+                    , Element.el [ Font.color (SH.toElementColor context.palette.neutral.text.default) ]
+                        (Element.text <|
+                            DateFormat.Relative.relativeTime currentTime
+                                volumeRecord.volume.createdAt
+                        )
+                    , Element.text " by "
+                    , Element.el [ Font.color (SH.toElementColor context.palette.neutral.text.default) ]
+                        (Element.text volumeRecord.creator)
+                    ]
+                , Element.el [ Element.alignRight ]
+                    volumeActions
+                ]
             ]
-        ]
+            :: snapshotRows
+        )
 
 
 filters :

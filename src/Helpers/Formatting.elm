@@ -7,6 +7,7 @@ import FormatNumber.Locales exposing (Decimals(..), Locale)
 type Unit
     = Bytes
     | Count
+    | CinderGB
     | GibiBytes
     | MebiBytes
 
@@ -68,6 +69,9 @@ humanNumber locale unit n =
 
         Count ->
             ( humanCount locale n, "total" )
+
+        CinderGB ->
+            humanBytes locale (n * 1000000000)
 
         GibiBytes ->
             humanBytes locale (n * 1000 * 1000 * 1000)

@@ -198,7 +198,7 @@ volumeDecoder =
         |> Pipeline.required "size" Decode.int
         |> Pipeline.required "description" (Decode.nullable Decode.string)
         |> Pipeline.required "attachments" (Decode.list cinderVolumeAttachmentDecoder)
-        |> Pipeline.optional "volume_image_metadata" (imageMetadataDecoder |> Decode.andThen (\a -> Decode.succeed <| Just a)) Nothing
+        |> Pipeline.optional "volume_image_metadata" (imageMetadataDecoder |> Decode.map Maybe.Just) Nothing
         |> Pipeline.required "created_at" (Decode.string |> Decode.andThen iso8601StringToPosixDecodeError)
         |> Pipeline.required "user_id" Decode.string
 
@@ -206,7 +206,12 @@ volumeDecoder =
 volumeSnapshotDecoder : Decode.Decoder OSTypes.VolumeSnapshot
 volumeSnapshotDecoder =
     Decode.succeed OSTypes.VolumeSnapshot
+        |> Pipeline.required "id" Decode.string
+        |> Pipeline.optional "name" (Decode.string |> Decode.map Maybe.Just) Maybe.Nothing
+        |> Pipeline.required "description" Decode.string
+        |> Pipeline.required "volume_id" Decode.string
         |> Pipeline.required "size" Decode.int
+        |> Pipeline.required "created_at" (Decode.string |> Decode.andThen iso8601StringToPosixDecodeError)
 
 
 volumeStatusDecoder : String -> Decode.Decoder OSTypes.VolumeStatus
