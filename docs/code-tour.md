@@ -1,5 +1,7 @@
 # Tour of Exosphere Codebase
 
+This document orients new contributors to the general structure of Exosphere's codebase. It is a continuous work in progress, and is not intended to be exhaustive -- the code itself is the source of truth.
+
 If you are new to Elm as well as Exosphere, this guide pairs well with the official [Elm Guide](https://guide.elm-lang.org), particularly the [Elm Architecture](https://guide.elm-lang.org/architecture) pages.
 
 ## Nomenclature
