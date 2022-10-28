@@ -21,4 +21,17 @@ This uses the same basic architecture described in the Elm guide, but with more 
 
 ## View, Pages, and Style Code
 
-TODO
+`src/View/View.elm` contains the top-level `view` function that's passed to the main function. `view` handles the possibility of an invalid application state, but if it's valid, it calls a stack of functions that:
+
+- Provide a page title (`viewValid`)
+- Set up a base [elm-ui](https://package.elm-lang.org/packages/mdgriffith/elm-ui) layout (`view_`)
+- Draw a page header and a main content container (`appView`)
+- Render a non-project-specific (`nonProjectViews`) or project-specific (`projectContentView`) view, depending on the current view state.
+
+From here, we call out from the top-level view code to individual pages. You'll see that `View.elm` imports many modules starting with `Page.`, and calls the view function for each of these pages.
+
+Modules in `src/Page` usually correspond to a specific page in the application. Most pages have their own Elm architecture -- each page has its own `Model` and `Msg` types, and `init`, `update`, and `view` functions. Each page's architecture is nested inside of the overall app's architecture.
+
+Further down the call stack, we have `src/Style` code. This includes `src/Style/Widgets`, self-contained UI widgets that can each be re-used on many pages. These widgets are generally stateless -- they don't have their own Elm architecture, just a view function that takes parameters and renders the widget. Widgets are also generally independent from the Exosphere codebase. Someday, they could live in a separate Elm package.
+
+There are also helper functions in both `src/View` and `src/Style`. The distinction is that `View` helpers are specific to Exosphere's codebase, while `Style` helpers could be independent. You may find exceptions, but that is the intention going forward.
