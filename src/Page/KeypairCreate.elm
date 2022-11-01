@@ -6,6 +6,7 @@ import Element.Input as Input
 import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import Html.Attributes
+import List
 import Style.Helpers as SH exposing (spacer)
 import Style.Widgets.Button as Button
 import Style.Widgets.Text as Text
@@ -56,6 +57,14 @@ view context model =
         uppercasePublicKey =
             String.toUpper model.publicKey
 
+        pemPrivateKeyHeaders : List String
+        pemPrivateKeyHeaders =
+            [ "-----BEGIN OPENSSH PRIVATE KEY-----"
+            , "-----END OPENSSH PRIVATE KEY-----"
+            , "-----BEGIN PRIVATE KEY-----"
+            , "-----END PRIVATE KEY-----"
+            ]
+
         renderInvalidReasonsFunction reason condition =
             reason |> VH.invalidInputHelperText context.palette |> VH.renderIf condition
 
@@ -73,10 +82,10 @@ view context model =
                 ( Element.none, True )
 
         ( renderInvalidKeyValueReason, isKeyValueValid ) =
-            if String.length model.publicKey <= 0 then
+            if String.isEmpty model.publicKey then
                 ( renderInvalidReasonsFunction "Public key is required" True, False )
 
-            else if String.contains "PRIVATE" uppercasePublicKey then
+            else if List.map (\s -> String.contains s uppercasePublicKey) pemPrivateKeyHeaders |> List.any (\n -> n && True) then
                 ( renderInvalidReasonsFunction "Private key detected! Enter a public key instead. Public keys are usually found in a .pub file" True, False )
 
             else
@@ -135,7 +144,10 @@ view context model =
                     , Font.family [ Font.sansSerif ]
                     , Font.size 17
                     ]
-                    (Element.text context.localization.pkiPublicKeyForSshValue)
+                    (Element.text <|
+                        String.join " "
+                            [ context.localization.pkiPublicKeyForSsh, "value" ]
+                    )
             , spellcheck = False
             }
         , renderInvalidKeyValueReason
