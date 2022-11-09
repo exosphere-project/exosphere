@@ -65,28 +65,29 @@ view context model =
             , "-----END PRIVATE KEY-----"
             ]
 
-        renderInvalidReasonsFunction reason condition =
-            reason |> VH.invalidInputHelperText context.palette |> VH.renderIf condition
+        renderInvalidReasonsFunction : String -> Element.Element msg
+        renderInvalidReasonsFunction reason =
+            reason |> VH.invalidInputHelperText context.palette
 
         ( renderInvalidKeyNameReason, isKeyNameValid ) =
             if String.isEmpty model.name then
-                ( renderInvalidReasonsFunction "Name is required" True, False )
+                ( renderInvalidReasonsFunction "Name is required", False )
 
             else if String.left 1 model.name == " " then
-                ( renderInvalidReasonsFunction "Name cannot start with a space" True, False )
+                ( renderInvalidReasonsFunction "Name cannot start with a space", False )
 
             else if String.right 1 model.name == " " then
-                ( renderInvalidReasonsFunction "Name cannot end with a space" True, False )
+                ( renderInvalidReasonsFunction "Name cannot end with a space", False )
 
             else
                 ( Element.none, True )
 
         ( renderInvalidKeyValueReason, isKeyValueValid ) =
             if String.isEmpty model.publicKey then
-                ( renderInvalidReasonsFunction "Public key is required" True, False )
+                ( renderInvalidReasonsFunction "Public key is required", False )
 
             else if List.map (\s -> String.contains s uppercasePublicKey) pemPrivateKeyHeaders |> List.any (\n -> n && True) then
-                ( renderInvalidReasonsFunction "Private key detected! Enter a public key instead. Public keys are usually found in a .pub file" True, False )
+                ( renderInvalidReasonsFunction "Private key detected! Enter a public key instead. Public keys are usually found in a .pub file", False )
 
             else
                 ( Element.none, True )
