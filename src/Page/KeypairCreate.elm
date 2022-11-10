@@ -4,9 +4,9 @@ import Element
 import Element.Font as Font
 import Element.Input as Input
 import Helpers.GetterSetters as GetterSetters
+import Helpers.SshKeyTypeGuesser
 import Helpers.String
 import Html.Attributes
-import List
 import Style.Helpers as SH exposing (spacer)
 import Style.Widgets.Button as Button
 import Style.Widgets.Text as Text
@@ -53,40 +53,32 @@ update msg project model =
 view : View.Types.Context -> Model -> Element.Element Msg
 view context model =
     let
-        uppercasePublicKey : String
-        uppercasePublicKey =
-            String.toUpper model.publicKey
-
-        pemPrivateKeyHeaders : List String
-        pemPrivateKeyHeaders =
-            [ "-----BEGIN OPENSSH PRIVATE KEY-----"
-            , "-----END OPENSSH PRIVATE KEY-----"
-            , "-----BEGIN PRIVATE KEY-----"
-            , "-----END PRIVATE KEY-----"
-            ]
-
-        renderInvalidReasonsFunction reason condition =
-            reason |> VH.invalidInputHelperText context.palette |> VH.renderIf condition
+        renderInvalidReasonsFunction : String -> Element.Element msg
+        renderInvalidReasonsFunction reason =
+            reason |> VH.invalidInputHelperText context.palette
 
         ( renderInvalidKeyNameReason, isKeyNameValid ) =
             if String.isEmpty model.name then
-                ( renderInvalidReasonsFunction "Name is required" True, False )
+                ( renderInvalidReasonsFunction "Name is required", False )
 
             else if String.left 1 model.name == " " then
-                ( renderInvalidReasonsFunction "Name cannot start with a space" True, False )
+                ( renderInvalidReasonsFunction "Name cannot start with a space", False )
 
             else if String.right 1 model.name == " " then
-                ( renderInvalidReasonsFunction "Name cannot end with a space" True, False )
+                ( renderInvalidReasonsFunction "Name cannot end with a space", False )
 
             else
                 ( Element.none, True )
 
+        keyTypeGuess =
+            Helpers.SshKeyTypeGuesser.guessKeyType model.publicKey
+
         ( renderInvalidKeyValueReason, isKeyValueValid ) =
             if String.isEmpty model.publicKey then
-                ( renderInvalidReasonsFunction "Public key is required" True, False )
+                ( renderInvalidReasonsFunction "Public key is required", False )
 
-            else if List.map (\s -> String.contains s uppercasePublicKey) pemPrivateKeyHeaders |> List.any (\n -> n && True) then
-                ( renderInvalidReasonsFunction "Private key detected! Enter a public key instead. Public keys are usually found in a .pub file" True, False )
+            else if keyTypeGuess == Helpers.SshKeyTypeGuesser.PrivateKey then
+                ( renderInvalidReasonsFunction "Private key detected! Enter a public key instead. Public keys are usually found in a .pub file", False )
 
             else
                 ( Element.none, True )
