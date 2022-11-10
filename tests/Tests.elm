@@ -13,7 +13,7 @@ module Tests exposing
 
 import Expect exposing (Expectation)
 import Helpers.Helpers as Helpers
-import Helpers.SshKey
+import Helpers.SshKeyTypeGuesser
 import Helpers.String
 import Json.Decode as Decode
 import OpenStack.Error as OSError
@@ -304,8 +304,8 @@ sshKeySuite =
     describe "Test SSH key parsing"
         [ test "private key" <|
             \_ ->
-                Expect.equal Helpers.SshKey.PrivateKey
-                    (Helpers.SshKey.guessKeyType """-----BEGIN OPENSSH PRIVATE KEY-----
+                Expect.equal Helpers.SshKeyTypeGuesser.PrivateKey
+                    (Helpers.SshKeyTypeGuesser.guessKeyType """-----BEGIN OPENSSH PRIVATE KEY-----
 b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABlwAAAAdzc2gtcn
 NhAAAAAwEAAQAAAYEA1FDXUsbyz035qXCaDg5+qzbIQO8pM+mfEJcnK96EaO7lSGSq9Rgw
 eSioeg91b5LItl9bhztZDWR2QbUMXQZ7jmtxfc1zeTTgXThHNf9lppghhm8O2tMEQIJI4t
@@ -345,14 +345,14 @@ c2ysNqUmsRQkCyNqTT0D9wUK9A01KFL8RnDPu1Qp4MkOIH+cp0LNOJJRgdDEnQF94TC6sv
 -----END OPENSSH PRIVATE KEY-----""")
         , test "public key" <|
             \_ ->
-                Expect.equal Helpers.SshKey.PublicKey
-                    (Helpers.SshKey.guessKeyType """ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDUUNdSxvLPTfmpcJoODn6rNshA7ykz6Z8Qlycr3oRo7uVIZKr1GDB5KKh6D3Vvksi2X1uHO1kNZHZBtQxdBnuOa3F9zXN5NOBdOEc1/2WmmCGGbw7a0wRAgkji1nSxpFRPHaxFyKdjDzQgsziInE47c/8/CN8hQeCLx3u/TITAmJmqU2x5SAuurb5SIt81HEqonPi9cYqt1fN12EZPMRbIgfAQc+t0UZiouG8y/gqfVF03iXh+7xGuqDiAtJHzx8eL/EuTFGvNUpIoyEd+k9BNHCtRsFe3DxxANRlckEFWbdHnq+J5OsIAG1LiPwyFLd39BvGBvixCcZeq1JUbEKa70f7Yuhy0YCM+KdhtL/prnX39x7NWqkEhmT+mSWylO7cAPDltp00oj9smkC5Sd/A8OLlJfdGlBvT4O9G/kHzjWPwCnZWsv2+Wgz4B2ifVhm72j91lODluWEaZXaA6udJ6cx4UcS7LSalnFoyvPF8/ITqvMxwMcZFca9f8lEfAYRU= cmart@foobar""")
+                Expect.equal Helpers.SshKeyTypeGuesser.PublicKey
+                    (Helpers.SshKeyTypeGuesser.guessKeyType """ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDUUNdSxvLPTfmpcJoODn6rNshA7ykz6Z8Qlycr3oRo7uVIZKr1GDB5KKh6D3Vvksi2X1uHO1kNZHZBtQxdBnuOa3F9zXN5NOBdOEc1/2WmmCGGbw7a0wRAgkji1nSxpFRPHaxFyKdjDzQgsziInE47c/8/CN8hQeCLx3u/TITAmJmqU2x5SAuurb5SIt81HEqonPi9cYqt1fN12EZPMRbIgfAQc+t0UZiouG8y/gqfVF03iXh+7xGuqDiAtJHzx8eL/EuTFGvNUpIoyEd+k9BNHCtRsFe3DxxANRlckEFWbdHnq+J5OsIAG1LiPwyFLd39BvGBvixCcZeq1JUbEKa70f7Yuhy0YCM+KdhtL/prnX39x7NWqkEhmT+mSWylO7cAPDltp00oj9smkC5Sd/A8OLlJfdGlBvT4O9G/kHzjWPwCnZWsv2+Wgz4B2ifVhm72j91lODluWEaZXaA6udJ6cx4UcS7LSalnFoyvPF8/ITqvMxwMcZFca9f8lEfAYRU= cmart@foobar""")
         , test "public key with the word 'private' in it" <|
             \_ ->
-                Expect.equal Helpers.SshKey.PublicKey
-                    (Helpers.SshKey.guessKeyType """ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDUUNdSxvLPTfmpcJoODn6rNshA7ykz6Z8Qlycr3oRo7uVIZKr1GDB5KKh6D3Vvksi2X1uHO1kNZHZBtQxdBnuOa3F9zXN5NOBdOEc1/2WmmCGGbw7a0wRAgkji1nSxpFRPHaxFyKdjDzQgsziInE47c/8/CN8hQeCLx3u/TITAmJmqU2x5SprivateIt81HEqonPi9cYqt1fN12EZPMRbIgfAQc+t0UZiouG8y/gqfVF03iXh+7xGuqDiAtJHzx8eL/EuTFGvNUpIoyEd+k9BNHCtRsFe3DxxANRlckEFWbdHnq+J5OsIAG1LiPwyFLd39BvGBvixCcZeq1JUbEKa70f7Yuhy0YCM+KdhtL/prnX39x7NWqkEhmT+mSWylO7cAPDltp00oj9smkC5Sd/A8OLlJfdGlBvT4O9G/kHzjWPwCnZWsv2+Wgz4B2ifVhm72j91lODluWEaZXaA6udJ6cx4UcS7LSalnFoyvPF8/ITqvMxwMcZFca9f8lEfAYRU= cmart@privateer""")
+                Expect.equal Helpers.SshKeyTypeGuesser.PublicKey
+                    (Helpers.SshKeyTypeGuesser.guessKeyType """ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDUUNdSxvLPTfmpcJoODn6rNshA7ykz6Z8Qlycr3oRo7uVIZKr1GDB5KKh6D3Vvksi2X1uHO1kNZHZBtQxdBnuOa3F9zXN5NOBdOEc1/2WmmCGGbw7a0wRAgkji1nSxpFRPHaxFyKdjDzQgsziInE47c/8/CN8hQeCLx3u/TITAmJmqU2x5SprivateIt81HEqonPi9cYqt1fN12EZPMRbIgfAQc+t0UZiouG8y/gqfVF03iXh+7xGuqDiAtJHzx8eL/EuTFGvNUpIoyEd+k9BNHCtRsFe3DxxANRlckEFWbdHnq+J5OsIAG1LiPwyFLd39BvGBvixCcZeq1JUbEKa70f7Yuhy0YCM+KdhtL/prnX39x7NWqkEhmT+mSWylO7cAPDltp00oj9smkC5Sd/A8OLlJfdGlBvT4O9G/kHzjWPwCnZWsv2+Wgz4B2ifVhm72j91lODluWEaZXaA6udJ6cx4UcS7LSalnFoyvPF8/ITqvMxwMcZFca9f8lEfAYRU= cmart@privateer""")
         , test "not an SSH key at all" <|
             \_ ->
-                Expect.equal Helpers.SshKey.Unknown
-                    (Helpers.SshKey.guessKeyType """this is not an ssh key""")
+                Expect.equal Helpers.SshKeyTypeGuesser.Unknown
+                    (Helpers.SshKeyTypeGuesser.guessKeyType """this is not an ssh key""")
         ]

@@ -1,4 +1,4 @@
-module Helpers.SshKey exposing (KeyTypeGuess(..), guessKeyType)
+module Helpers.SshKeyTypeGuesser exposing (KeyTypeGuess(..), guessKeyType)
 
 import Parser exposing ((|.))
 
