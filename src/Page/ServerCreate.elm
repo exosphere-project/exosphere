@@ -1007,7 +1007,7 @@ countPicker context model computeQuota volumeQuota flavor =
                         [ Element.text <|
                             String.concat
                                 [ "If more than one "
-                                    context.localization.virtualComputer
+                                    ++ context.localization.virtualComputer
                                     |> Helpers.String.pluralize
                                 , " is chosen, each will be named, for example, \""
                                 , model.serverName
