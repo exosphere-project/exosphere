@@ -40,7 +40,7 @@ Maintainers, please ensure the MR passes this checklist before approving. Consul
 - If the MR adds/changes/removes app flags (in `src/Types/Flags.elm`), then the following are updated accordingly:
   + `config.js`
   + all files in `environment-configs/` **(else you may break production sites!)**
-  + "Runtime configuration options" section in README.md
+  + Documented options in [config-options.md](docs/config-options.md)
 - MR does not use hard-coded representations of [localized strings](docs/nomenclature-reference.md) in the UI.
 - Follow-up issues are created for any new issues that the MR causes or uncovers.
   - If the MR introduces any technical debt, these issues are assigned to MR author.
