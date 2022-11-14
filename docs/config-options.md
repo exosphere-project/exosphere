@@ -18,8 +18,8 @@ These options are primarily intended for cloud operators who wish to offer a cus
 | userSupportEmail              | null, string (markdown) | Email address to ask users to send problem report                      |
 | openIdConnectLoginConfig      | null, JSON object       | See `docs/federated-login.md` for more info and example JSON           |
 | localization                  | null, JSON object       | Pass custom localization strings for the UI, see example below         |
-| instanceConfigMgtRepoUrl      | null, string            | Set a custom repository to use for instance provisioning code          |
-| instanceConfigMgtRepoCheckout | null, string            | Check out specific branch/tag/commit of instance provisioning code     |
+| instanceConfigMgtRepoUrl      | null, string            | Set a custom repository to use for instance setup code                 |
+| instanceConfigMgtRepoCheckout | null, string            | Check out specific branch/tag/commit of instance setup code            |
 | sentryConfig                  | null, JSON object       | Pass Sentry DSN for error logging, see example below                   |
 
 ## Example cloud configuration

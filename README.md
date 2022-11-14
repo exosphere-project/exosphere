@@ -216,22 +216,22 @@ information.
 - The Exosphere client-side application can be served as static content from any web server.
 - Exosphere's two supporting proxy servers ([Cloud CORS Proxy](docs/solving-cors-problem.md) and [User Application Proxy](docs/user-app-proxy.md)) require [Nginx](https://nginx.org) configured with browser-accepted TLS (e.g. via [Let's Encrypt](https://letsencrypt.org)). The User Application Proxy requires a wildcard TLS certificate; Let's Encrypt issues these free of charge.
 
-### Instance Provisioning Code
+### Instance Setup Code
 
-Exosphere uses Ansible to configure and provision new instances. (Among other things, it installs and configures Docker and Apache Guacamole server for the one-click terminal and remote desktop environment.) The provisioning code is stored in the `ansible/` directory of the Exosphere repository.
+Exosphere uses Ansible to configure and provision new instances. (Among other things, it installs and configures Docker and Apache Guacamole server for the one-click terminal and remote desktop environment.) The setup code is stored in the `ansible/` directory of the Exosphere repository.
 
 By default, new instances pull this code from the master branch of the upstream [exosphere/exosphere](https://gitlab.com/exosphere/exosphere/) repository. This is true even for instances which are launched using a different branch or fork of Exosphere.
 
-You may wish to configure Exosphere to deploy instances using your own (modified) instance provisioning code, for development/testing purposes or as customized for your own organization. To do that, you must push the code to a git repository somewhere that new instances can download from, and then set two options in `config.js`:
+You may wish to configure Exosphere to deploy instances using your own (modified) instance setup code, for development/testing purposes or as customized for your own organization. To do that, you must push the code to a git repository somewhere that new instances can download from, and then set two options in `config.js`:
 
-- `instanceConfigMgtRepoUrl` to the git repository URL that new instances can download your provisioning code from
+- `instanceConfigMgtRepoUrl` to the git repository URL that new instances can download your setup code from
 - `instanceConfigMgtRepoCheckout` to the repository branch/tag/commit that should be checked out (defaults to master if left `null`)
 
 Note that Exosphere downloads the specified repo and runs the playbook stored at `ansible/playbook.yml`, so implement your changes by modifying that playbook.
 
 ---
 
-To test the instance provisioning code locally on a cloud instance, do this:
+To test the instance setup code locally on a cloud instance, do this:
 ```
 virtualenv /opt/ansible-venv
 . /opt/ansible-venv/bin/activate
@@ -245,7 +245,7 @@ For now, we are using only [built-in Ansible modules](https://docs.ansible.com/a
 
 #### Ansible variables currently used
 
-Exosphere sets these variables when running the instance provisioning code on a new instance.
+Exosphere sets these variables when running the instance setup code on a new instance.
 
 | variable     | type    | required | description                                                             |
 |--------------|---------|----------|-------------------------------------------------------------------------|
