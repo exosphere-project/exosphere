@@ -24,6 +24,7 @@ import Route
 import Style.Helpers as SH exposing (spacer)
 import Style.Types as ST
 import Style.Widgets.Alert as Alert
+import Style.Widgets.Button
 import Style.Widgets.Card
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon as Icon
@@ -40,7 +41,7 @@ import Types.Project exposing (Project)
 import Types.Server exposing (ExoSetupStatus(..), Server, ServerOrigin(..))
 import Types.ServerResourceUsage
 import Types.SharedMsg as SharedMsg
-import View.Helpers as VH
+import View.Helpers as VH exposing (edges)
 import View.Types
 import Widget
 import Widget.Style.Material
@@ -591,20 +592,41 @@ serverNameView context project model server =
 
                 renderServerNameExists =
                     if VH.serverNameExists project serverNamePendingConfirmation then
+                        let
+                            message =
+                                Element.row []
+                                    [ Element.paragraph
+                                        [ Element.width (Element.fill |> Element.minimum 300)
+                                        , Element.spacing spacer.px8
+                                        , Font.regular
+                                        , Font.color <| SH.toElementColor <| context.palette.warning.textOnNeutralBG
+                                        ]
+                                        [ Element.text <|
+                                            VH.serverNameExistsMessage context
+                                        ]
+                                    ]
+
+                            content =
+                                Element.column []
+                                    (message
+                                        :: List.map
+                                            (\name ->
+                                                Element.row [ Element.paddingEach { edges | top = spacer.px12 } ]
+                                                    [ Style.Widgets.Button.default
+                                                        context.palette
+                                                        { text = name
+                                                        , onPress = Just <| GotServerNamePendingConfirmation (Just name)
+                                                        }
+                                                    ]
+                                            )
+                                            [ "2f35f30f-c8e0-48f7-a1a8-cd39085f665d", "7571f1a2-2791-46c8-9add-29fb6ce9c4c0" ]
+                                    )
+                        in
                         Style.Widgets.ToggleTip.warningToggleTip
                             context
                             (\serverRenameAlreadyExistsToggleTipId -> SharedMsg <| SharedMsg.TogglePopover serverRenameAlreadyExistsToggleTipId)
                             "serverRenameAlreadyExistsToggleTip"
-                            (Element.paragraph
-                                [ Element.width (Element.fill |> Element.minimum 300)
-                                , Element.spacing spacer.px8
-                                , Font.regular
-                                , Font.color <| SH.toElementColor <| context.palette.warning.textOnNeutralBG
-                                ]
-                                [ Element.text <|
-                                    VH.serverNameExistsMessage context
-                                ]
-                            )
+                            content
                             ST.PositionRight
 
                     else
