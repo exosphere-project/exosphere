@@ -350,23 +350,12 @@ enforceQuotaCompliance project model =
 view : View.Types.Context -> Project -> Time.Posix -> Model -> Element.Element Msg
 view context project currentTime model =
     let
-        serverNameExists serverName =
-            case project.servers.data of
-                RDPP.DoHave servers _ ->
-                    servers
-                        |> List.map .osProps
-                        |> List.map .name
-                        |> List.member serverName
-
-                _ ->
-                    False
-
-        serverNameExistsMessage =
-            "This " ++ context.localization.virtualComputer ++ " name already exists for this " ++ context.localization.unitOfTenancy ++ ". You can select any of our name suggestions or modify the current name to avoid duplication."
+        serverNameExists =
+            VH.serverNameExists project model.serverName
 
         renderServerNameExists =
-            if serverNameExists model.serverName then
-                [ VH.warnMessageHelperText context.palette serverNameExistsMessage ]
+            if serverNameExists then
+                [ VH.warnMessageHelperText context.palette (VH.serverNameExistsMessage context) ]
 
             else
                 []
@@ -417,7 +406,7 @@ view context project currentTime model =
                         []
 
                 namesSuggestionsNotDuplicated serverName =
-                    not (serverNameExists serverName)
+                    not (VH.serverNameExists project serverName)
 
                 filteredSuggestedNames =
                     (model.randomServerName :: suggestedNameWithUsername ++ suggestedNameWithDate ++ suggestedNameWithUsernameAndDate)
@@ -434,7 +423,7 @@ view context project currentTime model =
                                     }
                             )
             in
-            if serverNameExists model.serverName then
+            if serverNameExists then
                 [ Element.row
                     [ -- 75 is used to align it vertically with name input text box
                       Element.paddingEach { edges | left = 75 }
@@ -450,7 +439,7 @@ view context project currentTime model =
             serverNameValidator (Just context.localization.virtualComputer) model.serverName
 
         serverNameValidationStatusAttributes =
-            case ( invalidNameReasons, serverNameExists model.serverName ) of
+            case ( invalidNameReasons, serverNameExists ) of
                 ( Nothing, False ) ->
                     VH.validInputAttributes context.palette
 

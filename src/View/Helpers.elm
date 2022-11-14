@@ -30,6 +30,8 @@ module View.Helpers exposing
     , renderRDPP
     , renderWebData
     , requiredLabel
+    , serverNameExists
+    , serverNameExistsMessage
     , serverStatusBadge
     , sortProjects
     , titleFromHostname
@@ -403,6 +405,28 @@ loginPickerButton context =
                     Just SharedMsg.NoOp
                 }
         }
+
+
+{-| Does this server name already exist on the project?
+-}
+serverNameExists : Project -> String -> Bool
+serverNameExists project serverName =
+    case project.servers.data of
+        RDPP.DoHave servers _ ->
+            servers
+                |> List.map .osProps
+                |> List.map .name
+                |> List.member serverName
+
+        _ ->
+            False
+
+
+{-| Localized warning message for when a server name already exists on a project.
+-}
+serverNameExistsMessage : { context | localization : Types.HelperTypes.Localization } -> String
+serverNameExistsMessage context =
+    "This " ++ context.localization.virtualComputer ++ " name already exists for this " ++ context.localization.unitOfTenancy ++ ". You can select any of our name suggestions or modify the current name to avoid duplication."
 
 
 serverStatusBadge : ExoPalette -> Server -> Element.Element msg

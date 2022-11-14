@@ -589,22 +589,8 @@ serverNameView context project model server =
                         Nothing ->
                             Element.none
 
-                serverNameExists serverName =
-                    case project.servers.data of
-                        RDPP.DoHave servers _ ->
-                            servers
-                                |> List.map .osProps
-                                |> List.map .name
-                                |> List.member serverName
-
-                        _ ->
-                            False
-
-                serverNameExistsMessage =
-                    "This " ++ context.localization.virtualComputer ++ " name already exists for this " ++ context.localization.unitOfTenancy ++ ". You can select any of our name suggestions or modify the current name to avoid duplication."
-
                 renderServerNameExists =
-                    if serverNameExists serverNamePendingConfirmation then
+                    if VH.serverNameExists project serverNamePendingConfirmation then
                         Style.Widgets.ToggleTip.warningToggleTip
                             context
                             (\serverRenameAlreadyExistsToggleTipId -> SharedMsg <| SharedMsg.TogglePopover serverRenameAlreadyExistsToggleTipId)
@@ -616,7 +602,7 @@ serverNameView context project model server =
                                 , Font.color <| SH.toElementColor <| context.palette.warning.textOnNeutralBG
                                 ]
                                 [ Element.text <|
-                                    serverNameExistsMessage
+                                    VH.serverNameExistsMessage context
                                 ]
                             )
                             ST.PositionRight
