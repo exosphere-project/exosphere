@@ -51,8 +51,9 @@ warningToggleTip context msgMapper id content position =
         content
         position
         FeatherIcons.alertTriangle
-        (context.palette.warning.default |> SH.toElementColor)
+        -- FIXME: Palette's warning `default` is difficult to read on a neutral bg so `textOnNeutralBG` is better; but the focus color must be darker & `textOnColoredBG` is a bit too dark.
         (context.palette.warning.textOnNeutralBG |> SH.toElementColor)
+        (context.palette.warning.textOnColoredBG |> SH.toElementColor)
 
 
 {-| Shows a customisable icon button which displays a popover when clicked.
