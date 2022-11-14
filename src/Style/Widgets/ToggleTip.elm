@@ -71,8 +71,7 @@ toggleTipWithIcon :
 toggleTipWithIcon context msgMapper id content position icon color hoverColor =
     let
         tipStyle =
-            [ Element.htmlAttribute (Html.Attributes.style "pointerEvents" "none")
-            , Border.rounded 4
+            [ Border.rounded 4
             , Font.color (context.palette.neutral.text.subdued |> SH.toElementColor)
             , Font.size 15
             ]
