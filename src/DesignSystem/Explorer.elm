@@ -551,7 +551,7 @@ Takes a **target** element that opens/closes the popover and a **content** eleme
 
 #### Tooltip
 
-Use `toggleTip` to show an icon button that toggles a hint when clicked.
+Use [Toggletip](/#Organisms/Toggletip/info) to show an icon button that toggles a hint when clicked.
 
 #### Dropdown
 
