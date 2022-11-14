@@ -1,6 +1,8 @@
 # Running Exosphere
 
-## In Docker
+There are several ways to run Exosphere: locally on your computer (for use or development purposes), or on a server (to offer a production deployment to others). This document covers most of them.
+
+## Locally, Using Docker
 
 You can run Exosphere using a Docker container. The Docker container includes a Cloud CORS Proxy (CCP) through which Exosphere communicates with OpenStack API endpoints. This has the following benefits:
 
@@ -11,6 +13,8 @@ Note: See [solving-cors-problem.md](docs/solving-cors-problem.md) for background
 
 ### Use an official Exosphere container image
 
+This is the simplest option for using Exosphere, but it is not recommended for development work.
+
 ```bash
 docker run --publish 127.0.0.1:8000:8000 registry.gitlab.com/exosphere/exosphere
 ```
@@ -18,6 +22,8 @@ docker run --publish 127.0.0.1:8000:8000 registry.gitlab.com/exosphere/exosphere
 Open URL in a browser: <http://127.0.0.1:8000/>
 
 ### Build a container image from the source code
+
+This is recommended for development work, and also for general use when you want to modify Exosphere's configuration.
 
 ```bash
 git clone https://gitlab.com/exosphere/exosphere.git
@@ -95,7 +101,7 @@ docker cp exosphere:/usr/src/app/elm-web.js my-elm.js
 
 When it's time to cleanup, press Ctrl-C in the terminal window running `elm-live`.
 
-## Build and Run Exosphere Locally (not using Docker)
+## Locally, Not Using Docker
 
 First [install node.js + npm](https://www.npmjs.com/get-npm).
 
@@ -126,7 +132,7 @@ Note: The local development server uses elm-live. It detects changes to the Exos
 refreshes the browser with the latest version of the app. See [elm-live.com](https://www.elm-live.com/) for more
 information.
 
-## To host the Exosphere Web Application
+## Hosting Exosphere on a Server
 
 - The Exosphere client-side application can be served as static content from any web server.
 - Exosphere's two supporting proxy servers ([Cloud CORS Proxy](docs/solving-cors-problem.md) and [User Application Proxy](docs/user-app-proxy.md)) require [Nginx](https://nginx.org) configured with browser-accepted TLS (e.g. via [Let's Encrypt](https://letsencrypt.org)). The User Application Proxy requires a wildcard TLS certificate; Let's Encrypt issues these free of charge.
