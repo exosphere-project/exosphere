@@ -478,7 +478,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                             (context.localization.virtualComputer
                                 |> Helpers.String.toTitleCase
                             )
-                        , serverNameView context model server
+                        , serverNameView context project model server
                         ]
                     , Element.el
                         [ Font.size 12
@@ -537,8 +537,8 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
         ]
 
 
-serverNameView : View.Types.Context -> Model -> Server -> Element.Element Msg
-serverNameView context model server =
+serverNameView : View.Types.Context -> Project -> Model -> Server -> Element.Element Msg
+serverNameView context project model server =
     let
         serverNameViewPlain =
             Element.row
@@ -560,12 +560,14 @@ serverNameView context model server =
 
         serverNameViewEdit =
             let
+                serverNamePendingConfirmation =
+                    model.serverNamePendingConfirmation
+                        |> Maybe.withDefault ""
+
                 invalidNameReasons =
                     serverNameValidator
                         (Just context.localization.virtualComputer)
-                        (model.serverNamePendingConfirmation
-                            |> Maybe.withDefault ""
-                        )
+                        serverNamePendingConfirmation
 
                 renderInvalidNameReasons =
                     case invalidNameReasons of
@@ -586,6 +588,41 @@ serverNameView context model server =
 
                         Nothing ->
                             Element.none
+
+                serverNameExists serverName =
+                    case project.servers.data of
+                        RDPP.DoHave servers _ ->
+                            servers
+                                |> List.map .osProps
+                                |> List.map .name
+                                |> List.member serverName
+
+                        _ ->
+                            False
+
+                serverNameExistsMessage =
+                    "This " ++ context.localization.virtualComputer ++ " name already exists for this " ++ context.localization.unitOfTenancy ++ ". You can select any of our name suggestions or modify the current name to avoid duplication."
+
+                renderServerNameExists =
+                    if serverNameExists serverNamePendingConfirmation then
+                        Style.Widgets.ToggleTip.warningToggleTip
+                            context
+                            (\serverRenameAlreadyExistsToggleTipId -> SharedMsg <| SharedMsg.TogglePopover serverRenameAlreadyExistsToggleTipId)
+                            "serverRenameAlreadyExistsToggleTip"
+                            (Element.paragraph
+                                [ Element.width (Element.fill |> Element.minimum 300)
+                                , Element.spacing spacer.px8
+                                , Font.regular
+                                , Font.color <| SH.toElementColor <| context.palette.warning.textOnNeutralBG
+                                ]
+                                [ Element.text <|
+                                    serverNameExistsMessage
+                                ]
+                            )
+                            ST.PositionRight
+
+                    else
+                        Element.none
 
                 rowStyle =
                     { containerRow =
@@ -655,6 +692,7 @@ serverNameView context model server =
                     , onPress =
                         Just <| GotServerNamePendingConfirmation Nothing
                     }
+                , renderServerNameExists
                 ]
     in
     case model.serverNamePendingConfirmation of
