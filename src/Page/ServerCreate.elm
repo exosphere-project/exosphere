@@ -1,6 +1,5 @@
 module Page.ServerCreate exposing (Model, Msg(..), init, update, view)
 
-import DateFormat
 import Element
 import Element.Background as Background
 import Element.Border as Border
@@ -362,58 +361,11 @@ view context project currentTime model =
 
         nameSuggestionButtons =
             let
-                currentDate =
-                    DateFormat.format
-                        [ DateFormat.yearNumber
-                        , DateFormat.text "-"
-                        , DateFormat.monthFixed
-                        , DateFormat.text "-"
-                        , DateFormat.dayOfMonthFixed
-                        ]
-                        Time.utc
-                        currentTime
-
-                suggestedNameWithUsername =
-                    if not (String.contains project.auth.user.name model.serverName) then
-                        [ model.serverName
-                            ++ " "
-                            ++ project.auth.user.name
-                        ]
-
-                    else
-                        []
-
-                suggestedNameWithDate =
-                    if not (String.contains currentDate model.serverName) then
-                        [ model.serverName
-                            ++ " "
-                            ++ currentDate
-                        ]
-
-                    else
-                        []
-
-                suggestedNameWithUsernameAndDate =
-                    if not (String.contains project.auth.user.name model.serverName) && not (String.contains currentDate model.serverName) then
-                        [ model.serverName
-                            ++ " "
-                            ++ project.auth.user.name
-                            ++ " "
-                            ++ currentDate
-                        ]
-
-                    else
-                        []
-
-                namesSuggestionsNotDuplicated serverName =
-                    not (VH.serverNameExists project serverName)
-
-                filteredSuggestedNames =
-                    (model.randomServerName :: suggestedNameWithUsername ++ suggestedNameWithDate ++ suggestedNameWithUsernameAndDate)
-                        |> List.filter namesSuggestionsNotDuplicated
+                suggestedNames =
+                    VH.serverNameSuggestions currentTime project model.serverName model.randomServerName
 
                 suggestionButtons =
-                    filteredSuggestedNames
+                    suggestedNames
                         |> List.map
                             (\name ->
                                 Button.default

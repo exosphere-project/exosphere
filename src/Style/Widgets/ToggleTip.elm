@@ -5,7 +5,6 @@ import Element.Border as Border
 import Element.Events as Events
 import Element.Font as Font
 import FeatherIcons exposing (Icon)
-import Html.Attributes
 import Set
 import Style.Helpers as SH exposing (spacer)
 import Style.Types exposing (ExoPalette)

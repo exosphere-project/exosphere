@@ -32,6 +32,7 @@ module View.Helpers exposing
     , requiredLabel
     , serverNameExists
     , serverNameExistsMessage
+    , serverNameSuggestions
     , serverStatusBadge
     , sortProjects
     , titleFromHostname
@@ -43,6 +44,7 @@ module View.Helpers exposing
 
 import Color
 import Css
+import DateFormat
 import Dict
 import Element
 import Element.Background as Background
@@ -81,6 +83,7 @@ import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.StatusBadge as StatusBadge
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip as ToggleTip
+import Time
 import Types.Error exposing (ErrorLevel(..), toFriendlyErrorLevel)
 import Types.HelperTypes
 import Types.Project exposing (Project)
@@ -427,6 +430,61 @@ serverNameExists project serverName =
 serverNameExistsMessage : { context | localization : Types.HelperTypes.Localization } -> String
 serverNameExistsMessage context =
     "This " ++ context.localization.virtualComputer ++ " name already exists for this " ++ context.localization.unitOfTenancy ++ ". You can select any of our name suggestions or modify the current name to avoid duplication."
+
+
+{-| Create a list of server name suggestions based on a current server name, time & random name.
+-}
+serverNameSuggestions : Time.Posix -> Project -> String -> String -> List String
+serverNameSuggestions currentTime project serverName randomName =
+    let
+        currentDate =
+            DateFormat.format
+                [ DateFormat.yearNumber
+                , DateFormat.text "-"
+                , DateFormat.monthFixed
+                , DateFormat.text "-"
+                , DateFormat.dayOfMonthFixed
+                ]
+                Time.utc
+                currentTime
+
+        suggestedNameWithUsername =
+            if not (String.contains project.auth.user.name serverName) then
+                [ serverName
+                    ++ " "
+                    ++ project.auth.user.name
+                ]
+
+            else
+                []
+
+        suggestedNameWithDate =
+            if not (String.contains currentDate serverName) then
+                [ serverName
+                    ++ " "
+                    ++ currentDate
+                ]
+
+            else
+                []
+
+        suggestedNameWithUsernameAndDate =
+            if not (String.contains project.auth.user.name serverName) && not (String.contains currentDate serverName) then
+                [ serverName
+                    ++ " "
+                    ++ project.auth.user.name
+                    ++ " "
+                    ++ currentDate
+                ]
+
+            else
+                []
+
+        namesSuggestionsNotDuplicated name =
+            not (serverNameExists project name)
+    in
+    (randomName :: suggestedNameWithUsername ++ suggestedNameWithDate ++ suggestedNameWithUsernameAndDate)
+        |> List.filter namesSuggestionsNotDuplicated
 
 
 serverStatusBadge : ExoPalette -> Server -> Element.Element msg

@@ -479,7 +479,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                             (context.localization.virtualComputer
                                 |> Helpers.String.toTitleCase
                             )
-                        , serverNameView context project model server
+                        , serverNameView context project currentTime model server
                         ]
                     , Element.el
                         [ Font.size 12
@@ -538,8 +538,8 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
         ]
 
 
-serverNameView : View.Types.Context -> Project -> Model -> Server -> Element.Element Msg
-serverNameView context project model server =
+serverNameView : View.Types.Context -> Project -> Time.Posix -> Model -> Server -> Element.Element Msg
+serverNameView context project currentTime model server =
     let
         serverNameViewPlain =
             Element.row
@@ -606,6 +606,9 @@ serverNameView context project model server =
                                         ]
                                     ]
 
+                            suggestedNames =
+                                VH.serverNameSuggestions currentTime project serverNamePendingConfirmation ""
+
                             content =
                                 Element.column []
                                     (message
@@ -619,7 +622,7 @@ serverNameView context project model server =
                                                         }
                                                     ]
                                             )
-                                            [ "2f35f30f-c8e0-48f7-a1a8-cd39085f665d", "7571f1a2-2791-46c8-9add-29fb6ce9c4c0" ]
+                                            suggestedNames
                                     )
                         in
                         Style.Widgets.ToggleTip.warningToggleTip
@@ -627,7 +630,7 @@ serverNameView context project model server =
                             (\serverRenameAlreadyExistsToggleTipId -> SharedMsg <| SharedMsg.TogglePopover serverRenameAlreadyExistsToggleTipId)
                             "serverRenameAlreadyExistsToggleTip"
                             content
-                            ST.PositionRight
+                            ST.PositionRightTop
 
                     else
                         Element.none
