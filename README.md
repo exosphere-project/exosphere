@@ -55,6 +55,7 @@ We discuss project progress and priorities on a **weekly video call** Mondays at
 - [Values and Goals of the Exosphere Project](values-goals.md)
 - [Cockpit Deprecation and Manual Installation](docs/cockpit.md)
 - [Installing Exosphere Progressive Web Application](docs/pwa-install.md)
+- [Exosphere Compatibility](docs/compatibility.md) (with clouds and instance operating systems)
 
 ### For Cloud Operators
 
@@ -210,22 +211,7 @@ Note: The local development server uses elm-live. It detects changes to the Exos
 refreshes the browser with the latest version of the app. See [elm-live.com](https://www.elm-live.com/) for more
 information.
 
-### Exosphere Compatibility
-
-#### To use with an OpenStack Cloud
-
-- Exosphere works with OpenStack Queens version (released February 2018) or later.
-- Exosphere works best with clouds that have [automatic allocation of network topology](https://docs.openstack.org/neutron/latest/admin/config-auto-allocation.html) enabled.
-
-#### Supported Instance Operating Systems
-
-Exosphere works best with instances launched from images based on **Ubuntu 22.04 and 20.04, AlmaLinux, and Rocky Linux**. Ubuntu 18.04 and CentOS 7 are also supported, but they receive less attention when testing new features. Exosphere can launch instances that run other operating systems, but some features and integrations are likely to not work.
-
-For example: the one-click graphical desktop feature, only works with Ubuntu 20.04 and newer, AlmaLinux, and Rocky Linux.
-
-If your community relies on an operating system that we don't currently support, please [create an issue](https://gitlab.com/exosphere/exosphere/-/issues) explaining your need! It's probably not hard to add support for Linux distros that use systemd and an APT/YUM/DNF package system.
-
-#### To host the Exosphere Web Application
+### To host the Exosphere Web Application
 
 - The Exosphere client-side application can be served as static content from any web server.
 - Exosphere's two supporting proxy servers ([Cloud CORS Proxy](docs/solving-cors-problem.md) and [User Application Proxy](docs/user-app-proxy.md)) require [Nginx](https://nginx.org) configured with browser-accepted TLS (e.g. via [Let's Encrypt](https://letsencrypt.org)). The User Application Proxy requires a wildcard TLS certificate; Let's Encrypt issues these free of charge.
