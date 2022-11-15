@@ -78,6 +78,7 @@ We have a **weekly community video call** Mondays at 16:00 UTC. [Join here](http
 - [Architecture Decision Records](docs/adr/README.md)
 - [Exosphere Tests](tests/README.md)
 - [Browser Integration Tests](integration-tests/README.md)
+- [Code of Conduct](docs/code-of-conduct.md)
 
 ### Legal Docs
 

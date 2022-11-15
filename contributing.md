@@ -1,11 +1,5 @@
 # Contributing to Exosphere
 
-## Contributor Guidelines
-
-- Be respectful
-- Be constructive
-- Be kind
-
 ## About GitLab
 
 Exosphere is hosted on [gitlab.com](https://gitlab.com), an open-source service that is similar to GitHub in many ways. One difference is that a code contribution on GitLab is called a _merge request_ (MR) instead of a _pull request_ (PR) -- but the concept is the same, as is the contribution workflow:
