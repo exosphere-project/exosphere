@@ -71,6 +71,7 @@ import Markdown.Html
 import Markdown.Parser
 import Markdown.Renderer
 import OpenStack.Quotas as OSQuotas
+import OpenStack.ServerNameValidator as OSServerNameValidator
 import OpenStack.Types as OSTypes
 import Regex
 import RemoteData
@@ -448,11 +449,14 @@ serverNameSuggestions currentTime project serverName =
                 Time.utc
                 currentTime
 
+        username =
+            Maybe.withDefault "" <| List.head <| Regex.splitAtMost 1 OSServerNameValidator.badChars project.auth.user.name
+
         suggestedNameWithUsername =
-            if not (String.contains project.auth.user.name serverName) then
+            if not (String.contains username serverName) then
                 [ serverName
                     ++ " "
-                    ++ project.auth.user.name
+                    ++ username
                 ]
 
             else
@@ -469,10 +473,10 @@ serverNameSuggestions currentTime project serverName =
                 []
 
         suggestedNameWithUsernameAndDate =
-            if not (String.contains project.auth.user.name serverName) && not (String.contains currentDate serverName) then
+            if not (String.contains username serverName) && not (String.contains currentDate serverName) then
                 [ serverName
                     ++ " "
-                    ++ project.auth.user.name
+                    ++ username
                     ++ " "
                     ++ currentDate
                 ]
