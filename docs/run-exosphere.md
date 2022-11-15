@@ -1,56 +1,53 @@
 # Running Exosphere
 
-There are several ways to run Exosphere: locally on your computer (for use or development purposes), or on a server (to offer a production deployment to others). This document covers most of them.
+There are several ways to run Exosphere. This document covers them, from simple to complex. If you just want to demo Exosphere with an OpenStack cloud whose APIs are accessible over the public internet, you can use one of our hosted sites linked in the [readme](../README.md#try-exosphere).
 
-## Locally, Using Docker
+## Quickest Local Option
 
-You can run Exosphere using a Docker container. The Docker container includes a Cloud CORS Proxy (CCP) through which Exosphere communicates with OpenStack API endpoints. This has the following benefits:
+Use this option when you don't need to modify any configuration, and you are OK using the Exosphere project's hosted proxy. _(See [solving-cors-problem.md](solving-cors-problem.md) for background information about the Cloud CORS Proxy (CCP).)_
 
-1. You can use Exosphere to access OpenStack APIs which are not accessible from outside an organization's secure network (as long as the computer running the container can access the OpenStack APIs)
-2. Your cloud credentials will never pass through the proxy servers managed by the Exosphere project for the convenience of most users
-
-Note: See [solving-cors-problem.md](docs/solving-cors-problem.md) for background information about the Cloud CORS Proxy (CCP).
-
-### Use an official Exosphere container image
-
-This is the simplest option for using Exosphere, but it is not recommended for development work.
 
 ```bash
-docker run --publish 127.0.0.1:8000:8000 registry.gitlab.com/exosphere/exosphere
+docker run --rm --publish 127.0.0.1:8000:8000 registry.gitlab.com/exosphere/exosphere
 ```
 
-Open URL in a browser: <http://127.0.0.1:8000/>
+Then, open in your browser: <http://127.0.0.1:8000>
 
-### Build a container image from the source code
-
-This is recommended for development work, and also for general use when you want to modify Exosphere's configuration.
+## To Modify Configuration or Use Your Own Proxy
 
 ```bash
 git clone https://gitlab.com/exosphere/exosphere.git
 cd exosphere
+# At this point, make any desired changes to `config.js`, `cloud_configs.js`, etc.
 docker build -t exosphere -f ./docker/standalone.Dockerfile .
-docker run --publish 127.0.0.1:8000:8000 exosphere
+docker run --rm --publish 127.0.0.1:8000:8000 exosphere
 ```
 
-Open URL in a browser: <http://127.0.0.1:8000/>
+Then, open in your browser: <http://127.0.0.1:8000>
 
-### Use Docker when developing Exosphere
+The `standalone.Dockerfile` is a more production-ready option that serves the app with Nginx. If you want to allow connections from other computers (like a reverse proxy server that terminates TLS for your users), remove the `127.0.0.1:` from the `--publish` option in `docker run`.
 
-If you want to work on the Exosphere code but do not want to install `node` on your system, then you can use the [Dockerfile](Dockerfile) in the root directory of the repository to build a development container instead.
+To apply further configuration changes after you start the container: stop it (`Ctrl-C` or `⌘-C`), then re-run the `docker build` and `docker run` steps.
 
-First, build the container:
+## For Development Work
+
+### Docker Development Option (New Contributors Start Here)
+
+First, clone the repository. If you plan to make a contribution, fork the project on GitLab, and clone your fork instead of the upstream repo.
 
 ```bash
+git clone https://gitlab.com/exosphere/exosphere.git
+cd exosphere
+```
+
+Build the container and run it with a bind mount to `src/`:
+
+```
 docker build -t exosphere .
+docker run --rm -v $PWD/src:/usr/src/app/src -it --name exosphere -p 127.0.0.1:8000:8000 exosphere
 ```
 
-And then run, binding port 8000 to 8000 in the container:
-
-```bash
-docker run --rm -it --name exosphere --publish 127.0.0.1:8000:8000 exosphere
-```
-
-You should see `elm-live` starting:
+You should see `elm-live` starting in the `docker run` output:
 
 ```
 elm-live:
@@ -75,38 +72,30 @@ elm-live:
     - src/**/*.elm
 ```
 
-You can open your browser to [http://app.exosphere.localhost:8000/](http://app.exosphere.localhost:8000/) to see the interface.
+Then, open in your browser: [http://app.exosphere.localhost:8000](http://app.exosphere.localhost:8000)
 
-If you want a development environment to make changes to files, you can run
-the container and bind the src directory:
+(If you are using Mac OS, you may need to add `127.0.0.1 app.exosphere.localhost` to `/etc/hosts`.)
 
-```bash
-$ docker run --rm -v $PWD/src:/usr/src/app/src -it --name exosphere -p 8000:8000 exosphere
-```
+While the container is running, you can edit the Elm source code in the `src/` directory on your computer. When you save a file in your editor, `elm-live` will detect and recompile your changes, then hot-reload the app in your browser. 😎 You'll see any compiler errors as more output from the `docker run` command. (Be aware that hot-reloading will occasionally fail, and you'll need to refresh your web browser to see your changes.)
 
-You can then edit the Elm source code on your host using your favorite editor and `elm-live` inside the container will
-detect the changes, automatically recompile the source code, and then reload the app in your browser.
+If you need to change any files or configuration _outside the `src/` directory,_ you need to stop (`Ctrl-C` or `⌘-C`) the `docker run` command, then re-run the `docker build` and `docker run` commands above.
 
-If you need changes done to other files in the root, you can either bind them
-or make changes and rebuild the base. You generally shouldn't make changes to files
-from inside the container that are bound to the host, as the permissions will be
-modified.
-
-If you want to copy the elm-web.js from inside the container (or any other file) you can do the following in another
-terminal window:
+If you want to copy the compiled app (`elm-web.js`, or any other file) from the container, you can run this in another terminal window:
 
 ```bash
 docker cp exosphere:/usr/src/app/elm-web.js my-elm.js
 ```
 
-When it's time to cleanup, press Ctrl-C in the terminal window running `elm-live`.
+When you're done running the container, stop it by pressing `Ctrl-C` or `⌘-C` in the `docker run` window (the one running `elm-live`).
 
-## Locally, Not Using Docker
+### Node.js and `npm` Development Option
 
-First [install node.js + npm](https://www.npmjs.com/get-npm).
+The Node.js and `npm` option offers more customizability than the Docker option, and works for people who don't want to use Docker, but it requires a Node.js environment on your computer. It relies on an external [proxy server](solving-cors-problem.md) for connectivity to OpenStack clouds. It defaults to a proxy hosted by the Exosphere project unless you specify your own in `config.js`.
 
-- If you use Ubuntu/Debian you may also need to `apt-get install nodejs-legacy`.
-- If you are using Mac OS X, you may need to add `127.0.0.1       app.exosphere.localhost` to `/etc/hosts`
+First, [install node.js + npm](https://www.npmjs.com/get-npm).
+
+- If you use Ubuntu or Debian, you may also need to `apt-get install nodejs-legacy`.
+- If you are using Mac OS, you may need to add `127.0.0.1 app.exosphere.localhost` to `/etc/hosts`.
 
 Then install the project's dependencies (including Elm). Convenience command to do this (run from the root of the exosphere repo):
 
@@ -120,7 +109,7 @@ To compile the app and serve it using a local development server run this comman
 npm start
 ```
 
-Then browse to <http://app.exosphere.localhost:8000/>
+Then, open in your browser: <http://app.exosphere.localhost:8000>
 
 To enable the Elm Debugger in the local development server run the following command instead:
 
@@ -128,12 +117,9 @@ To enable the Elm Debugger in the local development server run the following com
 npm run live-debug
 ```
 
-Note: The local development server uses elm-live. It detects changes to the Exosphere source code, recompiles it, and
-refreshes the browser with the latest version of the app. See [elm-live.com](https://www.elm-live.com/) for more
-information.
+When you save a file in your editor, `elm-live` will detect and recompile your changes, then hot-reload the app in your browser. (Be aware that hot-reloading will occasionally fail, and you'll need to refresh your web browser to see your changes.)
 
-## Hosting Exosphere on a Server
+## Running on a Production Server
 
-- The Exosphere client-side application can be served as static content from any web server.
+- Once it's compiled (to `elm-web.js`), the Exosphere application can be served as static content from any web server.
 - Exosphere's two supporting proxy servers ([Cloud CORS Proxy](docs/solving-cors-problem.md) and [User Application Proxy](docs/user-app-proxy.md)) require [Nginx](https://nginx.org) configured with browser-accepted TLS (e.g. via [Let's Encrypt](https://letsencrypt.org)). The User Application Proxy requires a wildcard TLS certificate; Let's Encrypt issues these free of charge.
-
