@@ -12,7 +12,8 @@ Exosphere is hosted on [gitlab.com](https://gitlab.com), a service that is simil
 - Create your own fork of [exosphere/exosphere](https://gitlab.com/exosphere/exosphere).
 - Clone your fork locally.
   - `git clone https://gitlab.com/your-gitlab-username/exosphere`
-- Compile and run the app on your computer; see [Running Exosphere](docs/run-exosphere.md).
+- Compile and run the app on your computer; see [Running Exosphere For Development Work](docs/run-exosphere.md#for-development-work).
+  - Optional but helpful step: [configure your editor](https://github.com/avh4/elm-format#editor-integration) to run `elm-format` whenever you save a file. Save `.elm` files often to automatically apply code formatting.
 - Make your code changes, compile the app again, and confirm that your changes work.
   - Ask in chat if you need a set of credentials to test the app against a real OpenStack cloud.
 - When you're satisfied with your changes, create a new branch, make a commit, and push the commit(s) to your origin on GitLab.
@@ -30,13 +31,30 @@ Exosphere is hosted on [gitlab.com](https://gitlab.com), a service that is simil
 
 ## Core Contributor Onboarding
 
-Feel empowered to ignore everything below until making your _third or subsequent_ contribution to Exosphere.
+Feel empowered to ignore this section until making your _third or subsequent_ contribution to Exosphere.
+
+### Development Environment Setup
+
+In addition to [Running Exosphere For Development Work](docs/run-exosphere.md#for-development-work), we recommend that you set up the following.
+
+- **`elm-format` on save**
+  - [configure your editor](https://github.com/avh4/elm-format#editor-integration) to apply code formatting whenever you save a file.
+  - If you save files often, you save yourself a lot of typing and indenting work.
+  - Similarly, if you find yourself editing `js`, `json`, or `html` files, you can [enable Prettier integration](https://prettier.io/docs/en/editors.html) to automatically format those.
+- **`husky` pre-push hook**
+  - Run `npm install` and `npm prepare` to set up `husky` in your development environment.
+  - When you try to `git push`, husky will run these, and stop the push if anything fails:
+    - unit tests in `tests/`
+    - `elm-analyse` static analysis tool
+    - `elm-format` Elm code formatter
+    - `prettier` JavaScript, JSON, and HTML formatter
+  - This will catch many common issues long before GitLab's CI pipeline does.
 
 ### Submitting a Contribution
 
-When creating a merge request (MR), please assign it to yourself, and begin the title with `Draft: ` until you believe it passes the MR Quality Checklist below. Then, mark the MR as ready (i.e. remove the `Draft: ` prefix).
+When creating a merge request (MR), please assign it to yourself, and begin the title with `Draft: ` until you believe it passes the MR Quality Checklist below. Then, remove the `Draft: ` prefix to mark the MR as ready.
 
-Maintainers are happy to provide guidance, even if your MR is in early draft status. Feel free to ask in chat. You can also add someone to the "Reviewers" section to request review from a specific person. (Leave the MR assigned to yourself.)
+Maintainers are happy to provide guidance, even if your MR is an early draft. Feel free to ask in chat. You can also add someone to the "Reviewers" section to request review from a specific person. (Leave the MR assigned to yourself.)
 
 MRs are generally reviewed within 1-2 working days. An MR should be merged as soon as it is approved by two maintainers, and it has a passing CI pipeline (see below). The two-maintainer rule is occasionally relaxed for periods of decreased maintainer availability.
 
@@ -44,7 +62,7 @@ If your MR fixes one or more issues, please do not close them before your MR is 
 
 ### MR Quality Checklist
 
-Maintainers, please ensure the MR passes this checklist before approving. Consult co-maintainers when making the occasional exception.
+Maintainers, please ensure every MR passes this checklist before approving, including MRs from new contributors. Consult co-maintainers when making the occasional exception.
 
 #### Administrative
 
@@ -54,9 +72,9 @@ Maintainers, please ensure the MR passes this checklist before approving. Consul
 - Follow-up issues are created for any new issues that the MR causes or uncovers.
   - If the MR introduces any technical debt, these issues are assigned to MR author, unless they are a first- or second-time contributor.
 
-#### Quality and Tech Debt
+#### Quality and Technical Debt
 
-Relax the standard for this section _if_ (1) this is a contributor's _first or second_ MR, (2) the technical debt introduced is modest (fix would fit on ~1 screen of code), and (3) you create a follow-up issue to track it.
+Relax the criteria in this section if this is a contributor's first or second MR, _and_ any technical or UI debt introduced is modest (the fix would fit on about 1 screen of code), _and_ you create a follow-up issue to track it.
 
 - MR does not decrease the overall consistency or polish of Exosphere's UI.
 - MR does not decrease Exosphere's overall code quality.
@@ -77,7 +95,11 @@ Relax the standard for this section _if_ (1) this is a contributor's _first or s
 - If MR significantly changes organization structure of codebase (e.g. modules and directories), `docs/code-tour.md` is updated appropriately.
 - If the MR adds/changes/removes UI elements in `src/Style/Widgets/`, then `src/DesignSystem/Explorer.elm` shows example usage of that widget.
 
-### Continuous Integration
+---
+
+The information below is for reference. You don't need to understand it to contribute, but it may be helpful in some situations.
+
+## Continuous Integration
 
 Our continuous integration (CI) pipeline runs:
 
@@ -88,20 +110,19 @@ Our continuous integration (CI) pipeline runs:
 - [unit tests](tests/README.md)
 - End-to-end tests which exercise the application in real web browsers 
 
-The most frequent cause of CI pipeline failure is due to issues found by `elm-analyse`. To avoid this, please use `elm-format` and `elm-analyse` before you submit a merge request, e.g. with these commands run from the root of your repo:
- 
+You can run all of these but the browser tests locally. The easiest way is to set up `husky` (per the section above) and try to `git push`. Or, you can test manually with these commands:
+
  ```bash
  npm install
- npm run elm:format
+ npm run test
  npm run elm:analyse
+ npm run elm:format
  npm run js:format
  ```
 
-**Please consider [configuring your editor](https://github.com/avh4/elm-format#editor-integration) to run `elm-format` whenever you save a file.** It automatically formats your code! If you save early and often, this saves you lots of typing and indenting work. (Similarly, for automatically formatting `js`, `json` or `html` files, a [number of editors have Prettier integration](https://prettier.io/docs/en/editors.html).)
+### Enabling CI On Your Fork
 
-#### Enabling CI On Your Fork
-
-Before submitting a merge request, we request that you *enable GitLab CI/CD on your fork project*. It is easier and safer for us to accept contributions that show passing tests!
+Optionally, you can *enable GitLab CI/CD on your fork project* to test the pipeline before submitting a merge request.
 
 1. On GitLab, go to your fork's CI/CD settings (at `https://gitlab.com/your-gitlab-username-here/exosphere/edit`)
 2. Expand the "Visibility, project features, permissions" section
@@ -114,11 +135,11 @@ Before submitting a merge request, we request that you *enable GitLab CI/CD on y
 
 ![Enable CI/CD in project settings](docs/assets/gitlab-enable-ci-cd-save-changes.png)
 
-The CI/CD pipeline should run the next time you push a commit to your fork project on GitLab. Pipeline status should be visible at `https://gitlab.com/your-gitlab-username-here/exosphere/-/pipelines`, and also in any merge request that you submit to the upstream Exosphere project.
+The CI/CD pipeline should run the next time you push a commit to your fork project on GitLab. Pipeline status should be visible at `https://gitlab.com/your-gitlab-username/exosphere/-/pipelines`, and also in any merge request that you submit to the upstream Exosphere project.
 
-#### End-to-end browser tests
+### End-to-end browser tests
 
-Our CI pipeline also runs end-to-end tests with real browsers.  If you are a regular contributor, we request that you enable browser tests to run from your fork project.
+Our CI pipeline also runs end-to-end tests with real browsers.  If you are a regular contributor, you can enable browser tests to run from your fork project.
 
 For these tests to work, you will need:
 
@@ -135,7 +156,7 @@ Note that the variables are _masked, but not protected_.
 
 The next time you push a commit to your fork project, the browser tests should run in the CI pipeline.
 
-##### Special Branch Behavior
+#### Special Branch Behavior
 
 The CI pipeline's end-to-end browser tests have special behavior for `master` and `dev` branches, as opposed to all other git repository branches.
 
@@ -143,7 +164,7 @@ The CI pipeline's end-to-end browser tests have special behavior for `master` an
 
 **All other branches:** Compiled Exosphere assets from the `elm_make` stage are combined with Selenium and a headless browser in a custom container, and the tests point at Exosphere served by this container. (See the `.build_with_kaniko`-based jobs in the `dockerize` stage.) Browser tests for merge requests run in the `test` stage along with the other tests (like Elm unit tests, `elm-analyze`, etc.). This is all self-contained within the CI pipeline; it does not use or modify live production environments.
 
-### Architecture Decisions
+## Architecture Decisions
 
 We use lightweight architecture decision records. See: <https://adr.github.io/>
 
