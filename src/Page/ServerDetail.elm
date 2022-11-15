@@ -44,7 +44,6 @@ import Types.SharedMsg as SharedMsg
 import View.Helpers as VH exposing (edges)
 import View.Types
 import Widget
-import Widget.Style.Material
 
 
 type alias Model =
@@ -665,9 +664,11 @@ serverNameView context project currentTime model server =
                 [ Element.el
                     [ Element.below renderInvalidNameReasons
                     ]
-                    (Widget.textInput (Widget.Style.Material.textInput (SH.toMaterialPalette context.palette))
-                        { chips = []
-                        , text = model.serverNamePendingConfirmation |> Maybe.withDefault ""
+                    (Input.text
+                        (VH.inputItemAttributes context.palette
+                            ++ [ Element.width <| Element.minimum 300 Element.fill ]
+                        )
+                        { text = model.serverNamePendingConfirmation |> Maybe.withDefault ""
                         , placeholder =
                             Just
                                 (Input.placeholder
@@ -680,8 +681,8 @@ serverNameView context project currentTime model server =
                                             ]
                                     )
                                 )
-                        , label = "Name"
                         , onChange = \name -> GotServerNamePendingConfirmation <| Just name
+                        , label = Input.labelHidden "Name"
                         }
                     )
                 , Widget.iconButton
