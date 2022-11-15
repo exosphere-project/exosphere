@@ -36,19 +36,6 @@ What can I do with Exosphere?
 - Free, open source, and open development process -- come hack with us!
   - See Exosphere's [values and goals](docs/values-goals.md)
 
-## Exosphere's Impact
-
-- [Jetstream2](https://jetstream-cloud.org), a science and engineering research cloud, offers Exosphere as its primary user interface. Jetstream2 is available to any US-based researcher.
-- Exosphere has [a $298k award](https://nsf.gov/awardsearch/showAward?AWD_ID=2229642) from the US National Science Foundation's [Pathways to Enable Open-Source Ecosystems](https://beta.nsf.gov/funding/opportunities/pathways-enable-open-source-ecosystems-pose).
-
-## Collaborate With Us
-
-Talk to us in real-time on [Matrix / Element](https://riot.im/app/#/room/#exosphere:matrix.org). You can also [browse an archive](https://view.matrix.org/room/!qALrQaRCgWgkQcBoKG:matrix.org/) of the chat history.
-
-We use GitLab to track issues and contributions. To request a new feature or report a bug, [create a new issue](https://gitlab.com/exosphere/exosphere/-/issues/new) on our GitLab project.
-
-We have a **weekly community video call** Mondays at 16:00 UTC. [Join here](https://meet.jit.si/exosphere), or dial in at +1.512.647.1431, PIN: 3037 7824 88#. ([agenda and previous meeting notes](https://c-mart.sandcats.io/shared/wfRsWBVmJZ3maUn7HMFqNj_MR_Bzy1vob9CzWu1n7QI))
-
 ## Documentation Index
 
 ### For Users and Anyone Else
@@ -72,7 +59,7 @@ We have a **weekly community video call** Mondays at 16:00 UTC. [Join here](http
 
 ### For Exosphere Contributors
 
-- [Contributing to Exosphere](contributing.md) _(new contributors start here)_
+- [Contributing to Exosphere](contributing.md) **(new contributors start here)**
 - [Tour of Exosphere Codebase](docs/code-tour.md)
 - [UI, Layout, Style & Design System](docs/style.md)
 - [Architecture Decision Records](docs/adr/README.md)
@@ -85,6 +72,19 @@ We have a **weekly community video call** Mondays at 16:00 UTC. [Join here](http
 - [Exosphere Project License](LICENSE)
 - [Acceptable Use Policy for Exosphere Hosted Sites](docs/acceptable-use-policy.md)
 - [Privacy Policy for Exosphere Hosted Sites](docs/privacy-policy.md)
+
+## Collaborate With Us
+
+Talk to us in real-time on [Matrix / Element](https://riot.im/app/#/room/#exosphere:matrix.org). You can also [browse an archive](https://view.matrix.org/room/!qALrQaRCgWgkQcBoKG:matrix.org/) of the chat history.
+
+We use GitLab to track issues and contributions. To request a new feature or report a bug, [create a new issue](https://gitlab.com/exosphere/exosphere/-/issues/new) on our GitLab project.
+
+We have a **weekly community video call** Mondays at 16:00 UTC. [Join here](https://meet.jit.si/exosphere), or dial in at +1.512.647.1431, PIN: 3037 7824 88#. ([agenda and previous meeting notes](https://c-mart.sandcats.io/shared/wfRsWBVmJZ3maUn7HMFqNj_MR_Bzy1vob9CzWu1n7QI))
+
+## Exosphere's Impact
+
+- [Jetstream2](https://jetstream-cloud.org), a science and engineering research cloud, offers Exosphere as its primary user interface. Jetstream2 is available to any US-based researcher.
+- Exosphere has [a $298k award](https://nsf.gov/awardsearch/showAward?AWD_ID=2229642) from the US National Science Foundation's [Pathways to Enable Open-Source Ecosystems](https://beta.nsf.gov/funding/opportunities/pathways-enable-open-source-ecosystems-pose).
 
 ---
 
