@@ -49,7 +49,7 @@ We use GitLab to track issues and contributions. To request a new feature or rep
 
 We have a **weekly community video call** Mondays at 16:00 UTC. [Join here](https://meet.jit.si/exosphere), or dial in at +1.512.647.1431, PIN: 3037 7824 88#. ([agenda and previous meeting notes](https://c-mart.sandcats.io/shared/wfRsWBVmJZ3maUn7HMFqNj_MR_Bzy1vob9CzWu1n7QI))
 
-## Documentation
+## Documentation Index
 
 ### For Users and Anyone Else
 

@@ -122,4 +122,4 @@ When you save a file in your editor, `elm-live` will detect and recompile your c
 ## Running on a Production Server
 
 - Once it's compiled (to `elm-web.js`), the Exosphere application can be served as static content from any web server.
-- Exosphere's two supporting proxy servers ([Cloud CORS Proxy](docs/solving-cors-problem.md) and [User Application Proxy](docs/user-app-proxy.md)) require [Nginx](https://nginx.org) configured with browser-accepted TLS (e.g. via [Let's Encrypt](https://letsencrypt.org)). The User Application Proxy requires a wildcard TLS certificate; Let's Encrypt issues these free of charge.
+- Exosphere's two supporting proxy servers ([Cloud CORS Proxy](solving-cors-problem.md) and [User Application Proxy](user-app-proxy.md)) require [Nginx](https://nginx.org) configured with browser-accepted TLS (e.g. via [Let's Encrypt](https://letsencrypt.org)). The User Application Proxy requires a wildcard TLS certificate; Let's Encrypt issues these free of charge.
