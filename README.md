@@ -34,7 +34,7 @@ What can I do with Exosphere?
   - [Cluster orchestration](https://gitlab.com/exosphere/exosphere/-/issues/317)
   - [Community-curated deployment automations](https://gitlab.com/exosphere/exosphere/-/issues/573) for scientific workflows and custom services
 - Free, open source, and open development process -- come hack with us!
-  - See Exosphere's [values and goals](values-goals.md)
+  - See Exosphere's [values and goals](docs/values-goals.md)
 
 ## Exosphere's Impact
 
@@ -55,7 +55,7 @@ We have a **weekly community video call** Mondays at 16:00 UTC. [Join here](http
 
 - [Running Exosphere](docs/run-exosphere.md) yourself (instead of using one of the hosted sites)
 - [Exosphere Compatibility](docs/compatibility.md) (with clouds and instance operating systems)
-- [Values and Goals of the Exosphere Project](values-goals.md)
+- [Values and Goals of the Exosphere Project](docs/values-goals.md)
 - [Nomenclature Reference](docs/nomenclature-reference.md)
 - [Installing Exosphere Progressive Web Application](docs/pwa-install.md)
 - [Cockpit Deprecation and Manual Installation](docs/cockpit.md)
