@@ -591,7 +591,12 @@ serverNameView context project currentTime model server =
                             Element.none
 
                 renderServerNameExists =
-                    if VH.serverNameExists project serverNamePendingConfirmation then
+                    if
+                        VH.serverNameExists project serverNamePendingConfirmation
+                            -- the server's own name currently exists, of course:
+                            && server.osProps.name
+                            /= Maybe.withDefault "" model.serverNamePendingConfirmation
+                    then
                         let
                             message =
                                 Element.row []
