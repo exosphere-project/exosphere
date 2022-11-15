@@ -432,10 +432,10 @@ serverNameExistsMessage context =
     "This " ++ context.localization.virtualComputer ++ " name already exists for this " ++ context.localization.unitOfTenancy ++ ". You can select any of our name suggestions or modify the current name to avoid duplication."
 
 
-{-| Create a list of server name suggestions based on a current server name, time & random name.
+{-| Create a list of server name suggestions based on a current server name, project username & time.
 -}
-serverNameSuggestions : Time.Posix -> Project -> String -> String -> List String
-serverNameSuggestions currentTime project serverName randomName =
+serverNameSuggestions : Time.Posix -> Project -> String -> List String
+serverNameSuggestions currentTime project serverName =
     let
         currentDate =
             DateFormat.format
@@ -483,7 +483,7 @@ serverNameSuggestions currentTime project serverName randomName =
         namesSuggestionsNotDuplicated name =
             not (serverNameExists project name)
     in
-    (randomName :: suggestedNameWithUsername ++ suggestedNameWithDate ++ suggestedNameWithUsernameAndDate)
+    (suggestedNameWithUsername ++ suggestedNameWithDate ++ suggestedNameWithUsernameAndDate)
         |> List.filter namesSuggestionsNotDuplicated
 
 

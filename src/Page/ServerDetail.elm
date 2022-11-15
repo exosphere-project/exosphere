@@ -607,7 +607,7 @@ serverNameView context project currentTime model server =
                                     ]
 
                             suggestedNames =
-                                VH.serverNameSuggestions currentTime project serverNamePendingConfirmation ""
+                                VH.serverNameSuggestions currentTime project serverNamePendingConfirmation
 
                             content =
                                 Element.column []
