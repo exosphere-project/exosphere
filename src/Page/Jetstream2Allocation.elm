@@ -104,11 +104,8 @@ view context project currentTime =
         renderRDPPSuccess : List Accounting.Allocation -> Element.Element SharedMsg.SharedMsg
         renderRDPPSuccess allocations =
             let
-                shownAllocations =
-                    Accounting.shownAllocations allocations
-
                 shownAndSortedAllocations =
-                    Accounting.sortedAllocations shownAllocations
+                    Accounting.shownAndSortedAllocations currentTime allocations
 
                 heading =
                     Text.text Text.H3

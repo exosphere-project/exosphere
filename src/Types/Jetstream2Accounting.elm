@@ -4,11 +4,14 @@ module Types.Jetstream2Accounting exposing
     , Resource
     , resourceFromStr
     , resourceToStr
-    , shownAllocations
-    , sortedAllocations
+    , shownAndSortedAllocations
     )
 
 import Time
+
+
+
+-- Types
 
 
 type alias Allocation =
@@ -28,43 +31,15 @@ type AllocationStatus
     | Inactive
 
 
-shownAllocations : List Allocation -> List Allocation
-shownAllocations allocations =
-    allocations
-        |> -- Not showing storage allocation right now, per
-           -- https://jetstream-cloud.slack.com/archives/G01GD9MUUHF/p1664901636186179?thread_ts=1664844400.359949&cid=G01GD9MUUHF
-           List.filter (\a -> a.resource /= Storage)
-        |> List.filter (\a -> a.status == Active)
-
-
-sortedAllocations : List Allocation -> List Allocation
-sortedAllocations allocations =
-    let
-        alphaSortName : Allocation -> String
-        alphaSortName allocation =
-            resourceToStr "this-does-not-matter" allocation.resource
-
-        storageLastSorter : Allocation -> Allocation -> Basics.Order
-        storageLastSorter a b =
-            if a.resource == Storage && b.resource /= Storage then
-                Basics.GT
-
-            else if a.resource /= Storage && b.resource == Storage then
-                Basics.LT
-
-            else
-                Basics.EQ
-    in
-    allocations
-        |> List.sortBy alphaSortName
-        |> List.sortWith storageLastSorter
-
-
 type Resource
     = CPU
     | GPU
     | LargeMemory
     | Storage
+
+
+
+-- Converting types to/from strings
 
 
 resourceFromStr : String -> Maybe Resource
@@ -100,3 +75,55 @@ resourceToStr instanceWord resource =
 
         Storage ->
             "Storage"
+
+
+
+-- Helper functions to display allocations
+
+
+shownAndSortedAllocations : Time.Posix -> List Allocation -> List Allocation
+shownAndSortedAllocations currentTime allocations =
+    -- Not showing storage allocation right now, per
+    -- https://jetstream-cloud.slack.com/archives/G01GD9MUUHF/p1664901636186179?thread_ts=1664844400.359949&cid=G01GD9MUUHF
+    [ CPU, GPU, LargeMemory ]
+        |> List.filterMap (shownAllocationForResource currentTime allocations)
+
+
+shownAllocationForResource : Time.Posix -> List Allocation -> Resource -> Maybe Allocation
+shownAllocationForResource currentTime allocations resource =
+    let
+        allocationsForResource =
+            List.filter (\a -> a.resource == resource) allocations
+
+        currentActiveAllocation =
+            allocationsForResource
+                |> List.filter (\a -> a.status == Active)
+                |> List.filter (allocationIsCurrent currentTime)
+                |> List.head
+
+        latestEndingAllocation =
+            allocationsForResource
+                |> List.sortBy (\a -> Time.posixToMillis a.endDate)
+                |> List.reverse
+                |> List.head
+
+        firstAllocation =
+            allocationsForResource |> List.head
+    in
+    case currentActiveAllocation of
+        Just a ->
+            Just a
+
+        Nothing ->
+            case latestEndingAllocation of
+                Just a ->
+                    Just a
+
+                Nothing ->
+                    firstAllocation
+
+
+allocationIsCurrent : Time.Posix -> Allocation -> Bool
+allocationIsCurrent currentTime allocation =
+    (Time.posixToMillis allocation.startDate < Time.posixToMillis currentTime)
+        && (Time.posixToMillis currentTime < Time.posixToMillis allocation.endDate)
