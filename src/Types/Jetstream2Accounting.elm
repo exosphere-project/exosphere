@@ -5,7 +5,6 @@ module Types.Jetstream2Accounting exposing
     , resourceFromStr
     , resourceToStr
     , shownAndSortedAllocations
-    , sortedAllocations
     )
 
 import Time
@@ -88,7 +87,6 @@ shownAndSortedAllocations currentTime allocations =
     -- https://jetstream-cloud.slack.com/archives/G01GD9MUUHF/p1664901636186179?thread_ts=1664844400.359949&cid=G01GD9MUUHF
     [ CPU, GPU, LargeMemory ]
         |> List.filterMap (shownAllocationForResource currentTime allocations)
-        |> sortedAllocations
 
 
 shownAllocationForResource : Time.Posix -> List Allocation -> Resource -> Maybe Allocation
@@ -129,26 +127,3 @@ allocationIsCurrent : Time.Posix -> Allocation -> Bool
 allocationIsCurrent currentTime allocation =
     (Time.posixToMillis allocation.startDate < Time.posixToMillis currentTime)
         && (Time.posixToMillis currentTime < Time.posixToMillis allocation.endDate)
-
-
-sortedAllocations : List Allocation -> List Allocation
-sortedAllocations allocations =
-    let
-        alphaSortName : Allocation -> String
-        alphaSortName allocation =
-            resourceToStr "this-does-not-matter" allocation.resource
-
-        storageLastSorter : Allocation -> Allocation -> Basics.Order
-        storageLastSorter a b =
-            if a.resource == Storage && b.resource /= Storage then
-                Basics.GT
-
-            else if a.resource /= Storage && b.resource == Storage then
-                Basics.LT
-
-            else
-                Basics.EQ
-    in
-    allocations
-        |> List.sortBy alphaSortName
-        |> List.sortWith storageLastSorter
