@@ -11,6 +11,10 @@ module Types.Jetstream2Accounting exposing
 import Time
 
 
+
+-- Types
+
+
 type alias Allocation =
     { description : String
     , abstract : String
@@ -28,10 +32,63 @@ type AllocationStatus
     | Inactive
 
 
-allocationIsCurrent : Time.Posix -> Allocation -> Bool
-allocationIsCurrent currentTime allocation =
-    (Time.posixToMillis allocation.startDate < Time.posixToMillis currentTime)
-        && (Time.posixToMillis currentTime < Time.posixToMillis allocation.endDate)
+type Resource
+    = CPU
+    | GPU
+    | LargeMemory
+    | Storage
+
+
+
+-- Converting types to/from strings
+
+
+resourceFromStr : String -> Maybe Resource
+resourceFromStr str =
+    case str of
+        "jetstream2.indiana.xsede.org" ->
+            Just CPU
+
+        "jetstream2-gpu.indiana.xsede.org" ->
+            Just GPU
+
+        "jetstream2-lm.indiana.xsede.org" ->
+            Just LargeMemory
+
+        "jetstream2-storage.indiana.xsede.org" ->
+            Just Storage
+
+        _ ->
+            Nothing
+
+
+resourceToStr : String -> Resource -> String
+resourceToStr instanceWord resource =
+    case resource of
+        CPU ->
+            "CPU " ++ instanceWord
+
+        GPU ->
+            "GPU " ++ instanceWord
+
+        LargeMemory ->
+            "Lrg Mem " ++ instanceWord
+
+        Storage ->
+            "Storage"
+
+
+
+-- Helper functions to display allocations
+
+
+shownAndSortedAllocations : Time.Posix -> List Allocation -> List Allocation
+shownAndSortedAllocations currentTime allocations =
+    -- Not showing storage allocation right now, per
+    -- https://jetstream-cloud.slack.com/archives/G01GD9MUUHF/p1664901636186179?thread_ts=1664844400.359949&cid=G01GD9MUUHF
+    [ CPU, GPU, LargeMemory ]
+        |> List.filterMap (shownAllocationForResource currentTime allocations)
+        |> sortedAllocations
 
 
 shownAllocationForResource : Time.Posix -> List Allocation -> Resource -> Maybe Allocation
@@ -68,13 +125,10 @@ shownAllocationForResource currentTime allocations resource =
                     firstAllocation
 
 
-shownAndSortedAllocations : Time.Posix -> List Allocation -> List Allocation
-shownAndSortedAllocations currentTime allocations =
-    -- Not showing storage allocation right now, per
-    -- https://jetstream-cloud.slack.com/archives/G01GD9MUUHF/p1664901636186179?thread_ts=1664844400.359949&cid=G01GD9MUUHF
-    [ CPU, GPU, LargeMemory ]
-        |> List.filterMap (shownAllocationForResource currentTime allocations)
-        |> sortedAllocations
+allocationIsCurrent : Time.Posix -> Allocation -> Bool
+allocationIsCurrent currentTime allocation =
+    (Time.posixToMillis allocation.startDate < Time.posixToMillis currentTime)
+        && (Time.posixToMillis currentTime < Time.posixToMillis allocation.endDate)
 
 
 sortedAllocations : List Allocation -> List Allocation
@@ -98,45 +152,3 @@ sortedAllocations allocations =
     allocations
         |> List.sortBy alphaSortName
         |> List.sortWith storageLastSorter
-
-
-type Resource
-    = CPU
-    | GPU
-    | LargeMemory
-    | Storage
-
-
-resourceFromStr : String -> Maybe Resource
-resourceFromStr str =
-    case str of
-        "jetstream2.indiana.xsede.org" ->
-            Just CPU
-
-        "jetstream2-gpu.indiana.xsede.org" ->
-            Just GPU
-
-        "jetstream2-lm.indiana.xsede.org" ->
-            Just LargeMemory
-
-        "jetstream2-storage.indiana.xsede.org" ->
-            Just Storage
-
-        _ ->
-            Nothing
-
-
-resourceToStr : String -> Resource -> String
-resourceToStr instanceWord resource =
-    case resource of
-        CPU ->
-            "CPU " ++ instanceWord
-
-        GPU ->
-            "GPU " ++ instanceWord
-
-        LargeMemory ->
-            "Lrg Mem " ++ instanceWord
-
-        Storage ->
-            "Storage"
