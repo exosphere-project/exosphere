@@ -105,7 +105,7 @@ view context project currentTime =
         renderRDPPSuccess allocations =
             let
                 shownAllocations =
-                    Accounting.shownAllocations allocations
+                    Accounting.shownAllocations currentTime allocations
 
                 shownAndSortedAllocations =
                     Accounting.sortedAllocations shownAllocations

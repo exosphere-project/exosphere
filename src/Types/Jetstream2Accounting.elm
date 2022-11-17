@@ -28,13 +28,52 @@ type AllocationStatus
     | Inactive
 
 
-shownAllocations : List Allocation -> List Allocation
-shownAllocations allocations =
-    allocations
-        |> -- Not showing storage allocation right now, per
-           -- https://jetstream-cloud.slack.com/archives/G01GD9MUUHF/p1664901636186179?thread_ts=1664844400.359949&cid=G01GD9MUUHF
-           List.filter (\a -> a.resource /= Storage)
-        |> List.filter (\a -> a.status == Active)
+allocationIsCurrent : Time.Posix -> Allocation -> Bool
+allocationIsCurrent currentTime allocation =
+    (Time.posixToMillis allocation.startDate < Time.posixToMillis currentTime)
+        && (Time.posixToMillis currentTime < Time.posixToMillis allocation.endDate)
+
+
+shownAllocationForResource : Time.Posix -> List Allocation -> Resource -> Maybe Allocation
+shownAllocationForResource currentTime allocations resource =
+    let
+        allocationsForResource =
+            List.filter (\a -> a.resource == resource) allocations
+
+        currentActiveAllocation =
+            allocationsForResource
+                |> List.filter (\a -> a.status == Active)
+                |> List.filter (allocationIsCurrent currentTime)
+                |> List.head
+
+        latestEndingAllocation =
+            allocationsForResource
+                |> List.sortBy (\a -> Time.posixToMillis a.endDate)
+                |> List.reverse
+                |> List.head
+
+        firstAllocation =
+            allocationsForResource |> List.head
+    in
+    case currentActiveAllocation of
+        Just a ->
+            Just a
+
+        Nothing ->
+            case latestEndingAllocation of
+                Just a ->
+                    Just a
+
+                Nothing ->
+                    firstAllocation
+
+
+shownAllocations : Time.Posix -> List Allocation -> List Allocation
+shownAllocations currentTime allocations =
+    -- Not showing storage allocation right now, per
+    -- https://jetstream-cloud.slack.com/archives/G01GD9MUUHF/p1664901636186179?thread_ts=1664844400.359949&cid=G01GD9MUUHF
+    [ CPU, GPU, LargeMemory ]
+        |> List.filterMap (shownAllocationForResource currentTime allocations)
 
 
 sortedAllocations : List Allocation -> List Allocation
