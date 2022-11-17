@@ -4,7 +4,7 @@ module Types.Jetstream2Accounting exposing
     , Resource
     , resourceFromStr
     , resourceToStr
-    , shownAllocations
+    , shownAndSortedAllocations
     , sortedAllocations
     )
 
@@ -68,12 +68,13 @@ shownAllocationForResource currentTime allocations resource =
                     firstAllocation
 
 
-shownAllocations : Time.Posix -> List Allocation -> List Allocation
-shownAllocations currentTime allocations =
+shownAndSortedAllocations : Time.Posix -> List Allocation -> List Allocation
+shownAndSortedAllocations currentTime allocations =
     -- Not showing storage allocation right now, per
     -- https://jetstream-cloud.slack.com/archives/G01GD9MUUHF/p1664901636186179?thread_ts=1664844400.359949&cid=G01GD9MUUHF
     [ CPU, GPU, LargeMemory ]
         |> List.filterMap (shownAllocationForResource currentTime allocations)
+        |> sortedAllocations
 
 
 sortedAllocations : List Allocation -> List Allocation
