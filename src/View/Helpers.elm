@@ -30,6 +30,9 @@ module View.Helpers exposing
     , renderRDPP
     , renderWebData
     , requiredLabel
+    , serverNameExists
+    , serverNameExistsMessage
+    , serverNameSuggestions
     , serverStatusBadge
     , sortProjects
     , titleFromHostname
@@ -41,6 +44,7 @@ module View.Helpers exposing
 
 import Color
 import Css
+import DateFormat
 import Dict
 import Element
 import Element.Background as Background
@@ -67,6 +71,7 @@ import Markdown.Html
 import Markdown.Parser
 import Markdown.Renderer
 import OpenStack.Quotas as OSQuotas
+import OpenStack.ServerNameValidator as OSServerNameValidator
 import OpenStack.Types as OSTypes
 import Regex
 import RemoteData
@@ -79,6 +84,7 @@ import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.StatusBadge as StatusBadge
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip as ToggleTip
+import Time
 import Types.Error exposing (ErrorLevel(..), toFriendlyErrorLevel)
 import Types.HelperTypes
 import Types.Project exposing (Project)
@@ -403,6 +409,86 @@ loginPickerButton context =
                     Just SharedMsg.NoOp
                 }
         }
+
+
+{-| Does this server name already exist on the project?
+-}
+serverNameExists : Project -> String -> Bool
+serverNameExists project serverName =
+    case project.servers.data of
+        RDPP.DoHave servers _ ->
+            servers
+                |> List.map .osProps
+                |> List.map .name
+                |> List.member serverName
+
+        _ ->
+            False
+
+
+{-| Localized warning message for when a server name already exists on a project.
+-}
+serverNameExistsMessage : { context | localization : Types.HelperTypes.Localization } -> String
+serverNameExistsMessage context =
+    "This " ++ context.localization.virtualComputer ++ " name already exists for this " ++ context.localization.unitOfTenancy ++ ". You can select any of our name suggestions or modify the current name to avoid duplication."
+
+
+{-| Create a list of server name suggestions based on a current server name, project username & time.
+-}
+serverNameSuggestions : Time.Posix -> Project -> String -> List String
+serverNameSuggestions currentTime project serverName =
+    let
+        currentDate =
+            DateFormat.format
+                [ DateFormat.yearNumber
+                , DateFormat.text "-"
+                , DateFormat.monthFixed
+                , DateFormat.text "-"
+                , DateFormat.dayOfMonthFixed
+                ]
+                Time.utc
+                currentTime
+
+        username =
+            Maybe.withDefault "" <| List.head <| Regex.splitAtMost 1 OSServerNameValidator.badChars project.auth.user.name
+
+        suggestedNameWithUsername =
+            if not (String.contains username serverName) then
+                [ serverName
+                    ++ " "
+                    ++ username
+                ]
+
+            else
+                []
+
+        suggestedNameWithDate =
+            if not (String.contains currentDate serverName) then
+                [ serverName
+                    ++ " "
+                    ++ currentDate
+                ]
+
+            else
+                []
+
+        suggestedNameWithUsernameAndDate =
+            if not (String.contains username serverName) && not (String.contains currentDate serverName) then
+                [ serverName
+                    ++ " "
+                    ++ username
+                    ++ " "
+                    ++ currentDate
+                ]
+
+            else
+                []
+
+        namesSuggestionsNotDuplicated name =
+            not (serverNameExists project name)
+    in
+    (suggestedNameWithUsername ++ suggestedNameWithDate ++ suggestedNameWithUsernameAndDate)
+        |> List.filter namesSuggestionsNotDuplicated
 
 
 serverStatusBadge : ExoPalette -> Server -> Element.Element msg

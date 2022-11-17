@@ -1,7 +1,12 @@
-module OpenStack.ServerNameValidator exposing (serverNameValidator)
+module OpenStack.ServerNameValidator exposing (badChars, serverNameValidator)
 
 import Helpers.String
-import Regex
+import Regex exposing (Regex)
+
+
+badChars : Regex
+badChars =
+    Maybe.withDefault Regex.never <| Regex.fromString "[^A-Za-z0-9-_ ]"
 
 
 serverNameValidator : Maybe String -> String -> Maybe (List String)
@@ -19,11 +24,7 @@ serverNameValidator maybeWordForServer name =
             , ( String.length name >= 255
               , "be less than 255 characters long"
               )
-            , ( let
-                    badChars =
-                        Maybe.withDefault Regex.never <| Regex.fromString "[^A-Za-z0-9-_ ]"
-                in
-                Regex.contains badChars name
+            , ( Regex.contains badChars name
               , "only include alphanumeric characters, hyphen, underscore and space"
               )
             , ( String.left 1 name == " "

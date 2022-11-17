@@ -9,6 +9,7 @@ import DesignSystem.Stories.Link as LinkStories
 import DesignSystem.Stories.Space as SpaceStories
 import DesignSystem.Stories.Text as TextStories
 import DesignSystem.Stories.Toast as ToastStories
+import DesignSystem.Stories.ToggleTip as ToggleTip
 import Element
 import Element.Font as Font
 import Html
@@ -550,7 +551,7 @@ Takes a **target** element that opens/closes the popover and a **content** eleme
 
 #### Tooltip
 
-Use `toggleTip` to show an icon button that toggles a hint when clicked.
+Use [Toggletip](/#Organisms/Toggletip/info) to show an icon button that toggles a hint when clicked.
 
 #### Dropdown
 
@@ -584,5 +585,6 @@ Use `popoverStyleDefaults` so that the popover style is still consistent with ot
                         , ( "LeftTop", Style.Types.PositionLeftTop )
                         ]
                     )
+                , ToggleTip.stories toHtml TogglePopover
                 ]
         )

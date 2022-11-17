@@ -24,6 +24,7 @@ import Route
 import Style.Helpers as SH exposing (spacer)
 import Style.Types as ST
 import Style.Widgets.Alert as Alert
+import Style.Widgets.Button
 import Style.Widgets.Card
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon as Icon
@@ -40,10 +41,9 @@ import Types.Project exposing (Project)
 import Types.Server exposing (ExoSetupStatus(..), Server, ServerOrigin(..))
 import Types.ServerResourceUsage
 import Types.SharedMsg as SharedMsg
-import View.Helpers as VH
+import View.Helpers as VH exposing (edges)
 import View.Types
 import Widget
-import Widget.Style.Material
 
 
 type alias Model =
@@ -478,7 +478,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                             (context.localization.virtualComputer
                                 |> Helpers.String.toTitleCase
                             )
-                        , serverNameView context model server
+                        , serverNameView context project currentTime model server
                         ]
                     , Element.el
                         [ Font.size 12
@@ -537,8 +537,8 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
         ]
 
 
-serverNameView : View.Types.Context -> Model -> Server -> Element.Element Msg
-serverNameView context model server =
+serverNameView : View.Types.Context -> Project -> Time.Posix -> Model -> Server -> Element.Element Msg
+serverNameView context project currentTime model server =
     let
         serverNameViewPlain =
             Element.row
@@ -560,12 +560,14 @@ serverNameView context model server =
 
         serverNameViewEdit =
             let
+                serverNamePendingConfirmation =
+                    model.serverNamePendingConfirmation
+                        |> Maybe.withDefault ""
+
                 invalidNameReasons =
                     serverNameValidator
                         (Just context.localization.virtualComputer)
-                        (model.serverNamePendingConfirmation
-                            |> Maybe.withDefault ""
-                        )
+                        serverNamePendingConfirmation
 
                 renderInvalidNameReasons =
                     case invalidNameReasons of
@@ -586,6 +588,56 @@ serverNameView context model server =
 
                         Nothing ->
                             Element.none
+
+                renderServerNameExists =
+                    if
+                        VH.serverNameExists project serverNamePendingConfirmation
+                            -- the server's own name currently exists, of course:
+                            && server.osProps.name
+                            /= Maybe.withDefault "" model.serverNamePendingConfirmation
+                    then
+                        let
+                            message =
+                                Element.row []
+                                    [ Element.paragraph
+                                        [ Element.width (Element.fill |> Element.minimum 300)
+                                        , Element.spacing spacer.px8
+                                        , Font.regular
+                                        , Font.color <| SH.toElementColor <| context.palette.warning.textOnNeutralBG
+                                        ]
+                                        [ Element.text <|
+                                            VH.serverNameExistsMessage context
+                                        ]
+                                    ]
+
+                            suggestedNames =
+                                VH.serverNameSuggestions currentTime project serverNamePendingConfirmation
+
+                            content =
+                                Element.column []
+                                    (message
+                                        :: List.map
+                                            (\name ->
+                                                Element.row [ Element.paddingEach { edges | top = spacer.px12 } ]
+                                                    [ Style.Widgets.Button.default
+                                                        context.palette
+                                                        { text = name
+                                                        , onPress = Just <| GotServerNamePendingConfirmation (Just name)
+                                                        }
+                                                    ]
+                                            )
+                                            suggestedNames
+                                    )
+                        in
+                        Style.Widgets.ToggleTip.warningToggleTip
+                            context
+                            (\serverRenameAlreadyExistsToggleTipId -> SharedMsg <| SharedMsg.TogglePopover serverRenameAlreadyExistsToggleTipId)
+                            "serverRenameAlreadyExistsToggleTip"
+                            content
+                            ST.PositionRightTop
+
+                    else
+                        Element.none
 
                 rowStyle =
                     { containerRow =
@@ -612,9 +664,11 @@ serverNameView context model server =
                 [ Element.el
                     [ Element.below renderInvalidNameReasons
                     ]
-                    (Widget.textInput (Widget.Style.Material.textInput (SH.toMaterialPalette context.palette))
-                        { chips = []
-                        , text = model.serverNamePendingConfirmation |> Maybe.withDefault ""
+                    (Input.text
+                        (VH.inputItemAttributes context.palette
+                            ++ [ Element.width <| Element.minimum 300 Element.fill ]
+                        )
+                        { text = model.serverNamePendingConfirmation |> Maybe.withDefault ""
                         , placeholder =
                             Just
                                 (Input.placeholder
@@ -627,8 +681,8 @@ serverNameView context model server =
                                             ]
                                     )
                                 )
-                        , label = "Name"
                         , onChange = \name -> GotServerNamePendingConfirmation <| Just name
+                        , label = Input.labelHidden "Name"
                         }
                     )
                 , Widget.iconButton
@@ -655,6 +709,7 @@ serverNameView context model server =
                     , onPress =
                         Just <| GotServerNamePendingConfirmation Nothing
                     }
+                , renderServerNameExists
                 ]
     in
     case model.serverNamePendingConfirmation of
