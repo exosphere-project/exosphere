@@ -84,7 +84,7 @@ We have a **weekly community video call** Mondays at 16:00 UTC. [Join here](http
 ## Exosphere's Impact
 
 - [Jetstream2](https://jetstream-cloud.org), a science and engineering research cloud, offers Exosphere as its primary user interface. Jetstream2 is available to any US-based researcher.
-- Exosphere has [a $298k award](https://nsf.gov/awardsearch/showAward?AWD_ID=2229642) from the US National Science Foundation's [Pathways to Enable Open-Source Ecosystems](https://beta.nsf.gov/funding/opportunities/pathways-enable-open-source-ecosystems-pose). This funds our work to maximize Exosphere's usefulness, impact, and project sustainability. Tell us how we can enable your success!
+- Exosphere has [a $298k award](https://nsf.gov/awardsearch/showAward?AWD_ID=2229642) from the US National Science Foundation's [Pathways to Enable Open-Source Ecosystems](https://beta.nsf.gov/funding/opportunities/pathways-enable-open-source-ecosystems-pose). Read about it in [this news release](https://itnews.iu.edu/articles/2022/IU-wins-300K-NSF-award-to-build-an-open-source-ecosystem-around-heavily-used-cloud-tool.php).
 
 ---
 
