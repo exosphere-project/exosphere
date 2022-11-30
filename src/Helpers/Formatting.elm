@@ -12,10 +12,10 @@ type Unit
 
 
 humanBytes : Locale -> Int -> ( String, String )
-humanBytes locale nInt =
+humanBytes locale byteCount =
     let
         n =
-            toFloat nInt
+            toFloat byteCount
 
         ( count, unit ) =
             if n <= 1024 then
@@ -36,16 +36,7 @@ humanBytes locale nInt =
             else
                 ( n / 1.0e15, "PB" )
     in
-    ( format
-        (if n <= 1.0e9 then
-            { locale | decimals = Exact 0 }
-
-         else
-            locale
-        )
-        count
-    , unit
-    )
+    ( format { locale | decimals = Max 1 } count, unit )
 
 
 humanCount : Locale -> Int -> String
@@ -63,7 +54,7 @@ humanNumber locale unit n =
             ( humanCount locale n, "total" )
 
         GibiBytes ->
-            humanBytes locale (n * 1024 * 1024 * 1024)
+            humanBytes locale (n * 1000 * 1000 * 1000)
 
         MebiBytes ->
-            humanBytes locale (n * 1024 * 1024)
+            humanBytes locale (n * 1000 * 1000)
