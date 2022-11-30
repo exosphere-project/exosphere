@@ -44,6 +44,17 @@ humanCount locale n =
     format { locale | decimals = Exact 0 } (toFloat n)
 
 
+{-| Transform a number for clearer human comprehension when reading.
+
+The byte conversions here are wrong. They were introduced to
+harmonize the UI display of storage quotas with the values
+reported by Horizon and should be fixed or removed with a
+real solution to the problem of "GB" ambiguity.
+
+@TODO: Add input and output units to this function and handle the
+conversion properly once and for all.
+
+-}
 humanNumber : Locale -> Unit -> Int -> ( String, String )
 humanNumber locale unit n =
     case unit of
