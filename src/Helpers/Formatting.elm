@@ -12,10 +12,10 @@ type Unit
 
 
 humanBytes : Locale -> Int -> ( String, String )
-humanBytes locale nInt =
+humanBytes locale byteCount =
     let
         n =
-            toFloat nInt
+            toFloat byteCount
 
         ( count, unit ) =
             if n <= 1024 then
@@ -36,16 +36,7 @@ humanBytes locale nInt =
             else
                 ( n / 1.0e15, "PB" )
     in
-    ( format
-        (if n <= 1.0e9 then
-            { locale | decimals = Exact 0 }
-
-         else
-            locale
-        )
-        count
-    , unit
-    )
+    ( format { locale | decimals = Max 1 } count, unit )
 
 
 humanCount : Locale -> Int -> String
@@ -53,6 +44,17 @@ humanCount locale n =
     format { locale | decimals = Exact 0 } (toFloat n)
 
 
+{-| Transform a number for clearer human comprehension when reading.
+
+The byte conversions here are wrong. They were introduced to
+harmonize the UI display of storage quotas with the values
+reported by Horizon and should be fixed or removed with a
+real solution to the problem of "GB" ambiguity.
+
+@TODO: Add input and output units to this function and handle the
+conversion properly once and for all.
+
+-}
 humanNumber : Locale -> Unit -> Int -> ( String, String )
 humanNumber locale unit n =
     case unit of
@@ -63,7 +65,7 @@ humanNumber locale unit n =
             ( humanCount locale n, "total" )
 
         GibiBytes ->
-            humanBytes locale (n * 1024 * 1024 * 1024)
+            humanBytes locale (n * 1000 * 1000 * 1000)
 
         MebiBytes ->
-            humanBytes locale (n * 1024 * 1024)
+            humanBytes locale (n * 1000 * 1000)
