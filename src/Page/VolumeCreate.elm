@@ -7,6 +7,7 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import OpenStack.Quotas as OSQuotas
 import RemoteData
+import String exposing (trim)
 import Style.Helpers as SH exposing (spacer)
 import Style.Widgets.Button as Button
 import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
@@ -45,27 +46,29 @@ update msg project model =
             ( { model | sizeInput = sizeInput }, Cmd.none, NoOp )
 
         GotSubmit validSizeGb ->
-            ( model, Cmd.none, ProjectMsg (GetterSetters.projectIdentifier project) (RequestCreateVolume model.name validSizeGb) )
+            ( model, Cmd.none, ProjectMsg (GetterSetters.projectIdentifier project) (RequestCreateVolume (trim model.name) validSizeGb) )
 
 
 view : View.Types.Context -> Project -> Model -> Element.Element Msg
 view context project model =
     let
-        renderInvalidReasonsFunction reason condition =
-            reason |> VH.invalidInputHelperText context.palette |> VH.renderIf condition
+        renderInvalidReason reason =
+            case reason of
+                Just r ->
+                    r |> VH.invalidInputHelperText context.palette
 
-        ( renderInvalidReason, isNameValid ) =
+                Nothing ->
+                    Element.none
+
+        invalidReason =
             if String.isEmpty model.name then
-                ( renderInvalidReasonsFunction "Name is required" True, False )
+                Just "Name is required"
 
             else if String.left 1 model.name == " " then
-                ( renderInvalidReasonsFunction "Name cannot start with a space" True, False )
-
-            else if String.right 1 model.name == " " then
-                ( renderInvalidReasonsFunction "Name cannot end with a space" True, False )
+                Just "Name cannot start with a space"
 
             else
-                ( Element.none, True )
+                Nothing
 
         maybeVolumeQuotaAvail =
             project.volumeQuota
@@ -102,7 +105,7 @@ view context project model =
                     , onChange = GotName
                     , label = Input.labelAbove [] (VH.requiredLabel context.palette (Element.text "Name"))
                     }
-                , renderInvalidReason
+                , renderInvalidReason invalidReason
                 , Element.text <|
                     String.join " "
                         [ "(Suggestion: choose a good name that describes what the"
@@ -123,8 +126,8 @@ view context project model =
             , let
                 ( onPress, quotaWarnText ) =
                     if canAttemptCreateVol then
-                        case ( model.sizeInput, isNameValid ) of
-                            ( ValidNumericTextInput volSizeGb, True ) ->
+                        case ( model.sizeInput, invalidReason ) of
+                            ( ValidNumericTextInput volSizeGb, Nothing ) ->
                                 ( Just <| GotSubmit volSizeGb
                                 , Nothing
                                 )
