@@ -11,6 +11,7 @@ import String exposing (trim)
 import Style.Helpers as SH exposing (spacer)
 import Style.Widgets.Button as Button
 import Style.Widgets.Text as Text
+import Time
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
@@ -51,9 +52,44 @@ update msg project model =
             )
 
 
-view : View.Types.Context -> Model -> Element.Element Msg
-view context model =
+view : View.Types.Context -> Project -> Time.Posix -> Model -> Element.Element Msg
+view context project currentTime model =
     let
+        nameExists =
+            VH.sshKeyNameExists project model.name
+
+        renderNameExists =
+            if nameExists then
+                [ VH.warnMessageHelperText context.palette (VH.sshKeyNameExistsMessage context) ]
+
+            else
+                []
+
+        nameSuggestionButtons =
+            let
+                suggestedNames =
+                    VH.resourceNameSuggestions currentTime project model.name
+
+                suggestionButtons =
+                    suggestedNames
+                        |> List.map
+                            (\name ->
+                                Button.default
+                                    context.palette
+                                    { text = name
+                                    , onPress = Just (GotName name)
+                                    }
+                            )
+            in
+            if nameExists then
+                [ Element.row
+                    [ Element.spacing spacer.px8 ]
+                    suggestionButtons
+                ]
+
+            else
+                [ Element.none ]
+
         renderInvalidReason reason =
             case reason of
                 Just r ->
@@ -97,7 +133,7 @@ view context model =
                 ]
             )
         , Element.column [ Element.spacing spacer.px16, Element.width Element.fill ]
-            [ Input.text
+            ([ Input.text
                 (VH.inputItemAttributes context.palette)
                 { text = model.name
                 , placeholder =
@@ -116,8 +152,11 @@ view context model =
                                 [ context.localization.pkiPublicKeyForSsh, "name" ]
                         )
                 }
-            , renderInvalidReason invalidNameReason
-            ]
+             , renderInvalidReason invalidNameReason
+             ]
+                ++ renderNameExists
+                ++ nameSuggestionButtons
+            )
         , Input.multiline
             (VH.inputItemAttributes context.palette
                 ++ [ Element.width Element.fill

@@ -35,6 +35,8 @@ module View.Helpers exposing
     , serverNameExistsMessage
     , serverStatusBadge
     , sortProjects
+    , sshKeyNameExists
+    , sshKeyNameExistsMessage
     , titleFromHostname
     , toExoPalette
     , validInputAttributes
@@ -446,6 +448,19 @@ volumeNameExists project volumeName =
             |> List.member (Just name)
 
 
+{-| Does this SSH public key name already exist on the project?
+-}
+sshKeyNameExists : Project -> String -> Bool
+sshKeyNameExists project sshKeyName =
+    let
+        name =
+            String.trim sshKeyName
+    in
+    RemoteData.withDefault [] project.keypairs
+        |> List.map .name
+        |> List.member name
+
+
 {-| Localized warning message for when a server name already exists on a project.
 -}
 serverNameExistsMessage : { context | localization : Types.HelperTypes.Localization } -> String
@@ -458,6 +473,13 @@ serverNameExistsMessage context =
 volumeNameExistsMessage : { context | localization : Types.HelperTypes.Localization } -> String
 volumeNameExistsMessage context =
     resourceNameExistsMessage context.localization.blockDevice context.localization.unitOfTenancy
+
+
+{-| Localized warning message for when an SSH key name already exists on a project.
+-}
+sshKeyNameExistsMessage : { context | localization : Types.HelperTypes.Localization } -> String
+sshKeyNameExistsMessage context =
+    resourceNameExistsMessage context.localization.pkiPublicKeyForSsh context.localization.unitOfTenancy
 
 
 resourceNameExistsMessage : String -> String -> String
