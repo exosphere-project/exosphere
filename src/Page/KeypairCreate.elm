@@ -7,6 +7,7 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.SshKeyTypeGuesser
 import Helpers.String
 import Html.Attributes
+import String exposing (trim)
 import Style.Helpers as SH exposing (spacer)
 import Style.Widgets.Button as Button
 import Style.Widgets.Text as Text
@@ -46,42 +47,43 @@ update msg project model =
             ( model
             , Cmd.none
             , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
-                SharedMsg.RequestCreateKeypair model.name model.publicKey
+                SharedMsg.RequestCreateKeypair (trim model.name) model.publicKey
             )
 
 
 view : View.Types.Context -> Model -> Element.Element Msg
 view context model =
     let
-        renderInvalidReasonsFunction : String -> Element.Element msg
-        renderInvalidReasonsFunction reason =
-            reason |> VH.invalidInputHelperText context.palette
+        renderInvalidReason reason =
+            case reason of
+                Just r ->
+                    r |> VH.invalidInputHelperText context.palette
 
-        ( renderInvalidKeyNameReason, isKeyNameValid ) =
+                Nothing ->
+                    Element.none
+
+        invalidNameReason =
             if String.isEmpty model.name then
-                ( renderInvalidReasonsFunction "Name is required", False )
+                Just "Name is required"
 
             else if String.left 1 model.name == " " then
-                ( renderInvalidReasonsFunction "Name cannot start with a space", False )
-
-            else if String.right 1 model.name == " " then
-                ( renderInvalidReasonsFunction "Name cannot end with a space", False )
+                Just "Name cannot start with a space"
 
             else
-                ( Element.none, True )
+                Nothing
 
         keyTypeGuess =
             Helpers.SshKeyTypeGuesser.guessKeyType model.publicKey
 
-        ( renderInvalidKeyValueReason, isKeyValueValid ) =
+        invalidValueReason =
             if String.isEmpty model.publicKey then
-                ( renderInvalidReasonsFunction "Public key is required", False )
+                Just "Public key is required"
 
             else if keyTypeGuess == Helpers.SshKeyTypeGuesser.PrivateKey then
-                ( renderInvalidReasonsFunction "Private key detected! Enter a public key instead. Public keys are usually found in a .pub file", False )
+                Just "Private key detected! Enter a public key instead. Public keys are usually found in a .pub file"
 
             else
-                ( Element.none, True )
+                Nothing
     in
     Element.column
         VH.formContainer
@@ -114,7 +116,7 @@ view context model =
                                 [ context.localization.pkiPublicKeyForSsh, "name" ]
                         )
                 }
-            , renderInvalidKeyNameReason
+            , renderInvalidReason invalidNameReason
             ]
         , Input.multiline
             (VH.inputItemAttributes context.palette
@@ -142,18 +144,19 @@ view context model =
                     )
             , spellcheck = False
             }
-        , renderInvalidKeyValueReason
+        , renderInvalidReason invalidValueReason
         , let
             ( createKey, keyWarnText ) =
-                if isKeyNameValid && isKeyValueValid then
-                    ( Just GotSubmit
-                    , Nothing
-                    )
+                case ( invalidNameReason, invalidValueReason ) of
+                    ( Nothing, Nothing ) ->
+                        ( Just GotSubmit
+                        , Nothing
+                        )
 
-                else
-                    ( Nothing
-                    , Just <| "All fields are required"
-                    )
+                    _ ->
+                        ( Nothing
+                        , Just <| "All fields are required"
+                        )
           in
           Element.row [ Element.width Element.fill ]
             [ case keyWarnText of
