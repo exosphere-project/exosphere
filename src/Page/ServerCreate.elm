@@ -362,7 +362,7 @@ view context project currentTime model =
         nameSuggestionButtons =
             let
                 suggestedNames =
-                    VH.serverNameSuggestions currentTime project model.serverName
+                    VH.resourceNameSuggestions currentTime project model.serverName
 
                 suggestionButtons =
                     suggestedNames

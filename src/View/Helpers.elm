@@ -30,9 +30,9 @@ module View.Helpers exposing
     , renderRDPP
     , renderWebData
     , requiredLabel
+    , resourceNameSuggestions
     , serverNameExists
     , serverNameExistsMessage
-    , serverNameSuggestions
     , serverStatusBadge
     , sortProjects
     , titleFromHostname
@@ -465,10 +465,10 @@ resourceNameExistsMessage resourceName unitOfTenancy =
     "This " ++ resourceName ++ " name already exists for this " ++ unitOfTenancy ++ ". You can select any of our name suggestions or modify the current name to avoid duplication."
 
 
-{-| Create a list of server name suggestions based on a current server name, project username & time.
+{-| Create a list of resource name suggestions based on a current resource name, project username & time.
 -}
-serverNameSuggestions : Time.Posix -> Project -> String -> List String
-serverNameSuggestions currentTime project serverName =
+resourceNameSuggestions : Time.Posix -> Project -> String -> List String
+resourceNameSuggestions currentTime project name =
     let
         currentDate =
             DateFormat.format
@@ -485,8 +485,8 @@ serverNameSuggestions currentTime project serverName =
             Maybe.withDefault "" <| List.head <| Regex.splitAtMost 1 OSServerNameValidator.badChars project.auth.user.name
 
         suggestedNameWithUsername =
-            if not (String.contains username serverName) then
-                [ serverName
+            if not (String.contains username name) then
+                [ name
                     ++ " "
                     ++ username
                 ]
@@ -495,8 +495,8 @@ serverNameSuggestions currentTime project serverName =
                 []
 
         suggestedNameWithDate =
-            if not (String.contains currentDate serverName) then
-                [ serverName
+            if not (String.contains currentDate name) then
+                [ name
                     ++ " "
                     ++ currentDate
                 ]
@@ -505,8 +505,8 @@ serverNameSuggestions currentTime project serverName =
                 []
 
         suggestedNameWithUsernameAndDate =
-            if not (String.contains username serverName) && not (String.contains currentDate serverName) then
-                [ serverName
+            if not (String.contains username name) && not (String.contains currentDate name) then
+                [ name
                     ++ " "
                     ++ username
                     ++ " "
@@ -516,8 +516,8 @@ serverNameSuggestions currentTime project serverName =
             else
                 []
 
-        namesSuggestionsNotDuplicated name =
-            not (serverNameExists project name)
+        namesSuggestionsNotDuplicated n =
+            not (serverNameExists project n)
     in
     (suggestedNameWithUsername ++ suggestedNameWithDate ++ suggestedNameWithUsernameAndDate)
         |> List.filter namesSuggestionsNotDuplicated
