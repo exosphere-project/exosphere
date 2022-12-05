@@ -38,6 +38,8 @@ module View.Helpers exposing
     , titleFromHostname
     , toExoPalette
     , validInputAttributes
+    , volumeNameExists
+    , volumeNameExistsMessage
     , warnMessageHelperText
     , warningInputAttributes
     )
@@ -76,6 +78,7 @@ import OpenStack.Types as OSTypes
 import Regex
 import RemoteData
 import Route
+import String exposing (isEmpty)
 import Style.Helpers as SH exposing (spacer)
 import Style.Types as ST exposing (ExoPalette)
 import Style.Widgets.Button as Button
@@ -426,11 +429,40 @@ serverNameExists project serverName =
             False
 
 
+{-| Does this volume name already exist on the project?
+-}
+volumeNameExists : Project -> String -> Bool
+volumeNameExists project volumeName =
+    let
+        name =
+            String.trim volumeName
+    in
+    if isEmpty name then
+        False
+
+    else
+        RemoteData.withDefault [] project.volumes
+            |> List.map .name
+            |> List.member (Just name)
+
+
 {-| Localized warning message for when a server name already exists on a project.
 -}
 serverNameExistsMessage : { context | localization : Types.HelperTypes.Localization } -> String
 serverNameExistsMessage context =
-    "This " ++ context.localization.virtualComputer ++ " name already exists for this " ++ context.localization.unitOfTenancy ++ ". You can select any of our name suggestions or modify the current name to avoid duplication."
+    resourceNameExistsMessage context.localization.virtualComputer context.localization.unitOfTenancy
+
+
+{-| Localized warning message for when a volume name already exists on a project.
+-}
+volumeNameExistsMessage : { context | localization : Types.HelperTypes.Localization } -> String
+volumeNameExistsMessage context =
+    resourceNameExistsMessage context.localization.blockDevice context.localization.unitOfTenancy
+
+
+resourceNameExistsMessage : String -> String -> String
+resourceNameExistsMessage resourceName unitOfTenancy =
+    "This " ++ resourceName ++ " name already exists for this " ++ unitOfTenancy ++ ". You can select any of our name suggestions or modify the current name to avoid duplication."
 
 
 {-| Create a list of server name suggestions based on a current server name, project username & time.

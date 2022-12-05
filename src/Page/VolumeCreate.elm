@@ -13,6 +13,7 @@ import Style.Widgets.Button as Button
 import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Style.Widgets.Text as Text
+import Time
 import Types.Project exposing (Project)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import View.Helpers as VH
@@ -49,9 +50,44 @@ update msg project model =
             ( model, Cmd.none, ProjectMsg (GetterSetters.projectIdentifier project) (RequestCreateVolume (trim model.name) validSizeGb) )
 
 
-view : View.Types.Context -> Project -> Model -> Element.Element Msg
-view context project model =
+view : View.Types.Context -> Project -> Time.Posix -> Model -> Element.Element Msg
+view context project currentTime model =
     let
+        nameExists =
+            VH.volumeNameExists project model.name
+
+        renderNameExists =
+            if nameExists then
+                [ VH.warnMessageHelperText context.palette (VH.volumeNameExistsMessage context) ]
+
+            else
+                []
+
+        nameSuggestionButtons =
+            let
+                suggestedNames =
+                    VH.serverNameSuggestions currentTime project model.name
+
+                suggestionButtons =
+                    suggestedNames
+                        |> List.map
+                            (\name ->
+                                Button.default
+                                    context.palette
+                                    { text = name
+                                    , onPress = Just (GotName name)
+                                    }
+                            )
+            in
+            if nameExists then
+                [ Element.row
+                    [ Element.spacing spacer.px8 ]
+                    suggestionButtons
+                ]
+
+            else
+                [ Element.none ]
+
         renderInvalidReason reason =
             case reason of
                 Just r ->
@@ -98,21 +134,25 @@ view context project model =
             )
         , Element.column [ Element.spacing spacer.px32 ]
             [ Element.column [ Element.spacing spacer.px12 ]
-                [ Input.text
+                ([ Input.text
                     (VH.inputItemAttributes context.palette)
                     { text = model.name
                     , placeholder = Just (Input.placeholder [] (Element.text "My Important Data"))
                     , onChange = GotName
                     , label = Input.labelAbove [] (VH.requiredLabel context.palette (Element.text "Name"))
                     }
-                , renderInvalidReason invalidReason
-                , Element.text <|
-                    String.join " "
-                        [ "(Suggestion: choose a good name that describes what the"
-                        , context.localization.blockDevice
-                        , "will store.)"
-                        ]
-                ]
+                 , renderInvalidReason invalidReason
+                 ]
+                    ++ renderNameExists
+                    ++ nameSuggestionButtons
+                    ++ [ Element.text <|
+                            String.join " "
+                                [ "(Suggestion: choose a good name that describes what the"
+                                , context.localization.blockDevice
+                                , "will store.)"
+                                ]
+                       ]
+                )
             , numericTextInput
                 context.palette
                 (VH.inputItemAttributes context.palette)
