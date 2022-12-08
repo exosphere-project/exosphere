@@ -537,12 +537,8 @@ resourceNameSuggestions currentTime project name =
 
             else
                 []
-
-        namesSuggestionsNotDuplicated n =
-            not (serverNameExists project n)
     in
-    (suggestedNameWithUsername ++ suggestedNameWithDate ++ suggestedNameWithUsernameAndDate)
-        |> List.filter namesSuggestionsNotDuplicated
+    suggestedNameWithUsername ++ suggestedNameWithDate ++ suggestedNameWithUsernameAndDate
 
 
 serverStatusBadge : ExoPalette -> Server -> Element.Element msg

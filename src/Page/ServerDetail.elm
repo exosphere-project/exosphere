@@ -612,6 +612,7 @@ serverNameView context project currentTime model server =
 
                             suggestedNames =
                                 VH.resourceNameSuggestions currentTime project serverNamePendingConfirmation
+                                    |> List.filter (\n -> not (VH.serverNameExists project n))
 
                             content =
                                 Element.column []

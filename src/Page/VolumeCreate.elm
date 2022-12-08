@@ -67,6 +67,7 @@ view context project currentTime model =
             let
                 suggestedNames =
                     VH.resourceNameSuggestions currentTime project model.name
+                        |> List.filter (\n -> not (VH.volumeNameExists project n))
 
                 suggestionButtons =
                     suggestedNames
