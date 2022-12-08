@@ -15,6 +15,7 @@ stages:
   - build
   - dockerize
   - test
+  - mkdocs
   - deploy
   - postdeploy
 
@@ -219,17 +220,6 @@ elm_test:
     reports:
       junit: elm-test-report.xml
 
-pages:
-  stage: deploy
-  dependencies:
-    - elm_make
-  script:
-    - touch public/index.html
-  artifacts:
-    paths:
-      - public
-  only:
-    - master
 
 deploy_prod:
   stage: deploy
@@ -457,6 +447,37 @@ jetstream2_post_deploy_e2e_firefox:
     - .e2e_firefox
     - .jetstream2_post_deploy
 
+
+mkdocs_test:
+  stage: mkdocs
+  # Run as soon as possible because it doesn't depend on any other jobs
+  needs: []
+  image: python:3
+  before_script:
+    - cd mkdocs
+    - pip install -r requirements.txt
+  script:
+    - mkdocs build --strict --verbose --site-dir test
+  artifacts:
+    paths:
+      - mkdocs/test
+
+pages:
+  stage: mkdocs
+  needs:
+    - mkdocs_test
+  image: python:3
+  before_script:
+    - cd mkdocs
+    - pip install -r requirements.txt
+  script:
+    - mkdocs build --strict --verbose
+    - mv site ../public
+  artifacts:
+    paths:
+      - public
+  only:
+    - master
 
 include:
   - template: Dependency-Scanning.gitlab-ci.yml
