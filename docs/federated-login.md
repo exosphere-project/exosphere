@@ -1,4 +1,4 @@
-# Exosphere Federated Login Support
+# Federated Login Support
 
 An OpenStack cloud (more specifically, OpenStack's Keystone identity service) can be configured to support federated user authentication using a third-party Identity Provider, like [CAS](https://apereo.github.io/cas/5.1.x/installation/OIDC-Authentication.html), [Shibboleth](https://wiki.shibboleth.net/confluence/display/DEV/Supported+Protocols), or [Keycloak](https://www.keycloak.org/docs/latest/securing_apps/). OpenStack supports two main technologies for this: SAML2.0 and OpenID Connect.
 

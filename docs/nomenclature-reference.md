@@ -1,4 +1,4 @@
-## Nomenclature Reference
+# Nomenclature Reference
 
 Various projects and organizations who work with cloud computing use different words to refer to the same thing. This cross-reference shows the words used by Exosphere. In most cases, Exosphere has adopted the OpenStack term, except where a clearer/better term exists for the target audience (researchers and other non-IT professionals).
 

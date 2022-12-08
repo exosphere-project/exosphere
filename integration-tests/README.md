@@ -1,4 +1,4 @@
-# Exosphere browser integration tests
+# Browser Integration Tests
 
 ## Setup
 

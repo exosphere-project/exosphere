@@ -1,4 +1,4 @@
-# Exosphere Project Code of Conduct
+# Code of Conduct
 
 - Be respectful
 - Be constructive
