@@ -11,3 +11,7 @@ styleguide.html
 .idea
 .DS_Store
 public/
+
+# mkdocs generated files and Python virtual environment
+mkdocs/site
+mkdocs/venv

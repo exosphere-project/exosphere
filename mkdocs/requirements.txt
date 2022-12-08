@@ -1,0 +1,2 @@
+mkdocs
+mdx_truly_sane_lists
