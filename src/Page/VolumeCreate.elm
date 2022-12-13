@@ -7,11 +7,13 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import OpenStack.Quotas as OSQuotas
 import RemoteData
+import String exposing (trim)
 import Style.Helpers as SH exposing (spacer)
 import Style.Widgets.Button as Button
 import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Style.Widgets.Text as Text
+import Time
 import Types.Project exposing (Project)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import View.Helpers as VH
@@ -45,27 +47,65 @@ update msg project model =
             ( { model | sizeInput = sizeInput }, Cmd.none, NoOp )
 
         GotSubmit validSizeGb ->
-            ( model, Cmd.none, ProjectMsg (GetterSetters.projectIdentifier project) (RequestCreateVolume model.name validSizeGb) )
+            ( model, Cmd.none, ProjectMsg (GetterSetters.projectIdentifier project) (RequestCreateVolume (trim model.name) validSizeGb) )
 
 
-view : View.Types.Context -> Project -> Model -> Element.Element Msg
-view context project model =
+view : View.Types.Context -> Project -> Time.Posix -> Model -> Element.Element Msg
+view context project currentTime model =
     let
-        renderInvalidReasonsFunction reason condition =
-            reason |> VH.invalidInputHelperText context.palette |> VH.renderIf condition
+        nameExists =
+            VH.volumeNameExists project model.name
 
-        ( renderInvalidReason, isNameValid ) =
-            if String.isEmpty model.name then
-                ( renderInvalidReasonsFunction "Name is required" True, False )
-
-            else if String.left 1 model.name == " " then
-                ( renderInvalidReasonsFunction "Name cannot start with a space" True, False )
-
-            else if String.right 1 model.name == " " then
-                ( renderInvalidReasonsFunction "Name cannot end with a space" True, False )
+        renderNameExists =
+            if nameExists then
+                [ VH.warnMessageHelperText context.palette (VH.volumeNameExistsMessage context) ]
 
             else
-                ( Element.none, True )
+                []
+
+        nameSuggestionButtons =
+            let
+                suggestedNames =
+                    VH.resourceNameSuggestions currentTime project model.name
+                        |> List.filter (\n -> not (VH.volumeNameExists project n))
+
+                suggestionButtons =
+                    suggestedNames
+                        |> List.map
+                            (\name ->
+                                Button.default
+                                    context.palette
+                                    { text = name
+                                    , onPress = Just (GotName name)
+                                    }
+                            )
+            in
+            if nameExists then
+                [ Element.row
+                    [ Element.spacing spacer.px8 ]
+                    suggestionButtons
+                ]
+
+            else
+                [ Element.none ]
+
+        renderInvalidReason reason =
+            case reason of
+                Just r ->
+                    r |> VH.invalidInputHelperText context.palette
+
+                Nothing ->
+                    Element.none
+
+        invalidReason =
+            if String.isEmpty model.name then
+                Just "Name is required"
+
+            else if String.left 1 model.name == " " then
+                Just "Name cannot start with a space"
+
+            else
+                Nothing
 
         maybeVolumeQuotaAvail =
             project.volumeQuota
@@ -95,21 +135,25 @@ view context project model =
             )
         , Element.column [ Element.spacing spacer.px32 ]
             [ Element.column [ Element.spacing spacer.px12 ]
-                [ Input.text
+                ([ Input.text
                     (VH.inputItemAttributes context.palette)
                     { text = model.name
                     , placeholder = Just (Input.placeholder [] (Element.text "My Important Data"))
                     , onChange = GotName
                     , label = Input.labelAbove [] (VH.requiredLabel context.palette (Element.text "Name"))
                     }
-                , renderInvalidReason
-                , Element.text <|
-                    String.join " "
-                        [ "(Suggestion: choose a good name that describes what the"
-                        , context.localization.blockDevice
-                        , "will store.)"
-                        ]
-                ]
+                 , renderInvalidReason invalidReason
+                 ]
+                    ++ renderNameExists
+                    ++ nameSuggestionButtons
+                    ++ [ Element.text <|
+                            String.join " "
+                                [ "(Suggestion: choose a good name that describes what the"
+                                , context.localization.blockDevice
+                                , "will store.)"
+                                ]
+                       ]
+                )
             , numericTextInput
                 context.palette
                 (VH.inputItemAttributes context.palette)
@@ -123,8 +167,8 @@ view context project model =
             , let
                 ( onPress, quotaWarnText ) =
                     if canAttemptCreateVol then
-                        case ( model.sizeInput, isNameValid ) of
-                            ( ValidNumericTextInput volSizeGb, True ) ->
+                        case ( model.sizeInput, invalidReason ) of
+                            ( ValidNumericTextInput volSizeGb, Nothing ) ->
                                 ( Just <| GotSubmit volSizeGb
                                 , Nothing
                                 )

@@ -7,9 +7,11 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.SshKeyTypeGuesser
 import Helpers.String
 import Html.Attributes
+import String exposing (trim)
 import Style.Helpers as SH exposing (spacer)
 import Style.Widgets.Button as Button
 import Style.Widgets.Text as Text
+import Time
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
@@ -46,42 +48,79 @@ update msg project model =
             ( model
             , Cmd.none
             , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
-                SharedMsg.RequestCreateKeypair model.name model.publicKey
+                SharedMsg.RequestCreateKeypair (trim model.name) model.publicKey
             )
 
 
-view : View.Types.Context -> Model -> Element.Element Msg
-view context model =
+view : View.Types.Context -> Project -> Time.Posix -> Model -> Element.Element Msg
+view context project currentTime model =
     let
-        renderInvalidReasonsFunction : String -> Element.Element msg
-        renderInvalidReasonsFunction reason =
-            reason |> VH.invalidInputHelperText context.palette
+        nameExists =
+            VH.sshKeyNameExists project model.name
 
-        ( renderInvalidKeyNameReason, isKeyNameValid ) =
-            if String.isEmpty model.name then
-                ( renderInvalidReasonsFunction "Name is required", False )
-
-            else if String.left 1 model.name == " " then
-                ( renderInvalidReasonsFunction "Name cannot start with a space", False )
-
-            else if String.right 1 model.name == " " then
-                ( renderInvalidReasonsFunction "Name cannot end with a space", False )
+        renderNameExists =
+            if nameExists then
+                [ VH.warnMessageHelperText context.palette (VH.sshKeyNameExistsMessage context) ]
 
             else
-                ( Element.none, True )
+                []
+
+        nameSuggestionButtons =
+            let
+                suggestedNames =
+                    VH.resourceNameSuggestions currentTime project model.name
+                        |> List.filter (\n -> not (VH.sshKeyNameExists project n))
+
+                suggestionButtons =
+                    suggestedNames
+                        |> List.map
+                            (\name ->
+                                Button.default
+                                    context.palette
+                                    { text = name
+                                    , onPress = Just (GotName name)
+                                    }
+                            )
+            in
+            if nameExists then
+                [ Element.row
+                    [ Element.spacing spacer.px8 ]
+                    suggestionButtons
+                ]
+
+            else
+                [ Element.none ]
+
+        renderInvalidReason reason =
+            case reason of
+                Just r ->
+                    r |> VH.invalidInputHelperText context.palette
+
+                Nothing ->
+                    Element.none
+
+        invalidNameReason =
+            if String.isEmpty model.name then
+                Just "Name is required"
+
+            else if String.left 1 model.name == " " then
+                Just "Name cannot start with a space"
+
+            else
+                Nothing
 
         keyTypeGuess =
             Helpers.SshKeyTypeGuesser.guessKeyType model.publicKey
 
-        ( renderInvalidKeyValueReason, isKeyValueValid ) =
+        invalidValueReason =
             if String.isEmpty model.publicKey then
-                ( renderInvalidReasonsFunction "Public key is required", False )
+                Just "Public key is required"
 
             else if keyTypeGuess == Helpers.SshKeyTypeGuesser.PrivateKey then
-                ( renderInvalidReasonsFunction "Private key detected! Enter a public key instead. Public keys are usually found in a .pub file", False )
+                Just "Private key detected! Enter a public key instead. Public keys are usually found in a .pub file"
 
             else
-                ( Element.none, True )
+                Nothing
     in
     Element.column
         VH.formContainer
@@ -95,7 +134,7 @@ view context model =
                 ]
             )
         , Element.column [ Element.spacing spacer.px16, Element.width Element.fill ]
-            [ Input.text
+            ([ Input.text
                 (VH.inputItemAttributes context.palette)
                 { text = model.name
                 , placeholder =
@@ -114,8 +153,11 @@ view context model =
                                 [ context.localization.pkiPublicKeyForSsh, "name" ]
                         )
                 }
-            , renderInvalidKeyNameReason
-            ]
+             , renderInvalidReason invalidNameReason
+             ]
+                ++ renderNameExists
+                ++ nameSuggestionButtons
+            )
         , Input.multiline
             (VH.inputItemAttributes context.palette
                 ++ [ Element.width Element.fill
@@ -142,18 +184,19 @@ view context model =
                     )
             , spellcheck = False
             }
-        , renderInvalidKeyValueReason
+        , renderInvalidReason invalidValueReason
         , let
             ( createKey, keyWarnText ) =
-                if isKeyNameValid && isKeyValueValid then
-                    ( Just GotSubmit
-                    , Nothing
-                    )
+                case ( invalidNameReason, invalidValueReason ) of
+                    ( Nothing, Nothing ) ->
+                        ( Just GotSubmit
+                        , Nothing
+                        )
 
-                else
-                    ( Nothing
-                    , Just <| "All fields are required"
-                    )
+                    _ ->
+                        ( Nothing
+                        , Just <| "All fields are required"
+                        )
           in
           Element.row [ Element.width Element.fill ]
             [ case keyWarnText of

@@ -362,7 +362,8 @@ view context project currentTime model =
         nameSuggestionButtons =
             let
                 suggestedNames =
-                    VH.serverNameSuggestions currentTime project model.serverName
+                    VH.resourceNameSuggestions currentTime project model.serverName
+                        |> List.filter (\n -> not (VH.serverNameExists project n))
 
                 suggestionButtons =
                     suggestedNames
