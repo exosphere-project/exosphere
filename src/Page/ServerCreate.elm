@@ -1702,10 +1702,7 @@ keypairPicker context project model =
 
             else
                 Input.radio []
-                    { label =
-                        Input.labelAbove
-                            [ Element.paddingXY 0 spacer.px12 ]
-                            (Element.text promptText)
+                    { label = Input.labelHidden promptText
                     , onChange = \keypairName -> GotKeypairName <| keypairName
                     , options = noneOption :: List.map keypairAsOption keypairs
                     , selected = Just model.keypairName
