@@ -65,6 +65,7 @@ What can I do with Exosphere?
 - [Architecture Decision Records](docs/adr/README.md)
 - [Exosphere Tests](tests/README.md)
 - [Browser Integration Tests](integration-tests/README.md)
+- [MkDocs Site](docs/mkdocs-site.md)
 - [Code of Conduct](docs/code-of-conduct.md)
 
 ### Legal Docs

@@ -11,12 +11,14 @@ When Exosphere launches a new instance, that instance is [provisioned](https://g
 Right now, Exosphere consumes an explicit commit from that repo by specifying its hash in [`src/ServerDeploy.elm`](https://gitlab.com/exosphere/exosphere/-/blob/master/src/ServerDeploy.elm#L107). Right now, @cmart (the sole committer to this repo yet) has made changes by pushing commits to the master branch of instance-config-mgt, then proposing the changes be brought in by placing a merge request with a new commit hash to the main Exosphere repo.
 
 This is suboptimal because:
+
 - These merge requests aren't easy to review. In order to see full set of changes (including changes to the provisioning code), one also needs to go in [here](https://gitlab.com/exosphere/instance-config-mgt/-/compare) and compare the old specified commit to the new one.
 - In order to test new local changes to instance provisioning code, they must be committed and pushed to a git repository somewhere (e.g. GitLab) that the instance can suck down from the internet. So, you end up with a lot of work-in-progress commits, or you need to amend your development workflow to rebase frequently and/or use a separate, disposable fork/branch to test changes.
 
 ### What would success / a fix look like?
 
 We would like to meet these objectives:
+
 1. It's easy to develop and test changes to provisioning code, optimally without having to push work-in-progress commits to GitLab
 2. It's easy to propose and review changes to provisioning code, optimally with a single merge request containing all changes (mono-repository)
 3. Changes to master won't break existing/production Exosphere deployments for a perceptible period of time. [^1]

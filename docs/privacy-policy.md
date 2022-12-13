@@ -1,10 +1,12 @@
-# Exosphere Hosted Sites Privacy Policy
+# Hosted Sites Privacy Policy
 
 Effective: 2021-01-14
 
 ## Applicability
 
 This privacy notice applies only to users of the following sites managed by the Exosphere project, hereafter referred to as the "Exosphere hosted sites":
+
+- [exosphere.app](https://exosphere.app)
 - [try.exosphere.app](https://try.exosphere.app/exosphere)
 - [try-dev.exosphere.app](https://try-dev.exosphere.app/exosphere)
 - [jetstream2.exosphere.app](https://jetstream2.exosphere.app/exosphere)

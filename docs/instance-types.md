@@ -3,6 +3,7 @@
 Exosphere enables cloud administrators to offer an instance type selection experience. This is a user-friendly alternative to the task of browsing the list of Glance images, choosing one to launch a new instance from, and taking care to choose a flavor that is compatible with the intended workload. Instead, the user is presented with a simplified menu of instance type choices with some help text. There is still a "By image" tab for more advanced users who wish to browse the list of Glance images and choose that way instead.
 
 Instance types can express:
+
 - Operating systems and versions
 - GPU instances, which must be launched with certain images and flavors
 

@@ -1,6 +1,6 @@
-## Goals/Values of Exosphere Project
+# Values and Goals of Exosphere
 
-### What
+## What
 
 - We do
   - Reduce incidental complexity (cognitive load) of managing cloud compute workloads
@@ -11,7 +11,7 @@
   - Adding core features which enable vendor lock-in
 
 
-### Who we're doing it for
+## Who we're doing it for
 
 - Users
   - People who need a friendly way to manage:
@@ -33,7 +33,7 @@
 - Users and operators of OpenStack public/private cloud services
 
 
-### How we're doing it
+## How we're doing it
 
 - User-, operator-, contributor-friendly
   - Build things that others find rewarding to consume, troubleshoot, repair, and extend

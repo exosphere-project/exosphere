@@ -1,4 +1,4 @@
-# Exosphere Configuration Options
+# Configuration Options
 
 These options are primarily intended for cloud operators who wish to offer a customized deployment of Exosphere to their user community. Set these in `config.js`.
 

@@ -18,6 +18,6 @@ To help the user avoid creating a surprisingly broken instance, Exosphere displa
 As a cloud operator, you might have mitigated these concerns, e.g., by offering only public images which have supported operating systems and a desktop environment pre-installed. Or, you may have different guidance for the user if they enable a desktop environment. So, Exosphere provides you with the ability to override this generic warning message. You can override the message at two levels:
 
 - **At the image-specific level**, by setting a value for the `exoDesktopMessage` image metadata property. An empty string value will display no message at all.
-- **At the cloud level**, by setting the value of `desktopMessage` in cloud-specific configuration. See [Example Cloud Configuration](../README.md#example-cloud-configuration) for more details.
+- **At the cloud level**, by setting the value of `desktopMessage` in cloud-specific configuration. See [Example Cloud Configuration](config-options.md#example-cloud-configuration) for more details.
 
 A message set at the image-specific level overrides a message set at the cloud level.

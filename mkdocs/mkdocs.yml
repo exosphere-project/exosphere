@@ -1,0 +1,44 @@
+site_name: Exosphere
+site_url: https://exosphere.app
+repo_url: https://gitlab.com/exosphere/exosphere
+
+docs_dir: 'src'
+edit_uri: '-/blob/master'
+
+theme: readthedocs
+
+markdown_extensions:
+  # https://github.com/mkdocs/mkdocs/issues/545
+  - mdx_truly_sane_lists
+
+nav:
+  - Home: 'README.md'
+  - Use Exosphere: 'https://try.exosphere.app'
+  - 'docs/values-goals.md'
+  - For Users and Anyone Else:
+      - 'docs/run-exosphere.md'
+      - 'docs/compatibility.md'
+      - 'docs/nomenclature-reference.md'
+      - 'docs/pwa-install.md'
+  - For Cloud Operators:
+      - 'docs/config-options.md'
+      - 'docs/instance-setup.md'
+      - 'docs/solving-cors-problem.md'
+      - 'docs/user-app-proxy.md'
+      - 'docs/instance-types.md'
+      - 'docs/flavor-groups.md'
+      - 'docs/desktop-message.md'
+      - 'docs/federated-login.md'
+  - For Exosphere Contributors:
+      - 'contributing.md'
+      - 'docs/code-tour.md'
+      - 'docs/style.md'
+      - 'docs/adr/README.md'
+      - 'Exosphere Tests': 'tests/README.md'
+      - 'Browser Integration Tests': 'integration-tests/README.md'
+      - 'docs/mkdocs-site.md'
+      - 'docs/code-of-conduct.md'
+  - Legal Docs:
+      - 'Exosphere License': 'LICENSE'
+      - 'docs/acceptable-use-policy.md'
+      - 'docs/privacy-policy.md'

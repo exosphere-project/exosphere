@@ -1,4 +1,4 @@
-# Installing Exosphere Progressive Web Application
+# Installing Progressive Web Application
 
 With [this](https://gitlab.com/exosphere/exosphere/-/merge_requests/381) change, the Electron-based Exosphere desktop application is deprecated in favor of the new [Progressive Web Application](https://en.wikipedia.org/wiki/Progressive_web_application) (PWA).
 
