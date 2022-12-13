@@ -307,6 +307,7 @@ routeToViewStateModelCmd sharedModel route =
                             ( projectViewProto <|
                                 ServerCreate
                                     (Page.ServerCreate.init
+                                        project
                                         imageId
                                         imageName
                                         maybeRestrictFlavorIds

@@ -40,7 +40,7 @@ import Types.HelperTypes as HelperTypes
         , FloatingIpReuseOption(..)
         )
 import Types.Project exposing (Project)
-import Types.Server exposing (NewServerNetworkOptions(..))
+import Types.Server exposing (NewServerNetworkOptions(..), Server)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH exposing (edges)
 import View.Types
@@ -80,8 +80,8 @@ type Msg
     | NoOp
 
 
-init : OSTypes.ImageUuid -> String -> Maybe (List OSTypes.FlavorId) -> Maybe Bool -> Model
-init imageUuid imageName restrictFlavorIds deployGuacamole =
+init : Project -> OSTypes.ImageUuid -> String -> Maybe (List OSTypes.FlavorId) -> Maybe Bool -> Model
+init project imageUuid imageName restrictFlavorIds deployGuacamole =
     { serverName = ""
     , imageUuid = imageUuid
     , imageName = imageName
@@ -92,7 +92,7 @@ init imageUuid imageName restrictFlavorIds deployGuacamole =
     , userDataTemplate = cloudInitUserDataTemplate
     , networkUuid = Nothing
     , showAdvancedOptions = False
-    , keypairName = Nothing
+    , keypairName = initialKeypairName project
     , deployGuacamole = deployGuacamole
     , deployDesktopEnvironment = False
     , installOperatingSystemUpdates = True
@@ -107,6 +107,63 @@ init imageUuid imageName restrictFlavorIds deployGuacamole =
     , createServerAttempted = False
     , randomServerName = ""
     }
+
+
+initialKeypairName : Project -> Maybe OSTypes.KeypairName
+initialKeypairName project =
+    let
+        projectKeypairNames : List OSTypes.KeypairName
+        projectKeypairNames =
+            project.keypairs |> RemoteData.withDefault [] |> List.map .name
+
+        keypairNameOfNewestServerCreatedByUser =
+            let
+                serversCreatedByUser : List Server
+                serversCreatedByUser =
+                    project.servers
+                        |> RDPP.withDefault []
+                        |> List.filter
+                            (\s ->
+                                GetterSetters.serverCreatedByCurrentUser project s.osProps.uuid
+                                    |> Maybe.withDefault False
+                            )
+
+                newestServerCreatedByUser : Maybe Server
+                newestServerCreatedByUser =
+                    let
+                        serverSorter : Server -> Int
+                        serverSorter s =
+                            s.osProps.details.created |> Time.posixToMillis
+                    in
+                    serversCreatedByUser
+                        |> List.sortBy serverSorter
+                        |> List.head
+
+                maybeKn : Maybe OSTypes.KeypairName
+                maybeKn =
+                    newestServerCreatedByUser
+                        |> Maybe.andThen (\s -> s.osProps.details.keypairName)
+            in
+            maybeKn
+                -- Ensure there is actually a keypair with this name
+                -- (i.e. that the user didn't delete it since creating the server)
+                |> Maybe.andThen
+                    (\kn ->
+                        if List.member kn projectKeypairNames then
+                            Just kn
+
+                        else
+                            Nothing
+                    )
+
+        anyKeypairNameBelongingToUser =
+            projectKeypairNames
+                |> List.head
+    in
+    -- Use the first of these which resolves to `Just` a keypair name.
+    [ keypairNameOfNewestServerCreatedByUser, anyKeypairNameBelongingToUser ]
+        |> List.filterMap identity
+        |> List.head
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
