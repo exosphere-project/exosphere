@@ -1675,6 +1675,13 @@ keypairPicker context project model =
         noneOption =
             Input.option Nothing (Element.text "None")
 
+        promptText =
+            String.join " "
+                [ "Choose"
+                , Helpers.String.indefiniteArticle context.localization.pkiPublicKeyForSsh
+                , context.localization.pkiPublicKeyForSsh
+                ]
+
         renderKeypairs keypairs =
             if List.isEmpty keypairs then
                 Text.p []
@@ -1698,14 +1705,7 @@ keypairPicker context project model =
                     { label =
                         Input.labelAbove
                             [ Element.paddingXY 0 spacer.px12 ]
-                            (Element.text <|
-                                String.join " "
-                                    [ "Choose"
-                                    , Helpers.String.indefiniteArticle context.localization.pkiPublicKeyForSsh
-                                    , context.localization.pkiPublicKeyForSsh
-                                    , "(this is optional, skip if unsure)"
-                                    ]
-                            )
+                            (Element.text promptText)
                     , onChange = \keypairName -> GotKeypairName <| keypairName
                     , options = noneOption :: List.map keypairAsOption keypairs
                     , selected = Just model.keypairName
@@ -1715,9 +1715,7 @@ keypairPicker context project model =
         [ Element.spacing spacer.px12 ]
         [ Element.el
             [ Font.semiBold ]
-            (Element.text
-                (Helpers.String.toTitleCase context.localization.pkiPublicKeyForSsh)
-            )
+            (Element.text promptText)
         , VH.renderWebData
             context
             project.keypairs
