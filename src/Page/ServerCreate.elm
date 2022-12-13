@@ -622,6 +622,10 @@ view context project currentTime model =
                                                 genericInvalidFormHint
                                 in
                                 VH.invalidInputHelperText context.palette invalidFormHint
+
+                hasAnyKeypairs : Bool
+                hasAnyKeypairs =
+                    project.keypairs |> RemoteData.withDefault [] |> List.isEmpty |> not
             in
             [ Element.column
                 [ Element.spacing spacer.px8
@@ -686,6 +690,12 @@ view context project currentTime model =
             , countPicker context model computeQuota volumeQuota flavor
             , desktopEnvironmentPicker context project model
             , customWorkflowInput context project model
+            , if hasAnyKeypairs then
+                keypairPicker context project model
+
+              else
+                -- No keypairs, so show this further down in advanced options
+                Element.none
             , Element.column
                 [ Element.spacing spacer.px32 ]
               <|
@@ -710,7 +720,12 @@ view context project currentTime model =
                             , guacamolePicker context model
                             , networkPicker context project model
                             , floatingIpPicker context project model
-                            , keypairPicker context project model
+                            , if hasAnyKeypairs then
+                                -- Show this further up, outside of the advanced options
+                                Element.none
+
+                              else
+                                keypairPicker context project model
                             , clusterInput context model
                             , userDataInput context model
                             ]
