@@ -11,13 +11,16 @@
     state: directory
   loop: '{{ vols }}'
 
-
 - name: 'volumes automatically mounted'
   systemd:
     daemon-reload: 'yes'
     name: 'media-volume-{{ item }}.automount'
     state: 'started'
   loop: '{{ vols }}'
+  retries: 3
+  delay: 3
+  register: 'result'
+  until: 'result is not failed'
 
 - name: 'systemd unit templated to set volume ownership'
   template:
