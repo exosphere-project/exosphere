@@ -20,6 +20,7 @@ import OpenStack.Quotas as OSQuotas
 import OpenStack.ServerNameValidator exposing (serverNameValidator)
 import OpenStack.Types as OSTypes
 import RemoteData
+import Rest.Naming
 import Route
 import ServerDeploy exposing (cloudInitUserDataTemplate)
 import Style.Helpers as SH exposing (spacer)
@@ -1024,13 +1025,7 @@ countPicker context model computeQuota volumeQuota flavor =
                                     ++ context.localization.virtualComputer
                                     |> Helpers.String.pluralize
                                 , " is chosen, each will be named, for example, \""
-                                , model.serverName
-                                , " 1 of "
-                                , if model.count == 1 then
-                                    "n"
-
-                                  else
-                                    String.fromInt model.count
+                                , Rest.Naming.generateServerName model.serverName model.count 1
                                 , "\""
                                 ]
                         ]

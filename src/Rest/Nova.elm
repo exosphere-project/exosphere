@@ -39,6 +39,7 @@ import Rest.Helpers
         , openstackCredentialedRequest
         , resultToMsgErrorBody
         )
+import Rest.Naming
 import Types.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes exposing (HttpRequestMethod(..), ProjectIdentifier, Url)
@@ -293,17 +294,10 @@ requestCreateServer project createServerRequest =
         instanceNumbers =
             List.range 1 createServerRequest.count
 
-        generateServerName : String -> Int -> Int -> String
-        generateServerName baseName serverCount index =
-            if serverCount == 1 then
-                baseName
-
-            else
-                baseName ++ " " ++ String.fromInt index ++ " of " ++ String.fromInt createServerRequest.count
-
         instanceNames =
             instanceNumbers
-                |> List.map (generateServerName createServerRequest.name createServerRequest.count)
+                |> List.map
+                    (Rest.Naming.generateServerName createServerRequest.name createServerRequest.count)
 
         baseServerProps innerCreateServerRequest instanceName =
             let
