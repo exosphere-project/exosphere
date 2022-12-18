@@ -724,24 +724,8 @@ getExoSetupStatusStr server =
         ServerFromExo exoOriginProps ->
             case exoOriginProps.exoSetupStatus.data of
                 RDPP.DoHave ( exoSetupStatus, _ ) _ ->
-                    case exoSetupStatus of
-                        ExoSetupWaiting ->
-                            Just "Waiting"
-
-                        ExoSetupRunning ->
-                            Just "Running"
-
-                        ExoSetupComplete ->
-                            Just "Complete"
-
-                        ExoSetupError ->
-                            Just "Error"
-
-                        ExoSetupTimeout ->
-                            Just "Timeout"
-
-                        ExoSetupUnknown ->
-                            Just "Unknown"
+                    Types.Server.exoSetupStatusToString exoSetupStatus
+                        |> Just
 
                 RDPP.DontHave ->
                     Nothing
