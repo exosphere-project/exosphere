@@ -1427,7 +1427,52 @@ createdAgoByFromSize context ( agoWord, agoContents ) maybeWhoCreatedTuple maybe
 
             Nothing ->
                 Element.none
+        , Element.row [ Element.padding spacer.px8 ]
+            [ Element.el [ subduedText ] (Element.text <| "Burn rate " ++ (getAllocationBurnRate |> String.fromInt) ++ " SUs/hour")
+            ]
         ]
+
+
+
+{-
+   implement as per this calculation
+   state_charge_multipliers = {
+       "active": 1,
+       "deleted": 0,
+       "error": 0,
+       "not_yet_created": 0,
+       "paused": 0.75,
+       "resized": 1,
+       "shelved_offloaded": 0,
+       "stopped": 0.5,
+       "suspended": 0.75,
+   }
+
+   flavor_type_charge_multipliers = {
+       "m3": 1,
+       "g3": 4,
+       "r3": 2,
+   }
+
+   flavor_type_to_resource_type = {
+       "m3": "jetstream2.indiana.xsede.org",
+       "g3": "jetstream2-gpu.indiana.xsede.org",
+       "r3": "jetstream2-lm.indiana.xsede.org",
+   }
+
+
+   flavor_type = flavor.get("name").split(".")[0]
+   flavor_type_charge_multiplier = flavor_type_charge_multipliers.get(flavor_type)
+
+   vcpus_charge_multiplier = flavor.get("vcpus")
+
+   flavor_charge_multiplier = flavor_type_charge_multiplier * vcpus_charge_multiplier
+-}
+
+
+getAllocationBurnRate : Int
+getAllocationBurnRate =
+    1
 
 
 featuredImageNamePrefixLookup : View.Types.Context -> Project -> Maybe String
