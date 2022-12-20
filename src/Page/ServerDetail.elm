@@ -1219,13 +1219,9 @@ serverEventHistory context project server currentTime =
                                     ]
                       }
                     ]
-            in
-            Element.table
-                [ Element.spacingXY 0 spacer.px8
-                , Element.width Element.fill
-                ]
-                { data =
-                    List.map (\{ action, startTime } -> { action = action, startTime = startTime }) serverEvents
+
+                events =
+                    ((serverEvents |> List.map (\{ action, startTime } -> { action = action, startTime = startTime }))
                         ++ (case serverSetupStatus of
                                 Just ( status, Just timestamp ) ->
                                     [ { action = "Setup " ++ status
@@ -1239,6 +1235,15 @@ serverEventHistory context project server currentTime =
                                 Nothing ->
                                     []
                            )
+                    )
+                        |> List.sortBy (\{ startTime } -> startTime |> Time.posixToMillis)
+                        |> List.reverse
+            in
+            Element.table
+                [ Element.spacingXY 0 spacer.px8
+                , Element.width Element.fill
+                ]
+                { data = events
                 , columns = columns
                 }
 
