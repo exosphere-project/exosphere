@@ -1,4 +1,7 @@
-module View.Nav exposing (navBar, navBarHeight, navMenuWidth)
+module View.Nav exposing
+    ( navBar
+    , navBarHeight
+    )
 
 import Element
 import Element.Background as Background
@@ -12,11 +15,6 @@ import Style.Widgets.NavButton exposing (navButton)
 import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
 import View.Types
-
-
-navMenuWidth : Int
-navMenuWidth =
-    180
 
 
 navBarHeight : Int

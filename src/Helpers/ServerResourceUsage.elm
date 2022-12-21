@@ -1,4 +1,7 @@
-module Helpers.ServerResourceUsage exposing (getMostRecentDataPoint, parseConsoleLog, timeSeriesRecentDataPoints)
+module Helpers.ServerResourceUsage exposing
+    ( parseConsoleLog
+    , timeSeriesRecentDataPoints
+    )
 
 import Dict
 import Helpers.Helpers as Helpers
@@ -37,15 +40,6 @@ parseConsoleLog consoleLog prevHistory =
                 0
     in
     History newTimeSeries newStrikes
-
-
-getMostRecentDataPoint : Dict.Dict Int DataPoint -> Maybe ( Int, DataPoint )
-getMostRecentDataPoint timeSeries =
-    timeSeries
-        |> Dict.toList
-        |> List.sortBy Tuple.first
-        |> List.reverse
-        |> List.head
 
 
 decodeLogLine : Json.Decode.Decoder ( Int, DataPoint )

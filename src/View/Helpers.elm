@@ -22,7 +22,6 @@ module View.Helpers exposing
     , loginPickerButton
     , possiblyUntitledResource
     , radioLabelAttributes
-    , renderIf
     , renderMarkdown
     , renderMaybe
     , renderMessageAsElement
@@ -1544,15 +1543,6 @@ warnMessageHelperText palette helperText =
             ]
             (Element.text helperText)
         ]
-
-
-renderIf : Bool -> Element.Element msg -> Element.Element msg
-renderIf condition component =
-    if condition then
-        component
-
-    else
-        Element.none
 
 
 renderMaybe : Maybe a -> (a -> Element.Element msg) -> Element.Element msg
