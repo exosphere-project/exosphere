@@ -42,7 +42,7 @@ In addition to [Running Exosphere For Development Work](docs/run-exosphere.md#fo
   - If you save files often, you save yourself a lot of typing and indenting work.
   - Similarly, if you find yourself editing `js`, `json`, or `html` files, you can [enable Prettier integration](https://prettier.io/docs/en/editors.html) to automatically format those.
 - **`husky` pre-push hook**
-  - Run `npm install` and `npm prepare` to set up `husky` in your development environment.
+  - Run `npm install` and `npm run prepare` to set up `husky` in your development environment.
   - When you try to `git push`, husky will run these, and stop the push if anything fails:
     - unit tests in `tests/`
     - `elm-analyse` static analysis tool
