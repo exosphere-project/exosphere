@@ -1387,8 +1387,10 @@ createdAgoByFromSize :
     -> Maybe ( String, String )
     -> Maybe ( String, String )
     -> Maybe ( String, Element.Element msg )
+    -> OSTypes.Server
+    -> Project
     -> Element.Element msg
-createdAgoByFromSize context ( agoWord, agoContents ) maybeWhoCreatedTuple maybeFromTuple maybeSizeTuple =
+createdAgoByFromSize context ( agoWord, agoContents ) maybeWhoCreatedTuple maybeFromTuple maybeSizeTuple server { flavors, endpoints } =
     let
         subduedText =
             Font.color (context.palette.neutral.text.subdued |> SH.toElementColor)
@@ -1427,52 +1429,56 @@ createdAgoByFromSize context ( agoWord, agoContents ) maybeWhoCreatedTuple maybe
 
             Nothing ->
                 Element.none
-        , Element.row [ Element.padding spacer.px8 ]
-            [ Element.el [ subduedText ] (Element.text <| "Burn rate " ++ (getAllocationBurnRate |> String.fromInt) ++ " SUs/hour")
-            ]
+        , if "js2.jetstream-cloud.org" == UrlHelpers.hostnameFromUrl endpoints.keystone then
+            Element.row [ Element.padding spacer.px8 ]
+                [ Element.el [ subduedText ]
+                    (Element.text <|
+                        "Burn rate "
+                            ++ (getAllocationBurnRate flavors server
+                                    |> Maybe.map String.fromInt
+                                    |> Maybe.withDefault "Unknown"
+                               )
+                            ++ " SUs/hour"
+                    )
+                ]
+
+          else
+            Element.none
         ]
 
 
+getAllocationBurnRate : List OSTypes.Flavor -> OSTypes.Server -> Maybe Int
+getAllocationBurnRate flavors { details } =
+    let
+        serverFlavor =
+            flavors |> List.Extra.find (\{ id } -> id == details.flavorId)
 
-{-
-   implement as per this calculation
-   state_charge_multipliers = {
-       "active": 1,
-       "deleted": 0,
-       "error": 0,
-       "not_yet_created": 0,
-       "paused": 0.75,
-       "resized": 1,
-       "shelved_offloaded": 0,
-       "stopped": 0.5,
-       "suspended": 0.75,
-   }
+        flavorToResource : { a | name : String } -> Maybe String
+        flavorToResource flavor =
+            flavor.name |> String.split "." |> List.head
 
-   flavor_type_charge_multipliers = {
-       "m3": 1,
-       "g3": 4,
-       "r3": 2,
-   }
+        resourceMultiplier : String -> Maybe Int
+        resourceMultiplier resource =
+            case resource of
+                "m3" ->
+                    Just 1
 
-   flavor_type_to_resource_type = {
-       "m3": "jetstream2.indiana.xsede.org",
-       "g3": "jetstream2-gpu.indiana.xsede.org",
-       "r3": "jetstream2-lm.indiana.xsede.org",
-   }
+                "g3" ->
+                    Just 4
 
+                "r3" ->
+                    Just 2
 
-   flavor_type = flavor.get("name").split(".")[0]
-   flavor_type_charge_multiplier = flavor_type_charge_multipliers.get(flavor_type)
-
-   vcpus_charge_multiplier = flavor.get("vcpus")
-
-   flavor_charge_multiplier = flavor_type_charge_multiplier * vcpus_charge_multiplier
--}
-
-
-getAllocationBurnRate : Int
-getAllocationBurnRate =
-    1
+                _ ->
+                    Nothing
+    in
+    serverFlavor
+        |> Maybe.andThen
+            (\sf ->
+                flavorToResource sf
+                    |> Maybe.andThen resourceMultiplier
+                    |> Maybe.map (\multiplier -> multiplier * sf.vcpu)
+            )
 
 
 featuredImageNamePrefixLookup : View.Types.Context -> Project -> Maybe String
