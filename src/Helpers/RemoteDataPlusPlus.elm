@@ -7,7 +7,6 @@ module Helpers.RemoteDataPlusPlus exposing
     , empty
     , isPollableWithInterval
     , setLoading
-    , setNotLoading
     , withDefault
     )
 
@@ -67,11 +66,6 @@ empty =
 setLoading : RemoteDataPlusPlus x y -> RemoteDataPlusPlus x y
 setLoading rdpp =
     { rdpp | refreshStatus = Loading }
-
-
-setNotLoading : RemoteDataPlusPlus x y -> RemoteDataPlusPlus x y
-setNotLoading rdpp =
-    { rdpp | refreshStatus = NotLoading Nothing }
 
 
 isPollableWithInterval : RemoteDataPlusPlus x y -> Time.Posix -> Int -> Bool
