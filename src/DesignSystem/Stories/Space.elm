@@ -10,7 +10,6 @@ import Style.Helpers as SH exposing (spacer)
 import Style.Types as ST
 import Style.Widgets.Text as Text
 import UIExplorer exposing (storiesOf)
-import UIExplorer.ColorMode exposing (ColorMode(..))
 
 
 notes : String

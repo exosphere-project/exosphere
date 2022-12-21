@@ -8,11 +8,9 @@ import State.ViewState
 import Style.Helpers as SH exposing (spacer)
 import Style.Widgets.HomeLogo exposing (homeLogo)
 import Style.Widgets.Icon as Icon
-import Style.Widgets.IconButton exposing (FlowOrder(..))
 import Style.Widgets.NavButton exposing (navButton)
 import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
-import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
 import View.Types
 
 
