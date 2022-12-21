@@ -9,7 +9,6 @@ import Style.Types
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.ToggleTip exposing (toggleTip, warningToggleTip)
 import UIExplorer exposing (storiesOf)
-import UIExplorer.ColorMode exposing (ColorMode(..))
 
 
 notes : String
