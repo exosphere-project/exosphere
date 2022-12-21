@@ -1220,30 +1220,32 @@ serverEventHistory context project server currentTime =
                       }
                     ]
 
-                events =
-                    ((serverEvents |> List.map (\{ action, startTime } -> { action = action, startTime = startTime }))
-                        ++ (case serverSetupStatus of
-                                Just ( status, Just timestamp ) ->
-                                    [ { action = "Setup " ++ status
-                                      , startTime = timestamp
-                                      }
-                                    ]
+                serverEventsWithActionAndStartTime =
+                    serverEvents
+                        |> List.map (\{ action, startTime } -> { action = action, startTime = startTime })
 
-                                Just ( _, Nothing ) ->
-                                    []
+                serverSetupStatusInfo =
+                    case serverSetupStatus of
+                        Just ( status, Just timestamp ) ->
+                            [ { action = "Setup " ++ status
+                              , startTime = timestamp
+                              }
+                            ]
 
-                                Nothing ->
-                                    []
-                           )
-                    )
-                        |> List.sortBy (\{ startTime } -> startTime |> Time.posixToMillis)
-                        |> List.reverse
+                        Just ( _, Nothing ) ->
+                            []
+
+                        Nothing ->
+                            []
             in
             Element.table
                 [ Element.spacingXY 0 spacer.px8
                 , Element.width Element.fill
                 ]
-                { data = events
+                { data =
+                    (serverEventsWithActionAndStartTime ++ serverSetupStatusInfo)
+                        |> List.sortBy (\{ startTime } -> startTime |> Time.posixToMillis)
+                        |> List.reverse
                 , columns = columns
                 }
 
