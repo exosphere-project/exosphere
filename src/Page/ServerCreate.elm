@@ -1023,8 +1023,7 @@ countPicker context model computeQuota volumeQuota flavor =
                             String.concat
                                 [ "If more than one "
                                     ++ context.localization.virtualComputer
-                                    |> Helpers.String.pluralize
-                                , " are chosen, each will be named, for example, \""
+                                , " is chosen, each will be named, for example, \""
 
                                 -- As example we used 3 as instance count
                                 , Rest.Naming.generateServerName model.serverName 3 1
