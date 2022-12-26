@@ -9,6 +9,7 @@ module Types.Server exposing
     , ServerOrigin(..)
     , ServerUiStatus(..)
     , currentExoServerVersion
+    , exoSetupStatusToString
     )
 
 import Helpers.RemoteDataPlusPlus as RDPP
@@ -109,3 +110,25 @@ type NewServerNetworkOptions
     | AutoSelectedNetwork OSTypes.NetworkUuid
     | ManualNetworkSelection
     | NoneAvailable
+
+
+exoSetupStatusToString : ExoSetupStatus -> String
+exoSetupStatusToString status =
+    case status of
+        ExoSetupWaiting ->
+            "Waiting"
+
+        ExoSetupRunning ->
+            "Running"
+
+        ExoSetupComplete ->
+            "Complete"
+
+        ExoSetupError ->
+            "Error"
+
+        ExoSetupTimeout ->
+            "Timeout"
+
+        ExoSetupUnknown ->
+            "Unknown"

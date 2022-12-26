@@ -1154,11 +1154,28 @@ serverEventHistory context project server currentTime =
     case server.events.data of
         RDPP.DoHave serverEvents _ ->
             let
+                serverSetupStatus : Maybe ( String, Maybe Time.Posix )
+                serverSetupStatus =
+                    case server.exoProps.serverOrigin of
+                        ServerNotFromExo ->
+                            Nothing
+
+                        ServerFromExo exoOriginProps ->
+                            case exoOriginProps.exoSetupStatus.data of
+                                RDPP.DoHave ( exoSetupStatus, timestamp ) _ ->
+                                    Just
+                                        ( Types.Server.exoSetupStatusToString exoSetupStatus
+                                        , timestamp
+                                        )
+
+                                RDPP.DontHave ->
+                                    Nothing
+
                 renderTableHeader : String -> Element.Element Msg
                 renderTableHeader headerText =
                     Element.el [ Font.semiBold ] <| Element.text headerText
 
-                columns : List (Element.Column OSTypes.ServerEvent Msg)
+                columns : List (Element.Column { action : String, startTime : Time.Posix } Msg)
                 columns =
                     [ { header = renderTableHeader "Action"
                       , width = Element.px 180
@@ -1202,12 +1219,35 @@ serverEventHistory context project server currentTime =
                                     ]
                       }
                     ]
+
+                serverEventsWithActionAndStartTime =
+                    serverEvents
+                        |> List.map (\{ action, startTime } -> { action = action, startTime = startTime })
+
+                serverSetupStatusInfo =
+                    case serverSetupStatus of
+                        Just ( status, Just timestamp ) ->
+                            [ { action = "Setup " ++ status
+                              , startTime = timestamp
+                              }
+                            ]
+
+                        Just ( _, Nothing ) ->
+                            []
+
+                        Nothing ->
+                            []
             in
             Element.table
                 [ Element.spacingXY 0 spacer.px8
                 , Element.width Element.fill
                 ]
-                { data = serverEvents, columns = columns }
+                { data =
+                    (serverEventsWithActionAndStartTime ++ serverSetupStatusInfo)
+                        |> List.sortBy (\{ startTime } -> startTime |> Time.posixToMillis)
+                        |> List.reverse
+                , columns = columns
+                }
 
         _ ->
             Element.none
