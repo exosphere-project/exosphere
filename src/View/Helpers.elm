@@ -62,6 +62,7 @@ import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (humanCount)
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
+import Helpers.JetStream2
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import Helpers.Time exposing (humanReadableDateAndTime)
@@ -1432,53 +1433,20 @@ createdAgoByFromSize context ( agoWord, agoContents ) maybeWhoCreatedTuple maybe
         , if "js2.jetstream-cloud.org" == UrlHelpers.hostnameFromUrl endpoints.keystone then
             Element.row [ Element.padding spacer.px8 ]
                 [ Element.el [ subduedText ]
-                    (Element.text <|
-                        "Burn rate "
-                            ++ (getAllocationBurnRate flavors server
-                                    |> Maybe.map String.fromInt
-                                    |> Maybe.withDefault "Unknown"
-                               )
-                            ++ " SUs/hour"
+                    (String.concat
+                        [ "Burn rate "
+                        , Helpers.JetStream2.calculateAllocationBurnRate flavors server
+                            |> Maybe.map (Helpers.Formatting.humanRatio context.locale)
+                            |> Maybe.withDefault "Unknown"
+                        , " SUs/hour"
+                        ]
+                        |> Element.text
                     )
                 ]
 
           else
             Element.none
         ]
-
-
-getAllocationBurnRate : List OSTypes.Flavor -> OSTypes.Server -> Maybe Int
-getAllocationBurnRate flavors { details } =
-    let
-        serverFlavor =
-            flavors |> List.Extra.find (\{ id } -> id == details.flavorId)
-
-        flavorToResource : { a | name : String } -> Maybe String
-        flavorToResource flavor =
-            flavor.name |> String.split "." |> List.head
-
-        resourceMultiplier : String -> Maybe Int
-        resourceMultiplier resource =
-            case resource of
-                "m3" ->
-                    Just 1
-
-                "g3" ->
-                    Just 4
-
-                "r3" ->
-                    Just 2
-
-                _ ->
-                    Nothing
-    in
-    serverFlavor
-        |> Maybe.andThen
-            (\sf ->
-                flavorToResource sf
-                    |> Maybe.andThen resourceMultiplier
-                    |> Maybe.map (\multiplier -> multiplier * sf.vcpu)
-            )
 
 
 featuredImageNamePrefixLookup : View.Types.Context -> Project -> Maybe String

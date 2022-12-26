@@ -1,4 +1,4 @@
-module Helpers.Formatting exposing (Unit(..), humanBytes, humanCount, humanNumber)
+module Helpers.Formatting exposing (Unit(..), humanBytes, humanCount, humanNumber, humanRatio)
 
 import FormatNumber exposing (format)
 import FormatNumber.Locales exposing (Decimals(..), Locale)
@@ -42,6 +42,11 @@ humanBytes locale byteCount =
 humanCount : Locale -> Int -> String
 humanCount locale n =
     format { locale | decimals = Exact 0 } (toFloat n)
+
+
+humanRatio : Locale -> Float -> String
+humanRatio locale n =
+    format { locale | decimals = Exact 2 } n
 
 
 {-| Transform a number for clearer human comprehension when reading.
