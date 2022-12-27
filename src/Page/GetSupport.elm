@@ -163,7 +163,7 @@ view context sharedModel model =
                                             |> List.map
                                                 (\image ->
                                                     ( image.uuid
-                                                    , image.name
+                                                    , VH.resourceName (Just image.name) image.uuid
                                                     )
                                                 )
                                             -- This removes duplicate values, heh
@@ -179,7 +179,7 @@ view context sharedModel model =
                                             |> List.map
                                                 (\server ->
                                                     ( server.osProps.uuid
-                                                    , server.osProps.name
+                                                    , VH.resourceName (Just server.osProps.name) server.osProps.uuid
                                                     )
                                                 )
                                             |> List.sortBy Tuple.second
@@ -192,7 +192,7 @@ view context sharedModel model =
                                             |> List.map
                                                 (\volume ->
                                                     ( volume.uuid
-                                                    , Maybe.withDefault volume.uuid volume.name
+                                                    , VH.resourceName volume.name volume.uuid
                                                     )
                                                 )
                                             |> List.sortBy Tuple.second
