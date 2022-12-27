@@ -184,7 +184,7 @@ serverTileContents context project =
 
         renderServer : Server -> List (Element.Element Msg)
         renderServer server =
-            [ VH.possiblyUntitledResource server.osProps.name context.localization.virtualComputer
+            [ VH.extendedResourceName (Just server.osProps.name) server.osProps.uuid context.localization.virtualComputer
                 |> VH.ellipsizedText
                 |> Element.el
                     [ Element.centerY
@@ -208,7 +208,7 @@ volumeTileContents context project =
     let
         renderVolume : OSTypes.Volume -> List (Element.Element Msg)
         renderVolume volume =
-            [ VH.possiblyUntitledResource (Maybe.withDefault "" volume.name) context.localization.blockDevice
+            [ VH.extendedResourceName volume.name volume.uuid context.localization.blockDevice
                 |> VH.ellipsizedText
                 |> Element.el
                     [ Element.centerY
@@ -282,7 +282,7 @@ imageTileContents context project =
     let
         renderImage : OSTypes.Image -> List (Element.Element Msg)
         renderImage image =
-            [ VH.possiblyUntitledResource image.name context.localization.staticRepresentationOfBlockDeviceContents
+            [ VH.extendedResourceName (Just image.name) image.uuid context.localization.staticRepresentationOfBlockDeviceContents
                 |> VH.ellipsizedText
                 |> Element.el
                     [ Element.centerY
