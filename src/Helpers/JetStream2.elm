@@ -58,6 +58,9 @@ stateChargeMultiplier openStackStatus =
         OpenStack.Types.ServerDeleted ->
             0
 
+        OpenStack.Types.ServerSoftDeleted ->
+            0
+
         OpenStack.Types.ServerError ->
             0
 
@@ -70,16 +73,22 @@ stateChargeMultiplier openStackStatus =
         OpenStack.Types.ServerResize ->
             1
 
+        OpenStack.Types.ServerShelved ->
+            0
+
         OpenStack.Types.ServerShelvedOffloaded ->
             0
 
         OpenStack.Types.ServerStopped ->
             0.5
 
+        OpenStack.Types.ServerShutoff ->
+            0.5
+
         OpenStack.Types.ServerSuspended ->
             0.75
 
-        -- TODO: Get ratio's for these statuses
+        -- Rest are all considered to have 1
         OpenStack.Types.ServerHardReboot ->
             1
 
@@ -99,15 +108,6 @@ stateChargeMultiplier openStackStatus =
             1
 
         OpenStack.Types.ServerRevertResize ->
-            1
-
-        OpenStack.Types.ServerShelved ->
-            1
-
-        OpenStack.Types.ServerShutoff ->
-            1
-
-        OpenStack.Types.ServerSoftDeleted ->
             1
 
         OpenStack.Types.ServerUnknown ->
