@@ -83,9 +83,12 @@ view : View.Types.Context -> Project -> Model -> Element.Element Msg
 view context project model =
     let
         volumeName =
-            GetterSetters.volumeLookup project model.volumeUuid
-                |> Maybe.andThen (\vol -> vol.name)
-                |> Maybe.withDefault model.volumeUuid
+            case GetterSetters.volumeLookup project model.volumeUuid of
+                Nothing ->
+                    model.volumeUuid
+
+                Just volume ->
+                    VH.resourceName volume.name volume.uuid
     in
     if model.showHeading then
         Element.column
@@ -155,7 +158,7 @@ volumeDetail context project model =
                                             , ":"
                                             ]
                                         )
-                                        (Element.text metadata.name)
+                                        (Element.text (VH.resourceName (Just metadata.name) metadata.uuid))
                             ]
                         )
                     , Element.row [] [ Element.el [] (Element.text " ") ]
@@ -171,7 +174,7 @@ renderAttachment context project attachment =
         serverName serverUuid =
             case GetterSetters.serverLookup project serverUuid of
                 Just server ->
-                    server.osProps.name
+                    VH.resourceName (Just server.osProps.name) server.osProps.uuid
 
                 Nothing ->
                     String.join " "
