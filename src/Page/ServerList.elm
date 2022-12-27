@@ -254,7 +254,7 @@ serverRecords context currentTime project servers =
         (\server ->
             { id = server.osProps.uuid
             , selectable = server.osProps.details.lockStatus == OSTypes.ServerUnlocked
-            , name = server.osProps.name
+            , name = VH.resourceName (Just server.osProps.name) server.osProps.uuid
             , status = VH.getServerUiStatus server
             , size = flavor server
             , floatingIpAddress = floatingIpAddress server
