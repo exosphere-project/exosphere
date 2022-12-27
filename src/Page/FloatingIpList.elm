@@ -314,7 +314,7 @@ floatingIpView context project floatingIpRecord =
                                     , label =
                                         Element.el
                                             [ Font.color (SH.toElementColor context.palette.primary) ]
-                                            (Element.text server.osProps.name)
+                                            (Element.text <| VH.resourceName (Just server.osProps.name) server.osProps.uuid)
                                     }
                                 ]
 
