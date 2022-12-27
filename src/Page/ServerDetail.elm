@@ -292,6 +292,8 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                         project
                         details.imageUuid
                         |> Maybe.map .name
+                        |> (\maybeName -> VH.resourceName maybeName details.imageUuid)
+                        |> Just
 
                 maybeVolBackedImageName =
                     let
@@ -300,7 +302,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                     in
                     GetterSetters.getBootVolume vols server.osProps.uuid
                         |> Maybe.andThen .imageMetadata
-                        |> Maybe.map .name
+                        |> Maybe.map (\data -> VH.resourceName (Just data.name) data.uuid)
             in
             case maybeImageName of
                 Just name ->
@@ -540,10 +542,13 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
 serverNameView : View.Types.Context -> Project -> Time.Posix -> Model -> Server -> Element.Element Msg
 serverNameView context project currentTime model server =
     let
+        name_ =
+            VH.resourceName (Just server.osProps.name) server.osProps.uuid
+
         serverNameViewPlain =
             Element.row
                 [ Element.spacing spacer.px8 ]
-                [ Text.text Text.H2 [] server.osProps.name
+                [ Text.text Text.H2 [] name_
                 , Widget.iconButton
                     (SH.materialStyle context.palette).button
                     { text = "Edit"
@@ -554,7 +559,7 @@ serverNameView context project currentTime model server =
                             |> Element.html
                             |> Element.el []
                     , onPress =
-                        Just <| GotServerNamePendingConfirmation (Just server.osProps.name)
+                        Just <| GotServerNamePendingConfirmation (Just name_)
                     }
                 ]
 
@@ -1637,6 +1642,10 @@ serverVolumes context project server =
 
         _ ->
             let
+                vdevice : { a | device : String } -> Element.Element msg
+                vdevice =
+                    \v -> Element.text v.device
+
                 volDetailsButton v =
                     Element.link []
                         { url =
@@ -1673,7 +1682,7 @@ serverVolumes context project server =
                                     Nothing ->
                                         ( "Could not determine", "" )
                     in
-                    { name = VH.possiblyUntitledResource (Maybe.withDefault "" v.name) "volume"
+                    { name = VH.resourceName v.name v.uuid
                     , device = device
                     , mountpoint = mountpoint
                     , toButton = volDetailsButton v
@@ -1692,7 +1701,7 @@ serverVolumes context project server =
                       }
                     , { header = Element.el [ Font.heavy ] <| Element.text "Device"
                       , width = Element.fill
-                      , view = \v -> Element.text v.device
+                      , view = vdevice
                       }
                     , { header = Element.el [ Font.heavy ] <| Element.text "Mount point"
                       , width = Element.fill
