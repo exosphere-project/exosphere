@@ -174,8 +174,9 @@ volumeView context project currentTime volumeRecord =
                         , Font.color (SH.toElementColor context.palette.primary)
                         ]
                         (Element.text <|
-                            VH.possiblyUntitledResource
-                                (Maybe.withDefault "" volumeRecord.volume.name)
+                            VH.extendedResourceName
+                                volumeRecord.volume.name
+                                volumeRecord.volume.uuid
                                 context.localization.blockDevice
                         )
                 }
@@ -185,7 +186,7 @@ volumeView context project currentTime volumeRecord =
                 serverName serverUuid =
                     case GetterSetters.serverLookup project serverUuid of
                         Just server ->
-                            server.osProps.name
+                            VH.resourceName (Just server.osProps.name) server.osProps.uuid
 
                         Nothing ->
                             "unresolvable " ++ context.localization.virtualComputer ++ " name"
