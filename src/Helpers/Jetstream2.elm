@@ -1,4 +1,4 @@
-module Helpers.JetStream2 exposing (calculateAllocationBurnRate)
+module Helpers.Jetstream2 exposing (calculateAllocationBurnRate)
 
 import List.Extra
 import OpenStack.Types
@@ -14,17 +14,21 @@ calculateAllocationBurnRate : List OpenStack.Types.Flavor -> OpenStack.Types.Ser
 calculateAllocationBurnRate flavors { details } =
     let
         serverFlavor =
-            flavors |> List.Extra.find (\{ id } -> id == details.flavorId)
+            flavors
+                |> List.Extra.find (\{ id } -> id == details.flavorId)
     in
     serverFlavor
-        |> Maybe.andThen
-            (\sf ->
-                flavorToResource sf
-                    |> Maybe.andThen resourceMultiplier
-                    |> Maybe.map
-                        (\multiplier ->
-                            Basics.toFloat multiplier * stateChargeMultiplier details.openstackStatus * Basics.toFloat sf.vcpu
-                        )
+        |> Maybe.andThen (allocationBurnRate details.openstackStatus)
+
+
+allocationBurnRate : OpenStack.Types.ServerStatus -> OpenStack.Types.Flavor -> Maybe Float
+allocationBurnRate serverStatus flavor =
+    flavor
+        |> flavorToResource
+        |> Maybe.andThen resourceMultiplier
+        |> Maybe.map
+            (\multiplier ->
+                multiplier * stateChargeMultiplier serverStatus * Basics.toFloat flavor.vcpu
             )
 
 
@@ -33,17 +37,17 @@ flavorToResource flavor =
     flavor.name |> String.split "." |> List.head
 
 
-resourceMultiplier : String -> Maybe Int
+resourceMultiplier : String -> Maybe Float
 resourceMultiplier resource =
     case resource of
         "m3" ->
-            Just 1
+            Just 1.0
 
         "g3" ->
-            Just 4
+            Just 4.0
 
         "r3" ->
-            Just 2
+            Just 2.0
 
         _ ->
             Nothing
