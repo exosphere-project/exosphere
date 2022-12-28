@@ -10,6 +10,7 @@
             <param name="username">exouser</param>
             <param name="password">${GUAC_PASSWORD}</param>
             <param name="enable-sftp">true</param>
+            <param name="sftp-root-directory">/home/exouser</param>
         </connection>
         {% if gui_enabled is defined and gui_enabled == true %}
         <connection name="desktop">
