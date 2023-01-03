@@ -19,7 +19,6 @@ module View.Helpers exposing
     , hint
     , inputItemAttributes
     , invalidInputAttributes
-    , invalidInputHelperText
     , loginPickerButton
     , radioLabelAttributes
     , renderMarkdown
@@ -42,7 +41,6 @@ module View.Helpers exposing
     , validInputAttributes
     , volumeNameExists
     , volumeNameExistsMessage
-    , warnMessageHelperText
     , warningInputAttributes
     )
 
@@ -1530,43 +1528,6 @@ validOrInvalidInputElementAttributes color icon =
             Element.none
         )
     ]
-
-
-invalidInputHelperText : ExoPalette -> String -> Element.Element msg
-invalidInputHelperText palette helperText =
-    Element.row [ Element.spacingXY spacer.px8 0 ]
-        [ Element.el
-            [ Font.color (palette.danger.textOnNeutralBG |> SH.toElementColor)
-            ]
-            (FeatherIcons.alertCircle
-                |> FeatherIcons.toHtml []
-                |> Element.html
-            )
-        , -- let text wrap if it exceeds container's width
-          Element.paragraph
-            [ Font.color (SH.toElementColor palette.danger.textOnNeutralBG)
-            , Font.size 16
-            ]
-            [ Element.text helperText ]
-        ]
-
-
-warnMessageHelperText : ExoPalette -> String -> Element.Element msg
-warnMessageHelperText palette helperText =
-    Element.row [ Element.spacingXY spacer.px8 0 ]
-        [ Element.el
-            [ Font.color (palette.warning.textOnNeutralBG |> SH.toElementColor)
-            ]
-            (FeatherIcons.alertTriangle
-                |> FeatherIcons.toHtml []
-                |> Element.html
-            )
-        , Element.el
-            [ Font.color (SH.toElementColor palette.warning.textOnNeutralBG)
-            , Font.size 16
-            ]
-            (Element.text helperText)
-        ]
 
 
 renderMaybe : Maybe a -> (a -> Element.Element msg) -> Element.Element msg

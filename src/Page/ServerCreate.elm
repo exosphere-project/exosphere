@@ -33,6 +33,7 @@ import Style.Widgets.Select
 import Style.Widgets.Tag as Tag
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
+import Style.Widgets.Validation as Validation
 import Time
 import Types.HelperTypes as HelperTypes
     exposing
@@ -412,7 +413,7 @@ view context project currentTime model =
 
         renderServerNameExists =
             if serverNameExists then
-                [ VH.warnMessageHelperText context.palette (VH.serverNameExistsMessage context) ]
+                [ Validation.warningMessage context.palette (VH.serverNameExistsMessage context) ]
 
             else
                 []
@@ -463,7 +464,7 @@ view context project currentTime model =
         renderInvalidNameReasons =
             case invalidNameReasons of
                 Just reasons ->
-                    List.map (VH.invalidInputHelperText context.palette) reasons
+                    List.map (Validation.invalidMessage context.palette) reasons
 
                 Nothing ->
                     []
@@ -643,7 +644,7 @@ view context project currentTime model =
                                 )
                                     ++ " have been exhausted. Contact your cloud administrator, or delete some stuff"
                         in
-                        VH.invalidInputHelperText context.palette invalidFormHint
+                        Validation.invalidMessage context.palette invalidFormHint
 
                     else
                         case maybeInvalidFormFields of
@@ -680,7 +681,7 @@ view context project currentTime model =
                                             Nothing ->
                                                 genericInvalidFormHint
                                 in
-                                VH.invalidInputHelperText context.palette invalidFormHint
+                                Validation.invalidMessage context.palette invalidFormHint
 
                 hasAnyKeypairs : Bool
                 hasAnyKeypairs =
@@ -1147,7 +1148,7 @@ customWorkflowInputExperimental context project model =
 
                 repoInputHelperText =
                     if displayRepoInputError then
-                        VH.invalidInputHelperText context.palette "Required"
+                        Validation.invalidMessage context.palette "Required"
 
                     else
                         Element.none

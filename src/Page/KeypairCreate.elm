@@ -11,6 +11,7 @@ import String exposing (trim)
 import Style.Helpers as SH exposing (spacer)
 import Style.Widgets.Button as Button
 import Style.Widgets.Text as Text
+import Style.Widgets.Validation as Validation
 import Time
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg
@@ -60,7 +61,7 @@ view context project currentTime model =
 
         renderNameExists =
             if nameExists then
-                [ VH.warnMessageHelperText context.palette (VH.sshKeyNameExistsMessage context) ]
+                [ Validation.warningMessage context.palette (VH.sshKeyNameExistsMessage context) ]
 
             else
                 []
@@ -94,7 +95,7 @@ view context project currentTime model =
         renderInvalidReason reason =
             case reason of
                 Just r ->
-                    r |> VH.invalidInputHelperText context.palette
+                    r |> Validation.invalidMessage context.palette
 
                 Nothing ->
                     Element.none

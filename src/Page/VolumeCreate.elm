@@ -13,6 +13,7 @@ import Style.Widgets.Button as Button
 import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Style.Widgets.Text as Text
+import Style.Widgets.Validation as Validation
 import Time
 import Types.Project exposing (Project)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
@@ -58,7 +59,7 @@ view context project currentTime model =
 
         renderNameExists =
             if nameExists then
-                [ VH.warnMessageHelperText context.palette (VH.volumeNameExistsMessage context) ]
+                [ Validation.warningMessage context.palette (VH.volumeNameExistsMessage context) ]
 
             else
                 []
@@ -92,7 +93,7 @@ view context project currentTime model =
         renderInvalidReason reason =
             case reason of
                 Just r ->
-                    r |> VH.invalidInputHelperText context.palette
+                    r |> Validation.invalidMessage context.palette
 
                 Nothing ->
                     Element.none
