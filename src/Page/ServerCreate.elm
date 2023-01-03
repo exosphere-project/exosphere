@@ -1591,7 +1591,7 @@ networkPicker context project model =
         picker =
             let
                 networkAsInputOption network =
-                    ( network.uuid, network.name )
+                    ( network.uuid, VH.resourceName (Just network.name) network.uuid )
             in
             Style.Widgets.Select.select
                 []

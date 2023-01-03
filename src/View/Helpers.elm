@@ -5,6 +5,7 @@ module View.Helpers exposing
     , createdAgoByFromSize
     , edges
     , ellipsizedText
+    , extendedResourceName
     , featuredImageNamePrefixLookup
     , flavorPicker
     , formContainer
@@ -20,7 +21,6 @@ module View.Helpers exposing
     , invalidInputAttributes
     , invalidInputHelperText
     , loginPickerButton
-    , possiblyUntitledResource
     , radioLabelAttributes
     , renderMarkdown
     , renderMaybe
@@ -29,6 +29,7 @@ module View.Helpers exposing
     , renderRDPP
     , renderWebData
     , requiredLabel
+    , resourceName
     , resourceNameSuggestions
     , serverNameExists
     , serverNameExistsMessage
@@ -304,14 +305,44 @@ renderMessageAsString message =
         |> String.concat
 
 
-possiblyUntitledResource : String -> String -> String
-possiblyUntitledResource name resourceType =
-    case name of
-        "" ->
-            "(Untitled " ++ resourceType ++ ")"
+resourceName : Maybe String -> String -> String
+resourceName maybeName uuid =
+    case maybeName of
+        Nothing ->
+            shortenUuid uuid
+
+        Just "" ->
+            shortenUuid uuid
+
+        Just name ->
+            name
+
+
+extendedResourceName : Maybe String -> String -> String -> String
+extendedResourceName maybeName uuid resourceType =
+    case maybeName of
+        Nothing ->
+            shortenUuid uuid ++ " (" ++ resourceType ++ ")"
+
+        Just "" ->
+            shortenUuid uuid ++ " (" ++ resourceType ++ ")"
+
+        Just name ->
+            name
+
+
+shortenUuid : String -> String
+shortenUuid uuid =
+    let
+        parts =
+            String.split "-" uuid
+    in
+    case ( List.head parts, List.head (List.reverse parts) ) of
+        ( Just head, Just tail ) ->
+            head ++ " ... " ++ tail
 
         _ ->
-            name
+            uuid
 
 
 titleFromHostname : String -> String
@@ -433,10 +464,10 @@ serverNameExists project serverName =
 {-| Does this volume name already exist on the project?
 -}
 volumeNameExists : Project -> String -> Bool
-volumeNameExists project volumeName =
+volumeNameExists project volumeName_ =
     let
         name =
-            String.trim volumeName
+            String.trim volumeName_
     in
     if isEmpty name then
         False
@@ -482,8 +513,8 @@ sshKeyNameExistsMessage context =
 
 
 resourceNameExistsMessage : String -> String -> String
-resourceNameExistsMessage resourceName unitOfTenancy =
-    "This " ++ resourceName ++ " name already exists for this " ++ unitOfTenancy ++ ". You can select any of our name suggestions or modify the current name to avoid duplication."
+resourceNameExistsMessage resourceName_ unitOfTenancy =
+    "This " ++ resourceName_ ++ " name already exists for this " ++ unitOfTenancy ++ ". You can select any of our name suggestions or modify the current name to avoid duplication."
 
 
 {-| Create a list of resource name suggestions based on a current resource name, project username & time.

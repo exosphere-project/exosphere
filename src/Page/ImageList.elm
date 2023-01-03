@@ -366,7 +366,7 @@ imageView model context project imageRecord =
                 [ Font.size 18
                 , Font.color (SH.toElementColor context.palette.neutral.text.default)
                 ]
-                (Element.text imageRecord.image.name)
+                (Element.text (VH.resourceName (Just imageRecord.image.name) imageRecord.image.uuid))
             , featuredIcon
             , imageActions
             ]

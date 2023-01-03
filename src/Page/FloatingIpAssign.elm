@@ -84,7 +84,7 @@ view context project model =
                 |> List.map
                     (\s ->
                         ( s.osProps.uuid
-                        , VH.possiblyUntitledResource s.osProps.name context.localization.virtualComputer
+                        , VH.extendedResourceName (Just s.osProps.name) s.osProps.uuid context.localization.virtualComputer
                         )
                     )
 

@@ -80,7 +80,7 @@ view context project model =
                 |> serversCanHaveVolumeAttached
                 |> List.map
                     (\s ->
-                        ( s.osProps.uuid, VH.possiblyUntitledResource s.osProps.name context.localization.virtualComputer )
+                        ( s.osProps.uuid, VH.extendedResourceName (Just s.osProps.name) s.osProps.uuid context.localization.virtualComputer )
                     )
 
         volumeChoices =
@@ -90,7 +90,7 @@ view context project model =
                     (\v ->
                         ( v.uuid
                         , String.concat
-                            [ VH.possiblyUntitledResource (Maybe.withDefault v.uuid v.name) context.localization.blockDevice
+                            [ VH.extendedResourceName v.name v.uuid context.localization.blockDevice
                             , " - "
                             , String.fromInt v.size ++ " GB"
                             ]
