@@ -124,9 +124,8 @@ update msg project model =
                     SharedMsg.RequestSetServerName validName
             )
 
-        SharedMsg msg_ ->
-            -- TODO convert other pages to use this style
-            ( model, Cmd.none, msg_ )
+        SharedMsg sharedMsg ->
+            ( model, Cmd.none, sharedMsg )
 
         NoOp ->
             ( model, Cmd.none, SharedMsg.NoOp )
