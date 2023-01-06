@@ -34,6 +34,7 @@ import Style.Widgets.Popover.Popover exposing (popover, popoverStyleDefaults)
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
+import Style.Widgets.Validation as Validation
 import Time
 import Types.HelperTypes exposing (FloatingIpOption(..), ServerResourceQtys, UserAppProxyHostname)
 import Types.Interaction as ITypes
@@ -597,7 +598,7 @@ serverNameView context project currentTime model server =
 
                 renderServerNameExists =
                     if
-                        VH.serverNameExists project serverNamePendingConfirmation
+                        Validation.serverNameExists project serverNamePendingConfirmation
                             -- the server's own name currently exists, of course:
                             && server.osProps.name
                             /= Maybe.withDefault "" model.serverNamePendingConfirmation
@@ -612,13 +613,13 @@ serverNameView context project currentTime model server =
                                         , Font.color <| SH.toElementColor <| context.palette.warning.textOnNeutralBG
                                         ]
                                         [ Element.text <|
-                                            VH.serverNameExistsMessage context
+                                            Validation.serverNameExistsMessage context
                                         ]
                                     ]
 
                             suggestedNames =
-                                VH.resourceNameSuggestions currentTime project serverNamePendingConfirmation
-                                    |> List.filter (\n -> not (VH.serverNameExists project n))
+                                Validation.resourceNameSuggestions currentTime project serverNamePendingConfirmation
+                                    |> List.filter (\n -> not (Validation.serverNameExists project n))
 
                             content =
                                 Element.column []

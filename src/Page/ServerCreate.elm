@@ -409,11 +409,11 @@ view : View.Types.Context -> Project -> Time.Posix -> Model -> Element.Element M
 view context project currentTime model =
     let
         serverNameExists =
-            VH.serverNameExists project model.serverName
+            Validation.serverNameExists project model.serverName
 
         renderServerNameExists =
             if serverNameExists then
-                [ Validation.warningMessage context.palette (VH.serverNameExistsMessage context) ]
+                [ Validation.warningMessage context.palette (Validation.serverNameExistsMessage context) ]
 
             else
                 []
@@ -421,8 +421,8 @@ view context project currentTime model =
         nameSuggestionButtons =
             let
                 suggestedNames =
-                    VH.resourceNameSuggestions currentTime project model.serverName
-                        |> List.filter (\n -> not (VH.serverNameExists project n))
+                    Validation.resourceNameSuggestions currentTime project model.serverName
+                        |> List.filter (\n -> not (Validation.serverNameExists project n))
 
                 suggestionButtons =
                     suggestedNames

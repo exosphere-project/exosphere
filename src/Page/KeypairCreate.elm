@@ -57,11 +57,11 @@ view : View.Types.Context -> Project -> Time.Posix -> Model -> Element.Element M
 view context project currentTime model =
     let
         nameExists =
-            VH.sshKeyNameExists project model.name
+            Validation.sshKeyNameExists project model.name
 
         renderNameExists =
             if nameExists then
-                [ Validation.warningMessage context.palette (VH.sshKeyNameExistsMessage context) ]
+                [ Validation.warningMessage context.palette (Validation.sshKeyNameExistsMessage context) ]
 
             else
                 []
@@ -69,8 +69,8 @@ view context project currentTime model =
         nameSuggestionButtons =
             let
                 suggestedNames =
-                    VH.resourceNameSuggestions currentTime project model.name
-                        |> List.filter (\n -> not (VH.sshKeyNameExists project n))
+                    Validation.resourceNameSuggestions currentTime project model.name
+                        |> List.filter (\n -> not (Validation.sshKeyNameExists project n))
 
                 suggestionButtons =
                     suggestedNames
