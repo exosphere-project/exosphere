@@ -5,7 +5,6 @@ var cloud_configs = {
     {
       keystoneHostname: "js2.jetstream-cloud.org",
       friendlyName: "Jetstream2",
-      friendlySubName: null,
       userAppProxy: [
         {
           region: "ASU",
@@ -119,7 +118,6 @@ var cloud_configs = {
     {
       keystoneHostname: "keystone.rc.nectar.org.au",
       friendlyName: "Nectar Cloud",
-      friendlySubName: null,
       userAppProxy: null,
       imageExcludeFilter: null,
       featuredImageNamePrefix: null,

@@ -1094,14 +1094,6 @@ friendlyCloudName context project =
 
                 Just cloudSpecificConfig ->
                     cloudSpecificConfig.friendlyName
-                        -- TODO deprecate friendlySubName after Jetstream1 is decommissioned
-                        ++ (case cloudSpecificConfig.friendlySubName of
-                                Nothing ->
-                                    ""
-
-                                Just friendlySubName ->
-                                    " " ++ friendlySubName
-                           )
 
         regionPart =
             project.region |> Maybe.map .id

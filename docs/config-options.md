@@ -32,7 +32,6 @@ Each of these JSON objects contains the following properties:
 
 - `keystoneHostname` (string): Used to look up the custom configuration for a cloud, e.g. `openstack.example.cloud`
 - `friendlyName` (string): Name of cloud to display to user
-- `friendlySubName` (null, string): Optional name of cloud location, region, etc.
 - `userAppProxy` (null, array): An array of User Application proxy (UAP) information for this cloud. See `docs/user-app-proxy.md` for more information. This _must_ be set for Guacamole support (in-browser shell and desktop) to work on a given cloud.
 - `imageExcludeFilter` (null, JSON object): A key:value property to exclude images from UI, see example below
 - `featuredImageNamePrefix` (null, string): A (public) image is 'featured' if the name starts with this string
@@ -46,7 +45,6 @@ var cloud_configs = {
     {
       "keystoneHostname":"openstack.example.cloud",
       "friendlyName":"My Example Cloud 1",
-      "friendlySubName":null,
       "userAppProxy":[
         { region: null,
           hostname: "uap.openstack.example.cloud",
@@ -61,7 +59,6 @@ var cloud_configs = {
     {
       "keystoneHostname":"iu.jetstream-cloud.org",
       "friendlyName":"Jetstream Cloud",      
-      "friendlySubName":"Indiana University",
       "userAppProxy": [
         { region: null,
           hostname: "proxy-j7m-iu.exosphere.app",
