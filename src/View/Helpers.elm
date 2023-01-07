@@ -62,6 +62,7 @@ import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (humanCount)
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
+import Helpers.Jetstream2
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import Helpers.Time exposing (humanReadableDateAndTime)
@@ -1393,8 +1394,10 @@ createdAgoByFromSize :
     -> Maybe ( String, String )
     -> Maybe ( String, String )
     -> Maybe ( String, Element.Element msg )
+    -> OSTypes.Server
+    -> Project
     -> Element.Element msg
-createdAgoByFromSize context ( agoWord, agoContents ) maybeWhoCreatedTuple maybeFromTuple maybeSizeTuple =
+createdAgoByFromSize context ( agoWord, agoContents ) maybeWhoCreatedTuple maybeFromTuple maybeSizeTuple server { flavors, endpoints } =
     let
         subduedText =
             Font.color (context.palette.neutral.text.subdued |> SH.toElementColor)
@@ -1433,6 +1436,20 @@ createdAgoByFromSize context ( agoWord, agoContents ) maybeWhoCreatedTuple maybe
 
             Nothing ->
                 Element.none
+        , if "js2.jetstream-cloud.org" == UrlHelpers.hostnameFromUrl endpoints.keystone then
+            Element.row [ Element.padding spacer.px8 ]
+                [ Element.el [ subduedText ] (Element.text "Burn rate ")
+                , String.concat
+                    [ Helpers.Jetstream2.calculateAllocationBurnRate flavors server
+                        |> Maybe.map (Helpers.Formatting.humanRatio context.locale)
+                        |> Maybe.withDefault "Unknown"
+                    , " SUs/hour"
+                    ]
+                    |> Element.text
+                ]
+
+          else
+            Element.none
         ]
 
 

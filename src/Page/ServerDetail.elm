@@ -500,6 +500,8 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                 (Just ( "user", creatorName ))
                 (Just ( context.localization.staticRepresentationOfBlockDeviceContents, imageText ))
                 (Just ( context.localization.virtualComputerHardwareConfig, flavorContents ))
+                server.osProps
+                project
             , passphraseVulnWarning context server
             ]
         , serverFaultView
