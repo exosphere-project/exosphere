@@ -20,6 +20,17 @@ Go look at `Exosphere.elm`, you'll see it has just one `main` function. This fun
 
 This uses the same basic architecture described in the Elm guide, but with more modules and helper code.
 
+## Model: OuterModel, SharedModel, and Page-Specific models
+
+The `main` function in `Exosphere.elm` handles an `OuterModel` defined in `src/Types/OuterModel.elm` -- this model contains the entire state of the app for as long as it's running.
+
+The `OuterModel` splits up data between the `SharedModel` (defined in `src/Types/SharedModel.elm`) and a `ViewState` (defined in `src/Types/View.elm`), which often contains a page-specific model.
+
+The `SharedModel` models data that is _shared_ between pages in the UI, i.e., data that aren't specific to whatever page is currently displayed. Examples of these are the current time, and whichever OpenStack projects the user is logged into.
+
+The `ViewState` is a custom type that stores which page the UI is currently displaying. Many of the variants of that custom type contain a page-specific model. The page-specific model stores data specific to that current page. Examples include the contents of any text boxes on the page, and whatever checkboxes are currently checked in a list.
+
+The separation between `SharedModel` and page-specific models allows each page to have its own nested architecture (`Model`, `Msg`, `update`, and `view`). This is a common pattern in larger Elm applications. It simplifies the app's outer-most data model, and reduces the need to think about plumbing for the entire app if you're only working on one page of the UI.
 
 ## View, Pages, and Style Code
 
