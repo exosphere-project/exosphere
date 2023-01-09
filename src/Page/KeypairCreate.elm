@@ -11,7 +11,7 @@ import String exposing (trim)
 import Style.Helpers as SH exposing (spacer)
 import Style.Widgets.Button as Button
 import Style.Widgets.Text as Text
-import Style.Widgets.Validation as Validation
+import Style.Widgets.Validation as Validation exposing (Resource(..))
 import Time
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg
@@ -56,42 +56,6 @@ update msg project model =
 view : View.Types.Context -> Project -> Time.Posix -> Model -> Element.Element Msg
 view context project currentTime model =
     let
-        nameExists =
-            Validation.sshKeyNameExists project model.name
-
-        renderNameExists =
-            if nameExists then
-                [ Validation.warningMessage context.palette (Validation.sshKeyNameExistsMessage context) ]
-
-            else
-                []
-
-        nameSuggestionButtons =
-            let
-                suggestedNames =
-                    Validation.resourceNameSuggestions currentTime project model.name
-                        |> List.filter (\n -> not (Validation.sshKeyNameExists project n))
-
-                suggestionButtons =
-                    suggestedNames
-                        |> List.map
-                            (\name ->
-                                Button.default
-                                    context.palette
-                                    { text = name
-                                    , onPress = Just (GotName name)
-                                    }
-                            )
-            in
-            if nameExists then
-                [ Element.row
-                    [ Element.spacing spacer.px8 ]
-                    suggestionButtons
-                ]
-
-            else
-                [ Element.none ]
-
         renderInvalidReason reason =
             case reason of
                 Just r ->
@@ -156,8 +120,7 @@ view context project currentTime model =
                 }
              , renderInvalidReason invalidNameReason
              ]
-                ++ renderNameExists
-                ++ nameSuggestionButtons
+                ++ Validation.resourceNameAlreadyExists context project currentTime { resource = Keypair model.name, onSuggestionPressed = \suggestion -> GotName suggestion }
             )
         , Input.multiline
             (VH.inputItemAttributes context.palette

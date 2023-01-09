@@ -13,7 +13,7 @@ import Style.Widgets.Button as Button
 import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Style.Widgets.Text as Text
-import Style.Widgets.Validation as Validation
+import Style.Widgets.Validation as Validation exposing (Resource(..))
 import Time
 import Types.Project exposing (Project)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
@@ -54,42 +54,6 @@ update msg project model =
 view : View.Types.Context -> Project -> Time.Posix -> Model -> Element.Element Msg
 view context project currentTime model =
     let
-        nameExists =
-            Validation.volumeNameExists project model.name
-
-        renderNameExists =
-            if nameExists then
-                [ Validation.warningMessage context.palette (Validation.volumeNameExistsMessage context) ]
-
-            else
-                []
-
-        nameSuggestionButtons =
-            let
-                suggestedNames =
-                    Validation.resourceNameSuggestions currentTime project model.name
-                        |> List.filter (\n -> not (Validation.volumeNameExists project n))
-
-                suggestionButtons =
-                    suggestedNames
-                        |> List.map
-                            (\name ->
-                                Button.default
-                                    context.palette
-                                    { text = name
-                                    , onPress = Just (GotName name)
-                                    }
-                            )
-            in
-            if nameExists then
-                [ Element.row
-                    [ Element.spacing spacer.px8 ]
-                    suggestionButtons
-                ]
-
-            else
-                [ Element.none ]
-
         renderInvalidReason reason =
             case reason of
                 Just r ->
@@ -145,8 +109,7 @@ view context project currentTime model =
                     }
                  , renderInvalidReason invalidReason
                  ]
-                    ++ renderNameExists
-                    ++ nameSuggestionButtons
+                    ++ Validation.resourceNameAlreadyExists context project currentTime { resource = Volume model.name, onSuggestionPressed = \suggestion -> GotName suggestion }
                     ++ [ Element.text <|
                             String.join " "
                                 [ "(Suggestion: choose a good name that describes what the"

@@ -613,7 +613,7 @@ serverNameView context project currentTime model server =
                                         , Font.color <| SH.toElementColor <| context.palette.warning.textOnNeutralBG
                                         ]
                                         [ Element.text <|
-                                            Validation.serverNameExistsMessage context
+                                            Validation.resourceNameExistsMessage context.localization.virtualComputer context.localization.unitOfTenancy
                                         ]
                                     ]
 

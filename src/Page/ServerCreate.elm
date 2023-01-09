@@ -33,7 +33,7 @@ import Style.Widgets.Select
 import Style.Widgets.Tag as Tag
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
-import Style.Widgets.Validation as Validation
+import Style.Widgets.Validation as Validation exposing (Resource(..))
 import Time
 import Types.HelperTypes as HelperTypes
     exposing
@@ -411,42 +411,6 @@ view context project currentTime model =
         serverNameExists =
             Validation.serverNameExists project model.serverName
 
-        renderServerNameExists =
-            if serverNameExists then
-                [ Validation.warningMessage context.palette (Validation.serverNameExistsMessage context) ]
-
-            else
-                []
-
-        nameSuggestionButtons =
-            let
-                suggestedNames =
-                    Validation.resourceNameSuggestions currentTime project model.serverName
-                        |> List.filter (\n -> not (Validation.serverNameExists project n))
-
-                suggestionButtons =
-                    suggestedNames
-                        |> List.map
-                            (\name ->
-                                Button.default
-                                    context.palette
-                                    { text = name
-                                    , onPress = Just (GotServerName name)
-                                    }
-                            )
-            in
-            if serverNameExists then
-                [ Element.row
-                    [ -- 75 is used to align it vertically with name input text box
-                      Element.paddingEach { edges | left = 75 }
-                    , Element.spacing spacer.px8
-                    ]
-                    suggestionButtons
-                ]
-
-            else
-                [ Element.none ]
-
         invalidNameReasons =
             serverNameValidator (Just context.localization.virtualComputer) model.serverName
 
@@ -724,8 +688,7 @@ view context project currentTime model =
                         }
                     ]
                     :: renderInvalidNameReasons
-                    ++ nameSuggestionButtons
-                    ++ renderServerNameExists
+                    ++ Validation.resourceNameAlreadyExists context project currentTime { resource = Compute model.serverName, onSuggestionPressed = \suggestion -> GotServerName suggestion }
                 )
             , Element.row [ Element.spacing spacer.px8 ]
                 [ Element.el [ Font.semiBold ] <|
