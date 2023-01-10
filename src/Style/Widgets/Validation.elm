@@ -1,5 +1,6 @@
 module Style.Widgets.Validation exposing
     ( invalidMessage
+    , notes
     , warningAlreadyExists
     , warningMessage
     )
@@ -10,6 +11,17 @@ import FeatherIcons
 import Style.Helpers as SH exposing (spacer)
 import Style.Types exposing (ExoPalette)
 import Style.Widgets.Button as Button
+
+
+notes : String
+notes =
+    """
+## Usage
+
+Validation widgets show errors, warnings & suggested remedies in a consistent way.
+
+Use them in your forms together with your business logic.
+"""
 
 
 

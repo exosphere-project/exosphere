@@ -5,9 +5,7 @@ module View.Forms exposing
 
 import Element exposing (Element)
 import Helpers.Validation exposing (resourceNameExistsMessage, resourceNameSuggestions, serverNameExists, sshKeyNameExists, volumeNameExists)
-import Style.Helpers exposing (spacer)
 import Style.Types exposing (ExoPalette)
-import Style.Widgets.Button as Button
 import Style.Widgets.Validation exposing (warningAlreadyExists)
 import Time
 import Types.HelperTypes
