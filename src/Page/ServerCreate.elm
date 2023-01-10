@@ -15,6 +15,7 @@ import Helpers.Helpers as Helpers
 import Helpers.Random as RandomHelper
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
+import Helpers.Validation as Validation
 import Maybe
 import OpenStack.Quotas as OSQuotas
 import OpenStack.ServerNameValidator exposing (serverNameValidator)
@@ -33,7 +34,7 @@ import Style.Widgets.Select
 import Style.Widgets.Tag as Tag
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
-import Style.Widgets.Validation as Validation exposing (Resource(..))
+import Style.Widgets.Validation exposing (invalidMessage)
 import Time
 import Types.HelperTypes as HelperTypes
     exposing
@@ -44,6 +45,7 @@ import Types.HelperTypes as HelperTypes
 import Types.Project exposing (Project)
 import Types.Server exposing (NewServerNetworkOptions(..), Server)
 import Types.SharedMsg as SharedMsg
+import View.Forms as Forms exposing (Resource(..))
 import View.Helpers as VH exposing (edges)
 import View.Types
 import Widget
@@ -428,7 +430,7 @@ view context project currentTime model =
         renderInvalidNameReasons =
             case invalidNameReasons of
                 Just reasons ->
-                    List.map (Validation.invalidMessage context.palette) reasons
+                    List.map (invalidMessage context.palette) reasons
 
                 Nothing ->
                     []
@@ -608,7 +610,7 @@ view context project currentTime model =
                                 )
                                     ++ " have been exhausted. Contact your cloud administrator, or delete some stuff"
                         in
-                        Validation.invalidMessage context.palette invalidFormHint
+                        invalidMessage context.palette invalidFormHint
 
                     else
                         case maybeInvalidFormFields of
@@ -645,7 +647,7 @@ view context project currentTime model =
                                             Nothing ->
                                                 genericInvalidFormHint
                                 in
-                                Validation.invalidMessage context.palette invalidFormHint
+                                invalidMessage context.palette invalidFormHint
 
                 hasAnyKeypairs : Bool
                 hasAnyKeypairs =
@@ -688,7 +690,7 @@ view context project currentTime model =
                         }
                     ]
                     :: renderInvalidNameReasons
-                    ++ Validation.resourceNameAlreadyExists context project currentTime { resource = Compute model.serverName, onSuggestionPressed = \suggestion -> GotServerName suggestion }
+                    ++ Forms.resourceNameAlreadyExists context project currentTime { resource = Compute model.serverName, onSuggestionPressed = \suggestion -> GotServerName suggestion }
                 )
             , Element.row [ Element.spacing spacer.px8 ]
                 [ Element.el [ Font.semiBold ] <|
@@ -1111,7 +1113,7 @@ customWorkflowInputExperimental context project model =
 
                 repoInputHelperText =
                     if displayRepoInputError then
-                        Validation.invalidMessage context.palette "Required"
+                        invalidMessage context.palette "Required"
 
                     else
                         Element.none

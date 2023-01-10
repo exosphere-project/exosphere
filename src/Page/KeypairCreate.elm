@@ -11,10 +11,11 @@ import String exposing (trim)
 import Style.Helpers as SH exposing (spacer)
 import Style.Widgets.Button as Button
 import Style.Widgets.Text as Text
-import Style.Widgets.Validation as Validation exposing (Resource(..))
+import Style.Widgets.Validation as Validation
 import Time
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg
+import View.Forms as Forms exposing (Resource(..))
 import View.Helpers as VH
 import View.Types
 
@@ -120,7 +121,7 @@ view context project currentTime model =
                 }
              , renderInvalidReason invalidNameReason
              ]
-                ++ Validation.resourceNameAlreadyExists context project currentTime { resource = Keypair model.name, onSuggestionPressed = \suggestion -> GotName suggestion }
+                ++ Forms.resourceNameAlreadyExists context project currentTime { resource = Keypair model.name, onSuggestionPressed = \suggestion -> GotName suggestion }
             )
         , Input.multiline
             (VH.inputItemAttributes context.palette

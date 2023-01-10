@@ -13,10 +13,11 @@ import Style.Widgets.Button as Button
 import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Style.Widgets.Text as Text
-import Style.Widgets.Validation as Validation exposing (Resource(..))
+import Style.Widgets.Validation as Validation
 import Time
 import Types.Project exposing (Project)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
+import View.Forms as Forms exposing (Resource(..))
 import View.Helpers as VH
 import View.Types
 
@@ -109,7 +110,7 @@ view context project currentTime model =
                     }
                  , renderInvalidReason invalidReason
                  ]
-                    ++ Validation.resourceNameAlreadyExists context project currentTime { resource = Volume model.name, onSuggestionPressed = \suggestion -> GotName suggestion }
+                    ++ Forms.resourceNameAlreadyExists context project currentTime { resource = Volume model.name, onSuggestionPressed = \suggestion -> GotName suggestion }
                     ++ [ Element.text <|
                             String.join " "
                                 [ "(Suggestion: choose a good name that describes what the"

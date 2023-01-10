@@ -13,6 +13,7 @@ import Helpers.Interaction as IHelpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import Helpers.Time
+import Helpers.Validation as Validation
 import OpenStack.ServerActions as ServerActions
 import OpenStack.ServerNameValidator exposing (serverNameValidator)
 import OpenStack.ServerVolumes exposing (serverCanHaveVolumeAttached)
@@ -34,7 +35,6 @@ import Style.Widgets.Popover.Popover exposing (popover, popoverStyleDefaults)
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
-import Style.Widgets.Validation as Validation
 import Time
 import Types.HelperTypes exposing (FloatingIpOption(..), ServerResourceQtys, UserAppProxyHostname)
 import Types.Interaction as ITypes
