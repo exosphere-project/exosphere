@@ -10,6 +10,7 @@ import DesignSystem.Stories.Space as SpaceStories
 import DesignSystem.Stories.Text as TextStories
 import DesignSystem.Stories.Toast as ToastStories
 import DesignSystem.Stories.ToggleTip as ToggleTip
+import DesignSystem.Stories.Validation as Validation
 import Element
 import Element.Font as Font
 import Html
@@ -459,6 +460,7 @@ Shows a static horizontal progress bar chart which indicates the capacity of a r
 - `subtitle` represents the value and maximum in words e.g. "<value> of <maximum> <units>".
                     """ } )
                     ]
+                , Validation.stories toHtml (\_ -> NoOp)
                 ]
             |> category "Organisms"
                 [ storiesOf

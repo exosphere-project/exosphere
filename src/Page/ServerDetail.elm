@@ -13,6 +13,7 @@ import Helpers.Interaction as IHelpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import Helpers.Time
+import Helpers.Validation as Validation
 import OpenStack.ServerActions as ServerActions
 import OpenStack.ServerNameValidator exposing (serverNameValidator)
 import OpenStack.ServerVolumes exposing (serverCanHaveVolumeAttached)
@@ -597,7 +598,7 @@ serverNameView context project currentTime model server =
 
                 renderServerNameExists =
                     if
-                        VH.serverNameExists project serverNamePendingConfirmation
+                        Validation.serverNameExists project serverNamePendingConfirmation
                             -- the server's own name currently exists, of course:
                             && server.osProps.name
                             /= Maybe.withDefault "" model.serverNamePendingConfirmation
@@ -612,13 +613,13 @@ serverNameView context project currentTime model server =
                                         , Font.color <| SH.toElementColor <| context.palette.warning.textOnNeutralBG
                                         ]
                                         [ Element.text <|
-                                            VH.serverNameExistsMessage context
+                                            Validation.resourceNameExistsMessage context.localization.virtualComputer context.localization.unitOfTenancy
                                         ]
                                     ]
 
                             suggestedNames =
-                                VH.resourceNameSuggestions currentTime project serverNamePendingConfirmation
-                                    |> List.filter (\n -> not (VH.serverNameExists project n))
+                                Validation.resourceNameSuggestions currentTime project serverNamePendingConfirmation
+                                    |> List.filter (\n -> not (Validation.serverNameExists project n))
 
                             content =
                                 Element.column []

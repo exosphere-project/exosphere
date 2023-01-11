@@ -11,9 +11,11 @@ import String exposing (trim)
 import Style.Helpers as SH exposing (spacer)
 import Style.Widgets.Button as Button
 import Style.Widgets.Text as Text
+import Style.Widgets.Validation as Validation
 import Time
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg
+import View.Forms as Forms exposing (Resource(..))
 import View.Helpers as VH
 import View.Types
 
@@ -55,46 +57,10 @@ update msg project model =
 view : View.Types.Context -> Project -> Time.Posix -> Model -> Element.Element Msg
 view context project currentTime model =
     let
-        nameExists =
-            VH.sshKeyNameExists project model.name
-
-        renderNameExists =
-            if nameExists then
-                [ VH.warnMessageHelperText context.palette (VH.sshKeyNameExistsMessage context) ]
-
-            else
-                []
-
-        nameSuggestionButtons =
-            let
-                suggestedNames =
-                    VH.resourceNameSuggestions currentTime project model.name
-                        |> List.filter (\n -> not (VH.sshKeyNameExists project n))
-
-                suggestionButtons =
-                    suggestedNames
-                        |> List.map
-                            (\name ->
-                                Button.default
-                                    context.palette
-                                    { text = name
-                                    , onPress = Just (GotName name)
-                                    }
-                            )
-            in
-            if nameExists then
-                [ Element.row
-                    [ Element.spacing spacer.px8 ]
-                    suggestionButtons
-                ]
-
-            else
-                [ Element.none ]
-
         renderInvalidReason reason =
             case reason of
                 Just r ->
-                    r |> VH.invalidInputHelperText context.palette
+                    r |> Validation.invalidMessage context.palette
 
                 Nothing ->
                     Element.none
@@ -155,8 +121,7 @@ view context project currentTime model =
                 }
              , renderInvalidReason invalidNameReason
              ]
-                ++ renderNameExists
-                ++ nameSuggestionButtons
+                ++ Forms.resourceNameAlreadyExists context project currentTime { resource = Keypair model.name, onSuggestionPressed = \suggestion -> GotName suggestion }
             )
         , Input.multiline
             (VH.inputItemAttributes context.palette
