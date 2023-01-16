@@ -330,9 +330,7 @@ floatingIpView context project floatingIpRecord =
             [ Element.el []
                 (Style.Widgets.CopyableText.copyableText
                     context.palette
-                    [ Font.size 18
-                    , Font.color (SH.toElementColor context.palette.neutral.text.default)
-                    ]
+                    (Text.typographyAttrs Text.H4 ++ [ Font.color (SH.toElementColor context.palette.neutral.text.default) ])
                     floatingIpRecord.ip.address
                 )
             , Element.row [ Element.spacing spacer.px12, Element.alignRight ]

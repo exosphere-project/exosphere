@@ -138,9 +138,7 @@ serverView palette server =
         ]
         [ Element.row [ Element.spacing 10, Element.width Element.fill ]
             [ Element.el
-                [ Font.size 18
-                , Font.color (SH.toElementColor palette.primary)
-                ]
+                (Text.typographyAttrs Text.H4 ++ [ Font.color (SH.toElementColor palette.primary) ])
                 (Element.text server.name)
             , Element.el
                 [ Element.width (Element.px 12)

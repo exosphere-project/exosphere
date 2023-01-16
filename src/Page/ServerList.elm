@@ -284,9 +284,7 @@ serverView context currentTime project serverRecord =
                         )
                 , label =
                     Element.el
-                        [ Font.size 18
-                        , Font.color (SH.toElementColor context.palette.primary)
-                        ]
+                        (Text.typographyAttrs Text.H4 ++ [ Font.color (SH.toElementColor context.palette.primary) ])
                         (Element.text serverRecord.name)
                 }
 

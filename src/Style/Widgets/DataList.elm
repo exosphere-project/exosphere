@@ -372,10 +372,11 @@ view model toMsg context styleAttrs listItemView data bulkActions selectionFilte
                         |> Element.html
                         |> Element.el [ Element.centerX ]
                     , Element.el
-                        [ Element.centerX
-                        , Font.size 18
-                        , Font.color <| SH.toElementColor context.palette.neutral.text.default
-                        ]
+                        ([ Element.centerX
+                         , Font.color (SH.toElementColor context.palette.neutral.text.default)
+                         ]
+                            ++ Text.typographyAttrs Text.H4
+                        )
                         (Element.text "No data found!")
                     , if not (List.isEmpty data) then
                         Element.el
@@ -673,7 +674,7 @@ filtersView model toMsg context { filters, dropdownMsgMapper } data =
                 [ Element.spacingXY 0 spacer.px24
                 ]
                 (Element.row [ Element.width Element.fill ]
-                    [ Element.el [ Font.size 18 ]
+                    [ Element.el [ Text.fontSize Text.Body ]
                         (Element.text "Apply Filters")
                     , Element.el [ Element.alignRight, closeDropdown ]
                         (Widget.iconButton
