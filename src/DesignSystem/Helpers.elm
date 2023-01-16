@@ -5,7 +5,7 @@ import Element.Font as Font
 import Html
 import Style.Helpers as SH
 import Style.Types
-import Style.Widgets.Text as Text
+import Style.Widgets.Text as Text exposing (FontFamily(..), TextVariant(..))
 import UIExplorer
 import UIExplorer.ColorMode exposing (ColorMode(..))
 
@@ -62,8 +62,8 @@ type alias Renderer msg =
 toHtml : Renderer msg
 toHtml palette a =
     Element.layout
-        [ Text.defaultFontSize
-        , Text.defaultFontFamily
+        [ Text.fontSize Body
+        , Text.fontFamily Default
         , Font.color <| SH.toElementColor <| palette.neutral.text.default
         ]
         a

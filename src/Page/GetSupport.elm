@@ -11,7 +11,7 @@ import Style.Helpers exposing (spacer)
 import Style.Widgets.Button as Button
 import Style.Widgets.CopyableText
 import Style.Widgets.Select
-import Style.Widgets.Text as Text
+import Style.Widgets.Text as Text exposing (TextVariant(..))
 import Types.HelperTypes as HelperTypes
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg exposing (SharedMsg(..))
@@ -258,8 +258,8 @@ view context sharedModel model =
                             ++ [ Element.height <| Element.px 200
                                , Element.width Element.fill
                                , Element.spacing spacer.px8
-                               , Font.family [ Font.monospace ]
                                , Font.size 10
+                               , Text.fontFamily Text.Mono
                                ]
                         )
                         { onChange = \_ -> NoOp

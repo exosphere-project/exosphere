@@ -42,7 +42,7 @@ import Route
 import Style.Helpers as SH exposing (shadowDefaults, spacer)
 import Style.Types as ST
 import Style.Widgets.Popover.Popover exposing (popover)
-import Style.Widgets.Text as Text
+import Style.Widgets.Text as Text exposing (FontFamily(..), TextVariant(..))
 import Style.Widgets.Toast as Toast
 import Toasty
 import Types.Error exposing (AppError)
@@ -94,8 +94,8 @@ view_ outerModel =
             outerModel.sharedModel
     in
     Element.layout
-        [ Text.defaultFontSize
-        , Text.defaultFontFamily
+        [ Text.fontSize Body
+        , Text.fontFamily Default
         , Font.color <| SH.toElementColor <| viewContext.palette.neutral.text.default
         , Background.color <| SH.toElementColor viewContext.palette.neutral.background.backLayer
         ]
