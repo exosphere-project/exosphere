@@ -142,7 +142,7 @@ view context project currentTime model =
                 Input.labelAbove
                     [ Element.paddingXY 0 spacer.px12
                     , Font.family [ Font.sansSerif ]
-                    , Font.size 17
+                    , Text.fontSize Text.Body
                     ]
                     (Element.text <|
                         String.join " "

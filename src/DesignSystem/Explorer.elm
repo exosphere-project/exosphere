@@ -28,6 +28,7 @@ import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.StatusBadge exposing (StatusBadgeState(..), statusBadge)
 import Style.Widgets.Tag exposing (tag)
+import Style.Widgets.Text as Text
 import Style.Widgets.Toast as Toast
 import Toasty
 import Types.Error exposing (ErrorLevel(..), Toast)
@@ -514,7 +515,7 @@ A chip is used to show an object within workflows that involve filtering a set o
                                     demoPopoverContent _ =
                                         Element.paragraph
                                             [ Element.width <| Element.px 275
-                                            , Font.size 16
+                                            , Text.fontSize Text.Body
                                             ]
                                             [ Element.text <|
                                                 "I'm a popover that can be used as dropdown, toggle tip, etc. "

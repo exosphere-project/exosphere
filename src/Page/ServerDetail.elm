@@ -490,10 +490,10 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                         (copyableText context.palette [ Element.width Element.fill ] server.osProps.uuid)
                     ]
                 , Element.el
-                    [ Element.alignRight, Font.size 18, Font.regular ]
+                    [ Element.alignRight, Text.fontSize Text.Body, Font.regular ]
                     (serverStatus context project server)
                 , Element.el
-                    [ Element.alignRight, Font.size 16, Font.regular ]
+                    [ Element.alignRight, Text.fontSize Text.Body, Font.regular ]
                     (serverActionsDropdown context project model server)
                 ]
             , VH.createdAgoByFromSize

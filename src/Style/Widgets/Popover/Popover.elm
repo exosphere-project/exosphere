@@ -18,6 +18,7 @@ import Style.Helpers as SH
 import Style.Types as ST exposing (ExoPalette, PopoverPosition(..))
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.Spacer exposing (spacer)
+import Style.Widgets.Text as Text
 import Widget.Style
 
 
@@ -43,7 +44,7 @@ dropdownItemStyle palette =
         | container =
             textButtonDefaults.container
                 ++ [ Element.width Element.fill
-                   , Font.size 16
+                   , Text.fontSize Text.Body
                    , Font.medium
                    , Font.letterSpacing 0.8
                    , Element.paddingXY spacer.px8 spacer.px12

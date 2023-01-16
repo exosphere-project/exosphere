@@ -12,6 +12,7 @@ import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
 import Style.Widgets.Button as Button
 import Style.Widgets.Spacer exposing (spacer)
+import Style.Widgets.Text as Text
 
 
 notes : String
@@ -44,7 +45,7 @@ invalidMessage palette helperText =
         , -- let text wrap if it exceeds container's width
           Element.paragraph
             [ Font.color (SH.toElementColor palette.danger.textOnNeutralBG)
-            , Font.size 16
+            , Text.fontSize Text.Small
             ]
             [ Element.text helperText ]
         ]
@@ -64,7 +65,7 @@ warningMessage palette helperText =
             )
         , Element.el
             [ Font.color (SH.toElementColor palette.warning.textOnNeutralBG)
-            , Font.size 16
+            , Text.fontSize Text.Small
             ]
             (Element.text helperText)
         ]
