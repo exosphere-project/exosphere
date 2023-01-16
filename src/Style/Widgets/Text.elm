@@ -7,7 +7,6 @@ import Element.Region as Region
 import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
 import Style.Widgets.Spacer exposing (spacer)
-import Time exposing (Weekday(..))
 
 
 notes : String
