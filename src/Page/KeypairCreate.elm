@@ -131,7 +131,7 @@ view context project currentTime model =
                    , Element.spacing 0
                    , Html.Attributes.style "word-break" "break-all" |> Element.htmlAttribute
                    , Font.family [ Font.monospace ]
-                   , Font.size 12
+                   , Text.fontSize Text.Tiny
                    ]
             )
             { text = model.publicKey

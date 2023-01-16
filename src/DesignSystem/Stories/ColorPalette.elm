@@ -10,6 +10,7 @@ import Element.Font as Font
 import FeatherIcons
 import Style.Helpers as SH exposing (spacer)
 import Style.Types as ST
+import Style.Widgets.Text as Text
 import UIExplorer exposing (storiesOf)
 
 
@@ -235,7 +236,7 @@ namedBlock label color =
         [ Element.spacing spacer.px4
         , Element.width <| Element.px blockSize
         , Element.alignTop
-        , Font.size 12
+        , Text.fontSize Text.Tiny
         ]
         [ block color
         , Element.el [ Font.family [ Font.monospace ] ] <|

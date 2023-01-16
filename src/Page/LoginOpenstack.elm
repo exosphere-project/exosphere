@@ -257,7 +257,7 @@ loginOpenstackOpenRcEntry context model =
             (VH.inputItemAttributes context.palette
                 ++ [ Element.width Element.fill
                    , Element.height (Element.px 250)
-                   , Font.size 12
+                   , Text.fontSize Text.Tiny
                    ]
             )
             { onChange = GotOpenRc

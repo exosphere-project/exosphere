@@ -1246,7 +1246,7 @@ flavorPicker context project restrictFlavorIds computeQuota flavorGroupToggleTip
 
           else
             Element.none
-        , Element.paragraph [ Font.size 12 ] [ Element.text zeroRootDiskExplainText ]
+        , Element.paragraph [ Text.fontSize Text.Tiny ] [ Element.text zeroRootDiskExplainText ]
         ]
 
 

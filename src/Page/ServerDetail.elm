@@ -483,7 +483,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                         , serverNameView context project currentTime model server
                         ]
                     , Element.el
-                        [ Font.size 12
+                        [ Text.fontSize Text.Tiny
                         , Font.color (SH.toElementColor context.palette.neutral.text.subdued)
                         ]
                         (copyableText context.palette [ Element.width Element.fill ] server.osProps.uuid)
@@ -1630,7 +1630,7 @@ renderIpAddresses context project server model =
         ipButton : Element.Element Msg -> String -> IpInfoLevel -> Element.Element Msg
         ipButton label displayLabel ipMsg =
             Element.row
-                [ Element.spacing spacer.px8, Font.size 12 ]
+                [ Element.spacing spacer.px8, Text.fontSize Text.Tiny ]
                 [ Input.button
                     [ Border.width 1
                     , Border.rounded 20
