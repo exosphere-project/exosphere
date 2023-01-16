@@ -5,6 +5,7 @@ import Color
 import DesignSystem.Helpers exposing (Plugins, palettize, toHtml)
 import DesignSystem.Stories.Card as CardStories
 import DesignSystem.Stories.ColorPalette as ColorPalette
+import DesignSystem.Stories.DataList
 import DesignSystem.Stories.Link as LinkStories
 import DesignSystem.Stories.Space as SpaceStories
 import DesignSystem.Stories.Text as TextStories
@@ -21,6 +22,7 @@ import Style.Types
 import Style.Widgets.Button as Button
 import Style.Widgets.Chip exposing (chip)
 import Style.Widgets.CopyableText exposing (copyableText)
+import Style.Widgets.DataList
 import Style.Widgets.Icon exposing (bell, console, copyToClipboard, history, ipAddress, lock, lockOpen, plusCircle, remove, roundRect, timesCircle)
 import Style.Widgets.Meter exposing (meter)
 import Style.Widgets.Popover.Popover exposing (popover, toggleIfTargetIsOutside)
@@ -109,6 +111,8 @@ type alias Model =
     , deployerColors : Style.Types.DeployerColorThemes
     , tabs : TabsPlugin.Model
     , toasties : Toasty.Stack Toast
+    , dataList : Style.Widgets.DataList.Model
+    , servers : List DesignSystem.Stories.DataList.Server
     }
 
 
@@ -128,6 +132,10 @@ initialModel =
     , chips = { all = initialChips, shown = initialChips }
     , tabs = TabsPlugin.initialModel
     , toasties = Toast.initialModel
+    , dataList =
+        Style.Widgets.DataList.init
+            (Style.Widgets.DataList.getDefaultFilterOptions DesignSystem.Stories.DataList.filters)
+    , servers = DesignSystem.Stories.DataList.initServers
     }
 
 
@@ -184,6 +192,9 @@ type Msg
     | ToastMsg (Toasty.Msg Toast)
     | ToastShow ErrorLevel String
     | NetworkConnection Bool
+    | DataListMsg Style.Widgets.DataList.Msg
+    | DeleteServer String
+    | DeleteSelectedServers (Set.Set String)
 
 
 
@@ -287,6 +298,42 @@ config =
                 NetworkConnection online ->
                     ( { m | customModel = ( m.customModel, Cmd.none ) |> Toast.showToast (ToastStories.makeNetworkConnectivityToast online) ToastMsg |> Tuple.first }
                     , ( m.customModel, Cmd.none ) |> Toast.showToast (ToastStories.makeNetworkConnectivityToast online) ToastMsg |> Tuple.second
+                    )
+
+                DataListMsg dataListMsg ->
+                    ( { m
+                        | customModel =
+                            { model
+                                | dataList = Style.Widgets.DataList.update dataListMsg model.dataList
+                            }
+                      }
+                    , Cmd.none
+                    )
+
+                DeleteServer serverId ->
+                    ( { m
+                        | customModel =
+                            { model
+                                | servers =
+                                    List.filter
+                                        (\server -> not (server.id == serverId))
+                                        model.servers
+                            }
+                      }
+                    , Cmd.none
+                    )
+
+                DeleteSelectedServers serverIds ->
+                    ( { m
+                        | customModel =
+                            { model
+                                | servers =
+                                    List.filter
+                                        (\server -> not (Set.member server.id serverIds))
+                                        model.servers
+                            }
+                      }
+                    , Cmd.none
                     )
     , menuViewEnhancer = \_ v -> v
     , viewEnhancer =
@@ -590,5 +637,12 @@ Use `popoverStyleDefaults` so that the popover style is still consistent with ot
                         ]
                     )
                 , ToggleTip.stories toHtml TogglePopover
+                , DesignSystem.Stories.DataList.stories
+                    { renderer = toHtml
+                    , toMsg = DataListMsg
+                    , onDeleteServers = DeleteSelectedServers
+                    , onDeleteServer = DeleteServer
+                    , onPopOver = TogglePopover
+                    }
                 ]
         )
