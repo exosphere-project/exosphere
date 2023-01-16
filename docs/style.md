@@ -45,15 +45,3 @@ We have started to use text helper functions in `Style.Widgets.Text` in order to
 Throughout the app, we use `context.palette` (with `ExoPalette` type) for coloring things, which automatically changes its colors whenever light/dark theme is changed. This palette stores colors as *meaningfully* named fields, making the choices intuitive.
 
 Please see "Color Palette" part of the [design system explorer](#design-system) for a more thorough orientation of how to use colors.
-
-## Style Guide (Legacy)
-
-- There is an Exosphere "style guide" demonstrating the use of Exosphere's custom widgets.
-
-- You can launch a live-updating Exosphere style guide by doing the following:
-    + Run `npm run live-style-guide`
-    + Browse to <http://127.0.0.1:8001>
-
-- This guide will automatically refresh whenever you save changes to code in `src/Style`!
-
-- You can also build a "static" style guide by running `npm run build-style-guide`. This will output styleguide.html.
