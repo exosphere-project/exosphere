@@ -67,6 +67,7 @@ type TextVariant
     | Body
     | Strong
     | Small
+    | Tiny
 
 
 type FontFamily
@@ -114,7 +115,12 @@ typography variant =
             }
 
         Small ->
-            { size = 13
+            { size = 14
+            , weight = Regular
+            }
+
+        Tiny ->
+            { size = 12
             , weight = Regular
             }
 

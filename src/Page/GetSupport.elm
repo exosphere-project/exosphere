@@ -258,9 +258,9 @@ view context sharedModel model =
                             ++ [ Element.height <| Element.px 200
                                , Element.width Element.fill
                                , Element.spacing spacer.px8
-                               , Font.size 10
                                , Text.fontFamily Text.Mono
                                ]
+                            ++ Text.typographyAttrs Tiny
                         )
                         { onChange = \_ -> NoOp
                         , text = buildSupportRequest sharedModel context model.maybeSupportableResource model.requestDescription
