@@ -238,7 +238,7 @@ keypairView model context project keypairRecord =
                         ]
                         { label =
                             Element.el
-                                [ Font.size 14
+                                [ Text.fontSize Text.Small
                                 , Font.color <| SH.toElementColor context.palette.primary
                                 ]
                                 (Element.text "(show less)")
@@ -261,7 +261,7 @@ keypairView model context project keypairRecord =
                     , Element.Input.button [ Element.alignRight, Element.width Element.shrink ]
                         { label =
                             Element.el
-                                [ Font.size 14
+                                [ Text.fontSize Text.Small
                                 , Font.color <| SH.toElementColor context.palette.primary
                                 ]
                                 (Element.text "(show more)")

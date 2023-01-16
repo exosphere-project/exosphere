@@ -385,7 +385,7 @@ projectHeaderView context p =
                 ++ p.auth.project.name
             )
         , Text.p
-            [ Font.size 14
+            [ Text.fontSize Text.Small
             , Element.alpha 0.75
             ]
             [ Element.text "(logged in as "

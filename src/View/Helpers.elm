@@ -211,7 +211,7 @@ hint context hintText =
     Element.below
         (Element.el
             [ Font.color (context.palette.danger.textOnNeutralBG |> SH.toElementColor)
-            , Font.size 14
+            , Text.fontSize Text.Small
             , Element.alignRight
             , Element.moveDown 6
             ]

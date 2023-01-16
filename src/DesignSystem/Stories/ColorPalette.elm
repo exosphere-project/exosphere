@@ -305,7 +305,7 @@ demoColumnAttrs palette =
     , Background.color <| SH.toElementColor palette.neutral.background.backLayer
     , Border.width 1
     , Border.color <| SH.toElementColor palette.neutral.border
-    , Font.size 14
+    , Text.fontSize Text.Small
     ]
 
 

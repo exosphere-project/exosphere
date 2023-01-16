@@ -2,10 +2,10 @@ module Style.Widgets.Chip exposing (chip)
 
 import Element
 import Element.Border as Border
-import Element.Font as Font
 import FeatherIcons
 import Style.Helpers as SH
 import Style.Types as ST
+import Style.Widgets.Text as Text
 import View.Helpers exposing (edges)
 import Widget
 
@@ -30,7 +30,7 @@ chip palette styleAttrs chipContent onClose =
             SH.toElementColorWithOpacity palette.neutral.border 0.8
          , Border.rounded 4
          , Element.paddingEach { edges | left = chipPadding }
-         , Font.size 14
+         , Text.fontSize Text.Small
          ]
             -- to let consumer add/override the chip style
             ++ styleAttrs

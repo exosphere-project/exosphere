@@ -585,7 +585,7 @@ serverNameView context project currentTime model server =
                                 |> Element.column
                                     (popoverStyleDefaults context.palette
                                         ++ [ Font.color (SH.toElementColor context.palette.danger.textOnNeutralBG)
-                                           , Font.size 14
+                                           , Text.fontSize Text.Small
                                            , Element.alignRight
                                            , Element.moveDown 6
                                            , Element.spacing spacer.px12

@@ -96,7 +96,7 @@ spacerBlock spacerField =
     in
     Element.row [ Element.spacing spacer.px16 ]
         [ Element.paragraph
-            [ Font.size 14
+            [ Text.fontSize Text.Small
             , Font.family [ Font.monospace ]
             , Element.width (Element.px 100)
             ]
@@ -146,5 +146,5 @@ methodStatus palette isCorrect text =
             |> FeatherIcons.toHtml []
             |> Element.html
             |> Element.el [ Font.color <| SH.toElementColor iconColor ]
-        , Text.p [ Font.size 14 ] [ Element.text text ]
+        , Text.p [ Text.fontSize Text.Small ] [ Element.text text ]
         ]

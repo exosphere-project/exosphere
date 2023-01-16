@@ -200,7 +200,7 @@ loginOpenstackCredsEntry context model allCredsEntered =
                 { text = text
                 , placeholder = Just (Input.placeholder [] (Element.text placeholderText))
                 , onChange = onChange
-                , label = Input.labelAbove [ Font.size 14 ] (Element.text labelText)
+                , label = Input.labelAbove [ Text.fontSize Text.Small ] (Element.text labelText)
                 }
     in
     Element.column
@@ -227,7 +227,7 @@ loginOpenstackCredsEntry context model allCredsEntered =
             , placeholder = Just (Input.placeholder [] (Element.text "Password"))
             , show = False
             , onChange = GotPassword
-            , label = Input.labelAbove [ Font.size 14 ] (Element.text "Password")
+            , label = Input.labelAbove [ Text.fontSize Text.Small ] (Element.text "Password")
             }
         , if allCredsEntered then
             Element.none

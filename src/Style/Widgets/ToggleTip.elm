@@ -10,6 +10,7 @@ import Style.Helpers as SH exposing (spacer)
 import Style.Types exposing (ExoPalette)
 import Style.Widgets.Popover.Popover exposing (popover)
 import Style.Widgets.Popover.Types exposing (PopoverId)
+import Style.Widgets.Text as Text
 
 
 {-| Shows an info icon button which displays a popover when clicked.
@@ -72,7 +73,7 @@ toggleTipWithIcon context msgMapper id content position icon color hoverColor =
         tipStyle =
             [ Border.rounded 4
             , Font.color (context.palette.neutral.text.subdued |> SH.toElementColor)
-            , Font.size 15
+            , Text.fontSize Text.Small
             ]
 
         btnClickOrHoverStyle =

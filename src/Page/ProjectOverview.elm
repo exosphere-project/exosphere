@@ -263,7 +263,7 @@ keypairTileContents context project =
                 , Element.width Element.fill
                 , Element.htmlAttribute <| Html.Attributes.style "min-width" "0"
                 , Font.family [ Font.monospace ]
-                , Font.size 14
+                , Text.fontSize Text.Small
                 ]
                 (VH.ellipsizedText keypair.fingerprint)
             ]
