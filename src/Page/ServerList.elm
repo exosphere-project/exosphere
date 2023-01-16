@@ -18,12 +18,13 @@ import OpenStack.Types as OSTypes
 import Page.QuotaUsage
 import Route
 import Set
-import Style.Helpers as SH exposing (spacer)
+import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.DataList as DataList
 import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
 import Style.Widgets.Icon as Icon
-import Style.Widgets.Popover.Popover exposing (popover)
+import Style.Widgets.Popover.Popover exposing (dropdownItemStyle, popover)
+import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.StatusBadge as StatusBadge
 import Style.Widgets.Text as Text
 import Time
@@ -316,7 +317,7 @@ serverView context currentTime project serverRecord =
                     (\{ interactionStatus, interactionDetails } ->
                         Element.el [ closePopover, Element.width Element.fill ] <|
                             Widget.button
-                                (SH.dropdownItemStyle context.palette)
+                                (dropdownItemStyle context.palette)
                                 { text = interactionDetails.name
                                 , icon =
                                     Element.el []

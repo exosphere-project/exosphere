@@ -4,8 +4,9 @@ import Element
 import Element.Border as Border
 import Element.Font as Font exposing (Font)
 import Element.Region as Region
-import Style.Helpers as SH exposing (spacer)
+import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
+import Style.Widgets.Spacer exposing (spacer)
 import Time exposing (Weekday(..))
 
 

@@ -6,8 +6,9 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Region as Region
 import FeatherIcons
-import Style.Helpers as SH exposing (spacer)
+import Style.Helpers as SH
 import Style.Types as ST
+import Style.Widgets.Spacer exposing (spacer)
 
 
 type AlertState

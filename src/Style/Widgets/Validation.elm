@@ -8,9 +8,10 @@ module Style.Widgets.Validation exposing
 import Element exposing (Element)
 import Element.Font as Font
 import FeatherIcons
-import Style.Helpers as SH exposing (spacer)
+import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
 import Style.Widgets.Button as Button
+import Style.Widgets.Spacer exposing (spacer)
 
 
 notes : String

@@ -4,8 +4,9 @@ import Element
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
-import Style.Helpers as SH exposing (spacer)
+import Style.Helpers as SH
 import Style.Types
+import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 
 

@@ -5,9 +5,10 @@ import Element.Font as Font
 import Element.Input as Input
 import OpenStack.OpenRc
 import OpenStack.Types as OSTypes
-import Style.Helpers as SH exposing (spacer)
+import Style.Helpers as SH
 import Style.Widgets.Button as Button
 import Style.Widgets.Link as Link
+import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg

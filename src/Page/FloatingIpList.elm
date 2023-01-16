@@ -10,7 +10,7 @@ import OpenStack.Types as OSTypes
 import Page.QuotaUsage
 import Route
 import Set
-import Style.Helpers as SH exposing (spacer)
+import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.Alert as Alert
 import Style.Widgets.Button as Button
@@ -18,6 +18,7 @@ import Style.Widgets.CopyableText
 import Style.Widgets.DataList as DataList
 import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
 import Style.Widgets.Icon as Icon
+import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.Project exposing (Project)

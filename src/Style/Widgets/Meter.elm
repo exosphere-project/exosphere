@@ -3,8 +3,9 @@ module Style.Widgets.Meter exposing (meter)
 import Element
 import Element.Background as Background
 import Html.Attributes as HtmlA
-import Style.Helpers as SH exposing (spacer)
+import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
+import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 
 

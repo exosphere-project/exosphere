@@ -22,8 +22,9 @@ import LineChart.Interpolation as Interpolation
 import LineChart.Junk as Junk
 import LineChart.Legends as Legends
 import LineChart.Line as Line
-import Style.Helpers as SH exposing (spacer)
+import Style.Helpers as SH
 import Style.Widgets.Icon as Icon
+import Style.Widgets.Spacer exposing (spacer)
 import Svg
 import Time
 import Tuple

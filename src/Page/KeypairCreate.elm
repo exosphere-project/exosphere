@@ -8,8 +8,9 @@ import Helpers.SshKeyTypeGuesser
 import Helpers.String
 import Html.Attributes
 import String exposing (trim)
-import Style.Helpers as SH exposing (spacer)
+import Style.Helpers as SH
 import Style.Widgets.Button as Button
+import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Style.Widgets.Validation as Validation
 import Time

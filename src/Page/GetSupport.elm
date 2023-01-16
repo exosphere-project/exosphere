@@ -7,10 +7,10 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import RemoteData
 import Set
-import Style.Helpers exposing (spacer)
 import Style.Widgets.Button as Button
 import Style.Widgets.CopyableText
 import Style.Widgets.Select
+import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text exposing (TextVariant(..))
 import Types.HelperTypes as HelperTypes
 import Types.SharedModel exposing (SharedModel)

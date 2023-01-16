@@ -22,7 +22,7 @@ import Page.ServerResourceUsageAlerts
 import Page.ServerResourceUsageCharts
 import RemoteData
 import Route
-import Style.Helpers as SH exposing (spacer)
+import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.Alert as Alert
 import Style.Widgets.Button
@@ -33,6 +33,7 @@ import Style.Widgets.IconButton
 import Style.Widgets.Link as Link
 import Style.Widgets.Popover.Popover exposing (popover, popoverStyleDefaults)
 import Style.Widgets.Popover.Types exposing (PopoverId)
+import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
 import Time

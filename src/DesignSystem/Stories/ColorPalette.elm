@@ -8,8 +8,9 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import FeatherIcons
-import Style.Helpers as SH exposing (spacer)
+import Style.Helpers as SH
 import Style.Types as ST
+import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import UIExplorer exposing (storiesOf)
 

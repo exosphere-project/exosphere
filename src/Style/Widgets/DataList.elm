@@ -24,12 +24,13 @@ import FeatherIcons
 import Html.Attributes as HtmlA
 import Murmur3
 import Set
-import Style.Helpers as SH exposing (spacer)
+import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
 import Style.Widgets.Chip exposing (chip)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.Popover.Popover exposing (popover)
 import Style.Widgets.Popover.Types exposing (PopoverId)
+import Style.Widgets.Spacer exposing (spacer)
 import View.Helpers as VH
 import Widget
 

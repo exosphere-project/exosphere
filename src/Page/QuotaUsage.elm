@@ -6,8 +6,8 @@ import Helpers.Formatting exposing (Unit(..), humanNumber)
 import Helpers.String
 import OpenStack.Types as OSTypes
 import RemoteData exposing (RemoteData(..), WebData)
-import Style.Helpers exposing (spacer)
 import Style.Widgets.Meter
+import Style.Widgets.Spacer exposing (spacer)
 import View.Helpers as VH
 import View.Types
 

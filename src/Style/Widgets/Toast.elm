@@ -10,10 +10,11 @@ import Helpers.Helpers exposing (hiddenActionContexts)
 import Html exposing (Html)
 import Html.Attributes
 import Route exposing (Route(..))
-import Style.Helpers as SH exposing (spacer)
+import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.Icon as Icon
 import Style.Widgets.Link as Link
+import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Toasty
 import Toasty.Defaults

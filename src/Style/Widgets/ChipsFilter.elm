@@ -2,7 +2,7 @@ module Style.Widgets.ChipsFilter exposing (ChipsFilterMsg(..), chipsFilter)
 
 import Element
 import Set exposing (Set)
-import Style.Helpers exposing (spacer)
+import Style.Widgets.Spacer exposing (spacer)
 import Widget
 import Widget.Style exposing (ColumnStyle, TextInputStyle)
 
