@@ -1336,6 +1336,11 @@ processProjectSpecificMsg outerModel project msg =
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
+        -- TODO: this is a dummy, needs to be completed. -- JC
+        -- TODO: The variant ReceiveImageVisibilityChange .. is likely wrong
+        -- TODO: and will have to be changed. PLUS: actual handler code
+        ReceiveImageVisibilityChange _ -> (outerModel, Cmd.none)
+
         RequestDeleteServers serverUuidsToDelete ->
             let
                 applyDelete : OSTypes.ServerUuid -> ( Project, Cmd SharedMsg ) -> ( Project, Cmd SharedMsg )

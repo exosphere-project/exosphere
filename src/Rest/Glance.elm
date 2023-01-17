@@ -2,6 +2,7 @@ module Rest.Glance exposing
     ( receiveDeleteImage
     , receiveImages
     , requestDeleteImage
+    , requestChangeVisibility
     , requestImages
     )
 
@@ -12,7 +13,8 @@ import Helpers.Url as UrlHelpers
 import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
-import OpenStack.Types as OSTypes
+import Json.Encode
+import OpenStack.Types as OSTypes exposing (ImageVisibility)
 import Rest.Helpers exposing (expectJsonWithErrorBody, openstackCredentialedRequest, resultToMsgErrorBody)
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.HelperTypes exposing (HttpRequestMethod(..), MetadataFilter)
@@ -56,6 +58,50 @@ requestImages model project =
         (expectJsonWithErrorBody
             resultToMsg_
             (decodeImages maybeExcludeFilter)
+        )
+
+-- TODO: (JC) need to define json body
+-- See OpenStack.ServerVolumes.requestAttachVolume for an example of non-empty body
+requestChangeVisibility : Project -> OSTypes.ImageUuid -> OSTypes.ImageVisibility -> Cmd SharedMsg
+requestChangeVisibility project imageUuid imageVisibility =
+    let
+        imageVisibilityAsString = case imageVisibility of
+             OSTypes.ImagePublic -> "public"
+             OSTypes.ImageCommunity -> "community"
+             OSTypes.ImageShared -> "shared"
+             OSTypes.ImagePrivate -> "private"
+
+        errorContext =
+            ErrorContext
+                ("delete image with UUID " ++ imageUuid)
+                ErrorCrit
+                Nothing
+
+        body =
+            Json.Encode.object
+                [ ( "op", Json.Encode.string "replace)
+                , ( "path", Json.Encode.string "visibility")
+                -- , ( "value", (Json.Encode.string imageVisibilityAsString))
+
+                ]
+
+        resultToMsg_ =
+            resultToMsgErrorBody
+                errorContext
+                (\_ ->
+                    ProjectMsg
+                        (GetterSetters.projectIdentifier project)
+                        (ReceiveImageVisibilityChange imageUuid)
+                )
+    in
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Patch
+        Nothing
+        (project.endpoints.glance ++ "/v2/images/" ++ imageUuid)
+        (Http.jsonBody body)
+        (Rest.Helpers.expectStringWithErrorBody
+            resultToMsg_
         )
 
 

@@ -78,9 +78,11 @@ type alias Passphrase =
 
 type HttpRequestMethod
     = Get
+    | Patch
     | Post
     | Put
     | Delete
+
 
 
 

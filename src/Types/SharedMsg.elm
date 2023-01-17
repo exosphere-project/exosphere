@@ -95,6 +95,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveVolumeQuota OSTypes.VolumeQuota
     | ReceiveNetworkQuota OSTypes.NetworkQuota
     | ReceiveDeleteImage OSTypes.ImageUuid
+    | ReceiveImageVisibilityChange OSTypes.ImageUuid
     | ReceiveJetstream2Allocations (Result HttpErrorWithBody (List Types.Jetstream2Accounting.Allocation))
 
 

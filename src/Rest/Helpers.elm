@@ -34,6 +34,8 @@ httpRequestMethodStr method =
         Put ->
             "PUT"
 
+        Patch -> "PATCH"
+
         Delete ->
             "DELETE"
 
