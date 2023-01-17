@@ -39,10 +39,11 @@ import Page.VolumeDetail
 import Page.VolumeList
 import Page.VolumeMountInstructions
 import Route
-import Style.Helpers as SH exposing (shadowDefaults, spacer)
+import Style.Helpers as SH exposing (shadowDefaults)
 import Style.Types as ST
-import Style.Widgets.Popover.Popover exposing (popover)
-import Style.Widgets.Text as Text
+import Style.Widgets.Popover.Popover exposing (dropdownItemStyle, popover)
+import Style.Widgets.Spacer exposing (spacer)
+import Style.Widgets.Text as Text exposing (FontFamily(..), TextVariant(..))
 import Style.Widgets.Toast as Toast
 import Toasty
 import Types.Error exposing (AppError)
@@ -94,8 +95,8 @@ view_ outerModel =
             outerModel.sharedModel
     in
     Element.layout
-        [ Text.defaultFontSize
-        , Text.defaultFontFamily
+        [ Text.fontSize Body
+        , Text.fontFamily Default
         , Font.color <| SH.toElementColor <| viewContext.palette.neutral.text.default
         , Background.color <| SH.toElementColor viewContext.palette.neutral.background.backLayer
         ]
@@ -385,7 +386,7 @@ projectHeaderView context p =
                 ++ p.auth.project.name
             )
         , Text.p
-            [ Font.size 14
+            [ Text.fontSize Text.Small
             , Element.alpha 0.75
             ]
             [ Element.text "(logged in as "
@@ -424,7 +425,7 @@ createProjectResourcesButton context projectId =
                 { url = Route.toUrl context.urlPathPrefix route
                 , label =
                     Widget.button
-                        (SH.dropdownItemStyle context.palette)
+                        (dropdownItemStyle context.palette)
                         { icon =
                             Element.el [] icon_
                         , text =

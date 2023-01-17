@@ -4,9 +4,9 @@ import DesignSystem.Helpers exposing (Plugins, Renderer, palettize)
 import Element
 import Element.Font as Font
 import Set
-import Style.Helpers exposing (spacer)
 import Style.Types
 import Style.Widgets.Popover.Types exposing (PopoverId)
+import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.ToggleTip exposing (toggleTip, warningToggleTip)
 import UIExplorer exposing (storiesOf)
 

@@ -4,8 +4,10 @@ import Element
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
-import Style.Helpers as SH exposing (spacer)
+import Style.Helpers as SH
 import Style.Types
+import Style.Widgets.Spacer exposing (spacer)
+import Style.Widgets.Text as Text
 
 
 type StatusBadgeState
@@ -28,7 +30,7 @@ statusBadge palette state status =
         , Border.color <| SH.toElementColor stateColor.border
         , Background.color <| SH.toElementColor stateColor.background
         , Font.color <| SH.toElementColor stateColor.textOnColoredBG
-        , Font.size 16
+        , Text.fontSize Text.Body
         , Font.medium
         ]
         status

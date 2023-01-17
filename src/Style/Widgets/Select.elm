@@ -8,8 +8,9 @@ import FeatherIcons
 import Html exposing (Html)
 import Html.Attributes as HtmlA
 import Html.Events as HtmlE
-import Style.Helpers as SH exposing (spacer)
+import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
+import Style.Widgets.Spacer exposing (spacer)
 
 
 select :

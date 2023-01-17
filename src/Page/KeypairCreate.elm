@@ -8,8 +8,9 @@ import Helpers.SshKeyTypeGuesser
 import Helpers.String
 import Html.Attributes
 import String exposing (trim)
-import Style.Helpers as SH exposing (spacer)
+import Style.Helpers as SH
 import Style.Widgets.Button as Button
+import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Style.Widgets.Validation as Validation
 import Time
@@ -131,7 +132,7 @@ view context project currentTime model =
                    , Element.spacing 0
                    , Html.Attributes.style "word-break" "break-all" |> Element.htmlAttribute
                    , Font.family [ Font.monospace ]
-                   , Font.size 12
+                   , Text.fontSize Text.Tiny
                    ]
             )
             { text = model.publicKey
@@ -141,7 +142,7 @@ view context project currentTime model =
                 Input.labelAbove
                     [ Element.paddingXY 0 spacer.px12
                     , Font.family [ Font.sansSerif ]
-                    , Font.size 17
+                    , Text.fontSize Text.Body
                     ]
                     (Element.text <|
                         String.join " "

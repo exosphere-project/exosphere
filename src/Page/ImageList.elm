@@ -14,11 +14,12 @@ import Html.Attributes as HtmlA
 import OpenStack.Types as OSTypes exposing (Image)
 import Route
 import Set
-import Style.Helpers as SH exposing (spacer)
+import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.Button as Button
 import Style.Widgets.DataList as DataList
 import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
+import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Tag as Tag
 import Style.Widgets.Text as Text
 import Types.Project exposing (Project)
@@ -363,9 +364,7 @@ imageView model context project imageRecord =
         (listItemColumnAttribs context.palette)
         [ Element.row [ Element.width Element.fill, Element.spacing spacer.px12 ]
             [ Element.el
-                [ Font.size 18
-                , Font.color (SH.toElementColor context.palette.neutral.text.default)
-                ]
+                (Text.typographyAttrs Text.H4 ++ [ Font.color (SH.toElementColor context.palette.neutral.text.default) ])
                 (Element.text (VH.resourceName (Just imageRecord.image.name) imageRecord.image.uuid))
             , featuredIcon
             , imageActions

@@ -3,8 +3,8 @@ module Page.ServerResourceUsageAlerts exposing (view)
 import Dict
 import Element
 import Helpers.ServerResourceUsage exposing (timeSeriesRecentDataPoints)
-import Style.Helpers exposing (spacer)
 import Style.Widgets.Alert as Alert
+import Style.Widgets.Spacer exposing (spacer)
 import Time
 import Tuple
 import Types.ServerResourceUsage exposing (DataPoint, TimeSeries)

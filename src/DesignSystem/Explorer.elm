@@ -16,7 +16,7 @@ import Element.Font as Font
 import Html
 import Html.Attributes exposing (src, style)
 import Set
-import Style.Helpers as SH exposing (spacer)
+import Style.Helpers as SH
 import Style.Types
 import Style.Widgets.Button as Button
 import Style.Widgets.Chip exposing (chip)
@@ -25,8 +25,10 @@ import Style.Widgets.Icon exposing (bell, console, copyToClipboard, history, ipA
 import Style.Widgets.Meter exposing (meter)
 import Style.Widgets.Popover.Popover exposing (popover, toggleIfTargetIsOutside)
 import Style.Widgets.Popover.Types exposing (PopoverId)
+import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.StatusBadge exposing (StatusBadgeState(..), statusBadge)
 import Style.Widgets.Tag exposing (tag)
+import Style.Widgets.Text as Text
 import Style.Widgets.Toast as Toast
 import Toasty
 import Types.Error exposing (ErrorLevel(..), Toast)
@@ -513,7 +515,7 @@ A chip is used to show an object within workflows that involve filtering a set o
                                     demoPopoverContent _ =
                                         Element.paragraph
                                             [ Element.width <| Element.px 275
-                                            , Font.size 16
+                                            , Text.fontSize Text.Body
                                             ]
                                             [ Element.text <|
                                                 "I'm a popover that can be used as dropdown, toggle tip, etc. "

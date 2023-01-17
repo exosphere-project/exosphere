@@ -4,7 +4,8 @@ import Element
 import Element.Font as Font
 import Element.Region as Region
 import Route
-import Style.Helpers as SH exposing (spacer)
+import Style.Helpers as SH
+import Style.Widgets.Spacer exposing (spacer)
 import View.Helpers as VH
 import View.Types
 

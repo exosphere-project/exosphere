@@ -10,10 +10,11 @@ import Helpers.Helpers exposing (hiddenActionContexts)
 import Html exposing (Html)
 import Html.Attributes
 import Route exposing (Route(..))
-import Style.Helpers as SH exposing (spacer)
+import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.Icon as Icon
 import Style.Widgets.Link as Link
+import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Toasty
 import Toasty.Defaults
@@ -216,7 +217,7 @@ genericToast context stateColor { title, maybeActionContext, error, maybeRecover
         , Element.width Element.fill
         , Background.color (SH.toElementColor stateColor.background)
         , Font.color (SH.toElementColor stateColor.textOnColoredBG)
-        , Font.size 14
+        , Text.fontSize Text.Small
         , Border.width 1
         , Border.color (SH.toElementColor stateColor.border)
         , Border.rounded 4
@@ -227,7 +228,7 @@ genericToast context stateColor { title, maybeActionContext, error, maybeRecover
             [ Element.el
                 [ Region.heading 1
                 , Font.semiBold
-                , Font.size 14
+                , Text.fontSize Text.Small
                 ]
                 (Element.text title)
             , Input.button
@@ -241,7 +242,7 @@ genericToast context stateColor { title, maybeActionContext, error, maybeRecover
                 }
             ]
         , Element.column
-            [ Font.size 13
+            [ Text.fontSize Text.Small
             , Element.spacing spacer.px8
             , Element.width Element.fill
             ]

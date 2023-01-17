@@ -2,7 +2,7 @@ module DesignSystem.Stories.Validation exposing (stories)
 
 import DesignSystem.Helpers exposing (Plugins, Renderer, ThemeModel, palettize)
 import Element
-import Style.Helpers exposing (spacer)
+import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Validation exposing (invalidMessage, notes, warningAlreadyExists, warningMessage)
 import UIExplorer exposing (storiesOf)
 

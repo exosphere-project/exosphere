@@ -6,8 +6,8 @@ import Helpers.String
 import OpenStack.Types as OSTypes
 import RemoteData
 import Route
-import Style.Helpers exposing (spacer)
 import Style.Widgets.Button as Button
+import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Types.Project exposing (Project)
 import Types.Server exposing (Server)

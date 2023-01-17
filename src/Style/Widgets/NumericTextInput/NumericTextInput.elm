@@ -3,9 +3,10 @@ module Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInpu
 import Element
 import Element.Font as Font
 import Element.Input as Input
-import Style.Helpers as SH exposing (spacer)
+import Style.Helpers as SH
 import Style.Types
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..), NumericTextInputParams)
+import Style.Widgets.Spacer exposing (spacer)
 
 
 numericTextInput : Style.Types.ExoPalette -> List (Element.Attribute msg) -> NumericTextInput -> NumericTextInputParams -> (NumericTextInput -> msg) -> Element.Element msg

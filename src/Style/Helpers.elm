@@ -1,9 +1,7 @@
 module Style.Helpers exposing
     ( allColorsPalette
-    , dropdownItemStyle
     , materialStyle
     , shadowDefaults
-    , spacer
     , toElementColor
     , toElementColorWithOpacity
     , toExoPalette
@@ -16,7 +14,7 @@ import Element
 import Element.Font as Font
 import Html.Attributes
 import Style.Types as ST exposing (ElmUiWidgetStyle, ExoPalette, StyleMode, Theme(..))
-import Widget.Style
+import Style.Widgets.Spacer exposing (spacer)
 import Widget.Style.Material as Material
 
 
@@ -389,43 +387,4 @@ shadowDefaults =
     , blur = 8
     , size = 0
     , color = Element.rgba255 3 3 3 0.18
-    }
-
-
-dropdownItemStyle : ExoPalette -> Widget.Style.ButtonStyle msg
-dropdownItemStyle palette =
-    let
-        textButtonDefaults =
-            (materialStyle palette).textButton
-    in
-    { textButtonDefaults
-        | container =
-            textButtonDefaults.container
-                ++ [ Element.width Element.fill
-                   , Font.size 16
-                   , Font.medium
-                   , Font.letterSpacing 0.8
-                   , Element.paddingXY spacer.px8 spacer.px12
-                   , Element.height Element.shrink
-                   ]
-        , labelRow = textButtonDefaults.labelRow ++ [ Element.spacing spacer.px12 ]
-    }
-
-
-{-| Fixed amount of space between elements that should be used to maintain consistency.
-
-In elm-ui Element.padding and Element.spacing fields of this record should be used instead of hardcoded numbers.
-The sizes chosen in this record are based on <https://www.refactoringui.com/> book's page number 73 (establishing spacing and sizing system).
-
--}
-spacer : ST.Spacer
-spacer =
-    { px4 = 4
-    , px8 = 8
-    , px12 = 12
-    , px16 = 16
-    , px24 = 24
-    , px32 = 32
-    , px48 = 48
-    , px64 = 64
     }

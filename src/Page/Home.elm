@@ -10,10 +10,11 @@ import Helpers.Url as UrlHelpers
 import RemoteData
 import Route
 import Set
-import Style.Helpers as SH exposing (spacer)
+import Style.Helpers as SH
 import Style.Types
 import Style.Widgets.Card exposing (clickableCardFixedSize)
 import Style.Widgets.Icon as Icon
+import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Types.HelperTypes as HelperTypes
 import Types.Project exposing (Project)

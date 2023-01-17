@@ -6,8 +6,10 @@ import FeatherIcons
 import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import Route
-import Style.Helpers as SH exposing (spacer)
+import Style.Helpers as SH
 import Style.Widgets.Link as Link
+import Style.Widgets.Spacer exposing (spacer)
+import Style.Widgets.Text as Text
 import Types.OuterModel
 import Types.SharedMsg exposing (SharedMsg)
 import Types.View
@@ -319,7 +321,7 @@ breadcrumb_ outerModel context =
     in
     Element.wrappedRow
         [ Element.spacing spacer.px8
-        , Font.size 14
+        , Text.fontSize Text.Small
         ]
     <|
         List.intersperse

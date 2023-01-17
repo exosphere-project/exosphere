@@ -5,9 +5,10 @@ import Element.Input as Input
 import Html
 import Html.Attributes
 import Murmur3
-import Style.Helpers as SH exposing (spacer)
+import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
 import Style.Widgets.Icon exposing (copyToClipboard)
+import Style.Widgets.Spacer exposing (spacer)
 
 
 {-| Display text with a button to copy to the clipboard. Requires you to do a Ports.InstantiateClipboardJS

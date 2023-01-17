@@ -13,11 +13,12 @@ import Page.QuotaUsage
 import RemoteData
 import Route
 import Set
-import Style.Helpers as SH exposing (spacer)
+import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.CopyableText
 import Style.Widgets.DataList as DataList
 import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
+import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
@@ -238,7 +239,7 @@ keypairView model context project keypairRecord =
                         ]
                         { label =
                             Element.el
-                                [ Font.size 14
+                                [ Text.fontSize Text.Small
                                 , Font.color <| SH.toElementColor context.palette.primary
                                 ]
                                 (Element.text "(show less)")
@@ -261,7 +262,7 @@ keypairView model context project keypairRecord =
                     , Element.Input.button [ Element.alignRight, Element.width Element.shrink ]
                         { label =
                             Element.el
-                                [ Font.size 14
+                                [ Text.fontSize Text.Small
                                 , Font.color <| SH.toElementColor context.palette.primary
                                 ]
                                 (Element.text "(show more)")
@@ -275,9 +276,7 @@ keypairView model context project keypairRecord =
     Element.column (listItemColumnAttribs context.palette ++ [ Element.spacing spacer.px16 ])
         [ Element.row [ Element.width Element.fill ]
             [ Element.el
-                [ Font.size 18
-                , Font.color (SH.toElementColor context.palette.neutral.text.default)
-                ]
+                (Text.typographyAttrs Text.H4 ++ [ Font.color (SH.toElementColor context.palette.neutral.text.default) ])
                 (Element.text keypairRecord.keypair.name)
             , Element.el [ Element.alignRight ] deleteKeypairBtnWithPopconfirm
             ]
