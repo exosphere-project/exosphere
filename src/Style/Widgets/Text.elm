@@ -145,7 +145,7 @@ fontFamily family =
         Mono ->
             Font.family [ Font.monospace ]
 
-        _ ->
+        Default ->
             Font.family
                 (Font.typeface "Open Sans"
                     :: systemFonts
