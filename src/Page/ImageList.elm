@@ -278,10 +278,6 @@ imageView model context project imageRecord =
                     Element.el [ Element.htmlAttribute <| HtmlA.title "Image is not active!" ] (textBtn Nothing)
 
         imageActions =
-            let
-                btn =
-                    setVisibilityBtn "123" OSTypes.ImageCommunity
-            in
             Element.row [ Element.alignRight, Element.spacing spacer.px12 ]
                 [ deleteImageBtn, createServerBtn, setVisibilityBtn "123" OSTypes.ImageCommunity |> Element.map SharedMsg ]
 
@@ -381,8 +377,13 @@ imageView model context project imageRecord =
 
 setVisibilityBtn : OSTypes.ImageUuid -> OSTypes.ImageVisibility -> Element.Element SharedMsg.SharedMsg
 setVisibilityBtn imageUuid visibility =
+    let
+        onPress : 1SharedMsg.SharedMsg
+        onPress =
+            SharedMsg.RequestChangeImageVisibility imageUuid visibility
+    in
     Element.Input.button []
-        { onPress = Just (SharedMsg.RequestChangeImageVisibility imageUuid visibility)
+        { onPress = Just onPress
         , label = Element.el [] (Element.text <| "set visibility to: " ++ imageVisibilityAsString visibility)
         }
 
