@@ -378,7 +378,7 @@ imageView model context project imageRecord =
 setVisibilityBtn : OSTypes.ImageUuid -> OSTypes.ImageVisibility -> Element.Element SharedMsg.SharedMsg
 setVisibilityBtn imageUuid visibility =
     let
-        onPress : 1SharedMsg.SharedMsg
+        onPress : SharedMsg.SharedMsg
         onPress =
             SharedMsg.RequestChangeImageVisibility imageUuid visibility
     in
