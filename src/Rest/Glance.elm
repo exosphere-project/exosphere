@@ -68,6 +68,7 @@ requestImages model project =
 {-|
 
     This is a first draft of a function to change the visibility of an image.
+    I am dubious of line 122.
 
     NOTES:
 
@@ -118,7 +119,7 @@ requestChangeVisibility project imageUuid imageVisibility =
                 (\_ ->
                     ProjectMsg
                         (GetterSetters.projectIdentifier project)
-                        (ReceiveImageVisibilityChange imageUuid)
+                        (ReceiveImageVisibilityChange imageVisibility)
                 )
     in
     openstackCredentialedRequest
