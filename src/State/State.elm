@@ -1215,6 +1215,10 @@ processProjectSpecificMsg outerModel project msg =
                 Just server ->
                     processServerSpecificMsg outerModel project server serverMsgConstructor
 
+        -- TODO: make this work!
+        RequestChangeImageVisibility imageUuid visibility ->
+            ( outerModel, Rest.Glance.requestChangeVisibility project imageUuid visibility ) |> mapToOuterMsg
+
         RequestServers ->
             ApiModelHelpers.requestServers (GetterSetters.projectIdentifier project) sharedModel
                 |> mapToOuterMsg

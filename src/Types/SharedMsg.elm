@@ -43,6 +43,7 @@ type SharedMsg
     | SetExperimentalFeaturesEnabled Bool
     | TogglePopover PopoverId
     | NetworkConnection Bool
+    | RequestChangeImageVisibility OSTypes.ImageUuid OSTypes.ImageVisibility
     | NoOp
 
 

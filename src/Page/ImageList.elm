@@ -3,6 +3,7 @@ module Page.ImageList exposing (Model, Msg(..), init, update, view)
 import Dict
 import Element
 import Element.Font as Font
+import Element.Input
 import FeatherIcons
 import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (Unit(..), humanNumber)
@@ -277,8 +278,12 @@ imageView model context project imageRecord =
                     Element.el [ Element.htmlAttribute <| HtmlA.title "Image is not active!" ] (textBtn Nothing)
 
         imageActions =
+            let
+                btn =
+                    setVisibilityBtn "123" OSTypes.ImageCommunity
+            in
             Element.row [ Element.alignRight, Element.spacing spacer.px12 ]
-                [ deleteImageBtn, createServerBtn ]
+                [ deleteImageBtn, createServerBtn, setVisibilityBtn "123" OSTypes.ImageCommunity |> Element.map SharedMsg ]
 
         size =
             case imageRecord.image.size of
@@ -374,6 +379,32 @@ imageView model context project imageRecord =
         ]
 
 
+setVisibilityBtn : OSTypes.ImageUuid -> OSTypes.ImageVisibility -> Element.Element SharedMsg.SharedMsg
+setVisibilityBtn imageUuid visibility =
+    Element.Input.button []
+        { onPress = Just (SharedMsg.RequestChangeImageVisibility imageUuid visibility)
+        , label = Element.el [] (Element.text <| "set visibility to: " ++ imageVisibilityAsString visibility)
+        }
+
+
+{-| TODO: put this in a standard place. There is a duplicate in module Glance
+-}
+imageVisibilityAsString : OSTypes.ImageVisibility -> String
+imageVisibilityAsString imageVisibility =
+    case imageVisibility of
+        OSTypes.ImagePublic ->
+            "public"
+
+        OSTypes.ImageCommunity ->
+            "community"
+
+        OSTypes.ImageShared ->
+            "shared"
+
+        OSTypes.ImagePrivate ->
+            "private"
+
+
 filters :
     List
         (DataList.Filter
@@ -450,7 +481,7 @@ searchByNameFilter =
 
 
 
---- JC ADDED ---
+--  JC ADDED ---
 -- TODO:
 -- imageActionsDropdown : View.Types.Context -> Project -> Model -> Server -> Element.Element Msg
 --imageActionsDropdown context project model server =

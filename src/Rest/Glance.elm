@@ -81,24 +81,9 @@ requestImages model project =
 requestChangeVisibility : Project -> OSTypes.ImageUuid -> OSTypes.ImageVisibility -> Cmd SharedMsg
 requestChangeVisibility project imageUuid imageVisibility =
     let
-        imageVisibilityAsString : String
-        imageVisibilityAsString =
-            case imageVisibility of
-                OSTypes.ImagePublic ->
-                    "public"
-
-                OSTypes.ImageCommunity ->
-                    "community"
-
-                OSTypes.ImageShared ->
-                    "shared"
-
-                OSTypes.ImagePrivate ->
-                    "private"
-
         errorContext =
             ErrorContext
-                ("replace image visibility with " ++ imageVisibilityAsString)
+                ("replace image visibility with " ++ imageVisibilityAsString imageVisibility)
                 ErrorCrit
                 Nothing
 
@@ -107,7 +92,7 @@ requestChangeVisibility project imageUuid imageVisibility =
             Json.Encode.object
                 [ ( "op", Json.Encode.string "replace" )
                 , ( "path", Json.Encode.string "visibility" )
-                , ( "value", Json.Encode.string imageVisibilityAsString )
+                , ( "value", Json.Encode.string (imageVisibilityAsString imageVisibility) )
                 ]
 
         body =
@@ -132,6 +117,24 @@ requestChangeVisibility project imageUuid imageVisibility =
             resultToMsg_
             (Decode.field "visibility" <| imageDecoder Nothing)
         )
+
+
+{-| TODO: put this in a standard place. There is a duplicate in module ImageList
+-}
+imageVisibilityAsString : OSTypes.ImageVisibility -> String
+imageVisibilityAsString imageVisibility =
+    case imageVisibility of
+        OSTypes.ImagePublic ->
+            "public"
+
+        OSTypes.ImageCommunity ->
+            "community"
+
+        OSTypes.ImageShared ->
+            "shared"
+
+        OSTypes.ImagePrivate ->
+            "private"
 
 
 requestDeleteImage : Project -> OSTypes.ImageUuid -> Cmd SharedMsg
