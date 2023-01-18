@@ -43,7 +43,6 @@ type SharedMsg
     | SetExperimentalFeaturesEnabled Bool
     | TogglePopover PopoverId
     | NetworkConnection Bool
-    | RequestChangeImageVisibility OSTypes.ImageUuid OSTypes.ImageVisibility
     | NoOp
 
 
@@ -98,6 +97,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveDeleteImage OSTypes.ImageUuid
     | ReceiveImageVisibilityChange OSTypes.ImageVisibility
     | ReceiveJetstream2Allocations (Result HttpErrorWithBody (List Types.Jetstream2Accounting.Allocation))
+    | RequestChangeImageVisibility OSTypes.ImageUuid OSTypes.ImageVisibility
 
 
 type ServerSpecificMsgConstructor
