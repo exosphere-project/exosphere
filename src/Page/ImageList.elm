@@ -13,6 +13,7 @@ import Helpers.ResourceList exposing (listItemColumnAttribs)
 import Helpers.String
 import Html.Attributes as HtmlA
 import OpenStack.Types as OSTypes exposing (Image)
+import Rest.Glance
 import Route
 import Set
 import Style.Helpers as SH exposing (spacer)
@@ -78,8 +79,17 @@ update msg project model =
         SharedMsg sharedMsg ->
             ( model, Cmd.none, sharedMsg )
 
-        ProjectMsg _ ->
-            ( model, Cmd.none, SharedMsg.NoOp )
+        ProjectMsg projectMsg ->
+            let
+                _ =
+                    Debug.log "!! ProjectMsg (0)" projectMsg
+            in
+            case projectMsg of
+                SharedMsg.RequestChangeImageVisibility imageUuid imageVisibility ->
+                    ( model, Rest.Glance.requestChangeVisibility project imageUuid imageVisibility |> Cmd.map SharedMsg, SharedMsg.NoOp )
+
+                _ ->
+                    ( model, Cmd.none, SharedMsg.NoOp )
 
         NoOp ->
             ( model, Cmd.none, SharedMsg.NoOp )
@@ -391,12 +401,8 @@ imageView model context project imageRecord =
 
 setVisibilityBtn : OSTypes.ImageUuid -> OSTypes.ImageVisibility -> Element.Element SharedMsg.ProjectSpecificMsgConstructor
 setVisibilityBtn imageUuid visibility =
-    let
-        onPress =
-            SharedMsg.RequestChangeImageVisibility imageUuid visibility
-    in
     Element.Input.button []
-        { onPress = Just onPress
+        { onPress = Just (SharedMsg.RequestChangeImageVisibility imageUuid visibility)
         , label = Element.el [] (Element.text <| "set visibility: " ++ OSTypes.imageVisibilityToString visibility)
         }
 

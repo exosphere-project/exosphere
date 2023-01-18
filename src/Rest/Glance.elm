@@ -81,6 +81,9 @@ requestImages model project =
 requestChangeVisibility : Project -> OSTypes.ImageUuid -> OSTypes.ImageVisibility -> Cmd SharedMsg
 requestChangeVisibility project imageUuid imageVisibility =
     let
+        _ =
+            Debug.log "!!, requestChangeVisibility (2)" ( imageUuid, imageVisibility )
+
         errorContext =
             ErrorContext
                 ("replace image visibility with " ++ OSTypes.imageVisibilityToString imageVisibility)
