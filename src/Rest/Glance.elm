@@ -83,7 +83,7 @@ requestChangeVisibility project imageUuid imageVisibility =
     let
         errorContext =
             ErrorContext
-                ("replace image visibility with " ++ imageVisibilityAsString imageVisibility)
+                ("replace image visibility with " ++ OSTypes.imageVisibilityToString imageVisibility)
                 ErrorCrit
                 Nothing
 
@@ -92,7 +92,7 @@ requestChangeVisibility project imageUuid imageVisibility =
             Json.Encode.object
                 [ ( "op", Json.Encode.string "replace" )
                 , ( "path", Json.Encode.string "visibility" )
-                , ( "value", Json.Encode.string (imageVisibilityAsString imageVisibility) )
+                , ( "value", Json.Encode.string (OSTypes.imageVisibilityToString imageVisibility) )
                 ]
 
         body =
@@ -117,24 +117,6 @@ requestChangeVisibility project imageUuid imageVisibility =
             resultToMsg_
             (Decode.field "visibility" <| imageDecoder Nothing)
         )
-
-
-{-| TODO: put this in a standard place. There is a duplicate in module ImageList
--}
-imageVisibilityAsString : OSTypes.ImageVisibility -> String
-imageVisibilityAsString imageVisibility =
-    case imageVisibility of
-        OSTypes.ImagePublic ->
-            "public"
-
-        OSTypes.ImageCommunity ->
-            "community"
-
-        OSTypes.ImageShared ->
-            "shared"
-
-        OSTypes.ImagePrivate ->
-            "private"
 
 
 requestDeleteImage : Project -> OSTypes.ImageUuid -> Cmd SharedMsg

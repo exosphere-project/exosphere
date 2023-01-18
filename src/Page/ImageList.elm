@@ -279,7 +279,8 @@ imageView model context project imageRecord =
 
         imageActions =
             Element.row [ Element.alignRight, Element.spacing spacer.px12 ]
-                [ deleteImageBtn, createServerBtn, setVisibilityBtn "123" OSTypes.ImageCommunity |> Element.map SharedMsg ]
+                -- [ deleteImageBtn, createServerBtn, setVisibilityBtn "123" OSTypes.ImageCommunity |> Element.map SharedMsg ]
+                [ deleteImageBtn, createServerBtn ]
 
         size =
             case imageRecord.image.size of
@@ -383,7 +384,7 @@ setVisibilityBtn imageUuid visibility =
     in
     Element.Input.button []
         { onPress = Just onPress
-        , label = Element.el [] (Element.text <| "set visibility to: " ++ imageVisibilityAsString visibility)
+        , label = Element.el [] (Element.text <| "set visibility to: " ++ OSTypes.imageVisibilityToString visibility)
         }
 
 
