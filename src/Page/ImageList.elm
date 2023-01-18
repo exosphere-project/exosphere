@@ -41,6 +41,7 @@ type Msg
     = GotDeleteConfirm OSTypes.ImageUuid
     | DataListMsg DataList.Msg
     | SharedMsg SharedMsg.SharedMsg
+    | ProjectMsg SharedMsg.ProjectSpecificMsgConstructor
     | NoOp
 
 
@@ -76,6 +77,9 @@ update msg project model =
 
         SharedMsg sharedMsg ->
             ( model, Cmd.none, sharedMsg )
+
+        ProjectMsg _ ->
+            ( model, Cmd.none, SharedMsg.NoOp )
 
         NoOp ->
             ( model, Cmd.none, SharedMsg.NoOp )
@@ -279,8 +283,10 @@ imageView model context project imageRecord =
 
         imageActions =
             Element.row [ Element.alignRight, Element.spacing spacer.px12 ]
-                --                 [ deleteImageBtn, createServerBtn, setVisibilityBtn "123" OSTypes.ImageCommunity ]
-                [ deleteImageBtn, createServerBtn ]
+                [ deleteImageBtn
+                , createServerBtn
+                , setVisibilityBtn "123" OSTypes.ImageCommunity |> Element.map ProjectMsg
+                ]
 
         size =
             case imageRecord.image.size of
