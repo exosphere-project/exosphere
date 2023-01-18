@@ -447,3 +447,66 @@ searchByNameFilter =
     , placeholder = Just "try \"Ubuntu\""
     , textToSearch = \imageRecord -> imageRecord.image.name
     }
+
+
+
+--- JC ADDED ---
+-- TODO:
+-- imageActionsDropdown : View.Types.Context -> Project -> Model -> Server -> Element.Element Msg
+--imageActionsDropdown context project model server =
+--    let
+--        dropdownId =
+--            [ "serverActionsDropdown", project.auth.project.uuid, server.osProps.uuid ]
+--                |> List.intersperse "-"
+--                |> String.concat
+--
+--        dropdownContent closeDropdown =
+--            Element.column [ Element.spacing spacer.px8 ] <|
+--                List.map
+--                    (renderServerActionButton context project model server closeDropdown)
+--                    (ServerActions.getAllowed
+--                        (Just context.localization.virtualComputer)
+--                        (Just context.localization.staticRepresentationOfBlockDeviceContents)
+--                        (Just context.localization.virtualComputerHardwareConfig)
+--                        server.osProps.details.openstackStatus
+--                        server.osProps.details.lockStatus
+--                    )
+--
+--        dropdownTarget toggleDropdownMsg dropdownIsShown =
+--            Widget.iconButton
+--                (SH.materialStyle context.palette).button
+--                { text = "Actions"
+--                , icon =
+--                    Element.row
+--                        [ Element.spacing spacer.px4 ]
+--                        [ Element.text "Actions"
+--                        , Element.el []
+--                            ((if dropdownIsShown then
+--                                FeatherIcons.chevronUp
+--
+--                              else
+--                                FeatherIcons.chevronDown
+--                             )
+--                                |> FeatherIcons.withSize 18
+--                                |> FeatherIcons.toHtml []
+--                                |> Element.html
+--                            )
+--                        ]
+--                , onPress = Just toggleDropdownMsg
+--                }
+--    in
+--    case server.exoProps.targetOpenstackStatus of
+--        Nothing ->
+--            popover context
+--                popoverMsgMapper
+--                { id = dropdownId
+--                , content = dropdownContent
+--                , contentStyleAttrs = [ Element.padding spacer.px24 ]
+--                , position = ST.PositionBottomRight
+--                , distanceToTarget = Nothing
+--                , target = dropdownTarget
+--                , targetStyleAttrs = []
+--                }
+--
+--        Just _ ->
+--            Element.none

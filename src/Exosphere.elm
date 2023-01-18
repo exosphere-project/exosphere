@@ -26,5 +26,3 @@ main =
         , onUrlRequest = \u -> SharedMsg <| LinkClicked u
         , onUrlChange = \u -> SharedMsg <| UrlChanged u
         }
-
-

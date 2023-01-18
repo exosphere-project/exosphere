@@ -1,8 +1,8 @@
 module Rest.Glance exposing
     ( receiveDeleteImage
     , receiveImages
-    , requestDeleteImage
     , requestChangeVisibility
+    , requestDeleteImage
     , requestImages
     )
 
@@ -60,19 +60,32 @@ requestImages model project =
             (decodeImages maybeExcludeFilter)
         )
 
+
+
 -- TODO: (JC) need to define json body
 -- For the format of a PATCH request to change the visibility of an image,
 --    see https://docs.openstack.org/api-ref/image/v2/index.html?expanded=update-image-detail#update-image
 -- See OpenStack.ServerVolumes.requestAttachVolume for an example of non-empty body
+-- imageDecoderHelper
+
+
 requestChangeVisibility : Project -> OSTypes.ImageUuid -> OSTypes.ImageVisibility -> Cmd SharedMsg
 requestChangeVisibility project imageUuid imageVisibility =
     let
         imageVisibilityAsString : String
-        imageVisibilityAsString = case imageVisibility of
-             OSTypes.ImagePublic -> "public"
-             OSTypes.ImageCommunity -> "community"
-             OSTypes.ImageShared -> "shared"
-             OSTypes.ImagePrivate -> "private"
+        imageVisibilityAsString =
+            case imageVisibility of
+                OSTypes.ImagePublic ->
+                    "public"
+
+                OSTypes.ImageCommunity ->
+                    "community"
+
+                OSTypes.ImageShared ->
+                    "shared"
+
+                OSTypes.ImagePrivate ->
+                    "private"
 
         errorContext =
             ErrorContext
@@ -80,16 +93,16 @@ requestChangeVisibility project imageUuid imageVisibility =
                 ErrorCrit
                 Nothing
 
-
         operation : Json.Encode.Value
         operation =
             Json.Encode.object
-                [ ( "op", Json.Encode.string "replace")
-                  , ( "path", Json.Encode.string "visibility")
-                 , ( "value", Json.Encode.string imageVisibilityAsString)
+                [ ( "op", Json.Encode.string "replace" )
+                , ( "path", Json.Encode.string "visibility" )
+                , ( "value", Json.Encode.string imageVisibilityAsString )
                 ]
 
-        body = Json.Encode.list identity [operation]
+        body =
+            Json.Encode.list identity [ operation ]
 
         resultToMsg_ =
             resultToMsgErrorBody
@@ -106,8 +119,9 @@ requestChangeVisibility project imageUuid imageVisibility =
         Nothing
         (project.endpoints.glance ++ "/v2/images/" ++ imageUuid)
         (Http.jsonBody body)
-        (Rest.Helpers.expectStringWithErrorBody
+        (expectJsonWithErrorBody
             resultToMsg_
+            (Decode.field "visibility" <| imageDecoder Nothing)
         )
 
 

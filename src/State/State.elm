@@ -1339,7 +1339,8 @@ processProjectSpecificMsg outerModel project msg =
         -- TODO: this is a dummy, needs to be completed. -- JC
         -- TODO: The variant ReceiveImageVisibilityChange .. is likely wrong
         -- TODO: and will have to be changed. PLUS: actual handler code
-        ReceiveImageVisibilityChange _ -> (outerModel, Cmd.none)
+        ReceiveImageVisibilityChange _ ->
+            ( outerModel, Cmd.none )
 
         RequestDeleteServers serverUuidsToDelete ->
             let
