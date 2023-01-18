@@ -62,13 +62,21 @@ requestImages model project =
 
 
 
--- TODO: (JC) need to define json body
--- For the format of a PATCH request to change the visibility of an image,
---    see https://docs.openstack.org/api-ref/image/v2/index.html?expanded=update-image-detail#update-image
--- See OpenStack.ServerVolumes.requestAttachVolume for an example of non-empty body
--- imageDecoderHelper
+-- TODO: (JC) test function requestChangeVisibility
 
 
+{-|
+
+    This is a first draft of a function to change the visibility of an image.
+
+    NOTES:
+
+    - For the format of a PATCH request to change the visibility of an image,
+      see https://docs.openstack.org/api-ref/image/v2/index.html?expanded=update-image-detail#update-image
+
+    - See OpenStack.ServerVolumes.requestAttachVolume for an example of non-empty body
+
+-}
 requestChangeVisibility : Project -> OSTypes.ImageUuid -> OSTypes.ImageVisibility -> Cmd SharedMsg
 requestChangeVisibility project imageUuid imageVisibility =
     let
