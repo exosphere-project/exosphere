@@ -279,7 +279,7 @@ imageView model context project imageRecord =
 
         imageActions =
             Element.row [ Element.alignRight, Element.spacing spacer.px12 ]
-                -- [ deleteImageBtn, createServerBtn, setVisibilityBtn "123" OSTypes.ImageCommunity |> Element.map SharedMsg ]
+                --                 [ deleteImageBtn, createServerBtn, setVisibilityBtn "123" OSTypes.ImageCommunity ]
                 [ deleteImageBtn, createServerBtn ]
 
         size =
@@ -386,24 +386,6 @@ setVisibilityBtn imageUuid visibility =
         { onPress = Just onPress
         , label = Element.el [] (Element.text <| "set visibility to: " ++ OSTypes.imageVisibilityToString visibility)
         }
-
-
-{-| TODO: put this in a standard place. There is a duplicate in module Glance
--}
-imageVisibilityAsString : OSTypes.ImageVisibility -> String
-imageVisibilityAsString imageVisibility =
-    case imageVisibility of
-        OSTypes.ImagePublic ->
-            "public"
-
-        OSTypes.ImageCommunity ->
-            "community"
-
-        OSTypes.ImageShared ->
-            "shared"
-
-        OSTypes.ImagePrivate ->
-            "private"
 
 
 filters :

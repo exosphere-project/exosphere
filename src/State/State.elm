@@ -1219,6 +1219,12 @@ processProjectSpecificMsg outerModel project msg =
         RequestChangeImageVisibility imageUuid visibility ->
             ( outerModel, Rest.Glance.requestChangeVisibility project imageUuid visibility ) |> mapToOuterMsg
 
+        -- TODO: this is a dummy, needs to be completed. -- JC
+        -- TODO: The variant ReceiveImageVisibilityChange .. is likely wrong
+        -- TODO: and will have to be changed. PLUS: actual handler code
+        ReceiveImageVisibilityChange _ ->
+            ( outerModel, Cmd.none )
+
         RequestServers ->
             ApiModelHelpers.requestServers (GetterSetters.projectIdentifier project) sharedModel
                 |> mapToOuterMsg
@@ -1339,12 +1345,6 @@ processProjectSpecificMsg outerModel project msg =
             Rest.Glance.receiveImages sharedModel project images
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
-
-        -- TODO: this is a dummy, needs to be completed. -- JC
-        -- TODO: The variant ReceiveImageVisibilityChange .. is likely wrong
-        -- TODO: and will have to be changed. PLUS: actual handler code
-        ReceiveImageVisibilityChange _ ->
-            ( outerModel, Cmd.none )
 
         RequestDeleteServers serverUuidsToDelete ->
             let
