@@ -101,14 +101,23 @@ requestChangeVisibility project imageUuid imageVisibility =
         body =
             Json.Encode.list identity [ operation ]
 
+        resultToMsg_ : Result Types.Error.HttpErrorWithBody a -> SharedMsg
         resultToMsg_ =
             resultToMsgErrorBody
                 errorContext
                 (\_ ->
                     ProjectMsg
                         (GetterSetters.projectIdentifier project)
-                        (ReceiveImageVisibilityChange imageVisibility)
+                        (ReceiveImageVisibilityChange imageUuid imageVisibility)
                 )
+
+        hoho : Decode.Decoder ProjectSpecificMsgConstructor
+        hoho =
+            Decode.map (\image -> ReceiveImageVisibilityChange image.uuid image.visibility) imageDecoderHelper
+
+        receiveImageVisibilityChangeDecoder : Decode.Decoder (Maybe ProjectSpecificMsgConstructor)
+        receiveImageVisibilityChangeDecoder =
+            Decode.maybe (Decode.map (\image -> ReceiveImageVisibilityChange image.uuid image.visibility) imageDecoderHelper)
     in
     openstackCredentialedRequest
         (GetterSetters.projectIdentifier project)
@@ -119,8 +128,14 @@ requestChangeVisibility project imageUuid imageVisibility =
         (Http.stringBody "application/openstack-images-v2.1-json-patch" (Json.Encode.encode 0 body))
         (expectJsonWithErrorBody
             resultToMsg_
-            (Decode.field "visibility" <| imageDecoder Nothing)
+            -- (Decode.field "visibility" <| imageDecoder Nothing)
+            receiveImageVisibilityChangeDecoder
         )
+
+
+
+--expectJsonWithErrorBody : (Result HttpErrorWithBody a -> msg) -> Decode.Decoder a -> Http.Expect msg
+--expectJsonWithErrorBody toMsg decoder =
 
 
 requestDeleteImage : Project -> OSTypes.ImageUuid -> Cmd SharedMsg

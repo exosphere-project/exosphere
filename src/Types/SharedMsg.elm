@@ -96,8 +96,8 @@ type ProjectSpecificMsgConstructor
     | ReceiveNetworkQuota OSTypes.NetworkQuota
     | ReceiveDeleteImage OSTypes.ImageUuid
     | ReceiveJetstream2Allocations (Result HttpErrorWithBody (List Types.Jetstream2Accounting.Allocation))
-    | ReceiveImageVisibilityChange OSTypes.ImageVisibility
-    | RequestChangeImageVisibility OSTypes.ImageUuid OSTypes.ImageVisibility
+    | ReceiveImageVisibilityChange OSTypes.ImageUuid OSTypes.ImageVisibility
+    | RequestImageVisibilityChange OSTypes.ImageUuid OSTypes.ImageVisibility
 
 
 type ServerSpecificMsgConstructor

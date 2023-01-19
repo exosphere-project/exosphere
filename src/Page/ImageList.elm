@@ -69,7 +69,7 @@ update msg project model =
             ( model
             , Cmd.none
             , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
-                SharedMsg.RequestChangeImageVisibility imageId imageVisibility
+                SharedMsg.RequestImageVisibilityChange imageId imageVisibility
             )
 
         DataListMsg dataListMsg ->

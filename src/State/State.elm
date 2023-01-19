@@ -1216,13 +1216,11 @@ processProjectSpecificMsg outerModel project msg =
                     processServerSpecificMsg outerModel project server serverMsgConstructor
 
         -- TODO: make this work!
-        RequestChangeImageVisibility imageUuid visibility ->
+        RequestImageVisibilityChange imageUuid visibility ->
             ( outerModel, Rest.Glance.requestChangeVisibility project imageUuid visibility ) |> mapToOuterMsg
 
-        -- TODO: this is a dummy, needs to be completed. -- JC
-        -- TODO: The variant ReceiveImageVisibilityChange .. is likely wrong
-        -- TODO: and will have to be changed. PLUS: actual handler code
-        ReceiveImageVisibilityChange _ ->
+        -- TODO: never called?
+        ReceiveImageVisibilityChange imageUuid visibility ->
             ( outerModel, Cmd.none )
 
         RequestServers ->
