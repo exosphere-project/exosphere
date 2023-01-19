@@ -13,7 +13,6 @@ import Helpers.ResourceList exposing (listItemColumnAttribs)
 import Helpers.String
 import Html.Attributes as HtmlA
 import OpenStack.Types as OSTypes exposing (Image)
-import Rest.Glance
 import Route
 import Set
 import Style.Helpers as SH exposing (spacer)
@@ -86,20 +85,6 @@ update msg project model =
         SharedMsg sharedMsg ->
             ( model, Cmd.none, sharedMsg )
 
-        --<<<<<<< HEAD
-        --ProjectMsg projectMsg ->
-        --    let
-        --        _ =
-        --            Debug.log "!! ProjectMsg (0)" projectMsg
-        --    in
-        --    case projectMsg of
-        --        SharedMsg.RequestChangeImageVisibility imageUuid imageVisibility ->
-        --            ( model, Rest.Glance.requestChangeVisibility project imageUuid imageVisibility |> Cmd.map SharedMsg, SharedMsg.NoOp )
-        --
-        --        _ ->
-        --            ( model, Cmd.none, SharedMsg.NoOp )
-        --=======
-        -->>>>>>> e3b12101fd6c593eb211f9d7caf41c2fae85e899
         NoOp ->
             ( model, Cmd.none, SharedMsg.NoOp )
 

@@ -1217,10 +1217,6 @@ processProjectSpecificMsg outerModel project msg =
 
         -- TODO: make this work!
         RequestChangeImageVisibility imageUuid visibility ->
-            let
-                _ =
-                    Debug.log "!! RequestChangeImageVisibility (State.State.processProjectSpecificMsg)" ( imageUuid, visibility )
-            in
             ( outerModel, Rest.Glance.requestChangeVisibility project imageUuid visibility ) |> mapToOuterMsg
 
         -- TODO: this is a dummy, needs to be completed. -- JC
