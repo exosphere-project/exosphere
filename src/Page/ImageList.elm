@@ -40,9 +40,9 @@ type alias Model =
 
 type Msg
     = GotDeleteConfirm OSTypes.ImageUuid
+    | GotChangeVisibility OSTypes.ImageUuid OSTypes.ImageVisibility
     | DataListMsg DataList.Msg
     | SharedMsg SharedMsg.SharedMsg
-    | ProjectMsg SharedMsg.ProjectSpecificMsgConstructor
     | NoOp
 
 
@@ -67,6 +67,13 @@ update msg project model =
                 SharedMsg.RequestDeleteImage imageId
             )
 
+        GotChangeVisibility imageId imageVisibility ->
+            ( model
+            , Cmd.none
+            , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
+                SharedMsg.RequestChangeImageVisibility imageId imageVisibility
+            )
+
         DataListMsg dataListMsg ->
             ( { model
                 | dataListModel =
@@ -79,18 +86,20 @@ update msg project model =
         SharedMsg sharedMsg ->
             ( model, Cmd.none, sharedMsg )
 
-        ProjectMsg projectMsg ->
-            let
-                _ =
-                    Debug.log "!! ProjectMsg (0)" projectMsg
-            in
-            case projectMsg of
-                SharedMsg.RequestChangeImageVisibility imageUuid imageVisibility ->
-                    ( model, Rest.Glance.requestChangeVisibility project imageUuid imageVisibility |> Cmd.map SharedMsg, SharedMsg.NoOp )
-
-                _ ->
-                    ( model, Cmd.none, SharedMsg.NoOp )
-
+        --<<<<<<< HEAD
+        --ProjectMsg projectMsg ->
+        --    let
+        --        _ =
+        --            Debug.log "!! ProjectMsg (0)" projectMsg
+        --    in
+        --    case projectMsg of
+        --        SharedMsg.RequestChangeImageVisibility imageUuid imageVisibility ->
+        --            ( model, Rest.Glance.requestChangeVisibility project imageUuid imageVisibility |> Cmd.map SharedMsg, SharedMsg.NoOp )
+        --
+        --        _ ->
+        --            ( model, Cmd.none, SharedMsg.NoOp )
+        --=======
+        -->>>>>>> e3b12101fd6c593eb211f9d7caf41c2fae85e899
         NoOp ->
             ( model, Cmd.none, SharedMsg.NoOp )
 
@@ -296,10 +305,10 @@ imageView model context project imageRecord =
                 [ deleteImageBtn
                 , createServerBtn
                 , if imageRecord.image.visibility == OSTypes.ImagePrivate then
-                    setVisibilityBtn imageRecord.image.uuid OSTypes.ImageCommunity |> Element.map ProjectMsg
+                    setVisibilityBtn imageRecord.image.uuid OSTypes.ImageCommunity
 
                   else if imageRecord.image.visibility == OSTypes.ImageCommunity then
-                    setVisibilityBtn imageRecord.image.uuid OSTypes.ImagePrivate |> Element.map ProjectMsg
+                    setVisibilityBtn imageRecord.image.uuid OSTypes.ImagePrivate
 
                   else
                     Element.none
@@ -399,10 +408,14 @@ imageView model context project imageRecord =
         ]
 
 
-setVisibilityBtn : OSTypes.ImageUuid -> OSTypes.ImageVisibility -> Element.Element SharedMsg.ProjectSpecificMsgConstructor
+setVisibilityBtn : OSTypes.ImageUuid -> OSTypes.ImageVisibility -> Element.Element Msg
 setVisibilityBtn imageUuid visibility =
+    let
+        onPress =
+            GotChangeVisibility imageUuid visibility
+    in
     Element.Input.button []
-        { onPress = Just (SharedMsg.RequestChangeImageVisibility imageUuid visibility)
+        { onPress = Just onPress
         , label = Element.el [] (Element.text <| "set visibility: " ++ OSTypes.imageVisibilityToString visibility)
         }
 
