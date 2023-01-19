@@ -3,7 +3,6 @@ module Page.ImageList exposing (Model, Msg(..), init, update, view)
 import Dict
 import Element
 import Element.Font as Font
-import Element.Input
 import FeatherIcons
 import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (Unit(..), humanNumber)
