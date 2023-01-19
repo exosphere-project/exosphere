@@ -114,7 +114,7 @@ requestChangeVisibility project imageUuid imageVisibility =
         (GetterSetters.projectIdentifier project)
         Patch
         Nothing
-        [ ( "media-type", "application/openstack-images-v2.0-json-patch" ) ]
+        [ ( "content-type", "application/openstack-images-v2.1-json-patch" ) ]
         (project.endpoints.glance ++ "/v2/images/" ++ imageUuid)
         (Http.jsonBody body)
         (expectJsonWithErrorBody
