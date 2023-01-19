@@ -266,6 +266,7 @@ requestAppCredential clientUuid posixTime project =
         (GetterSetters.projectIdentifier project)
         Post
         Nothing
+        []
         (urlWithVersion ++ "/users/" ++ project.auth.user.uuid ++ "/application_credentials")
         (Http.jsonBody requestBody)
         (expectJsonWithErrorBody resultToMsg_ decodeAppCredential)

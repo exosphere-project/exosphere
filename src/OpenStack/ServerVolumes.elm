@@ -50,6 +50,7 @@ requestAttachVolume project serverUuid volumeUuid =
         (GetterSetters.projectIdentifier project)
         Post
         Nothing
+        []
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/os-volume_attachments")
         (Http.jsonBody body)
         (expectJsonWithErrorBody
@@ -80,6 +81,7 @@ requestDetachVolume project serverUuid volumeUuid =
         (GetterSetters.projectIdentifier project)
         Delete
         Nothing
+        []
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/os-volume_attachments/" ++ volumeUuid)
         Http.emptyBody
         (expectStringWithErrorBody
