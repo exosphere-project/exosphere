@@ -23,6 +23,7 @@ requestCreateServerTag project serverUuid tag =
         (GetterSetters.projectIdentifier project)
         Put
         (Just "compute 2.26")
+        []
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/tags/" ++ tag)
         Http.emptyBody
         (expectStringWithErrorBody

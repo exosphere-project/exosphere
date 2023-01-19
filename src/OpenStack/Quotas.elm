@@ -46,6 +46,7 @@ requestComputeQuota project =
         (GetterSetters.projectIdentifier project)
         Get
         Nothing
+        []
         (project.endpoints.nova ++ "/limits")
         Http.emptyBody
         (expectJsonWithErrorBody
@@ -98,6 +99,7 @@ requestVolumeQuota project =
         (GetterSetters.projectIdentifier project)
         Get
         Nothing
+        []
         (project.endpoints.cinder ++ "/limits")
         Http.emptyBody
         (expectJsonWithErrorBody
@@ -145,6 +147,7 @@ requestNetworkQuota project =
         (GetterSetters.projectIdentifier project)
         Get
         Nothing
+        []
         (project.endpoints.neutron ++ "/v2.0/quotas/" ++ project.auth.project.uuid ++ "/details.json")
         Http.emptyBody
         (expectJsonWithErrorBody

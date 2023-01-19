@@ -22,6 +22,7 @@ requestAllocations project url =
         (GetterSetters.projectIdentifier project)
         Get
         Nothing
+        []
         url
         Http.emptyBody
         (Rest.Helpers.expectJsonWithErrorBody resultToMsg decodeAllocations)

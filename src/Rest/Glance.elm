@@ -53,6 +53,7 @@ requestImages model project =
         (GetterSetters.projectIdentifier project)
         Get
         Nothing
+        []
         (project.endpoints.glance ++ "/v2/images?limit=999999")
         Http.emptyBody
         (expectJsonWithErrorBody
@@ -76,6 +77,8 @@ requestImages model project =
       see https://docs.openstack.org/api-ref/image/v2/index.html?expanded=update-image-detail#update-image
 
     - See OpenStack.ServerVolumes.requestAttachVolume for an example of non-empty body
+
+    - NEED: media type to be application/json-patch+json (set in headers)
 
 -}
 requestChangeVisibility : Project -> OSTypes.ImageUuid -> OSTypes.ImageVisibility -> Cmd SharedMsg
@@ -114,6 +117,7 @@ requestChangeVisibility project imageUuid imageVisibility =
         (GetterSetters.projectIdentifier project)
         Patch
         Nothing
+        [ ( "media-type", "application/json-patch+json" ) ]
         (project.endpoints.glance ++ "/v2/images/" ++ imageUuid)
         (Http.jsonBody body)
         (expectJsonWithErrorBody
@@ -144,6 +148,7 @@ requestDeleteImage project imageUuid =
         (GetterSetters.projectIdentifier project)
         Delete
         Nothing
+        []
         (project.endpoints.glance ++ "/v2/images/" ++ imageUuid)
         Http.emptyBody
         (Rest.Helpers.expectStringWithErrorBody

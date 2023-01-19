@@ -49,6 +49,7 @@ requestConsoleLog project server maybeLength =
         (GetterSetters.projectIdentifier project)
         Post
         Nothing
+        []
         (project.endpoints.nova ++ "/servers/" ++ server.osProps.uuid ++ "/action")
         (Http.jsonBody body)
         (expectJsonWithErrorBody
