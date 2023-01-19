@@ -290,10 +290,10 @@ imageView model context project imageRecord =
                 [ deleteImageBtn
                 , createServerBtn
                 , if imageRecord.image.visibility == OSTypes.ImagePrivate then
-                    setVisibilityBtn imageRecord.image.uuid OSTypes.ImageCommunity
+                    setVisibilityBtn context imageRecord.image.uuid OSTypes.ImageCommunity
 
                   else if imageRecord.image.visibility == OSTypes.ImageCommunity then
-                    setVisibilityBtn imageRecord.image.uuid OSTypes.ImagePrivate
+                    setVisibilityBtn context imageRecord.image.uuid OSTypes.ImagePrivate
 
                   else
                     Element.none
@@ -393,16 +393,25 @@ imageView model context project imageRecord =
         ]
 
 
-setVisibilityBtn : OSTypes.ImageUuid -> OSTypes.ImageVisibility -> Element.Element Msg
-setVisibilityBtn imageUuid visibility =
+
+-- setVisibilityBtn : OSTypes.ImageUuid -> OSTypes.ImageVisibility -> Element.Element Msg
+
+
+setVisibilityBtn context imageUuid visibility =
     let
         onPress =
             GotChangeVisibility imageUuid visibility
+
+        textBtn context_ onPress_ =
+            Button.default
+                context_.palette
+                { text =
+                    "set visibility: "
+                        ++ String.toLower (OSTypes.imageVisibilityToString visibility)
+                , onPress = onPress_
+                }
     in
-    Element.Input.button []
-        { onPress = Just onPress
-        , label = Element.el [] (Element.text <| "set visibility: " ++ OSTypes.imageVisibilityToString visibility)
-        }
+    textBtn context (Just onPress)
 
 
 filters :
