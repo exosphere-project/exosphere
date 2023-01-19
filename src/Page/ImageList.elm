@@ -393,10 +393,7 @@ imageView model context project imageRecord =
         ]
 
 
-
--- setVisibilityBtn : OSTypes.ImageUuid -> OSTypes.ImageVisibility -> Element.Element Msg
-
-
+setVisibilityBtn : View.Types.Context -> OSTypes.ImageUuid -> OSTypes.ImageVisibility -> Element.Element Msg
 setVisibilityBtn context imageUuid visibility =
     let
         onPress =
