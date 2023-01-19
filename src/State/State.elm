@@ -1339,13 +1339,41 @@ processProjectSpecificMsg outerModel project msg =
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
-        -- TODO: propagate changes to Page.ImageList
         ReceiveImageVisibilityChange imageUuid visibility ->
             let
-                _ =
-                    Debug.log "!!ReceiveImageVisibilityChange" ( imageUuid, visibility )
+                updateImage : OSTypes.ImageUuid -> OSTypes.ImageVisibility -> OSTypes.Image -> OSTypes.Image
+                updateImage uuid visibility_ image =
+                    { image | uuid = uuid, visibility = visibility_ }
+
+                updateImages : List OSTypes.Image -> List OSTypes.Image
+                updateImages images =
+                    List.Extra.updateIf (\image_ -> image_.uuid == imageUuid) (updateImage imageUuid visibility) images
+
+                oldImagesData =
+                    project.images.data
+
+                newProject =
+                    case oldImagesData of
+                        RDPP.DoHave images_ t ->
+                            { project
+                                | images =
+                                    { data = RDPP.DoHave (updateImages images_) t
+                                    , refreshStatus = RDPP.NotLoading Nothing
+                                    }
+                            }
+
+                        RDPP.DontHave ->
+                            project
+
+                updateProjects : Project -> List Project -> List Project
+                updateProjects project_ projects =
+                    List.Extra.updateIf (\project__ -> project__.auth.project.uuid == project_.auth.project.uuid) (\_ -> project_) projects
+
+                updateSharedModel : SharedModel -> SharedModel
+                updateSharedModel sharedModel_ =
+                    { sharedModel_ | projects = updateProjects newProject sharedModel_.projects }
             in
-            ( outerModel, Cmd.none )
+            ( { outerModel | sharedModel = updateSharedModel outerModel.sharedModel }, Cmd.none )
 
         RequestDeleteServers serverUuidsToDelete ->
             let
