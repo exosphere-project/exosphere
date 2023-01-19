@@ -111,10 +111,6 @@ requestChangeVisibility project imageUuid imageVisibility =
                         (ReceiveImageVisibilityChange imageUuid imageVisibility)
                 )
 
-        hoho : Decode.Decoder ProjectSpecificMsgConstructor
-        hoho =
-            Decode.map (\image -> ReceiveImageVisibilityChange image.uuid image.visibility) imageDecoderHelper
-
         receiveImageVisibilityChangeDecoder : Decode.Decoder (Maybe ProjectSpecificMsgConstructor)
         receiveImageVisibilityChangeDecoder =
             Decode.maybe (Decode.map (\image -> ReceiveImageVisibilityChange image.uuid image.visibility) imageDecoderHelper)

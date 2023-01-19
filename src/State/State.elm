@@ -1215,13 +1215,8 @@ processProjectSpecificMsg outerModel project msg =
                 Just server ->
                     processServerSpecificMsg outerModel project server serverMsgConstructor
 
-        -- TODO: make this work!
         RequestImageVisibilityChange imageUuid visibility ->
             ( outerModel, Rest.Glance.requestChangeVisibility project imageUuid visibility ) |> mapToOuterMsg
-
-        -- TODO: never called?
-        ReceiveImageVisibilityChange imageUuid visibility ->
-            ( outerModel, Cmd.none )
 
         RequestServers ->
             ApiModelHelpers.requestServers (GetterSetters.projectIdentifier project) sharedModel
@@ -1343,6 +1338,14 @@ processProjectSpecificMsg outerModel project msg =
             Rest.Glance.receiveImages sharedModel project images
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
+
+        -- TODO: propagate changes to Page.ImageList
+        ReceiveImageVisibilityChange imageUuid visibility ->
+            let
+                _ =
+                    Debug.log "!!ReceiveImageVisibilityChange" ( imageUuid, visibility )
+            in
+            ( outerModel, Cmd.none )
 
         RequestDeleteServers serverUuidsToDelete ->
             let
