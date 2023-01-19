@@ -94,7 +94,7 @@ requestChangeVisibility project imageUuid imageVisibility =
         operation =
             Json.Encode.object
                 [ ( "op", Json.Encode.string "replace" )
-                , ( "path", Json.Encode.string "visibility" )
+                , ( "path", Json.Encode.string "/visibility" )
                 , ( "value", Json.Encode.string (OSTypes.imageVisibilityToString imageVisibility |> String.toLower) )
                 ]
 
@@ -114,9 +114,9 @@ requestChangeVisibility project imageUuid imageVisibility =
         (GetterSetters.projectIdentifier project)
         Patch
         Nothing
-        [ ( "content-type", "application/openstack-images-v2.1-json-patch" ) ]
+        []
         (project.endpoints.glance ++ "/v2/images/" ++ imageUuid)
-        (Http.jsonBody body)
+        (Http.stringBody "application/openstack-images-v2.1-json-patch" (Json.Encode.encode 0 body))
         (expectJsonWithErrorBody
             resultToMsg_
             (Decode.field "visibility" <| imageDecoder Nothing)
