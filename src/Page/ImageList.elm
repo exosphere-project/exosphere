@@ -67,6 +67,7 @@ update msg project model =
                 SharedMsg.RequestDeleteImage imageId
             )
 
+        -- TODO JC: use this to close drop down
         GotChangeVisibility imageId imageVisibility ->
             ( model
             , Cmd.none
@@ -387,6 +388,8 @@ imageView model context project imageRecord =
         ]
 
 
+{-| TODO JC work in progress: close dropown after new visibility state selected.
+-}
 imageVisibilityDropdown : ImageRecord -> View.Types.Context -> Project -> Element.Element Msg
 imageVisibilityDropdown imageRecord context project =
     let
@@ -395,35 +398,17 @@ imageVisibilityDropdown imageRecord context project =
                 |> List.intersperse "-"
                 |> String.concat
 
-        dropdownContent _ =
-            Element.column [ Element.spacing spacer.px8 ] <|
-                ([ if imageRecord.image.visibility == OSTypes.ImagePrivate then
-                    [ setVisibilityBtn context imageRecord.image.uuid OSTypes.ImageCommunity ]
-
-                   else
-                    [ Element.none ]
-                 , if imageRecord.image.visibility == OSTypes.ImageCommunity then
-                    [ setVisibilityBtn context imageRecord.image.uuid OSTypes.ImagePrivate ]
-
-                   else
-                    [ Element.none ]
-                 , if imageRecord.image.visibility == OSTypes.ImagePublic then
-                    [ setVisibilityBtn context imageRecord.image.uuid OSTypes.ImagePrivate
-                    , setVisibilityBtn context imageRecord.image.uuid OSTypes.ImageCommunity
-                    ]
-
-                   else
-                    [ Element.none ]
-                 , if imageRecord.image.visibility == OSTypes.ImageShared then
-                    [ setVisibilityBtn context imageRecord.image.uuid OSTypes.ImagePrivate
-                    , setVisibilityBtn context imageRecord.image.uuid OSTypes.ImageCommunity
-                    ]
-
-                   else
-                    [ Element.none ]
+        dropdownContent closeDropdown =
+            (Element.column [ Element.spacing spacer.px8 ] <|
+                ([ setVisibilityIfPrivate context imageRecord
+                 , setVisibilityIfCommunity context imageRecord
+                 , setVisibilityIfPublic context imageRecord
+                 , setVisibilityIfShared context imageRecord
                  ]
                     |> List.concat
                 )
+            )
+                |> renderActionButton closeDropdown
 
         dropdownTarget toggleDropdownMsg dropdownIsShown =
             Widget.iconButton
@@ -460,6 +445,53 @@ imageVisibilityDropdown imageRecord context project =
         }
 
 
+setVisibilityIfPrivate : Context -> ImageRecord -> List (Element.Element Msg)
+setVisibilityIfPrivate context imageRecord =
+    if imageRecord.image.visibility == OSTypes.ImagePrivate then
+        [ setVisibilityBtn context imageRecord.image.uuid OSTypes.ImageCommunity ]
+
+    else
+        [ Element.none ]
+
+
+setVisibilityIfCommunity : Context -> ImageRecord -> List (Element.Element Msg)
+setVisibilityIfCommunity context imageRecord =
+    if imageRecord.image.visibility == OSTypes.ImageCommunity then
+        [ setVisibilityBtn context imageRecord.image.uuid OSTypes.ImagePrivate ]
+
+    else
+        [ Element.none ]
+
+
+setVisibilityIfPublic : Context -> ImageRecord -> List (Element.Element Msg)
+setVisibilityIfPublic context imageRecord =
+    if imageRecord.image.visibility == OSTypes.ImagePublic then
+        [ setVisibilityBtn context imageRecord.image.uuid OSTypes.ImagePrivate
+        , setVisibilityBtn context imageRecord.image.uuid OSTypes.ImageCommunity
+        ]
+
+    else
+        [ Element.none ]
+
+
+setVisibilityIfShared : Context -> ImageRecord -> List (Element.Element Msg)
+setVisibilityIfShared context imageRecord =
+    if imageRecord.image.visibility == OSTypes.ImageShared then
+        [ setVisibilityBtn context imageRecord.image.uuid OSTypes.ImagePrivate
+        , setVisibilityBtn context imageRecord.image.uuid OSTypes.ImageCommunity
+        ]
+
+    else
+        [ Element.none ]
+
+
+renderActionButton : Element.Attribute Msg -> Element.Element Msg -> Element.Element Msg
+renderActionButton closeActionsDropdown element =
+    Element.el [ closeActionsDropdown ] element
+
+
+{-| TODO JC work in progress
+-}
 setVisibilityBtn : View.Types.Context -> OSTypes.ImageUuid -> OSTypes.ImageVisibility -> Element.Element Msg
 setVisibilityBtn context imageUuid visibility =
     let
@@ -550,11 +582,6 @@ searchByNameFilter =
     , placeholder = Just "try \"Ubuntu\""
     , textToSearch = \imageRecord -> imageRecord.image.name
     }
-
-
-
---  JC ADDED ---
--- TODO:
 
 
 popoverMsgMapper : PopoverId -> Msg
