@@ -18,6 +18,7 @@ import Style.Types
 import Style.Widgets.DataList
 import Style.Widgets.Icon
 import Style.Widgets.Popover.Types
+import Style.Widgets.Text
 import UIExplorer
 import Widget
 
@@ -58,7 +59,7 @@ stories { renderer, toMsg, onDeleteServers, onDeleteServer, onPopOver } =
                         toMsg
                         { palette = pallete, showPopovers = model.customModel.popover.showPopovers }
                         [ Element.width (Element.maximum 900 Element.fill)
-                        , Element.Font.size 16
+                        , Style.Widgets.Text.fontSize Style.Widgets.Text.Body
                         ]
                         (serverView pallete onDeleteServer)
                         model.customModel.servers
@@ -136,9 +137,9 @@ serverView palette onDelete server =
         ]
         [ Element.row [ Element.spacing 10, Element.width Element.fill ]
             [ Element.el
-                [ Element.Font.size 18
-                , Element.Font.color (Style.Helpers.toElementColor palette.primary)
-                ]
+                (Style.Widgets.Text.typographyAttrs Style.Widgets.Text.H4
+                    ++ [ Element.Font.color (Style.Helpers.toElementColor palette.primary) ]
+                )
                 (Element.text server.name)
             , Element.el
                 [ Element.width (Element.px 12)
