@@ -387,10 +387,7 @@ imageView model context project imageRecord =
         ]
 
 
-
--- imageVisibilityDropdown : View.Types.Context -> Project -> Model -> Element.Element Msg
-
-
+imageVisibilityDropdown : ImageRecord -> View.Types.Context -> Project -> Model -> Element.Element Msg
 imageVisibilityDropdown imageRecord context project =
     let
         dropdownId =
