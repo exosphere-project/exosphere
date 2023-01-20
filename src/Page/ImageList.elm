@@ -19,6 +19,8 @@ import Style.Types as ST
 import Style.Widgets.Button as Button
 import Style.Widgets.DataList as DataList
 import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
+import Style.Widgets.Popover.Popover as Popover
+import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.Tag as Tag
 import Style.Widgets.Text as Text
 import Types.Project exposing (Project)
@@ -288,14 +290,7 @@ imageView model context project imageRecord =
             Element.row [ Element.alignRight, Element.spacing spacer.px12 ]
                 [ deleteImageBtn
                 , createServerBtn
-                , if imageRecord.image.visibility == OSTypes.ImagePrivate then
-                    setVisibilityBtn context imageRecord.image.uuid OSTypes.ImageCommunity
-
-                  else if imageRecord.image.visibility == OSTypes.ImageCommunity then
-                    setVisibilityBtn context imageRecord.image.uuid OSTypes.ImagePrivate
-
-                  else
-                    Element.none
+                , imageVisibilityDropdown imageRecord context project
                 ]
 
         size =
@@ -392,6 +387,82 @@ imageView model context project imageRecord =
         ]
 
 
+
+-- imageVisibilityDropdown : View.Types.Context -> Project -> Model -> Element.Element Msg
+
+
+imageVisibilityDropdown imageRecord context project =
+    let
+        dropdownId =
+            [ "imageVisibilityDropdown", project.auth.project.uuid, imageRecord.image.uuid ]
+                |> List.intersperse "-"
+                |> String.concat
+
+        dropdownContent closeDropdown =
+            Element.column [ Element.spacing spacer.px8 ] <|
+                ([ if imageRecord.image.visibility == OSTypes.ImagePrivate then
+                    [ setVisibilityBtn context imageRecord.image.uuid OSTypes.ImageCommunity ]
+
+                   else
+                    [ Element.none ]
+                 , if imageRecord.image.visibility == OSTypes.ImageCommunity then
+                    [ setVisibilityBtn context imageRecord.image.uuid OSTypes.ImagePrivate ]
+
+                   else
+                    [ Element.none ]
+                 , if imageRecord.image.visibility == OSTypes.ImagePublic then
+                    [ setVisibilityBtn context imageRecord.image.uuid OSTypes.ImagePrivate
+                    , setVisibilityBtn context imageRecord.image.uuid OSTypes.ImageCommunity
+                    ]
+
+                   else
+                    [ Element.none ]
+                 , if imageRecord.image.visibility == OSTypes.ImageShared then
+                    [ setVisibilityBtn context imageRecord.image.uuid OSTypes.ImagePrivate
+                    , setVisibilityBtn context imageRecord.image.uuid OSTypes.ImageCommunity
+                    ]
+
+                   else
+                    [ Element.none ]
+                 ]
+                    |> List.concat
+                )
+
+        dropdownTarget toggleDropdownMsg dropdownIsShown =
+            Widget.iconButton
+                (SH.materialStyle context.palette).button
+                { text = "(Set visibility)"
+                , icon =
+                    Element.row
+                        [ Element.spacing spacer.px4 ]
+                        [ Element.text "Set visibility"
+                        , Element.el []
+                            ((if dropdownIsShown then
+                                FeatherIcons.chevronUp
+
+                              else
+                                FeatherIcons.chevronDown
+                             )
+                                |> FeatherIcons.withSize 18
+                                |> FeatherIcons.toHtml []
+                                |> Element.html
+                            )
+                        ]
+                , onPress = Just toggleDropdownMsg
+                }
+    in
+    Popover.popover context
+        popoverMsgMapper
+        { id = dropdownId
+        , content = dropdownContent
+        , contentStyleAttrs = [ Element.padding spacer.px24 ]
+        , position = ST.PositionBottomRight
+        , distanceToTarget = Nothing
+        , target = dropdownTarget
+        , targetStyleAttrs = []
+        }
+
+
 setVisibilityBtn : View.Types.Context -> OSTypes.ImageUuid -> OSTypes.ImageVisibility -> Element.Element Msg
 setVisibilityBtn context imageUuid visibility =
     let
@@ -402,8 +473,7 @@ setVisibilityBtn context imageUuid visibility =
             Button.default
                 context_.palette
                 { text =
-                    "set visibility: "
-                        ++ String.toLower (OSTypes.imageVisibilityToString visibility)
+                    String.toLower (OSTypes.imageVisibilityToString visibility)
                 , onPress = onPress_
                 }
     in
@@ -488,61 +558,8 @@ searchByNameFilter =
 
 --  JC ADDED ---
 -- TODO:
--- imageActionsDropdown : View.Types.Context -> Project -> Model -> Server -> Element.Element Msg
---imageActionsDropdown context project model server =
---    let
---        dropdownId =
---            [ "serverActionsDropdown", project.auth.project.uuid, server.osProps.uuid ]
---                |> List.intersperse "-"
---                |> String.concat
---
---        dropdownContent closeDropdown =
---            Element.column [ Element.spacing spacer.px8 ] <|
---                List.map
---                    (renderServerActionButton context project model server closeDropdown)
---                    (ServerActions.getAllowed
---                        (Just context.localization.virtualComputer)
---                        (Just context.localization.staticRepresentationOfBlockDeviceContents)
---                        (Just context.localization.virtualComputerHardwareConfig)
---                        server.osProps.details.openstackStatus
---                        server.osProps.details.lockStatus
---                    )
---
---        dropdownTarget toggleDropdownMsg dropdownIsShown =
---            Widget.iconButton
---                (SH.materialStyle context.palette).button
---                { text = "Actions"
---                , icon =
---                    Element.row
---                        [ Element.spacing spacer.px4 ]
---                        [ Element.text "Actions"
---                        , Element.el []
---                            ((if dropdownIsShown then
---                                FeatherIcons.chevronUp
---
---                              else
---                                FeatherIcons.chevronDown
---                             )
---                                |> FeatherIcons.withSize 18
---                                |> FeatherIcons.toHtml []
---                                |> Element.html
---                            )
---                        ]
---                , onPress = Just toggleDropdownMsg
---                }
---    in
---    case server.exoProps.targetOpenstackStatus of
---        Nothing ->
---            popover context
---                popoverMsgMapper
---                { id = dropdownId
---                , content = dropdownContent
---                , contentStyleAttrs = [ Element.padding spacer.px24 ]
---                , position = ST.PositionBottomRight
---                , distanceToTarget = Nothing
---                , target = dropdownTarget
---                , targetStyleAttrs = []
---                }
---
---        Just _ ->
---            Element.none
+
+
+popoverMsgMapper : PopoverId -> Msg
+popoverMsgMapper popoverId =
+    SharedMsg <| SharedMsg.TogglePopover popoverId
