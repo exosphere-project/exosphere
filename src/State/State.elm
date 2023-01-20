@@ -1373,11 +1373,6 @@ processProjectSpecificMsg outerModel project msg =
                 thisProjectUpdater : Project -> Project
                 thisProjectUpdater =
                     updateProjectWithImage imageUuid (\image -> { image | uuid = imageUuid, visibility = visibility })
-
-                -- (C) Not used, delete??
-                updateProjectsWithProject : Project -> List Project -> List Project
-                updateProjectsWithProject project_ projects =
-                    List.Extra.updateIf (\project__ -> project__.auth.project.uuid == project_.auth.project.uuid) (\_ -> project_) projects
             in
             ( { outerModel | sharedModel = updateSharedModel thisProjectUpdater outerModel.sharedModel }, Cmd.none )
 
