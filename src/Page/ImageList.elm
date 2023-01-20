@@ -398,7 +398,7 @@ imageVisibilityDropdown imageRecord context project =
                 |> List.intersperse "-"
                 |> String.concat
 
-        dropdownContent closeDropdown =
+        dropdownContent _ =
             Element.column [ Element.spacing spacer.px8 ] <|
                 ([ if imageRecord.image.visibility == OSTypes.ImagePrivate then
                     [ setVisibilityBtn context imageRecord.image.uuid OSTypes.ImageCommunity ]
