@@ -21,6 +21,7 @@ import Style.Widgets.DataList as DataList
 import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
 import Style.Widgets.Popover.Popover as Popover
 import Style.Widgets.Popover.Types exposing (PopoverId)
+import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Tag as Tag
 import Style.Widgets.Text as Text
 import Types.Project exposing (Project)
