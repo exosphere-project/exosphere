@@ -1341,40 +1341,11 @@ processProjectSpecificMsg outerModel project msg =
 
         ReceiveImageVisibilityChange imageUuid visibility ->
             let
-                -- Two generic updaters, updateProjectWithImage and updateSharedModel
-                --
-                --
-                --  (A1) Apply the imageUpdater to an image in a project if its uuid matches the target uuid
-                updateProjectWithImage : OSTypes.ImageUuid -> (OSTypes.Image -> OSTypes.Image) -> Project -> Project
-                updateProjectWithImage targetUuid imageUpdater project_ =
-                    let
-                        updateImages_ : (OSTypes.Image -> OSTypes.Image) -> List OSTypes.Image -> List OSTypes.Image
-                        updateImages_ imageUpdater_ images =
-                            List.Extra.updateIf (\image_ -> image_.uuid == targetUuid) imageUpdater_ images
-                    in
-                    case project_.images.data of
-                        RDPP.DoHave images_ t ->
-                            { project_
-                                | images =
-                                    { data = RDPP.DoHave (updateImages_ imageUpdater images_) t
-                                    , refreshStatus = RDPP.NotLoading Nothing
-                                    }
-                            }
-
-                        RDPP.DontHave ->
-                            project_
-
-                -- (A2) Update the shared model with a projectUpdater (redundant??)
-                updateSharedModel : (Project -> Project) -> SharedModel -> SharedModel
-                updateSharedModel projectUpdater sharedModel_ =
-                    { sharedModel_ | projects = List.map projectUpdater sharedModel_.projects }
-
-                -- (B) Function specific to this case: ReceiveImageVisibilityChange imageUuid visibility
                 thisProjectUpdater : Project -> Project
                 thisProjectUpdater =
-                    updateProjectWithImage imageUuid (\image -> { image | uuid = imageUuid, visibility = visibility })
+                    GetterSetters.projectWithImage imageUuid (\image -> { image | uuid = imageUuid, visibility = visibility })
             in
-            ( { outerModel | sharedModel = updateSharedModel thisProjectUpdater outerModel.sharedModel }, Cmd.none )
+            ( { outerModel | sharedModel = GetterSetters.sharedModelWithProject thisProjectUpdater outerModel.sharedModel }, Cmd.none )
 
         RequestDeleteServers serverUuidsToDelete ->
             let

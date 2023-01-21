@@ -388,8 +388,6 @@ imageView model context project imageRecord =
         ]
 
 
-{-| TODO JC work in progress: close dropown after new visibility state selected.
--}
 imageVisibilityDropdown : ImageRecord -> View.Types.Context -> Project -> Element.Element Msg
 imageVisibilityDropdown imageRecord context project =
     let
@@ -490,8 +488,6 @@ renderActionButton closeActionsDropdown element =
     Element.el [ closeActionsDropdown ] element
 
 
-{-| TODO JC work in progress
--}
 setVisibilityBtn : View.Types.Context -> OSTypes.ImageUuid -> OSTypes.ImageVisibility -> Element.Element Msg
 setVisibilityBtn context imageUuid visibility =
     let
