@@ -130,6 +130,40 @@ Finally, apply the "Triaged" label to indicate completion of the triage process.
 
 Feel empowered to ignore this section until making your _third or subsequent_ contribution to Exosphere.
 
+### Contributor skills (required, or willing to learn)
+
+Briefly:
+
+1. Elm programming language and web development in general (for working on the core application)
+2. Git and GitLab (for code versioning and collaboration)
+3. OpenStack API and general knowledge of cloud computing (used to launch instances)
+4. Ansible (for configuration management of launched instances)
+
+Note:
+You definitely need Elm and Git knowledge to start.
+You can learn OpenStack and Ansible as needed (depending on what part of the application you want to work on).  
+
+Background:
+
+Exosphere is a single-page web application (SPA).
+We use the [Elm programming language](https://elm-lang.org/) instead of JavaScript. 
+Elm is a pure functional programming language with a strong, static type system enforced by a compiler.
+We use the [Elm-UI](https://github.com/mdgriffith/elm-ui) library for layout and styling (instead of HTML and CSS).
+
+We use the [GitLab platform](https://gitlab.com/) to host the code repository and collaborate (instead of GitHub).
+GitLab provides us with an issue tracker, merge requests (like GitHub pull requests), as well as pipelines to test and deploy code.
+
+The Exosphere application acts as a client for the [OpenStack API](https://opensource.com/resources/what-is-openstack).
+Exosphere, via OpenStack, allows users to create and access virtual computational (cloud) resources.
+These are primarily instances (aka virtual machines or virtual servers).
+
+Once the user launches an instance with Exosphere we need to configure it.
+Specifically we need to install and configure services to make it easy for the user to access and use the instance.
+We use the [Ansible configuration management tool](https://www.ansible.com/overview/it-automation) to do this.
+You can see the Ansible playbook and roles in the [`ansible` directory](https://gitlab.com/exosphere/exosphere/-/tree/master/ansible) of the Exospere repository.
+The first thing an instance launched via Exosphere does is to pull down the Exosphere repository, and then run the Ansible playbook above.
+One example of a service we install on an instance is [Apache Guacamole](https://guacamole.apache.org/), and it provides a remote desktop and terminal environment in the user's web browser.
+
 ### Development Environment Setup
 
 In addition to [Running Exosphere For Development Work](docs/run-exosphere.md#for-development-work), we recommend that you set up the following.
