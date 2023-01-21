@@ -1,11 +1,12 @@
-module Style.Widgets.Text exposing (TextVariant(..), body, defaultFontFamily, defaultFontSize, fontWeightAttr, heading, headingStyleAttrs, mono, monoFontFamily, notes, p, strong, subheading, subheadingStyleAttrs, text, typography, typographyAttrs, underline)
+module Style.Widgets.Text exposing (FontFamily(..), FontWeight(..), TextVariant(..), body, fontFamily, fontSize, fontWeightAttr, heading, headingStyleAttrs, mono, notes, p, strong, subheading, subheadingStyleAttrs, text, typography, typographyAttrs, underline)
 
 import Element
 import Element.Border as Border
 import Element.Font as Font exposing (Font)
 import Element.Region as Region
-import Style.Helpers as SH exposing (spacer)
+import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
+import Style.Widgets.Spacer exposing (spacer)
 
 
 notes : String
@@ -66,6 +67,12 @@ type TextVariant
     | Body
     | Strong
     | Small
+    | Tiny
+
+
+type FontFamily
+    = Default
+    | Mono
 
 
 
@@ -108,7 +115,12 @@ typography variant =
             }
 
         Small ->
-            { size = 13
+            { size = 14
+            , weight = Regular
+            }
+
+        Tiny ->
+            { size = 12
             , weight = Regular
             }
 
@@ -125,21 +137,19 @@ fontWeightAttr weight =
             Font.semiBold
 
 
-{-| Element attribute for the default font family list.
+{-| Get a font family element attribute for commonly used font families.
 -}
-defaultFontFamily : Element.Attribute msg
-defaultFontFamily =
-    Font.family
-        (Font.typeface "Open Sans"
-            :: systemFonts
-        )
+fontFamily : FontFamily -> Element.Attribute msg
+fontFamily family =
+    case family of
+        Mono ->
+            Font.family [ Font.monospace ]
 
-
-{-| Element attribute for the mono font family.
--}
-monoFontFamily : Element.Attribute msg
-monoFontFamily =
-    Font.family [ Font.monospace ]
+        Default ->
+            Font.family
+                (Font.typeface "Open Sans"
+                    :: systemFonts
+                )
 
 
 {-| System fonts for common browsers & operating systems.
@@ -160,11 +170,11 @@ systemFonts =
     ]
 
 
-{-| Element attribute for normal body text size.
+{-| Font size element attribute for a given text variant.
 -}
-defaultFontSize : Element.Attribute msg
-defaultFontSize =
-    Font.size (typography Body).size
+fontSize : TextVariant -> Element.Attribute msg
+fontSize variant =
+    Font.size (typography variant).size
 
 
 {-| Creates element attributes for the given typography.
@@ -178,12 +188,8 @@ defaultFontSize =
 -}
 typographyAttrs : TextVariant -> List (Element.Attribute msg)
 typographyAttrs variant =
-    let
-        typo =
-            typography variant
-    in
-    [ Font.size typo.size
-    , fontWeightAttr typo.weight
+    [ fontSize variant
+    , fontWeightAttr (typography variant).weight
     ]
 
 
@@ -279,7 +285,7 @@ strong label =
 -}
 mono : String -> Element.Element msg
 mono label =
-    text Body [ monoFontFamily ] label
+    text Body [ fontFamily Mono ] label
 
 
 {-| A convience method for underlined body text.

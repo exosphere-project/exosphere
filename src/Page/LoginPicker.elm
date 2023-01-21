@@ -6,8 +6,9 @@ import Element
 import Element.Background as Background
 import Element.Border as Border
 import Route
-import Style.Helpers as SH exposing (spacer)
+import Style.Helpers as SH
 import Style.Widgets.Button as Button
+import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg

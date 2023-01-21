@@ -24,13 +24,14 @@ import RemoteData
 import Rest.Naming
 import Route
 import ServerDeploy exposing (cloudInitUserDataTemplate)
-import Style.Helpers as SH exposing (spacer)
+import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.Alert as Alert
 import Style.Widgets.Button as Button
 import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Style.Widgets.Select
+import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Tag as Tag
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip

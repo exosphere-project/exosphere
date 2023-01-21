@@ -6,8 +6,9 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import FeatherIcons
-import Style.Helpers as SH exposing (spacer)
+import Style.Helpers as SH
 import Style.Types as ST
+import Style.Widgets.Spacer exposing (Spacer, spacer)
 import Style.Widgets.Text as Text
 import UIExplorer exposing (storiesOf)
 
@@ -75,7 +76,7 @@ stories renderer =
         ]
 
 
-spacerFields : List (ST.Spacer -> Int)
+spacerFields : List (Spacer -> Int)
 spacerFields =
     [ .px4
     , .px8
@@ -88,7 +89,7 @@ spacerFields =
     ]
 
 
-spacerBlock : (ST.Spacer -> Int) -> Element.Element msg
+spacerBlock : (Spacer -> Int) -> Element.Element msg
 spacerBlock spacerField =
     let
         spacerValue =
@@ -96,7 +97,7 @@ spacerBlock spacerField =
     in
     Element.row [ Element.spacing spacer.px16 ]
         [ Element.paragraph
-            [ Font.size 14
+            [ Text.fontSize Text.Small
             , Font.family [ Font.monospace ]
             , Element.width (Element.px 100)
             ]
@@ -146,5 +147,5 @@ methodStatus palette isCorrect text =
             |> FeatherIcons.toHtml []
             |> Element.html
             |> Element.el [ Font.color <| SH.toElementColor iconColor ]
-        , Text.p [ Font.size 14 ] [ Element.text text ]
+        , Text.p [ Text.fontSize Text.Small ] [ Element.text text ]
         ]

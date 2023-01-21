@@ -8,9 +8,9 @@ import FormatNumber.Locales
 import Helpers.Formatting
 import Helpers.String
 import Helpers.Time
-import Style.Helpers exposing (spacer)
 import Style.Types as ST
 import Style.Widgets.Meter
+import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
 import Time

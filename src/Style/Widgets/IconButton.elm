@@ -4,9 +4,10 @@ import Element as Element exposing (Element)
 import Element.Border as Border
 import Element.Input as Input
 import FeatherIcons
-import Style.Helpers as SH exposing (spacer)
+import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
 import Style.Widgets.Icon exposing (Icon(..), iconEl)
+import Style.Widgets.Spacer exposing (spacer)
 import View.Types
 
 

@@ -1,5 +1,6 @@
 module Style.Widgets.Popover.Popover exposing
-    ( popover
+    ( dropdownItemStyle
+    , popover
     , popoverAttribs
     , popoverStyleDefaults
     , toggleIfTargetIsOutside
@@ -8,13 +9,17 @@ module Style.Widgets.Popover.Popover exposing
 import Element
 import Element.Background as Background
 import Element.Border as Border
+import Element.Font as Font
 import Html.Attributes
 import Html.Events
 import Json.Decode as Decode
 import Set
-import Style.Helpers as SH exposing (spacer)
+import Style.Helpers as SH
 import Style.Types as ST exposing (ExoPalette, PopoverPosition(..))
 import Style.Widgets.Popover.Types exposing (PopoverId)
+import Style.Widgets.Spacer exposing (spacer)
+import Style.Widgets.Text as Text
+import Widget.Style
 
 
 {-| Style attributes of a standard popover, often passed to the element containing popover contents.
@@ -27,6 +32,26 @@ popoverStyleDefaults palette =
     , Border.color <| SH.toElementColor palette.neutral.border
     , Border.shadow SH.shadowDefaults
     ]
+
+
+dropdownItemStyle : ExoPalette -> Widget.Style.ButtonStyle msg
+dropdownItemStyle palette =
+    let
+        textButtonDefaults =
+            (SH.materialStyle palette).textButton
+    in
+    { textButtonDefaults
+        | container =
+            textButtonDefaults.container
+                ++ [ Element.width Element.fill
+                   , Text.fontSize Text.Body
+                   , Font.medium
+                   , Font.letterSpacing 0.8
+                   , Element.paddingXY spacer.px8 spacer.px12
+                   , Element.height Element.shrink
+                   ]
+        , labelRow = textButtonDefaults.labelRow ++ [ Element.spacing spacer.px12 ]
+    }
 
 
 {-| Attributes that are passed to a popover target element when popover is shown.

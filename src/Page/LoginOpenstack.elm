@@ -5,9 +5,10 @@ import Element.Font as Font
 import Element.Input as Input
 import OpenStack.OpenRc
 import OpenStack.Types as OSTypes
-import Style.Helpers as SH exposing (spacer)
+import Style.Helpers as SH
 import Style.Widgets.Button as Button
 import Style.Widgets.Link as Link
+import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
@@ -200,7 +201,7 @@ loginOpenstackCredsEntry context model allCredsEntered =
                 { text = text
                 , placeholder = Just (Input.placeholder [] (Element.text placeholderText))
                 , onChange = onChange
-                , label = Input.labelAbove [ Font.size 14 ] (Element.text labelText)
+                , label = Input.labelAbove [ Text.fontSize Text.Small ] (Element.text labelText)
                 }
     in
     Element.column
@@ -227,7 +228,7 @@ loginOpenstackCredsEntry context model allCredsEntered =
             , placeholder = Just (Input.placeholder [] (Element.text "Password"))
             , show = False
             , onChange = GotPassword
-            , label = Input.labelAbove [ Font.size 14 ] (Element.text "Password")
+            , label = Input.labelAbove [ Text.fontSize Text.Small ] (Element.text "Password")
             }
         , if allCredsEntered then
             Element.none
@@ -257,7 +258,7 @@ loginOpenstackOpenRcEntry context model =
             (VH.inputItemAttributes context.palette
                 ++ [ Element.width Element.fill
                    , Element.height (Element.px 250)
-                   , Font.size 12
+                   , Text.fontSize Text.Tiny
                    ]
             )
             { onChange = GotOpenRc

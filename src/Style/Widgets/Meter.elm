@@ -2,17 +2,18 @@ module Style.Widgets.Meter exposing (meter)
 
 import Element
 import Element.Background as Background
-import Element.Font as Font
 import Html.Attributes as HtmlA
-import Style.Helpers as SH exposing (spacer)
+import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
+import Style.Widgets.Spacer exposing (spacer)
+import Style.Widgets.Text as Text
 
 
 meter : ExoPalette -> String -> String -> Int -> Int -> Element.Element msg
 meter palette title subtitle value maximum =
     Element.column
         [ Element.spacing spacer.px4
-        , Font.size 14
+        , Text.fontSize Text.Small
         ]
         [ Element.row
             [ Element.width Element.fill ]

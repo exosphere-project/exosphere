@@ -5,7 +5,8 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import Page.ImageList
 import Page.InstanceTypeList
-import Style.Helpers as SH exposing (spacer)
+import Style.Helpers as SH
+import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Types.HelperTypes
 import Types.Project exposing (Project)

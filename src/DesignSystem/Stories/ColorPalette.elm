@@ -8,8 +8,10 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import FeatherIcons
-import Style.Helpers as SH exposing (spacer)
+import Style.Helpers as SH
 import Style.Types as ST
+import Style.Widgets.Spacer exposing (spacer)
+import Style.Widgets.Text as Text
 import UIExplorer exposing (storiesOf)
 
 
@@ -235,7 +237,7 @@ namedBlock label color =
         [ Element.spacing spacer.px4
         , Element.width <| Element.px blockSize
         , Element.alignTop
-        , Font.size 12
+        , Text.fontSize Text.Tiny
         ]
         [ block color
         , Element.el [ Font.family [ Font.monospace ] ] <|
@@ -304,7 +306,7 @@ demoColumnAttrs palette =
     , Background.color <| SH.toElementColor palette.neutral.background.backLayer
     , Border.width 1
     , Border.color <| SH.toElementColor palette.neutral.border
-    , Font.size 14
+    , Text.fontSize Text.Small
     ]
 
 

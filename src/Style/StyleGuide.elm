@@ -22,6 +22,7 @@ import Style.Widgets.Meter exposing (meter)
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.StatusBadge exposing (StatusBadgeState(..), statusBadge)
 import Style.Widgets.Tag exposing (tag)
+import Style.Widgets.Text as Text
 import Widget
 
 
@@ -137,9 +138,7 @@ serverView palette server =
         ]
         [ Element.row [ Element.spacing 10, Element.width Element.fill ]
             [ Element.el
-                [ Font.size 18
-                , Font.color (SH.toElementColor palette.primary)
-                ]
+                (Text.typographyAttrs Text.H4 ++ [ Font.color (SH.toElementColor palette.primary) ])
                 (Element.text server.name)
             , Element.el
                 [ Element.width (Element.px 12)
@@ -301,7 +300,7 @@ widgets palette model =
         DataListMsg
         { palette = palette, showPopovers = model.showPopovers }
         [ Element.width (Element.maximum 900 Element.fill)
-        , Font.size 16
+        , Text.fontSize Text.Body
         ]
         (serverView palette)
         model.servers

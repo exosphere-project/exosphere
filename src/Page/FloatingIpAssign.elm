@@ -7,9 +7,10 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import OpenStack.Types as OSTypes
 import Route
-import Style.Helpers as SH exposing (spacer)
+import Style.Helpers as SH
 import Style.Widgets.Button as Button
 import Style.Widgets.Select
+import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Types.Project exposing (Project)
 import Types.SharedModel exposing (SharedModel)

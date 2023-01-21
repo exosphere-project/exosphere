@@ -1,8 +1,8 @@
 module Page.HelpAbout exposing (headerView, view)
 
 import Element
-import Style.Helpers exposing (spacer)
 import Style.Widgets.Link as Link
+import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Types.SharedModel exposing (SharedModel)
 import UUID

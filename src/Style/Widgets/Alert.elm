@@ -6,8 +6,10 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Region as Region
 import FeatherIcons
-import Style.Helpers as SH exposing (spacer)
+import Style.Helpers as SH
 import Style.Types as ST
+import Style.Widgets.Spacer exposing (spacer)
+import Style.Widgets.Text as Text
 
 
 type AlertState
@@ -82,7 +84,7 @@ alert styleAttrs palette { state, showIcon, showContainer, content } =
     Element.row
         ([ Element.padding spacer.px16
          , Element.spacing spacer.px12
-         , Font.size 16
+         , Text.fontSize Text.Body
          , Font.color (stateColor.textOnNeutralBG |> SH.toElementColor)
          ]
             ++ containerAttrs

@@ -8,10 +8,11 @@ import Element.Background as Background
 import Helpers.Boolean as HB
 import Route
 import State.ViewState
-import Style.Helpers as SH exposing (spacer)
+import Style.Helpers as SH
 import Style.Widgets.HomeLogo exposing (homeLogo)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.NavButton exposing (navButton)
+import Style.Widgets.Spacer exposing (spacer)
 import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
 import View.Types

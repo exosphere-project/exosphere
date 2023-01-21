@@ -7,11 +7,12 @@ import Element
 import FeatherIcons
 import Html.Attributes as HtmlA
 import Set
-import Style.Helpers as SH exposing (spacer)
+import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
 import Style.Widgets.Button as Button
 import Style.Widgets.Popover.Popover exposing (popover)
 import Style.Widgets.Popover.Types exposing (PopoverId)
+import Style.Widgets.Spacer exposing (spacer)
 import Widget
 
 

@@ -70,11 +70,12 @@ import OpenStack.Types as OSTypes
 import Regex
 import RemoteData
 import Route
-import Style.Helpers as SH exposing (spacer)
+import Style.Helpers as SH
 import Style.Types as ST exposing (ExoPalette)
 import Style.Widgets.Button as Button
 import Style.Widgets.Link as Link
 import Style.Widgets.Popover.Types exposing (PopoverId)
+import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.StatusBadge as StatusBadge
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip as ToggleTip
@@ -158,7 +159,7 @@ compactKVRow key value =
 compactKVSubRow : String -> Element.Element msg -> Element.Element msg
 compactKVSubRow key value =
     Element.row
-        [ Element.padding 0, Element.spacing spacer.px12, Font.size 16 ]
+        [ Element.padding 0, Element.spacing spacer.px12, Text.fontSize Text.Body ]
         [ Element.paragraph [ Element.width (Element.px 175), Font.semiBold ] [ Element.text key ]
         , Element.el [ Element.width Element.fill ] value
         ]
@@ -211,7 +212,7 @@ hint context hintText =
     Element.below
         (Element.el
             [ Font.color (context.palette.danger.textOnNeutralBG |> SH.toElementColor)
-            , Font.size 14
+            , Text.fontSize Text.Small
             , Element.alignRight
             , Element.moveDown 6
             ]
@@ -1246,7 +1247,7 @@ flavorPicker context project restrictFlavorIds computeQuota flavorGroupToggleTip
 
           else
             Element.none
-        , Element.paragraph [ Font.size 12 ] [ Element.text zeroRootDiskExplainText ]
+        , Element.paragraph [ Text.fontSize Text.Tiny ] [ Element.text zeroRootDiskExplainText ]
         ]
 
 

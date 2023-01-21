@@ -11,7 +11,8 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import Html.Attributes as HtmlA
 import OpenStack.Types as OSTypes
 import Route
-import Style.Helpers as SH exposing (spacer)
+import Style.Helpers as SH
+import Style.Widgets.Spacer exposing (spacer)
 import Time
 import Types.HelperTypes as HelperTypes
 import Types.Project exposing (Project)

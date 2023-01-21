@@ -65,13 +65,12 @@ Weight is a linear scale so that it's meaningful to sum the weights of issues.
 
 - 1 is a "good first issue". An experienced contributor can solve this quickly, with trivial design work. Example: changing some text in the UI.
 - 2 is a "good second issue".
-- 3 is a "good second issue" for an ambitious new contributor. It may require familiarity the layout of the codebase.
-- 5 may require the contributor to have context of the problem domain. The solution may require collaborative design or scoping work between the contributor, maintainers, and possibly the issue submitter.
-- 8 may require figuring out something with OpenStack.
-- 13 example: adding a new page with new functionality. May require a combination of instance configuration (Ansible) and front-end (Elm) work.
-- 20 example: adding a mid-sized new feature which may involve multiple pages in the app.
-- 40 example: adding a large or complex new feature
-- 100 The solution requires exploratory work, planning, consensus, and implementation in phases. Example: Rewriting a large fundamental part of Exosphere, which might lead to many hard problems to solve.
+- 5 is a "good second issue" for an ambitious new contributor. It may require familiarity with the layout of the codebase.
+- 10 may require the contributor to have context of the problem domain, including figuring out something with OpenStack. The solution may require collaborative design or scoping work between the contributor, maintainers, and possibly the issue submitter.
+- 20 example: adding a new page with new functionality. May require a combination of instance configuration (Ansible) and front-end (Elm) work.
+- 40 example: adding a mid-sized new feature which may involve multiple pages in the app.
+- 80 example: adding a large or complex new feature
+- 160 The solution requires exploratory work, planning, consensus, and implementation in phases. Example: Rewriting a large fundamental part of Exosphere, which might lead to many hard problems to solve.
 
 If something is very large, it should probably be split up in multiple issues or chunks. You can simply omit the weight of the parent issue and set weights to child issues.
 

@@ -12,9 +12,10 @@ import Page.Jetstream2Allocation
 import Page.QuotaUsage
 import RemoteData
 import Route
-import Style.Helpers as SH exposing (spacer)
+import Style.Helpers as SH
 import Style.Widgets.Card
 import Style.Widgets.Icon as Icon
+import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Time
 import Types.Project exposing (Project)
@@ -263,7 +264,7 @@ keypairTileContents context project =
                 , Element.width Element.fill
                 , Element.htmlAttribute <| Html.Attributes.style "min-width" "0"
                 , Font.family [ Font.monospace ]
-                , Font.size 14
+                , Text.fontSize Text.Small
                 ]
                 (VH.ellipsizedText keypair.fingerprint)
             ]

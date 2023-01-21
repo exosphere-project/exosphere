@@ -12,11 +12,12 @@ import OpenStack.Types as OSTypes
 import Page.QuotaUsage
 import Route
 import Set
-import Style.Helpers as SH exposing (spacer)
+import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.Button as Button
 import Style.Widgets.DataList as DataList
 import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
+import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Time
 import Types.Project exposing (Project)
@@ -170,9 +171,7 @@ volumeView context project currentTime volumeRecord =
                         )
                 , label =
                     Element.el
-                        [ Font.size 18
-                        , Font.color (SH.toElementColor context.palette.primary)
-                        ]
+                        (Text.typographyAttrs Text.H4 ++ [ Font.color (SH.toElementColor context.palette.primary) ])
                         (Element.text <|
                             VH.extendedResourceName
                                 volumeRecord.volume.name

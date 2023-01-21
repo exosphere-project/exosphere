@@ -8,11 +8,12 @@ import OpenStack.Types as OSTypes
 import OpenStack.Volumes
 import Route
 import Set
-import Style.Helpers as SH exposing (spacer)
+import Style.Helpers as SH
 import Style.Widgets.Button as Button
 import Style.Widgets.Card
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.DeleteButton exposing (deleteIconButton)
+import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
@@ -196,7 +197,7 @@ renderAttachment context project attachment =
                 }
         , VH.compactKVRow "Device:" <| Element.text <| attachment.device
         , VH.compactKVRow "Mount point*:" <| (GetterSetters.volDeviceToMountpoint attachment.device |> Maybe.withDefault "" |> Element.text)
-        , Element.el [ Font.size 11 ] <|
+        , Element.el [ Text.fontSize Text.Tiny ] <|
             Element.text <|
                 String.join " "
                     [ "*"
@@ -204,7 +205,7 @@ renderAttachment context project attachment =
                         |> Helpers.String.toTitleCase
                     , "will only be automatically formatted/mounted on operating"
                     ]
-        , Element.el [ Font.size 11 ] <| Element.text "systems which use systemd 236 or newer (e.g. Ubuntu 18.04 or newer, Rocky Linux, or AlmaLinux)"
+        , Element.el [ Text.fontSize Text.Tiny ] <| Element.text "systems which use systemd 236 or newer (e.g. Ubuntu 18.04 or newer, Rocky Linux, or AlmaLinux)"
         ]
 
 

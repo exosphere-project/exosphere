@@ -24,12 +24,14 @@ import FeatherIcons
 import Html.Attributes as HtmlA
 import Murmur3
 import Set
-import Style.Helpers as SH exposing (spacer)
+import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
 import Style.Widgets.Chip exposing (chip)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.Popover.Popover exposing (popover)
 import Style.Widgets.Popover.Types exposing (PopoverId)
+import Style.Widgets.Spacer exposing (spacer)
+import Style.Widgets.Text as Text
 import View.Helpers as VH
 import Widget
 
@@ -370,15 +372,16 @@ view model toMsg context styleAttrs listItemView data bulkActions selectionFilte
                         |> Element.html
                         |> Element.el [ Element.centerX ]
                     , Element.el
-                        [ Element.centerX
-                        , Font.size 18
-                        , Font.color <| SH.toElementColor context.palette.neutral.text.default
-                        ]
+                        ([ Element.centerX
+                         , Font.color (SH.toElementColor context.palette.neutral.text.default)
+                         ]
+                            ++ Text.typographyAttrs Text.H4
+                        )
                         (Element.text "No data found!")
                     , if not (List.isEmpty data) then
                         Element.el
                             [ Element.centerX
-                            , Font.size 16
+                            , Text.fontSize Text.Body
                             ]
                         <|
                             Element.text
@@ -671,7 +674,7 @@ filtersView model toMsg context { filters, dropdownMsgMapper } data =
                 [ Element.spacingXY 0 spacer.px24
                 ]
                 (Element.row [ Element.width Element.fill ]
-                    [ Element.el [ Font.size 18 ]
+                    [ Element.el [ Text.fontSize Text.Body ]
                         (Element.text "Apply Filters")
                     , Element.el [ Element.alignRight, closeDropdown ]
                         (Widget.iconButton
