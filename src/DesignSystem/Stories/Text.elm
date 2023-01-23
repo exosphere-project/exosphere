@@ -3,10 +3,10 @@ module DesignSystem.Stories.Text exposing (stories)
 import DesignSystem.Helpers exposing (Plugins, Renderer, ThemeModel, palettize)
 import Element
 import Element.Font as Font
-import Element.Region
 import FeatherIcons
 import Style.Widgets.Link as Link
-import Style.Widgets.Text as Text
+import Style.Widgets.Spacer exposing (spacer)
+import Style.Widgets.Text as Text exposing (TextVariant(..))
 import UIExplorer
     exposing
         ( storiesOf
@@ -17,7 +17,22 @@ stories : Renderer msg -> UIExplorer.UI (ThemeModel model) msg Plugins
 stories renderer =
     storiesOf
         "Text"
-        [ ( "unstyled", \m -> renderer (palettize m) <| Element.text "This is text rendered using `Element.text` and no styling. It will inherit attributes from the document layout.", { note = Text.notes } )
+        [ ( "text variants"
+          , \m ->
+                renderer (palettize m) <|
+                    Element.column [ Element.spacing spacer.px16 ] <|
+                        List.map (\variant -> Text.text (Tuple.first variant) [] (Tuple.second variant))
+                            [ ( AppTitle, "AppTitle" )
+                            , ( ExtraLarge, "ExtraLarge" )
+                            , ( Large, "Large" )
+                            , ( Emphasized, "Emphasized" )
+                            , ( Body, "Body" )
+                            , ( Small, "Small" )
+                            , ( Tiny, "Tiny" )
+                            ]
+          , { note = Text.notes }
+          )
+        , ( "unstyled", \m -> renderer (palettize m) <| Element.text "This is text rendered using `Element.text` and no styling. It will inherit attributes from the document layout.", { note = Text.notes } )
         , ( "p"
           , \m ->
                 renderer (palettize m) <|
@@ -29,7 +44,7 @@ stories renderer =
                         ]
           , { note = Text.notes }
           )
-        , ( "bold", \m -> renderer (palettize m) <| Text.p [] [ Text.body "Logged in as ", Text.strong "@Jimmy:3421", Text.body "." ], { note = Text.notes } )
+        , ( "strong", \m -> renderer (palettize m) <| Text.p [] [ Text.body "Logged in as ", Text.strong "@Jimmy:3421", Text.body "." ], { note = Text.notes } )
         , ( "mono", \m -> renderer (palettize m) <| Text.p [] [ Text.body "Your IP address is ", Text.mono "192.168.1.1", Text.body "." ], { note = Text.notes } )
         , ( "underline"
           , \m ->
@@ -67,31 +82,6 @@ stories renderer =
                         "Volumes"
           , { note = Text.notes }
           )
-        , ( "h1"
-          , \m ->
-                renderer (palettize m) <|
-                    Text.text Text.AppTitle
-                        [ Element.Region.heading 1 ]
-                        "App Config Info"
-          , { note = Text.notes }
-          )
-        , ( "h2"
-          , \m ->
-                renderer (palettize m) <|
-                    Text.text Text.ExtraLarge
-                        [ Element.Region.heading 2 ]
-                        "App Config Info"
-          , { note = Text.notes }
-          )
-        , ( "h3"
-          , \m ->
-                renderer (palettize m) <|
-                    Text.text Text.Large
-                        [ Element.Region.heading 3 ]
-                        "App Config Info"
-          , { note = Text.notes }
-          )
-        , ( "h4", \m -> renderer (palettize m) <| Text.text Text.Emphasized [ Element.Region.heading 4 ] "App Config Info", { note = Text.notes } )
         ]
 
 

@@ -137,7 +137,7 @@ serverView palette onDelete server =
         ]
         [ Element.row [ Element.spacing 10, Element.width Element.fill ]
             [ Element.el
-                (Style.Widgets.Text.typographyAttrs Style.Widgets.Text.H4
+                (Style.Widgets.Text.typographyAttrs Style.Widgets.Text.Emphasized
                     ++ [ Element.Font.color (Style.Helpers.toElementColor palette.primary) ]
                 )
                 (Element.text server.name)
