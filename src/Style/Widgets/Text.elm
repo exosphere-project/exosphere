@@ -65,7 +65,6 @@ type TextVariant
     | Large
     | Emphasized
     | Body
-    | Strong
     | Small
     | Tiny
 
@@ -100,11 +99,6 @@ typography variant =
             }
 
         Emphasized ->
-            { size = 17
-            , weight = Semibold
-            }
-
-        Strong ->
             { size = 17
             , weight = Semibold
             }
@@ -268,14 +262,14 @@ body label =
     text Body [] label
 
 
-{-| A convience method for showing strong text (that uses semiBold font weight).
+{-| A convience method for showing emphasized text (that uses semiBold font weight).
 
     Text.strong "Hello!"
 
 -}
 strong : String -> Element.Element msg
 strong label =
-    text Strong [] label
+    text Emphasized [] label
 
 
 {-| A convience method for monospace text.
