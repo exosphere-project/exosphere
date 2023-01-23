@@ -39,7 +39,10 @@ type alias Model =
     }
 
 
+
 --  ProjectSpecificMsgConstructor → Cmd Msg
+
+
 type Msg
     = GotDeleteConfirm OSTypes.ImageUuid
     | GotChangeVisibility OSTypes.ImageUuid OSTypes.ImageVisibility
@@ -70,19 +73,15 @@ update msg project model =
                 SharedMsg.RequestDeleteImage imageId
             )
 
-
         GotChangeVisibility imageId imageVisibility ->
             ( model
             , Cmd.none
             , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
                 SharedMsg.RequestImageVisibilityChange imageId imageVisibility
             )
-         -- TODO JC: add command in third place
+
         GotImagesRequest visibility ->
-            let
-               _ = Debug.log "GotImagesRequest" visibility
-            in
-            ( model, Cmd.none, SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <| SharedMsg.RequestImagesWithVisibility visibility)
+            ( model, Cmd.none, SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <| SharedMsg.RequestImagesWithVisibility visibility )
 
         DataListMsg dataListMsg ->
             ( { model
@@ -123,7 +122,7 @@ view context project model =
         loadedView _ =
             Element.column VH.contentContainer
                 [ if model.showHeading then
-                    Element.row [Element.spacing 12]
+                    Element.row [ Element.spacing 12 ]
                         [ Text.heading context.palette
                             []
                             (FeatherIcons.package |> FeatherIcons.toHtml [] |> Element.html |> Element.el [])
@@ -408,8 +407,10 @@ imageRequestDropdown context project =
 
         dropdownContent closeDropdown =
             (Element.column [ Element.spacing spacer.px8 ] <|
-                [ getPublic context
+                [ getDefault context
+                , getPublic context
                 , getPrivate context
+                , getShared context
                 , getCommunity context
                 ]
             )
@@ -450,32 +451,47 @@ imageRequestDropdown context project =
         }
 
 
+getDefault : Context -> Element.Element Msg
+getDefault context =
+    getImagesBtn context Nothing
+
+
 getPublic : Context -> Element.Element Msg
 getPublic context =
-    getImagesBtn context OSTypes.ImagePublic
+    getImagesBtn context (Just OSTypes.ImagePublic)
 
 
 getPrivate : Context -> Element.Element Msg
 getPrivate context =
-    getImagesBtn context OSTypes.ImagePrivate
+    getImagesBtn context (Just OSTypes.ImagePrivate)
+
+
+getShared : Context -> Element.Element Msg
+getShared context =
+    getImagesBtn context (Just OSTypes.ImageShared)
 
 
 getCommunity : Context -> Element.Element Msg
 getCommunity context =
-    getImagesBtn context OSTypes.ImageCommunity
+    getImagesBtn context (Just OSTypes.ImageCommunity)
 
 
-getImagesBtn : View.Types.Context -> OSTypes.ImageVisibility -> Element.Element Msg
-getImagesBtn context visibility =
+getImagesBtn : View.Types.Context -> Maybe OSTypes.ImageVisibility -> Element.Element Msg
+getImagesBtn context maybeVisibility =
     let
         onPress =
-            GotImagesRequest (Just visibility)
+            GotImagesRequest maybeVisibility
 
         textBtn context_ onPress_ =
             Button.default
                 context_.palette
                 { text =
-                    String.toLower (OSTypes.imageVisibilityToString visibility)
+                    case maybeVisibility of
+                        Nothing ->
+                            "default"
+
+                        Just visibility ->
+                            String.toLower (OSTypes.imageVisibilityToString visibility)
                 , onPress = onPress_
                 }
     in

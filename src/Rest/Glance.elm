@@ -30,8 +30,22 @@ import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..
 requestImages : Maybe OSTypes.ImageVisibility -> SharedModel -> Project -> Cmd SharedMsg
 requestImages maybeVisibility model project =
     let
-        _ =
-            Debug.log "requestImages!" project
+        query =
+            case maybeVisibility of
+                Nothing ->
+                    "?limit=999999"
+
+                Just OSTypes.ImageCommunity ->
+                    "?visibility=community&status=active&limit=999999"
+
+                Just OSTypes.ImagePrivate ->
+                    "?visibility=private&status=active&limit=999999"
+
+                Just OSTypes.ImagePublic ->
+                    "?visibility=public&status=active&limit=999999"
+
+                Just OSTypes.ImageShared ->
+                    "?visibility=shared&status=active&limit=999999"
 
         projectKeystoneHostname =
             UrlHelpers.hostnameFromUrl project.endpoints.keystone
@@ -57,13 +71,11 @@ requestImages maybeVisibility model project =
         Get
         Nothing
         []
-        (project.endpoints.glance ++ "/v2/images?limit=999999")
-        --(project.endpoints.glance ++ "/v2/images?visibility=community&status=active")
+        (project.endpoints.glance ++ "/v2/images" ++ query)
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg_
-            ---(decodeImages maybeExcludeFilter)
-            (decodeImages Nothing)
+            (decodeImages maybeExcludeFilter)
         )
 
 
