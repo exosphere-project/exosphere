@@ -70,7 +70,7 @@ stories renderer =
         , ( "h1"
           , \m ->
                 renderer (palettize m) <|
-                    Text.text Text.H1
+                    Text.text Text.AppTitle
                         [ Element.Region.heading 1 ]
                         "App Config Info"
           , { note = Text.notes }
@@ -78,7 +78,7 @@ stories renderer =
         , ( "h2"
           , \m ->
                 renderer (palettize m) <|
-                    Text.text Text.H2
+                    Text.text Text.ExtraLarge
                         [ Element.Region.heading 2 ]
                         "App Config Info"
           , { note = Text.notes }
@@ -86,12 +86,12 @@ stories renderer =
         , ( "h3"
           , \m ->
                 renderer (palettize m) <|
-                    Text.text Text.H3
+                    Text.text Text.Large
                         [ Element.Region.heading 3 ]
                         "App Config Info"
           , { note = Text.notes }
           )
-        , ( "h4", \m -> renderer (palettize m) <| Text.text Text.H4 [ Element.Region.heading 4 ] "App Config Info", { note = Text.notes } )
+        , ( "h4", \m -> renderer (palettize m) <| Text.text Text.Emphasized [ Element.Region.heading 4 ] "App Config Info", { note = Text.notes } )
         ]
 
 

@@ -328,7 +328,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                     (List.concat
                         [ [ Element.row
                                 (Text.subheadingStyleAttrs context.palette
-                                    ++ Text.typographyAttrs Text.H3
+                                    ++ Text.typographyAttrs Text.Large
                                     ++ [ Border.width 0 ]
                                 )
                                 headerContents
@@ -476,7 +476,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                 [ FeatherIcons.server |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
                 , Element.column [ Element.spacing spacer.px4 ]
                     [ Element.row [ Element.spacing spacer.px8 ]
-                        [ Text.text Text.H2
+                        [ Text.text Text.ExtraLarge
                             []
                             (context.localization.virtualComputer
                                 |> Helpers.String.toTitleCase
@@ -551,7 +551,7 @@ serverNameView context project currentTime model server =
         serverNameViewPlain =
             Element.row
                 [ Element.spacing spacer.px8 ]
-                [ Text.text Text.H2 [] name_
+                [ Text.text Text.ExtraLarge [] name_
                 , Widget.iconButton
                     (SH.materialStyle context.palette).button
                     { text = "Edit"

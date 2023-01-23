@@ -60,10 +60,10 @@ type alias Typography =
 
 -}
 type TextVariant
-    = H1
-    | H2
-    | H3
-    | H4
+    = AppTitle
+    | ExtraLarge
+    | Large
+    | Emphasized
     | Body
     | Strong
     | Small
@@ -84,22 +84,22 @@ type FontFamily
 typography : TextVariant -> Typography
 typography variant =
     case variant of
-        H1 ->
+        AppTitle ->
             { size = 26
             , weight = Semibold
             }
 
-        H2 ->
+        ExtraLarge ->
             { size = 24
             , weight = Semibold
             }
 
-        H3 ->
+        Large ->
             { size = 20
             , weight = Semibold
             }
 
-        H4 ->
+        Emphasized ->
             { size = 17
             , weight = Semibold
             }
@@ -329,7 +329,7 @@ heading palette styleAttrs icon label =
             ++ styleAttrs
         )
         [ icon
-        , text H2 [] label
+        , text ExtraLarge [] label
         ]
 
 
@@ -361,5 +361,5 @@ subheading palette styleAttrs icon label =
             ++ styleAttrs
         )
         [ icon
-        , text H3 [] label
+        , text Large [] label
         ]

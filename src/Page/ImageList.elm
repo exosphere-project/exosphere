@@ -364,7 +364,7 @@ imageView model context project imageRecord =
         (listItemColumnAttribs context.palette)
         [ Element.row [ Element.width Element.fill, Element.spacing spacer.px12 ]
             [ Element.el
-                (Text.typographyAttrs Text.H4 ++ [ Font.color (SH.toElementColor context.palette.neutral.text.default) ])
+                (Text.typographyAttrs Text.Emphasized ++ [ Font.color (SH.toElementColor context.palette.neutral.text.default) ])
                 (Element.text (VH.resourceName (Just imageRecord.image.name) imageRecord.image.uuid))
             , featuredIcon
             , imageActions

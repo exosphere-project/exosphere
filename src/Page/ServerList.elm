@@ -284,7 +284,7 @@ serverView context currentTime project serverRecord =
                         )
                 , label =
                     Element.el
-                        (Text.typographyAttrs Text.H4 ++ [ Font.color (SH.toElementColor context.palette.primary) ])
+                        (Text.typographyAttrs Text.Emphasized ++ [ Font.color (SH.toElementColor context.palette.primary) ])
                         (Element.text serverRecord.name)
                 }
 

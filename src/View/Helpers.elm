@@ -114,18 +114,18 @@ headerHeadingAttributes =
 heading2 : ExoPalette -> List (Element.Attribute msg)
 heading2 palette =
     Text.headingStyleAttrs palette
-        ++ Text.typographyAttrs Text.H2
+        ++ Text.typographyAttrs Text.ExtraLarge
 
 
 heading3 : ExoPalette -> List (Element.Attribute msg)
 heading3 palette =
     Text.subheadingStyleAttrs palette
-        ++ Text.typographyAttrs Text.H3
+        ++ Text.typographyAttrs Text.Large
 
 
 heading4 : List (Element.Attribute msg)
 heading4 =
-    Text.typographyAttrs Text.H4
+    Text.typographyAttrs Text.Emphasized
         ++ [ Region.heading 4
            , Element.width Element.fill
            ]

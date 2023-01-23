@@ -108,7 +108,7 @@ view context project currentTime =
                     Accounting.shownAndSortedAllocations currentTime allocations
 
                 heading =
-                    Text.text Text.H3
+                    Text.text Text.Large
                         [ Font.regular, Region.heading 2 ]
                         "Allocation Usage"
 
