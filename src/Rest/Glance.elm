@@ -27,9 +27,12 @@ import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..
 {- HTTP Requests -}
 
 
-requestImages : SharedModel -> Project -> Cmd SharedMsg
-requestImages model project =
+requestImages : Maybe OSTypes.ImageVisibility ->  SharedModel -> Project -> Cmd SharedMsg
+requestImages maybeVisibility model project =
     let
+        _ =
+            Debug.log "requestImages!" project
+
         projectKeystoneHostname =
             UrlHelpers.hostnameFromUrl project.endpoints.keystone
 
@@ -55,15 +58,13 @@ requestImages model project =
         Nothing
         []
         (project.endpoints.glance ++ "/v2/images?limit=999999")
+        --(project.endpoints.glance ++ "/v2/images?visibility=community&status=active")
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg_
-            (decodeImages maybeExcludeFilter)
+            ---(decodeImages maybeExcludeFilter)
+            (decodeImages Nothing)
         )
-
-
-
--- TODO: (JC) test function requestChangeVisibility
 
 
 {-|
