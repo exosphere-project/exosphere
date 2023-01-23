@@ -101,7 +101,6 @@ type ProjectSpecificMsgConstructor
     | RequestImagesWithVisibility (Maybe OSTypes.ImageVisibility)
 
 
-
 type ServerSpecificMsgConstructor
     = RequestServer
     | RequestDeleteServer Bool
