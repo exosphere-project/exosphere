@@ -27,7 +27,7 @@ import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..
 {- HTTP Requests -}
 
 
-requestImages : Maybe OSTypes.ImageVisibility ->  SharedModel -> Project -> Cmd SharedMsg
+requestImages : Maybe OSTypes.ImageVisibility -> SharedModel -> Project -> Cmd SharedMsg
 requestImages maybeVisibility model project =
     let
         _ =

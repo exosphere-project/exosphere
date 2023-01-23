@@ -39,10 +39,11 @@ type alias Model =
     }
 
 
+--  ProjectSpecificMsgConstructor → Cmd Msg
 type Msg
     = GotDeleteConfirm OSTypes.ImageUuid
     | GotChangeVisibility OSTypes.ImageUuid OSTypes.ImageVisibility
-    | RequestImages OSTypes.ImageVisibility
+    | GotImagesRequest (Maybe OSTypes.ImageVisibility)
     | DataListMsg DataList.Msg
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
@@ -69,16 +70,19 @@ update msg project model =
                 SharedMsg.RequestDeleteImage imageId
             )
 
-        -- TODO JC: use this to close drop down
+
         GotChangeVisibility imageId imageVisibility ->
             ( model
             , Cmd.none
             , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
                 SharedMsg.RequestImageVisibilityChange imageId imageVisibility
             )
-
-        RequestImages visibility ->
-            ( model, Cmd.none, SharedMsg.NoOp )
+         -- TODO JC: add command in third place
+        GotImagesRequest visibility ->
+            let
+               _ = Debug.log "GotImagesRequest" visibility
+            in
+            ( model, Cmd.none, SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <| SharedMsg.RequestImagesWithVisibility visibility)
 
         DataListMsg dataListMsg ->
             ( { model
@@ -465,7 +469,7 @@ getImagesBtn : View.Types.Context -> OSTypes.ImageVisibility -> Element.Element 
 getImagesBtn context visibility =
     let
         onPress =
-            RequestImages visibility
+            GotImagesRequest (Just visibility)
 
         textBtn context_ onPress_ =
             Button.default
