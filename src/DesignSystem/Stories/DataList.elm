@@ -51,22 +51,22 @@ stories { renderer, toMsg, onDeleteServers, onDeleteServer, onPopOver } =
         [ ( "default"
           , \model ->
                 let
-                    pallete =
+                    palette =
                         DesignSystem.Helpers.palettize model
                 in
-                renderer pallete <|
+                renderer palette <|
                     Style.Widgets.DataList.view model.customModel.dataList
                         toMsg
-                        { palette = pallete, showPopovers = model.customModel.popover.showPopovers }
+                        { palette = palette, showPopovers = model.customModel.popover.showPopovers }
                         [ Element.width (Element.maximum 900 Element.fill)
                         , Style.Widgets.Text.fontSize Style.Widgets.Text.Body
                         ]
-                        (serverView pallete onDeleteServer)
+                        (serverView palette onDeleteServer)
                         model.customModel.servers
                         [ \serverIds ->
                             Element.el [ Element.alignRight ]
                                 (Widget.iconButton
-                                    (Style.Helpers.materialStyle pallete).dangerButton
+                                    (Style.Helpers.materialStyle palette).dangerButton
                                     { icon = Style.Widgets.Icon.remove (Element.rgb255 255 255 255) 16
                                     , text = "Delete"
                                     , onPress =
