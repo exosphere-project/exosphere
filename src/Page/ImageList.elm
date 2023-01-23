@@ -42,6 +42,7 @@ type alias Model =
 type Msg
     = GotDeleteConfirm OSTypes.ImageUuid
     | GotChangeVisibility OSTypes.ImageUuid OSTypes.ImageVisibility
+    | RequestImages OSTypes.ImageVisibility
     | DataListMsg DataList.Msg
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
@@ -75,6 +76,9 @@ update msg project model =
             , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
                 SharedMsg.RequestImageVisibilityChange imageId imageVisibility
             )
+
+        RequestImages visibility ->
+            ( model, Cmd.none, SharedMsg.NoOp )
 
         DataListMsg dataListMsg ->
             ( { model
@@ -115,13 +119,16 @@ view context project model =
         loadedView _ =
             Element.column VH.contentContainer
                 [ if model.showHeading then
-                    Text.heading context.palette
-                        []
-                        (FeatherIcons.package |> FeatherIcons.toHtml [] |> Element.html |> Element.el [])
-                        (context.localization.staticRepresentationOfBlockDeviceContents
-                            |> Helpers.String.pluralize
-                            |> Helpers.String.toTitleCase
-                        )
+                    Element.row [Element.spacing 12]
+                        [ Text.heading context.palette
+                            []
+                            (FeatherIcons.package |> FeatherIcons.toHtml [] |> Element.html |> Element.el [])
+                            (context.localization.staticRepresentationOfBlockDeviceContents
+                                |> Helpers.String.pluralize
+                                |> Helpers.String.toTitleCase
+                            )
+                        , imageRequestDropdown context project
+                        ]
 
                   else
                     Element.none
@@ -385,6 +392,90 @@ imageView model context project imageRecord =
             ]
         , imageAttributesView
         ]
+
+
+imageRequestDropdown : View.Types.Context -> Project -> Element.Element Msg
+imageRequestDropdown context project =
+    let
+        dropdownId =
+            [ "requestImagesDropdown", project.auth.project.uuid ]
+                |> List.intersperse "-"
+                |> String.concat
+
+        dropdownContent closeDropdown =
+            (Element.column [ Element.spacing spacer.px8 ] <|
+                [ getPublic context
+                , getPrivate context
+                , getCommunity context
+                ]
+            )
+                |> renderActionButton closeDropdown
+
+        dropdownTarget toggleDropdownMsg dropdownIsShown =
+            Widget.iconButton
+                (SH.materialStyle context.palette).button
+                { text = "(Get images)"
+                , icon =
+                    Element.row
+                        [ Element.spacing spacer.px4 ]
+                        [ Element.text "Get images"
+                        , Element.el []
+                            ((if dropdownIsShown then
+                                FeatherIcons.chevronUp
+
+                              else
+                                FeatherIcons.chevronDown
+                             )
+                                |> FeatherIcons.withSize 18
+                                |> FeatherIcons.toHtml []
+                                |> Element.html
+                            )
+                        ]
+                , onPress = Just toggleDropdownMsg
+                }
+    in
+    Popover.popover context
+        popoverMsgMapper
+        { id = dropdownId
+        , content = dropdownContent
+        , contentStyleAttrs = [ Element.padding spacer.px24 ]
+        , position = ST.PositionBottomRight
+        , distanceToTarget = Nothing
+        , target = dropdownTarget
+        , targetStyleAttrs = []
+        }
+
+
+getPublic : Context -> Element.Element Msg
+getPublic context =
+    getImagesBtn context OSTypes.ImagePublic
+
+
+getPrivate : Context -> Element.Element Msg
+getPrivate context =
+    getImagesBtn context OSTypes.ImagePrivate
+
+
+getCommunity : Context -> Element.Element Msg
+getCommunity context =
+    getImagesBtn context OSTypes.ImageCommunity
+
+
+getImagesBtn : View.Types.Context -> OSTypes.ImageVisibility -> Element.Element Msg
+getImagesBtn context visibility =
+    let
+        onPress =
+            RequestImages visibility
+
+        textBtn context_ onPress_ =
+            Button.default
+                context_.palette
+                { text =
+                    String.toLower (OSTypes.imageVisibilityToString visibility)
+                , onPress = onPress_
+                }
+    in
+    textBtn context (Just onPress)
 
 
 imageVisibilityDropdown : ImageRecord -> View.Types.Context -> Project -> Element.Element Msg
