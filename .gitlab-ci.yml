@@ -151,22 +151,6 @@ minify:
     - master
     - dev
 
-
-build_style_guide:
-  stage: test
-  needs:
-    - elm_make
-  before_script:
-    - 'which rsync || ( apt-get update -y && apt-get install rsync -y )'
-    - if [ -d home/.elm ]; then echo "Restoring ~/.elm"; rsync -a home/.elm ~/; fi
-    - if [ -d home/.npm ]; then echo "Restoring ~/.npm"; rsync -a home/.npm ~/; fi
-    - npm install
-  script:
-    - npx elm make --optimize src/Style/StyleGuide.elm --output=styleguide.html
-  after_script:
-    - mkdir -p home && rsync -a ~/.elm home
-    - mkdir -p home && rsync -a ~/.npm home
-
 build_design_system:
   stage: test
   needs:

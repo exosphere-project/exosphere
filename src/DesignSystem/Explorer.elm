@@ -5,6 +5,7 @@ import Color
 import DesignSystem.Helpers exposing (Plugins, palettize, toHtml)
 import DesignSystem.Stories.Card as CardStories
 import DesignSystem.Stories.ColorPalette as ColorPalette
+import DesignSystem.Stories.DataList
 import DesignSystem.Stories.Link as LinkStories
 import DesignSystem.Stories.Space as SpaceStories
 import DesignSystem.Stories.Text as TextStories
@@ -20,7 +21,9 @@ import Style.Helpers as SH
 import Style.Types
 import Style.Widgets.Button as Button
 import Style.Widgets.Chip exposing (chip)
+import Style.Widgets.ChipsFilter
 import Style.Widgets.CopyableText exposing (copyableText)
+import Style.Widgets.DataList
 import Style.Widgets.Icon exposing (bell, console, copyToClipboard, history, ipAddress, lock, lockOpen, plusCircle, remove, roundRect, timesCircle)
 import Style.Widgets.Meter exposing (meter)
 import Style.Widgets.Popover.Popover exposing (popover, toggleIfTargetIsOutside)
@@ -103,12 +106,22 @@ type alias ChipsState =
     }
 
 
+type alias ChipFilterModel =
+    { selected : Set.Set String
+    , textInput : String
+    , options : List String
+    }
+
+
 type alias Model =
     { popover : PopoverState
     , chips : ChipsState
     , deployerColors : Style.Types.DeployerColorThemes
     , tabs : TabsPlugin.Model
     , toasties : Toasty.Stack Toast
+    , dataList : Style.Widgets.DataList.Model
+    , servers : List DesignSystem.Stories.DataList.Server
+    , chipFilter : ChipFilterModel
     }
 
 
@@ -128,6 +141,30 @@ initialModel =
     , chips = { all = initialChips, shown = initialChips }
     , tabs = TabsPlugin.initialModel
     , toasties = Toast.initialModel
+    , dataList =
+        Style.Widgets.DataList.init
+            (Style.Widgets.DataList.getDefaultFilterOptions DesignSystem.Stories.DataList.filters)
+    , servers = DesignSystem.Stories.DataList.initServers
+    , chipFilter =
+        { selected = Set.empty
+        , textInput = ""
+        , options =
+            [ "Apple"
+            , "Kiwi"
+            , "Strawberry"
+            , "Pineapple"
+            , "Mango"
+            , "Grapes"
+            , "Watermelon"
+            , "Orange"
+            , "Lemon"
+            , "Blueberry"
+            , "Grapefruit"
+            , "Coconut"
+            , "Cherry"
+            , "Banana"
+            ]
+        }
     }
 
 
@@ -184,6 +221,10 @@ type Msg
     | ToastMsg (Toasty.Msg Toast)
     | ToastShow ErrorLevel String
     | NetworkConnection Bool
+    | DataListMsg Style.Widgets.DataList.Msg
+    | DeleteServer String
+    | DeleteSelectedServers (Set.Set String)
+    | ChipsFilterMsg Style.Widgets.ChipsFilter.ChipsFilterMsg
 
 
 
@@ -287,6 +328,81 @@ config =
                 NetworkConnection online ->
                     ( { m | customModel = ( m.customModel, Cmd.none ) |> Toast.showToast (ToastStories.makeNetworkConnectivityToast online) ToastMsg |> Tuple.first }
                     , ( m.customModel, Cmd.none ) |> Toast.showToast (ToastStories.makeNetworkConnectivityToast online) ToastMsg |> Tuple.second
+                    )
+
+                DataListMsg dataListMsg ->
+                    ( { m
+                        | customModel =
+                            { model
+                                | dataList = Style.Widgets.DataList.update dataListMsg model.dataList
+                            }
+                      }
+                    , Cmd.none
+                    )
+
+                DeleteServer serverId ->
+                    ( { m
+                        | customModel =
+                            { model
+                                | servers =
+                                    List.filter
+                                        (\server -> not (server.id == serverId))
+                                        model.servers
+                            }
+                      }
+                    , Cmd.none
+                    )
+
+                DeleteSelectedServers serverIds ->
+                    ( { m
+                        | customModel =
+                            { model
+                                | servers =
+                                    List.filter
+                                        (\server -> not (Set.member server.id serverIds))
+                                        model.servers
+                            }
+                      }
+                    , Cmd.none
+                    )
+
+                ChipsFilterMsg (Style.Widgets.ChipsFilter.ToggleSelection string) ->
+                    let
+                        cfm =
+                            model.chipFilter
+                    in
+                    ( { m
+                        | customModel =
+                            { model
+                                | chipFilter =
+                                    { cfm
+                                        | selected =
+                                            cfm.selected
+                                                |> (if cfm.selected |> Set.member string then
+                                                        Set.remove string
+
+                                                    else
+                                                        Set.insert string
+                                                   )
+                                    }
+                            }
+                      }
+                    , Cmd.none
+                    )
+
+                ChipsFilterMsg (Style.Widgets.ChipsFilter.SetTextInput string) ->
+                    let
+                        cfm =
+                            model.chipFilter
+                    in
+                    ( { m
+                        | customModel =
+                            { model
+                                | chipFilter =
+                                    { cfm | textInput = string }
+                            }
+                      }
+                    , Cmd.none
                     )
     , menuViewEnhancer = \_ v -> v
     , viewEnhancer =
@@ -493,6 +609,19 @@ Shows a static horizontal progress bar chart which indicates the capacity of a r
 A chip is used to show an object within workflows that involve filtering a set of objects. It has a text content and a close button to remove the chip from the set.
                       """ }
                       )
+                    , ( "filter"
+                      , \m ->
+                            toHtml (palettize m) <|
+                                (Style.Widgets.ChipsFilter.chipsFilter (SH.materialStyle (palettize m)) m.customModel.chipFilter
+                                    |> Element.map ChipsFilterMsg
+                                )
+                      , { note = """
+## Usage
+
+A chip filter is used as a multi select
+
+                      """ }
+                      )
                     ]
                 , CardStories.stories toHtml
                 , ToastStories.stories toHtml
@@ -590,5 +719,12 @@ Use `popoverStyleDefaults` so that the popover style is still consistent with ot
                         ]
                     )
                 , ToggleTip.stories toHtml TogglePopover
+                , DesignSystem.Stories.DataList.stories
+                    { renderer = toHtml
+                    , toMsg = DataListMsg
+                    , onDeleteServers = DeleteSelectedServers
+                    , onDeleteServer = DeleteServer
+                    , onPopOver = TogglePopover
+                    }
                 ]
         )
