@@ -109,9 +109,6 @@ requestChangeVisibility project imageUuid imageVisibility =
         )
 
 
-
-
-
 requestDeleteImage : Project -> OSTypes.ImageUuid -> Cmd SharedMsg
 requestDeleteImage project imageUuid =
     let

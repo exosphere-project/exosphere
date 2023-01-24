@@ -263,9 +263,6 @@ requestAssignFloatingIp project port_ floatingIpUuid =
     requestCmd
 
 
-
-
-
 requestUnassignFloatingIp : Project -> OSTypes.IpAddressUuid -> Cmd SharedMsg
 requestUnassignFloatingIp project floatingIpUuid =
     let
