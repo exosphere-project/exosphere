@@ -291,7 +291,11 @@ imageView model context project imageRecord =
             Element.row [ Element.alignRight, Element.spacing spacer.px12 ]
                 [ deleteImageBtn
                 , createServerBtn
-                , imageVisibilityDropdown imageRecord context project
+                , if imageRecord.owned then
+                    imageVisibilityDropdown imageRecord context project
+
+                  else
+                    Element.none
                 ]
 
         size =
