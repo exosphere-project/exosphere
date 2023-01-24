@@ -396,13 +396,7 @@ imageVisibilityDropdown imageRecord context project =
 
         dropdownContent closeDropdown =
             (Element.column [ Element.spacing spacer.px8 ] <|
-                ([ setVisibilityIfPrivate context imageRecord
-                 , setVisibilityIfCommunity context imageRecord
-                 , setVisibilityIfPublic context imageRecord
-                 , setVisibilityIfShared context imageRecord
-                 ]
-                    |> List.concat
-                )
+                setVisibilityButtons context imageRecord
             )
                 |> renderActionButton closeDropdown
 
