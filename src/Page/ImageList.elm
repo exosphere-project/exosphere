@@ -441,44 +441,19 @@ imageVisibilityDropdown imageRecord context project =
         }
 
 
-setVisibilityIfPrivate : Context -> ImageRecord -> List (Element.Element Msg)
-setVisibilityIfPrivate context imageRecord =
-    if imageRecord.image.visibility == OSTypes.ImagePrivate then
-        [ setVisibilityBtn context imageRecord.image.uuid OSTypes.ImageCommunity ]
-
-    else
-        [ Element.none ]
-
-
-setVisibilityIfCommunity : Context -> ImageRecord -> List (Element.Element Msg)
-setVisibilityIfCommunity context imageRecord =
-    if imageRecord.image.visibility == OSTypes.ImageCommunity then
-        [ setVisibilityBtn context imageRecord.image.uuid OSTypes.ImagePrivate ]
-
-    else
-        [ Element.none ]
+allowedTransitions : OSTypes.ImageVisibility -> List OSTypes.ImageVisibility
+allowedTransitions existingVisibility =
+    [ OSTypes.ImagePrivate
+    , OSTypes.ImageCommunity
+    ]
+        |> List.filter (\v -> v /= existingVisibility)
 
 
-setVisibilityIfPublic : Context -> ImageRecord -> List (Element.Element Msg)
-setVisibilityIfPublic context imageRecord =
-    if imageRecord.image.visibility == OSTypes.ImagePublic then
-        [ setVisibilityBtn context imageRecord.image.uuid OSTypes.ImagePrivate
-        , setVisibilityBtn context imageRecord.image.uuid OSTypes.ImageCommunity
-        ]
-
-    else
-        [ Element.none ]
-
-
-setVisibilityIfShared : Context -> ImageRecord -> List (Element.Element Msg)
-setVisibilityIfShared context imageRecord =
-    if imageRecord.image.visibility == OSTypes.ImageShared then
-        [ setVisibilityBtn context imageRecord.image.uuid OSTypes.ImagePrivate
-        , setVisibilityBtn context imageRecord.image.uuid OSTypes.ImageCommunity
-        ]
-
-    else
-        [ Element.none ]
+setVisibilityButtons : Context -> ImageRecord -> List (Element.Element Msg)
+setVisibilityButtons context imageRecord =
+    imageRecord.image.visibility
+        |> allowedTransitions
+        |> List.map (setVisibilityBtn context imageRecord.image.uuid)
 
 
 renderActionButton : Element.Attribute Msg -> Element.Element Msg -> Element.Element Msg
