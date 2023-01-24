@@ -2,6 +2,7 @@ module Page.ImageList exposing (Model, Msg(..), init, update, view)
 
 import Dict
 import Element
+import Element.Border
 import Element.Font as Font
 import FeatherIcons
 import FormatNumber.Locales exposing (Decimals(..))
@@ -459,21 +460,37 @@ renderActionButton closeActionsDropdown element =
     Element.el [ closeActionsDropdown ] element
 
 
+{-| TODO: JC, button appearance (border)
+-}
 setVisibilityBtn : View.Types.Context -> OSTypes.ImageUuid -> OSTypes.ImageVisibility -> Element.Element Msg
 setVisibilityBtn context imageUuid visibility =
     let
         onPress =
             GotChangeVisibility imageUuid visibility
 
-        textBtn context_ onPress_ =
-            Button.default
-                context_.palette
-                { text =
-                    String.toLower (OSTypes.imageVisibilityToString visibility)
-                , onPress = onPress_
-                }
+        buttonStyleProto =
+            (SH.materialStyle context.palette).button
+
+        buttonStyle =
+            { buttonStyleProto
+                | container =
+                    buttonStyleProto.container
+                        ++ [ Element.width Element.fill
+                           , Element.centerX
+                           , Element.Border.width 0
+                           ]
+                , labelRow =
+                    buttonStyleProto.labelRow
+                        ++ [ Element.centerX ]
+            }
     in
-    textBtn context (Just onPress)
+    Widget.textButton
+        buttonStyle
+        { text =
+            String.toLower (OSTypes.imageVisibilityToString visibility)
+        , onPress =
+            Just onPress
+        }
 
 
 filters :
