@@ -68,7 +68,6 @@ update msg project model =
                 SharedMsg.RequestDeleteImage imageId
             )
 
-        -- TODO JC: use this to close drop down
         GotChangeVisibility imageId imageVisibility ->
             ( model
             , Cmd.none
