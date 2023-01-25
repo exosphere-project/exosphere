@@ -460,8 +460,6 @@ renderActionButton closeActionsDropdown element =
     Element.el [ closeActionsDropdown ] element
 
 
-{-| TODO: JC, button appearance (border)
--}
 setVisibilityBtn : View.Types.Context -> OSTypes.ImageUuid -> OSTypes.ImageVisibility -> Element.Element Msg
 setVisibilityBtn context imageUuid visibility =
     let
@@ -486,9 +484,32 @@ setVisibilityBtn context imageUuid visibility =
                         ++ [ Element.centerX ]
             }
     in
-    Widget.textButton
+    Widget.iconButton
         buttonStyle
-        { text =
+        { icon =
+            Element.row
+                [ Element.spacing spacer.px8 ]
+                [ Element.el []
+                    ((case visibility of
+                        OSTypes.ImagePublic ->
+                            FeatherIcons.gift
+
+                        OSTypes.ImagePrivate ->
+                            FeatherIcons.lock
+
+                        OSTypes.ImageCommunity ->
+                            FeatherIcons.bookOpen
+
+                        OSTypes.ImageShared ->
+                            FeatherIcons.divideCircle
+                     )
+                        |> FeatherIcons.withSize 24
+                        |> FeatherIcons.toHtml []
+                        |> Element.html
+                    )
+                , Element.text (OSTypes.imageVisibilityToString visibility)
+                ]
+        , text =
             OSTypes.imageVisibilityToString visibility
         , onPress =
             Just onPress
