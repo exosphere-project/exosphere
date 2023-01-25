@@ -478,6 +478,8 @@ setVisibilityBtn context imageUuid visibility =
                         ++ [ Element.width Element.fill
                            , Element.centerX
                            , Element.Border.width 0
+                           , Text.fontSize Text.Body
+                           , Font.medium
                            ]
                 , labelRow =
                     buttonStyleProto.labelRow
