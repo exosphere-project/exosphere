@@ -476,7 +476,7 @@ setVisibilityBtn context imageUuid visibility =
                         ++ [ Element.width Element.fill
                            , Element.centerX
                            , Element.Border.width 0
-                           , Text.fontSize Text.Body
+                           , Text.fontSize Text.Small
                            , Font.medium
                            ]
                 , labelRow =
@@ -488,7 +488,7 @@ setVisibilityBtn context imageUuid visibility =
         buttonStyle
         { icon =
             Element.row
-                [ Element.spacing spacer.px8 ]
+                [ Element.spacing spacer.px12 ]
                 [ Element.el []
                     ((case visibility of
                         OSTypes.ImagePublic ->
@@ -503,7 +503,7 @@ setVisibilityBtn context imageUuid visibility =
                         OSTypes.ImageShared ->
                             FeatherIcons.divideCircle
                      )
-                        |> FeatherIcons.withSize 24
+                        |> FeatherIcons.withSize 16
                         |> FeatherIcons.toHtml []
                         |> Element.html
                     )
