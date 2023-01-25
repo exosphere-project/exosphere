@@ -487,7 +487,7 @@ setVisibilityBtn context imageUuid visibility =
     Widget.textButton
         buttonStyle
         { text =
-            String.toLower (OSTypes.imageVisibilityToString visibility)
+            OSTypes.imageVisibilityToString visibility
         , onPress =
             Just onPress
         }
