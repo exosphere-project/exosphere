@@ -2,6 +2,7 @@ module Page.ImageList exposing (Model, Msg(..), init, update, view)
 
 import Dict
 import Element
+import Element.Border
 import Element.Font as Font
 import FeatherIcons
 import FormatNumber.Locales exposing (Decimals(..))
@@ -302,7 +303,11 @@ imageView model context project imageRecord =
             Element.row [ Element.alignRight, Element.spacing spacer.px12 ]
                 [ deleteImageBtn
                 , createServerBtn
-                , imageVisibilityDropdown imageRecord context project
+                , if imageRecord.owned then
+                    imageVisibilityDropdown imageRecord context project
+
+                  else
+                    Element.none
                 ]
 
         size =
@@ -508,13 +513,7 @@ imageVisibilityDropdown imageRecord context project =
 
         dropdownContent closeDropdown =
             (Element.column [ Element.spacing spacer.px8 ] <|
-                ([ setVisibilityIfPrivate context imageRecord
-                 , setVisibilityIfCommunity context imageRecord
-                 , setVisibilityIfPublic context imageRecord
-                 , setVisibilityIfShared context imageRecord
-                 ]
-                    |> List.concat
-                )
+                setVisibilityButtons context imageRecord
             )
                 |> renderActionButton closeDropdown
 
@@ -553,44 +552,19 @@ imageVisibilityDropdown imageRecord context project =
         }
 
 
-setVisibilityIfPrivate : Context -> ImageRecord -> List (Element.Element Msg)
-setVisibilityIfPrivate context imageRecord =
-    if imageRecord.image.visibility == OSTypes.ImagePrivate then
-        [ setVisibilityBtn context imageRecord.image.uuid OSTypes.ImageCommunity ]
-
-    else
-        [ Element.none ]
-
-
-setVisibilityIfCommunity : Context -> ImageRecord -> List (Element.Element Msg)
-setVisibilityIfCommunity context imageRecord =
-    if imageRecord.image.visibility == OSTypes.ImageCommunity then
-        [ setVisibilityBtn context imageRecord.image.uuid OSTypes.ImagePrivate ]
-
-    else
-        [ Element.none ]
+allowedTransitions : OSTypes.ImageVisibility -> List OSTypes.ImageVisibility
+allowedTransitions existingVisibility =
+    [ OSTypes.ImagePrivate
+    , OSTypes.ImageCommunity
+    ]
+        |> List.filter (\v -> v /= existingVisibility)
 
 
-setVisibilityIfPublic : Context -> ImageRecord -> List (Element.Element Msg)
-setVisibilityIfPublic context imageRecord =
-    if imageRecord.image.visibility == OSTypes.ImagePublic then
-        [ setVisibilityBtn context imageRecord.image.uuid OSTypes.ImagePrivate
-        , setVisibilityBtn context imageRecord.image.uuid OSTypes.ImageCommunity
-        ]
-
-    else
-        [ Element.none ]
-
-
-setVisibilityIfShared : Context -> ImageRecord -> List (Element.Element Msg)
-setVisibilityIfShared context imageRecord =
-    if imageRecord.image.visibility == OSTypes.ImageShared then
-        [ setVisibilityBtn context imageRecord.image.uuid OSTypes.ImagePrivate
-        , setVisibilityBtn context imageRecord.image.uuid OSTypes.ImageCommunity
-        ]
-
-    else
-        [ Element.none ]
+setVisibilityButtons : Context -> ImageRecord -> List (Element.Element Msg)
+setVisibilityButtons context imageRecord =
+    imageRecord.image.visibility
+        |> allowedTransitions
+        |> List.map (setVisibilityBtn context imageRecord.image.uuid)
 
 
 renderActionButton : Element.Attribute Msg -> Element.Element Msg -> Element.Element Msg
@@ -604,15 +578,54 @@ setVisibilityBtn context imageUuid visibility =
         onPress =
             GotChangeVisibility imageUuid visibility
 
-        textBtn context_ onPress_ =
-            Button.default
-                context_.palette
-                { text =
-                    String.toLower (OSTypes.imageVisibilityToString visibility)
-                , onPress = onPress_
-                }
+        buttonStyleProto =
+            (SH.materialStyle context.palette).button
+
+        buttonStyle =
+            { buttonStyleProto
+                | container =
+                    buttonStyleProto.container
+                        ++ [ Element.width Element.fill
+                           , Element.centerX
+                           , Element.Border.width 0
+                           , Text.fontSize Text.Small
+                           , Font.medium
+                           ]
+                , labelRow =
+                    buttonStyleProto.labelRow
+                        ++ [ Element.centerX ]
+            }
     in
-    textBtn context (Just onPress)
+    Widget.iconButton
+        buttonStyle
+        { icon =
+            Element.row
+                [ Element.spacing spacer.px12 ]
+                [ Element.el []
+                    ((case visibility of
+                        OSTypes.ImagePublic ->
+                            FeatherIcons.unlock
+
+                        OSTypes.ImagePrivate ->
+                            FeatherIcons.lock
+
+                        OSTypes.ImageCommunity ->
+                            FeatherIcons.users
+
+                        OSTypes.ImageShared ->
+                            FeatherIcons.share
+                     )
+                        |> FeatherIcons.withSize 16
+                        |> FeatherIcons.toHtml []
+                        |> Element.html
+                    )
+                , Element.text (OSTypes.imageVisibilityToString visibility)
+                ]
+        , text =
+            OSTypes.imageVisibilityToString visibility
+        , onPress =
+            Just onPress
+        }
 
 
 filters :

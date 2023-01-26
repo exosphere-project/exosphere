@@ -79,21 +79,6 @@ requestImages maybeVisibility model project =
         )
 
 
-{-|
-
-    This is a first draft of a function to change the visibility of an image.
-    I am dubious of line 122.
-
-    NOTES:
-
-    - For the format of a PATCH request to change the visibility of an image,
-      see https://docs.openstack.org/api-ref/image/v2/index.html?expanded=update-image-detail#update-image
-
-    - See OpenStack.ServerVolumes.requestAttachVolume for an example of non-empty body
-
-    - NEED: media type to be application/json-patch+json (set in headers)
-
--}
 requestChangeVisibility : Project -> OSTypes.ImageUuid -> OSTypes.ImageVisibility -> Cmd SharedMsg
 requestChangeVisibility project imageUuid imageVisibility =
     let
@@ -137,14 +122,8 @@ requestChangeVisibility project imageUuid imageVisibility =
         (Http.stringBody "application/openstack-images-v2.1-json-patch" (Json.Encode.encode 0 body))
         (expectJsonWithErrorBody
             resultToMsg_
-            -- (Decode.field "visibility" <| imageDecoder Nothing)
             receiveImageVisibilityChangeDecoder
         )
-
-
-
---expectJsonWithErrorBody : (Result HttpErrorWithBody a -> msg) -> Decode.Decoder a -> Http.Expect msg
---expectJsonWithErrorBody toMsg decoder =
 
 
 requestDeleteImage : Project -> OSTypes.ImageUuid -> Cmd SharedMsg

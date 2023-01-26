@@ -263,10 +263,6 @@ requestAssignFloatingIp project port_ floatingIpUuid =
     requestCmd
 
 
-
--- TODO: Use this as a model for 'requestChangeVisibility' -- JC
-
-
 requestUnassignFloatingIp : Project -> OSTypes.IpAddressUuid -> Cmd SharedMsg
 requestUnassignFloatingIp project floatingIpUuid =
     let
