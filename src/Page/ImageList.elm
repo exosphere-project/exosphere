@@ -492,16 +492,16 @@ setVisibilityBtn context imageUuid visibility =
                 [ Element.el []
                     ((case visibility of
                         OSTypes.ImagePublic ->
-                            FeatherIcons.gift
+                            FeatherIcons.unlock
 
                         OSTypes.ImagePrivate ->
                             FeatherIcons.lock
 
                         OSTypes.ImageCommunity ->
-                            FeatherIcons.bookOpen
+                            FeatherIcons.users
 
                         OSTypes.ImageShared ->
-                            FeatherIcons.divideCircle
+                            FeatherIcons.share
                      )
                         |> FeatherIcons.withSize 16
                         |> FeatherIcons.toHtml []
