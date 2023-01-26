@@ -2,7 +2,6 @@ module Page.ImageList exposing (Model, Msg(..), init, update, view)
 
 import Dict
 import Element
-import Element.Border
 import Element.Font as Font
 import FeatherIcons
 import FormatNumber.Locales exposing (Decimals(..))
@@ -465,27 +464,9 @@ setVisibilityBtn context imageUuid visibility =
     let
         onPress =
             GotChangeVisibility imageUuid visibility
-
-        buttonStyleProto =
-            (SH.materialStyle context.palette).button
-
-        buttonStyle =
-            { buttonStyleProto
-                | container =
-                    buttonStyleProto.container
-                        ++ [ Element.width Element.fill
-                           , Element.centerX
-                           , Element.Border.width 0
-                           , Text.fontSize Text.Small
-                           , Font.medium
-                           ]
-                , labelRow =
-                    buttonStyleProto.labelRow
-                        ++ [ Element.centerX ]
-            }
     in
     Widget.iconButton
-        buttonStyle
+        (Popover.dropdownItemStyle context.palette)
         { icon =
             Element.row
                 [ Element.spacing spacer.px12 ]
