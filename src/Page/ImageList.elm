@@ -412,8 +412,7 @@ imageRequestDropdown context project =
 
         dropdownContent closeDropdown =
             (Element.column [ Element.spacing spacer.px8 ] <|
-                [ getDefault context
-                , getPublic context
+                [ getPublic context
                 , getPrivate context
                 , getShared context
                 , getCommunity context
@@ -487,20 +486,57 @@ getImagesBtn context maybeVisibility =
         onPress =
             GotImagesRequest maybeVisibility
 
-        textBtn context_ onPress_ =
-            Button.default
-                context_.palette
-                { text =
-                    case maybeVisibility of
-                        Nothing ->
-                            "default"
+        buttonStyleProto =
+            (SH.materialStyle context.palette).button
 
-                        Just visibility ->
-                            String.toLower (OSTypes.imageVisibilityToString visibility)
-                , onPress = onPress_
-                }
+        buttonStyle =
+            { buttonStyleProto
+                | container =
+                    buttonStyleProto.container
+                        ++ [ Element.width Element.fill
+                           , Element.centerX
+                           , Element.Border.width 0
+                           , Text.fontSize Text.Small
+                           , Font.medium
+                           ]
+                , labelRow =
+                    buttonStyleProto.labelRow
+                        ++ [ Element.centerX ]
+            }
     in
-    textBtn context (Just onPress)
+    Widget.iconButton
+        buttonStyle
+        { icon =
+            Element.row
+                [ Element.spacing spacer.px12, Element.width (Element.px 100) ]
+                [ Element.el [ Element.alignLeft ]
+                    ((case maybeVisibility of
+                        Just OSTypes.ImagePublic ->
+                            FeatherIcons.unlock
+
+                        Just OSTypes.ImagePrivate ->
+                            FeatherIcons.lock
+
+                        Just OSTypes.ImageCommunity ->
+                            FeatherIcons.users
+
+                        Just OSTypes.ImageShared ->
+                            FeatherIcons.share
+
+                        Nothing ->
+                            FeatherIcons.lock
+                     )
+                        |> FeatherIcons.withSize 16
+                        |> FeatherIcons.toHtml []
+                        |> Element.html
+                    )
+                , Element.text (Maybe.map OSTypes.imageVisibilityToString maybeVisibility |> Maybe.withDefault "default")
+                ]
+        , text =
+            Maybe.map OSTypes.imageVisibilityToString maybeVisibility |> Maybe.withDefault "default"
+        , onPress =
+            Just onPress
+        }
 
 
 imageVisibilityDropdown : ImageRecord -> View.Types.Context -> Project -> Element.Element Msg
