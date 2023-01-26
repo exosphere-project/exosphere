@@ -431,7 +431,7 @@ imageVisibilityDropdown imageRecord context project =
         popoverMsgMapper
         { id = dropdownId
         , content = dropdownContent
-        , contentStyleAttrs = [ Element.padding spacer.px24 ]
+        , contentStyleAttrs = []
         , position = ST.PositionBottomRight
         , distanceToTarget = Nothing
         , target = dropdownTarget
