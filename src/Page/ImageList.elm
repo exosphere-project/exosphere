@@ -455,11 +455,6 @@ imageRequestDropdown context project =
         }
 
 
-getDefault : Context -> Element.Element Msg
-getDefault context =
-    getImagesBtn context Nothing
-
-
 getPublic : Context -> Element.Element Msg
 getPublic context =
     getImagesBtn context (Just OSTypes.ImagePublic)
