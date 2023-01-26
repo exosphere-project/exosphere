@@ -35,15 +35,15 @@ module Helpers.GetterSetters exposing
     , projectSetVolumesLoading
     , projectUpdateKeypair
     , projectUpdateServer
-    , projectWithImage
     , serverCreatedByCurrentUser
     , serverLookup
     , serverPresentNotDeleting
-    , sharedModelWithProject
     , sortedFlavors
     , unscopedProjectLookup
     , unscopedProviderLookup
     , unscopedRegionLookup
+    , updateProjectWithTransformer
+    , updateSharedModelWithTransformer
     , volDeviceToMountpoint
     , volumeDeviceRawName
     , volumeIsAttachedToServer
@@ -407,24 +407,18 @@ getUserAppProxyFromCloudSpecificConfig project cloudSpecificConfig =
 
 
 
--- Two new setters, TODO, JC: should projectWithImage, sharedModelWithProject be here, should they be anywhere?
--- Used in Page.ImageList to set the visibility of an image
+-- Setters, i.e. updater functions
 
 
-{-| Apply the imageUpdater to an image in a project if its uuid matches the target uuid
+{-| Update the given project with a transformer : Image -> Image
 -}
-projectWithImage : OSTypes.ImageUuid -> (OSTypes.Image -> OSTypes.Image) -> Project -> Project
-projectWithImage targetUuid imageUpdater project_ =
-    let
-        updateImages_ : (OSTypes.Image -> OSTypes.Image) -> List OSTypes.Image -> List OSTypes.Image
-        updateImages_ imageUpdater_ images =
-            List.Extra.updateIf (\image_ -> image_.uuid == targetUuid) imageUpdater_ images
-    in
+updateProjectWithTransformer : (OSTypes.Image -> OSTypes.Image) -> Project -> Project
+updateProjectWithTransformer transformer project_ =
     case project_.images.data of
         RDPP.DoHave images_ t ->
             { project_
                 | images =
-                    { data = RDPP.DoHave (updateImages_ imageUpdater images_) t
+                    { data = RDPP.DoHave (List.map transformer images_) t
                     , refreshStatus = RDPP.NotLoading Nothing
                     }
             }
@@ -433,15 +427,11 @@ projectWithImage targetUuid imageUpdater project_ =
             project_
 
 
-{-| Update the shared model with a projectUpdater
+{-| Update the given shared model with a transformer : Project -> Project
 -}
-sharedModelWithProject : (Project -> Project) -> SharedModel -> SharedModel
-sharedModelWithProject projectUpdater sharedModel_ =
-    { sharedModel_ | projects = List.map projectUpdater sharedModel_.projects }
-
-
-
--- Setters, i.e. updater functions
+updateSharedModelWithTransformer : (Project -> Project) -> SharedModel -> SharedModel
+updateSharedModelWithTransformer transformer sharedModel_ =
+    { sharedModel_ | projects = List.map transformer sharedModel_.projects }
 
 
 modelUpdateProject : SharedModel -> Project -> SharedModel

@@ -1341,11 +1341,19 @@ processProjectSpecificMsg outerModel project msg =
 
         ReceiveImageVisibilityChange imageUuid visibility ->
             let
-                thisProjectUpdater : Project -> Project
-                thisProjectUpdater =
-                    GetterSetters.projectWithImage imageUuid (\image -> { image | uuid = imageUuid, visibility = visibility })
+                imageTransformer : OSTypes.Image -> OSTypes.Image
+                imageTransformer image =
+                    if image.uuid == imageUuid then
+                        { image | uuid = imageUuid, visibility = visibility }
+
+                    else
+                        image
+
+                projectTransformer : Project -> Project
+                projectTransformer =
+                    GetterSetters.updateProjectWithTransformer imageTransformer
             in
-            ( { outerModel | sharedModel = GetterSetters.sharedModelWithProject thisProjectUpdater outerModel.sharedModel }, Cmd.none )
+            ( { outerModel | sharedModel = GetterSetters.updateSharedModelWithTransformer projectTransformer outerModel.sharedModel }, Cmd.none )
 
         RequestDeleteServers serverUuidsToDelete ->
             let
