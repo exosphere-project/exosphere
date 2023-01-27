@@ -61,6 +61,7 @@ requestNetworks project =
         (GetterSetters.projectIdentifier project)
         Get
         Nothing
+        []
         (project.endpoints.neutron ++ "/v2.0/networks")
         Http.emptyBody
         (expectJsonWithErrorBody
@@ -87,6 +88,7 @@ requestAutoAllocatedNetwork project =
         (GetterSetters.projectIdentifier project)
         Get
         Nothing
+        []
         (project.endpoints.neutron ++ "/v2.0/auto-allocated-topology/" ++ project.auth.project.uuid)
         Http.emptyBody
         (expectJsonWithErrorBody
@@ -117,6 +119,7 @@ requestFloatingIps project =
         (GetterSetters.projectIdentifier project)
         Get
         Nothing
+        []
         (project.endpoints.neutron ++ "/v2.0/floatingips")
         Http.emptyBody
         (expectJsonWithErrorBody
@@ -143,6 +146,7 @@ requestPorts project =
         (GetterSetters.projectIdentifier project)
         Get
         Nothing
+        []
         (project.endpoints.neutron ++ "/v2.0/ports")
         Http.emptyBody
         (expectJsonWithErrorBody
@@ -181,6 +185,7 @@ requestCreateFloatingIp project network port_ server =
                 (GetterSetters.projectIdentifier project)
                 Post
                 Nothing
+                []
                 (project.endpoints.neutron ++ "/v2.0/floatingips")
                 (Http.jsonBody requestBody)
                 (expectJsonWithErrorBody
@@ -207,6 +212,7 @@ requestDeleteFloatingIp project errorContext uuid =
         (GetterSetters.projectIdentifier project)
         Delete
         Nothing
+        []
         (project.endpoints.neutron ++ "/v2.0/floatingips/" ++ uuid)
         Http.emptyBody
         (expectStringWithErrorBody
@@ -246,6 +252,7 @@ requestAssignFloatingIp project port_ floatingIpUuid =
                 (GetterSetters.projectIdentifier project)
                 Put
                 Nothing
+                []
                 (project.endpoints.neutron ++ "/v2.0/floatingips/" ++ floatingIpUuid)
                 (Http.jsonBody requestBody)
                 (expectJsonWithErrorBody
@@ -288,6 +295,7 @@ requestUnassignFloatingIp project floatingIpUuid =
                 (GetterSetters.projectIdentifier project)
                 Put
                 Nothing
+                []
                 (project.endpoints.neutron ++ "/v2.0/floatingips/" ++ floatingIpUuid)
                 (Http.jsonBody requestBody)
                 (expectJsonWithErrorBody
@@ -320,6 +328,7 @@ requestSecurityGroups project =
         (GetterSetters.projectIdentifier project)
         Get
         Nothing
+        []
         (project.endpoints.neutron ++ "/v2.0/security-groups")
         Http.emptyBody
         (expectJsonWithErrorBody
@@ -363,6 +372,7 @@ requestCreateExoSecurityGroup project =
         (GetterSetters.projectIdentifier project)
         Post
         Nothing
+        []
         (project.endpoints.neutron ++ "/v2.0/security-groups")
         (Http.jsonBody requestBody)
         (expectJsonWithErrorBody
@@ -410,6 +420,7 @@ requestCreateSecurityGroupRules project group rules errorMessage =
                 (GetterSetters.projectIdentifier project)
                 Post
                 Nothing
+                []
                 (project.endpoints.neutron ++ "/v2.0/security-group-rules")
                 (Http.jsonBody body)
                 (expectStringWithErrorBody

@@ -60,6 +60,7 @@ requestCreateVolume project createVolumeRequest =
         (GetterSetters.projectIdentifier project)
         Post
         Nothing
+        []
         (project.endpoints.cinder ++ "/volumes")
         (Http.jsonBody body)
         (expectJsonWithErrorBody
@@ -90,6 +91,7 @@ requestVolumes project =
         (GetterSetters.projectIdentifier project)
         Get
         Nothing
+        []
         (project.endpoints.cinder ++ "/volumes/detail")
         Http.emptyBody
         (expectJsonWithErrorBody
@@ -116,6 +118,7 @@ requestDeleteVolume project volumeUuid =
         (GetterSetters.projectIdentifier project)
         Delete
         Nothing
+        []
         (project.endpoints.cinder ++ "/volumes/" ++ volumeUuid)
         Http.emptyBody
         (expectStringWithErrorBody resultToMsg_)
@@ -148,6 +151,7 @@ requestUpdateVolumeName project volumeUuid name =
         (GetterSetters.projectIdentifier project)
         Put
         Nothing
+        []
         (project.endpoints.cinder ++ "/volumes/" ++ volumeUuid)
         (Http.jsonBody body)
         (expectStringWithErrorBody resultToMsg_)

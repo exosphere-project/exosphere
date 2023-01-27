@@ -71,6 +71,7 @@ requestServers project =
         (GetterSetters.projectIdentifier project)
         Get
         (Just "compute 2.27")
+        []
         (project.endpoints.nova ++ "/servers/detail")
         Http.emptyBody
         (expectJsonWithErrorBody
@@ -98,6 +99,7 @@ requestServer project serverUuid =
                 (GetterSetters.projectIdentifier project)
                 Get
                 (Just "compute 2.27")
+                []
                 (project.endpoints.nova ++ "/servers/" ++ serverUuid)
                 Http.emptyBody
                 (expectJsonWithErrorBody
@@ -126,6 +128,7 @@ requestServerEvents project serverUuid =
         (GetterSetters.projectIdentifier project)
         Get
         (Just "compute 2.27")
+        []
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/os-instance-actions")
         Http.emptyBody
         (expectJsonWithErrorBody
@@ -163,6 +166,7 @@ requestConsoleUrls project serverUuid =
                 (GetterSetters.projectIdentifier project)
                 Post
                 Nothing
+                []
                 (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/action")
                 (Http.jsonBody reqBody)
                 (expectJsonWithErrorBody
@@ -196,6 +200,7 @@ requestFlavors project =
         (GetterSetters.projectIdentifier project)
         Get
         (Just "compute 2.61")
+        []
         (project.endpoints.nova ++ "/flavors/detail")
         Http.emptyBody
         (expectJsonWithErrorBody
@@ -222,6 +227,7 @@ requestKeypairs project =
         (GetterSetters.projectIdentifier project)
         Get
         Nothing
+        []
         (project.endpoints.nova ++ "/os-keypairs")
         Http.emptyBody
         (expectJsonWithErrorBody
@@ -260,6 +266,7 @@ requestCreateKeypair project keypairName publicKey =
         (GetterSetters.projectIdentifier project)
         Post
         Nothing
+        []
         (project.endpoints.nova ++ "/os-keypairs")
         (Http.jsonBody body)
         (expectJsonWithErrorBody
@@ -281,6 +288,7 @@ requestDeleteKeypair project keypairId =
         (GetterSetters.projectIdentifier project)
         Delete
         Nothing
+        []
         (project.endpoints.nova ++ "/os-keypairs/" ++ Tuple.first keypairId)
         Http.emptyBody
         (Http.expectWhatever
@@ -389,6 +397,7 @@ requestCreateServer project createServerRequest =
                         (GetterSetters.projectIdentifier project)
                         Post
                         Nothing
+                        []
                         (project.endpoints.nova ++ "/servers")
                         (Http.jsonBody requestBody)
                         (expectJsonWithErrorBody
@@ -421,6 +430,7 @@ requestDeleteServer projectId novaUrl serverId =
         projectId
         Delete
         Nothing
+        []
         (novaUrl ++ "/servers/" ++ serverId)
         Http.emptyBody
         (expectStringWithErrorBody resultToMsg_)
@@ -496,6 +506,7 @@ requestCreateServerImage project serverUuid imageName =
         (GetterSetters.projectIdentifier project)
         Post
         Nothing
+        []
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/action")
         (Http.jsonBody body)
         (expectStringWithErrorBody
@@ -525,6 +536,7 @@ requestServerResize project serverUuid flavorId =
         (GetterSetters.projectIdentifier project)
         Post
         Nothing
+        []
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/action")
         (Http.jsonBody body)
         (expectStringWithErrorBody
@@ -565,6 +577,7 @@ requestSetServerName project serverUuid newServerName =
         (GetterSetters.projectIdentifier project)
         Put
         Nothing
+        []
         (project.endpoints.nova ++ "/servers/" ++ serverUuid)
         (Http.jsonBody body)
         (expectJsonWithErrorBody
@@ -606,6 +619,7 @@ requestSetServerMetadata project serverUuid metadataItem =
         (GetterSetters.projectIdentifier project)
         Post
         Nothing
+        []
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/metadata")
         (Http.jsonBody body)
         (expectJsonWithErrorBody
@@ -638,6 +652,7 @@ requestDeleteServerMetadata project serverUuid metadataKey =
         (GetterSetters.projectIdentifier project)
         Delete
         Nothing
+        []
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/metadata/" ++ metadataKey)
         Http.emptyBody
         (expectStringWithErrorBody resultToMsg)

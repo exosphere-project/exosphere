@@ -1215,6 +1215,9 @@ processProjectSpecificMsg outerModel project msg =
                 Just server ->
                     processServerSpecificMsg outerModel project server serverMsgConstructor
 
+        RequestImageVisibilityChange imageUuid visibility ->
+            ( outerModel, Rest.Glance.requestChangeVisibility project imageUuid visibility ) |> mapToOuterMsg
+
         RequestServers ->
             ApiModelHelpers.requestServers (GetterSetters.projectIdentifier project) sharedModel
                 |> mapToOuterMsg
@@ -1335,6 +1338,22 @@ processProjectSpecificMsg outerModel project msg =
             Rest.Glance.receiveImages sharedModel project images
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
+
+        ReceiveImageVisibilityChange imageUuid visibility ->
+            let
+                imageTransformer : OSTypes.Image -> OSTypes.Image
+                imageTransformer image =
+                    if image.uuid == imageUuid then
+                        { image | uuid = imageUuid, visibility = visibility }
+
+                    else
+                        image
+
+                projectTransformer : Project -> Project
+                projectTransformer =
+                    GetterSetters.updateProjectWithTransformer imageTransformer
+            in
+            ( { outerModel | sharedModel = GetterSetters.updateSharedModelWithTransformer projectTransformer outerModel.sharedModel }, Cmd.none )
 
         RequestDeleteServers serverUuidsToDelete ->
             let

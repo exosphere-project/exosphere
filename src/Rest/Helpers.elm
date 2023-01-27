@@ -34,12 +34,23 @@ httpRequestMethodStr method =
         Put ->
             "PUT"
 
+        Patch ->
+            "PATCH"
+
         Delete ->
             "DELETE"
 
 
-openstackCredentialedRequest : HelperTypes.ProjectIdentifier -> HttpRequestMethod -> Maybe String -> String -> Http.Body -> Http.Expect SharedMsg -> Cmd SharedMsg
-openstackCredentialedRequest projectId method maybeMicroversion origUrl requestBody expect =
+openstackCredentialedRequest :
+    HelperTypes.ProjectIdentifier
+    -> HttpRequestMethod
+    -> Maybe String
+    -> List ( String, String )
+    -> String
+    -> Http.Body
+    -> Http.Expect SharedMsg
+    -> Cmd SharedMsg
+openstackCredentialedRequest projectId method maybeMicroversion additionalHeaders origUrl requestBody expect =
     {-
        Prepare an HTTP request to OpenStack which requires a currently valid auth token and maybe a proxy server URL.
 
@@ -73,6 +84,7 @@ openstackCredentialedRequest projectId method maybeMicroversion origUrl requestB
                             Nothing ->
                                 []
                         , headers
+                        , List.map (\( k, v ) -> Http.header k v) additionalHeaders
                         ]
                 , url = url
                 , body = requestBody

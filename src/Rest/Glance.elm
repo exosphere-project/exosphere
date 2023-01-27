@@ -1,6 +1,7 @@
 module Rest.Glance exposing
     ( receiveDeleteImage
     , receiveImages
+    , requestChangeVisibility
     , requestDeleteImage
     , requestImages
     )
@@ -12,6 +13,7 @@ import Helpers.Url as UrlHelpers
 import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
+import Json.Encode
 import OpenStack.Types as OSTypes
 import Rest.Helpers exposing (expectJsonWithErrorBody, openstackCredentialedRequest, resultToMsgErrorBody)
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
@@ -51,11 +53,59 @@ requestImages model project =
         (GetterSetters.projectIdentifier project)
         Get
         Nothing
+        []
         (project.endpoints.glance ++ "/v2/images?limit=999999")
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg_
             (decodeImages maybeExcludeFilter)
+        )
+
+
+requestChangeVisibility : Project -> OSTypes.ImageUuid -> OSTypes.ImageVisibility -> Cmd SharedMsg
+requestChangeVisibility project imageUuid imageVisibility =
+    let
+        errorContext =
+            ErrorContext
+                ("replace image visibility with " ++ OSTypes.imageVisibilityToString imageVisibility)
+                ErrorCrit
+                Nothing
+
+        operation : Json.Encode.Value
+        operation =
+            Json.Encode.object
+                [ ( "op", Json.Encode.string "replace" )
+                , ( "path", Json.Encode.string "/visibility" )
+                , ( "value", Json.Encode.string (OSTypes.imageVisibilityToString imageVisibility |> String.toLower) )
+                ]
+
+        body =
+            Json.Encode.list identity [ operation ]
+
+        resultToMsg_ : Result Types.Error.HttpErrorWithBody a -> SharedMsg
+        resultToMsg_ =
+            resultToMsgErrorBody
+                errorContext
+                (\_ ->
+                    ProjectMsg
+                        (GetterSetters.projectIdentifier project)
+                        (ReceiveImageVisibilityChange imageUuid imageVisibility)
+                )
+
+        receiveImageVisibilityChangeDecoder : Decode.Decoder (Maybe ProjectSpecificMsgConstructor)
+        receiveImageVisibilityChangeDecoder =
+            Decode.maybe (Decode.map (\image -> ReceiveImageVisibilityChange image.uuid image.visibility) imageDecoderHelper)
+    in
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Patch
+        Nothing
+        []
+        (project.endpoints.glance ++ "/v2/images/" ++ imageUuid)
+        (Http.stringBody "application/openstack-images-v2.1-json-patch" (Json.Encode.encode 0 body))
+        (expectJsonWithErrorBody
+            resultToMsg_
+            receiveImageVisibilityChangeDecoder
         )
 
 
@@ -81,6 +131,7 @@ requestDeleteImage project imageUuid =
         (GetterSetters.projectIdentifier project)
         Delete
         Nothing
+        []
         (project.endpoints.glance ++ "/v2/images/" ++ imageUuid)
         Http.emptyBody
         (Rest.Helpers.expectStringWithErrorBody

@@ -19,6 +19,8 @@ import Style.Types as ST
 import Style.Widgets.Button as Button
 import Style.Widgets.DataList as DataList
 import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
+import Style.Widgets.Popover.Popover as Popover
+import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Tag as Tag
 import Style.Widgets.Text as Text
@@ -39,6 +41,7 @@ type alias Model =
 
 type Msg
     = GotDeleteConfirm OSTypes.ImageUuid
+    | GotChangeVisibility OSTypes.ImageUuid OSTypes.ImageVisibility
     | DataListMsg DataList.Msg
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
@@ -63,6 +66,13 @@ update msg project model =
             , Cmd.none
             , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
                 SharedMsg.RequestDeleteImage imageId
+            )
+
+        GotChangeVisibility imageId imageVisibility ->
+            ( model
+            , Cmd.none
+            , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
+                SharedMsg.RequestImageVisibilityChange imageId imageVisibility
             )
 
         DataListMsg dataListMsg ->
@@ -279,7 +289,14 @@ imageView model context project imageRecord =
 
         imageActions =
             Element.row [ Element.alignRight, Element.spacing spacer.px12 ]
-                [ deleteImageBtn, createServerBtn ]
+                [ deleteImageBtn
+                , createServerBtn
+                , if imageRecord.owned then
+                    imageVisibilityDropdown imageRecord context project
+
+                  else
+                    Element.none
+                ]
 
         size =
             case imageRecord.image.size of
@@ -373,6 +390,113 @@ imageView model context project imageRecord =
         ]
 
 
+imageVisibilityDropdown : ImageRecord -> View.Types.Context -> Project -> Element.Element Msg
+imageVisibilityDropdown imageRecord context project =
+    let
+        dropdownId =
+            [ "imageVisibilityDropdown", project.auth.project.uuid, imageRecord.image.uuid ]
+                |> List.intersperse "-"
+                |> String.concat
+
+        dropdownContent closeDropdown =
+            (Element.column [ Element.spacing spacer.px8 ] <|
+                setVisibilityButtons context imageRecord
+            )
+                |> renderActionButton closeDropdown
+
+        dropdownTarget toggleDropdownMsg dropdownIsShown =
+            Widget.iconButton
+                (SH.materialStyle context.palette).button
+                { text = "(Set visibility)"
+                , icon =
+                    Element.row
+                        [ Element.spacing spacer.px4 ]
+                        [ Element.text "Set visibility"
+                        , Element.el []
+                            ((if dropdownIsShown then
+                                FeatherIcons.chevronUp
+
+                              else
+                                FeatherIcons.chevronDown
+                             )
+                                |> FeatherIcons.withSize 18
+                                |> FeatherIcons.toHtml []
+                                |> Element.html
+                            )
+                        ]
+                , onPress = Just toggleDropdownMsg
+                }
+    in
+    Popover.popover context
+        popoverMsgMapper
+        { id = dropdownId
+        , content = dropdownContent
+        , contentStyleAttrs = []
+        , position = ST.PositionBottomRight
+        , distanceToTarget = Nothing
+        , target = dropdownTarget
+        , targetStyleAttrs = []
+        }
+
+
+allowedTransitions : OSTypes.ImageVisibility -> List OSTypes.ImageVisibility
+allowedTransitions existingVisibility =
+    [ OSTypes.ImagePrivate
+    , OSTypes.ImageCommunity
+    ]
+        |> List.filter (\v -> v /= existingVisibility)
+
+
+setVisibilityButtons : Context -> ImageRecord -> List (Element.Element Msg)
+setVisibilityButtons context imageRecord =
+    imageRecord.image.visibility
+        |> allowedTransitions
+        |> List.map (setVisibilityBtn context imageRecord.image.uuid)
+
+
+renderActionButton : Element.Attribute Msg -> Element.Element Msg -> Element.Element Msg
+renderActionButton closeActionsDropdown element =
+    Element.el [ closeActionsDropdown ] element
+
+
+setVisibilityBtn : View.Types.Context -> OSTypes.ImageUuid -> OSTypes.ImageVisibility -> Element.Element Msg
+setVisibilityBtn context imageUuid visibility =
+    let
+        onPress =
+            GotChangeVisibility imageUuid visibility
+    in
+    Widget.iconButton
+        (Popover.dropdownItemStyle context.palette)
+        { icon =
+            Element.row
+                [ Element.spacing spacer.px12 ]
+                [ Element.el []
+                    ((case visibility of
+                        OSTypes.ImagePublic ->
+                            FeatherIcons.unlock
+
+                        OSTypes.ImagePrivate ->
+                            FeatherIcons.lock
+
+                        OSTypes.ImageCommunity ->
+                            FeatherIcons.users
+
+                        OSTypes.ImageShared ->
+                            FeatherIcons.share
+                     )
+                        |> FeatherIcons.withSize 16
+                        |> FeatherIcons.toHtml []
+                        |> Element.html
+                    )
+                , Element.text (OSTypes.imageVisibilityToString visibility)
+                ]
+        , text =
+            OSTypes.imageVisibilityToString visibility
+        , onPress =
+            Just onPress
+        }
+
+
 filters :
     List
         (DataList.Filter
@@ -446,3 +570,8 @@ searchByNameFilter =
     , placeholder = Just "try \"Ubuntu\""
     , textToSearch = \imageRecord -> imageRecord.image.name
     }
+
+
+popoverMsgMapper : PopoverId -> Msg
+popoverMsgMapper popoverId =
+    SharedMsg <| SharedMsg.TogglePopover popoverId

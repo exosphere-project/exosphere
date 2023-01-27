@@ -42,6 +42,8 @@ module Helpers.GetterSetters exposing
     , unscopedProjectLookup
     , unscopedProviderLookup
     , unscopedRegionLookup
+    , updateProjectWithTransformer
+    , updateSharedModelWithTransformer
     , volDeviceToMountpoint
     , volumeDeviceRawName
     , volumeIsAttachedToServer
@@ -406,6 +408,30 @@ getUserAppProxyFromCloudSpecificConfig project cloudSpecificConfig =
 
 
 -- Setters, i.e. updater functions
+
+
+{-| Update the given project with a transformer : Image -> Image
+-}
+updateProjectWithTransformer : (OSTypes.Image -> OSTypes.Image) -> Project -> Project
+updateProjectWithTransformer transformer project_ =
+    case project_.images.data of
+        RDPP.DoHave images_ t ->
+            { project_
+                | images =
+                    { data = RDPP.DoHave (List.map transformer images_) t
+                    , refreshStatus = RDPP.NotLoading Nothing
+                    }
+            }
+
+        RDPP.DontHave ->
+            project_
+
+
+{-| Update the given shared model with a transformer : Project -> Project
+-}
+updateSharedModelWithTransformer : (Project -> Project) -> SharedModel -> SharedModel
+updateSharedModelWithTransformer transformer sharedModel_ =
+    { sharedModel_ | projects = List.map transformer sharedModel_.projects }
 
 
 modelUpdateProject : SharedModel -> Project -> SharedModel

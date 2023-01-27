@@ -339,6 +339,7 @@ doAction jsonBody maybeTargetStatuses projectId server _ =
                 projectId
                 Post
                 Nothing
+                []
                 (novaUrl ++ "/servers/" ++ server.osProps.uuid ++ "/action")
                 (Http.jsonBody jsonBody)
                 (expectStringWithErrorBody
