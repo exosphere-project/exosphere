@@ -60,12 +60,11 @@ type alias Typography =
 
 -}
 type TextVariant
-    = H1
-    | H2
-    | H3
-    | H4
+    = AppTitle
+    | ExtraLarge
+    | Large
+    | Emphasized
     | Body
-    | Strong
     | Small
     | Tiny
 
@@ -84,27 +83,22 @@ type FontFamily
 typography : TextVariant -> Typography
 typography variant =
     case variant of
-        H1 ->
+        AppTitle ->
             { size = 26
             , weight = Semibold
             }
 
-        H2 ->
+        ExtraLarge ->
             { size = 24
             , weight = Semibold
             }
 
-        H3 ->
+        Large ->
             { size = 20
             , weight = Semibold
             }
 
-        H4 ->
-            { size = 17
-            , weight = Semibold
-            }
-
-        Strong ->
+        Emphasized ->
             { size = 17
             , weight = Semibold
             }
@@ -268,14 +262,14 @@ body label =
     text Body [] label
 
 
-{-| A convience method for showing strong text (that uses semiBold font weight).
+{-| A convience method for showing emphasized text (that uses semiBold font weight).
 
     Text.strong "Hello!"
 
 -}
 strong : String -> Element.Element msg
 strong label =
-    text Strong [] label
+    text Emphasized [] label
 
 
 {-| A convience method for monospace text.
@@ -329,7 +323,7 @@ heading palette styleAttrs icon label =
             ++ styleAttrs
         )
         [ icon
-        , text H2 [] label
+        , text ExtraLarge [] label
         ]
 
 
@@ -361,5 +355,5 @@ subheading palette styleAttrs icon label =
             ++ styleAttrs
         )
         [ icon
-        , text H3 [] label
+        , text Large [] label
         ]

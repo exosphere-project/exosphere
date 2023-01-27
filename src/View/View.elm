@@ -377,7 +377,7 @@ projectHeaderView context p =
                 ]
     in
     Element.row [ Element.width Element.fill, Element.spacing spacer.px12 ]
-        [ Text.text Text.H3
+        [ Text.text Text.Large
             [ Font.regular, Region.heading 2 ]
             (VH.friendlyCloudName
                 context

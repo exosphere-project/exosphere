@@ -375,7 +375,7 @@ view model toMsg context styleAttrs listItemView data bulkActions selectionFilte
                         ([ Element.centerX
                          , Font.color (SH.toElementColor context.palette.neutral.text.default)
                          ]
-                            ++ Text.typographyAttrs Text.H4
+                            ++ Text.typographyAttrs Text.Emphasized
                         )
                         (Element.text "No data found!")
                     , if not (List.isEmpty data) then

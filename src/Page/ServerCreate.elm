@@ -1233,7 +1233,7 @@ customWorkflowInputExperimental context project model =
             { label =
                 Input.labelAbove (VH.radioLabelAttributes False)
                     (Element.row [ Element.spacing spacer.px8 ]
-                        [ Text.text Text.H4
+                        [ Text.text Text.Emphasized
                             []
                             ("Launch a workflow in the " ++ context.localization.virtualComputer)
                         , experimentalTag
@@ -1298,7 +1298,7 @@ clusterInputExperimental context model =
             { label =
                 Input.labelAbove (VH.radioLabelAttributes False)
                     (Element.wrappedRow [ Element.spacing spacer.px8 ]
-                        [ Text.text Text.H4 [] ("Create your own SLURM cluster with this " ++ context.localization.virtualComputer ++ " as the head node")
+                        [ Text.text Text.Emphasized [] ("Create your own SLURM cluster with this " ++ context.localization.virtualComputer ++ " as the head node")
                         , experimentalTag
                         ]
                     )
