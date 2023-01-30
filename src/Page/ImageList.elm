@@ -47,7 +47,6 @@ type alias Model =
 type Msg
     = GotDeleteConfirm OSTypes.ImageUuid
     | GotChangeVisibility OSTypes.ImageUuid OSTypes.ImageVisibility
-    | ShowImages (Maybe OSTypes.ImageVisibility)
     | DataListMsg DataList.Msg
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
@@ -80,9 +79,6 @@ update msg project model =
             , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
                 SharedMsg.RequestImageVisibilityChange imageId imageVisibility
             )
-
-        ShowImages visibility ->
-            ( model, Cmd.none, SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <| SharedMsg.RequestImages )
 
         DataListMsg dataListMsg ->
             ( { model
