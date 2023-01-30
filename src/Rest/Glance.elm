@@ -27,8 +27,19 @@ import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..
 {- HTTP Requests -}
 
 
-requestImages : Maybe OSTypes.ImageVisibility -> SharedModel -> Project -> Cmd SharedMsg
-requestImages maybeVisibility model project =
+requestImages : SharedModel -> Project -> Cmd SharedMsg
+requestImages model project =
+    Cmd.batch
+        [ requestImagesWithVisibility Nothing model project
+        , requestImagesWithVisibility (Just OSTypes.ImagePublic) model project
+        , requestImagesWithVisibility (Just OSTypes.ImageCommunity) model project
+        , requestImagesWithVisibility (Just OSTypes.ImageShared) model project
+        , requestImagesWithVisibility (Just OSTypes.ImagePrivate) model project
+        ]
+
+
+requestImagesWithVisibility : Maybe OSTypes.ImageVisibility -> SharedModel -> Project -> Cmd SharedMsg
+requestImagesWithVisibility maybeVisibility model project =
     let
         query =
             case maybeVisibility of
@@ -64,7 +75,7 @@ requestImages maybeVisibility model project =
         resultToMsg_ =
             resultToMsgErrorBody
                 errorContext
-                (\images -> ProjectMsg (GetterSetters.projectIdentifier project) <| ReceiveImages images)
+                (\images -> ProjectMsg (GetterSetters.projectIdentifier project) <| ReceiveImages maybeVisibility images)
     in
     openstackCredentialedRequest
         (GetterSetters.projectIdentifier project)
@@ -160,16 +171,50 @@ requestDeleteImage project imageUuid =
 {- HTTP Response Handling -}
 
 
-receiveImages : SharedModel -> Project -> List OSTypes.Image -> ( SharedModel, Cmd SharedMsg )
-receiveImages model project images =
+receiveImages : SharedModel -> Project -> Maybe OSTypes.ImageVisibility -> List OSTypes.Image -> ( SharedModel, Cmd SharedMsg )
+receiveImages model project maybeVisibility images =
     let
         newProject =
-            { project
-                | images =
-                    RDPP.RemoteDataPlusPlus
-                        (RDPP.DoHave images model.clientCurrentTime)
-                        (RDPP.NotLoading Nothing)
-            }
+            case maybeVisibility of
+                Nothing ->
+                    { project
+                        | images =
+                            RDPP.RemoteDataPlusPlus
+                                (RDPP.DoHave images model.clientCurrentTime)
+                                (RDPP.NotLoading Nothing)
+                    }
+
+                Just OSTypes.ImagePublic ->
+                    { project
+                        | publicImages =
+                            RDPP.RemoteDataPlusPlus
+                                (RDPP.DoHave images model.clientCurrentTime)
+                                (RDPP.NotLoading Nothing)
+                    }
+
+                Just OSTypes.ImageCommunity ->
+                    { project
+                        | communityImages =
+                            RDPP.RemoteDataPlusPlus
+                                (RDPP.DoHave images model.clientCurrentTime)
+                                (RDPP.NotLoading Nothing)
+                    }
+
+                Just OSTypes.ImageShared ->
+                    { project
+                        | sharedImages =
+                            RDPP.RemoteDataPlusPlus
+                                (RDPP.DoHave images model.clientCurrentTime)
+                                (RDPP.NotLoading Nothing)
+                    }
+
+                Just OSTypes.ImagePrivate ->
+                    { project
+                        | privateImages =
+                            RDPP.RemoteDataPlusPlus
+                                (RDPP.DoHave images model.clientCurrentTime)
+                                (RDPP.NotLoading Nothing)
+                    }
 
         newModel =
             GetterSetters.modelUpdateProject model newProject

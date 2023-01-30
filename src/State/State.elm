@@ -1334,8 +1334,8 @@ processProjectSpecificMsg outerModel project msg =
             ( outerModel, Rest.Neutron.requestUnassignFloatingIp project floatingIpUuid )
                 |> mapToOuterMsg
 
-        ReceiveImages images ->
-            Rest.Glance.receiveImages sharedModel project images
+        ReceiveImages maybeVisibility images ->
+            Rest.Glance.receiveImages sharedModel project maybeVisibility images
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
@@ -1356,8 +1356,8 @@ processProjectSpecificMsg outerModel project msg =
             ( { outerModel | sharedModel = GetterSetters.updateSharedModelWithTransformer projectTransformer outerModel.sharedModel }, Cmd.none )
 
         -- TODO: JC
-        RequestImagesWithVisibility visibility ->
-            ( outerModel, Rest.Glance.requestImages visibility sharedModel project ) |> mapToOuterMsg
+        RequestImages ->
+            ( outerModel, Rest.Glance.requestImages sharedModel project ) |> mapToOuterMsg
 
         RequestDeleteServers serverUuidsToDelete ->
             let
@@ -2641,6 +2641,10 @@ createProject_ outerModel description authToken region endpoints =
             , endpoints = endpoints
             , description = description
             , images = RDPP.RemoteDataPlusPlus RDPP.DontHave RDPP.Loading
+            , publicImages = RDPP.RemoteDataPlusPlus RDPP.DontHave RDPP.Loading
+            , communityImages = RDPP.RemoteDataPlusPlus RDPP.DontHave RDPP.Loading
+            , sharedImages = RDPP.RemoteDataPlusPlus RDPP.DontHave RDPP.Loading
+            , privateImages = RDPP.RemoteDataPlusPlus RDPP.DontHave RDPP.Loading
             , servers = RDPP.RemoteDataPlusPlus RDPP.DontHave RDPP.Loading
             , flavors = []
             , keypairs = RemoteData.NotAsked

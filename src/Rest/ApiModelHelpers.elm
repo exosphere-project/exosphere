@@ -198,7 +198,7 @@ requestImages projectUuid model =
             ( project
                 |> GetterSetters.projectSetImagesLoading
                 |> GetterSetters.modelUpdateProject model
-            , Rest.Glance.requestImages Nothing model project
+            , Rest.Glance.requestImages model project
             )
 
         Nothing ->

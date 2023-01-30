@@ -47,7 +47,7 @@ type alias Model =
 type Msg
     = GotDeleteConfirm OSTypes.ImageUuid
     | GotChangeVisibility OSTypes.ImageUuid OSTypes.ImageVisibility
-    | GotImagesRequest (Maybe OSTypes.ImageVisibility)
+    | ShowImages (Maybe OSTypes.ImageVisibility)
     | DataListMsg DataList.Msg
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
@@ -81,8 +81,8 @@ update msg project model =
                 SharedMsg.RequestImageVisibilityChange imageId imageVisibility
             )
 
-        GotImagesRequest visibility ->
-            ( model, Cmd.none, SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <| SharedMsg.RequestImagesWithVisibility visibility )
+        ShowImages visibility ->
+            ( model, Cmd.none, SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <| SharedMsg.RequestImages )
 
         DataListMsg dataListMsg ->
             ( { model
@@ -412,10 +412,11 @@ imageRequestDropdown context project =
 
         dropdownContent closeDropdown =
             (Element.column [ Element.spacing spacer.px8 ] <|
-                [ getPublic context
-                , getPrivate context
-                , getShared context
-                , getCommunity context
+                [ showDefault context
+                , showPublic context
+                , showCommunity context
+                , showShared context
+                , showPrivate context
                 ]
             )
                 |> renderActionButton closeDropdown
@@ -427,7 +428,7 @@ imageRequestDropdown context project =
                 , icon =
                     Element.row
                         [ Element.spacing spacer.px4 ]
-                        [ Element.text "Get images"
+                        [ Element.text "Show images"
                         , Element.el []
                             ((if dropdownIsShown then
                                 FeatherIcons.chevronUp
@@ -455,31 +456,36 @@ imageRequestDropdown context project =
         }
 
 
-getPublic : Context -> Element.Element Msg
-getPublic context =
-    getImagesBtn context (Just OSTypes.ImagePublic)
+showDefault : Context -> Element.Element Msg
+showDefault context =
+    showImagesBtn context Nothing
 
 
-getPrivate : Context -> Element.Element Msg
-getPrivate context =
-    getImagesBtn context (Just OSTypes.ImagePrivate)
+showPublic : Context -> Element.Element Msg
+showPublic context =
+    showImagesBtn context (Just OSTypes.ImagePublic)
 
 
-getShared : Context -> Element.Element Msg
-getShared context =
-    getImagesBtn context (Just OSTypes.ImageShared)
+showPrivate : Context -> Element.Element Msg
+showPrivate context =
+    showImagesBtn context (Just OSTypes.ImagePrivate)
 
 
-getCommunity : Context -> Element.Element Msg
-getCommunity context =
-    getImagesBtn context (Just OSTypes.ImageCommunity)
+showShared : Context -> Element.Element Msg
+showShared context =
+    showImagesBtn context (Just OSTypes.ImageShared)
 
 
-getImagesBtn : View.Types.Context -> Maybe OSTypes.ImageVisibility -> Element.Element Msg
-getImagesBtn context maybeVisibility =
+showCommunity : Context -> Element.Element Msg
+showCommunity context =
+    showImagesBtn context (Just OSTypes.ImageCommunity)
+
+
+showImagesBtn : View.Types.Context -> Maybe OSTypes.ImageVisibility -> Element.Element Msg
+showImagesBtn context maybeVisibility =
     let
         onPress =
-            GotImagesRequest maybeVisibility
+            ShowImages maybeVisibility
 
         buttonStyleProto =
             (SH.materialStyle context.palette).button
