@@ -20,10 +20,6 @@ type alias Project =
     , endpoints : Endpoints
     , description : Maybe String
     , images : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Image)
-    , publicImages : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Image)
-    , communityImages : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Image)
-    , sharedImages : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Image)
-    , privateImages : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Image)
     , servers : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List Server)
     , flavors : List OSTypes.Flavor
     , keypairs : WebData (List OSTypes.Keypair)
