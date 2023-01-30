@@ -1334,8 +1334,8 @@ processProjectSpecificMsg outerModel project msg =
             ( outerModel, Rest.Neutron.requestUnassignFloatingIp project floatingIpUuid )
                 |> mapToOuterMsg
 
-        ReceiveImages maybeVisibility images ->
-            Rest.Glance.receiveImages sharedModel project maybeVisibility images
+        ReceiveImages images ->
+            Rest.Glance.receiveImages sharedModel project images
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 

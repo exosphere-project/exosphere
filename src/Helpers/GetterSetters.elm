@@ -410,9 +410,13 @@ getUserAppProxyFromCloudSpecificConfig project cloudSpecificConfig =
 
 
 -- Setters, i.e. updater functions
--- JC Added transformRDPP
 
 
+{-| JC Added transformRDPP
+
+    Transform the contents of an RDPP value if it has any contents.
+
+-}
 transformRDPP : (a -> a) -> RDPP.RemoteDataPlusPlus Types.Error.HttpErrorWithBody a -> RDPP.RemoteDataPlusPlus Types.Error.HttpErrorWithBody a
 transformRDPP transform rdpp =
     case rdpp.data of

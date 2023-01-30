@@ -14,7 +14,6 @@ import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
 import Json.Encode
-import List.Extra
 import OpenStack.Types as OSTypes
 import Rest.Helpers exposing (expectJsonWithErrorBody, openstackCredentialedRequest, resultToMsgErrorBody)
 import Time
@@ -77,7 +76,7 @@ requestImagesWithVisibility maybeVisibility model project =
         resultToMsg_ =
             resultToMsgErrorBody
                 errorContext
-                (\images -> ProjectMsg (GetterSetters.projectIdentifier project) <| ReceiveImages maybeVisibility images)
+                (\images -> ProjectMsg (GetterSetters.projectIdentifier project) <| ReceiveImages images)
     in
     openstackCredentialedRequest
         (GetterSetters.projectIdentifier project)
@@ -171,12 +170,10 @@ requestDeleteImage project imageUuid =
 
 
 {- HTTP Response Handling -}
---transformRDPP : (a -> a) -> RDPP.RemoteDataPlusPlus Types.Error.HttpErrorWithBody a -> RDPP.RemoteDataPlusPlus Types.Error.HttpErrorWithBody a
--- transformRDPP transform rdpp
 
 
-receiveImages : SharedModel -> Project -> Maybe OSTypes.ImageVisibility -> List OSTypes.Image -> ( SharedModel, Cmd SharedMsg )
-receiveImages model project maybeVisibility newImages =
+receiveImages : SharedModel -> Project -> List OSTypes.Image -> ( SharedModel, Cmd SharedMsg )
+receiveImages model project newImages =
     let
         insertOrReplaceImage : OSTypes.Image -> List OSTypes.Image -> List OSTypes.Image
         insertOrReplaceImage image imageList =
@@ -186,23 +183,22 @@ receiveImages model project maybeVisibility newImages =
         updateImages newImages_ oldImages =
             List.foldl (\image_ acc -> insertOrReplaceImage image_ acc) oldImages newImages_
 
+        initialImages =
+            -- We need initialImages to have content for the case when the request comes
+            -- when a project is opened. Otherwise the "Loading ..." spinner will spin forever.
+            -- TO REVIEW: The use of Time.millisToPosix 0.  We should have a real time value.
+            case project.images.data of
+                RDPP.DontHave ->
+                    { data = RDPP.DoHave [] (Time.millisToPosix 0), refreshStatus = RDPP.NotLoading Nothing }
+
+                RDPP.DoHave _ _ ->
+                    project.images
+
         updatedImages : RDPP.RemoteDataPlusPlus Types.Error.HttpErrorWithBody (List OSTypes.Image)
         updatedImages =
-            GetterSetters.transformRDPP (updateImages newImages) project.images
+            GetterSetters.transformRDPP (updateImages newImages) initialImages
 
-        --type alias RemoteDataPlusPlus error data =
-        --    { data : Haveness data
-        --    , refreshStatus : RefreshStatus error
-        --    }
-        --
-        --
-        --type Haveness data
-        --    = DontHave
-        --    | DoHave data ReceivedTime
         newProject =
-            -- { project | images = GetterSetters.transformRDPP (updateImages newImages) project.images }
-            -- { project | images = RDPP.empty }
-            -- { project | images = { data = RDPP.DoHave newImages (Time.millisToPosix 0), refreshStatus = RDPP.NotLoading Nothing } }
             { project | images = updatedImages }
 
         newModel =
