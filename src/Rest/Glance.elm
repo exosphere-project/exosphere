@@ -14,8 +14,10 @@ import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
 import Json.Encode
+import List.Extra
 import OpenStack.Types as OSTypes
 import Rest.Helpers exposing (expectJsonWithErrorBody, openstackCredentialedRequest, resultToMsgErrorBody)
+import Time
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.HelperTypes exposing (HttpRequestMethod(..), MetadataFilter)
 import Types.Project exposing (Project)
@@ -169,52 +171,39 @@ requestDeleteImage project imageUuid =
 
 
 {- HTTP Response Handling -}
+--transformRDPP : (a -> a) -> RDPP.RemoteDataPlusPlus Types.Error.HttpErrorWithBody a -> RDPP.RemoteDataPlusPlus Types.Error.HttpErrorWithBody a
+-- transformRDPP transform rdpp
 
 
 receiveImages : SharedModel -> Project -> Maybe OSTypes.ImageVisibility -> List OSTypes.Image -> ( SharedModel, Cmd SharedMsg )
-receiveImages model project maybeVisibility images =
+receiveImages model project maybeVisibility newImages =
     let
+        insertOrReplaceImage : OSTypes.Image -> List OSTypes.Image -> List OSTypes.Image
+        insertOrReplaceImage image imageList =
+            image :: List.filter (\image_ -> image_.uuid /= image.uuid) imageList
+
+        updateImages : List OSTypes.Image -> List OSTypes.Image -> List OSTypes.Image
+        updateImages newImages_ oldImages =
+            List.foldl (\image_ acc -> insertOrReplaceImage image_ acc) oldImages newImages_
+
+        updatedImages : RDPP.RemoteDataPlusPlus Types.Error.HttpErrorWithBody (List OSTypes.Image)
+        updatedImages =
+            GetterSetters.transformRDPP (updateImages newImages) project.images
+
+        --type alias RemoteDataPlusPlus error data =
+        --    { data : Haveness data
+        --    , refreshStatus : RefreshStatus error
+        --    }
+        --
+        --
+        --type Haveness data
+        --    = DontHave
+        --    | DoHave data ReceivedTime
         newProject =
-            case maybeVisibility of
-                Nothing ->
-                    { project
-                        | images =
-                            RDPP.RemoteDataPlusPlus
-                                (RDPP.DoHave images model.clientCurrentTime)
-                                (RDPP.NotLoading Nothing)
-                    }
-
-                Just OSTypes.ImagePublic ->
-                    { project
-                        | publicImages =
-                            RDPP.RemoteDataPlusPlus
-                                (RDPP.DoHave images model.clientCurrentTime)
-                                (RDPP.NotLoading Nothing)
-                    }
-
-                Just OSTypes.ImageCommunity ->
-                    { project
-                        | communityImages =
-                            RDPP.RemoteDataPlusPlus
-                                (RDPP.DoHave images model.clientCurrentTime)
-                                (RDPP.NotLoading Nothing)
-                    }
-
-                Just OSTypes.ImageShared ->
-                    { project
-                        | sharedImages =
-                            RDPP.RemoteDataPlusPlus
-                                (RDPP.DoHave images model.clientCurrentTime)
-                                (RDPP.NotLoading Nothing)
-                    }
-
-                Just OSTypes.ImagePrivate ->
-                    { project
-                        | privateImages =
-                            RDPP.RemoteDataPlusPlus
-                                (RDPP.DoHave images model.clientCurrentTime)
-                                (RDPP.NotLoading Nothing)
-                    }
+            -- { project | images = GetterSetters.transformRDPP (updateImages newImages) project.images }
+            -- { project | images = RDPP.empty }
+            -- { project | images = { data = RDPP.DoHave newImages (Time.millisToPosix 0), refreshStatus = RDPP.NotLoading Nothing } }
+            { project | images = updatedImages }
 
         newModel =
             GetterSetters.modelUpdateProject model newProject
