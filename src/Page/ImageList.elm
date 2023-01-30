@@ -106,7 +106,10 @@ view context project model =
         imagesInCustomOrder =
             let
                 images =
-                    project.images |> RDPP.withDefault []
+                    (project.publicImages |> RDPP.withDefault [])
+                        ++ (project.communityImages |> RDPP.withDefault [])
+                        ++ (project.publicImages |> RDPP.withDefault [])
+                        ++ (project.privateImages |> RDPP.withDefault [])
 
                 featuredImageNamePrefix =
                     VH.featuredImageNamePrefixLookup context project
@@ -131,7 +134,6 @@ view context project model =
                                 |> Helpers.String.pluralize
                                 |> Helpers.String.toTitleCase
                             )
-                        , imageRequestDropdown context project
                         ]
 
                   else
@@ -400,144 +402,6 @@ imageView model context project imageRecord =
             ]
         , imageAttributesView
         ]
-
-
-imageRequestDropdown : View.Types.Context -> Project -> Element.Element Msg
-imageRequestDropdown context project =
-    let
-        dropdownId =
-            [ "requestImagesDropdown", project.auth.project.uuid ]
-                |> List.intersperse "-"
-                |> String.concat
-
-        dropdownContent closeDropdown =
-            (Element.column [ Element.spacing spacer.px8 ] <|
-                [ showDefault context
-                , showPublic context
-                , showCommunity context
-                , showShared context
-                , showPrivate context
-                ]
-            )
-                |> renderActionButton closeDropdown
-
-        dropdownTarget toggleDropdownMsg dropdownIsShown =
-            Widget.iconButton
-                (SH.materialStyle context.palette).button
-                { text = "(Get images)"
-                , icon =
-                    Element.row
-                        [ Element.spacing spacer.px4 ]
-                        [ Element.text "Show images"
-                        , Element.el []
-                            ((if dropdownIsShown then
-                                FeatherIcons.chevronUp
-
-                              else
-                                FeatherIcons.chevronDown
-                             )
-                                |> FeatherIcons.withSize 18
-                                |> FeatherIcons.toHtml []
-                                |> Element.html
-                            )
-                        ]
-                , onPress = Just toggleDropdownMsg
-                }
-    in
-    Popover.popover context
-        popoverMsgMapper
-        { id = dropdownId
-        , content = dropdownContent
-        , contentStyleAttrs = [ Element.padding spacer.px24 ]
-        , position = ST.PositionBottomRight
-        , distanceToTarget = Nothing
-        , target = dropdownTarget
-        , targetStyleAttrs = []
-        }
-
-
-showDefault : Context -> Element.Element Msg
-showDefault context =
-    showImagesBtn context Nothing
-
-
-showPublic : Context -> Element.Element Msg
-showPublic context =
-    showImagesBtn context (Just OSTypes.ImagePublic)
-
-
-showPrivate : Context -> Element.Element Msg
-showPrivate context =
-    showImagesBtn context (Just OSTypes.ImagePrivate)
-
-
-showShared : Context -> Element.Element Msg
-showShared context =
-    showImagesBtn context (Just OSTypes.ImageShared)
-
-
-showCommunity : Context -> Element.Element Msg
-showCommunity context =
-    showImagesBtn context (Just OSTypes.ImageCommunity)
-
-
-showImagesBtn : View.Types.Context -> Maybe OSTypes.ImageVisibility -> Element.Element Msg
-showImagesBtn context maybeVisibility =
-    let
-        onPress =
-            ShowImages maybeVisibility
-
-        buttonStyleProto =
-            (SH.materialStyle context.palette).button
-
-        buttonStyle =
-            { buttonStyleProto
-                | container =
-                    buttonStyleProto.container
-                        ++ [ Element.width Element.fill
-                           , Element.centerX
-                           , Element.Border.width 0
-                           , Text.fontSize Text.Small
-                           , Font.medium
-                           ]
-                , labelRow =
-                    buttonStyleProto.labelRow
-                        ++ [ Element.centerX ]
-            }
-    in
-    Widget.iconButton
-        buttonStyle
-        { icon =
-            Element.row
-                [ Element.spacing spacer.px12, Element.width (Element.px 100) ]
-                [ Element.el [ Element.alignLeft ]
-                    ((case maybeVisibility of
-                        Just OSTypes.ImagePublic ->
-                            FeatherIcons.unlock
-
-                        Just OSTypes.ImagePrivate ->
-                            FeatherIcons.lock
-
-                        Just OSTypes.ImageCommunity ->
-                            FeatherIcons.users
-
-                        Just OSTypes.ImageShared ->
-                            FeatherIcons.share
-
-                        Nothing ->
-                            FeatherIcons.lock
-                     )
-                        |> FeatherIcons.withSize 16
-                        |> FeatherIcons.toHtml []
-                        |> Element.html
-                    )
-                , Element.text (Maybe.map OSTypes.imageVisibilityToString maybeVisibility |> Maybe.withDefault "default")
-                ]
-        , text =
-            Maybe.map OSTypes.imageVisibilityToString maybeVisibility |> Maybe.withDefault "default"
-        , onPress =
-            Just onPress
-        }
 
 
 imageVisibilityDropdown : ImageRecord -> View.Types.Context -> Project -> Element.Element Msg

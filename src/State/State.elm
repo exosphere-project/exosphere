@@ -1355,7 +1355,6 @@ processProjectSpecificMsg outerModel project msg =
             in
             ( { outerModel | sharedModel = GetterSetters.updateSharedModelWithTransformer projectTransformer outerModel.sharedModel }, Cmd.none )
 
-        -- TODO: JC
         RequestImages ->
             ( outerModel, Rest.Glance.requestImages sharedModel project ) |> mapToOuterMsg
 
