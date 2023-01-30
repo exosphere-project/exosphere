@@ -102,10 +102,7 @@ view context project model =
         imagesInCustomOrder =
             let
                 images =
-                    (project.publicImages |> RDPP.withDefault [])
-                        ++ (project.communityImages |> RDPP.withDefault [])
-                        ++ (project.publicImages |> RDPP.withDefault [])
-                        ++ (project.privateImages |> RDPP.withDefault [])
+                    project.images |> RDPP.withDefault []
 
                 featuredImageNamePrefix =
                     VH.featuredImageNamePrefixLookup context project
