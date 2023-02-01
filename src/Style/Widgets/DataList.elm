@@ -480,6 +480,15 @@ toolbarView model toMsg context rowStyle data bulkActions selectionFilters searc
         selectableRecords =
             List.filter (\record -> record.selectable) data.filtered
 
+        numberOfRecords =
+            List.length data.complete |> String.fromInt
+
+        numberOfFilteredRecords =
+            List.length data.filtered |> String.fromInt
+
+        numberOfRecordsDisplay =
+            Element.el [ Font.color <| SH.toElementColor context.palette.neutral.text.subdued ] (Element.text <| "Items: " ++ numberOfFilteredRecords ++ "/" ++ numberOfRecords)
+
         selectedRowIds =
             -- Remove those records' Ids that were deleted after being selected
             -- (This is because there seems no direct way to update the model
@@ -522,7 +531,7 @@ toolbarView model toMsg context rowStyle data bulkActions selectionFilters searc
                     |> Element.map toMsg
 
         bulkActionsView =
-            -- show only when bulkActions are passed and atleast 1 row is selected
+            -- show only when bulkActions are passed and at least 1 row is selected
             if List.isEmpty bulkActions || Set.isEmpty selectedRowIds then
                 Element.none
 
@@ -597,6 +606,7 @@ toolbarView model toMsg context rowStyle data bulkActions selectionFilters searc
                 [ selectAllCheckbox
                 , selectionFiltersView
                 , bulkActionsView
+                , numberOfRecordsDisplay
                 ]
             ]
 
