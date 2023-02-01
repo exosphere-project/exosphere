@@ -16,7 +16,6 @@ import Json.Decode.Pipeline as Pipeline
 import Json.Encode
 import OpenStack.Types as OSTypes
 import Rest.Helpers exposing (expectJsonWithErrorBody, openstackCredentialedRequest, resultToMsgErrorBody)
-import Time
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.HelperTypes exposing (HttpRequestMethod(..), MetadataFilter)
 import Types.Project exposing (Project)
