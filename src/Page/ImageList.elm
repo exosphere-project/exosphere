@@ -123,7 +123,6 @@ view context project model =
                             |> Helpers.String.toTitleCase
                         )
 
-
                   else
                     Element.none
                 , DataList.view
