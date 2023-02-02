@@ -185,7 +185,6 @@ receiveImages model project newImages =
         initialImages =
             -- We need initialImages to have content for the case when the request comes
             -- when a project is opened. Otherwise the "Loading ..." spinner will spin forever.
-            -- TO REVIEW: Is this the correct way to get the current time?
             case project.images.data of
                 RDPP.DontHave ->
                     { data = RDPP.DoHave [] model.clientCurrentTime, refreshStatus = RDPP.NotLoading Nothing }

@@ -40,10 +40,6 @@ type alias Model =
     }
 
 
-
---  ProjectSpecificMsgConstructor → Cmd Msg
-
-
 type Msg
     = GotDeleteConfirm OSTypes.ImageUuid
     | GotChangeVisibility OSTypes.ImageUuid OSTypes.ImageVisibility
@@ -119,15 +115,14 @@ view context project model =
         loadedView _ =
             Element.column VH.contentContainer
                 [ if model.showHeading then
-                    Element.row [ Element.spacing 12 ]
-                        [ Text.heading context.palette
-                            []
-                            (FeatherIcons.package |> FeatherIcons.toHtml [] |> Element.html |> Element.el [])
-                            (context.localization.staticRepresentationOfBlockDeviceContents
-                                |> Helpers.String.pluralize
-                                |> Helpers.String.toTitleCase
-                            )
-                        ]
+                    Text.heading context.palette
+                        []
+                        (FeatherIcons.package |> FeatherIcons.toHtml [] |> Element.html |> Element.el [])
+                        (context.localization.staticRepresentationOfBlockDeviceContents
+                            |> Helpers.String.pluralize
+                            |> Helpers.String.toTitleCase
+                        )
+
 
                   else
                     Element.none

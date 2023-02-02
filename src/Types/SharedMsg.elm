@@ -98,7 +98,6 @@ type ProjectSpecificMsgConstructor
     | ReceiveJetstream2Allocations (Result HttpErrorWithBody (List Types.Jetstream2Accounting.Allocation))
     | ReceiveImageVisibilityChange OSTypes.ImageUuid OSTypes.ImageVisibility
     | RequestImageVisibilityChange OSTypes.ImageUuid OSTypes.ImageVisibility
-    | RequestImages
 
 
 type ServerSpecificMsgConstructor

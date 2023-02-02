@@ -1355,9 +1355,6 @@ processProjectSpecificMsg outerModel project msg =
             in
             ( { outerModel | sharedModel = GetterSetters.updateSharedModelWithTransformer projectTransformer outerModel.sharedModel }, Cmd.none )
 
-        RequestImages ->
-            ( outerModel, Rest.Glance.requestImages sharedModel project ) |> mapToOuterMsg
-
         RequestDeleteServers serverUuidsToDelete ->
             let
                 applyDelete : OSTypes.ServerUuid -> ( Project, Cmd SharedMsg ) -> ( Project, Cmd SharedMsg )
