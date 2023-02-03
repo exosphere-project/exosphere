@@ -39,6 +39,7 @@ module Helpers.GetterSetters exposing
     , serverLookup
     , serverPresentNotDeleting
     , sortedFlavors
+    , transformRDPP
     , unscopedProjectLookup
     , unscopedProviderLookup
     , unscopedRegionLookup
@@ -58,6 +59,7 @@ import List.Extra
 import OpenStack.Types as OSTypes
 import RemoteData
 import Time
+import Types.Error
 import Types.HelperTypes as HelperTypes
 import Types.Project exposing (Project)
 import Types.Server exposing (Server)
@@ -408,6 +410,21 @@ getUserAppProxyFromCloudSpecificConfig project cloudSpecificConfig =
 
 
 -- Setters, i.e. updater functions
+
+
+{-| JC Added transformRDPP
+
+    Transform the contents of an RDPP value if it has any contents.
+
+-}
+transformRDPP : (a -> a) -> RDPP.RemoteDataPlusPlus Types.Error.HttpErrorWithBody a -> RDPP.RemoteDataPlusPlus Types.Error.HttpErrorWithBody a
+transformRDPP transform rdpp =
+    case rdpp.data of
+        RDPP.DontHave ->
+            rdpp
+
+        RDPP.DoHave data receivedTime ->
+            { data = RDPP.DoHave (transform data) receivedTime, refreshStatus = rdpp.refreshStatus }
 
 
 {-| Update the given project with a transformer : Image -> Image

@@ -29,7 +29,35 @@ import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..
 
 requestImages : SharedModel -> Project -> Cmd SharedMsg
 requestImages model project =
+    Cmd.batch
+        [ requestImagesWithVisibility Nothing model project
+        , requestImagesWithVisibility (Just OSTypes.ImagePublic) model project
+        , requestImagesWithVisibility (Just OSTypes.ImageCommunity) model project
+        , requestImagesWithVisibility (Just OSTypes.ImageShared) model project
+        , requestImagesWithVisibility (Just OSTypes.ImagePrivate) model project
+        ]
+
+
+requestImagesWithVisibility : Maybe OSTypes.ImageVisibility -> SharedModel -> Project -> Cmd SharedMsg
+requestImagesWithVisibility maybeVisibility model project =
     let
+        query =
+            case maybeVisibility of
+                Nothing ->
+                    "?limit=999999"
+
+                Just OSTypes.ImageCommunity ->
+                    "?visibility=community&status=active&limit=999999"
+
+                Just OSTypes.ImagePrivate ->
+                    "?visibility=private&status=active&limit=999999"
+
+                Just OSTypes.ImagePublic ->
+                    "?visibility=public&status=active&limit=999999"
+
+                Just OSTypes.ImageShared ->
+                    "?visibility=shared&status=active&limit=999999"
+
         projectKeystoneHostname =
             UrlHelpers.hostnameFromUrl project.endpoints.keystone
 
@@ -54,7 +82,7 @@ requestImages model project =
         Get
         Nothing
         []
-        (project.endpoints.glance ++ "/v2/images?limit=999999")
+        (project.endpoints.glance ++ "/v2/images" ++ query)
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg_
@@ -144,15 +172,32 @@ requestDeleteImage project imageUuid =
 
 
 receiveImages : SharedModel -> Project -> List OSTypes.Image -> ( SharedModel, Cmd SharedMsg )
-receiveImages model project images =
+receiveImages model project newImages =
     let
+        insertOrReplaceImage : OSTypes.Image -> List OSTypes.Image -> List OSTypes.Image
+        insertOrReplaceImage image imageList =
+            image :: List.filter (\image_ -> image_.uuid /= image.uuid) imageList
+
+        updateImages : List OSTypes.Image -> List OSTypes.Image -> List OSTypes.Image
+        updateImages newImages_ oldImages =
+            List.foldl (\image_ acc -> insertOrReplaceImage image_ acc) oldImages newImages_
+
+        initialImages =
+            -- We need initialImages to have content for the case when the request comes
+            -- when a project is opened. Otherwise the "Loading ..." spinner will spin forever.
+            case project.images.data of
+                RDPP.DontHave ->
+                    { data = RDPP.DoHave [] model.clientCurrentTime, refreshStatus = RDPP.NotLoading Nothing }
+
+                RDPP.DoHave _ _ ->
+                    project.images
+
+        updatedImages : RDPP.RemoteDataPlusPlus Types.Error.HttpErrorWithBody (List OSTypes.Image)
+        updatedImages =
+            GetterSetters.transformRDPP (updateImages newImages) initialImages
+
         newProject =
-            { project
-                | images =
-                    RDPP.RemoteDataPlusPlus
-                        (RDPP.DoHave images model.clientCurrentTime)
-                        (RDPP.NotLoading Nothing)
-            }
+            { project | images = updatedImages }
 
         newModel =
             GetterSetters.modelUpdateProject model newProject
