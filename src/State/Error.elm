@@ -5,6 +5,7 @@ import Helpers.Helpers as Helpers
 import Http
 import Json.Decode as Decode
 import OpenStack.Error as OSError
+import OpenStack.Types exposing (SynchronousAPIError)
 import Parser exposing ((|.), (|=))
 import Rest.Sentry
 import Style.Widgets.Toast as Toast
@@ -98,6 +99,37 @@ processStringError model errorContext error =
             Toast.showToast toast ToastMsg ( newModel, sentryCmd )
 
 
+suppressErrorBecauseInstanceDeleted : SharedModel -> SynchronousAPIError -> Bool
+suppressErrorBecauseInstanceDeleted model syncApiError =
+    -- Determine if the error should be suppressed because it says an instance could not be found, and we are trying to delete that instance (or it is absent from the model)
+    let
+        missingInstanceUuidParser =
+            Parser.succeed identity
+                |. Parser.token "Instance"
+                |. Parser.spaces
+                |= Helpers.naiveUuidParser
+                |. Parser.spaces
+                |. Parser.token "could not be found."
+                |. Parser.end
+    in
+    case Parser.run missingInstanceUuidParser syncApiError.message of
+        Err _ ->
+            -- Error message doesn't match pattern
+            False
+
+        Ok errInstanceUuid ->
+            not <| GetterSetters.serverPresentNotDeleting model errInstanceUuid
+
+
+suppressError : SharedModel -> SynchronousAPIError -> Bool
+suppressError model syncApiError =
+    List.any
+        (\checker -> checker model syncApiError)
+        [ -- Suppress error if it's about a nonexistent instance.
+          suppressErrorBecauseInstanceDeleted
+        ]
+
+
 processSynchronousApiError : SharedModel -> ErrorContext -> HttpErrorWithBody -> ( SharedModel, Cmd SharedMsg )
 processSynchronousApiError model errorContext httpError =
     let
@@ -106,32 +138,10 @@ processSynchronousApiError model errorContext httpError =
                 OSError.decodeSynchronousErrorJson
                 httpError.body
 
-        suppressErrorBecauseinstanceDeleted : String -> Bool
-        suppressErrorBecauseinstanceDeleted message =
-            -- Determine if the error should be suppressed because it says an instance could not be found, and we are trying to delete that instance (or it is absent from the model)
-            let
-                missingInstanceUuidParser =
-                    Parser.succeed identity
-                        |. Parser.token "Instance"
-                        |. Parser.spaces
-                        |= Helpers.naiveUuidParser
-                        |. Parser.spaces
-                        |. Parser.token "could not be found."
-                        |. Parser.end
-            in
-            case Parser.run missingInstanceUuidParser message of
-                Err _ ->
-                    -- Error message doesn't match pattern
-                    False
-
-                Ok errInstanceUuid ->
-                    not <| GetterSetters.serverPresentNotDeleting model errInstanceUuid
-
         newErrorContext =
-            -- Suppress error if it's about a nonexistent instance
             case apiErrorDecodeResult of
                 Ok syncApiError ->
-                    if suppressErrorBecauseinstanceDeleted syncApiError.message then
+                    if suppressError model syncApiError then
                         { errorContext | level = ErrorDebug }
 
                     else
