@@ -314,6 +314,14 @@ imageView model context project imageRecord =
                 Nothing ->
                     "unknown size"
 
+        imageType =
+            case imageRecord.image.imageType of
+                Just _ ->
+                    context.localization.snapshotOfBlockDevice
+
+                Nothing ->
+                    context.localization.staticRepresentationOfBlockDeviceContents
+
         featuredIcon =
             if imageRecord.featured then
                 FeatherIcons.award
@@ -369,7 +377,7 @@ imageView model context project imageRecord =
                     , Element.row []
                         [ Element.el [ Font.color (SH.toElementColor context.palette.neutral.text.default) ]
                             (Element.text <| String.toLower <| OSTypes.imageVisibilityToString imageRecord.image.visibility)
-                        , Element.text <| " " ++ context.localization.staticRepresentationOfBlockDeviceContents
+                        , Element.text <| " " ++ imageType
                         ]
                     ]
 
