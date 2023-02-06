@@ -38,6 +38,7 @@ nav:
       - 'Browser Integration Tests': 'integration-tests/README.md'
       - 'docs/mkdocs-site.md'
       - 'docs/code-of-conduct.md'
+      - 'docs/governance.md'
   - Legal Docs:
       - 'Exosphere License': 'LICENSE'
       - 'docs/acceptable-use-policy.md'
