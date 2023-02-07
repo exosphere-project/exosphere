@@ -133,6 +133,8 @@ view context project model =
 
             else
                 DataList.view
+                    "keypair"
+                    -- TODO context.localization.virtualComputer
                     model.dataListModel
                     DataListMsg
                     context

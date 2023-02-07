@@ -125,6 +125,8 @@ view context project model =
                   else
                     Element.none
                 , DataList.view
+                    "image"
+                    --TODO JC context.localization.virtualComputer
                     model.dataListModel
                     DataListMsg
                     context
@@ -263,7 +265,9 @@ imageView model context project imageRecord =
                         { text =
                             "Create "
                                 ++ Helpers.String.toTitleCase
-                                    context.localization.virtualComputer
+                                    "image"
+
+                        -- TODO JC context.localization.virtualComputer
                         , onPress = onPress
                         }
 

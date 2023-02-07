@@ -21,6 +21,7 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons
+import Helpers.String
 import Html.Attributes as HtmlA
 import Murmur3
 import Set
@@ -271,7 +272,8 @@ getFilterOptionText filter data filterOptionValue =
 
 
 view :
-    Model
+    String
+    -> Model
     -> (Msg -> msg) -- convert DataList.Msg to a consumer's msg
     -> { viewContext | palette : ExoPalette, showPopovers : Set.Set PopoverId }
     -> List (Element.Attribute msg)
@@ -281,7 +283,7 @@ view :
     -> Maybe (SelectionFilters record msg)
     -> Maybe (SearchFilter record)
     -> Element.Element msg
-view model toMsg context styleAttrs listItemView data bulkActions selectionFilters searchFilter =
+view resourceName model toMsg context styleAttrs listItemView data bulkActions selectionFilters searchFilter =
     let
         defaultRowStyle =
             [ Element.padding spacer.px24
@@ -407,7 +409,9 @@ view model toMsg context styleAttrs listItemView data bulkActions selectionFilte
             -- Add or override default style with passed style attributes
             ++ styleAttrs
         )
-        (toolbarView model
+        (toolbarView
+            resourceName
+            model
             toMsg
             context
             defaultRowStyle
@@ -463,7 +467,8 @@ rowView model toMsg palette rowStyle listItemView showRowCheckbox i dataRecord =
 
 
 toolbarView :
-    Model
+    String
+    -> Model
     -> (Msg -> msg) -- convert DataList.Msg to a consumer's msg
     -> { viewContext | palette : ExoPalette, showPopovers : Set.Set PopoverId }
     -> List (Element.Attribute msg)
@@ -475,7 +480,7 @@ toolbarView :
     -> Maybe (SelectionFilters record msg)
     -> Maybe (SearchFilter record)
     -> Element.Element msg
-toolbarView model toMsg context rowStyle data bulkActions selectionFilters searchFilter =
+toolbarView resourceName model toMsg context rowStyle data bulkActions selectionFilters searchFilter =
     let
         selectableRecords =
             List.filter (\record -> record.selectable) data.filtered

@@ -157,6 +157,8 @@ view context project model =
                       else
                         Element.none
                     , DataList.view
+                        "floatingIp"
+                        -- TODO JC context.localization.virtualComputer
                         model.dataListModel
                         DataListMsg
                         context

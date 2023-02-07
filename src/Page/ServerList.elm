@@ -146,6 +146,8 @@ view context project currentTime model =
                                 serverRecords context currentTime project servers
                         in
                         DataList.view
+                            "server"
+                            -- TODO JC context.localization.virtualComputer
                             model.dataListModel
                             DataListMsg
                             context
