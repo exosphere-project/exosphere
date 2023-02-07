@@ -493,7 +493,7 @@ toolbarView model toMsg context rowStyle data bulkActions selectionFilters searc
 
             else
                 Element.el [ Text.fontSize Text.Small, Font.color <| SH.toElementColor context.palette.neutral.text.subdued ]
-                    (Element.text <| numberOfFilteredRecords ++ " filtered Items of " ++ numberOfRecords ++ " total")
+                    (Element.text <| numberOfFilteredRecords ++ " items filtered from " ++ numberOfRecords ++ " total")
 
         selectedRowIds =
             -- Remove those records' Ids that were deleted after being selected
