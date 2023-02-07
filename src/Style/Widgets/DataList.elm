@@ -494,11 +494,11 @@ toolbarView resourceName model toMsg context rowStyle data bulkActions selection
         numberOfRecordsDisplay =
             -- OSTypes.imageVisibilityToString
             if numberOfRecords == numberOfFilteredRecords then
-                Element.el [ Text.fontSize Text.Small, Font.color <| SH.toElementColor context.palette.neutral.text.subdued ] (Element.text <| "Items: " ++ numberOfRecords)
+                Element.el [ Text.fontSize Text.Small, Font.color <| SH.toElementColor context.palette.neutral.text.subdued ] (Element.text <| Helpers.String.pluralize resourceName ++ ": " ++ numberOfRecords)
 
             else
                 Element.el [ Text.fontSize Text.Small, Font.color <| SH.toElementColor context.palette.neutral.text.subdued ]
-                    (Element.text <| numberOfFilteredRecords ++ " items filtered from " ++ numberOfRecords ++ " total")
+                    (Element.text <| numberOfFilteredRecords ++ " " ++ Helpers.String.pluralize resourceName ++ " filtered from " ++ numberOfRecords ++ " total")
 
         selectedRowIds =
             -- Remove those records' Ids that were deleted after being selected

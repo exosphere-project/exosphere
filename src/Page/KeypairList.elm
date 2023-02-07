@@ -133,8 +133,7 @@ view context project model =
 
             else
                 DataList.view
-                    "keypair"
-                    -- TODO context.localization.virtualComputer
+                    context.localization.pkiPublicKeyForSsh
                     model.dataListModel
                     DataListMsg
                     context

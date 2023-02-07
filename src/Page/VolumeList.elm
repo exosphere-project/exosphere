@@ -88,8 +88,7 @@ view context project currentTime model =
         renderSuccessCase : List OSTypes.Volume -> Element.Element Msg
         renderSuccessCase volumes_ =
             DataList.view
-                "volume"
-                -- TODO JC context.localization.virtualComputer
+                context.localization.blockDevice
                 model.dataListModel
                 DataListMsg
                 context
