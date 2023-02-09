@@ -75,8 +75,8 @@ defaultHelpAboutText context =
             , Element.text " and "
             , Link.externalLink
                 context.palette
-                "https://riot.im/app/#/room/#exosphere:matrix.org"
-                "Matrix via Element"
+                "https://matrix.to/#/#exosphere:matrix.org"
+                "Matrix"
             , Element.text ". The chat is bridged across both platforms, so join whichever you prefer."
             ]
         ]
