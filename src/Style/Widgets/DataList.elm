@@ -492,7 +492,6 @@ toolbarView resourceName model toMsg context rowStyle data bulkActions selection
             List.length data.filtered |> String.fromInt
 
         numberOfRecordsDisplay =
-            -- OSTypes.imageVisibilityToString
             if numberOfRecords == numberOfFilteredRecords then
                 Element.el [ Text.fontSize Text.Small, Font.color <| SH.toElementColor context.palette.neutral.text.subdued ] (Element.text <| Helpers.String.pluralize resourceName ++ ": " ++ numberOfRecords)
 
