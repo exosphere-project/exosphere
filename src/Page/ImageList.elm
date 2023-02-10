@@ -579,6 +579,28 @@ filters =
             \optionValue imageRecord ->
                 List.member optionValue imageRecord.image.tags
       }
+    , { id = "type"
+      , label = "Image type"
+      , chipPrefix = "Image type is "
+      , filterOptions =
+            \_ ->
+                [ ( "image", "Image" ), ( "snapshot", "Snapshot" ) ]
+                    |> Dict.fromList
+      , filterTypeAndDefaultValue =
+            DataList.MultiselectOption Set.empty
+      , onFilter =
+            \optionValue imageRecord ->
+                let
+                    imageType =
+                        case imageRecord.image.imageType of
+                            Just _ ->
+                                "snapshot"
+
+                            Nothing ->
+                                "image"
+                in
+                imageType == optionValue
+      }
     ]
 
 
