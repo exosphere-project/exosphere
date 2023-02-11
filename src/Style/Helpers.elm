@@ -170,6 +170,7 @@ toExoPalette deployerColors { theme, systemPreference } =
                 , textOnColoredBG = allColorsPalette.gray.darkest
                 }
             , menu = menuColors
+            , activeTheme = themeChoice
             }
 
         Dark ->
@@ -223,6 +224,7 @@ toExoPalette deployerColors { theme, systemPreference } =
                 , textOnColoredBG = allColorsPalette.gray.lightest
                 }
             , menu = menuColors
+            , activeTheme = themeChoice
             }
 
 

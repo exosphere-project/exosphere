@@ -152,6 +152,7 @@ type alias ExoPalette =
     , danger : UIStateColors
     , muted : UIStateColors
     , menu : MenuColors
+    , activeTheme : Theme
     }
 
 
