@@ -242,9 +242,8 @@ renderMessageAsElement context message =
         [ Element.row [ Element.alignRight ]
             [ Element.el
                 [ Font.color <| levelColor message.context.level
-                , Font.semiBold
                 ]
-                (Element.text
+                (Text.strong
                     (toFriendlyErrorLevel message.context.level)
                 )
             , Element.el [ context.palette.neutral.text.subdued |> SH.toElementColor |> Font.color ]
@@ -1224,9 +1223,7 @@ flavorPicker context project restrictFlavorIds computeQuota flavorGroupToggleTip
     in
     Element.column
         [ Element.spacing spacer.px12 ]
-        [ Element.el
-            [ Font.semiBold ]
-            (Element.text <| Helpers.String.toTitleCase context.localization.virtualComputerHardwareConfig)
+        [ Text.strong <| Helpers.String.toTitleCase context.localization.virtualComputerHardwareConfig
         , Element.el flavorEmptyHint <|
             if List.isEmpty flavorGroups then
                 renderFlavors (GetterSetters.sortedFlavors allowedFlavors)
