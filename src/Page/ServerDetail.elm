@@ -462,8 +462,8 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                         , showIcon = True
                         , showContainer = True
                         , content =
-                            Element.paragraph [ Font.semiBold ]
-                                [ Element.text serverFault.message ]
+                            Element.paragraph []
+                                [ Text.strong serverFault.message ]
                         }
 
                 Nothing ->
@@ -886,7 +886,7 @@ interactions context project server currentTime tlsReverseProxyHostname =
                     let
                         status =
                             Element.row []
-                                [ Element.el [ Font.semiBold ] <| Element.text "Status: "
+                                [ Text.strong "Status: "
                                 , Element.text statusWord
                                 ]
 
@@ -910,7 +910,7 @@ interactions context project server currentTime tlsReverseProxyHostname =
 
                         description =
                             Element.paragraph []
-                                [ Element.el [ Font.semiBold ] <| Element.text "Description: "
+                                [ Text.strong "Description: "
                                 , Element.text interactionDetails.description
                                 ]
 
@@ -1179,13 +1179,9 @@ serverEventHistory context project server currentTime =
                                 RDPP.DontHave ->
                                     Nothing
 
-                renderTableHeader : String -> Element.Element Msg
-                renderTableHeader headerText =
-                    Element.el [ Font.semiBold ] <| Element.text headerText
-
                 columns : List (Element.Column { action : String, startTime : Time.Posix } Msg)
                 columns =
-                    [ { header = renderTableHeader "Action"
+                    [ { header = Text.strong "Action"
                       , width = Element.px 180
                       , view =
                             \event ->
@@ -1196,7 +1192,7 @@ serverEventHistory context project server currentTime =
                                 in
                                 Element.paragraph [] [ Element.text actionStr ]
                       }
-                    , { header = renderTableHeader "Time"
+                    , { header = Text.strong "Time"
                       , width = Element.px 180
                       , view =
                             \event ->

@@ -151,7 +151,7 @@ compactKVRow : String -> Element.Element msg -> Element.Element msg
 compactKVRow key value =
     Element.row
         [ Element.padding 0, Element.spacing spacer.px12 ]
-        [ Element.paragraph [ Element.alignTop, Element.width (Element.px 200), Font.semiBold ] [ Element.text key ]
+        [ Element.paragraph [ Element.alignTop, Element.width (Element.px 200) ] [ Text.strong key ]
         , value
         ]
 
@@ -160,7 +160,7 @@ compactKVSubRow : String -> Element.Element msg -> Element.Element msg
 compactKVSubRow key value =
     Element.row
         [ Element.padding 0, Element.spacing spacer.px12, Text.fontSize Text.Body ]
-        [ Element.paragraph [ Element.width (Element.px 175), Font.semiBold ] [ Element.text key ]
+        [ Element.paragraph [ Element.width (Element.px 175) ] [ Text.strong key ]
         , Element.el [ Element.width Element.fill ] value
         ]
 
