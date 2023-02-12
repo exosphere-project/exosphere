@@ -49,6 +49,8 @@
     argv:
       - '/opt/repo2docker-venv/bin/jupyter-repo2docker'
       - '--json-logs'
+      - '--target-repo-dir'
+      - '/data'
       - '--image-name'
       - 'exosphere-workflow'
       - '--no-run'
