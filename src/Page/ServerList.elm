@@ -490,7 +490,10 @@ deletionAction context project serverIds =
             (\deletePopconfirmId_ -> SharedMsg <| SharedMsg.TogglePopover deletePopconfirmId_)
             deletePopconfirmId
             { confirmationText =
-                "Are you sure you want to delete all these servers ?"
+                "Are you sure you want to delete all these "
+                    ++ (context.localization.virtualComputer
+                            |> Helpers.String.pluralize
+                       )
             , onConfirm =
                 Just <|
                     SharedMsg
