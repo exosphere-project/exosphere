@@ -125,6 +125,7 @@ view context project model =
                   else
                     Element.none
                 , DataList.view
+                    context.localization.staticRepresentationOfBlockDeviceContents
                     model.dataListModel
                     DataListMsg
                     context

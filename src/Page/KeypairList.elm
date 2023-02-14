@@ -133,6 +133,7 @@ view context project model =
 
             else
                 DataList.view
+                    context.localization.pkiPublicKeyForSsh
                     model.dataListModel
                     DataListMsg
                     context

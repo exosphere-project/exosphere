@@ -88,6 +88,7 @@ view context project currentTime model =
         renderSuccessCase : List OSTypes.Volume -> Element.Element Msg
         renderSuccessCase volumes_ =
             DataList.view
+                context.localization.blockDevice
                 model.dataListModel
                 DataListMsg
                 context

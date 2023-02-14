@@ -157,6 +157,7 @@ view context project model =
                       else
                         Element.none
                     , DataList.view
+                        context.localization.floatingIpAddress
                         model.dataListModel
                         DataListMsg
                         context

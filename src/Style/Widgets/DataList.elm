@@ -21,6 +21,7 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons
+import Helpers.String
 import Html.Attributes as HtmlA
 import Murmur3
 import Set
@@ -271,7 +272,8 @@ getFilterOptionText filter data filterOptionValue =
 
 
 view :
-    Model
+    String
+    -> Model
     -> (Msg -> msg) -- convert DataList.Msg to a consumer's msg
     -> { viewContext | palette : ExoPalette, showPopovers : Set.Set PopoverId }
     -> List (Element.Attribute msg)
@@ -281,7 +283,7 @@ view :
     -> Maybe (SelectionFilters record msg)
     -> Maybe (SearchFilter record)
     -> Element.Element msg
-view model toMsg context styleAttrs listItemView data bulkActions selectionFilters searchFilter =
+view resourceName model toMsg context styleAttrs listItemView data bulkActions selectionFilters searchFilter =
     let
         defaultRowStyle =
             [ Element.padding spacer.px24
@@ -407,7 +409,9 @@ view model toMsg context styleAttrs listItemView data bulkActions selectionFilte
             -- Add or override default style with passed style attributes
             ++ styleAttrs
         )
-        (toolbarView model
+        (toolbarView
+            resourceName
+            model
             toMsg
             context
             defaultRowStyle
@@ -463,7 +467,8 @@ rowView model toMsg palette rowStyle listItemView showRowCheckbox i dataRecord =
 
 
 toolbarView :
-    Model
+    String
+    -> Model
     -> (Msg -> msg) -- convert DataList.Msg to a consumer's msg
     -> { viewContext | palette : ExoPalette, showPopovers : Set.Set PopoverId }
     -> List (Element.Attribute msg)
@@ -475,10 +480,31 @@ toolbarView :
     -> Maybe (SelectionFilters record msg)
     -> Maybe (SearchFilter record)
     -> Element.Element msg
-toolbarView model toMsg context rowStyle data bulkActions selectionFilters searchFilter =
+toolbarView resourceName model toMsg context rowStyle data bulkActions selectionFilters searchFilter =
     let
         selectableRecords =
             List.filter (\record -> record.selectable) data.filtered
+
+        numberOfRecords =
+            List.length data.complete |> String.fromInt
+
+        numberOfFilteredRecords =
+            List.length data.filtered |> String.fromInt
+
+        displayedResourceWord =
+            if List.length data.filtered > 1 then
+                Helpers.String.pluralize resourceName
+
+            else
+                resourceName
+
+        numberOfRecordsDisplay =
+            if numberOfRecords == numberOfFilteredRecords then
+                Element.el [ Text.fontSize Text.Small, Font.color <| SH.toElementColor context.palette.neutral.text.subdued ] (Element.text <| displayedResourceWord ++ ": " ++ numberOfRecords)
+
+            else
+                Element.el [ Text.fontSize Text.Small, Font.color <| SH.toElementColor context.palette.neutral.text.subdued ]
+                    (Element.text <| numberOfFilteredRecords ++ " " ++ displayedResourceWord ++ " filtered from " ++ numberOfRecords ++ " total")
 
         selectedRowIds =
             -- Remove those records' Ids that were deleted after being selected
@@ -522,7 +548,7 @@ toolbarView model toMsg context rowStyle data bulkActions selectionFilters searc
                     |> Element.map toMsg
 
         bulkActionsView =
-            -- show only when bulkActions are passed and atleast 1 row is selected
+            -- show only when bulkActions are passed and at least 1 row is selected
             if List.isEmpty bulkActions || Set.isEmpty selectedRowIds then
                 Element.none
 
@@ -597,6 +623,7 @@ toolbarView model toMsg context rowStyle data bulkActions selectionFilters searc
                 [ selectAllCheckbox
                 , selectionFiltersView
                 , bulkActionsView
+                , numberOfRecordsDisplay
                 ]
             ]
 

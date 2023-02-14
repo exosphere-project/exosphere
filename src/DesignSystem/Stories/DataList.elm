@@ -55,7 +55,9 @@ stories { renderer, toMsg, onDeleteServers, onDeleteServer, onPopOver } =
                         DesignSystem.Helpers.palettize model
                 in
                 renderer palette <|
-                    Style.Widgets.DataList.view model.customModel.dataList
+                    Style.Widgets.DataList.view
+                        "server"
+                        model.customModel.dataList
                         toMsg
                         { palette = palette, showPopovers = model.customModel.popover.showPopovers }
                         [ Element.width (Element.maximum 900 Element.fill)
