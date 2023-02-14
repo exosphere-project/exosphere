@@ -264,7 +264,7 @@ imageView model context project imageRecord =
                         { text =
                             "Create "
                                 ++ Helpers.String.toTitleCase
-                                    context.localization.blockDevice
+                                    context.localization.virtualComputer
                         , onPress = onPress
                         }
 
