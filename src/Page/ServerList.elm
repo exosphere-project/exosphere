@@ -471,16 +471,36 @@ deletionAction :
     -> Set.Set OSTypes.ServerUuid
     -> Element.Element Msg
 deletionAction context project serverIds =
+    let
+        deleteAllBtn togglePopconfirm _ =
+            deleteIconButton context.palette
+                True
+                "Delete All"
+                (Just togglePopconfirm)
+
+        deletePopconfirmId =
+            Helpers.String.hyphenate
+                [ "serverListDeletePopconfirm"
+                , project.auth.project.uuid
+                , "all"
+                ]
+    in
     Element.el [ Element.alignRight ] <|
-        deleteIconButton context.palette
-            True
-            "Delete All"
-            (Just <|
-                SharedMsg
-                    (SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project)
-                        (SharedMsg.RequestDeleteServers (Set.toList serverIds))
-                    )
-            )
+        deletePopconfirm context
+            (\deletePopconfirmId_ -> SharedMsg <| SharedMsg.TogglePopover deletePopconfirmId_)
+            deletePopconfirmId
+            { confirmationText =
+                "Are you sure you want to delete all these servers ?"
+            , onConfirm =
+                Just <|
+                    SharedMsg
+                        (SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project)
+                            (SharedMsg.RequestDeleteServers (Set.toList serverIds))
+                        )
+            , onCancel = Just NoOp
+            }
+            ST.PositionBottomRight
+            deleteAllBtn
 
 
 filters :
