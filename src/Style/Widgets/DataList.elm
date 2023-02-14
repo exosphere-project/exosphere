@@ -494,6 +494,7 @@ toolbarView resourceName model toMsg context rowStyle data bulkActions selection
         displayedResourceWord =
             if List.length data.filtered > 1 then
                 Helpers.String.pluralize resourceName
+
             else
                 resourceName
 
