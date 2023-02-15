@@ -15,7 +15,7 @@ import Html.Events
 import Json.Decode as Decode
 import Set
 import Style.Helpers as SH
-import Style.Types as ST exposing (ExoPalette, PopoverPosition(..))
+import Style.Types as ST exposing (ExoPalette, PopoverPosition(..), Theme(..))
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
@@ -26,12 +26,30 @@ import Widget.Style
 -}
 popoverStyleDefaults : ExoPalette -> List (Element.Attribute msg)
 popoverStyleDefaults palette =
-    [ Element.padding spacer.px12
-    , Background.color <| SH.toElementColor palette.neutral.background.frontLayer
-    , Border.width 1
-    , Border.color <| SH.toElementColor palette.neutral.border
-    , Border.shadow SH.shadowDefaults
-    ]
+    let
+        baseStyles =
+            [ Element.padding spacer.px12
+            , Background.color <| SH.toElementColor palette.neutral.background.frontLayer
+            , Border.width 1
+            ]
+
+        themeVariations =
+            case palette.activeTheme of
+                Light ->
+                    [ Background.color <| SH.toElementColor palette.neutral.background.frontLayer
+                    , Border.color <| SH.toElementColor palette.neutral.border
+                    , Border.shadow SH.shadowDefaults
+                    ]
+
+                -- Dark themes obscure the shadow: differentiate with
+                -- a highlighted border and a subdued background.
+                Dark ->
+                    [ Background.color <| SH.toElementColor palette.menu.background
+                    , Border.color <| SH.toElementColor palette.primary
+                    , Border.rounded 4
+                    ]
+    in
+    List.append baseStyles themeVariations
 
 
 dropdownItemStyle : ExoPalette -> Widget.Style.ButtonStyle msg
