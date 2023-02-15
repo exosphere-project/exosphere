@@ -25,27 +25,22 @@
         navigator.serviceWorker.register("service-worker.js");
       }
     </script>
-    <script type="text/javascript">
-      // Pre-load some images using JavaScript
-      let images_to_preload = [
-        "assets/img/logo-alt.svg",
-        "assets/img/logo-196px-maskable.png",
-        "assets/img/openstack-logo.svg",
-        "assets/img/jetstream1-logo.svg",
-        "assets/img/jetstream1-logo-white.svg",
-        "assets/img/jetstream2-logo-white.svg",
-        "assets/img/ubuntu.svg",
-        "assets/img/hat-fedora.svg",
-      ];
 
-      let loaded_images = [];
+    <!--
+      The following images will be loaded while evaluating JavaScript. This
+      means that those scripts must load and the code must evaluate before
+      the browser can request the actual image files.
 
-      for (let i = 0; i < images_to_preload.length; i++) {
-        let img = new Image();
-        img.src = images_to_preload[i];
-        loaded_images.push(img);
-      }
-    </script>
+      By telling the browser to preload them, however, they can download while
+      fetching and evaluating any JavaScript just as if they were plain <img>
+      tags so that they will already be avilable once they are inject into the DOM.
+    -->
+    <link rel="preload" as="image" href="assets/img/logo-alt.svg">
+    <link rel="preload" as="image" href="assets/img/logo-196px-maskable.png">
+    <link rel="preload" as="image" href="assets/img/openstack-logo.svg">
+    <link rel="preload" as="image" href="assets/img/jetstream2-logo-white.svg">
+    <link rel="preload" as="image" href="assets/img/ubuntu.svg">
+    <link rel="preload" as="image" href="assets/img/hat-fedora.svg">
   </head>
 
   <body>
