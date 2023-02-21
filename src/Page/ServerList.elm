@@ -472,16 +472,46 @@ deletionAction :
     -> Set.Set OSTypes.ServerUuid
     -> Element.Element Msg
 deletionAction context project serverIds =
+    let
+        deleteAllBtn togglePopconfirm _ =
+            deleteIconButton context.palette
+                True
+                "Delete All"
+                (Just togglePopconfirm)
+
+        deletePopconfirmId =
+            Helpers.String.hyphenate
+                [ "serverListDeletePopconfirm"
+                , project.auth.project.uuid
+                , "all"
+                ]
+    in
     Element.el [ Element.alignRight ] <|
-        deleteIconButton context.palette
-            True
-            "Delete All"
-            (Just <|
-                SharedMsg
-                    (SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project)
-                        (SharedMsg.RequestDeleteServers (Set.toList serverIds))
-                    )
-            )
+        deletePopconfirm context
+            (\deletePopconfirmId_ -> SharedMsg <| SharedMsg.TogglePopover deletePopconfirmId_)
+            deletePopconfirmId
+            { confirmationText =
+                if Set.size serverIds > 1 then
+                    "Are you sure you want to delete these "
+                        ++ (Set.size serverIds |> String.fromInt)
+                        ++ " "
+                        ++ (context.localization.virtualComputer
+                                |> Helpers.String.pluralize
+                           )
+                        ++ "?"
+
+                else
+                    "Are you sure you want to delete this " ++ context.localization.virtualComputer ++ "?"
+            , onConfirm =
+                Just <|
+                    SharedMsg
+                        (SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project)
+                            (SharedMsg.RequestDeleteServers (Set.toList serverIds))
+                        )
+            , onCancel = Just NoOp
+            }
+            ST.PositionBottomRight
+            deleteAllBtn
 
 
 filters :
