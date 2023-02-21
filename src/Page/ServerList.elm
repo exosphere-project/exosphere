@@ -497,9 +497,10 @@ deletionAction context project serverIds =
                         ++ (context.localization.virtualComputer
                                 |> Helpers.String.pluralize
                            )
+                        ++ "?"
 
                 else
-                    "Are you sure you want to delete this " ++ context.localization.virtualComputer
+                    "Are you sure you want to delete this " ++ context.localization.virtualComputer ++ "?"
             , onConfirm =
                 Just <|
                     SharedMsg
