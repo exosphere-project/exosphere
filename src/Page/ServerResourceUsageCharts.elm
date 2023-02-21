@@ -25,6 +25,7 @@ import LineChart.Line as Line
 import Style.Helpers as SH
 import Style.Widgets.Icon as Icon
 import Style.Widgets.Spacer exposing (spacer)
+import Style.Widgets.Text as Text
 import Svg
 import Time
 import Tuple
@@ -263,7 +264,7 @@ toChartHeading : View.Types.Context -> Element.Element msg -> String -> Element.
 toChartHeading context title subtitle =
     Element.row
         [ Element.width Element.fill, Element.paddingEach { top = 0, bottom = 0, left = 0, right = spacer.px24 } ]
-        [ Element.el [ Font.semiBold ] title
+        [ title
         , Element.el
             [ Font.color (context.palette.neutral.text.subdued |> SH.toElementColor)
             , Element.alignRight
@@ -278,14 +279,14 @@ toCpuHeading context maybeServerResourceQtys haveGpuData =
         context
         (if haveGpuData then
             Element.row [ Element.spacing spacer.px4 ]
-                [ Element.text "CPU"
+                [ Text.strong "CPU"
                 , Icon.roundRect (context.palette.primary |> SH.toElementColor) 16
-                , Element.text "and GPU"
+                , Text.strong "and GPU"
                 , Icon.roundRect (SH.allColorsPalette.yellow.base |> SH.toElementColor) 16
                 ]
 
          else
-            Element.text "CPU"
+            Text.strong "CPU"
         )
         (maybeServerResourceQtys
             |> Maybe.map .cores
@@ -310,7 +311,7 @@ toMemHeading : View.Types.Context -> Maybe HelperTypes.ServerResourceQtys -> Ele
 toMemHeading context maybeServerResourceQtys =
     toChartHeading
         context
-        (Element.text "RAM")
+        (Text.strong "RAM")
         (maybeServerResourceQtys
             |> Maybe.map .ramGb
             |> Maybe.map
@@ -329,7 +330,7 @@ toDiskHeading : View.Types.Context -> Maybe HelperTypes.ServerResourceQtys -> El
 toDiskHeading context maybeServerResourceQtys =
     toChartHeading
         context
-        (Element.text "Root Disk")
+        (Text.strong "Root Disk")
         (maybeServerResourceQtys
             |> Maybe.andThen .rootDiskGb
             |> Maybe.map

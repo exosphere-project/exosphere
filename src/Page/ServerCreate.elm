@@ -726,8 +726,8 @@ view context project currentTime model =
               <|
                 Input.radioRow [ Element.spacing spacer.px32 ]
                     { label =
-                        Input.labelAbove (VH.radioLabelAttributes True)
-                            (Element.text "Advanced Options")
+                        Input.labelAbove VH.radioLabelAttributes
+                            (Text.strong "Advanced Options")
                     , onChange = GotShowAdvancedOptions
                     , options =
                         [ Input.option False (Element.text "Hide")
@@ -1229,7 +1229,7 @@ customWorkflowInputExperimental context project model =
     <|
         (Input.radioRow [ Element.spacing spacer.px32 ]
             { label =
-                Input.labelAbove (VH.radioLabelAttributes False)
+                Input.labelAbove VH.radioLabelAttributes
                     (Element.row [ Element.spacing spacer.px8 ]
                         [ Text.text Text.Emphasized
                             []
@@ -1294,7 +1294,7 @@ clusterInputExperimental context model =
         ]
         [ Input.radioRow [ Element.spacing spacer.px32 ]
             { label =
-                Input.labelAbove (VH.radioLabelAttributes False)
+                Input.labelAbove VH.radioLabelAttributes
                     (Element.wrappedRow [ Element.spacing spacer.px8 ]
                         [ Text.text Text.Emphasized [] ("Create your own SLURM cluster with this " ++ context.localization.virtualComputer ++ " as the head node")
                         , experimentalTag
@@ -1424,8 +1424,8 @@ desktopEnvironmentPicker context project model =
         [ Input.radioRow [ Element.spacing spacer.px32 ]
             { label =
                 Input.labelAbove
-                    (VH.radioLabelAttributes True)
-                    (Element.text <|
+                    VH.radioLabelAttributes
+                    (Text.strong <|
                         String.concat
                             [ "Enable "
                             , context.localization.graphicalDesktopEnvironment
@@ -1471,8 +1471,8 @@ guacamolePicker context model =
             Input.radioRow [ Element.spacing spacer.px32 ]
                 { label =
                     Input.labelAbove
-                        (VH.radioLabelAttributes True)
-                        (Element.text "Deploy Guacamole for easy remote access?")
+                        VH.radioLabelAttributes
+                        (Text.strong "Deploy Guacamole for easy remote access?")
                 , onChange = \new -> GotDeployGuacamole <| Just new
                 , options =
                     [ Input.option True (Element.text "Yes")
@@ -1490,8 +1490,8 @@ skipOperatingSystemUpdatesPicker context model =
         [ Input.radioRow [ Element.spacing spacer.px32 ]
             { label =
                 Input.labelAbove
-                    (VH.radioLabelAttributes True)
-                    (Element.text "Install operating system updates?")
+                    VH.radioLabelAttributes
+                    (Text.strong "Install operating system updates?")
             , onChange = GotInstallOperatingSystemUpdates
             , options =
                 [ Input.option True (Element.text "Yes")

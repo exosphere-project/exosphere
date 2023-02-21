@@ -1335,15 +1335,9 @@ requiredLabel palette undecoratedLabelView =
         ]
 
 
-radioLabelAttributes : Bool -> List (Element.Attribute msg)
-radioLabelAttributes isBold =
-    Element.paddingEach { edges | bottom = spacer.px12 }
-        :: (if isBold then
-                [ Font.semiBold ]
-
-            else
-                []
-           )
+radioLabelAttributes : List (Element.Attribute msg)
+radioLabelAttributes =
+    [ Element.paddingEach { edges | bottom = spacer.px12 } ]
 
 
 invalidInputAttributes : ExoPalette -> List (Element.Attribute msg)

@@ -226,11 +226,8 @@ genericToast context stateColor { title, maybeActionContext, error, maybeRecover
         [ Element.row
             [ Element.width Element.fill ]
             [ Element.el
-                [ Region.heading 1
-                , Font.semiBold
-                , Text.fontSize Text.Small
-                ]
-                (Element.text title)
+                [ Region.heading 1 ]
+                (Text.strong title)
             , Input.button
                 [ Element.mouseOver
                     [ Border.color <| SH.toElementColor context.palette.neutral.icon

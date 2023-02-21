@@ -106,7 +106,7 @@ view context sharedModel model =
                         |> Maybe.map Tuple.first
                         |> Just
                 , label =
-                    Input.labelAbove (VH.radioLabelAttributes False)
+                    Input.labelAbove VH.radioLabelAttributes
                         (Element.text "What do you need help with?")
                 , options =
                     List.map
