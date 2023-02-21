@@ -79,8 +79,8 @@ view context sharedModel _ =
             , selected =
                 Just sharedModel.style.styleMode.theme
             , label =
-                Input.labelAbove (VH.radioLabelAttributes True)
-                    (Text.text Text.Emphasized [] "Color theme")
+                Input.labelAbove VH.radioLabelAttributes
+                    (Text.strong "Color theme")
             }
         , Input.radio
             [ Element.spacing spacer.px12 ]
@@ -95,7 +95,7 @@ view context sharedModel _ =
                 Just sharedModel.viewContext.experimentalFeaturesEnabled
             , label =
                 Input.labelAbove
-                    (VH.radioLabelAttributes True)
+                    VH.radioLabelAttributes
                     (Text.text Text.Emphasized
                         [ Element.onRight experimentalFeatureToggleTip
                         ]
