@@ -356,7 +356,16 @@ imageView model context project imageRecord =
         imageAttributesView =
             let
                 attributesAlwaysShown =
-                    [ Element.text size
+                    [ if imageRecord.image.status == OSTypes.ImageQueued then
+                        Element.text "Building..."
+                            |> Element.el
+                                [ context.palette.info.textOnNeutralBG
+                                    |> SH.toElementColor
+                                    |> Font.color
+                                ]
+
+                      else
+                        Element.text size
                     , Element.row []
                         [ Element.el [ Font.color (SH.toElementColor context.palette.neutral.text.default) ]
                             (Element.text <| String.toLower <| OSTypes.imageVisibilityToString imageRecord.image.visibility)
