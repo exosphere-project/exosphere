@@ -155,7 +155,6 @@ renderProject context project =
             Element.el
                 [ Element.padding spacer.px8
                 , Element.centerX
-                , Font.semiBold
                 ]
             <|
                 Element.row [ Element.spacing spacer.px8 ]
@@ -165,11 +164,11 @@ renderProject context project =
                             |> Font.color
                         ]
                       <|
-                        Element.text
+                        Text.strong
                             (context.localization.unitOfTenancy
                                 |> Helpers.String.toTitleCase
                             )
-                    , Element.text <|
+                    , Text.strong <|
                         project.auth.project.name
                     ]
 

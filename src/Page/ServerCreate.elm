@@ -694,13 +694,12 @@ view context project currentTime model =
                     ++ Forms.resourceNameAlreadyExists context project currentTime { resource = Compute model.serverName, onSuggestionPressed = \suggestion -> GotServerName suggestion }
                 )
             , Element.row [ Element.spacing spacer.px8 ]
-                [ Element.el [ Font.semiBold ] <|
-                    Element.text <|
-                        String.concat
-                            [ context.localization.staticRepresentationOfBlockDeviceContents
-                                |> Helpers.String.toTitleCase
-                            , ": "
-                            ]
+                [ Text.strong <|
+                    String.concat
+                        [ context.localization.staticRepresentationOfBlockDeviceContents
+                            |> Helpers.String.toTitleCase
+                        , ": "
+                        ]
                 , Element.text model.imageName
                 ]
             , VH.flavorPicker context
@@ -900,7 +899,7 @@ volBackedPrompt context model volumeQuota flavor =
                 }
     in
     Element.column [ Element.spacing spacer.px12 ]
-        [ Element.el [ Font.semiBold ] <| Element.text "Choose a root disk size"
+        [ Text.strong "Choose a root disk size"
         , if canLaunchVolBacked then
             radioInput
 
@@ -967,39 +966,38 @@ countPicker context model computeQuota volumeQuota flavor =
             25
     in
     Element.column [ Element.spacing spacer.px12 ]
-        [ Element.el [ Font.semiBold ] <|
-            Element.row [ Element.spacing spacer.px12 ]
-                [ Element.text <|
-                    String.concat
-                        [ "How many "
-                        , context.localization.virtualComputer
-                            |> Helpers.String.pluralize
-                            |> Helpers.String.toTitleCase
-                        , "?"
-                        ]
-                , Style.Widgets.ToggleTip.toggleTip
-                    context
-                    (\multipleInstancesNamingTipId -> SharedMsg <| SharedMsg.TogglePopover multipleInstancesNamingTipId)
-                    "multipleInstancesNamingToggleTip"
-                    (Element.paragraph
-                        [ Element.width (Element.fill |> Element.minimum 300)
-                        , Element.spacing spacer.px8
-                        , Font.regular
-                        ]
-                        [ Element.text <|
-                            String.concat
-                                [ "If more than one "
-                                    ++ context.localization.virtualComputer
-                                , " is chosen, each will be named, for example, \""
+        [ Element.row [ Element.spacing spacer.px12 ]
+            [ Text.strong <|
+                String.concat
+                    [ "How many "
+                    , context.localization.virtualComputer
+                        |> Helpers.String.pluralize
+                        |> Helpers.String.toTitleCase
+                    , "?"
+                    ]
+            , Style.Widgets.ToggleTip.toggleTip
+                context
+                (\multipleInstancesNamingTipId -> SharedMsg <| SharedMsg.TogglePopover multipleInstancesNamingTipId)
+                "multipleInstancesNamingToggleTip"
+                (Element.paragraph
+                    [ Element.width (Element.fill |> Element.minimum 300)
+                    , Element.spacing spacer.px8
+                    , Font.regular
+                    ]
+                    [ Element.text <|
+                        String.concat
+                            [ "If more than one "
+                                ++ context.localization.virtualComputer
+                            , " is chosen, each will be named, for example, \""
 
-                                -- As example we used 3 as instance count
-                                , Rest.Naming.generateServerName model.serverName 3 1
-                                , "\""
-                                ]
-                        ]
-                    )
-                    ST.PositionRight
-                ]
+                            -- As example we used 3 as instance count
+                            , Rest.Naming.generateServerName model.serverName 3 1
+                            , "\""
+                            ]
+                    ]
+                )
+                ST.PositionRight
+            ]
         , case countAvailPerQuota of
             Just countAvailPerQuota_ ->
                 let
@@ -1578,7 +1576,7 @@ networkPicker context project model =
     Element.column
         [ Element.spacing spacer.px12 ]
         [ VH.requiredLabel context.palette
-            (Element.el [ Font.semiBold ] <| Element.text "Network")
+            (Text.strong "Network")
         , guidance
         , picker
         ]
@@ -1651,12 +1649,11 @@ floatingIpPicker context project model =
                     in
                     Element.column
                         [ Element.spacing spacer.px12 ]
-                        [ Element.el [ Font.semiBold ] <|
-                            Element.text <|
-                                String.join " "
-                                    [ Helpers.String.toTitleCase context.localization.floatingIpAddress
-                                    , "Reuse Option"
-                                    ]
+                        [ Text.strong <|
+                            String.join " "
+                                [ Helpers.String.toTitleCase context.localization.floatingIpAddress
+                                , "Reuse Option"
+                                ]
                         , Input.radio [ Element.spacing spacer.px4 ]
                             { label =
                                 Input.labelHidden <|
@@ -1678,9 +1675,8 @@ floatingIpPicker context project model =
     Element.column [ Element.spacing spacer.px24 ]
         [ Element.column
             [ Element.spacing spacer.px12 ]
-            [ Element.el [ Font.semiBold ] <|
-                Element.text <|
-                    Helpers.String.toTitleCase context.localization.floatingIpAddress
+            [ Text.strong <|
+                Helpers.String.toTitleCase context.localization.floatingIpAddress
             , optionPicker
             ]
         , reuseOptionPicker
@@ -1731,9 +1727,7 @@ keypairPicker context project model =
     in
     Element.column
         [ Element.spacing spacer.px12 ]
-        [ Element.el
-            [ Font.semiBold ]
-            (Element.text promptText)
+        [ Text.strong promptText
         , VH.renderWebData
             context
             project.keypairs
@@ -1770,11 +1764,8 @@ userDataInput : View.Types.Context -> Model -> Element.Element Msg
 userDataInput context model =
     Element.column
         [ Element.spacing spacer.px12 ]
-        [ Element.el
-            [ Font.semiBold ]
-            (Element.text
-                (Helpers.String.toTitleCase context.localization.cloudInitData)
-            )
+        [ Text.strong
+            (Helpers.String.toTitleCase context.localization.cloudInitData)
         , Input.multiline
             (VH.inputItemAttributes context.palette
                 ++ [ Element.width Element.fill

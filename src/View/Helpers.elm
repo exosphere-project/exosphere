@@ -151,7 +151,7 @@ compactKVRow : String -> Element.Element msg -> Element.Element msg
 compactKVRow key value =
     Element.row
         [ Element.padding 0, Element.spacing spacer.px12 ]
-        [ Element.paragraph [ Element.alignTop, Element.width (Element.px 200), Font.semiBold ] [ Element.text key ]
+        [ Element.paragraph [ Element.alignTop, Element.width (Element.px 200) ] [ Text.strong key ]
         , value
         ]
 
@@ -160,7 +160,7 @@ compactKVSubRow : String -> Element.Element msg -> Element.Element msg
 compactKVSubRow key value =
     Element.row
         [ Element.padding 0, Element.spacing spacer.px12, Text.fontSize Text.Body ]
-        [ Element.paragraph [ Element.width (Element.px 175), Font.semiBold ] [ Element.text key ]
+        [ Element.paragraph [ Element.width (Element.px 175) ] [ Text.strong key ]
         , Element.el [ Element.width Element.fill ] value
         ]
 
@@ -242,9 +242,8 @@ renderMessageAsElement context message =
         [ Element.row [ Element.alignRight ]
             [ Element.el
                 [ Font.color <| levelColor message.context.level
-                , Font.semiBold
                 ]
-                (Element.text
+                (Text.strong
                     (toFriendlyErrorLevel message.context.level)
                 )
             , Element.el [ context.palette.neutral.text.subdued |> SH.toElementColor |> Font.color ]
@@ -1224,9 +1223,7 @@ flavorPicker context project restrictFlavorIds computeQuota flavorGroupToggleTip
     in
     Element.column
         [ Element.spacing spacer.px12 ]
-        [ Element.el
-            [ Font.semiBold ]
-            (Element.text <| Helpers.String.toTitleCase context.localization.virtualComputerHardwareConfig)
+        [ Text.strong <| Helpers.String.toTitleCase context.localization.virtualComputerHardwareConfig
         , Element.el flavorEmptyHint <|
             if List.isEmpty flavorGroups then
                 renderFlavors (GetterSetters.sortedFlavors allowedFlavors)

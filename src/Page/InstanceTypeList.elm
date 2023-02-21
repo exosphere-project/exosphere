@@ -13,6 +13,7 @@ import OpenStack.Types as OSTypes
 import Route
 import Style.Helpers as SH
 import Style.Widgets.Spacer exposing (spacer)
+import Style.Widgets.Text
 import Time
 import Types.HelperTypes as HelperTypes
 import Types.Project exposing (Project)
@@ -146,10 +147,9 @@ view context project instanceTypes =
                             )
                         , Element.el
                             [ Element.centerX
-                            , Font.semiBold
                             ]
                           <|
-                            Element.text instanceType.friendlyName
+                            Style.Widgets.Text.strong instanceType.friendlyName
                         , Element.paragraph [ Element.width Element.fill ] <|
                             VH.renderMarkdown context instanceType.description
                         ]

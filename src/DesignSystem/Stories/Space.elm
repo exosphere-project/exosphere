@@ -102,7 +102,7 @@ spacerBlock spacerField =
             , Element.width (Element.px 100)
             ]
             [ Element.text "spacer.px"
-            , Element.el [ Font.semiBold ] <| Element.text (String.fromInt spacerValue)
+            , Text.strong (String.fromInt spacerValue)
             ]
         , Element.el
             [ Element.width (Element.px spacerValue)

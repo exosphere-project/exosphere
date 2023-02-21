@@ -254,12 +254,11 @@ swatch name blocks =
         [ Element.spacing spacer.px12 ]
         ((Element.el
             [ Element.width <| Element.minimum 72 Element.fill
-            , Font.semiBold
             , Element.alignTop
             , Element.paddingXY 0 spacer.px8
             ]
           <|
-            Element.text name
+            Text.strong name
          )
             :: blocks
         )

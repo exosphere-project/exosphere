@@ -6,6 +6,7 @@ import Element.Region as Region
 import Route
 import Style.Helpers as SH
 import Style.Widgets.Spacer exposing (spacer)
+import Style.Widgets.Text
 import View.Helpers as VH
 import View.Types
 
@@ -26,14 +27,10 @@ homeLogo context { logoUrl, title } =
                     [ Element.height (Element.px 48) ]
                     { src = logoUrl, description = "" }
                 , VH.renderMaybe title
-                    (\t ->
-                        Element.el
-                            [ Region.heading 1
-                            , Font.semiBold
-                            , Font.size 26
-                            , Font.color (SH.toElementColor context.palette.menu.textOrIcon)
-                            ]
-                            (Element.text t)
+                    (Style.Widgets.Text.text Style.Widgets.Text.AppTitle
+                        [ Region.heading 1
+                        , Font.color (SH.toElementColor context.palette.menu.textOrIcon)
+                        ]
                     )
                 ]
         }

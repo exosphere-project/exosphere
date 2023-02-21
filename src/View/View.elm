@@ -390,7 +390,7 @@ projectHeaderView context p =
             , Element.alpha 0.75
             ]
             [ Element.text "(logged in as "
-            , Element.el [ Font.semiBold ] <| Element.text p.auth.user.name
+            , Text.strong p.auth.user.name
             , Element.text ")"
             ]
         , Element.el

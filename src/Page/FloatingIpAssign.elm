@@ -128,7 +128,7 @@ view context project model =
                 ]
             )
         , Element.column [ Element.spacing spacer.px16 ]
-            [ Element.el [ Font.semiBold ] <| Element.text selectServerText
+            [ Text.strong selectServerText
             , if List.isEmpty serverChoices then
                 Element.paragraph []
                     [ Element.text <|
@@ -151,7 +151,7 @@ view context project model =
                     , options = serverChoices
                     , selected = model.serverUuid
                     }
-            , Element.el [ Font.semiBold ] <| Element.text selectIpText
+            , Text.strong selectIpText
             , if List.isEmpty ipChoices then
                 -- TODO suggest user create a floating IP and provide link to that view (once we build it)
                 Element.text <|
