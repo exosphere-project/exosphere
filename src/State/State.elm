@@ -614,19 +614,6 @@ processSharedMsg sharedMsg outerModel =
             ( outerModel, Rest.Keystone.requestUnscopedAuthToken sharedModel.cloudCorsProxyUrl creds )
                 |> mapToOuterMsg
 
-        Jetstream1Login jetstream1Creds ->
-            let
-                openstackCredsList =
-                    State.Auth.jetstream1ToOpenstackCreds jetstream1Creds
-
-                cmds =
-                    List.map
-                        (\creds -> Rest.Keystone.requestUnscopedAuthToken sharedModel.cloudCorsProxyUrl creds)
-                        openstackCredsList
-            in
-            ( outerModel, Cmd.batch cmds )
-                |> mapToOuterMsg
-
         ReceiveProjectScopedToken keystoneUrl ( metadata, response ) ->
             case Rest.Keystone.decodeScopedAuthToken <| Http.GoodStatus_ metadata response of
                 Err error ->

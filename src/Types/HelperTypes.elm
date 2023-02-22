@@ -14,8 +14,6 @@ module Types.HelperTypes exposing
     , InstanceType
     , InstanceTypeImageFilters
     , InstanceTypeVersion
-    , Jetstream1Creds
-    , Jetstream1Provider(..)
     , KeystoneHostname
     , Localization
     , MetadataFilter
@@ -261,19 +259,6 @@ type FloatingIpAssignmentStatus
 
 
 {- Stuff that should move somewhere else -}
-
-
-type alias Jetstream1Creds =
-    { jetstream1ProviderChoice : Jetstream1Provider
-    , taccUsername : String
-    , taccPassword : String
-    }
-
-
-type Jetstream1Provider
-    = IUCloud
-    | TACCCloud
-    | BothJetstream1Clouds
 
 
 type SupportableItemType

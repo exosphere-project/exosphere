@@ -26,7 +26,6 @@ type SharedMsg
     | HandleApiErrorWithBody ErrorContext HttpErrorWithBody
     | Logout
     | RequestUnscopedToken OSTypes.OpenstackLogin
-    | Jetstream1Login HelperTypes.Jetstream1Creds
     | ReceiveProjectScopedToken OSTypes.KeystoneUrl ( Http.Metadata, String )
     | ReceiveUnscopedAuthToken OSTypes.KeystoneUrl ( Http.Metadata, String )
     | ReceiveUnscopedProjects OSTypes.KeystoneUrl (List HelperTypes.UnscopedProviderProject)
