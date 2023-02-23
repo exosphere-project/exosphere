@@ -43,15 +43,20 @@ Before Exosphere can be configured to support federated login, [OpenStack Keysto
 OpenStack documentation generally assumes that users will log in via [Horizon](https://docs.openstack.org/horizon/latest/), the default graphical interface for OpenStack. It's fine to set this up, even if only for testing purposes.
 
 When you're ready to allow Keystone to handle federated login for Exosphere users,
-you only need to [add another `trusted_dashboard`](https://docs.openstack.org/keystone/latest/admin/federation/configure_federation.html#add-a-trusted-dashboard-websso) in the `federation` section of Keystone config. This URL points to the OIDC Redirector app for your Exosphere deployment; go configure that below, then add its URL as a `trusted_dashboard` in your Keystone configuration.
+you only need to [add another `trusted_dashboard`](https://docs.openstack.org/keystone/latest/admin/federation/configure_federation.html#add-a-trusted-dashboard-websso) in the `federation` section of Keystone config. This URL points to the OIDC Redirection path for your Exosphere deployment; go configure that below, then add its URL as a `trusted_dashboard` in your Keystone configuration.
 
-## OIDC Redirector App
+## OIDC Redirection
 
 ### About OIDC Redirector
 
 Near the end of the OpenStack federated login flow, Keystone serves some JavaScript to the user's browser which causes the browser to POST some form data to a URL that we define in Exosphere and Keystone configuration. This POST data contains an unscoped Keystone token which will let the user access OpenStack! Exosphere needs this token so that it can help the user log into OpenStack projects, but herein lies a difficulty. Exosphere is a client-side JavaScript application which has no way to receive a POST request, so we need the help of a server-side application.
 
-This server-side app is [**OIDC Redirector**](https://gitlab.com/exosphere/oidc-redirector/). It is a very small application written in Python using the [Flask](https://flask.palletsprojects.com/) web framework. OIDC Redirector does exactly the following:
+We have implemented this server-side app twice.
+
+- The _new_ implementation is a small JavaScript file that runs in the Nginx `njs` module.
+- The _old_ implementation is [**OIDC Redirector**](https://gitlab.com/exosphere/oidc-redirector/). It is a very small application written in Python using the [Flask](https://flask.palletsprojects.com/) web framework.
+
+Each of these does the following:
 
 - Receives the POST request from the user's browser
 - Plucks the Keystone auth token out of the POST form data
@@ -59,9 +64,30 @@ This server-side app is [**OIDC Redirector**](https://gitlab.com/exosphere/oidc-
 
 Then Exosphere loads in the browser, parses the Keystone auth token out of the query string, and uses it to authenticate to OpenStack as the user. The federated login workflow is complete, and from here, Exosphere behaves exactly the same as if the user had logged in with raw OpenStack credentials.
 
-### How to Set Up OIDC Redirector
+#### How to Set Up NEW OIDC Redirector (Nginx JavaScript file)
 
-[OIDC Redirector](https://gitlab.com/exosphere/oidc-redirector/) is a [Flask](https://flask.palletsprojects.com) application. You can run OIDC Redirector with any web server you please, but we provide a Dockerfile that makes it easy to run inside an Nginx + Flask container.
+You get the new OIDC redirector _for free_ when you follow the [Exosphere Production Deployment](prod-deploy-maint.md) directions. If you are setting up a deployment your own way (not using those directions), then you need to:
+
+- Enable `ngx_http_js_module` in the main context of your Nginx configuration
+- Place `oidc.js` in your Nginx configuration directory
+  - For this file, see `deploy/prod/main-server/nginx/templates/oidc.js.template` in the Exosphere git repository 
+- Create a `location` block for the `/oidc-redirector` path like this:
+
+```
+js_import conf.d/oidc.js;
+
+... further down, in `server {` block: ...
+
+  location = /oidc-redirector {
+  client_max_body_size 1m;
+
+        js_content oidc.redirector;
+  }
+```
+
+#### How to Set Up OLD OIDC Redirector (Python/Flask application)
+
+The OLD [OIDC Redirector](https://gitlab.com/exosphere/oidc-redirector/) is a [Flask](https://flask.palletsprojects.com) application. You can run OIDC Redirector with any web server you please, but we provide a Dockerfile that makes it easy to run inside an Nginx + Flask container.
 
 If your server environment is set up using docker-compose, just put something like this in your `docker-compose.yml`, alongside a clone of the oidc-redirector repo:
 

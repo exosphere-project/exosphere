@@ -1,0 +1,65 @@
+js_import conf.d/oidc.js;
+
+map $http_origin $cors_origin_header {
+    default "";
+    "~(^(http(s)?:\/\/)?(.*\.)?exosphere.localhost(:[0-9]{1,5})?$)" "$http_origin";
+}
+
+map $http_origin $cors_cred {
+    default "";
+    "~(^(http(s)?:\/\/)?(.*\.)?exosphere.localhost(:[0-9]{1,5})?$)" "true";
+}
+
+server {
+    listen 80;
+    server_name example.org;
+
+    location / {
+        return 301 https://$host$request_uri;
+    }    
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+}
+
+resolver 127.0.0.11;
+
+server {
+    listen 443 ssl;
+    server_name ${NGINX_HOSTNAME};
+    
+    ssl_certificate /etc/letsencrypt/live/${NGINX_HOSTNAME}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${NGINX_HOSTNAME}/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+    add_header Access-Control-Allow-Origin $cors_origin_header always;
+    add_header Access-Control-Allow-Credentials $cors_cred;
+    add_header "Access-Control-Allow-Methods" "GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD";
+    add_header "Access-Control-Allow-Headers" "Authorization, Origin, X-Requested-With, Content-Type, Accept, exo-proxy-orig-host, exo-proxy-orig-port, X-Auth-Token, Openstack-API-Version, X-OpenStack-Manila-API-Version";
+    add_header "Access-Control-Expose-Headers" "X-Subject-Token";
+
+    charset utf-8;
+
+    if ($request_method = 'OPTIONS' ) {
+        return 204 no-content;
+    }
+
+    location / {
+        root /var/www/exo-webroot;
+        try_files $uri $uri/ /index.html?$args;
+    }
+
+    location ~* ^/proxy/(.*) {
+        resolver 127.0.0.11 [::1];
+        set $backend https://$http_exo_proxy_orig_host:$http_exo_proxy_orig_port/$1$is_args$args;
+        proxy_pass $backend;
+    }
+
+    location = /oidc-redirector {
+        client_max_body_size 1m;
+
+        js_content oidc.redirector;
+    }
+
+}

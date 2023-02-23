@@ -1,0 +1,33 @@
+function redirector(r) {
+  if (r.method !== "POST") {
+    r.return(401, "Request method not allowed");
+    return;
+  }
+
+  if (
+    r.headersIn["Content-Type"] !== "application/x-www-form-urlencoded" ||
+    !r.requestText ||
+    !r.requestText.length
+  ) {
+    r.return(401, "Request body must be application/x-www-form-urlencoded");
+    return;
+  }
+
+  const requestVariables = r.requestText
+    .split("\n")
+    .map((line) => [
+      line.slice(0, line.indexOf("=")),
+      line.slice(line.indexOf("=") + 1),
+    ]);
+
+  const token = requestVariables.find((val) => val[0] === "token");
+
+  if (!token) {
+    r.return(401, "Request body does not contain `token`");
+    return;
+  }
+
+  r.return(302, "/auth/oidc-login?token=" + token[1]);
+}
+
+export default { redirector };

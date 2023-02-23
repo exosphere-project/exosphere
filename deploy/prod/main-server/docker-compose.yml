@@ -1,0 +1,26 @@
+version: '3'
+services:
+  nginx:
+    build:
+      context: './nginx'
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "./nginx/templates:/etc/nginx/templates:ro"
+      - "./data/certbot/conf:/etc/letsencrypt"
+      - "./data/certbot/www:/var/www/certbot"
+      - "../../../public:/var/www/exo-webroot/:ro"
+    environment:
+      NGINX_HOSTNAME: 'my-example.exosphere.app'
+    # command: [nginx-debug, '-g', 'daemon off;']
+    # Modified the `command:` below per https://github.com/wmnnd/nginx-certbot/issues/100
+    command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & /docker-entrypoint.d/20-envsubst-on-templates.sh; nginx-debug -g \"daemon off;\"'"
+    restart: always
+  certbot:
+    image: certbot/certbot
+    volumes:
+      - "./data/certbot/conf:/etc/letsencrypt"
+      - "./data/certbot/www:/var/www/certbot"
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    restart: always
