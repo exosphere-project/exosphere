@@ -226,11 +226,21 @@ requestAppCredential : UUID.UUID -> Time.Posix -> Project -> Cmd SharedMsg
 requestAppCredential clientUuid posixTime project =
     let
         appCredentialName =
+            let
+                regionPart =
+                    case project.region of
+                        Just region ->
+                            "-" ++ region.id
+
+                        Nothing ->
+                            ""
+            in
             String.concat
                 [ "exosphere-"
                 , UUID.toString clientUuid
                 , "-"
                 , project.auth.project.name
+                , regionPart
                 , "-"
                 , String.fromInt <| Time.posixToMillis posixTime
                 ]
