@@ -359,7 +359,7 @@ imageView model context project imageRecord =
                     [ if imageRecord.image.status == OSTypes.ImageQueued then
                         Element.text "Building..."
                             |> Element.el
-                                [ context.palette.info.textOnNeutralBG
+                                [ context.palette.neutral.text.default
                                     |> SH.toElementColor
                                     |> Font.color
                                 ]
