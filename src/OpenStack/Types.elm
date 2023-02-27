@@ -68,6 +68,7 @@ module OpenStack.Types exposing
     , VolumeStatus(..)
     , VolumeUuid
     , imageVisibilityToString
+    , isTransitioningStatus
     , serverPowerStateToString
     , serverStatusToString
     , volumeStatusToString
@@ -565,12 +566,13 @@ type alias Volume =
 
 
 type alias VolumeSnapshot =
-    { uuid : String
+    { uuid : HelperTypes.Uuid
     , name : Maybe String
     , description : String
     , volumeId : String
     , sizeInGiB : Int
     , createdAt : Time.Posix
+    , status : VolumeStatus
     }
 
 
@@ -601,6 +603,23 @@ type VolumeStatus
     | Uploading
     | Retyping
     | Extending
+
+
+isTransitioningStatus : VolumeStatus -> Bool
+isTransitioningStatus status =
+    List.member status
+        [ Creating
+        , Attaching
+        , Detaching
+        , Deleting
+        , AwaitingTransfer
+        , BackingUp
+        , RestoringBackup
+        , Downloading
+        , Uploading
+        , Retyping
+        , Extending
+        ]
 
 
 volumeStatusToString : VolumeStatus -> String

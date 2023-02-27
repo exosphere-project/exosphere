@@ -1273,6 +1273,10 @@ processProjectSpecificMsg outerModel project msg =
             ( outerModel, OSVolumes.requestDeleteVolume project volumeUuid )
                 |> mapToOuterMsg
 
+        RequestDeleteVolumeSnapshot snapshotUuid ->
+            ( outerModel, OSVolumes.requestDeleteVolumeSnapshot project snapshotUuid )
+                |> mapToOuterMsg
+
         RequestDetachVolume volumeUuid ->
             let
                 maybeVolume =
@@ -1847,7 +1851,12 @@ processProjectSpecificMsg outerModel project msg =
         ReceiveVolumeSnapshots snapshots ->
             let
                 newProject =
-                    { project | volumeSnapshots = RemoteData.succeed snapshots }
+                    { project
+                        | volumeSnapshots =
+                            RDPP.RemoteDataPlusPlus
+                                (RDPP.DoHave snapshots sharedModel.clientCurrentTime)
+                                (RDPP.NotLoading Nothing)
+                    }
 
                 newSharedModel =
                     GetterSetters.modelUpdateProject sharedModel newProject
@@ -1858,6 +1867,10 @@ processProjectSpecificMsg outerModel project msg =
 
         ReceiveDeleteVolume ->
             ( outerModel, OSVolumes.requestVolumes project )
+                |> mapToOuterMsg
+
+        ReceiveDeleteVolumeSnapshot ->
+            ( outerModel, OSVolumes.requestVolumeSnapshots project )
                 |> mapToOuterMsg
 
         ReceiveUpdateVolumeName ->
@@ -2640,7 +2653,7 @@ createProject_ outerModel description authToken region endpoints =
             , flavors = []
             , keypairs = RemoteData.NotAsked
             , volumes = RemoteData.NotAsked
-            , volumeSnapshots = RemoteData.NotAsked
+            , volumeSnapshots = RDPP.RemoteDataPlusPlus RDPP.DontHave RDPP.Loading
             , networks = RDPP.empty
             , autoAllocatedNetworkUuid = RDPP.empty
             , floatingIps = RDPP.empty

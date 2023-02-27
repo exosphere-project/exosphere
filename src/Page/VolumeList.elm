@@ -8,9 +8,11 @@ import FeatherIcons
 import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (Unit(..), humanNumber)
 import Helpers.GetterSetters as GetterSetters
+import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.ResourceList exposing (creationTimeFilterOptions, listItemColumnAttribs, onCreationTimeFilter)
 import Helpers.String
 import OpenStack.Types as OSTypes
+import OpenStack.Volumes exposing (requestDeleteVolumeSnapshot)
 import Page.QuotaUsage
 import RemoteData
 import Route
@@ -23,6 +25,7 @@ import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Time
+import Types.HelperTypes exposing (Uuid)
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import View.Helpers as VH
@@ -37,6 +40,7 @@ type alias Model =
 
 type Msg
     = DetachVolume OSTypes.VolumeUuid
+    | DeleteSnapshot Uuid
     | GotDeleteConfirm OSTypes.VolumeUuid
     | SharedMsg SharedMsg.SharedMsg
     | DataListMsg DataList.Msg
@@ -51,18 +55,29 @@ init showHeading =
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
 update msg project model =
+    let
+        projectId =
+            GetterSetters.projectIdentifier project
+    in
     case msg of
         DetachVolume volumeUuid ->
             ( model
             , Cmd.none
-            , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
+            , SharedMsg.ProjectMsg projectId <|
                 SharedMsg.RequestDetachVolume volumeUuid
+            )
+
+        DeleteSnapshot snapshotUuid ->
+            ( model
+            , Cmd.none
+            , SharedMsg.ProjectMsg projectId <|
+                SharedMsg.RequestDeleteVolumeSnapshot snapshotUuid
             )
 
         GotDeleteConfirm volumeUuid ->
             ( model
             , Cmd.none
-            , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
+            , SharedMsg.ProjectMsg projectId <|
                 SharedMsg.RequestDeleteVolume volumeUuid
             )
 
@@ -121,10 +136,10 @@ view context project currentTime model =
 
           else
             Element.none
-        , Page.QuotaUsage.view context Page.QuotaUsage.Full (Page.QuotaUsage.Volume ( project.volumeQuota, project.volumeSnapshots ))
+        , Page.QuotaUsage.view context Page.QuotaUsage.Full (Page.QuotaUsage.Volume ( project.volumeQuota, RDPP.toWebData project.volumeSnapshots ))
         , VH.renderWebData
             context
-            (RemoteData.map2 Tuple.pair project.volumes project.volumeSnapshots)
+            (RemoteData.map2 Tuple.pair project.volumes (RDPP.toWebData project.volumeSnapshots))
             (Helpers.String.pluralize context.localization.blockDevice)
             renderSuccessCase
         ]
@@ -177,12 +192,6 @@ volumeView context project currentTime volumeRecord =
     let
         neutralColor =
             SH.toElementColor context.palette.neutral.text.default
-
-        primaryColor =
-            SH.toElementColor context.palette.primary
-
-        secondaryColor =
-            SH.toElementColor context.palette.secondary
 
         volumeLink =
             Element.link []
@@ -372,11 +381,21 @@ volumeView context project currentTime volumeRecord =
                             , { header = Element.none
                               , width = Element.shrink
                               , view =
-                                    \_ ->
-                                        deleteIconButton context.palette
-                                            False
-                                            ("Delete " ++ context.localization.blockDevice)
-                                            Nothing
+                                    \{ status, uuid } ->
+                                        case status of
+                                            OSTypes.Deleting ->
+                                                Button.default
+                                                    context.palette
+                                                    { text = "Deleting"
+                                                    , onPress =
+                                                        Just <| DetachVolume volumeRecord.id
+                                                    }
+
+                                            _ ->
+                                                deleteIconButton context.palette
+                                                    False
+                                                    ("Delete " ++ context.localization.blockDevice)
+                                                    (Just <| DeleteSnapshot uuid)
                               }
                             ]
                         }

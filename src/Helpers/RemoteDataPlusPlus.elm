@@ -6,10 +6,13 @@ module Helpers.RemoteDataPlusPlus exposing
     , RequestedTime
     , empty
     , isPollableWithInterval
+    , map
     , setLoading
+    , toWebData
     , withDefault
     )
 
+import RemoteData
 import Time
 
 
@@ -47,6 +50,20 @@ type alias ReceivedTime =
 -- Convenience functions
 
 
+map : (a -> b) -> RemoteDataPlusPlus error a -> RemoteDataPlusPlus error b
+map f rdpp =
+    let
+        newData =
+            case rdpp.data of
+                DoHave data time ->
+                    DoHave (f data) time
+
+                DontHave ->
+                    DontHave
+    in
+    RemoteDataPlusPlus newData rdpp.refreshStatus
+
+
 withDefault : data -> RemoteDataPlusPlus error data -> data
 withDefault default rdpp =
     -- Returns data, or the default
@@ -66,6 +83,16 @@ empty =
 setLoading : RemoteDataPlusPlus x y -> RemoteDataPlusPlus x y
 setLoading rdpp =
     { rdpp | refreshStatus = Loading }
+
+
+toWebData : RemoteDataPlusPlus error data -> RemoteData.WebData data
+toWebData data =
+    case data.data of
+        DontHave ->
+            RemoteData.NotAsked
+
+        DoHave d _ ->
+            RemoteData.Success d
 
 
 isPollableWithInterval : RemoteDataPlusPlus x y -> Time.Posix -> Int -> Bool

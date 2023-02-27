@@ -59,6 +59,7 @@ type ProjectSpecificMsgConstructor
     | RequestDeleteServers (List OSTypes.ServerUuid)
     | RequestCreateVolume OSTypes.VolumeName OSTypes.VolumeSize
     | RequestDeleteVolume OSTypes.VolumeUuid
+    | RequestDeleteVolumeSnapshot HelperTypes.Uuid
     | RequestDetachVolume OSTypes.VolumeUuid
     | RequestKeypairs
     | RequestCreateKeypair OSTypes.KeypairName OSTypes.PublicKey
@@ -89,6 +90,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveVolumeSnapshots (List OSTypes.VolumeSnapshot)
     | ReceiveDeleteVolume
     | ReceiveUpdateVolumeName
+    | ReceiveDeleteVolumeSnapshot
     | ReceiveAttachVolume OSTypes.VolumeAttachment
     | ReceiveDetachVolume
     | ReceiveComputeQuota OSTypes.ComputeQuota

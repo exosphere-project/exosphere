@@ -1,6 +1,7 @@
 module OpenStack.Volumes exposing
     ( requestCreateVolume
     , requestDeleteVolume
+    , requestDeleteVolumeSnapshot
     , requestUpdateVolumeName
     , requestVolumeSnapshots
     , requestVolumes
@@ -24,7 +25,7 @@ import Rest.Helpers
         , resultToMsgErrorBody
         )
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
-import Types.HelperTypes exposing (HttpRequestMethod(..))
+import Types.HelperTypes exposing (HttpRequestMethod(..), Uuid)
 import Types.Project exposing (Project)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 
@@ -156,6 +157,30 @@ requestDeleteVolume project volumeUuid =
         (expectStringWithErrorBody resultToMsg_)
 
 
+requestDeleteVolumeSnapshot : Project -> Uuid -> Cmd SharedMsg
+requestDeleteVolumeSnapshot project snapshotUuid =
+    let
+        errorContext =
+            ErrorContext
+                ("delete volume " ++ snapshotUuid)
+                ErrorCrit
+                (Just "Perhaps you are trying to delete a volume snapshot that is attached to a server? If so, please detach it first.")
+
+        resultToMsg_ =
+            resultToMsgErrorBody
+                errorContext
+                (\_ -> ProjectMsg (GetterSetters.projectIdentifier project) ReceiveDeleteVolumeSnapshot)
+    in
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Delete
+        Nothing
+        []
+        (project.endpoints.cinder ++ "/snapshots/" ++ snapshotUuid)
+        Http.emptyBody
+        (expectStringWithErrorBody resultToMsg_)
+
+
 requestUpdateVolumeName : Project -> OSTypes.VolumeUuid -> String -> Cmd SharedMsg
 requestUpdateVolumeName project volumeUuid name =
     let
@@ -212,6 +237,7 @@ volumeSnapshotDecoder =
         |> Pipeline.required "volume_id" Decode.string
         |> Pipeline.required "size" Decode.int
         |> Pipeline.required "created_at" (Decode.string |> Decode.andThen iso8601StringToPosixDecodeError)
+        |> Pipeline.required "status" (Decode.string |> Decode.andThen volumeStatusDecoder)
 
 
 volumeStatusDecoder : String -> Decode.Decoder OSTypes.VolumeStatus

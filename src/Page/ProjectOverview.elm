@@ -5,6 +5,7 @@ import Element.Border as Border
 import Element.Font as Font
 import FeatherIcons
 import Helpers.GetterSetters as GetterSetters
+import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import Html.Attributes
 import OpenStack.Types as OSTypes
@@ -135,7 +136,7 @@ view context project currentTime _ =
                     |> Helpers.String.toTitleCase
                 )
                 Route.VolumeList
-                (Just <| Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.Volume ( project.volumeQuota, project.volumeSnapshots )))
+                (Just <| Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.Volume ( project.volumeQuota, RDPP.toWebData project.volumeSnapshots )))
                 (volumeTileContents context project)
             , renderTile
                 (Icon.ipAddress (SH.toElementColor context.palette.neutral.text.default) 24)
