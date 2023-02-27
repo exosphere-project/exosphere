@@ -1,6 +1,7 @@
 module Orchestration.GoalProject exposing (goalPollProject)
 
 import Helpers.RemoteDataPlusPlus as RDPP
+import OpenStack.Quotas exposing (requestVolumeQuota)
 import OpenStack.Types exposing (isTransitioningStatus)
 import OpenStack.Volumes exposing (requestVolumeSnapshots)
 import Time
@@ -68,7 +69,7 @@ stepSnapshotPoll time project =
     in
     if shouldPoll then
         ( { project | volumeSnapshots = RDPP.setLoading project.volumeSnapshots }
-        , requestVolumeSnapshots project
+        , Cmd.batch [ requestVolumeSnapshots project, requestVolumeQuota project ]
         )
 
     else
