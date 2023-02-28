@@ -1,4 +1,4 @@
-# Contributor skills (required, or willing to learn)
+# Contributor skills
 
 Note: You don't need all the skills mentioned below to start contributing to Exosphere.
 We aim to create a welcoming environment where people can learn by doing.
