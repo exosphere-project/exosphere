@@ -31,6 +31,7 @@ nav:
       - 'docs/federated-login.md'
   - For Exosphere Contributors:
       - 'contributing.md'
+      - 'docs/contributor-skills.md'
       - 'docs/code-tour.md'
       - 'docs/style.md'
       - 'docs/adr/README.md'
