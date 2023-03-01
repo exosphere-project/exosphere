@@ -19,7 +19,7 @@
   git:
     repo: '{{ workflow_source_repository }}'
     version: '{{ workflow_repo_version }}'
-    dest: '/opt/workflow'
+    dest: '/home/exouser/workflow'
   when: 'workflow_local_download == true'
 
 - name: 'data directory created'
@@ -38,7 +38,7 @@
     virtualenv: '/opt/repo2docker-venv'
 
 - set_fact:
-    repo2docker_repo_arg: '{{ ''/opt/workflow'' if workflow_local_download == true else workflow_source_repository }}'
+    repo2docker_repo_arg: '{{ ''/home/workflow'' if workflow_local_download == true else workflow_source_repository }}'
 
 - name: 'repo2docker called to build container image'
   become: true
