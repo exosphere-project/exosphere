@@ -9,7 +9,7 @@ Restart=always
 ExecStartPre=-/usr/bin/docker stop %n
 ExecStartPre=-/usr/bin/docker rm %n
 ExecStart=/usr/bin/docker run --rm --name %n \
-    --volume workflow_volume:/data \
+    --volume /opt/workflow:/:rw \
     -p 8888:8888 \
     exosphere-workflow:latest \
     jupyter notebook --ip 0.0.0.0
