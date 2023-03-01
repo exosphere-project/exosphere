@@ -14,6 +14,8 @@
     mode: '0544'
 
 - name: 'repo cloned locally if needed'
+  become: true
+  become_user: 'exouser'
   git:
     repo: '{{ workflow_source_repository }}'
     version: '{{ workflow_repo_version }}'
