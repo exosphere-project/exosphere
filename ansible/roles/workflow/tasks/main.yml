@@ -38,7 +38,7 @@
     virtualenv: '/opt/repo2docker-venv'
 
 - set_fact:
-    repo2docker_repo_arg: '{{ ''/home/workflow'' if workflow_local_download == true else workflow_source_repository }}'
+    repo2docker_repo_arg: '{{ ''/home/exouser/workflow'' if workflow_local_download == true else workflow_source_repository }}'
 
 - name: 'repo2docker called to build container image'
   become: true
