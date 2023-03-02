@@ -27,6 +27,7 @@ You don't need all the skills mentioned below to start contributing to Exosphere
 
 - Elm Web Development
   - [An Introduction to Elm | The Official Elm Guide](https://guide.elm-lang.org/)
+  - [elm-ui](https://package.elm-lang.org/packages/mdgriffith/elm-ui/latest/)
   - [Debugging with Elm | elm-lang.org](https://elm-lang.org/news/the-perfect-bug-report) (written for older version of Elm, but still useful)
   - [Learn Web Development | MDN](https://developer.mozilla.org/en-US/docs/Learn)
   - [Hypertext Transfer Protocol (HTTP) | MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP)
