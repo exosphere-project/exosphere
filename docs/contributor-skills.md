@@ -70,7 +70,7 @@ Git is an advanced version control system, so there are different levels of git 
 
 To make your first Exosphere contribution, you only need basic familiarity with the `clone`, `switch`, `add`, `commit`, and `push` commands. Our [quick start](../contributing.md#quick-start-for-new-contributors) section shows each git command to run. This is about the same skill level you'd need to host a small personal project  on GitHub.
 
-To work collaboratively on major changes to Exosphere's codebase, you will need deeper git knowledge. This includes knowing, at least roughly:
+To work collaboratively on major changes to Exosphere's codebase, or to become a project maintainer, you will need deeper git knowledge. This includes knowing, at least roughly:
 
 - How to write effective commit messages
 - How to structure and order commits so that code reviewers can follow a multi-commit change
