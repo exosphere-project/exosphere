@@ -3,14 +3,6 @@
 Note: You don't need all the skills mentioned below to start contributing to Exosphere.
 We aim to create a welcoming environment where people can learn by doing.
 
-## Areas of contribution in the Exosphere project
-
-- User interface
-- Instance configuration
-- OpenStack interactions
-- Documentation
-- Browser tests
-
 ## Areas with corresponding skills requirements
 
 | Area↓     \|     Skill→ | Elm       | Linux     | OpenStack API | Interaction Design | Technical Writing | Markdown  | Git         | Python      |
