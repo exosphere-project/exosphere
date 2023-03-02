@@ -54,13 +54,9 @@ You don't need all the skills mentioned below to start contributing to Exosphere
   - [GitLab Flavored Markdown | GitLab](https://docs.gitlab.com/ee/user/markdown.html)
 - A+ Written English
   - This includes:
-    - The ability to write text that does not contain obvious mistakes or confuse the reader.
-    - The ability to communicate technical concepts succinctly, with an awareness of the likely audience.
+    - In a user interface, the ability to write text that does not contain obvious mistakes or confuse the reader.
+    - In documentation, the ability to communicate technical concepts succinctly, with an awareness of the likely audience.
     - Consistent use of grammar, punctuation, and capitalization.
-  - It is most important for:
-    - Text displayed in Exosphere's user interface.
-    - Documentation.
-  - It is also helpful (though less critical) in code.
   - [The Elements of Style](https://www.gutenberg.org/files/37134/37134-h/37134-h.htm)
   - [Subject-verb agreement](https://owl.purdue.edu/owl/general_writing/grammar/subject_verb_agreement.html)
 
