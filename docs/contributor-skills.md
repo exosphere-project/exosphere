@@ -11,10 +11,10 @@ We aim to create a welcoming environment where people can learn by doing.
 | Linux and Ansible   |                | Essential              | Optional               | Optional      |               |
 | Cloud APIs          | Optional       | Optional               | Essential              | Optional      |               |
 | Interaction Design  | Recommended    |                        |                        |               |               |
-| Technical Writing   |                |                        |                        | Essential     |               |
 | Markdown            |                |                        |                        | Essential     |               |
 | Git and GitLab      | Recommended    | Recommended            | Recommended            | Optional      | Recommended   |
 | Python BDD Testing  |                |                        |                        |               | Recommended   |
+| A+ Written English  | Essential      | Optional               | Optional               | Essential     | Recommended   |
 
 **Key:**
 
@@ -41,8 +41,6 @@ We aim to create a welcoming environment where people can learn by doing.
   - [Best Interaction Design Courses & Certifications | Coursera](https://www.coursera.org/courses?query=interaction%20design)
   - [Learn Interaction Design | Codecademy](https://www.codecademy.com/learn/learn-interaction-design)
   - [Learn Interaction Design with Online Courses, Classes, & Lessons | edX](https://www.edx.org/learn/interaction-design)
-- Technical Writing
-  - [Best Technical Writing Courses & Certifications | Coursera](https://www.coursera.org/courses?query=technical+writing)
 - Markdown
   - [Markdown Cheatsheet | GitHub](https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet)
   - [GitLab Flavored Markdown | GitLab](https://docs.gitlab.com/ee/user/markdown.html)
@@ -54,7 +52,17 @@ We aim to create a welcoming environment where people can learn by doing.
   - [Python for Beginners | Python.org](https://www.python.org/about/gettingstarted/)
   - [behave Tutorial - Behavior-Driven Development (BDD), Python style | ReadTheDocs](https://behave.readthedocs.io/en/stable/tutorial.html)
   - [behaving - Behavior-Driven Development (BDD) for multi-user web/email/sms applications | GitHub](https://github.com/ggozad/behaving)
-
+- A+ Written English
+  - This includes:
+    - The ability to write text that does not contain obvious mistakes or confuse the reader.
+    - The ability to communicate technical concepts succinctly, with an awareness of the likely audience.
+    - Consistent use of grammar, punctuation, and capitalization.
+  - It is most important for:
+    - Text displayed in Exosphere's user interface.
+    - Documentation.
+  - It is also helpful (though less critical) in code.
+  - [The Elements of Style](https://www.gutenberg.org/files/37134/37134-h/37134-h.htm)
+  - [Subject-verb agreement](https://owl.purdue.edu/owl/general_writing/grammar/subject_verb_agreement.html)
 
 ## On Git Skills
 
