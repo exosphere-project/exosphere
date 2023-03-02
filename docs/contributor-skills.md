@@ -37,18 +37,18 @@ We aim to create a welcoming environment where people can learn by doing.
   - [Get Started | Ansible](https://www.ansible.com/resources/get-started)
 - OpenStack API (and cloud computing concepts)
   - [OpenStack Tutorials | Ubuntu](https://ubuntu.com/tutorials?topic=openstack)
-- Markdown
-  - [Markdown Cheatsheet | GitHub](https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet)
-  - [GitLab Flavored Markdown | GitLab](https://docs.gitlab.com/ee/user/markdown.html)
-- Git (and GitLab)
-  - [Git | GitLab](https://docs.gitlab.com/ee/topics/git/)
-  - [Learn GitLab with tutorials | GitLab](https://docs.gitlab.com/ee/tutorials/)
 - Interaction design
   - [Best Interaction Design Courses & Certifications | Coursera](https://www.coursera.org/courses?query=interaction%20design)
   - [Learn Interaction Design | Codecademy](https://www.codecademy.com/learn/learn-interaction-design)
   - [Learn Interaction Design with Online Courses, Classes, & Lessons | edX](https://www.edx.org/learn/interaction-design)
 - Technical writing
   - [Best Technical Writing Courses & Certifications | Coursera](https://www.coursera.org/courses?query=technical+writing)
+- Markdown
+  - [Markdown Cheatsheet | GitHub](https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet)
+  - [GitLab Flavored Markdown | GitLab](https://docs.gitlab.com/ee/user/markdown.html)
+- Git (and GitLab)
+  - [Git | GitLab](https://docs.gitlab.com/ee/topics/git/)
+  - [Learn GitLab with tutorials | GitLab](https://docs.gitlab.com/ee/tutorials/)
 - Python and Behavior-Driven Development (BDD)
   - [Python for Beginners | Python.org](https://www.python.org/about/gettingstarted/)
   - [behave Tutorial - Behavior-Driven Development (BDD), Python style | ReadTheDocs](https://behave.readthedocs.io/en/stable/tutorial.html)
