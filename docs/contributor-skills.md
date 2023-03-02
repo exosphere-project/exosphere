@@ -5,13 +5,16 @@ We aim to create a welcoming environment where people can learn by doing.
 
 ## Areas with corresponding skills requirements
 
-| Area↓     \|     Skill→ | Elm       | Linux     | OpenStack API | Interaction Design | Technical Writing | Markdown  | Git         | Python      |
-|-------------------------|-----------|-----------|---------------|--------------------|-------------------|-----------|-------------|-------------|
-| User interface          | Essential |           | Optional      | Recommended        |                   |           | Recommended |             |
-| Instance configuration  | Optional  | Essential | Optional      |                    |                   |           | Recommended |             |
-| OpenStack interactions  | Essential | Optional  | Essential     |                    |                   |           | Recommended |             |
-| Documentation           | Optional  | Optional  | Optional      |                    | Essential         | Essential | Optional    |             |
-| Browser tests           |           |           |               |                    |                   |           | Recommended | Recommended |
+| Skill↓       Area→ | User interface | Instance configuration | OpenStack interactions | Documentation | Browser tests |
+|--------------------|----------------|------------------------|------------------------|---------------|---------------|
+| Elm                | Essential      | Optional               | Essential              | Optional      |               |
+| Linux              |                | Essential              | Optional               | Optional      |               |
+| OpenStack API      | Optional       | Optional               | Essential              | Optional      |               |
+| Interaction Design | Recommended    |                        |                        |               |               |
+| Technical Writing  |                |                        |                        | Essential     |               |
+| Markdown           |                |                        |                        | Essential     |               |
+| Git                | Recommended    | Recommended            | Recommended            | Optional      | Recommended   |
+| Python             |                |                        |                        |               | Recommended   |
 
 **Key:**
 
