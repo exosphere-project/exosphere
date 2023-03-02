@@ -47,9 +47,28 @@ We aim to create a welcoming environment where people can learn by doing.
   - [Markdown Cheatsheet | GitHub](https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet)
   - [GitLab Flavored Markdown | GitLab](https://docs.gitlab.com/ee/user/markdown.html)
 - Git and GitLab
+  - GitLab is a very similar service to GitHub; if you're familiar with one, using the other is quite straightforward. 
   - [Git | GitLab](https://docs.gitlab.com/ee/topics/git/)
   - [Learn GitLab with tutorials | GitLab](https://docs.gitlab.com/ee/tutorials/)
 - Python BDD (Behavior-Driven Development) Testing
   - [Python for Beginners | Python.org](https://www.python.org/about/gettingstarted/)
   - [behave Tutorial - Behavior-Driven Development (BDD), Python style | ReadTheDocs](https://behave.readthedocs.io/en/stable/tutorial.html)
   - [behaving - Behavior-Driven Development (BDD) for multi-user web/email/sms applications | GitHub](https://github.com/ggozad/behaving)
+
+
+## On Git Skills
+
+Git is an advanced version control system, so there are different levels of git skill.
+
+To make your first Exosphere contribution, you only need basic familiarity with the `clone`, `switch`, `add`, `commit`, and `push` commands. Our [quick start](../contributing.md#quick-start-for-new-contributors) section shows each git command to run. This is about the same skill level you'd need to host a small personal project  on GitHub.
+
+To work collaboratively on major changes to Exosphere's codebase, you will need deeper git knowledge. This includes knowing, at least roughly:
+
+- How to write effective commit messages
+- How to structure and order commits so that code reviewers can follow a multi-commit change
+- How to manage multiple git remotes (one for each colleague)
+- The difference between `git fetch`, `git merge`, and `git pull`
+- The difference between a fast-forward merge and a two-parent merge
+- How to rebase changes
+- What merge conflicts are, and how to resolve them
+- Optional but helpful, Git's [basic data structure](https://eagain.net/articles/git-for-computer-scientists)
