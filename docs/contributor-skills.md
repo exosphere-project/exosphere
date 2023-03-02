@@ -5,16 +5,16 @@ We aim to create a welcoming environment where people can learn by doing.
 
 ## Areas with corresponding skills requirements
 
-| Skill↓   \|   Area→ | User interface | Instance configuration | OpenStack interactions | Documentation | Browser tests |
+| Skill↓   \|  Area→  | User interface | Instance configuration | OpenStack interactions | Browser tests | Documentation |
 |---------------------|----------------|------------------------|------------------------|---------------|---------------|
-| Elm Web Development | Essential      | Optional               | Essential              | Optional      |               |
-| Linux and Ansible   |                | Essential              | Optional               | Optional      |               |
-| Cloud APIs          | Optional       | Optional               | Essential              | Optional      |               |
-| Python BDD Testing  |                |                        |                        |               | Recommended   |
+| Elm Web Development | Essential      | Optional               | Essential              |               | Optional      |
+| Linux and Ansible   |                | Essential              | Optional               |               | Optional      |
+| Cloud APIs          | Optional       | Optional               | Essential              |               | Optional      |
+| Python BDD Testing  |                |                        |                        | Recommended   |               |
 | Interaction Design  | Recommended    |                        |                        |               |               |
-| Git and GitLab      | Recommended    | Recommended            | Recommended            | Optional      | Recommended   |
-| Markdown            |                |                        |                        | Essential     |               |
-| A+ Written English  | Essential      | Optional               | Optional               | Essential     | Recommended   |
+| Git and GitLab      | Recommended    | Recommended            | Recommended            | Recommended   | Optional      |
+| Markdown            |                |                        |                        |               | Essential     |
+| A+ Written English  | Essential      | Optional               | Optional               | Recommended   | Essential     |
 
 **Key:**
 
