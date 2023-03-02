@@ -5,7 +5,7 @@ We aim to create a welcoming environment where people can learn by doing.
 
 ## Areas with corresponding skills requirements
 
-| Skill↓       Area→  | User interface | Instance configuration | OpenStack interactions | Documentation | Browser tests |
+| Skill↓   \|   Area→ | User interface | Instance configuration | OpenStack interactions | Documentation | Browser tests |
 |---------------------|----------------|------------------------|------------------------|---------------|---------------|
 | Elm Web Development | Essential      | Optional               | Essential              | Optional      |               |
 | Linux and Ansible   |                | Essential              | Optional               | Optional      |               |
