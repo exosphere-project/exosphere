@@ -10,10 +10,10 @@ We aim to create a welcoming environment where people can learn by doing.
 | Elm Web Development | Essential      | Optional               | Essential              | Optional      |               |
 | Linux and Ansible   |                | Essential              | Optional               | Optional      |               |
 | Cloud APIs          | Optional       | Optional               | Essential              | Optional      |               |
-| Interaction Design  | Recommended    |                        |                        |               |               |
-| Markdown            |                |                        |                        | Essential     |               |
-| Git and GitLab      | Recommended    | Recommended            | Recommended            | Optional      | Recommended   |
 | Python BDD Testing  |                |                        |                        |               | Recommended   |
+| Interaction Design  | Recommended    |                        |                        |               |               |
+| Git and GitLab      | Recommended    | Recommended            | Recommended            | Optional      | Recommended   |
+| Markdown            |                |                        |                        | Essential     |               |
 | A+ Written English  | Essential      | Optional               | Optional               | Essential     | Recommended   |
 
 **Key:**
@@ -37,21 +37,21 @@ We aim to create a welcoming environment where people can learn by doing.
   - [Get Started | Ansible](https://www.ansible.com/resources/get-started)
 - Cloud APIs
   - [OpenStack Tutorials | Ubuntu](https://ubuntu.com/tutorials?topic=openstack)
-- Interaction Design
-  - [Best Interaction Design Courses & Certifications | Coursera](https://www.coursera.org/courses?query=interaction%20design)
-  - [Learn Interaction Design | Codecademy](https://www.codecademy.com/learn/learn-interaction-design)
-  - [Learn Interaction Design with Online Courses, Classes, & Lessons | edX](https://www.edx.org/learn/interaction-design)
-- Markdown
-  - [Markdown Cheatsheet | GitHub](https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet)
-  - [GitLab Flavored Markdown | GitLab](https://docs.gitlab.com/ee/user/markdown.html)
-- Git and GitLab
-  - GitLab is a very similar service to GitHub; if you're familiar with one, using the other is quite straightforward. 
-  - [Git | GitLab](https://docs.gitlab.com/ee/topics/git/)
-  - [Learn GitLab with tutorials | GitLab](https://docs.gitlab.com/ee/tutorials/)
 - Python BDD (Behavior-Driven Development) Testing
   - [Python for Beginners | Python.org](https://www.python.org/about/gettingstarted/)
   - [behave Tutorial - Behavior-Driven Development (BDD), Python style | ReadTheDocs](https://behave.readthedocs.io/en/stable/tutorial.html)
   - [behaving - Behavior-Driven Development (BDD) for multi-user web/email/sms applications | GitHub](https://github.com/ggozad/behaving)
+- Interaction Design
+  - [Best Interaction Design Courses & Certifications | Coursera](https://www.coursera.org/courses?query=interaction%20design)
+  - [Learn Interaction Design | Codecademy](https://www.codecademy.com/learn/learn-interaction-design)
+  - [Learn Interaction Design with Online Courses, Classes, & Lessons | edX](https://www.edx.org/learn/interaction-design)
+- Git and GitLab
+  - GitLab is a very similar service to GitHub; if you're familiar with one, using the other is quite straightforward. 
+  - [Git | GitLab](https://docs.gitlab.com/ee/topics/git/)
+  - [Learn GitLab with tutorials | GitLab](https://docs.gitlab.com/ee/tutorials/)
+- Markdown
+  - [Markdown Cheatsheet | GitHub](https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet)
+  - [GitLab Flavored Markdown | GitLab](https://docs.gitlab.com/ee/user/markdown.html)
 - A+ Written English
   - This includes:
     - The ability to write text that does not contain obvious mistakes or confuse the reader.
