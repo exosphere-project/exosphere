@@ -11,7 +11,7 @@ You don't need all the skills mentioned below to start contributing to Exosphere
 | Cloud APIs          | Optional       | Optional               | Essential              |               | Optional      |
 | Python BDD Testing  |                |                        |                        | Recommended   |               |
 | Interaction Design  | Recommended    |                        |                        |               |               |
-| Git and GitLab      | Recommended    | Recommended            | Recommended            | Recommended   | Optional      |
+| Git and GitLab      | Essential      | Essential              | Essential              | Essential     | Optional      |
 | Markdown            |                |                        |                        |               | Essential     |
 | A+ Written English  | Essential      | Optional               | Optional               | Recommended   | Essential     |
 
