@@ -1,9 +1,8 @@
-# Contributor skills
+# Exosphere Contributor Skills
 
-Note: You don't need all the skills mentioned below to start contributing to Exosphere.
-We aim to create a welcoming environment where people can learn by doing.
+You don't need all the skills mentioned below to start contributing to Exosphere. We aim to create a welcoming environment where people can learn by doing.
 
-## Areas with corresponding skills requirements
+## Areas of Exosphere with Relevant Skills
 
 | Skill↓   \|  Area→  | User interface | Instance configuration | OpenStack interactions | Browser tests | Documentation |
 |---------------------|----------------|------------------------|------------------------|---------------|---------------|
