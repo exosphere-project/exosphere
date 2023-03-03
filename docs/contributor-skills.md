@@ -59,6 +59,7 @@ You don't need all the skills mentioned below to start contributing to Exosphere
     - Consistent use of grammar, punctuation, and capitalization.
   - [The Elements of Style](https://www.gutenberg.org/files/37134/37134-h/37134-h.htm)
   - [Subject-verb agreement](https://owl.purdue.edu/owl/general_writing/grammar/subject_verb_agreement.html)
+  - [UX Writing Guide | PatternFly](https://www.patternfly.org/v4/ux-writing/about)
 
 ## On Git Skills
 
