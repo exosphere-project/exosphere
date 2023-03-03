@@ -2,6 +2,8 @@
 
 Exosphere has a lighter-weight process for new contributors. If you're making your _first or second_ contribution to Exosphere, you only need the Quick Start section below. Otherwise, please see the Core Contributor Onboarding section.
 
+See [Contributor skills](docs/contributor-skills.md) for the skills you need (or will learn!) while working on different parts of the project.
+
 ## Quick Start for New Contributors
 
 This assumes familiarity with a git-based contribution workflow on platforms like GitHub. If you have never done that, or you are stuck for any other reason, ask for guidance [in our chat](https://matrix.to/#/#exosphere-dev:matrix.org). We're happy to help.
