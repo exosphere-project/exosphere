@@ -500,7 +500,8 @@ toolbarView resourceName model toMsg context rowStyle data bulkActions selection
 
         numberOfRecordsDisplay =
             if numberOfRecords == numberOfFilteredRecords then
-                Element.el [ Text.fontSize Text.Small, Font.color <| SH.toElementColor context.palette.neutral.text.subdued ] (Element.text <| displayedResourceWord ++ ": " ++ numberOfRecords)
+                Element.el [ Text.fontSize Text.Small, Font.color <| SH.toElementColor context.palette.neutral.text.subdued ]
+                    (Element.text <| displayedResourceWord ++ ": " ++ numberOfRecords)
 
             else
                 Element.el [ Text.fontSize Text.Small, Font.color <| SH.toElementColor context.palette.neutral.text.subdued ]
@@ -622,8 +623,10 @@ toolbarView resourceName model toMsg context rowStyle data bulkActions selection
             , Element.row [ Element.spacing spacer.px24, Element.width Element.fill ]
                 [ selectAllCheckbox
                 , selectionFiltersView
-                , bulkActionsView
-                , numberOfRecordsDisplay
+                , Element.column [ Element.spacing spacer.px12, Element.alignTop ]
+                    [ bulkActionsView
+                    , numberOfRecordsDisplay
+                    ]
                 ]
             ]
 
