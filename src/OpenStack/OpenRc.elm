@@ -11,9 +11,14 @@ processOpenRc existingCreds openRc =
         parseVar : String -> Maybe String
         parseVar varName =
             let
-                parseOptionalDoubleQuote =
-                    -- Why does this need to be Parser.succeed () instead of Parser.succeed identity?
-                    Parser.oneOf [ Parser.symbol "\"", Parser.succeed () ]
+                parseVariable =
+                    Parser.succeed identity
+                        |= Parser.variable
+                            -- This discards any bash variables defined with other bash variables, e.g. $OS_PASSWORD_INPUT
+                            { start = \c -> c /= '$'
+                            , inner = \c -> not (List.member c [ '\n', '"', '\'' ])
+                            , reserved = Set.empty
+                            }
 
                 varParser : Parser.Parser String
                 varParser =
@@ -24,14 +29,18 @@ processOpenRc existingCreds openRc =
                         |. Parser.spaces
                         |. Parser.keyword varName
                         |. Parser.symbol "="
-                        |. parseOptionalDoubleQuote
-                        |= Parser.variable
-                            -- This discards any bash variables defined with other bash variables, e.g. $OS_PASSWORD_INPUT
-                            { start = \c -> c /= '$'
-                            , inner = \c -> not (List.member c [ '\n', '"' ])
-                            , reserved = Set.empty
-                            }
-                        |. parseOptionalDoubleQuote
+                        |= Parser.oneOf
+                            [ Parser.succeed identity
+                                |. Parser.symbol "\""
+                                |= parseVariable
+                                |. Parser.symbol "\""
+                            , Parser.succeed identity
+                                |. Parser.symbol "'"
+                                |= parseVariable
+                                |. Parser.symbol "'"
+                            , Parser.succeed identity
+                                |= parseVariable
+                            ]
                         |. Parser.oneOf [ Parser.symbol "\n", Parser.end ]
             in
             openRc

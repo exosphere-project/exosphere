@@ -204,7 +204,15 @@ processOpenRcSuite =
                     |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
                     |> .authUrl
                     |> Expect.equal "https://cell.alliance.rebel:5000/v3"
-        , test "that double quotes are optional" <|
+        , test "that single quotes are accepted but not included in a processed match" <|
+            \() ->
+                """
+                export OS_AUTH_URL='https://cell.alliance.rebel:5000/v3'
+                """
+                    |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
+                    |> .authUrl
+                    |> Expect.equal "https://cell.alliance.rebel:5000/v3"
+        , test "that quotes are optional" <|
             \() ->
                 """
                 export OS_AUTH_URL=https://cell.alliance.rebel:5000/v3
@@ -212,6 +220,14 @@ processOpenRcSuite =
                     |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
                     |> .authUrl
                     |> Expect.equal "https://cell.alliance.rebel:5000/v3"
+        , test "that mismatched quotes fail to parse" <|
+            \() ->
+                """
+                export OS_AUTH_URL='https://cell.alliance.rebel:5000/v3"
+                """
+                    |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
+                    |> .authUrl
+                    |> Expect.equal ""
         , test "ensure pre-'API Version 3' can be processed " <|
             \() ->
                 TestData.openrcPreV3
