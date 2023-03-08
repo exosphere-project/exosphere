@@ -2,6 +2,7 @@ module OpenStack.VolumeSnapshots exposing
     ( Status(..)
     , VolumeSnapshot
     , isTransitioning
+    , statusToString
     , volumeSnapshotDecoder
     )
 
@@ -33,6 +34,37 @@ type Status
     | ErrorDeleting
     | Restoring
     | UnManaging
+
+
+statusToString : Status -> String
+statusToString status =
+    case status of
+        Available ->
+            "Available"
+
+        BackingUp ->
+            "Backing Up"
+
+        Creating ->
+            "Creating"
+
+        Deleted ->
+            "Deleted"
+
+        Deleting ->
+            "Deleting"
+
+        Error ->
+            "Error"
+
+        ErrorDeleting ->
+            "Error Deleting"
+
+        Restoring ->
+            "Restoring"
+
+        UnManaging ->
+            "Unmanaging"
 
 
 isTransitioning : VolumeSnapshot -> Bool

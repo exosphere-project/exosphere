@@ -12,7 +12,7 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.ResourceList exposing (creationTimeFilterOptions, listItemColumnAttribs, onCreationTimeFilter)
 import Helpers.String
 import OpenStack.Types as OSTypes
-import OpenStack.VolumeSnapshots exposing (VolumeSnapshot)
+import OpenStack.VolumeSnapshots as VS
 import OpenStack.Volumes exposing (requestDeleteVolumeSnapshot)
 import Page.QuotaUsage
 import RemoteData
@@ -104,7 +104,7 @@ update msg project model =
 view : View.Types.Context -> Project -> Time.Posix -> Model -> Element.Element Msg
 view context project currentTime model =
     let
-        renderSuccessCase : ( List OSTypes.Volume, List VolumeSnapshot ) -> Element.Element Msg
+        renderSuccessCase : ( List OSTypes.Volume, List VS.VolumeSnapshot ) -> Element.Element Msg
         renderSuccessCase ( volumes_, snapshots ) =
             DataList.view
                 context.localization.blockDevice
@@ -149,12 +149,12 @@ view context project currentTime model =
 type alias VolumeRecord =
     DataList.DataRecord
         { volume : OSTypes.Volume
-        , snapshots : List VolumeSnapshot
+        , snapshots : List VS.VolumeSnapshot
         , creator : String
         }
 
 
-volumeRecords : Project -> ( List OSTypes.Volume, List VolumeSnapshot ) -> List VolumeRecord
+volumeRecords : Project -> ( List OSTypes.Volume, List VS.VolumeSnapshot ) -> List VolumeRecord
 volumeRecords project ( volumes, snapshots ) =
     let
         creator volume =
@@ -164,7 +164,7 @@ volumeRecords project ( volumes, snapshots ) =
             else
                 "other user"
 
-        isVolumeSnapshot : OSTypes.Volume -> VolumeSnapshot -> Bool
+        isVolumeSnapshot : OSTypes.Volume -> VS.VolumeSnapshot -> Bool
         isVolumeSnapshot { uuid } { volumeId } =
             uuid == volumeId
 
@@ -293,7 +293,7 @@ volumeView context project currentTime volumeRecord =
                     in
                     Element.row [ Element.spacing spacer.px12 ]
                         [ deletePopconfirm context
-                            (\deletePopconfirmId_ -> SharedMsg <| SharedMsg.TogglePopover deletePopconfirmId_)
+                            (SharedMsg << SharedMsg.TogglePopover)
                             deletePopconfirmId
                             { confirmationText =
                                 "Are you sure you want to delete this "
@@ -382,21 +382,53 @@ volumeView context project currentTime volumeRecord =
                             , { header = Element.none
                               , width = Element.shrink
                               , view =
-                                    \{ status, uuid } ->
-                                        case status of
-                                            OpenStack.VolumeSnapshots.Deleting ->
-                                                Button.default
-                                                    context.palette
-                                                    { text = "Deleting"
-                                                    , onPress =
-                                                        Just <| DetachVolume volumeRecord.id
-                                                    }
+                                    \snapshot ->
+                                        case snapshot.status of
+                                            VS.Available ->
+                                                let
+                                                    deviceLabel =
+                                                        context.localization.blockDevice ++ " snapshot"
+
+                                                    deletePopconfirmId =
+                                                        Helpers.String.hyphenate
+                                                            [ "volumeListDeleteSnapshotPopconfirm"
+                                                            , project.auth.project.uuid
+                                                            , snapshot.uuid
+                                                            ]
+
+                                                    deleteButton =
+                                                        deletePopconfirm context
+                                                            (SharedMsg << SharedMsg.TogglePopover)
+                                                            deletePopconfirmId
+                                                            { confirmationText =
+                                                                "Are you sure you want to delete this "
+                                                                    ++ deviceLabel
+                                                                    ++ "?"
+                                                            , onCancel = Just NoOp
+                                                            , onConfirm = Just <| DeleteSnapshot snapshot.uuid
+                                                            }
+                                                            ST.PositionBottomRight
+                                                            (\msg _ ->
+                                                                deleteIconButton context.palette
+                                                                    False
+                                                                    ("Delete " ++ deviceLabel)
+                                                                    (Just msg)
+                                                            )
+                                                in
+                                                Element.row
+                                                    [ Element.spacing spacer.px12 ]
+                                                    [ deleteButton ]
 
                                             _ ->
-                                                deleteIconButton context.palette
-                                                    False
-                                                    ("Delete " ++ context.localization.blockDevice)
-                                                    (Just <| DeleteSnapshot uuid)
+                                                let
+                                                    label =
+                                                        if VS.isTransitioning snapshot then
+                                                            VS.statusToString snapshot.status ++ " ..."
+
+                                                        else
+                                                            VS.statusToString snapshot.status
+                                                in
+                                                Element.el [ Font.italic ] (Element.text label)
                               }
                             ]
                         }
