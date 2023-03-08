@@ -154,7 +154,7 @@ localizationDecoder =
 sentryConfigDecoder : Decoder HelperTypes.SentryConfig
 sentryConfigDecoder =
     succeed HelperTypes.SentryConfig
-        |> required "dsnsPublicKey" string
+        |> required "dsnPublicKey" string
         |> required "dsnHost" string
         |> required "dsnProjectId" string
         |> required "releaseVersion" string
