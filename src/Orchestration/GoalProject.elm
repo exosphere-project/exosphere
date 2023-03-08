@@ -59,10 +59,6 @@ stepSnapshotPoll time project =
                 ( RDPP.DoHave [] _, _ ) ->
                     False
 
-                -- If we're currently polling for snapshots we don't want to queue a second poll.
-                ( RDPP.DoHave _ _, RDPP.Loading ) ->
-                    False
-
                 -- Only poll if it's been a few seconds since the last one.
                 ( RDPP.DoHave _ _, _ ) ->
                     RDPP.isPollableWithInterval snapshots time transitioningSnapshotPollInterval
