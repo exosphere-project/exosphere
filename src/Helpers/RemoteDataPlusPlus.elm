@@ -12,6 +12,7 @@ module Helpers.RemoteDataPlusPlus exposing
     , withDefault
     )
 
+import Http
 import RemoteData
 import Time
 
@@ -85,14 +86,32 @@ setLoading rdpp =
     { rdpp | refreshStatus = Loading }
 
 
-toWebData : RemoteDataPlusPlus error data -> RemoteData.WebData data
-toWebData data =
-    case data.data of
-        DontHave ->
-            RemoteData.NotAsked
+type alias HttpErrorWithBody =
+    { error : Http.Error
+    , body : String
+    }
 
+
+toWebData : RemoteDataPlusPlus HttpErrorWithBody data -> RemoteData.WebData data
+toWebData rdpp =
+    -- This is a _transitional function_ that we should remove once the app uses RDPP instead of RemoteData:
+    -- https://gitlab.com/exosphere/exosphere/-/issues/339
+    -- Please do not use this function to implement new polling logic.
+    -- This function is lossy: RDPP can express data and loading/error state simultaneously, while RemoteData cannot.
+    case rdpp.data of
         DoHave d _ ->
             RemoteData.Success d
+
+        DontHave ->
+            case rdpp.refreshStatus of
+                Loading ->
+                    RemoteData.Loading
+
+                NotLoading (Just ( error, _ )) ->
+                    RemoteData.Failure error.error
+
+                NotLoading Nothing ->
+                    RemoteData.NotAsked
 
 
 isPollableWithInterval : RemoteDataPlusPlus x y -> Time.Posix -> Int -> Bool
