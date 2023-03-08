@@ -18,7 +18,6 @@ ssh_pwauth: true
 package_update: true
 package_upgrade: {install-os-updates}
 packages:
-  - python3-virtualenv
   - git{write-files}
 runcmd:
   - echo on > /proc/sys/kernel/printk_devkmsg || true  # Disable console rate limiting for distros that use kmsg
@@ -28,7 +27,7 @@ runcmd:
   - chmod 640 /var/log/cloud-init-output.log
   - {create-cluster-command}
   - |-
-    (which virtualenv && virtualenv /opt/ansible-venv) || (which virtualenv-3 && virtualenv-3 /opt/ansible-venv) || python3 -m virtualenv /opt/ansible-venv
+    python3 -m venv /opt/ansible-venv
     . /opt/ansible-venv/bin/activate
     pip install ansible-core
     ansible-pull --url "{instance-config-mgt-repo-url}" --checkout "{instance-config-mgt-repo-checkout}" --directory /opt/instance-config-mgt -i /opt/instance-config-mgt/ansible/hosts -e "{ansible-extra-vars}" /opt/instance-config-mgt/ansible/playbook.yml

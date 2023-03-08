@@ -35,6 +35,7 @@
       - 'six'
       - 'chardet'  # Temporary workaround for this bug: https://github.com/jupyterhub/repo2docker/issues/1065
       - 'jupyter-repo2docker'
+    virtualenv_command: 'python3 -m venv'
     virtualenv: '/opt/repo2docker-venv'
 
 - set_fact:
