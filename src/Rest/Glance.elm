@@ -9,6 +9,7 @@ module Rest.Glance exposing
 import Dict
 import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
+import Helpers.Time exposing (iso8601StringToPosixDecodeError)
 import Helpers.Url as UrlHelpers
 import Http
 import Json.Decode as Decode
@@ -345,7 +346,7 @@ imageDecoderHelper =
         |> Pipeline.required "owner" Decode.string
         |> Pipeline.required "visibility" (Decode.string |> Decode.andThen imageVisibilityDecoder)
         |> Pipeline.custom (decodeAdditionalProperties basePropertyNames)
-        |> Pipeline.required "created_at" (Decode.string |> Decode.andThen Rest.Helpers.iso8601StringToPosixDecodeError)
+        |> Pipeline.required "created_at" (Decode.string |> Decode.andThen iso8601StringToPosixDecodeError)
         |> Pipeline.optional "os_distro" (Decode.string |> Decode.andThen (\s -> Decode.succeed <| Just s)) Nothing
         |> Pipeline.optional "os_version" (Decode.string |> Decode.andThen (\s -> Decode.succeed <| Just s)) Nothing
         |> Pipeline.required "protected" Decode.bool

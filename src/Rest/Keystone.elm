@@ -10,6 +10,7 @@ module Rest.Keystone exposing
 
 import Dict
 import Helpers.GetterSetters as GetterSetters
+import Helpers.Time exposing (iso8601StringToPosixDecodeError)
 import Helpers.Url
 import Http
 import Json.Decode as Decode
@@ -19,7 +20,6 @@ import Rest.Helpers
     exposing
         ( expectJsonWithErrorBody
         , idOrName
-        , iso8601StringToPosixDecodeError
         , keystoneUrlWithVersion
         , openstackCredentialedRequest
         , proxyifyRequest

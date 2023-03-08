@@ -12,6 +12,7 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.ResourceList exposing (creationTimeFilterOptions, listItemColumnAttribs, onCreationTimeFilter)
 import Helpers.String
 import OpenStack.Types as OSTypes
+import OpenStack.VolumeSnapshots exposing (VolumeSnapshot)
 import OpenStack.Volumes exposing (requestDeleteVolumeSnapshot)
 import Page.QuotaUsage
 import RemoteData
@@ -103,7 +104,7 @@ update msg project model =
 view : View.Types.Context -> Project -> Time.Posix -> Model -> Element.Element Msg
 view context project currentTime model =
     let
-        renderSuccessCase : ( List OSTypes.Volume, List OSTypes.VolumeSnapshot ) -> Element.Element Msg
+        renderSuccessCase : ( List OSTypes.Volume, List VolumeSnapshot ) -> Element.Element Msg
         renderSuccessCase ( volumes_, snapshots ) =
             DataList.view
                 context.localization.blockDevice
@@ -148,12 +149,12 @@ view context project currentTime model =
 type alias VolumeRecord =
     DataList.DataRecord
         { volume : OSTypes.Volume
-        , snapshots : List OSTypes.VolumeSnapshot
+        , snapshots : List VolumeSnapshot
         , creator : String
         }
 
 
-volumeRecords : Project -> ( List OSTypes.Volume, List OSTypes.VolumeSnapshot ) -> List VolumeRecord
+volumeRecords : Project -> ( List OSTypes.Volume, List VolumeSnapshot ) -> List VolumeRecord
 volumeRecords project ( volumes, snapshots ) =
     let
         creator volume =
@@ -163,7 +164,7 @@ volumeRecords project ( volumes, snapshots ) =
             else
                 "other user"
 
-        isVolumeSnapshot : OSTypes.Volume -> OSTypes.VolumeSnapshot -> Bool
+        isVolumeSnapshot : OSTypes.Volume -> VolumeSnapshot -> Bool
         isVolumeSnapshot { uuid } { volumeId } =
             uuid == volumeId
 
@@ -383,7 +384,7 @@ volumeView context project currentTime volumeRecord =
                               , view =
                                     \{ status, uuid } ->
                                         case status of
-                                            OSTypes.Deleting ->
+                                            OpenStack.VolumeSnapshots.Deleting ->
                                                 Button.default
                                                     context.palette
                                                     { text = "Deleting"

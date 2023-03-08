@@ -6,6 +6,7 @@ import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (Unit(..), humanNumber)
 import Helpers.String
 import OpenStack.Types as OSTypes
+import OpenStack.VolumeSnapshots exposing (VolumeSnapshot)
 import RemoteData exposing (RemoteData(..), WebData)
 import Style.Helpers as SH
 import Style.Widgets.Meter
@@ -18,7 +19,7 @@ import View.Types
 type ResourceType
     = Compute (WebData OSTypes.ComputeQuota)
     | FloatingIp (WebData OSTypes.NetworkQuota)
-    | Volume ( WebData OSTypes.VolumeQuota, WebData (List OSTypes.VolumeSnapshot) )
+    | Volume ( WebData OSTypes.VolumeQuota, WebData (List VolumeSnapshot) )
     | Keypair (WebData OSTypes.ComputeQuota) Int
 
 
@@ -262,7 +263,7 @@ volumeInfoItems context display volumeInfo =
             fullVolumeInfoItems context volumeInfo
 
 
-volumeQuotaDetails : View.Types.Context -> Display -> ( WebData OSTypes.VolumeQuota, WebData (List OSTypes.VolumeSnapshot) ) -> Element.Element msg
+volumeQuotaDetails : View.Types.Context -> Display -> ( WebData OSTypes.VolumeQuota, WebData (List VolumeSnapshot) ) -> Element.Element msg
 volumeQuotaDetails context display ( quota, snapshotData ) =
     let
         sumSizes =

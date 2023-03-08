@@ -8,6 +8,7 @@ module Types.SharedMsg exposing
 import Browser
 import Http
 import OpenStack.Types as OSTypes
+import OpenStack.VolumeSnapshots exposing (VolumeSnapshot)
 import Style.Types as ST
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Time
@@ -87,7 +88,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveCreateExoSecurityGroup OSTypes.SecurityGroup
     | ReceiveCreateVolume
     | ReceiveVolumes (List OSTypes.Volume)
-    | ReceiveVolumeSnapshots (List OSTypes.VolumeSnapshot)
+    | ReceiveVolumeSnapshots (List VolumeSnapshot)
     | ReceiveDeleteVolume
     | ReceiveUpdateVolumeName
     | ReceiveDeleteVolumeSnapshot

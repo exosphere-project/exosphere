@@ -1,6 +1,7 @@
 module Rest.Jetstream2Accounting exposing (requestAllocations)
 
 import Helpers.GetterSetters as GetterSetters
+import Helpers.Time exposing (iso8601StringToPosixDecodeError)
 import Http
 import Json.Decode as Decode
 import Rest.Helpers
@@ -40,8 +41,8 @@ decodeAllocation =
         (Decode.field "abstract" Decode.string)
         (Decode.field "service_units_allocated" Decode.float)
         (Decode.field "service_units_used" (Decode.nullable Decode.float))
-        (Decode.field "start_date" Decode.string |> Decode.andThen Rest.Helpers.iso8601StringToPosixDecodeError)
-        (Decode.field "end_date" Decode.string |> Decode.andThen Rest.Helpers.iso8601StringToPosixDecodeError)
+        (Decode.field "start_date" Decode.string |> Decode.andThen iso8601StringToPosixDecodeError)
+        (Decode.field "end_date" Decode.string |> Decode.andThen iso8601StringToPosixDecodeError)
         (Decode.field "resource" decodeResource)
         (Decode.field "active" decodeStatus)
 

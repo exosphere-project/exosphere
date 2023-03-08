@@ -9,18 +9,19 @@ module OpenStack.Volumes exposing
     )
 
 import Helpers.GetterSetters as GetterSetters
+import Helpers.Time exposing (iso8601StringToPosixDecodeError)
 import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
 import Json.Encode
 import List.Extra
 import OpenStack.Types as OSTypes
+import OpenStack.VolumeSnapshots exposing (VolumeSnapshot, volumeSnapshotDecoder)
 import RemoteData
 import Rest.Helpers
     exposing
         ( expectJsonWithErrorBody
         , expectStringWithErrorBody
-        , iso8601StringToPosixDecodeError
         , openstackCredentialedRequest
         , resultToMsgErrorBody
         )
@@ -226,18 +227,6 @@ volumeDecoder =
         |> Pipeline.optional "volume_image_metadata" (imageMetadataDecoder |> Decode.map Maybe.Just) Nothing
         |> Pipeline.required "created_at" (Decode.string |> Decode.andThen iso8601StringToPosixDecodeError)
         |> Pipeline.required "user_id" Decode.string
-
-
-volumeSnapshotDecoder : Decode.Decoder OSTypes.VolumeSnapshot
-volumeSnapshotDecoder =
-    Decode.succeed OSTypes.VolumeSnapshot
-        |> Pipeline.required "id" Decode.string
-        |> Pipeline.optional "name" (Decode.string |> Decode.map Maybe.Just) Maybe.Nothing
-        |> Pipeline.required "description" Decode.string
-        |> Pipeline.required "volume_id" Decode.string
-        |> Pipeline.required "size" Decode.int
-        |> Pipeline.required "created_at" (Decode.string |> Decode.andThen iso8601StringToPosixDecodeError)
-        |> Pipeline.required "status" (Decode.string |> Decode.andThen volumeStatusDecoder)
 
 
 volumeStatusDecoder : String -> Decode.Decoder OSTypes.VolumeStatus

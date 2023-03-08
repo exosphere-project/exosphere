@@ -2,7 +2,7 @@ module Orchestration.GoalProject exposing (goalPollProject)
 
 import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.Quotas exposing (requestVolumeQuota)
-import OpenStack.Types exposing (volumeSnapshotIsTransitioningStatus)
+import OpenStack.VolumeSnapshots
 import OpenStack.Volumes exposing (requestVolumeSnapshots)
 import Orchestration.Helpers exposing (applyProjectStep)
 import Time
@@ -40,7 +40,7 @@ stepSnapshotPoll time project =
             project.volumeSnapshots
 
         onlyTransitioning =
-            List.filter (volumeSnapshotIsTransitioningStatus << .status)
+            List.filter OpenStack.VolumeSnapshots.isTransitioning
 
         shouldPoll =
             case ( .data <| RDPP.map onlyTransitioning snapshots, snapshots.refreshStatus ) of

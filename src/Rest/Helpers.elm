@@ -2,7 +2,6 @@ module Rest.Helpers exposing
     ( expectJsonWithErrorBody
     , expectStringWithErrorBody
     , idOrName
-    , iso8601StringToPosixDecodeError
     , keystoneUrlWithVersion
     , openstackCredentialedRequest
     , proxyifyRequest
@@ -10,7 +9,6 @@ module Rest.Helpers exposing
     )
 
 import Helpers.Helpers as Helpers
-import Helpers.Time exposing (iso8601StringToPosix)
 import Http
 import Json.Decode as Decode
 import OpenStack.Types as OSTypes
@@ -231,13 +229,3 @@ idOrName str =
 
     else
         "name"
-
-
-iso8601StringToPosixDecodeError : String -> Decode.Decoder Time.Posix
-iso8601StringToPosixDecodeError str =
-    case iso8601StringToPosix str of
-        Ok posix ->
-            Decode.succeed posix
-
-        Err error ->
-            Decode.fail error
