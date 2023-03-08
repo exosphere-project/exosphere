@@ -26,6 +26,7 @@ runcmd:
     echo '{"status":"running", "epoch": '$(date '+%s')'000}' | tee --append /dev/console > /dev/kmsg || true
   - chmod 640 /var/log/cloud-init-output.log
   - {create-cluster-command}
+  - (which apt-get && apt-get install -y python3-venv) # Install python3-venv on Debian-based platforms
   - |-
     python3 -m venv /opt/ansible-venv
     . /opt/ansible-venv/bin/activate
