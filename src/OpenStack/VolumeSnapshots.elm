@@ -7,7 +7,7 @@ module OpenStack.VolumeSnapshots exposing
 
 import Helpers.Time exposing (iso8601StringToPosixDecodeError)
 import Json.Decode exposing (Decoder, andThen, fail, int, map, string, succeed)
-import Json.Decode.Pipeline as Pipeline
+import Json.Decode.Pipeline exposing (optional, required)
 import OpenStack.HelperTypes exposing (Uuid)
 import Time
 
@@ -48,13 +48,13 @@ isTransitioning { status } =
 volumeSnapshotDecoder : Decoder VolumeSnapshot
 volumeSnapshotDecoder =
     succeed VolumeSnapshot
-        |> Pipeline.required "id" string
-        |> Pipeline.optional "name" (string |> map Maybe.Just) Maybe.Nothing
-        |> Pipeline.required "description" string
-        |> Pipeline.required "volume_id" string
-        |> Pipeline.required "size" int
-        |> Pipeline.required "created_at" (string |> andThen iso8601StringToPosixDecodeError)
-        |> Pipeline.required "status" (string |> andThen statusDecoder)
+        |> required "id" string
+        |> optional "name" (string |> map Maybe.Just) Maybe.Nothing
+        |> required "description" string
+        |> required "volume_id" string
+        |> required "size" int
+        |> required "created_at" (string |> andThen iso8601StringToPosixDecodeError)
+        |> required "status" (string |> andThen statusDecoder)
 
 
 statusDecoder : String -> Decoder Status
