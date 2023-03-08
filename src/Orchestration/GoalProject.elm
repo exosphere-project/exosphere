@@ -4,6 +4,7 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.Quotas exposing (requestVolumeQuota)
 import OpenStack.Types exposing (isTransitioningStatus)
 import OpenStack.Volumes exposing (requestVolumeSnapshots)
+import Orchestration.Helpers exposing (applyProjectStep)
 import Time
 import Types.Project exposing (Project)
 import Types.SharedMsg exposing (SharedMsg(..))
@@ -24,16 +25,9 @@ goalPollProject time project =
             -- add stepInstancePoll here
             ]
 
-        joinCommands prev next =
-            Cmd.batch [ prev, next ]
-
         ( newProject, newCmds ) =
             List.foldl
-                (\step ( prevProject, prevCmds ) ->
-                    Tuple.mapSecond
-                        (joinCommands prevCmds)
-                        (step prevProject)
-                )
+                applyProjectStep
                 ( project, Cmd.none )
                 steps
     in
