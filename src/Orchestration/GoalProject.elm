@@ -22,7 +22,6 @@ goalPollProject time project =
             [ stepSnapshotPoll time
 
             -- add stepVolumePoll here
-            -- add stepInstancePoll here
             ]
 
         ( newProject, newCmds ) =
