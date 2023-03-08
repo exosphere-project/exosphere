@@ -162,9 +162,9 @@ requestDeleteVolumeSnapshot project snapshotUuid =
     let
         errorContext =
             ErrorContext
-                ("delete volume " ++ snapshotUuid)
+                ("delete volume snapshot " ++ snapshotUuid)
                 ErrorCrit
-                (Just "Perhaps you are trying to delete a volume snapshot that is attached to a server? If so, please detach it first.")
+                Nothing
 
         resultToMsg_ =
             resultToMsgErrorBody
