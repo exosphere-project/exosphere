@@ -28,7 +28,7 @@
     state: 'directory'
     owner: 'exouser'
 
-# We are assuming that virtualenv is installed, should already be done by cloud-init.
+# We are assuming that venv is installed, should already be done by cloud-init.
 - name: 'repo2docker installed'
   pip:
     name:
