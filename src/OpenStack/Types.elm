@@ -68,9 +68,9 @@ module OpenStack.Types exposing
     , VolumeStatus(..)
     , VolumeUuid
     , imageVisibilityToString
-    , isTransitioningStatus
     , serverPowerStateToString
     , serverStatusToString
+    , volumeSnapshotIsTransitioningStatus
     , volumeStatusToString
     )
 
@@ -605,8 +605,8 @@ type VolumeStatus
     | Extending
 
 
-isTransitioningStatus : VolumeStatus -> Bool
-isTransitioningStatus status =
+volumeSnapshotIsTransitioningStatus : VolumeStatus -> Bool
+volumeSnapshotIsTransitioningStatus status =
     List.member status
         [ Creating
         , Attaching
