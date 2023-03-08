@@ -1,4 +1,4 @@
 ---
 
 workflow_repo_version: 'HEAD'
-workflow_local_download: false
+workflow_local_download: true
