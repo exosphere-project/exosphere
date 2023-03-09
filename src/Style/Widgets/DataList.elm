@@ -624,8 +624,8 @@ toolbarView resourceName model toMsg context rowStyle data bulkActions selection
                 [ selectAllCheckbox
                 , selectionFiltersView
                 , Element.column [ Element.spacing spacer.px12, Element.alignTop ]
-                    [ bulkActionsView
-                    , numberOfRecordsDisplay
+                    [ Element.el [ Element.alignRight ] bulkActionsView
+                    , Element.el [ Element.alignRight ] numberOfRecordsDisplay
                     ]
                 ]
             ]
