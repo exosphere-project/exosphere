@@ -77,7 +77,7 @@ const merged_config = Object.assign({}, cloud_configs, config);
 // and keep a reference for communicating with the app
 var app = moduleToInit({
   node: container,
-  flags: Object.assign(flags, merged_config),
+  flags: JSON.stringify(Object.assign(flags, merged_config)),
 });
 
 app.ports.logout.subscribe(() => {

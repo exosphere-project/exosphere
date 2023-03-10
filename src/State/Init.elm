@@ -23,7 +23,7 @@ import Time
 import Toasty
 import Types.Defaults as Defaults
 import Types.Error exposing (AppError)
-import Types.Flags exposing (Flags)
+import Types.Flags exposing (ConfigurationFlags, Flags, flagsDecoder)
 import Types.HelperTypes as HelperTypes exposing (CloudSpecificConfigMap, DefaultLoginView(..), HttpRequestMethod(..), ProjectIdentifier)
 import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
@@ -37,15 +37,20 @@ import View.Helpers exposing (toExoPalette)
 
 
 init : Flags -> ( Url.Url, Browser.Navigation.Key ) -> ( Result AppError OuterModel, Cmd OuterMsg )
-init flags urlKey =
-    case validateCloudSpecificConfigs flags.clouds of
-        Ok cloudSpecificConfigs ->
-            case initWithValidFlags flags cloudSpecificConfigs urlKey of
-                ( model, cmd ) ->
-                    ( Ok model, cmd )
+init serializedFlags urlKey =
+    case Decode.decodeString flagsDecoder serializedFlags of
+        Ok flags ->
+            case validateCloudSpecificConfigs flags.clouds of
+                Ok cloudSpecificConfigs ->
+                    case initWithValidFlags flags cloudSpecificConfigs urlKey of
+                        ( model, cmd ) ->
+                            ( Ok model, cmd )
 
-        Err appError ->
-            ( Err appError, Cmd.none )
+                Err appError ->
+                    ( Err appError, Cmd.none )
+
+        Err e ->
+            ( Err { error = Decode.errorToString e }, Cmd.none )
 
 
 validateCloudSpecificConfigs : Decode.Value -> Result AppError CloudSpecificConfigMap
@@ -55,7 +60,7 @@ validateCloudSpecificConfigs clouds =
         |> Result.mapError AppError
 
 
-initWithValidFlags : Flags -> CloudSpecificConfigMap -> ( Url.Url, Browser.Navigation.Key ) -> ( OuterModel, Cmd OuterMsg )
+initWithValidFlags : ConfigurationFlags -> CloudSpecificConfigMap -> ( Url.Url, Browser.Navigation.Key ) -> ( OuterModel, Cmd OuterMsg )
 initWithValidFlags flags cloudSpecificConfigs urlKey =
     let
         currentTime =
