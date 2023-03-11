@@ -76,7 +76,3 @@
   template:
     src: '49-nopasswd_global.rules.j2'
     dest: '/etc/polkit-1/rules.d/49-nopasswd_global.rules'
-
-- name: 'tasks imported for RedHat family'
-  import_tasks: 'rhel.yml'
-  when: 'ansible_os_family == "RedHat"'
