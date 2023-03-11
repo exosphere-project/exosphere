@@ -32,6 +32,13 @@
     src: 'docker-compose.yml'
     dest: '/opt/guacamole/docker-compose.yml'
 
+- name: 'Docker service started and enabled'
+  systemd:
+    name: 'docker'
+    enabled: true
+    state: 'restarted'
+    daemon_reload: true
+
 - name: 'containers started'
   command: 'docker-compose up -d --force-recreate'
   args:

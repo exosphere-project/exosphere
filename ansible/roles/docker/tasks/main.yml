@@ -16,17 +16,15 @@
   import_tasks: 'ubuntu.yml'
   when: 'ansible_distribution == "Ubuntu"'
 
+- name: 'Docker service started and enabled'
+  systemd:
+    name: 'docker'
+    enabled: true
+    state: 'started'
+
 - name: 'exouser added to docker user group'
   user:
     name: 'exouser'
     append: 'yes'
     groups:
       - 'docker'
-
-# docker isn't properly configuring iptables initially on upstream RHEL9 distros for
-#  some reason, a restart fixes that
-- name: 'Docker service enabled and restarted'
-  systemd:
-    name: 'docker'
-    enabled: true
-    state: 'restarted'
