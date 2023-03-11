@@ -11,3 +11,10 @@
     name:
       - 'haveged'
     state: 'present'
+
+- name: 'Packages installed'
+  dnf:
+    name:
+      - 'iptables-nft'
+      - 'iptables-libs'
+    state: 'latest'
