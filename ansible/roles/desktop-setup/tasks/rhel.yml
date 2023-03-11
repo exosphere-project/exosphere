@@ -33,4 +33,6 @@
   file:
     path: '/home/{{ desktop_user }}/.config/gnome-initial-setup-done'
     state: 'touch'
+    group: '{{ desktop_user }}'
+    owner: '{{ desktop_user }}'
     mode: '0555'
