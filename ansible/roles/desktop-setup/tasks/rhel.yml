@@ -21,6 +21,14 @@
     state: 'touch'
     mode: '0555'
 
+- name: 'Creates .config directory in skel'
+  file:
+    path: '/home/{{ desktop_user }}/.config'
+    state: 'directory'
+    group: '{{ desktop_user }}'
+    owner: '{{ desktop_user }}'
+    mode: '0755'
+
 - name: 'user gnome-initial-setup-done touched to avoid startup dialog'
   file:
     path: '/home/{{ desktop_user }}/.config/gnome-initial-setup-done'
