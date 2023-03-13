@@ -13,7 +13,6 @@ import Helpers.ResourceList exposing (creationTimeFilterOptions, listItemColumnA
 import Helpers.String
 import OpenStack.Types as OSTypes
 import OpenStack.VolumeSnapshots as VS
-import OpenStack.Volumes exposing (requestDeleteVolumeSnapshot)
 import Page.QuotaUsage
 import RemoteData
 import Route
@@ -467,11 +466,7 @@ volumeView context project currentTime volumeRecord =
 
 filters :
     Time.Posix
-    ->
-        List
-            (DataList.Filter
-                { record | volume : OSTypes.Volume, creator : String }
-            )
+    -> List (DataList.Filter { record | volume : OSTypes.Volume, creator : String })
 filters currentTime =
     [ { id = "creator"
       , label = "Creator"

@@ -177,7 +177,7 @@ keypairQuotaDetails context display quota keypairsUsed =
 
 
 briefVolumeInfoItems : View.Types.Context -> ( OSTypes.VolumeQuota, Int ) -> Element.Element msg
-briefVolumeInfoItems context ( quota, snapshotUsage ) =
+briefVolumeInfoItems context ( quota, _ ) =
     let
         { localization } =
             context

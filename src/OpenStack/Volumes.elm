@@ -16,7 +16,7 @@ import Json.Decode.Pipeline as Pipeline
 import Json.Encode
 import List.Extra
 import OpenStack.Types as OSTypes
-import OpenStack.VolumeSnapshots exposing (VolumeSnapshot, volumeSnapshotDecoder)
+import OpenStack.VolumeSnapshots exposing (volumeSnapshotDecoder)
 import RemoteData
 import Rest.Helpers
     exposing

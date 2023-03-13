@@ -7,7 +7,6 @@ import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
-import View.Types
 
 
 {-| Draws a proportional meter given multiple sub-values.
