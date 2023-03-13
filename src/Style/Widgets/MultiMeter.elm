@@ -4,6 +4,7 @@ import Element
 import Element.Background as Background
 import Html.Attributes as HtmlA
 import Style.Helpers as SH
+import Style.Types exposing (ExoPalette)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import View.Types
@@ -30,8 +31,8 @@ Tooltips appear when hovering over the meter segments to clarify what they measu
         ]
 
 -}
-multiMeter : View.Types.Context -> String -> String -> Int -> List ( String, Int, List (Element.Attribute msg) ) -> Element.Element msg
-multiMeter { palette } title subtitle max values =
+multiMeter : ExoPalette -> String -> String -> Int -> List ( String, Int, List (Element.Attribute msg) ) -> Element.Element msg
+multiMeter palette title subtitle max values =
     let
         backgroundColor =
             SH.toElementColorWithOpacity palette.primary 0.15

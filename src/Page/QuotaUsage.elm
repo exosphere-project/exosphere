@@ -227,7 +227,7 @@ fullVolumeInfoItems context ( quota, snapshotUsage ) =
         [ briefVolumeInfoItems context ( quota, snapshotUsage )
         , case quota.gigabytes.limit of
             Just limit ->
-                multiMeter context
+                multiMeter context.palette
                     "Storage used"
                     usageDescription
                     limit
