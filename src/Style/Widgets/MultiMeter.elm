@@ -20,13 +20,13 @@ Tooltips appear when hovering over the meter segments to clarify what they measu
     -- Show the breakdown of server usage
     multiMeter
         context
-        "Server Usage"
-        "42 of 1337 Servers"
+        "Tranche Usage"
+        "30 of 42 Tranches"
         -- Max width in absolute units
-        1337
+        42
         -- Label, Width in absolute units, attributes to add to meter segment (e.g. for coloring)
-        [ ( "Busy", 17, [ Background.color (Element.rgb 1 0 0) ] )
-        , ( "Idle", 22, [ Background.color (Element.rgb 0 0 1) ] )
+        [ ( "Busy", 15, [ Background.color (Element.rgb 1 0 0) ] )
+        , ( "Idle", 12, [ Background.color (Element.rgb 0 0 1) ] )
         , ( "Booting", 3, [ Background.color (Element.rgb 1 1 0) ] )
         ]
 
