@@ -20,5 +20,4 @@ localization =
     , floatingIpAddress = "floating IP address"
     , publiclyRoutableIpAddress = "public IP address"
     , graphicalDesktopEnvironment = "graphical desktop"
-    , snapshotOfBlockDevice = "snapshot"
     }
