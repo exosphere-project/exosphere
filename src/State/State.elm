@@ -1870,8 +1870,9 @@ processProjectSpecificMsg outerModel project msg =
                 |> mapToOuterMsg
 
         ReceiveDeleteVolumeSnapshot ->
-            ( outerModel, OSVolumes.requestVolumeSnapshots project )
+            ApiModelHelpers.requestVolumeSnapshots (GetterSetters.projectIdentifier project) sharedModel
                 |> mapToOuterMsg
+                |> mapToOuterModel outerModel
 
         ReceiveUpdateVolumeName ->
             ( outerModel, OSVolumes.requestVolumes project )

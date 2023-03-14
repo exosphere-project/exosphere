@@ -32,6 +32,7 @@ module Helpers.GetterSetters exposing
     , projectSetServerEventsLoading
     , projectSetServerLoading
     , projectSetServersLoading
+    , projectSetVolumeSnapshotsLoading
     , projectSetVolumesLoading
     , projectUpdateKeypair
     , projectUpdateServer
@@ -592,6 +593,11 @@ projectSetServerEventsLoading project serverUuid =
 projectSetVolumesLoading : Project -> Project
 projectSetVolumesLoading project =
     { project | volumes = RemoteData.Loading }
+
+
+projectSetVolumeSnapshotsLoading : Project -> Project
+projectSetVolumeSnapshotsLoading project =
+    { project | volumeSnapshots = RDPP.setLoading project.volumeSnapshots }
 
 
 projectSetNetworksLoading : Project -> Project
