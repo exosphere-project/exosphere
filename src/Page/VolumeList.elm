@@ -375,52 +375,51 @@ volumeView context project currentTime volumeRecord =
                               , width = Element.shrink
                               , view =
                                     \snapshot ->
-                                        case snapshot.status of
-                                            VS.Available ->
-                                                let
-                                                    deviceLabel =
-                                                        context.localization.blockDevice ++ " snapshot"
+                                        if not <| List.member snapshot.status [ VS.Deleted, VS.Deleting ] then
+                                            let
+                                                deviceLabel =
+                                                    context.localization.blockDevice ++ " snapshot"
 
-                                                    deletePopconfirmId =
-                                                        Helpers.String.hyphenate
-                                                            [ "volumeListDeleteSnapshotPopconfirm"
-                                                            , project.auth.project.uuid
-                                                            , snapshot.uuid
-                                                            ]
+                                                deletePopconfirmId =
+                                                    Helpers.String.hyphenate
+                                                        [ "volumeListDeleteSnapshotPopconfirm"
+                                                        , project.auth.project.uuid
+                                                        , snapshot.uuid
+                                                        ]
 
-                                                    deleteButton =
-                                                        deletePopconfirm context
-                                                            (SharedMsg << SharedMsg.TogglePopover)
-                                                            deletePopconfirmId
-                                                            { confirmationText =
-                                                                "Are you sure you want to delete this "
-                                                                    ++ deviceLabel
-                                                                    ++ "?"
-                                                            , onCancel = Just NoOp
-                                                            , onConfirm = Just <| GotDeleteSnapshotConfirm snapshot.uuid
-                                                            }
-                                                            ST.PositionBottomRight
-                                                            (\msg _ ->
-                                                                deleteIconButton context.palette
-                                                                    False
-                                                                    ("Delete " ++ deviceLabel)
-                                                                    (Just msg)
-                                                            )
-                                                in
-                                                Element.row
-                                                    [ Element.spacing spacer.px12 ]
-                                                    [ deleteButton ]
+                                                deleteButton =
+                                                    deletePopconfirm context
+                                                        (SharedMsg << SharedMsg.TogglePopover)
+                                                        deletePopconfirmId
+                                                        { confirmationText =
+                                                            "Are you sure you want to delete this "
+                                                                ++ deviceLabel
+                                                                ++ "?"
+                                                        , onCancel = Just NoOp
+                                                        , onConfirm = Just <| GotDeleteSnapshotConfirm snapshot.uuid
+                                                        }
+                                                        ST.PositionBottomRight
+                                                        (\msg _ ->
+                                                            deleteIconButton context.palette
+                                                                False
+                                                                ("Delete " ++ deviceLabel)
+                                                                (Just msg)
+                                                        )
+                                            in
+                                            Element.row
+                                                [ Element.spacing spacer.px12 ]
+                                                [ deleteButton ]
 
-                                            _ ->
-                                                let
-                                                    label =
-                                                        if VS.isTransitioning snapshot then
-                                                            VS.statusToString snapshot.status ++ " ..."
+                                        else
+                                            let
+                                                label =
+                                                    if VS.isTransitioning snapshot then
+                                                        VS.statusToString snapshot.status ++ " ..."
 
-                                                        else
-                                                            VS.statusToString snapshot.status
-                                                in
-                                                Element.el [ Font.italic ] (Element.text label)
+                                                    else
+                                                        VS.statusToString snapshot.status
+                                            in
+                                            Element.el [ Font.italic ] (Element.text label)
                               }
                             ]
                         }
