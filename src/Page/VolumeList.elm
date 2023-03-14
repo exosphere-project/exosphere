@@ -349,23 +349,16 @@ volumeView context project currentTime volumeRecord =
                             , { header = Element.none
                               , width = Element.shrink
                               , view =
-                                    \{ name, description } ->
-                                        case ( name, description ) of
-                                            ( Just "", "" ) ->
-                                                Element.el [] (Element.text "(Unnamed)")
-
-                                            ( Just "", _ ) ->
-                                                Element.el [] (Element.text description)
-
-                                            ( Just realName, "" ) ->
-                                                Element.el [ Font.color neutralColor ] (Element.text realName)
-
-                                            _ ->
-                                                Element.column
-                                                    [ Element.spacing spacer.px4 ]
-                                                    [ Element.el [ Font.color neutralColor ] (Element.text (Maybe.withDefault "" name))
-                                                    , Element.text description
-                                                    ]
+                                    \{ name, description, uuid } ->
+                                        let
+                                            renderedName =
+                                                VH.resourceName name uuid
+                                        in
+                                        Element.column
+                                            [ Element.spacing spacer.px4 ]
+                                            [ Element.el [ Font.color neutralColor ] (Element.text renderedName)
+                                            , Element.text description
+                                            ]
                               }
                             , { header = Element.none
                               , width = Element.fill
