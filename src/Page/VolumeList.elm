@@ -5,11 +5,16 @@ import Dict
 import Element
 import Element.Font as Font
 import FeatherIcons
+import FormatNumber.Locales exposing (Decimals(..))
+import Helpers.Formatting exposing (Unit(..), humanNumber)
 import Helpers.GetterSetters as GetterSetters
+import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.ResourceList exposing (creationTimeFilterOptions, listItemColumnAttribs, onCreationTimeFilter)
 import Helpers.String
 import OpenStack.Types as OSTypes
+import OpenStack.VolumeSnapshots as VS
 import Page.QuotaUsage
+import RemoteData
 import Route
 import Set
 import Style.Helpers as SH
@@ -20,6 +25,7 @@ import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Time
+import Types.HelperTypes exposing (Uuid)
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import View.Helpers as VH
@@ -34,7 +40,8 @@ type alias Model =
 
 type Msg
     = DetachVolume OSTypes.VolumeUuid
-    | GotDeleteConfirm OSTypes.VolumeUuid
+    | GotDeleteSnapshotConfirm Uuid
+    | GotDeleteVolumeConfirm OSTypes.VolumeUuid
     | SharedMsg SharedMsg.SharedMsg
     | DataListMsg DataList.Msg
     | NoOp
@@ -48,18 +55,29 @@ init showHeading =
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
 update msg project model =
+    let
+        projectId =
+            GetterSetters.projectIdentifier project
+    in
     case msg of
         DetachVolume volumeUuid ->
             ( model
             , Cmd.none
-            , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
+            , SharedMsg.ProjectMsg projectId <|
                 SharedMsg.RequestDetachVolume volumeUuid
             )
 
-        GotDeleteConfirm volumeUuid ->
+        GotDeleteSnapshotConfirm snapshotUuid ->
             ( model
             , Cmd.none
-            , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
+            , SharedMsg.ProjectMsg projectId <|
+                SharedMsg.RequestDeleteVolumeSnapshot snapshotUuid
+            )
+
+        GotDeleteVolumeConfirm volumeUuid ->
+            ( model
+            , Cmd.none
+            , SharedMsg.ProjectMsg projectId <|
                 SharedMsg.RequestDeleteVolume volumeUuid
             )
 
@@ -85,8 +103,8 @@ update msg project model =
 view : View.Types.Context -> Project -> Time.Posix -> Model -> Element.Element Msg
 view context project currentTime model =
     let
-        renderSuccessCase : List OSTypes.Volume -> Element.Element Msg
-        renderSuccessCase volumes_ =
+        renderSuccessCase : ( List OSTypes.Volume, List VS.VolumeSnapshot ) -> Element.Element Msg
+        renderSuccessCase ( volumes_, snapshots ) =
             DataList.view
                 context.localization.blockDevice
                 model.dataListModel
@@ -94,7 +112,7 @@ view context project currentTime model =
                 context
                 []
                 (volumeView context project currentTime)
-                (volumeRecords project volumes_)
+                (volumeRecords project ( volumes_, snapshots ))
                 []
                 (Just
                     { filters = filters currentTime
@@ -118,10 +136,10 @@ view context project currentTime model =
 
           else
             Element.none
-        , Page.QuotaUsage.view context Page.QuotaUsage.Full (Page.QuotaUsage.Volume project.volumeQuota)
+        , Page.QuotaUsage.view context Page.QuotaUsage.Full (Page.QuotaUsage.Volume ( project.volumeQuota, RDPP.toWebData project.volumeSnapshots ))
         , VH.renderWebData
             context
-            project.volumes
+            (RemoteData.map2 Tuple.pair project.volumes (RDPP.toWebData project.volumeSnapshots))
             (Helpers.String.pluralize context.localization.blockDevice)
             renderSuccessCase
         ]
@@ -130,12 +148,13 @@ view context project currentTime model =
 type alias VolumeRecord =
     DataList.DataRecord
         { volume : OSTypes.Volume
+        , snapshots : List VS.VolumeSnapshot
         , creator : String
         }
 
 
-volumeRecords : Project -> List OSTypes.Volume -> List VolumeRecord
-volumeRecords project volumes =
+volumeRecords : Project -> ( List OSTypes.Volume, List VS.VolumeSnapshot ) -> List VolumeRecord
+volumeRecords project ( volumes, snapshots ) =
     let
         creator volume =
             if volume.userUuid == project.auth.user.uuid then
@@ -143,12 +162,20 @@ volumeRecords project volumes =
 
             else
                 "other user"
+
+        isSnapshotOfVolume : OSTypes.Volume -> VS.VolumeSnapshot -> Bool
+        isSnapshotOfVolume { uuid } { volumeId } =
+            uuid == volumeId
+
+        volumeSnapshots volume =
+            List.filter (\snapshot -> isSnapshotOfVolume volume snapshot) snapshots
     in
     List.map
         (\volume ->
             { id = volume.uuid
             , selectable = False
             , volume = volume
+            , snapshots = volumeSnapshots volume
             , creator = creator volume
             }
         )
@@ -163,6 +190,9 @@ volumeView :
     -> Element.Element Msg
 volumeView context project currentTime volumeRecord =
     let
+        neutralColor =
+            SH.toElementColor context.palette.neutral.text.default
+
         volumeLink =
             Element.link []
                 { url =
@@ -262,14 +292,14 @@ volumeView context project currentTime volumeRecord =
                     in
                     Element.row [ Element.spacing spacer.px12 ]
                         [ deletePopconfirm context
-                            (\deletePopconfirmId_ -> SharedMsg <| SharedMsg.TogglePopover deletePopconfirmId_)
+                            (SharedMsg << SharedMsg.TogglePopover)
                             deletePopconfirmId
                             { confirmationText =
                                 "Are you sure you want to delete this "
                                     ++ context.localization.blockDevice
                                     ++ "?"
                             , onCancel = Just NoOp
-                            , onConfirm = Just <| GotDeleteConfirm volumeRecord.id
+                            , onConfirm = Just <| GotDeleteVolumeConfirm volumeRecord.id
                             }
                             ST.PositionBottomRight
                             deleteVolumeBtn
@@ -290,43 +320,145 @@ volumeView context project currentTime volumeRecord =
 
                 _ ->
                     Element.none
+
+        sizeString bytes =
+            let
+                locale =
+                    context.locale
+
+                ( sizeDisplay, sizeLabel ) =
+                    humanNumber { locale | decimals = Exact 0 } CinderGB bytes
+            in
+            sizeDisplay ++ " " ++ sizeLabel
+
+        snapshotRows =
+            case volumeRecord.snapshots of
+                [] ->
+                    []
+
+                snapshots ->
+                    [ Element.row [ Element.spacing spacer.px8, Font.color neutralColor ] [ Element.text "Snapshots" ]
+                    , Element.table
+                        [ Element.spacing spacer.px12 ]
+                        { data = snapshots
+                        , columns =
+                            [ { header = Element.none
+                              , width = Element.shrink
+                              , view = \snapshot -> Element.text (sizeString snapshot.sizeInGiB)
+                              }
+                            , { header = Element.none
+                              , width = Element.shrink
+                              , view =
+                                    \{ name, description, uuid } ->
+                                        let
+                                            renderedName =
+                                                VH.resourceName name uuid
+                                        in
+                                        Element.column
+                                            [ Element.spacing spacer.px4 ]
+                                            [ Element.el [ Font.color neutralColor ] (Element.text renderedName)
+                                            , Element.text description
+                                            ]
+                              }
+                            , { header = Element.none
+                              , width = Element.fill
+                              , view =
+                                    \snapshot ->
+                                        let
+                                            createTime =
+                                                DateFormat.Relative.relativeTime currentTime
+                                                    snapshot.createdAt
+                                        in
+                                        Element.text ("created " ++ createTime)
+                              }
+                            , { header = Element.none
+                              , width = Element.shrink
+                              , view =
+                                    \snapshot ->
+                                        if not <| List.member snapshot.status [ VS.Deleted, VS.Deleting ] then
+                                            let
+                                                deviceLabel =
+                                                    context.localization.blockDevice ++ " snapshot"
+
+                                                deletePopconfirmId =
+                                                    Helpers.String.hyphenate
+                                                        [ "volumeListDeleteSnapshotPopconfirm"
+                                                        , project.auth.project.uuid
+                                                        , snapshot.uuid
+                                                        ]
+
+                                                deleteButton =
+                                                    deletePopconfirm context
+                                                        (SharedMsg << SharedMsg.TogglePopover)
+                                                        deletePopconfirmId
+                                                        { confirmationText =
+                                                            "Are you sure you want to delete this "
+                                                                ++ deviceLabel
+                                                                ++ "?"
+                                                        , onCancel = Just NoOp
+                                                        , onConfirm = Just <| GotDeleteSnapshotConfirm snapshot.uuid
+                                                        }
+                                                        ST.PositionBottomRight
+                                                        (\msg _ ->
+                                                            deleteIconButton context.palette
+                                                                False
+                                                                ("Delete " ++ deviceLabel)
+                                                                (Just msg)
+                                                        )
+                                            in
+                                            Element.row
+                                                [ Element.spacing spacer.px12 ]
+                                                [ deleteButton ]
+
+                                        else
+                                            let
+                                                label =
+                                                    if VS.isTransitioning snapshot then
+                                                        VS.statusToString snapshot.status ++ " ..."
+
+                                                    else
+                                                        VS.statusToString snapshot.status
+                                            in
+                                            Element.el [ Font.italic ] (Element.text label)
+                              }
+                            ]
+                        }
+                    ]
     in
     Element.column
         (listItemColumnAttribs context.palette)
-        [ Element.row [ Element.spacing spacer.px12, Element.width Element.fill ]
-            [ volumeLink
-            , volumeAttachment
-            ]
-        , Element.row
-            [ Element.spacing spacer.px8
-            , Element.width Element.fill
-            ]
-            [ Element.el [] (Element.text <| String.fromInt volumeRecord.volume.size ++ " GB")
-            , Element.text "·"
-            , Element.paragraph []
-                [ Element.text "created "
-                , Element.el [ Font.color (SH.toElementColor context.palette.neutral.text.default) ]
-                    (Element.text <|
-                        DateFormat.Relative.relativeTime currentTime
-                            volumeRecord.volume.createdAt
-                    )
-                , Element.text " by "
-                , Element.el [ Font.color (SH.toElementColor context.palette.neutral.text.default) ]
-                    (Element.text volumeRecord.creator)
+        (Element.column
+            (listItemColumnAttribs context.palette)
+            [ Element.row [ Element.spacing spacer.px12, Element.width Element.fill ]
+                [ volumeLink
+                , volumeAttachment
                 ]
-            , Element.el [ Element.alignRight ]
-                volumeActions
+            , Element.row
+                [ Element.spacing spacer.px8, Element.width Element.fill ]
+                [ Element.el [] (Element.text (sizeString volumeRecord.volume.size))
+                , Element.text "·"
+                , Element.paragraph []
+                    [ Element.text "created "
+                    , Element.el [ Font.color (SH.toElementColor context.palette.neutral.text.default) ]
+                        (Element.text <|
+                            DateFormat.Relative.relativeTime currentTime
+                                volumeRecord.volume.createdAt
+                        )
+                    , Element.text " by "
+                    , Element.el [ Font.color (SH.toElementColor context.palette.neutral.text.default) ]
+                        (Element.text volumeRecord.creator)
+                    ]
+                , Element.el [ Element.alignRight ]
+                    volumeActions
+                ]
             ]
-        ]
+            :: snapshotRows
+        )
 
 
 filters :
     Time.Posix
-    ->
-        List
-            (DataList.Filter
-                { record | volume : OSTypes.Volume, creator : String }
-            )
+    -> List (DataList.Filter { record | volume : OSTypes.Volume, creator : String })
 filters currentTime =
     [ { id = "creator"
       , label = "Creator"

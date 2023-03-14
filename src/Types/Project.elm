@@ -2,6 +2,7 @@ module Types.Project exposing (Endpoints, Project, ProjectName, ProjectSecret(..
 
 import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.Types as OSTypes
+import OpenStack.VolumeSnapshots exposing (VolumeSnapshot)
 import RemoteData exposing (WebData)
 import Types.Error exposing (HttpErrorWithBody)
 import Types.HelperTypes as HelperTypes
@@ -24,6 +25,7 @@ type alias Project =
     , flavors : List OSTypes.Flavor
     , keypairs : WebData (List OSTypes.Keypair)
     , volumes : WebData (List OSTypes.Volume)
+    , volumeSnapshots : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List VolumeSnapshot)
     , networks : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Network)
     , autoAllocatedNetworkUuid : RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.NetworkUuid
     , floatingIps : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.FloatingIp)

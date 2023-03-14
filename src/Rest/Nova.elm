@@ -24,6 +24,7 @@ import Base64
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
+import Helpers.Time exposing (iso8601StringToPosixDecodeError)
 import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
@@ -35,7 +36,6 @@ import Rest.Helpers
     exposing
         ( expectJsonWithErrorBody
         , expectStringWithErrorBody
-        , iso8601StringToPosixDecodeError
         , openstackCredentialedRequest
         , resultToMsgErrorBody
         )

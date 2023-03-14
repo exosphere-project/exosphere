@@ -99,6 +99,7 @@ hydrateProjectFromStoredProject storedProject =
     , flavors = []
     , keypairs = RemoteData.NotAsked
     , volumes = RemoteData.NotAsked
+    , volumeSnapshots = RDPP.empty
     , networks = RDPP.empty
     , autoAllocatedNetworkUuid = RDPP.empty
     , floatingIps = RDPP.empty

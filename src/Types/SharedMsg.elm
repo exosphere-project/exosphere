@@ -8,6 +8,7 @@ module Types.SharedMsg exposing
 import Browser
 import Http
 import OpenStack.Types as OSTypes
+import OpenStack.VolumeSnapshots exposing (VolumeSnapshot)
 import Style.Types as ST
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Time
@@ -59,6 +60,7 @@ type ProjectSpecificMsgConstructor
     | RequestDeleteServers (List OSTypes.ServerUuid)
     | RequestCreateVolume OSTypes.VolumeName OSTypes.VolumeSize
     | RequestDeleteVolume OSTypes.VolumeUuid
+    | RequestDeleteVolumeSnapshot HelperTypes.Uuid
     | RequestDetachVolume OSTypes.VolumeUuid
     | RequestKeypairs
     | RequestCreateKeypair OSTypes.KeypairName OSTypes.PublicKey
@@ -86,8 +88,10 @@ type ProjectSpecificMsgConstructor
     | ReceiveCreateExoSecurityGroup OSTypes.SecurityGroup
     | ReceiveCreateVolume
     | ReceiveVolumes (List OSTypes.Volume)
+    | ReceiveVolumeSnapshots (List VolumeSnapshot)
     | ReceiveDeleteVolume
     | ReceiveUpdateVolumeName
+    | ReceiveDeleteVolumeSnapshot
     | ReceiveAttachVolume OSTypes.VolumeAttachment
     | ReceiveDetachVolume
     | ReceiveComputeQuota OSTypes.ComputeQuota

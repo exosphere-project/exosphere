@@ -1,29 +1,32 @@
 module OpenStack.Volumes exposing
     ( requestCreateVolume
     , requestDeleteVolume
+    , requestDeleteVolumeSnapshot
     , requestUpdateVolumeName
+    , requestVolumeSnapshots
     , requestVolumes
     , volumeLookup
     )
 
 import Helpers.GetterSetters as GetterSetters
+import Helpers.Time exposing (iso8601StringToPosixDecodeError)
 import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
 import Json.Encode
 import List.Extra
 import OpenStack.Types as OSTypes
+import OpenStack.VolumeSnapshots exposing (volumeSnapshotDecoder)
 import RemoteData
 import Rest.Helpers
     exposing
         ( expectJsonWithErrorBody
         , expectStringWithErrorBody
-        , iso8601StringToPosixDecodeError
         , openstackCredentialedRequest
         , resultToMsgErrorBody
         )
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
-import Types.HelperTypes exposing (HttpRequestMethod(..))
+import Types.HelperTypes exposing (HttpRequestMethod(..), Uuid)
 import Types.Project exposing (Project)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 
@@ -100,6 +103,37 @@ requestVolumes project =
         )
 
 
+requestVolumeSnapshots : Project -> Cmd SharedMsg
+requestVolumeSnapshots project =
+    let
+        errorContext =
+            ErrorContext
+                "get a list of volume snapshots"
+                ErrorWarn
+                Nothing
+
+        resultToMsg_ =
+            resultToMsgErrorBody
+                errorContext
+                (\snapshots ->
+                    ProjectMsg
+                        (GetterSetters.projectIdentifier project)
+                        (ReceiveVolumeSnapshots snapshots)
+                )
+    in
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Get
+        Nothing
+        []
+        (project.endpoints.cinder ++ "/snapshots")
+        Http.emptyBody
+        (expectJsonWithErrorBody
+            resultToMsg_
+            (Decode.field "snapshots" <| Decode.list volumeSnapshotDecoder)
+        )
+
+
 requestDeleteVolume : Project -> OSTypes.VolumeUuid -> Cmd SharedMsg
 requestDeleteVolume project volumeUuid =
     let
@@ -120,6 +154,30 @@ requestDeleteVolume project volumeUuid =
         Nothing
         []
         (project.endpoints.cinder ++ "/volumes/" ++ volumeUuid)
+        Http.emptyBody
+        (expectStringWithErrorBody resultToMsg_)
+
+
+requestDeleteVolumeSnapshot : Project -> Uuid -> Cmd SharedMsg
+requestDeleteVolumeSnapshot project snapshotUuid =
+    let
+        errorContext =
+            ErrorContext
+                ("delete volume snapshot " ++ snapshotUuid)
+                ErrorCrit
+                Nothing
+
+        resultToMsg_ =
+            resultToMsgErrorBody
+                errorContext
+                (\_ -> ProjectMsg (GetterSetters.projectIdentifier project) ReceiveDeleteVolumeSnapshot)
+    in
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Delete
+        Nothing
+        []
+        (project.endpoints.cinder ++ "/snapshots/" ++ snapshotUuid)
         Http.emptyBody
         (expectStringWithErrorBody resultToMsg_)
 
@@ -166,7 +224,7 @@ volumeDecoder =
         |> Pipeline.required "size" Decode.int
         |> Pipeline.required "description" (Decode.nullable Decode.string)
         |> Pipeline.required "attachments" (Decode.list cinderVolumeAttachmentDecoder)
-        |> Pipeline.optional "volume_image_metadata" (imageMetadataDecoder |> Decode.andThen (\a -> Decode.succeed <| Just a)) Nothing
+        |> Pipeline.optional "volume_image_metadata" (imageMetadataDecoder |> Decode.map Maybe.Just) Nothing
         |> Pipeline.required "created_at" (Decode.string |> Decode.andThen iso8601StringToPosixDecodeError)
         |> Pipeline.required "user_id" Decode.string
 

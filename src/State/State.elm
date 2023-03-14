@@ -1273,6 +1273,10 @@ processProjectSpecificMsg outerModel project msg =
             ( outerModel, OSVolumes.requestDeleteVolume project volumeUuid )
                 |> mapToOuterMsg
 
+        RequestDeleteVolumeSnapshot snapshotUuid ->
+            ( outerModel, OSVolumes.requestDeleteVolumeSnapshot project snapshotUuid )
+                |> mapToOuterMsg
+
         RequestDetachVolume volumeUuid ->
             let
                 maybeVolume =
@@ -1844,9 +1848,31 @@ processProjectSpecificMsg outerModel project msg =
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
+        ReceiveVolumeSnapshots snapshots ->
+            let
+                newProject =
+                    { project
+                        | volumeSnapshots =
+                            RDPP.RemoteDataPlusPlus
+                                (RDPP.DoHave snapshots sharedModel.clientCurrentTime)
+                                (RDPP.NotLoading Nothing)
+                    }
+
+                newSharedModel =
+                    GetterSetters.modelUpdateProject sharedModel newProject
+            in
+            ( newSharedModel, Cmd.none )
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
         ReceiveDeleteVolume ->
             ( outerModel, OSVolumes.requestVolumes project )
                 |> mapToOuterMsg
+
+        ReceiveDeleteVolumeSnapshot ->
+            ApiModelHelpers.requestVolumeSnapshots (GetterSetters.projectIdentifier project) sharedModel
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
 
         ReceiveUpdateVolumeName ->
             ( outerModel, OSVolumes.requestVolumes project )
@@ -2628,6 +2654,7 @@ createProject_ outerModel description authToken region endpoints =
             , flavors = []
             , keypairs = RemoteData.NotAsked
             , volumes = RemoteData.NotAsked
+            , volumeSnapshots = RDPP.empty
             , networks = RDPP.empty
             , autoAllocatedNetworkUuid = RDPP.empty
             , floatingIps = RDPP.empty

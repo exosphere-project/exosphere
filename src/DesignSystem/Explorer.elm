@@ -13,6 +13,7 @@ import DesignSystem.Stories.Toast as ToastStories
 import DesignSystem.Stories.ToggleTip as ToggleTip
 import DesignSystem.Stories.Validation as Validation
 import Element
+import Element.Background as Background
 import Element.Font as Font
 import Html
 import Html.Attributes exposing (src, style)
@@ -26,6 +27,7 @@ import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.DataList
 import Style.Widgets.Icon exposing (bell, console, copyToClipboard, history, ipAddress, lock, lockOpen, plusCircle, remove, roundRect, timesCircle)
 import Style.Widgets.Meter exposing (meter)
+import Style.Widgets.MultiMeter exposing (multiMeter)
 import Style.Widgets.Popover.Popover exposing (popover, toggleIfTargetIsOutside)
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.Spacer exposing (spacer)
@@ -577,6 +579,39 @@ Shows a static horizontal progress bar chart which indicates the capacity of a r
 - `title` indicates the resource.
 - `subtitle` represents the value and maximum in words e.g. "<value> of <maximum> <units>".
                     """ } )
+                    ]
+                , storiesOf
+                    "MultiMeter"
+                    [ ( "default"
+                      , \m ->
+                            toHtml (palettize m) <|
+                                let
+                                    gradient =
+                                        [ Background.gradient
+                                            { angle = pi / 2
+                                            , steps =
+                                                [ SH.toElementColorWithOpacity (palettize m).primary 0.75
+                                                , SH.toElementColor (palettize m).primary
+                                                ]
+                                            }
+                                        ]
+                                in
+                                multiMeter (palettize m)
+                                    "Tranche Usage"
+                                    "30 of 42 Tranches"
+                                    42
+                                    [ ( "Busy", 15, gradient )
+                                    , ( "Idle", 12, gradient )
+                                    , ( "Booting", 3, gradient )
+                                    ]
+                      , { note = """
+## Usage
+
+Draws a proportional meter given multiple sub-values.
+
+This is like the [meter](/#Molecules/Meter) but renders multiple values.
+                    """ }
+                      )
                     ]
                 , Validation.stories toHtml (\_ -> NoOp)
                 ]

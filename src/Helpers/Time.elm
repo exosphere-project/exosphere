@@ -1,7 +1,8 @@
-module Helpers.Time exposing (humanReadableDate, humanReadableDateAndTime, iso8601StringToPosix, relativeTimeNoAffixes)
+module Helpers.Time exposing (humanReadableDate, humanReadableDateAndTime, iso8601StringToPosix, iso8601StringToPosixDecodeError, relativeTimeNoAffixes)
 
 import DateFormat.Relative
 import ISO8601
+import Json.Decode exposing (Decoder, fail, succeed)
 import Time
 
 
@@ -90,3 +91,13 @@ relativeTimeNoAffixes start end =
         |> String.words
         |> List.filter isNotAffixWord
         |> String.join " "
+
+
+iso8601StringToPosixDecodeError : String -> Decoder Time.Posix
+iso8601StringToPosixDecodeError str =
+    case iso8601StringToPosix str of
+        Ok posix ->
+            succeed posix
+
+        Err error ->
+            fail error

@@ -209,6 +209,8 @@ routeToViewStateModelCmd sharedModel route =
                                         ]
                                     )
                                         |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestVolumeSnapshots (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestFloatingIps (GetterSetters.projectIdentifier project))
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestServers (GetterSetters.projectIdentifier project))
@@ -402,13 +404,21 @@ routeToViewStateModelCmd sharedModel route =
                             )
 
                         Route.VolumeList ->
+                            let
+                                ( newSharedModel, newCmd ) =
+                                    ( sharedModel
+                                    , Cmd.batch
+                                        [ OSVolumes.requestVolumes project
+                                        , Ports.instantiateClipboardJs ()
+                                        , OSQuotas.requestVolumeQuota project
+                                        ]
+                                    )
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestVolumeSnapshots (GetterSetters.projectIdentifier project))
+                            in
                             ( projectViewProto <| VolumeList <| Page.VolumeList.init True
-                            , sharedModel
-                            , Cmd.batch
-                                [ OSVolumes.requestVolumes project
-                                , Ports.instantiateClipboardJs ()
-                                , OSQuotas.requestVolumeQuota project
-                                ]
+                            , newSharedModel
+                            , newCmd
                             )
 
                         Route.VolumeMountInstructions attachment ->

@@ -11,6 +11,7 @@ module Rest.ApiModelHelpers exposing
     , requestServerEvents
     , requestServers
     , requestVolumeQuota
+    , requestVolumeSnapshots
     , requestVolumes
     )
 
@@ -82,6 +83,20 @@ requestVolumes projectUuid model =
                 |> GetterSetters.projectSetVolumesLoading
                 |> GetterSetters.modelUpdateProject model
             , OpenStack.Volumes.requestVolumes project
+            )
+
+        Nothing ->
+            ( model, Cmd.none )
+
+
+requestVolumeSnapshots : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd SharedMsg )
+requestVolumeSnapshots projectUuid model =
+    case GetterSetters.projectLookup model projectUuid of
+        Just project ->
+            ( project
+                |> GetterSetters.projectSetVolumeSnapshotsLoading
+                |> GetterSetters.modelUpdateProject model
+            , OpenStack.Volumes.requestVolumeSnapshots project
             )
 
         Nothing ->
