@@ -240,7 +240,7 @@ fullVolumeInfoItems context ( quota, snapshotUsage ) =
                       , [ Background.gradient
                             { angle = pi / 2
                             , steps =
-                                [ SH.toElementColorWithOpacity context.palette.primary 0.85
+                                [ SH.toElementColorWithOpacity context.palette.primary 0.75
                                 , SH.toElementColor context.palette.primary
                                 ]
                             }

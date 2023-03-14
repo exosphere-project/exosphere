@@ -590,7 +590,7 @@ Shows a static horizontal progress bar chart which indicates the capacity of a r
                                         [ Background.gradient
                                             { angle = pi / 2
                                             , steps =
-                                                [ SH.toElementColorWithOpacity (palettize m).primary 0.8
+                                                [ SH.toElementColorWithOpacity (palettize m).primary 0.75
                                                 , SH.toElementColor (palettize m).primary
                                                 ]
                                             }
