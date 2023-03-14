@@ -163,12 +163,12 @@ volumeRecords project ( volumes, snapshots ) =
             else
                 "other user"
 
-        isVolumeSnapshot : OSTypes.Volume -> VS.VolumeSnapshot -> Bool
-        isVolumeSnapshot { uuid } { volumeId } =
+        isSnapshotOfVolume : OSTypes.Volume -> VS.VolumeSnapshot -> Bool
+        isSnapshotOfVolume { uuid } { volumeId } =
             uuid == volumeId
 
         volumeSnapshots volume =
-            List.filter (\snapshot -> isVolumeSnapshot volume snapshot) snapshots
+            List.filter (\snapshot -> isSnapshotOfVolume volume snapshot) snapshots
     in
     List.map
         (\volume ->
