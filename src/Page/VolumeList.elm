@@ -40,8 +40,8 @@ type alias Model =
 
 type Msg
     = DetachVolume OSTypes.VolumeUuid
-    | DeleteSnapshot Uuid
-    | GotDeleteConfirm OSTypes.VolumeUuid
+    | GotDeleteSnapshotConfirm Uuid
+    | GotDeleteVolumeConfirm OSTypes.VolumeUuid
     | SharedMsg SharedMsg.SharedMsg
     | DataListMsg DataList.Msg
     | NoOp
@@ -67,14 +67,14 @@ update msg project model =
                 SharedMsg.RequestDetachVolume volumeUuid
             )
 
-        DeleteSnapshot snapshotUuid ->
+        GotDeleteSnapshotConfirm snapshotUuid ->
             ( model
             , Cmd.none
             , SharedMsg.ProjectMsg projectId <|
                 SharedMsg.RequestDeleteVolumeSnapshot snapshotUuid
             )
 
-        GotDeleteConfirm volumeUuid ->
+        GotDeleteVolumeConfirm volumeUuid ->
             ( model
             , Cmd.none
             , SharedMsg.ProjectMsg projectId <|
@@ -299,7 +299,7 @@ volumeView context project currentTime volumeRecord =
                                     ++ context.localization.blockDevice
                                     ++ "?"
                             , onCancel = Just NoOp
-                            , onConfirm = Just <| GotDeleteConfirm volumeRecord.id
+                            , onConfirm = Just <| GotDeleteVolumeConfirm volumeRecord.id
                             }
                             ST.PositionBottomRight
                             deleteVolumeBtn
@@ -404,7 +404,7 @@ volumeView context project currentTime volumeRecord =
                                                                     ++ deviceLabel
                                                                     ++ "?"
                                                             , onCancel = Just NoOp
-                                                            , onConfirm = Just <| DeleteSnapshot snapshot.uuid
+                                                            , onConfirm = Just <| GotDeleteSnapshotConfirm snapshot.uuid
                                                             }
                                                             ST.PositionBottomRight
                                                             (\msg _ ->
