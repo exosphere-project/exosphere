@@ -631,13 +631,15 @@ decodeFloatingIp =
 
 floatingIpDecoder : Decode.Decoder OSTypes.FloatingIp
 floatingIpDecoder =
-    Decode.map4 OSTypes.FloatingIp
+    Decode.map6 OSTypes.FloatingIp
         (Decode.field "id" Decode.string)
         (Decode.field "floating_ip_address" Decode.string)
         (Decode.field "status" Decode.string
             |> Decode.andThen ipAddressStatusDecoder
         )
         (Decode.field "port_id" <| Decode.nullable Decode.string)
+        (Decode.field "dns_domain" Decode.string)
+        (Decode.field "dns_name" Decode.string)
 
 
 ipAddressStatusDecoder : String -> Decode.Decoder OSTypes.IpAddressStatus

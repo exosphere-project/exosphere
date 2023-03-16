@@ -234,7 +234,15 @@ floatingIpTileContents context project =
     let
         renderFloatingIp : OSTypes.FloatingIp -> List (Element.Element Msg)
         renderFloatingIp floatingIp =
-            [ Element.text floatingIp.address ]
+            [ Element.text floatingIp.address
+            , Element.text
+                (if String.isEmpty floatingIp.dnsName then
+                    "DNS name not found"
+
+                 else
+                    floatingIp.dnsName
+                )
+            ]
 
         showFloatingIp : OSTypes.FloatingIp -> Bool
         showFloatingIp floatingIp =
