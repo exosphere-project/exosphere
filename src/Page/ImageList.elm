@@ -52,7 +52,7 @@ init showDeleteButtons showHeading =
     { deletionsAttempted = Set.empty
     , showDeleteButtons = showDeleteButtons
     , showHeading = showHeading
-    , dataListModel = DataList.init <| DataList.getDefaultFilterOptions filters
+    , dataListModel = DataList.init <| DataList.getDefaultFilterOptions (filters "")
     }
 
 
@@ -134,7 +134,7 @@ view context project model =
                     (imageRecords context project imagesInCustomOrder)
                     []
                     (Just
-                        { filters = filters
+                        { filters = filters context.localization.staticRepresentationOfBlockDeviceContents
                         , dropdownMsgMapper =
                             \dropdownId ->
                                 SharedMsg <| SharedMsg.TogglePopover dropdownId
@@ -314,6 +314,14 @@ imageView model context project imageRecord =
                 Nothing ->
                     "unknown size"
 
+        imageType =
+            case imageRecord.image.imageType of
+                Just imageTypeName ->
+                    imageTypeName
+
+                Nothing ->
+                    context.localization.staticRepresentationOfBlockDeviceContents
+
         featuredIcon =
             if imageRecord.featured then
                 FeatherIcons.award
@@ -369,7 +377,7 @@ imageView model context project imageRecord =
                     , Element.row []
                         [ Element.el [ Font.color (SH.toElementColor context.palette.neutral.text.default) ]
                             (Element.text <| String.toLower <| OSTypes.imageVisibilityToString imageRecord.image.visibility)
-                        , Element.text <| " " ++ context.localization.staticRepresentationOfBlockDeviceContents
+                        , Element.text <| " " ++ imageType
                         ]
                     ]
 
@@ -508,15 +516,17 @@ setVisibilityBtn context imageUuid visibility =
 
 
 filters :
-    List
-        (DataList.Filter
-            { record
-                | image : Image
-                , visibility : String
-                , owned : Bool
-            }
-        )
-filters =
+    String
+    ->
+        List
+            (DataList.Filter
+                { record
+                    | image : Image
+                    , visibility : String
+                    , owned : Bool
+                }
+            )
+filters localizationString =
     [ { id = "visibility"
       , label = "Visibility"
       , chipPrefix = "Visibilty is "
@@ -570,6 +580,29 @@ filters =
       , onFilter =
             \optionValue imageRecord ->
                 List.member optionValue imageRecord.image.tags
+      }
+    , { id = "type"
+      , label = Helpers.String.toTitleCase localizationString ++ " type"
+      , chipPrefix = Helpers.String.toTitleCase localizationString ++ " type is "
+      , filterOptions =
+            \images ->
+                List.map (\i -> Maybe.withDefault localizationString i.image.imageType) images
+                    |> List.map (\t -> ( t, t ))
+                    |> Dict.fromList
+      , filterTypeAndDefaultValue =
+            DataList.MultiselectOption Set.empty
+      , onFilter =
+            \optionValue imageRecord ->
+                let
+                    imageType =
+                        case imageRecord.image.imageType of
+                            Just imageTypeName ->
+                                imageTypeName
+
+                            Nothing ->
+                                localizationString
+                in
+                imageType == optionValue
       }
     ]
 

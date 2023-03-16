@@ -309,6 +309,7 @@ imageDecoderHelper =
             , "disk_format"
             , "file"
             , "id"
+            , "image_type"
             , "instance_uuid"
             , "kernel_id"
             , "locations"
@@ -350,6 +351,7 @@ imageDecoderHelper =
         |> Pipeline.optional "os_distro" (Decode.string |> Decode.andThen (\s -> Decode.succeed <| Just s)) Nothing
         |> Pipeline.optional "os_version" (Decode.string |> Decode.andThen (\s -> Decode.succeed <| Just s)) Nothing
         |> Pipeline.required "protected" Decode.bool
+        |> Pipeline.optional "image_type" (Decode.string |> Decode.andThen (\s -> Decode.succeed <| Just s)) Nothing
 
 
 imageVisibilityDecoder : String -> Decode.Decoder OSTypes.ImageVisibility

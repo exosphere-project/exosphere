@@ -248,6 +248,7 @@ type alias Image =
     , osDistro : Maybe String
     , osVersion : Maybe String
     , protected : Bool
+    , imageType : Maybe String
     }
 
 
