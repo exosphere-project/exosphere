@@ -52,6 +52,7 @@ type alias Endpoints =
     , nova : HelperTypes.Url
     , neutron : HelperTypes.Url
     , jetstream2Accounting : Maybe HelperTypes.Url
+    , designate: Maybe HelperTypes.Url
     }
 
 

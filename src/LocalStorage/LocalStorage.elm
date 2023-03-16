@@ -259,6 +259,7 @@ encodeExoEndpoints endpoints =
           )
         , ( "nova", Encode.string endpoints.nova )
         , ( "neutron", Encode.string endpoints.neutron )
+        , ( "designate", endpoints.designate |> Maybe.map Encode.string |> Maybe.withDefault Encode.null )
         , ( "jetstream2Accounting"
           , endpoints.jetstream2Accounting
                 |> Maybe.map Encode.string
@@ -503,6 +504,12 @@ decodeEndpoints =
         (Decode.oneOf
             -- This decodes earlier stored projects which do not have the jetstream2Accounting field in encoded endpoints
             [ Decode.field "jetstream2Accounting" Decode.string |> Decode.nullable
+            , Decode.succeed Nothing
+            ]
+        )
+        (Decode.oneOf
+            -- This decodes earlier stored projects which do not have the jetstream2Accounting field in encoded endpoints
+            [ Decode.field "designate" Decode.string |> Decode.nullable
             , Decode.succeed Nothing
             ]
         )
