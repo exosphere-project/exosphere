@@ -15,6 +15,6 @@
 - name: 'Packages installed'
   dnf:
     name:
-      - 'iptables-nft'
+      - 'iptables'
       - 'iptables-libs'
     state: 'latest'
