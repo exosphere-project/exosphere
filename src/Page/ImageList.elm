@@ -582,8 +582,8 @@ filters localizationString =
                 List.member optionValue imageRecord.image.tags
       }
     , { id = "type"
-      , label = "Image type"
-      , chipPrefix = "Image type is "
+      , label = Helpers.String.toTitleCase localizationString ++ " type"
+      , chipPrefix = Helpers.String.toTitleCase localizationString ++ " type is "
       , filterOptions =
             \images ->
                 List.map (\i -> Maybe.withDefault localizationString i.image.imageType) images
