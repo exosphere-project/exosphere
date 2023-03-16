@@ -1210,6 +1210,13 @@ processProjectSpecificMsg outerModel project msg =
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
+        ReceiveRecordSets sets ->
+            let
+                _ =
+                    Debug.log "sets" sets
+            in
+            ( outerModel, Cmd.none )
+
         RequestCreateServer pageModel networkUuid flavorId ->
             let
                 customWorkFlowSource =

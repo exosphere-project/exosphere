@@ -14,6 +14,7 @@ module OpenStack.Types exposing
     , Flavor
     , FlavorId
     , FloatingIp
+    , RecordSet
     , Image
     , ImageStatus(..)
     , ImageUuid
@@ -759,6 +760,12 @@ type alias SecurityGroup =
     , name : String
     , description : Maybe String
     , rules : List SecurityGroupRule
+    }
+
+
+type alias RecordSet =
+    { name : String
+    , ttl : Maybe String
     }
 
 

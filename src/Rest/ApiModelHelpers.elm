@@ -7,6 +7,7 @@ module Rest.ApiModelHelpers exposing
     , requestNetworkQuota
     , requestNetworks
     , requestPorts
+    , requestRecordSets
     , requestServer
     , requestServerEvents
     , requestServers
@@ -20,6 +21,7 @@ import OpenStack.Quotas
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes
 import RemoteData
+import Rest.Designate
 import Rest.Glance
 import Rest.Jetstream2Accounting
 import Rest.Neutron
@@ -183,6 +185,19 @@ requestFloatingIps projectUuid model =
             ( GetterSetters.projectSetFloatingIpsLoading project
                 |> GetterSetters.modelUpdateProject model
             , Rest.Neutron.requestFloatingIps project
+            )
+
+        Nothing ->
+            ( model, Cmd.none )
+
+
+requestRecordSets : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd SharedMsg )
+requestRecordSets projectUuid model =
+    case GetterSetters.projectLookup model projectUuid of
+        Just project ->
+            ( GetterSetters.projectSetFloatingIpsLoading project
+                |> GetterSetters.modelUpdateProject model
+            , Rest.Designate.requestRecordSets project
             )
 
         Nothing ->
