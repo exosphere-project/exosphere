@@ -1,0 +1,21 @@
+[Unit]
+Description=TigerVNC Server
+BindsTo=sys-devices-virtual-net-docker0.device
+After=syslog.target network.target sys-devices-virtual-net-docker0.device
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User={{ vnc_server_user }}
+PAMName=login
+PIDFile=/home/{{ vnc_server_user }}/.vnc/%H%i.pid
+ExecStartPre=/bin/sh -c 'ip address show dev docker0 | grep -q 172.17.0.1'
+ExecStartPre=-/usr/bin/vncserver -kill :%i
+ExecStart=/usr/bin/vncserver -fg -interface 172.17.0.1 -localhost no -rfbauth /home/{{ vnc_server_user }}/.vnc/passwd -MaxCutText 99999999 :%i
+ExecStop=/usr/bin/vncserver -kill :%i
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
