@@ -12,7 +12,7 @@
     dest: '/etc/yum.repos.d/docker-ce.repo'
 
 - name: 'Packages installed'
-  dnf:
+  yum:
     name:
       - 'docker-ce'
       - 'docker-ce-cli'

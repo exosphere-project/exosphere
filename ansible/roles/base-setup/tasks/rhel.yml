@@ -13,7 +13,7 @@
     state: 'present'
 
 - name: 'Packages installed'
-  dnf:
+  yum:
     name:
       - 'iptables'
       - 'iptables-libs'
