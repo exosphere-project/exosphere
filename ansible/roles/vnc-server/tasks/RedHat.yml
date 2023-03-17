@@ -8,12 +8,12 @@
 - name: 'vncserver.users exists'
   file:
     path: '/etc/tigervnc/vncserver.users'
-    state: file
+    state: touch
 
 - name: 'vncserver-config-defaults exists'
   file:
     path: '/etc/tigervnc/vncserver-config-defaults'
-    state: file
+    state: touch
 
 - name: 'vncserver.users populated'
   lineinfile:
