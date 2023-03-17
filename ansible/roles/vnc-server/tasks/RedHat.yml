@@ -43,6 +43,12 @@
     src: 'start_order.conf.j2'
     dest: '/etc/systemd/system/vncserver@.service.d/start_order.conf'
 
+- name: 'systemd unit file templated'
+  when: ansible_distribution == 'CentOS' and ansible_major_version == '7'
+  template:
+    src: 'vncserver@.service.j2'
+    dest: '/etc/systemd/system/vncserver@.service'
+
 - name: 'systemd service enabled and started'
   systemd:
     name: 'vncserver@:1.service'
