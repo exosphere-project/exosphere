@@ -18,10 +18,11 @@
       - 'iptables'
     state: 'latest'
 
-- name: Permissive SELinux
-  ansible.posix.selinux:
-    policy: targeted
-    state: permissive
-
 - name: 'setenforce 0'
   shell: setenforce 0
+
+- name: Permissive SELinux
+  replace:
+    path: /etc/selinux/config
+    regexp: '^SELINUX=(\w+)$'
+    replace: 'permissive'
