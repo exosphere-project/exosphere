@@ -33,7 +33,7 @@
     block: |
       AutomaticLoginEnable = true
       AutomaticLogin = {{ desktop_user }}
-    insertafter: '\[default\]'
+    insertafter: '\[daemon\]'
 
 # https://askubuntu.com/questions/1048774/disabling-lock-screen-18-04
 # https://people.gnome.org/~pmkovar/system-admin-guide/screen-locking.html
