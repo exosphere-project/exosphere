@@ -16,5 +16,4 @@
   yum:
     name:
       - 'iptables'
-      - 'iptables-libs'
     state: 'latest'
