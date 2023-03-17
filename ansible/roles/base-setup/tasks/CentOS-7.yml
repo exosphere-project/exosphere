@@ -1,0 +1,27 @@
+---
+
+- name: 'packages installed'
+  yum:
+    name:
+      - 'epel-release'
+    state: 'present'
+
+- name: 'packages installed'
+  yum:
+    name:
+      - 'haveged'
+    state: 'present'
+
+- name: 'Packages installed'
+  yum:
+    name:
+      - 'iptables'
+    state: 'latest'
+
+- name: Permissive SELinux
+  ansible.posix.selinux:
+    policy: targeted
+    state: permissive
+
+- name: 'setenforce 0'
+  shell: setenforce 0
