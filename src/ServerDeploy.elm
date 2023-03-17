@@ -27,11 +27,20 @@ runcmd:
   - chmod 640 /var/log/cloud-init-output.log
   - {create-cluster-command}
   - (which apt-get && apt-get install -y python3-venv) # Install python3-venv on Debian-based platforms
+  - (which yum     && yum     install -y python3)      # Install python3 on RHEL-based platforms
   - |-
     python3 -m venv /opt/ansible-venv
     . /opt/ansible-venv/bin/activate
+    pip install --upgrade pip
     pip install ansible-core
-    ansible-pull --url "{instance-config-mgt-repo-url}" --checkout "{instance-config-mgt-repo-checkout}" --directory /opt/instance-config-mgt -i /opt/instance-config-mgt/ansible/hosts -e "{ansible-extra-vars}" /opt/instance-config-mgt/ansible/playbook.yml
+    ansible-pull \\
+      --url "{instance-config-mgt-repo-url}" \\
+      --checkout "{instance-config-mgt-repo-checkout}" \\
+      --directory /opt/instance-config-mgt \\
+      -i /opt/instance-config-mgt/ansible/hosts \\
+      -e "{ansible-extra-vars}" \\
+      /opt/instance-config-mgt/ansible/playbook.yml \\
+      | tee -a /var/log/ansible.log
   - ANSIBLE_RETURN_CODE=$?
   - if [ $ANSIBLE_RETURN_CODE -eq 0 ]; then STATUS="complete"; else STATUS="error"; fi
   - sleep 1  # Ensures that console log output from any previous commands complete before the following command begins
