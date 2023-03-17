@@ -5,6 +5,16 @@
     path: '/etc/tigervnc'
     state: 'directory'
 
+- name: 'vncserver.users exists'
+  file:
+    path: '/etc/tigervnc/vncserver.users'
+    state: file
+
+- name: 'vncserver-config-defaults exists'
+  file:
+    path: '/etc/tigervnc/vncserver-config-defaults'
+    state: file
+
 - name: 'vncserver.users populated'
   lineinfile:
     path: '/etc/tigervnc/vncserver.users'
