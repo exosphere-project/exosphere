@@ -3,8 +3,13 @@
 - name: 'operating system-specific variables imported'
   include_vars: "{{ item }}"
   with_first_found:
-    - "{{ ansible_distribution }}-{{ ansible_distribution_major_version}}.yml"
-    - "{{ ansible_distribution }}.yml"
+    - files:
+        - "{{ ansible_distribution }}-{{ ansible_distribution_version }}.yml"
+        - "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
+        - "{{ ansible_distribution }}.yml"
+        - "{{ ansible_os_family }}.yml"
+      paths:
+        - "{{ role_path }}/vars"
 
 - name: 'exouser added to distro-default user group'
   user:
@@ -13,10 +18,13 @@
     groups:
       - '{{ default_user_group }}'
 
-- name: 'tasks imported for RedHat family'
-  import_tasks: 'rhel.yml'
-  when: 'ansible_os_family == "RedHat"'
-
-- name: 'tasks imported for Ubuntu'
-  import_tasks: 'ubuntu.yml'
-  when: 'ansible_distribution == "Ubuntu"'
+- name: 'operating system specific tasks imported'
+  include_tasks: "{{ item }}"
+  with_first_found:
+    - files:
+        - "{{ ansible_distribution }}-{{ ansible_distribution_version }}.yml"
+        - "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
+        - "{{ ansible_distribution }}.yml"
+        - "{{ ansible_os_family }}.yml"
+      paths:
+        - "{{ role_path }}/tasks"

@@ -25,7 +25,6 @@
     dest: '/usr/local/bin/docker-compose'
     mode: 'a+x'
 
-
 - name: 'docker-compose symlinked'
   file:
     dest: '/usr/bin/docker-compose'

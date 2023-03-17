@@ -3,10 +3,13 @@
 - name: 'operating system-specific variables imported'
   include_vars: "{{ item }}"
   with_first_found:
-    - "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
-    - "{{ ansible_distribution }}.yml"
-    - "{{ ansible_os_family }}.yml"
-
+    - files:
+        - "{{ ansible_distribution }}-{{ ansible_distribution_version }}.yml"
+        - "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
+        - "{{ ansible_distribution }}.yml"
+        - "{{ ansible_os_family }}.yml"
+      paths:
+        - "{{ role_path }}/vars"
 
 - name: 'graphical environment installed'
   package:
@@ -77,6 +80,14 @@
     src: '49-nopasswd_global.rules.j2'
     dest: '/etc/polkit-1/rules.d/49-nopasswd_global.rules'
 
-- name: 'tasks imported for RedHat family'
-  import_tasks: 'rhel.yml'
-  when: 'ansible_os_family == "RedHat"'
+- name: 'operating system specific tasks imported'
+  include_tasks: "{{ item }}"
+  with_first_found:
+    - files:
+        - "{{ ansible_distribution }}-{{ ansible_distribution_version }}.yml"
+        - "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
+        - "{{ ansible_distribution }}.yml"
+        - "{{ ansible_os_family }}.yml"
+      paths:
+        - "{{ role_path }}/tasks"
+      skip: true

@@ -1,5 +1,10 @@
 ---
 
+- name: 'systemd service override directory created'
+  file:
+    path: '/etc/tigervnc'
+    state: 'directory'
+
 - name: 'vncserver.users populated'
   lineinfile:
     path: '/etc/tigervnc/vncserver.users'
