@@ -25,7 +25,6 @@
     path: '/etc/tigervnc/vncserver-config-defaults'
     block: |
       interface=172.17.0.1
-      localhost=no
       session=gnome
       rfbauth=/home/{{ vnc_server_user }}/.vnc/passwd
       MaxCutText=99999999
@@ -43,9 +42,14 @@
     src: 'start_order.conf.j2'
     dest: '/etc/systemd/system/vncserver@.service.d/start_order.conf'
 
+- name: 'systemd unit file templated'
+  template:
+    src: 'vncserver@.service.j2'
+    dest: '/etc/systemd/system/vncserver@.service'
+
 - name: 'systemd service enabled and started'
   systemd:
-    name: 'vncserver@:1.service'
+    name: 'vncserver@1.service'
     daemon_reload: 'yes'
     enabled: 'yes'
     state: 'started'
