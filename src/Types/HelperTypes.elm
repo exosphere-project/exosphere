@@ -107,6 +107,7 @@ type alias Localization =
     , floatingIpAddress : String
     , publiclyRoutableIpAddress : String
     , graphicalDesktopEnvironment : String
+    , hostname: String
     }
 
 

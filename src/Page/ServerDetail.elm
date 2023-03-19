@@ -14,6 +14,7 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import Helpers.Time
 import Helpers.Validation as Validation
+import OpenStack.DnsRecordSet
 import OpenStack.ServerActions as ServerActions
 import OpenStack.ServerNameValidator exposing (serverNameValidator)
 import OpenStack.ServerVolumes exposing (serverCanHaveVolumeAttached)
@@ -1606,22 +1607,38 @@ renderIpAddresses context project server model =
                 GetterSetters.getServerFloatingIps project server.osProps.uuid
                     |> List.map
                         (\ipAddress ->
-                            VH.compactKVSubRow
-                                (Helpers.String.toTitleCase context.localization.floatingIpAddress)
-                                (Element.row [ Element.spacing spacer.px16 ]
-                                    [ copyableText context.palette [] ipAddress.address
-                                    , Widget.textButton
-                                        (SH.materialStyle context.palette).button
-                                        { text =
-                                            "Unassign"
-                                        , onPress =
-                                            Just <|
-                                                SharedMsg <|
-                                                    SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
-                                                        SharedMsg.RequestUnassignFloatingIp ipAddress.uuid
-                                        }
-                                    ]
-                                )
+                            Element.column []
+                                [ VH.compactKVSubRow
+                                    (Helpers.String.toTitleCase context.localization.floatingIpAddress)
+                                    (Element.row [ Element.spacing spacer.px16 ]
+                                        [ copyableText context.palette [] ipAddress.address
+                                        , Widget.textButton
+                                            (SH.materialStyle context.palette).button
+                                            { text =
+                                                "Unassign"
+                                            , onPress =
+                                                Just <|
+                                                    SharedMsg <|
+                                                        SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
+                                                            SharedMsg.RequestUnassignFloatingIp ipAddress.uuid
+                                            }
+                                        ]
+                                    )
+                                , VH.compactKVSubRow
+                                    (Helpers.String.toTitleCase context.localization.hostname)
+                                    (Element.row [ Element.spacing spacer.px16 ]
+                                        [ copyableText context.palette
+                                            []
+                                            (case OpenStack.DnsRecordSet.addressToRecord (project.dnsRecordSets |> RDPP.withDefault []) ipAddress.address of
+                                                Just { name } ->
+                                                    name
+
+                                                Nothing ->
+                                                    ""
+                                            )
+                                        ]
+                                    )
+                                ]
                         )
 
         ipButton : Element.Element Msg -> String -> IpInfoLevel -> Element.Element Msg

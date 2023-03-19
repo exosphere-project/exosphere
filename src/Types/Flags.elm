@@ -151,6 +151,7 @@ localizationDecoder =
         |> required "floatingIpAddress" string
         |> required "publiclyRoutableIpAddress" string
         |> required "graphicalDesktopEnvironment" string
+        |> required "hostname" string
 
 
 sentryConfigDecoder : Decoder HelperTypes.SentryConfig
