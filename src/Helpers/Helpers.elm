@@ -130,8 +130,8 @@ serviceCatalogToEndpoints catalog maybeRegionId =
             , ( "manila", getService "sharev2" )
             , ( "nova", getService "compute" |> Maybe.map novaUrlWithMicroversionSupport )
             , ( "neutron", getService "network" )
-            , ( "designate", getService "dns" )
             , ( "jetstream2Accounting", getService "accounting" )
+            , ( "designate", getService "dns" )
             ]
 
         missingServiceName service =

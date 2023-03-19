@@ -82,6 +82,7 @@ import Types.Workflow
         )
 import Url
 import View.Helpers exposing (toExoPalette)
+import Rest.Designate
 
 
 update : OuterMsg -> Result AppError OuterModel -> ( Result AppError OuterModel, Cmd OuterMsg )
@@ -1210,12 +1211,10 @@ processProjectSpecificMsg outerModel project msg =
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
-        ReceiveRecordSets sets ->
-            let
-                _ =
-                    Debug.log "sets" sets
-            in
-            ( outerModel, Cmd.none )
+        ReceivedDnsRecordSets sets ->
+            Rest.Designate.receiveRecordSets sharedModel project sets
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
 
         RequestCreateServer pageModel networkUuid flavorId ->
             let
@@ -2665,6 +2664,7 @@ createProject_ outerModel description authToken region endpoints =
             , shares = RDPP.empty
             , networks = RDPP.empty
             , autoAllocatedNetworkUuid = RDPP.empty
+            , dnsRecordSets = RDPP.empty
             , floatingIps = RDPP.empty
             , ports = RDPP.empty
             , securityGroups = []

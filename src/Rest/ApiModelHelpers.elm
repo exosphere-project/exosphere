@@ -195,7 +195,7 @@ requestRecordSets : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd Share
 requestRecordSets projectUuid model =
     case GetterSetters.projectLookup model projectUuid of
         Just project ->
-            ( GetterSetters.projectSetFloatingIpsLoading project
+            ( GetterSetters.projectSetDnsRecordSetsLoading project
                 |> GetterSetters.modelUpdateProject model
             , Rest.Designate.requestRecordSets project
             )

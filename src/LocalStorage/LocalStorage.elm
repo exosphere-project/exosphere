@@ -103,6 +103,7 @@ hydrateProjectFromStoredProject storedProject =
     , networks = RDPP.empty
     , shares = RDPP.empty
     , autoAllocatedNetworkUuid = RDPP.empty
+    , dnsRecordSets = RDPP.empty
     , floatingIps = RDPP.empty
     , ports = RDPP.empty
     , securityGroups = []
@@ -259,12 +260,12 @@ encodeExoEndpoints endpoints =
           )
         , ( "nova", Encode.string endpoints.nova )
         , ( "neutron", Encode.string endpoints.neutron )
-        , ( "designate", endpoints.designate |> Maybe.map Encode.string |> Maybe.withDefault Encode.null )
         , ( "jetstream2Accounting"
           , endpoints.jetstream2Accounting
                 |> Maybe.map Encode.string
                 |> Maybe.withDefault Encode.null
           )
+        , ( "designate", endpoints.designate |> Maybe.map Encode.string |> Maybe.withDefault Encode.null )
         ]
 
 

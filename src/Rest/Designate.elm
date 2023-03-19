@@ -1,50 +1,48 @@
 module Rest.Designate exposing (..)
 
-import Helpers.GetterSetters as GetterSetters
+import Helpers.GetterSetters
+import Helpers.RemoteDataPlusPlus
 import Http
-import Json.Decode as Decode
-import OpenStack.Types as OSTypes
+import Json.Decode
+import OpenStack.DnsRecordSet
+import OpenStack.Types
 import Rest.Helpers
-    exposing
-        ( expectJsonWithErrorBody
-        , openstackCredentialedRequest
-        , resultToMsgErrorBody
-        )
-import Types.Error exposing (ErrorContext, ErrorLevel(..))
-import Types.HelperTypes exposing (FloatingIpOption(..), HttpRequestMethod(..))
-import Types.Project exposing (Project)
-import Types.Server exposing (NewServerNetworkOptions(..), ServerOrigin(..))
-import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
+import Set
+import Types.Error
+import Types.HelperTypes
+import Types.Project
+import Types.SharedModel
+import Types.SharedMsg
 
 
-requestRecordSets : Project -> Cmd SharedMsg
+requestRecordSets : Types.Project.Project -> Cmd Types.SharedMsg.SharedMsg
 requestRecordSets project =
     case project.endpoints.designate of
-        Just p ->
+        Just designateUrl ->
             let
                 errorContext =
-                    ErrorContext
+                    Types.Error.ErrorContext
                         ("get a list of record sets for project " ++ project.auth.project.name)
-                        ErrorCrit
+                        Types.Error.ErrorCrit
                         Nothing
 
                 resultToMsg_ =
-                    resultToMsgErrorBody
+                    Rest.Helpers.resultToMsgErrorBody
                         errorContext
                         (\groups ->
-                            ProjectMsg
-                                (GetterSetters.projectIdentifier project)
-                                (ReceiveRecordSets groups)
+                            Types.SharedMsg.ProjectMsg
+                                (Helpers.GetterSetters.projectIdentifier project)
+                                (Types.SharedMsg.ReceivedDnsRecordSets groups)
                         )
             in
-            openstackCredentialedRequest
-                (GetterSetters.projectIdentifier project)
-                Get
+            Rest.Helpers.openstackCredentialedRequest
+                (Helpers.GetterSetters.projectIdentifier project)
+                Types.HelperTypes.Get
                 Nothing
                 []
-                (p ++ "/v2/recordsets")
+                (designateUrl ++ "/recordsets")
                 Http.emptyBody
-                (expectJsonWithErrorBody
+                (Rest.Helpers.expectJsonWithErrorBody
                     resultToMsg_
                     recordSetsDecoder
                 )
@@ -53,13 +51,51 @@ requestRecordSets project =
             Cmd.none
 
 
-recordSetsDecoder : Decode.Decoder (List OSTypes.RecordSet)
+receiveRecordSets : Types.SharedModel.SharedModel -> Types.Project.Project -> List OpenStack.DnsRecordSet.DnsRecordSet -> ( Types.SharedModel.SharedModel, Cmd Types.SharedMsg.SharedMsg )
+receiveRecordSets model project dnsRecordSets =
+    let
+        newProject =
+            { project
+                | dnsRecordSets =
+                    Helpers.RemoteDataPlusPlus.RemoteDataPlusPlus
+                        (Helpers.RemoteDataPlusPlus.DoHave dnsRecordSets model.clientCurrentTime)
+                        (Helpers.RemoteDataPlusPlus.NotLoading Nothing)
+            }
+
+        newModel =
+            Helpers.GetterSetters.modelUpdateProject model newProject
+    in
+    ( newModel, Cmd.none )
+
+
+recordSetsDecoder : Json.Decode.Decoder (List OpenStack.DnsRecordSet.DnsRecordSet)
 recordSetsDecoder =
-    Decode.list
-        (Decode.map2 OSTypes.RecordSet
-            (Decode.field
-                "name"
-                Decode.string
+    Json.Decode.field "recordsets"
+        (Json.Decode.list
+            (Json.Decode.map5
+                (\id name type_ ttl records ->
+                    { id = id
+                    , name = name
+                    , type_ = type_
+                    , ttl = ttl
+                    , records = Set.fromList records
+                    }
+                )
+                (Json.Decode.field "id" Json.Decode.string)
+                (Json.Decode.field "name" Json.Decode.string)
+                (Json.Decode.field "type" Json.Decode.string
+                    |> Json.Decode.map OpenStack.DnsRecordSet.fromStringToRecordType
+                    |> Json.Decode.andThen
+                        (\value ->
+                            case value of
+                                Err _ ->
+                                    Json.Decode.fail "Failed to parse dns record type"
+
+                                Ok z ->
+                                    Json.Decode.succeed z
+                        )
+                )
+                (Json.Decode.field "ttl" (Json.Decode.nullable Json.Decode.string))
+                (Json.Decode.field "records" (Json.Decode.list Json.Decode.string))
             )
-            (Decode.maybe (Decode.field "ttl" Decode.string))
         )

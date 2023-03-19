@@ -7,6 +7,7 @@ module Types.SharedMsg exposing
 
 import Browser
 import Http
+import OpenStack.DnsRecordSet
 import OpenStack.Types as OSTypes
 import OpenStack.VolumeSnapshots exposing (VolumeSnapshot)
 import Style.Types as ST
@@ -85,7 +86,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveAssignFloatingIp OSTypes.FloatingIp
     | ReceiveUnassignFloatingIp OSTypes.FloatingIp
     | ReceiveSecurityGroups (List OSTypes.SecurityGroup)
-    | ReceiveRecordSets (List OSTypes.RecordSet)
+    | ReceivedDnsRecordSets (List OpenStack.DnsRecordSet.DnsRecordSet)
     | ReceiveCreateExoSecurityGroup OSTypes.SecurityGroup
     | ReceiveCreateVolume
     | ReceiveVolumes (List OSTypes.Volume)
