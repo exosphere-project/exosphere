@@ -4,8 +4,10 @@ import Dict
 import Element
 import Element.Font as Font
 import Helpers.GetterSetters as GetterSetters
+import Helpers.RemoteDataPlusPlus
 import Helpers.ResourceList exposing (listItemColumnAttribs)
 import Helpers.String
+import OpenStack.DnsRecordSet
 import OpenStack.Types as OSTypes
 import Page.QuotaUsage
 import Route
@@ -338,6 +340,16 @@ floatingIpView context project floatingIpRecord =
                 [ assignUnassignIpButton, deleteIpBtnWithPopconfirm ]
             ]
         , Element.row [] [ ipAssignment ]
+        , Element.row []
+            [ (case OpenStack.DnsRecordSet.addressToRecord (project.dnsRecordSets |> Helpers.RemoteDataPlusPlus.withDefault []) floatingIpRecord.ip.address of
+                Just { name } ->
+                    name
+
+                Nothing ->
+                    ""
+              )
+                |> Element.text
+            ]
         ]
 
 

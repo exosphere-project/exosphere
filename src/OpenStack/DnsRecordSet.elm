@@ -1,5 +1,6 @@
-module OpenStack.DnsRecordSet exposing (DnsRecordSet, fromStringToRecordType)
+module OpenStack.DnsRecordSet exposing (DnsRecordSet, addressToRecord, fromStringToRecordType)
 
+import List.Extra
 import OpenStack.HelperTypes
 import Set
 
@@ -37,3 +38,12 @@ fromStringToRecordType recordSet =
 
         _ ->
             Err (recordSet ++ " is not valid")
+
+
+addressToRecord : List DnsRecordSet -> String -> Maybe DnsRecordSet
+addressToRecord dnsRecordSets address =
+    dnsRecordSets
+        |> List.Extra.find
+            (\{ records } ->
+                records |> Set.toList |> List.any (\z -> z == address)
+            )
