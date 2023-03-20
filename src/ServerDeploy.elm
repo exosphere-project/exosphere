@@ -39,8 +39,7 @@ runcmd:
       --directory /opt/instance-config-mgt \\
       -i /opt/instance-config-mgt/ansible/hosts \\
       -e "{ansible-extra-vars}" \\
-      /opt/instance-config-mgt/ansible/playbook.yml \\
-      | tee -a /var/log/ansible.log
+      /opt/instance-config-mgt/ansible/playbook.yml
   - ANSIBLE_RETURN_CODE=$?
   - if [ $ANSIBLE_RETURN_CODE -eq 0 ]; then STATUS="complete"; else STATUS="error"; fi
   - sleep 1  # Ensures that console log output from any previous commands complete before the following command begins
