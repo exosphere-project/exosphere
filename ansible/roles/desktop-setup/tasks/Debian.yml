@@ -1,0 +1,14 @@
+- name: 'PolicyKit localauthority/50-local.d created'
+  file: 
+    path: '/etc/polkit-1/localauthority/50-local.d'
+    state: 'directory'
+
+- name: 'PolicyKit pkla written to not prompt desktop user for passphrase for administrative actions'
+  template:
+    src: '49-nopasswd_global.pkla.j2'
+    dest: '/etc/polkit-1/localauthority/50-local.d/49-nopasswd_global.pkla'
+
+- name: 'polkitd restarted'
+  systemd:
+    name: 'polkit'
+    state: 'restarted'

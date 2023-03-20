@@ -13,8 +13,9 @@
 
 - name: 'graphical environment installed'
   package:
-    name: '{{ desktop_environment_package_name }}'
+    name: '{{ item }}'
     state: 'present'
+  loop: '{{ desktop_environment_package_names }}'
 
 - name: 'graphical environment started on boot'
   systemd:

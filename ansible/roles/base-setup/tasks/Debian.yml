@@ -2,7 +2,9 @@
 
 - name: 'packages installed'
   apt:
-    name: 'haveged'
+    name:
+      - 'haveged'
+      - 'gnupg'
     state: 'present'
   # This stuff waits for APT/dpkg lock if unattended upgrades are running
   register: 'apt_status'
