@@ -1,467 +1,431 @@
+# You can override the included template(s) by including variable overrides
+# SAST customization: https://docs.gitlab.com/ee/user/application_security/sast/#customizing-the-sast-settings
+# Secret Detection customization: https://docs.gitlab.com/ee/user/application_security/secret_detection/#customizing-settings
+# Dependency Scanning customization: https://docs.gitlab.com/ee/user/application_security/dependency_scanning/#customizing-the-dependency-scanning-settings
+# Container Scanning customization: https://docs.gitlab.com/ee/user/application_security/container_scanning/#customizing-the-container-scanning-settings
+# Note that environment variables can be set in several places
+# See https://docs.gitlab.com/ee/ci/variables/#cicd-variable-precedence
 image: node:current-buster
-
-# Run a branch pipeline when a merge request is not open for the branch; otherwise run a merge request pipeline
-# https://docs.gitlab.com/ee/ci/yaml/workflow.html#switch-between-branch-pipelines-and-merge-request-pipelines
 workflow:
   rules:
-    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE == "push"
-      when: never
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
-      when: never
-    - if: $CI_COMMIT_BRANCH
-
+  - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE == "push"
+    when: never
+  - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  - if: "$CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS"
+    when: never
+  - if: "$CI_COMMIT_BRANCH"
 stages:
-  - build
-  - dockerize
-  - test
-  - mkdocs
-  - deploy
-  - postdeploy
-
+- build
+- dockerize
+- test
+- mkdocs
+- deploy
+- postdeploy
 cache:
-  key: ${CI_JOB_NAME}
+  key: "${CI_JOB_NAME}"
   paths:
-    - node_modules/
-    - home/.elm
-    - home/.npm
-    - elm-stuff/
-
+  - node_modules/
+  - home/.elm
+  - home/.npm
+  - elm-stuff/
 build_standalone_container:
   stage: dockerize
   image:
     name: gcr.io/kaniko-project/executor:debug
-    entrypoint: [ "" ]
+    entrypoint:
+    - ''
   before_script:
-    - 'sed -i -e "s/instanceConfigMgtRepoUrl:.*/instanceConfigMgtRepoUrl: \"https:\/\/gitlab.com\/${CI_PROJECT_NAMESPACE}\/${CI_PROJECT_NAME}\.git\",/g" environment-configs/docker-config.js'
-    - 'sed -i -e "s/\"instanceConfigMgtRepoCheckout\":.*/instanceConfigMgtRepoCheckout: \"${CI_COMMIT_SHA}\",/g" environment-configs/docker-config.js'
-    - 'sed -i -e "s/\"releaseVersion\":.*/\"releaseVersion\":\"${CI_COMMIT_SHA}\",/g" environment-configs/docker-config.js'
-    - 'sed -i -e "s/\"environmentName\":.*/\"environmentName\":\"ci-docker\"/g" environment-configs/docker-config.js'
-
+  - 'sed -i -e "s/instanceConfigMgtRepoUrl:.*/instanceConfigMgtRepoUrl: \"https:\/\/gitlab.com\/${CI_PROJECT_NAMESPACE}\/${CI_PROJECT_NAME}\.git\",/g"
+    environment-configs/docker-config.js'
+  - 'sed -i -e "s/\"instanceConfigMgtRepoCheckout\":.*/instanceConfigMgtRepoCheckout:
+    \"${CI_COMMIT_SHA}\",/g" environment-configs/docker-config.js'
+  - sed -i -e "s/\"releaseVersion\":.*/\"releaseVersion\":\"${CI_COMMIT_SHA}\",/g"
+    environment-configs/docker-config.js
+  - sed -i -e "s/\"environmentName\":.*/\"environmentName\":\"ci-docker\"/g" environment-configs/docker-config.js
   script:
-    - mkdir -p /kaniko/.docker
-    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(echo -n $CI_REGISTRY_USER:$CI_REGISTRY_PASSWORD | base64)\"}}}" > /kaniko/.docker/config.json
-    - |
-      TAGLIST="$CI_COMMIT_SHORT_SHA $CI_COMMIT_REF_SLUG"
-      if [[ "$CI_COMMIT_BRANCH" == "$CI_DEFAULT_BRANCH" ]]; then TAGLIST="$TAGLIST latest"; fi
-      if [[ -n "$TAGLIST" ]]; then
-        for TAG in $TAGLIST; do
-          FORMATTEDTAGLIST="${FORMATTEDTAGLIST} --destination $CI_REGISTRY_IMAGE:$TAG ";
-        done;
-      fi
-      DOCKER_FILE="$CI_PROJECT_DIR/docker/standalone.Dockerfile"
-      /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $DOCKER_FILE $FORMATTEDTAGLIST
-
-.build_with_kaniko:
-  #Hidden job to use as an "extends" template
+  - mkdir -p /kaniko/.docker
+  - echo "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(echo -n $CI_REGISTRY_USER:$CI_REGISTRY_PASSWORD
+    | base64)\"}}}" > /kaniko/.docker/config.json
+  - |
+    TAGLIST="$CI_COMMIT_SHORT_SHA $CI_COMMIT_REF_SLUG"
+    if [[ "$CI_COMMIT_BRANCH" == "$CI_DEFAULT_BRANCH" ]]; then TAGLIST="$TAGLIST latest"; fi
+    if [[ -n "$TAGLIST" ]]; then
+      for TAG in $TAGLIST; do
+        FORMATTEDTAGLIST="${FORMATTEDTAGLIST} --destination $CI_REGISTRY_IMAGE:$TAG ";
+      done;
+    fi
+    DOCKER_FILE="$CI_PROJECT_DIR/docker/standalone.Dockerfile"
+    /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $DOCKER_FILE $FORMATTEDTAGLIST
+".build_with_kaniko":
   stage: dockerize
   needs:
-    - elm_make
+  - elm_make
   image:
     name: gcr.io/kaniko-project/executor:debug
-    entrypoint: [ "" ]
+    entrypoint:
+    - ''
   before_script:
-    - 'sed -i -e "s/\"instanceConfigMgtRepoUrl\":.*/\"instanceConfigMgtRepoUrl\": \"https:\/\/gitlab.com\/${CI_PROJECT_NAMESPACE}\/${CI_PROJECT_NAME}\.git\",/g" public/config.js'
-    - 'sed -i -e "s/\"instanceConfigMgtRepoCheckout\":.*/\"instanceConfigMgtRepoCheckout\": \"${CI_COMMIT_SHA}\",/g" public/config.js'
-    - 'sed -i -e "s/\"releaseVersion\":.*/\"releaseVersion\":\"${CI_COMMIT_SHA}\",/g" public/config.js'
-    - 'sed -i -e "s/\"environmentName\":.*/\"environmentName\":\"ci-kaniko\"/g" public/config.js'
-    - cp public/elm-web.js .
-    - cp public/ports.js .
-    - cp public/cloud_configs.js .
-    - cp public/config.js .
+  - 'sed -i -e "s/\"instanceConfigMgtRepoUrl\":.*/\"instanceConfigMgtRepoUrl\": \"https:\/\/gitlab.com\/${CI_PROJECT_NAMESPACE}\/${CI_PROJECT_NAME}\.git\",/g"
+    public/config.js'
+  - 'sed -i -e "s/\"instanceConfigMgtRepoCheckout\":.*/\"instanceConfigMgtRepoCheckout\":
+    \"${CI_COMMIT_SHA}\",/g" public/config.js'
+  - sed -i -e "s/\"releaseVersion\":.*/\"releaseVersion\":\"${CI_COMMIT_SHA}\",/g"
+    public/config.js
+  - sed -i -e "s/\"environmentName\":.*/\"environmentName\":\"ci-kaniko\"/g" public/config.js
+  - cp public/elm-web.js .
+  - cp public/ports.js .
+  - cp public/cloud_configs.js .
+  - cp public/config.js .
   script:
-    - BROWSER_LOWER="$(echo $BROWSER | tr '[:upper:]' '[:lower:]')"
-    - mkdir -p /kaniko/.docker
-    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(echo -n $CI_REGISTRY_USER:$CI_REGISTRY_PASSWORD | base64)\"}}}" > /kaniko/.docker/config.json
-    - |
-      TAGLIST="$CI_COMMIT_SHORT_SHA $CI_COMMIT_REF_SLUG"
-      if [[ "$CI_COMMIT_BRANCH" == "$CI_DEFAULT_BRANCH" ]]; then TAGLIST="$TAGLIST latest"; fi
-      if [[ -n "$TAGLIST" ]]; then
-        for TAG in $TAGLIST; do
-          FORMATTEDTAGLIST="${FORMATTEDTAGLIST} --destination $CI_REGISTRY_IMAGE:e2e-${BROWSER_LOWER}-$TAG ";
-        done;
-      fi
-      DOCKER_FILE="$CI_PROJECT_DIR/integration-tests/docker/Selenium${BROWSER}AndExosphere/Dockerfile"
-      /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $DOCKER_FILE $FORMATTEDTAGLIST
+  - BROWSER_LOWER="$(echo $BROWSER | tr '[:upper:]' '[:lower:]')"
+  - mkdir -p /kaniko/.docker
+  - echo "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(echo -n $CI_REGISTRY_USER:$CI_REGISTRY_PASSWORD
+    | base64)\"}}}" > /kaniko/.docker/config.json
+  - |
+    TAGLIST="$CI_COMMIT_SHORT_SHA $CI_COMMIT_REF_SLUG"
+    if [[ "$CI_COMMIT_BRANCH" == "$CI_DEFAULT_BRANCH" ]]; then TAGLIST="$TAGLIST latest"; fi
+    if [[ -n "$TAGLIST" ]]; then
+      for TAG in $TAGLIST; do
+        FORMATTEDTAGLIST="${FORMATTEDTAGLIST} --destination $CI_REGISTRY_IMAGE:e2e-${BROWSER_LOWER}-$TAG ";
+      done;
+    fi
+    DOCKER_FILE="$CI_PROJECT_DIR/integration-tests/docker/Selenium${BROWSER}AndExosphere/Dockerfile"
+    /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $DOCKER_FILE $FORMATTEDTAGLIST
   except:
-    - master
-    - dev
-
+  - master
+  - dev
 build_with_kaniko_e2e_firefox:
-  extends: .build_with_kaniko
+  extends: ".build_with_kaniko"
   variables:
-    BROWSER: "Firefox"
-
-
+    BROWSER: Firefox
 build_with_kaniko_e2e_chrome:
-  extends: .build_with_kaniko
+  extends: ".build_with_kaniko"
   variables:
-    BROWSER: "Chrome"
-
-
+    BROWSER: Chrome
 elm_make:
   stage: build
   before_script:
-    - 'which rsync || ( apt-get update -y && apt-get install rsync -y )'
-    # https://gitlab.com/gitlab-org/gitlab-runner/-/issues/327#note_225643576
-    - if [ -d home/.elm ]; then echo "Restoring ~/.elm"; rsync -a home/.elm ~/; fi
-    - if [ -d home/.npm ]; then echo "Restoring ~/.npm"; rsync -a home/.npm ~/; fi
-    - npm install
+  - which rsync || ( apt-get update -y && apt-get install rsync -y )
+  - if [ -d home/.elm ]; then echo "Restoring ~/.elm"; rsync -a home/.elm ~/; fi
+  - if [ -d home/.npm ]; then echo "Restoring ~/.npm"; rsync -a home/.npm ~/; fi
+  - npm install
   script:
-    - mkdir -p public
-    - npm run build:prod
-    - cp elm-web.js public/elm-web.js
-    - cp index.html public/index.html
-    - cp ports.js public/ports.js
-    - cp cloud_configs.js public/cloud_configs.js
-    - cp config.js public/config.js
-    - cp exosphere.webmanifest public
-    - cp -R assets public
-    - cp -R fonts public
-    - cp service-worker.js public
-    - md5sum public/index.html public/elm-web.js public/ports.js public/config.js
+  - mkdir -p public
+  - npm run build:prod
+  - cp elm-web.js public/elm-web.js
+  - cp index.html public/index.html
+  - cp ports.js public/ports.js
+  - cp cloud_configs.js public/cloud_configs.js
+  - cp config.js public/config.js
+  - cp exosphere.webmanifest public
+  - cp -R assets public
+  - cp -R fonts public
+  - cp service-worker.js public
+  - md5sum public/index.html public/elm-web.js public/ports.js public/config.js
   after_script:
-    - mkdir -p home && rsync -a ~/.elm home
-    - mkdir -p home && rsync -a ~/.npm home
+  - mkdir -p home && rsync -a ~/.elm home
+  - mkdir -p home && rsync -a ~/.npm home
   artifacts:
     paths:
-      - public
-
-
+    - public
 minify:
   stage: build
   needs:
-    - elm_make
+  - elm_make
   before_script:
-    - 'which rsync || ( apt-get update -y && apt-get install rsync -y )'
-    - if [ -d home/.elm ]; then echo "Restoring ~/.elm"; rsync -a home/.elm ~/; fi
-    - if [ -d home/.npm ]; then echo "Restoring ~/.npm"; rsync -a home/.npm ~/; fi
-    - npm install
+  - which rsync || ( apt-get update -y && apt-get install rsync -y )
+  - if [ -d home/.elm ]; then echo "Restoring ~/.elm"; rsync -a home/.elm ~/; fi
+  - if [ -d home/.npm ]; then echo "Restoring ~/.npm"; rsync -a home/.npm ~/; fi
+  - npm install
   script:
-    - cp --force public/elm-web.js elm-web.js
-    - npm run minify
-    - cp --force elm-web.js public/elm-web.js
+  - cp --force public/elm-web.js elm-web.js
+  - npm run minify
+  - cp --force elm-web.js public/elm-web.js
   after_script:
-    - mkdir -p home && rsync -a ~/.elm home
-    - mkdir -p home && rsync -a ~/.npm home
+  - mkdir -p home && rsync -a ~/.elm home
+  - mkdir -p home && rsync -a ~/.npm home
   artifacts:
     paths:
-      - public
+    - public
   only:
-    - master
-    - dev
-
+  - master
+  - dev
 build_design_system:
   stage: test
   needs:
-    - elm_make
+  - elm_make
   before_script:
-    - 'which rsync || ( apt-get update -y && apt-get install rsync -y )'
-    - if [ -d home/.elm ]; then echo "Restoring ~/.elm"; rsync -a home/.elm ~/; fi
-    - if [ -d home/.npm ]; then echo "Restoring ~/.npm"; rsync -a home/.npm ~/; fi
-    - npm install
+  - which rsync || ( apt-get update -y && apt-get install rsync -y )
+  - if [ -d home/.elm ]; then echo "Restoring ~/.elm"; rsync -a home/.elm ~/; fi
+  - if [ -d home/.npm ]; then echo "Restoring ~/.npm"; rsync -a home/.npm ~/; fi
+  - npm install
   script:
-    - npx elm make --optimize src/DesignSystem/Explorer.elm --output=explorer.js
+  - npx elm make --optimize src/DesignSystem/Explorer.elm --output=explorer.js
   after_script:
-    - mkdir -p home && rsync -a ~/.elm home
-    - mkdir -p home && rsync -a ~/.npm home
-
+  - mkdir -p home && rsync -a ~/.elm home
+  - mkdir -p home && rsync -a ~/.npm home
 static_analysis:
   stage: test
   needs:
-    - elm_make
+  - elm_make
   before_script:
-    - 'which rsync || ( apt-get update -y && apt-get install rsync -y )'
-    - if [ -d home/.elm ]; then echo "Restoring ~/.elm"; rsync -a home/.elm ~/; fi
-    - if [ -d home/.npm ]; then echo "Restoring ~/.npm"; rsync -a home/.npm ~/; fi
-    - npm install
-    - npm install --no-save elm-analyse
+  - which rsync || ( apt-get update -y && apt-get install rsync -y )
+  - if [ -d home/.elm ]; then echo "Restoring ~/.elm"; rsync -a home/.elm ~/; fi
+  - if [ -d home/.npm ]; then echo "Restoring ~/.npm"; rsync -a home/.npm ~/; fi
+  - npm install
+  - npm install --no-save elm-analyse
   script:
-    - npx elm-analyse
-    - npx elm-format --validate src
-    - npm run js:format
+  - npx elm-analyse
+  - npx elm-format --validate src
+  - npm run js:format
   after_script:
-    - mkdir -p home && rsync -a ~/.elm home
-    - mkdir -p home && rsync -a ~/.npm home
-
+  - mkdir -p home && rsync -a ~/.elm home
+  - mkdir -p home && rsync -a ~/.npm home
 elm_test:
   stage: test
   needs:
-    - elm_make
+  - elm_make
   before_script:
-    - 'which rsync || ( apt-get update -y && apt-get install rsync -y )'
-    - if [ -d home/.elm ]; then echo "Restoring ~/.elm"; rsync -a home/.elm ~/; fi
-    - if [ -d home/.npm ]; then echo "Restoring ~/.npm"; rsync -a home/.npm ~/; fi
-    - npm install
+  - which rsync || ( apt-get update -y && apt-get install rsync -y )
+  - if [ -d home/.elm ]; then echo "Restoring ~/.elm"; rsync -a home/.elm ~/; fi
+  - if [ -d home/.npm ]; then echo "Restoring ~/.npm"; rsync -a home/.npm ~/; fi
+  - npm install
   script:
-    - npx elm-test-rs
-    - npx elm-test-rs --report junit > elm-test-report.xml
+  - npx elm-test-rs
+  - npx elm-test-rs --report junit > elm-test-report.xml
   after_script:
-    - mkdir -p home && rsync -a ~/.elm home
-    - mkdir -p home && rsync -a ~/.npm home
+  - mkdir -p home && rsync -a ~/.elm home
+  - mkdir -p home && rsync -a ~/.npm home
   artifacts:
     when: always
     reports:
       junit: elm-test-report.xml
-
-
 deploy_prod:
   stage: deploy
   resource_group: deploy_prod
   dependencies:
-    - elm_make
-    - minify
+  - elm_make
+  - minify
   before_script:
-    # See https://docs.gitlab.com/ee/ci/ssh_keys/
-    - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
-    - eval $(ssh-agent -s)
-    - echo "$DOGFOOD_SSH_PRIV_KEY" | tr -d '\r' | ssh-add - > /dev/null
-    - mkdir -p ~/.ssh
-    - chmod 700 ~/.ssh
-    # https://docs.gitlab.com/ee/ci/ssh_keys/#verifying-the-ssh-host-keys
-    - echo "$DOGFOOD_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
-    - chmod 644 ~/.ssh/known_hosts
-    - 'which rsync || ( apt-get update -y && apt-get install rsync -y )'
+  - which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )
+  - eval $(ssh-agent -s)
+  - echo "$DOGFOOD_SSH_PRIV_KEY" | tr -d '\r' | ssh-add - > /dev/null
+  - mkdir -p ~/.ssh
+  - chmod 700 ~/.ssh
+  - echo "$DOGFOOD_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+  - chmod 644 ~/.ssh/known_hosts
+  - which rsync || ( apt-get update -y && apt-get install rsync -y )
   script:
-    - 'cp environment-configs/try.exosphere.app-config.js public/config.js'
-    - 'sed -i -e "s/\"instanceConfigMgtRepoCheckout\":.*/\"instanceConfigMgtRepoCheckout\": \"${CI_COMMIT_SHA}\",/g" public/config.js'
-    - 'sed -i -e "s/\"releaseVersion\":.*/\"releaseVersion\":\"${CI_COMMIT_SHA}\",/g" public/config.js'
-    - 'sed -i -e ''s/<base href="\/" \/>/<base href="\/exosphere\/" \/>/g'' public/index.html'
-    - 'rsync -av --delete public exouser@dogfood.exosphere.app:'
+  - cp environment-configs/try.exosphere.app-config.js public/config.js
+  - 'sed -i -e "s/\"instanceConfigMgtRepoCheckout\":.*/\"instanceConfigMgtRepoCheckout\":
+    \"${CI_COMMIT_SHA}\",/g" public/config.js'
+  - sed -i -e "s/\"releaseVersion\":.*/\"releaseVersion\":\"${CI_COMMIT_SHA}\",/g"
+    public/config.js
+  - sed -i -e 's/<base href="\/" \/>/<base href="\/exosphere\/" \/>/g' public/index.html
+  - 'rsync -av --delete public exouser@dogfood.exosphere.app:'
   environment:
     name: prod
     url: https://try.exosphere.app/exosphere
   only:
-    - master
-
-
+  - master
 deploy_jetstream2:
   stage: deploy
   resource_group: deploy_jetstream2
   dependencies:
-    - elm_make
-    - minify
+  - elm_make
+  - minify
   before_script:
-    # See https://docs.gitlab.com/ee/ci/ssh_keys/README.html
-    - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
-    - eval $(ssh-agent -s)
-    - echo "$DOGFOOD_SSH_PRIV_KEY" | tr -d '\r' | ssh-add - > /dev/null
-    - mkdir -p ~/.ssh
-    - chmod 700 ~/.ssh
-    # https://docs.gitlab.com/ee/ci/ssh_keys/#verifying-the-ssh-host-keys
-    - echo "$DOGFOOD_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
-    - chmod 644 ~/.ssh/known_hosts
-    - 'which rsync || ( apt-get update -y && apt-get install rsync -y )'
+  - which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )
+  - eval $(ssh-agent -s)
+  - echo "$DOGFOOD_SSH_PRIV_KEY" | tr -d '\r' | ssh-add - > /dev/null
+  - mkdir -p ~/.ssh
+  - chmod 700 ~/.ssh
+  - echo "$DOGFOOD_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+  - chmod 644 ~/.ssh/known_hosts
+  - which rsync || ( apt-get update -y && apt-get install rsync -y )
   script:
-    - 'cp environment-configs/jetstream2.exosphere.app-config.js public/config.js'
-    - 'sed -i -e "s/\"instanceConfigMgtRepoCheckout\":.*/\"instanceConfigMgtRepoCheckout\": \"${CI_COMMIT_SHA}\",/g" public/config.js'
-    - 'sed -i -e "s/\"releaseVersion\":.*/\"releaseVersion\":\"${CI_COMMIT_SHA}\",/g" public/config.js'
-    - 'sed -i -e ''s/<base href="\/" \/>/<base href="\/exosphere\/" \/>/g'' public/index.html'
-    - 'rsync -av --delete public exouser@dogfood.exosphere.app:jetstream2-deploy/'
+  - cp environment-configs/jetstream2.exosphere.app-config.js public/config.js
+  - 'sed -i -e "s/\"instanceConfigMgtRepoCheckout\":.*/\"instanceConfigMgtRepoCheckout\":
+    \"${CI_COMMIT_SHA}\",/g" public/config.js'
+  - sed -i -e "s/\"releaseVersion\":.*/\"releaseVersion\":\"${CI_COMMIT_SHA}\",/g"
+    public/config.js
+  - sed -i -e 's/<base href="\/" \/>/<base href="\/exosphere\/" \/>/g' public/index.html
+  - rsync -av --delete public exouser@dogfood.exosphere.app:jetstream2-deploy/
   environment:
     name: jetstream2
     url: https://jetstream2.exosphere.app/exosphere
   only:
-    - master
-
-
+  - master
 deploy_dev:
   stage: deploy
   resource_group: deploy_dev
   needs:
-    - elm_make
-    - minify
+  - elm_make
+  - minify
   before_script:
-    # See https://docs.gitlab.com/ee/ci/ssh_keys/README.html
-    - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
-    - eval $(ssh-agent -s)
-    - echo "$DOGFOOD_SSH_PRIV_KEY" | tr -d '\r' | ssh-add - > /dev/null
-    - mkdir -p ~/.ssh
-    - chmod 700 ~/.ssh
-    # https://docs.gitlab.com/ee/ci/ssh_keys/#verifying-the-ssh-host-keys
-    - echo "$DOGFOOD_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
-    - chmod 644 ~/.ssh/known_hosts
-    - 'which rsync || ( apt-get update -y && apt-get install rsync -y )'
+  - which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )
+  - eval $(ssh-agent -s)
+  - echo "$DOGFOOD_SSH_PRIV_KEY" | tr -d '\r' | ssh-add - > /dev/null
+  - mkdir -p ~/.ssh
+  - chmod 700 ~/.ssh
+  - echo "$DOGFOOD_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+  - chmod 644 ~/.ssh/known_hosts
+  - which rsync || ( apt-get update -y && apt-get install rsync -y )
   script:
-    - 'cp environment-configs/try-dev.exosphere.app-config.js public/config.js'
-    - 'sed -i -e "s/\"instanceConfigMgtRepoCheckout\":.*/\"instanceConfigMgtRepoCheckout\": \"${CI_COMMIT_SHA}\",/g" public/config.js'
-    - 'sed -i -e "s/\"releaseVersion\":.*/\"releaseVersion\":\"${CI_COMMIT_SHA}\",/g" public/config.js'
-    - 'sed -i -e ''s/<base href="\/" \/>/<base href="\/exosphere\/" \/>/g'' public/index.html'
-    - 'rsync -av --delete public exouser@dogfood.exosphere.app:dev-deploy/'
+  - cp environment-configs/try-dev.exosphere.app-config.js public/config.js
+  - 'sed -i -e "s/\"instanceConfigMgtRepoCheckout\":.*/\"instanceConfigMgtRepoCheckout\":
+    \"${CI_COMMIT_SHA}\",/g" public/config.js'
+  - sed -i -e "s/\"releaseVersion\":.*/\"releaseVersion\":\"${CI_COMMIT_SHA}\",/g"
+    public/config.js
+  - sed -i -e 's/<base href="\/" \/>/<base href="\/exosphere\/" \/>/g' public/index.html
+  - rsync -av --delete public exouser@dogfood.exosphere.app:dev-deploy/
   environment:
     name: dev
     url: https://try-dev.exosphere.app/exosphere
   only:
-    - dev
-
-.e2e:
-  #Hidden job to use as an "extends" template
+  - dev
+".e2e":
   image: python:3
   allow_failure: true
   retry: 1
   services:
-    - name: "$SELENIUM_CONTAINER_IMAGE"
-      alias: e2e.exosphere.service
+  - name: "$SELENIUM_CONTAINER_IMAGE"
+    alias: e2e.exosphere.service
   before_script:
-    - if [[ -z "$OS_USERNAME" || -z "$OS_PASSWORD" ]]; then echo "Must provide OS_USERNAME and OS_PASSWORD in environment" 1>&2; exit 1; fi
-    - echo -e "section_start:`date +%s`:pip_install[collapsed=true]\r\e[0KInstall Python dependencies"
-    - pip install -r integration-tests/requirements.txt
-    - echo -e "section_end:`date +%s`:pip_install\r\e[0K"
-    - mkdir -p integration-tests/screenshots integration-tests/logs
-    # For visual debugging of browser via VNC, uncomment lines below to enable cloudflared tunnel:
-#    - echo -e "section_start:`date +%s`:install_cloudflared[collapsed=true]\r\e[0KInstall cloudflared"
-#    - wget -O ~/cloudflared.deb https://bin.equinox.io/c/VdrWdbjqyF/cloudflared-stable-linux-amd64.deb
-#    - dpkg -i ~/cloudflared.deb
-#    - echo -e "section_end:`date +%s`:install_cloudflared\r\e[0K"
-#    - echo -e "section_start:`date +%s`:cloudflared_tunnel_vnc[collapsed=true]\r\e[0KEstablish a Cloudflare tunnel to VNC"
-#    - ./integration-tests/docker/run-cloudflared-tunnel.sh
-#    - echo -e "section_end:`date +%s`:cloudflared_tunnel_vnc\r\e[0K"
-#    - echo cloudflared should be running in the background. Sleep for 60 seconds so you can grab the VNC tunnel details.
-#    - sleep 60
+  - if [[ -z "$OS_USERNAME" || -z "$OS_PASSWORD" ]]; then echo "Must provide OS_USERNAME
+    and OS_PASSWORD in environment" 1>&2; exit 1; fi
+  - echo -e "section_start:`date +%s`:pip_install[collapsed=true]\r\e[0KInstall Python
+    dependencies"
+  - pip install -r integration-tests/requirements.txt
+  - echo -e "section_end:`date +%s`:pip_install\r\e[0K"
+  - mkdir -p integration-tests/screenshots integration-tests/logs
   script:
-    - cd integration-tests
-    - echo -e "section_start:`date +%s`:behave_run[collapsed=false]\r\e[0KRun behave"
-    - behave --junit --no-skipped -D UNIQUE_TAG="e2e-$BROWSER_LOWER-$CI_COMMIT_REF_SLUG-$ENV_NAME" -D EXOSPHERE_BASE_URL=$EXOSPHERE_BASE_URL -D BROWSER=$BROWSER_LOWER -D REMOTE_WEBDRIVER=yes -D COMMAND_EXECUTOR=http://e2e.exosphere.service:4444/wd/hub features/exosphere.feature
-    - echo -e "section_end:`date +%s`:behave_run\r\e[0K"
+  - cd integration-tests
+  - echo -e "section_start:`date +%s`:behave_run[collapsed=false]\r\e[0KRun behave"
+  - behave --junit --no-skipped -D UNIQUE_TAG="e2e-$BROWSER_LOWER-$CI_COMMIT_REF_SLUG-$ENV_NAME"
+    -D EXOSPHERE_BASE_URL=$EXOSPHERE_BASE_URL -D BROWSER=$BROWSER_LOWER -D REMOTE_WEBDRIVER=yes
+    -D COMMAND_EXECUTOR=http://e2e.exosphere.service:4444/wd/hub features/exosphere.feature
+  - echo -e "section_end:`date +%s`:behave_run\r\e[0K"
   artifacts:
     when: always
     reports:
       junit: integration-tests/reports/TESTS-exosphere.xml
     paths:
-      - integration-tests/screenshots
-      - integration-tests/logs
-
-.mr_e2e:
-  extends: .e2e
+    - integration-tests/screenshots
+    - integration-tests/logs
+".mr_e2e":
+  extends: ".e2e"
   stage: test
   variables:
-    CI_DISPOSABLE_ENVIRONMENT: "true"
-    EXOSPHERE_BASE_URL: "http://app.exosphere.localhost:8000"
-    ENV_NAME: "mr"
+    CI_DISPOSABLE_ENVIRONMENT: 'true'
+    EXOSPHERE_BASE_URL: http://app.exosphere.localhost:8000
+    ENV_NAME: mr
   except:
-    - master
-    - dev
-
+  - master
+  - dev
 mr_e2e_firefox:
-  extends: .mr_e2e
+  extends: ".mr_e2e"
   variables:
-    BROWSER_LOWER: "firefox"
+    BROWSER_LOWER: firefox
     SELENIUM_CONTAINER_IMAGE: "$CI_REGISTRY_IMAGE:e2e-firefox-$CI_COMMIT_SHORT_SHA"
   needs:
-    - build_with_kaniko_e2e_firefox
-
+  - build_with_kaniko_e2e_firefox
 mr_e2e_chrome:
-  extends: .mr_e2e
+  extends: ".mr_e2e"
   variables:
-    BROWSER_LOWER: "chrome"
+    BROWSER_LOWER: chrome
     SELENIUM_CONTAINER_IMAGE: "$CI_REGISTRY_IMAGE:e2e-chrome-$CI_COMMIT_SHORT_SHA"
   needs:
-    - build_with_kaniko_e2e_chrome
-
-.e2e_chrome:
-  extends: .e2e
+  - build_with_kaniko_e2e_chrome
+".e2e_chrome":
+  extends: ".e2e"
   variables:
-    BROWSER_LOWER: "chrome"
-    SELENIUM_CONTAINER_IMAGE: "selenium/standalone-chrome:4"
-
-.e2e_firefox:
-  extends: .e2e
+    BROWSER_LOWER: chrome
+    SELENIUM_CONTAINER_IMAGE: selenium/standalone-chrome:4
+".e2e_firefox":
+  extends: ".e2e"
   variables:
-    BROWSER_LOWER: "firefox"
-    SELENIUM_CONTAINER_IMAGE: "selenium/standalone-firefox:4"
-
-.dev_post_deploy:
+    BROWSER_LOWER: firefox
+    SELENIUM_CONTAINER_IMAGE: selenium/standalone-firefox:4
+".dev_post_deploy":
   stage: postdeploy
   variables:
-    EXOSPHERE_BASE_URL: "https://try-dev.exosphere.app/exosphere"
-    ENV_NAME: "dev"
+    EXOSPHERE_BASE_URL: https://try-dev.exosphere.app/exosphere
+    ENV_NAME: dev
   needs:
-    - deploy_dev
+  - deploy_dev
   only:
-    - dev
-
-.prod_post_deploy:
+  - dev
+".prod_post_deploy":
   stage: postdeploy
   variables:
-    EXOSPHERE_BASE_URL: "https://try.exosphere.app/exosphere"
-    ENV_NAME: "prod"
+    EXOSPHERE_BASE_URL: https://try.exosphere.app/exosphere
+    ENV_NAME: prod
   needs:
-    - deploy_prod
+  - deploy_prod
   only:
-    - master
-
-.jetstream2_post_deploy:
+  - master
+".jetstream2_post_deploy":
   stage: postdeploy
   variables:
-    EXOSPHERE_BASE_URL: "https://jetstream2.exosphere.app/exosphere/loginpicker"
-    ENV_NAME: "j7m2"
+    EXOSPHERE_BASE_URL: https://jetstream2.exosphere.app/exosphere/loginpicker
+    ENV_NAME: j7m2
   needs:
-    - deploy_jetstream2
+  - deploy_jetstream2
   only:
-    - master
-
-
+  - master
 dev_post_deploy_e2e_chrome:
   extends:
-    - .e2e_chrome
-    - .dev_post_deploy
-
+  - ".e2e_chrome"
+  - ".dev_post_deploy"
 dev_post_deploy_e2e_firefox:
   extends:
-    - .e2e_firefox
-    - .dev_post_deploy
-
+  - ".e2e_firefox"
+  - ".dev_post_deploy"
 prod_post_deploy_e2e_chrome:
   extends:
-    - .e2e_chrome
-    - .prod_post_deploy
-
+  - ".e2e_chrome"
+  - ".prod_post_deploy"
 prod_post_deploy_e2e_firefox:
   extends:
-    - .e2e_firefox
-    - .prod_post_deploy
-
+  - ".e2e_firefox"
+  - ".prod_post_deploy"
 jetstream2_post_deploy_e2e_chrome:
   extends:
-    - .e2e_chrome
-    - .jetstream2_post_deploy
-
+  - ".e2e_chrome"
+  - ".jetstream2_post_deploy"
 jetstream2_post_deploy_e2e_firefox:
   extends:
-    - .e2e_firefox
-    - .jetstream2_post_deploy
-
-
+  - ".e2e_firefox"
+  - ".jetstream2_post_deploy"
 mkdocs_test:
   stage: mkdocs
-  # Run as soon as possible because it doesn't depend on any other jobs
   needs: []
   image: python:3
   before_script:
-    - cd mkdocs
-    - pip install -r requirements.txt
+  - cd mkdocs
+  - pip install -r requirements.txt
   script:
-    - mkdocs build --strict --verbose --site-dir test
+  - mkdocs build --strict --verbose --site-dir test
   artifacts:
     paths:
-      - mkdocs/test
-
+    - mkdocs/test
 pages:
   stage: mkdocs
   needs:
-    - mkdocs_test
+  - mkdocs_test
   image: python:3
   before_script:
-    - cd mkdocs
-    - pip install -r requirements.txt
+  - cd mkdocs
+  - pip install -r requirements.txt
   script:
-    - mkdocs build --strict --verbose
-    - mv site ../public
+  - mkdocs build --strict --verbose
+  - mv site ../public
   artifacts:
     paths:
-      - public
+    - public
   only:
-    - master
-
+  - master
 include:
-  - template: Dependency-Scanning.gitlab-ci.yml
+- template: Dependency-Scanning.gitlab-ci.yml
+- template: Security/Secret-Detection.gitlab-ci.yml
