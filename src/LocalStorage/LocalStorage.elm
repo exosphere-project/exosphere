@@ -101,6 +101,7 @@ hydrateProjectFromStoredProject storedProject =
     , volumes = RemoteData.NotAsked
     , volumeSnapshots = RDPP.empty
     , networks = RDPP.empty
+    , shares = RDPP.empty
     , autoAllocatedNetworkUuid = RDPP.empty
     , floatingIps = RDPP.empty
     , ports = RDPP.empty

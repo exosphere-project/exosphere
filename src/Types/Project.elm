@@ -22,6 +22,7 @@ type alias Project =
     , description : Maybe String
     , images : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Image)
     , servers : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List Server)
+    , shares : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Share)
     , flavors : List OSTypes.Flavor
     , keypairs : WebData (List OSTypes.Keypair)
     , volumes : WebData (List OSTypes.Volume)
