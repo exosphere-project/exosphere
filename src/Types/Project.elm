@@ -48,6 +48,7 @@ type alias Endpoints =
     { cinder : HelperTypes.Url
     , glance : HelperTypes.Url
     , keystone : HelperTypes.Url
+    , manila : Maybe HelperTypes.Url
     , nova : HelperTypes.Url
     , neutron : HelperTypes.Url
     , jetstream2Accounting : Maybe HelperTypes.Url

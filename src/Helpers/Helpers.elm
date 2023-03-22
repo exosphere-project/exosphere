@@ -127,6 +127,7 @@ serviceCatalogToEndpoints catalog maybeRegionId =
             [ ( "cinder", getService "volumev3" )
             , ( "glance", getService "image" )
             , ( "keystone", getService "identity" )
+            , ( "manila", getService "sharev2" )
             , ( "nova", getService "compute" |> Maybe.map novaUrlWithMicroversionSupport )
             , ( "neutron", getService "network" )
             , ( "jetstream2Accounting", getService "accounting" )
@@ -143,8 +144,8 @@ serviceCatalogToEndpoints catalog maybeRegionId =
     case
         List.map Tuple.second endpoints
     of
-        [ Just cinderUrl, Just glanceUrl, Just keystoneUrl, Just novaUrl, Just neutronUrl, maybeJetstream2AccountingUrl ] ->
-            Ok <| Endpoints cinderUrl glanceUrl keystoneUrl novaUrl neutronUrl maybeJetstream2AccountingUrl
+        [ Just cinderUrl, Just glanceUrl, Just keystoneUrl, maybeManilaUrl, Just novaUrl, Just neutronUrl, maybeJetstream2AccountingUrl ] ->
+            Ok <| Endpoints cinderUrl glanceUrl keystoneUrl maybeManilaUrl novaUrl neutronUrl maybeJetstream2AccountingUrl
 
         _ ->
             Err <|

@@ -252,6 +252,11 @@ encodeExoEndpoints endpoints =
         [ ( "cinder", Encode.string endpoints.cinder )
         , ( "glance", Encode.string endpoints.glance )
         , ( "keystone", Encode.string endpoints.keystone )
+        , ( "manila"
+          , endpoints.manila
+                |> Maybe.map Encode.string
+                |> Maybe.withDefault Encode.null
+          )
         , ( "nova", Encode.string endpoints.nova )
         , ( "neutron", Encode.string endpoints.neutron )
         , ( "jetstream2Accounting"
@@ -483,10 +488,16 @@ decodeRegion =
 
 decodeEndpoints : Decode.Decoder Types.Project.Endpoints
 decodeEndpoints =
-    Decode.map6 Types.Project.Endpoints
+    Decode.map7 Types.Project.Endpoints
         (Decode.field "cinder" Decode.string)
         (Decode.field "glance" Decode.string)
         (Decode.field "keystone" Decode.string)
+        (Decode.oneOf
+            -- This decodes projects which do not have Manila support.
+            [ Decode.field "manila" Decode.string |> Decode.nullable
+            , Decode.succeed Nothing
+            ]
+        )
         (Decode.field "nova" Decode.string)
         (Decode.field "neutron" Decode.string)
         (Decode.oneOf
