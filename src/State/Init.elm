@@ -16,6 +16,7 @@ import Random
 import Rest.ApiModelHelpers as ApiModelHelpers
 import Rest.Keystone
 import Set
+import State.Auth
 import State.ViewState
 import Style.Theme
 import Style.Types as ST
@@ -238,13 +239,28 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
             in
             List.filter projectNeedsAppCredential hydratedModel.projects
 
+        refreshAuthTokenCmds =
+            hydratedModel.projects
+                |> List.map (State.Auth.requestAuthToken hydratedModel)
+                |> List.filterMap
+                    (\result ->
+                        case result of
+                            Err _ ->
+                                Nothing
+
+                            Ok cmd ->
+                                Just cmd
+                    )
+                |> Cmd.batch
+
         setFaviconCmd =
             flags.favicon
                 |> Maybe.map Ports.setFavicon
                 |> Maybe.withDefault Cmd.none
 
         otherCmds =
-            [ List.map
+            [ refreshAuthTokenCmds
+            , List.map
                 (Rest.Keystone.requestAppCredential
                     hydratedModel.clientUuid
                     hydratedModel.clientCurrentTime
