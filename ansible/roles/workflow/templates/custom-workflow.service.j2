@@ -13,8 +13,7 @@ ExecStart=/usr/bin/docker run --rm --name %n \
     -p 8888:8888 \
     exosphere-workflow:latest \
     jupyter notebook --ip 0.0.0.0 --notebook-dir /workflow
-ExecStartPost=echo 'Going to sleep and then get token...'
-ExecStartPost=sleep 10
+ExecStartPost=/usr/bin/sleep 10
 ExecStartPost=/bin/bash -c "/opt/custom_workflow_json.sh {{ console_file }}"
 
 [Install]
