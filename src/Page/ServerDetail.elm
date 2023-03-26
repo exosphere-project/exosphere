@@ -369,7 +369,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                     (GetterSetters.getUserAppProxyFromContext project context)
                 ]
             , tile
-                [ FeatherIcons.hash
+                [ FeatherIcons.key
                     |> FeatherIcons.toHtml []
                     |> Element.html
                     |> Element.el []
@@ -443,16 +443,6 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                 ]
             ]
 
-        ( dualColumn, columnWidth ) =
-            if context.windowSize.width < 1150 then
-                ( False, Element.fill )
-
-            else
-                ( True
-                , -- each column will fill 1 (and equal) portion of available space
-                  Element.fill
-                )
-
         serverFaultView =
             case details.fault of
                 Just serverFault ->
@@ -470,33 +460,29 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                     Element.none
     in
     Element.column [ Element.spacing spacer.px24, Element.width Element.fill ]
-        [ Element.column [ Element.width Element.fill ]
-            [ Element.row
-                (Text.headingStyleAttrs context.palette)
-                [ FeatherIcons.server |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
-                , Element.column [ Element.spacing spacer.px4 ]
-                    [ Element.row [ Element.spacing spacer.px8 ]
-                        [ Text.text Text.ExtraLarge
-                            []
-                            (context.localization.virtualComputer
-                                |> Helpers.String.toTitleCase
-                            )
-                        , serverNameView context project currentTime model server
-                        ]
-                    , Element.el
-                        [ Text.fontSize Text.Tiny
-                        , Font.color (SH.toElementColor context.palette.neutral.text.subdued)
-                        ]
-                        (copyableText context.palette [ Element.width Element.fill ] server.osProps.uuid)
-                    ]
-                , Element.el
-                    [ Element.alignRight, Text.fontSize Text.Body, Font.regular ]
-                    (serverStatus context project server)
-                , Element.el
-                    [ Element.alignRight, Text.fontSize Text.Body, Font.regular ]
-                    (serverActionsDropdown context project model server)
+        [ Element.row (Text.headingStyleAttrs context.palette)
+            [ FeatherIcons.server |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
+            , Text.text Text.ExtraLarge
+                []
+                (context.localization.virtualComputer
+                    |> Helpers.String.toTitleCase
+                )
+            , serverNameView context project currentTime model server
+            , Element.row [ Element.alignRight, Text.fontSize Text.Body, Font.regular, Element.spacing spacer.px16 ]
+                [ serverStatus context project server
+                , serverActionsDropdown context project model server
                 ]
-            , VH.createdAgoByFromSize
+            ]
+        , tile
+            [ FeatherIcons.info |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
+            , Text.text Text.ExtraLarge [] "Info"
+            , Element.el
+                [ Text.fontSize Text.Tiny
+                , Font.color (SH.toElementColor context.palette.neutral.text.subdued)
+                ]
+                (copyableText context.palette [ Element.width (Element.px 250) ] server.osProps.uuid)
+            ]
+            [ VH.createdAgoByFromSize
                 context
                 ( "created", whenCreated )
                 (Just ( "user", creatorName ))
@@ -508,37 +494,19 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
             ]
         , serverFaultView
         , if List.member details.openstackStatus [ OSTypes.ServerActive, OSTypes.ServerVerifyResize ] then
-            resourceUsageCharts context
-                ( currentTime, timeZone )
-                server
-                (maybeFlavor |> Maybe.map (\flavor -> Helpers.serverResourceQtys project flavor server))
+            tile
+                [ FeatherIcons.activity |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
+                , Text.text Text.ExtraLarge [] "Resource Usage"
+                ]
+                [ resourceUsageCharts context
+                    ( currentTime, timeZone )
+                    server
+                    (maybeFlavor |> Maybe.map (\flavor -> Helpers.serverResourceQtys project flavor server))
+                ]
 
           else
             Element.none
-        , if dualColumn then
-            let
-                columnAttributes =
-                    [ Element.alignTop
-                    , Element.centerX
-                    , Element.width columnWidth
-                    , Element.spacing spacer.px24
-                    ]
-            in
-            Element.row
-                [ Element.width Element.fill
-                , Element.spacing spacer.px24
-                ]
-                [ Element.column columnAttributes firstColumnContents
-                , Element.column columnAttributes secondColumnContents
-                ]
-
-          else
-            Element.column
-                [ Element.width (Element.maximum 700 Element.fill)
-                , Element.centerX
-                , Element.spacing spacer.px24
-                ]
-                (List.append firstColumnContents secondColumnContents)
+        , Element.wrappedRow [ Element.spacing spacer.px24 ] (List.append firstColumnContents secondColumnContents)
         ]
 
 
@@ -1472,7 +1440,7 @@ resourceUsageCharts : View.Types.Context -> ( Time.Posix, Time.Zone ) -> Server 
 resourceUsageCharts context currentTimeAndZone server maybeServerResourceQtys =
     let
         containerWidth =
-            context.windowSize.width - 76
+            context.windowSize.width - 120
 
         chartsWidth =
             max 1075 containerWidth
