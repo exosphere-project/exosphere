@@ -357,7 +357,9 @@ volumeView context project currentTime volumeRecord =
                                         Element.column
                                             [ Element.spacing spacer.px4 ]
                                             [ Element.el [ Font.color neutralColor ] (Element.text renderedName)
-                                            , Element.text description
+                                            , description
+                                                |> Maybe.map Element.text
+                                                |> Maybe.withDefault Element.none
                                             ]
                               }
                             , { header = Element.none

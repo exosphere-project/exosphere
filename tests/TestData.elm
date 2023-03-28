@@ -1,6 +1,7 @@
 module TestData exposing
     ( cinderLimits
     , cinderQuotaSetDetail
+    , cinderVolumeSnapshots
     , novaLimits
     , novaQuotaSetDetail
     , openrcNoExportKeyword
@@ -313,5 +314,35 @@ novaLimits =
             "maxTotalRAMSize": 999999
         }
     }
+}
+    """
+
+
+cinderVolumeSnapshots : String
+cinderVolumeSnapshots =
+    """
+{
+    "volume_snapshots": [
+        {
+            "status": "available",
+            "description": "This is a snapshot with a description",
+            "created_at": "2015-03-03T14:30:00.000000",
+            "volume_id": "f5d3c3b3-3a1b-4d1d-9b3a-0f3b3d3f0e7d",
+            "metadata": {},
+            "id": "a7b6d2c6-2a1b-4d1d-9b3a-0f3b3d3f0e7d",
+            "size": 1,
+            "name": "snapshot-001-with-description"
+        },
+        {
+            "status": "available",
+            "description": null,
+            "created_at": "2015-03-03T14:30:00.000000",
+            "volume_id": "f5d3c3b3-3a1b-4d1d-9b3a-0f3b3d3f0e7d",
+            "metadata": {},
+            "id": "b7b6d2c6-2a1b-4d1d-9b3a-0f3b3d3f0e7d",
+            "size": 1,
+            "name": "snapshot-002-no-description"
+        }
+    ]
 }
     """
