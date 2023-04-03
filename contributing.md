@@ -6,6 +6,8 @@ See [Contributor skills](docs/contributor-skills.md) for the skills you need (or
 
 ## Quick Start for New Contributors
 
+New contributors, please check with a project maintainer before attempting to solve an issue of weight 5 or higher.
+
 This assumes familiarity with a git-based contribution workflow on platforms like GitHub. If you have never done that, or you are stuck for any other reason, ask for guidance [in our chat](https://matrix.to/#/#exosphere-dev:matrix.org). We're happy to help.
 
 Exosphere is hosted on [gitlab.com](https://gitlab.com), a service that is similar to GitHub in many ways. One difference is that a code contribution on GitLab is called a _merge request (MR)_ instead of a _pull request (PR)_, but the concept and workflow is exactly the same.
@@ -148,6 +150,12 @@ In addition to [Running Exosphere For Development Work](docs/run-exosphere.md#fo
     - `elm-format` Elm code formatter
     - `prettier` JavaScript, JSON, and HTML formatter
   - This will catch many common issues long before GitLab's CI pipeline does.
+
+### Design Review Process
+
+When solving an issue of weight 5-10, we strongly encourage you to have a design/scoping discussion with others on the project. Consider writing a short implementation plan and posting it as an issue comment.
+
+When solving an issue of weight 20 or higher, we require you to write a step-wise implementation plan, post it as an issue comment, and collect feedback from at least one maintainer. Please do this early, before requesting code review. _This could save you many hours of re-work._
 
 ### Submitting a Contribution
 
