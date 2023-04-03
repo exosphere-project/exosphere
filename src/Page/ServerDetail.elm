@@ -474,13 +474,16 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                 ]
             ]
         , tile
-            [ FeatherIcons.info |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
-            , Text.text Text.ExtraLarge [] "Info"
+            [ FeatherIcons.cpu |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
+            , Element.text "Info"
             , Element.el
                 [ Text.fontSize Text.Tiny
                 , Font.color (SH.toElementColor context.palette.neutral.text.subdued)
                 ]
-                (copyableText context.palette [ Element.width (Element.px 250) ] server.osProps.uuid)
+                (copyableText context.palette
+                    [ Element.width (Element.shrink |> Element.minimum 240) ]
+                    server.osProps.uuid
+                )
             ]
             [ VH.createdAgoByFromSize
                 context
@@ -496,7 +499,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
         , if List.member details.openstackStatus [ OSTypes.ServerActive, OSTypes.ServerVerifyResize ] then
             tile
                 [ FeatherIcons.activity |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
-                , Text.text Text.ExtraLarge [] "Resource Usage"
+                , Element.text "Resource Usage"
                 ]
                 [ resourceUsageCharts context
                     ( currentTime, timeZone )
