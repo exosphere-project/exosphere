@@ -479,6 +479,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
             , Element.el
                 [ Text.fontSize Text.Tiny
                 , Font.color (SH.toElementColor context.palette.neutral.text.subdued)
+                , Element.alignBottom
                 ]
                 (copyableText context.palette
                     [ Element.width (Element.shrink |> Element.minimum 240) ]
