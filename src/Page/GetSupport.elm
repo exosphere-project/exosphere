@@ -251,6 +251,11 @@ viewSupportForm context sharedModel model =
 
 viewBuiltSupportRequest : View.Types.Context -> SharedModel -> Model -> Element.Element Msg
 viewBuiltSupportRequest context sharedModel model =
+    let
+        boldCopyableText text =
+            Element.el [ Font.extraBold ] <|
+                Style.Widgets.CopyableText.copyableText context.palette [] text
+    in
     Element.column
         [ Element.spacing spacer.px32, Element.width Element.fill ]
         [ Text.p
@@ -259,11 +264,21 @@ viewBuiltSupportRequest context sharedModel model =
         , buildMailtoLink sharedModel context model
         , Text.p
             []
-            [ Element.text "If the button does not work, please copy all of the text below and paste it into an email message to: "
-            , Element.el [ Font.extraBold ] <|
-                Style.Widgets.CopyableText.copyableText context.palette [] sharedModel.style.userSupportEmailAddress
-            , Element.text "Someone will respond and assist you."
-            ]
+          <|
+            List.concat
+                [ [ Element.text "If the button does not work, please copy all of the text in the box below and paste it into an email message to: " ]
+                , [ boldCopyableText sharedModel.style.userSupportEmailAddress
+                  ]
+                , case sharedModel.style.userSupportEmailSubject of
+                    Just subject ->
+                        [ Element.text "Please also include the following text in the subject line: "
+                        , boldCopyableText subject
+                        ]
+
+                    Nothing ->
+                        []
+                , [ Element.text "Someone will respond and assist you." ]
+                ]
         , Input.multiline
             (VH.inputItemAttributes context.palette
                 ++ [ Element.height <| Element.px 200
@@ -333,7 +348,9 @@ buildMailtoLink sharedModel context model =
             buildSupportRequest sharedModel context model.maybeSupportableResource model.requestDescription
 
         queryParams =
-            [ Url.Builder.string "body" emailBody ]
+            [ Url.Builder.string "body" emailBody
+            , Url.Builder.string "subject" (Maybe.withDefault "" sharedModel.style.userSupportEmailSubject)
+            ]
 
         target =
             "mailto:"
