@@ -43,6 +43,7 @@ type alias Style =
     , aboutAppMarkdown : Maybe String
     , supportInfoMarkdown : Maybe String
     , userSupportEmailAddress : String
+    , userSupportEmailSubject : Maybe String
     }
 
 

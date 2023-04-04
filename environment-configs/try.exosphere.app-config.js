@@ -15,6 +15,7 @@ var config = {
   supportInfoMarkdown: null,
   userSupportEmailAddress:
     "incoming+exosphere-exosphere-6891229-issue-@incoming.gitlab.com",
+  userSupportEmailSubject: null,
   openIdConnectLoginConfig: null,
   localization: null,
   instanceConfigMgtRepoUrl: null,

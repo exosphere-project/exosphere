@@ -16,6 +16,7 @@ var config = {
   aboutAppMarkdown: null,
   supportInfoMarkdown: null,
   userSupportEmailAddress: null,
+  userSupportEmailSubject: null,
   openIdConnectLoginConfig: null,
   localization: null,
   instanceConfigMgtRepoUrl: null,

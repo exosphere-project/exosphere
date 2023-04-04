@@ -15,6 +15,7 @@ var config = {
   supportInfoMarkdown: null,
   userSupportEmailAddress:
     "incoming+exosphere-exosphere-6891229-issue-@incoming.gitlab.com",
+  userSupportEmailSubject: null,
   openIdConnectLoginConfig: {
     keystoneAuthUrl: "https://js2.jetstream-cloud.org:5000/identity/v3",
     webssoKeystoneEndpoint:

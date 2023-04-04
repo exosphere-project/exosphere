@@ -42,6 +42,7 @@ type alias ConfigurationFlags =
     , aboutAppMarkdown : Maybe String
     , supportInfoMarkdown : Maybe String
     , userSupportEmailAddress : Maybe String
+    , userSupportEmailSubject : Maybe String
     , openIdConnectLoginConfig :
         Maybe HelperTypes.OpenIdConnectLoginConfig
     , localization : Maybe HelperTypes.Localization
@@ -80,6 +81,7 @@ flagsDecoder =
         |> required "aboutAppMarkdown" (maybe string)
         |> required "supportInfoMarkdown" (maybe string)
         |> required "userSupportEmailAddress" (maybe string)
+        |> required "userSupportEmailSubject" (maybe string)
         |> required "openIdConnectLoginConfig" (nullable openIdConnectLoginConfigDecoder)
         |> required "localization" (nullable localizationDecoder)
         |> required "clouds" value
