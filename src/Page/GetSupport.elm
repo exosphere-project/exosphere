@@ -251,7 +251,7 @@ viewSupportForm context sharedModel model =
 viewBuiltSupportRequest : View.Types.Context -> SharedModel -> Model -> Element.Element Msg
 viewBuiltSupportRequest context sharedModel model =
     Element.column
-        [ Element.spacing spacer.px12, Element.width Element.fill ]
+        [ Element.spacing spacer.px32, Element.width Element.fill ]
         [ Text.p
             []
             [ Element.text "Please copy all of the text below and paste it into an email message to: "
