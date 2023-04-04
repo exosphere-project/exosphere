@@ -132,8 +132,8 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
             , defaultLoginView = defaultLoginView
             , aboutAppMarkdown = flags.aboutAppMarkdown
             , supportInfoMarkdown = flags.supportInfoMarkdown
-            , userSupportEmail =
-                flags.userSupportEmail
+            , userSupportEmailAddress =
+                flags.userSupportEmailAddress
                     |> Maybe.withDefault "incoming+exosphere-exosphere-6891229-issue-@incoming.gitlab.com"
             }
 

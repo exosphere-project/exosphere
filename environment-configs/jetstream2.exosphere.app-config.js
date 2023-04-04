@@ -39,7 +39,7 @@ var config = {
     "This is the Exosphere interface for [Jetstream2](https://jetstream-cloud.org), currently in beta. If you require assistance, please email help@jetstream-cloud.org and specify you are using jetstream2.exosphere.app.\\\n\\\nUse of this site is subject to the Exosphere hosted sites [Privacy Policy](https://gitlab.com/exosphere/exosphere/-/blob/master/docs/privacy-policy.md) and [Acceptable Use Policy](https://gitlab.com/exosphere/exosphere/-/blob/master/docs/acceptable-use-policy.md).",
   supportInfoMarkdown:
     "Please read about [instance management actions](https://docs.jetstream-cloud.org/general/instancemgt/) or [troubleshooting](https://docs.jetstream-cloud.org/faq/trouble/) for answers to common problems before submitting a request to support staff.",
-  userSupportEmail: "help@jetstream-cloud.org",
+  userSupportEmailAddress: "help@jetstream-cloud.org",
   openIdConnectLoginConfig: {
     keystoneAuthUrl: "https://js2.jetstream-cloud.org:5000/identity/v3",
     webssoKeystoneEndpoint:

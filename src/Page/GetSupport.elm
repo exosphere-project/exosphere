@@ -261,7 +261,7 @@ viewBuiltSupportRequest context sharedModel model =
             []
             [ Element.text "If the button does not work, please copy all of the text below and paste it into an email message to: "
             , Element.el [ Font.extraBold ] <|
-                Style.Widgets.CopyableText.copyableText context.palette [] sharedModel.style.userSupportEmail
+                Style.Widgets.CopyableText.copyableText context.palette [] sharedModel.style.userSupportEmailAddress
             , Element.text "Someone will respond and assist you."
             ]
         , Input.multiline
@@ -337,7 +337,7 @@ buildMailtoLink sharedModel context model =
 
         target =
             "mailto:"
-                ++ sharedModel.style.userSupportEmail
+                ++ sharedModel.style.userSupportEmailAddress
                 ++ Url.Builder.toQuery queryParams
 
         button =
