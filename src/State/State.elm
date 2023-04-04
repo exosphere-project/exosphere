@@ -1772,15 +1772,54 @@ processProjectSpecificMsg outerModel project msg =
             ( GetterSetters.modelUpdateProject sharedModel newProject, Cmd.none )
                 |> mapToOuterModel outerModel
 
-        ReceiveSecurityGroups groups ->
-            Rest.Neutron.receiveSecurityGroupsAndEnsureExoGroup sharedModel project groups
-                |> mapToOuterMsg
-                |> mapToOuterModel outerModel
+        ReceiveSecurityGroups errorContext result ->
+            case result of
+                Ok groups ->
+                    Rest.Neutron.receiveSecurityGroupsAndEnsureExoGroup sharedModel project groups
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
 
-        ReceiveCreateExoSecurityGroup group ->
-            Rest.Neutron.receiveCreateExoSecurityGroupAndRequestCreateRules sharedModel project group
-                |> mapToOuterMsg
-                |> mapToOuterModel outerModel
+                Err httpError ->
+                    let
+                        oldSecurityGroups =
+                            project.securityGroups.data
+
+                        newProject =
+                            { project | securityGroups = RDPP.RemoteDataPlusPlus oldSecurityGroups (RDPP.NotLoading (Just ( httpError, sharedModel.clientCurrentTime ))) }
+
+                        newModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+                    in
+                    State.Error.processSynchronousApiError newModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+        ReceiveCreateExoSecurityGroup errorContext result ->
+            case result of
+                Ok group ->
+                    Rest.Neutron.receiveCreateExoSecurityGroupAndRequestCreateRules sharedModel project group
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+                Err httpError ->
+                    let
+                        oldSecurityGroups =
+                            project.securityGroups.data
+
+                        newProject =
+                            { project
+                                | securityGroups =
+                                    RDPP.RemoteDataPlusPlus
+                                        oldSecurityGroups
+                                        (RDPP.NotLoading (Just ( httpError, sharedModel.clientCurrentTime )))
+                            }
+
+                        newModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+                    in
+                    State.Error.processSynchronousApiError newModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
 
         ReceiveShares shares ->
             let
@@ -2700,7 +2739,7 @@ createProject_ outerModel description authToken region endpoints =
             , dnsRecordSets = RDPP.empty
             , floatingIps = RDPP.empty
             , ports = RDPP.empty
-            , securityGroups = []
+            , securityGroups = RDPP.empty
             , computeQuota = RemoteData.NotAsked
             , volumeQuota = RemoteData.NotAsked
             , networkQuota = RemoteData.NotAsked

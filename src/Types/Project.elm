@@ -33,7 +33,7 @@ type alias Project =
     , floatingIps : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.FloatingIp)
     , dnsRecordSets : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OpenStack.DnsRecordSet.DnsRecordSet)
     , ports : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Port)
-    , securityGroups : List OSTypes.SecurityGroup
+    , securityGroups : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.SecurityGroup)
     , computeQuota : WebData OSTypes.ComputeQuota
     , volumeQuota : WebData OSTypes.VolumeQuota
     , networkQuota : WebData OSTypes.NetworkQuota

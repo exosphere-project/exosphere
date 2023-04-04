@@ -315,14 +315,10 @@ requestSecurityGroups project =
                 ErrorCrit
                 Nothing
 
-        resultToMsg_ =
-            resultToMsgErrorBody
-                errorContext
-                (\groups ->
+        resultToMsg result =
                     ProjectMsg
                         (GetterSetters.projectIdentifier project)
-                        (ReceiveSecurityGroups groups)
-                )
+                        (ReceiveSecurityGroups errorContext result)
     in
     openstackCredentialedRequest
         (GetterSetters.projectIdentifier project)
@@ -332,7 +328,7 @@ requestSecurityGroups project =
         (project.endpoints.neutron ++ "/v2.0/security-groups")
         Http.emptyBody
         (expectJsonWithErrorBody
-            resultToMsg_
+            resultToMsg
             decodeSecurityGroups
         )
 
@@ -359,14 +355,11 @@ requestCreateExoSecurityGroup project =
                 ErrorCrit
                 Nothing
 
-        resultToMsg_ =
-            resultToMsgErrorBody
-                errorContext
-                (\group ->
+        resultToMsg result =
                     ProjectMsg
                         (GetterSetters.projectIdentifier project)
-                        (ReceiveCreateExoSecurityGroup group)
-                )
+                        (ReceiveCreateExoSecurityGroup errorContext result)
+
     in
     openstackCredentialedRequest
         (GetterSetters.projectIdentifier project)
@@ -376,7 +369,7 @@ requestCreateExoSecurityGroup project =
         (project.endpoints.neutron ++ "/v2.0/security-groups")
         (Http.jsonBody requestBody)
         (expectJsonWithErrorBody
-            resultToMsg_
+            resultToMsg
             decodeNewSecurityGroup
         )
 
@@ -385,7 +378,7 @@ requestCreateExoSecurityGroupRules : SharedModel -> Project -> List SecurityGrou
 requestCreateExoSecurityGroupRules model project rules =
     let
         maybeSecurityGroup =
-            project.securityGroups
+            RDPP.withDefault [] project.securityGroups
                 |> List.Extra.find (\g -> g.name == "exosphere")
     in
     case maybeSecurityGroup of
@@ -531,8 +524,13 @@ receiveSecurityGroupsAndEnsureExoGroup : SharedModel -> Project -> List OSTypes.
 receiveSecurityGroupsAndEnsureExoGroup model project securityGroups =
     {- Create an "exosphere" security group unless one already exists -}
     let
+        newSecurityGroups =
+            RDPP.RemoteDataPlusPlus
+                (RDPP.DoHave securityGroups model.clientCurrentTime)
+                (RDPP.NotLoading Nothing)
+
         newProject =
-            { project | securityGroups = securityGroups }
+            { project | securityGroups = newSecurityGroups }
 
         newModel =
             GetterSetters.modelUpdateProject model newProject
@@ -586,10 +584,16 @@ receiveCreateExoSecurityGroupAndRequestCreateRules : SharedModel -> Project -> O
 receiveCreateExoSecurityGroupAndRequestCreateRules model project newSecGroup =
     let
         newSecGroups =
-            newSecGroup :: project.securityGroups
+            newSecGroup
+                :: (project.securityGroups |> RDPP.withDefault [])
 
         newProject =
-            { project | securityGroups = newSecGroups }
+            { project
+                | securityGroups =
+                    RDPP.RemoteDataPlusPlus
+                        (RDPP.DoHave newSecGroups model.clientCurrentTime)
+                        (RDPP.NotLoading Nothing)
+            }
 
         newModel =
             GetterSetters.modelUpdateProject model newProject

@@ -85,9 +85,9 @@ type ProjectSpecificMsgConstructor
     | ReceiveDeleteFloatingIp OSTypes.IpAddressUuid
     | ReceiveAssignFloatingIp OSTypes.FloatingIp
     | ReceiveUnassignFloatingIp OSTypes.FloatingIp
-    | ReceiveSecurityGroups (List OSTypes.SecurityGroup)
+    | ReceiveSecurityGroups ErrorContext (Result HttpErrorWithBody (List OSTypes.SecurityGroup))
     | ReceiveDnsRecordSets (List OpenStack.DnsRecordSet.DnsRecordSet)
-    | ReceiveCreateExoSecurityGroup OSTypes.SecurityGroup
+    | ReceiveCreateExoSecurityGroup ErrorContext (Result HttpErrorWithBody (OSTypes.SecurityGroup))
     | ReceiveShares (List OSTypes.Share)
     | ReceiveCreateVolume
     | ReceiveVolumes (List OSTypes.Volume)
