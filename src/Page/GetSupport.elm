@@ -16,6 +16,7 @@ import Types.HelperTypes as HelperTypes
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg exposing (SharedMsg(..))
 import UUID
+import Url.Builder
 import View.Helpers as VH
 import View.Types
 
@@ -254,7 +255,11 @@ viewBuiltSupportRequest context sharedModel model =
         [ Element.spacing spacer.px32, Element.width Element.fill ]
         [ Text.p
             []
-            [ Element.text "Please copy all of the text below and paste it into an email message to: "
+            [ Element.text "To request support, click this button and send the resulting message:" ]
+        , buildMailtoLink sharedModel context model
+        , Text.p
+            []
+            [ Element.text "If the button does not work, please copy all of the text below and paste it into an email message to: "
             , Element.el [ Font.extraBold ] <|
                 Style.Widgets.CopyableText.copyableText context.palette [] sharedModel.style.userSupportEmail
             , Element.text "Someone will respond and assist you."
@@ -319,6 +324,30 @@ supportableItemTypeStr context supportableItemType =
 
         HelperTypes.SupportableVolume ->
             context.localization.blockDevice
+
+
+buildMailtoLink : SharedModel -> View.Types.Context -> Model -> Element.Element Msg
+buildMailtoLink sharedModel context model =
+    let
+        emailBody =
+            buildSupportRequest sharedModel context model.maybeSupportableResource model.requestDescription
+
+        queryParams =
+            [ Url.Builder.string "body" emailBody ]
+
+        target =
+            "mailto:"
+                ++ sharedModel.style.userSupportEmail
+                ++ Url.Builder.toQuery queryParams
+
+        button =
+            Button.primary
+                context.palette
+                { text = "Generate Email"
+                , onPress = Just NoOp
+                }
+    in
+    Element.link [] { url = target, label = button }
 
 
 buildSupportRequest : SharedModel -> View.Types.Context -> Maybe ( HelperTypes.SupportableItemType, Maybe HelperTypes.Uuid ) -> String -> String
