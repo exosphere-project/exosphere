@@ -31,7 +31,7 @@ type Msg
     = GotResourceType (Maybe HelperTypes.SupportableItemType)
     | GotResourceUuid (Maybe HelperTypes.Uuid)
     | GotDescription String
-    | GotSubmit
+    | GotSubmittedForm Bool
     | NoOp
 
 
@@ -70,8 +70,8 @@ update msg _ model =
         GotDescription desc ->
             ( { model | requestDescription = desc }, Cmd.none, SharedMsg.NoOp )
 
-        GotSubmit ->
-            ( { model | isSubmitted = True }, Cmd.none, SharedMsg.NoOp )
+        GotSubmittedForm submitted ->
+            ( { model | isSubmitted = submitted }, Cmd.none, SharedMsg.NoOp )
 
         NoOp ->
             ( model, Cmd.none, SharedMsg.NoOp )
@@ -242,7 +242,7 @@ viewSupportForm context sharedModel model =
                             Nothing
 
                         else
-                            Just GotSubmit
+                            Just (GotSubmittedForm True)
                     }
             ]
         ]
@@ -274,6 +274,20 @@ viewBuiltSupportRequest context sharedModel model =
             , label = Input.labelHidden "Support request"
             , spellcheck = False
             }
+        , Element.row
+            [ Element.width Element.fill ]
+            [ Element.el [] <|
+                Button.default
+                    context.palette
+                    { text = "Edit Support Request"
+                    , onPress =
+                        if String.isEmpty model.requestDescription then
+                            Nothing
+
+                        else
+                            Just (GotSubmittedForm False)
+                    }
+            ]
         ]
 
 
