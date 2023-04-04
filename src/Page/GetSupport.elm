@@ -250,45 +250,45 @@ viewSupportForm context sharedModel model =
 
 viewBuiltSupportRequest : View.Types.Context -> SharedModel -> Model -> Element.Element Msg
 viewBuiltSupportRequest context sharedModel model =
-    if model.isSubmitted then
-        Element.column
-            [ Element.spacing spacer.px12, Element.width Element.fill ]
-            [ Text.p
-                []
-                [ Element.text "Please copy all of the text below and paste it into an email message to: "
-                , Element.el [ Font.extraBold ] <|
-                    Style.Widgets.CopyableText.copyableText context.palette [] sharedModel.style.userSupportEmail
-                , Element.text "Someone will respond and assist you."
-                ]
-            , Input.multiline
-                (VH.inputItemAttributes context.palette
-                    ++ [ Element.height <| Element.px 200
-                       , Element.width Element.fill
-                       , Element.spacing spacer.px8
-                       , Text.fontFamily Text.Mono
-                       ]
-                    ++ Text.typographyAttrs Tiny
-                )
-                { onChange = \_ -> NoOp
-                , text = buildSupportRequest sharedModel context model.maybeSupportableResource model.requestDescription
-                , placeholder = Nothing
-                , label = Input.labelHidden "Support request"
-                , spellcheck = False
-                }
+    Element.column
+        [ Element.spacing spacer.px12, Element.width Element.fill ]
+        [ Text.p
+            []
+            [ Element.text "Please copy all of the text below and paste it into an email message to: "
+            , Element.el [ Font.extraBold ] <|
+                Style.Widgets.CopyableText.copyableText context.palette [] sharedModel.style.userSupportEmail
+            , Element.text "Someone will respond and assist you."
             ]
-
-    else
-        Element.none
+        , Input.multiline
+            (VH.inputItemAttributes context.palette
+                ++ [ Element.height <| Element.px 200
+                   , Element.width Element.fill
+                   , Element.spacing spacer.px8
+                   , Text.fontFamily Text.Mono
+                   ]
+                ++ Text.typographyAttrs Tiny
+            )
+            { onChange = \_ -> NoOp
+            , text = buildSupportRequest sharedModel context model.maybeSupportableResource model.requestDescription
+            , placeholder = Nothing
+            , label = Input.labelHidden "Support request"
+            , spellcheck = False
+            }
+        ]
 
 
 view : View.Types.Context -> SharedModel -> Model -> Element.Element Msg
 view context sharedModel model =
     Element.column
         (VH.formContainer ++ [ Element.spacing spacer.px32 ])
-        [ viewSupportInfo context sharedModel
-        , viewSupportForm context sharedModel model
-        , viewBuiltSupportRequest context sharedModel model
-        ]
+    <|
+        if model.isSubmitted then
+            [ viewBuiltSupportRequest context sharedModel model ]
+
+        else
+            [ viewSupportInfo context sharedModel
+            , viewSupportForm context sharedModel model
+            ]
 
 
 supportableItemTypeStr : View.Types.Context -> HelperTypes.SupportableItemType -> String
