@@ -9,6 +9,7 @@ module OpenStack.Volumes exposing
     )
 
 import Helpers.GetterSetters as GetterSetters
+import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.Time exposing (iso8601StringToPosixDecodeError)
 import Http
 import Json.Decode as Decode
@@ -17,7 +18,6 @@ import Json.Encode
 import List.Extra
 import OpenStack.Types as OSTypes
 import OpenStack.VolumeSnapshots exposing (volumeSnapshotDecoder)
-import RemoteData
 import Rest.Helpers
     exposing
         ( expectJsonWithErrorBody
@@ -81,14 +81,10 @@ requestVolumes project =
                 ErrorCrit
                 Nothing
 
-        resultToMsg_ =
-            resultToMsgErrorBody
-                errorContext
-                (\vols ->
+        resultToMsg result =
                     ProjectMsg
                         (GetterSetters.projectIdentifier project)
-                        (ReceiveVolumes vols)
-                )
+                        (ReceiveVolumes errorContext result)
     in
     openstackCredentialedRequest
         (GetterSetters.projectIdentifier project)
@@ -98,7 +94,7 @@ requestVolumes project =
         (project.endpoints.cinder ++ "/volumes/detail")
         Http.emptyBody
         (expectJsonWithErrorBody
-            resultToMsg_
+            resultToMsg
             (Decode.field "volumes" <| Decode.list volumeDecoder)
         )
 
@@ -315,5 +311,5 @@ volumeLookup : Project -> OSTypes.VolumeUuid -> Maybe OSTypes.Volume
 volumeLookup project volumeUuid =
     {- TODO fix or justify other lookup functions being in Helpers.Helpers -}
     project.volumes
-        |> RemoteData.withDefault []
+        |> RDPP.withDefault []
         |> List.Extra.find (\v -> v.uuid == volumeUuid)

@@ -146,7 +146,7 @@ imageGetDesktopMessage image =
 volumeLookup : Project -> OSTypes.VolumeUuid -> Maybe OSTypes.Volume
 volumeLookup project volumeUuid =
     project.volumes
-        |> RemoteData.withDefault []
+        |> RDPP.withDefault []
         |> List.Extra.find (\v -> v.uuid == volumeUuid)
 
 
@@ -305,7 +305,7 @@ sortedFlavors =
 getVolsAttachedToServer : Project -> Server -> List OSTypes.Volume
 getVolsAttachedToServer project server =
     project.volumes
-        |> RemoteData.withDefault []
+        |> RDPP.withDefault []
         |> List.filter (\v -> List.member v.uuid server.osProps.details.volumesAttached)
 
 
@@ -606,7 +606,7 @@ projectSetSharesLoading project =
 
 projectSetVolumesLoading : Project -> Project
 projectSetVolumesLoading project =
-    { project | volumes = RemoteData.Loading }
+    { project | volumes = RDPP.setLoading project.volumes }
 
 
 projectSetVolumeSnapshotsLoading : Project -> Project

@@ -35,7 +35,6 @@ import List.Extra
 import OpenStack.Types as OSTypes
 import Parser exposing ((|.))
 import Regex
-import RemoteData
 import Time
 import Types.Error
 import Types.Guacamole as GuacTypes
@@ -787,7 +786,7 @@ serverResourceQtys project flavor server =
     , rootDiskGb =
         case
             GetterSetters.getBootVolume
-                (RemoteData.withDefault [] project.volumes)
+                (RDPP.withDefault [] project.volumes)
                 server.osProps.uuid
         of
             Just backingVolume ->

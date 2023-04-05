@@ -90,7 +90,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveCreateExoSecurityGroup ErrorContext (Result HttpErrorWithBody (OSTypes.SecurityGroup))
     | ReceiveShares (List OSTypes.Share)
     | ReceiveCreateVolume
-    | ReceiveVolumes (List OSTypes.Volume)
+    | ReceiveVolumes ErrorContext (Result HttpErrorWithBody (List OSTypes.Volume))
     | ReceiveVolumeSnapshots (List VolumeSnapshot)
     | ReceiveDeleteVolume
     | ReceiveUpdateVolumeName

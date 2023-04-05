@@ -2,9 +2,9 @@ module Page.ServerResize exposing (Model, Msg, init, update, view)
 
 import Element
 import Helpers.GetterSetters as GetterSetters
+import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import OpenStack.Types as OSTypes
-import RemoteData
 import Route
 import Style.Widgets.Button as Button
 import Style.Widgets.Spacer exposing (spacer)
@@ -89,7 +89,7 @@ view_ context project model computeQuota =
                             0
 
                 minRootDiskSize =
-                    case GetterSetters.getBootVolume (RemoteData.withDefault [] project.volumes) model.serverUuid of
+                    case GetterSetters.getBootVolume (RDPP.withDefault [] project.volumes) model.serverUuid of
                         Just _ ->
                             -- Server is volume-backed, so root disk size of flavor does not matter
                             0

@@ -1031,7 +1031,7 @@ processTick outerModel interval time =
                                     ( outerModel.sharedModel
                                     , case interval of
                                         5 ->
-                                            if List.any volNeedsFrequentPoll (RemoteData.withDefault [] project.volumes) then
+                                            if List.any volNeedsFrequentPoll (RDPP.withDefault [] project.volumes) then
                                                 OSVolumes.requestVolumes project
 
                                             else
@@ -1659,15 +1659,12 @@ processProjectSpecificMsg outerModel project msg =
 
                 Err httpError ->
                     let
-                        oldNetworksData =
-                            project.networks.data
-
                         newProject =
                             { project
                                 | networks =
-                                    RDPP.RemoteDataPlusPlus
-                                        oldNetworksData
-                                        (RDPP.NotLoading (Just ( httpError, sharedModel.clientCurrentTime )))
+                                    RDPP.setNotLoading
+                                        (Just ( httpError, sharedModel.clientCurrentTime ))
+                                        project.networks
                             }
 
                         newModel =
@@ -1867,87 +1864,108 @@ processProjectSpecificMsg outerModel project msg =
             , Route.pushUrl sharedModel.viewContext (Route.ProjectRoute (GetterSetters.projectIdentifier project) Route.VolumeList)
             )
 
-        ReceiveVolumes volumes ->
-            let
-                -- Look for any server backing volumes that were created with no name, and give them a reasonable name
-                updateVolNameCmds : List (Cmd SharedMsg)
-                updateVolNameCmds =
-                    RDPP.withDefault [] project.servers
-                        -- List of tuples containing server and Maybe boot vol
-                        |> List.map
-                            (\s ->
-                                ( s
-                                , GetterSetters.getBootVolume
-                                    (RemoteData.withDefault
-                                        []
+        ReceiveVolumes errorContext result ->
+            case result of
+                Ok volumes ->
+                    let
+                        -- Look for any server backing volumes that were created with no name, and give them a reasonable name
+                        updateVolNameCmds : List (Cmd SharedMsg)
+                        updateVolNameCmds =
+                            RDPP.withDefault [] project.servers
+                                -- List of tuples containing server and Maybe boot vol
+                                |> List.map
+                                    (\s ->
+                                        ( s
+                                        , GetterSetters.getBootVolume
+                                            (RDPP.withDefault [] project.volumes)
+                                            s.osProps.uuid
+                                        )
+                                    )
+                                -- We only care about servers created by exosphere
+                                |> List.filter
+                                    (\t ->
+                                        case Tuple.first t |> .exoProps |> .serverOrigin of
+                                            ServerFromExo _ ->
+                                                True
+
+                                            ServerNotFromExo ->
+                                                False
+                                    )
+                                -- We only care about servers created as current OpenStack user
+                                |> List.filter
+                                    (\t ->
+                                        (Tuple.first t).osProps.details.userUuid
+                                            == project.auth.user.uuid
+                                    )
+                                -- We only care about servers with a non-empty name
+                                |> List.filter
+                                    (\t ->
+                                        Tuple.first t
+                                            |> .osProps
+                                            |> .name
+                                            |> String.isEmpty
+                                            |> not
+                                    )
+                                -- We only care about volume-backed servers
+                                |> List.filterMap
+                                    (\t ->
+                                        case t of
+                                            ( server, Just vol ) ->
+                                                -- Flatten second part of tuple
+                                                Just ( server, vol )
+
+                                            _ ->
+                                                Nothing
+                                    )
+                                -- We only care about unnamed backing volumes
+                                |> List.filter
+                                    (\t ->
+                                        Tuple.second t
+                                            |> .name
+                                            |> Maybe.withDefault ""
+                                            |> String.isEmpty
+                                    )
+                                |> List.map
+                                    (\t ->
+                                        OSVolumes.requestUpdateVolumeName
+                                            project
+                                            (t |> Tuple.second |> .uuid)
+                                            ("boot-vol-"
+                                                ++ (t |> Tuple.first |> .osProps |> .name)
+                                            )
+                                    )
+
+                        newProject =
+                            { project
+                                | volumes =
+                                    RDPP.RemoteDataPlusPlus
+                                        (RDPP.DoHave volumes sharedModel.clientCurrentTime)
+                                        (RDPP.NotLoading Nothing)
+                            }
+
+                        newSharedModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+                    in
+                    ( newSharedModel, Cmd.batch updateVolNameCmds )
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+                Err httpError ->
+                    let
+                        newProject =
+                            { project
+                                | volumes =
+                                    RDPP.setNotLoading
+                                        (Just ( httpError, sharedModel.clientCurrentTime ))
                                         project.volumes
-                                    )
-                                    s.osProps.uuid
-                                )
-                            )
-                        -- We only care about servers created by exosphere
-                        |> List.filter
-                            (\t ->
-                                case Tuple.first t |> .exoProps |> .serverOrigin of
-                                    ServerFromExo _ ->
-                                        True
+                            }
 
-                                    ServerNotFromExo ->
-                                        False
-                            )
-                        -- We only care about servers created as current OpenStack user
-                        |> List.filter
-                            (\t ->
-                                (Tuple.first t).osProps.details.userUuid
-                                    == project.auth.user.uuid
-                            )
-                        -- We only care about servers with a non-empty name
-                        |> List.filter
-                            (\t ->
-                                Tuple.first t
-                                    |> .osProps
-                                    |> .name
-                                    |> String.isEmpty
-                                    |> not
-                            )
-                        -- We only care about volume-backed servers
-                        |> List.filterMap
-                            (\t ->
-                                case t of
-                                    ( server, Just vol ) ->
-                                        -- Flatten second part of tuple
-                                        Just ( server, vol )
-
-                                    _ ->
-                                        Nothing
-                            )
-                        -- We only care about unnamed backing volumes
-                        |> List.filter
-                            (\t ->
-                                Tuple.second t
-                                    |> .name
-                                    |> Maybe.withDefault ""
-                                    |> String.isEmpty
-                            )
-                        |> List.map
-                            (\t ->
-                                OSVolumes.requestUpdateVolumeName
-                                    project
-                                    (t |> Tuple.second |> .uuid)
-                                    ("boot-vol-"
-                                        ++ (t |> Tuple.first |> .osProps |> .name)
-                                    )
-                            )
-
-                newProject =
-                    { project | volumes = RemoteData.succeed volumes }
-
-                newSharedModel =
-                    GetterSetters.modelUpdateProject sharedModel newProject
-            in
-            ( newSharedModel, Cmd.batch updateVolNameCmds )
-                |> mapToOuterMsg
-                |> mapToOuterModel outerModel
+                        newModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+                    in
+                    State.Error.processSynchronousApiError newModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
 
         ReceiveVolumeSnapshots snapshots ->
             let
@@ -2811,7 +2829,7 @@ createProject_ outerModel description authToken region endpoints =
             , servers = RDPP.RemoteDataPlusPlus RDPP.DontHave RDPP.Loading
             , flavors = []
             , keypairs = RDPP.empty
-            , volumes = RemoteData.NotAsked
+            , volumes = RDPP.empty
             , volumeSnapshots = RDPP.empty
             , shares = RDPP.empty
             , networks = RDPP.empty

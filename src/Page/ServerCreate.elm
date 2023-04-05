@@ -22,7 +22,6 @@ import Maybe
 import OpenStack.Quotas as OSQuotas
 import OpenStack.ServerNameValidator exposing (serverNameValidator)
 import OpenStack.Types as OSTypes
-import RemoteData
 import Rest.Naming
 import Route
 import ServerDeploy exposing (cloudInitUserDataTemplate)

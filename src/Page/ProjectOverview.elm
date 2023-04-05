@@ -223,7 +223,7 @@ volumeTileContents context project =
         context
         project.volumes
         context.localization.blockDevice
-        VH.renderWebData
+        VH.renderRDPP
         renderVolume
         (\_ -> True)
 
