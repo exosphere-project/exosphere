@@ -377,11 +377,11 @@ enforceQuotaCompliance project model =
     -- that would exceed quota, reduce count to comply with quota.
     case
         ( model.flavorId |> Maybe.andThen (GetterSetters.flavorLookup project)
-        , project.computeQuota
-        , project.volumeQuota
+        , project.computeQuota.data
+        , project.volumeQuota.data
         )
     of
-        ( Just flavor, RemoteData.Success computeQuota, RemoteData.Success volumeQuota ) ->
+        ( Just flavor, RDPP.DoHave computeQuota _, RDPP.DoHave volumeQuota _ ) ->
             let
                 availServers =
                     OSQuotas.overallQuotaAvailServers
@@ -780,11 +780,11 @@ view context project currentTime model =
           <|
             case
                 ( model.flavorId |> Maybe.andThen (GetterSetters.flavorLookup project)
-                , project.computeQuota
-                , project.volumeQuota
+                , RDPP.toMaybe project.computeQuota
+                , RDPP.toMaybe project.volumeQuota
                 )
             of
-                ( Just flavor, RemoteData.Success computeQuota, RemoteData.Success volumeQuota ) ->
+                ( Just flavor, Just computeQuota, Just volumeQuota ) ->
                     contents flavor computeQuota volumeQuota
 
                 _ ->

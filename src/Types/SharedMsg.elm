@@ -97,9 +97,9 @@ type ProjectSpecificMsgConstructor
     | ReceiveDeleteVolumeSnapshot
     | ReceiveAttachVolume OSTypes.VolumeAttachment
     | ReceiveDetachVolume
-    | ReceiveComputeQuota OSTypes.ComputeQuota
-    | ReceiveVolumeQuota OSTypes.VolumeQuota
-    | ReceiveNetworkQuota OSTypes.NetworkQuota
+    | ReceiveComputeQuota ErrorContext (Result HttpErrorWithBody OSTypes.ComputeQuota)
+    | ReceiveVolumeQuota ErrorContext (Result HttpErrorWithBody OSTypes.VolumeQuota)
+    | ReceiveNetworkQuota ErrorContext (Result HttpErrorWithBody OSTypes.NetworkQuota)
     | ReceiveDeleteImage OSTypes.ImageUuid
     | ReceiveJetstream2Allocations (Result HttpErrorWithBody (List Types.Jetstream2Accounting.Allocation))
     | ReceiveImageVisibilityChange OSTypes.ImageUuid OSTypes.ImageVisibility

@@ -1524,7 +1524,7 @@ processProjectSpecificMsg outerModel project msg =
                             { project
                                 | keypairs =
                                     RDPP.setNotLoading
-                                        (Just (e, sharedModel.clientCurrentTime))
+                                        (Just ( e, sharedModel.clientCurrentTime ))
                                         project.keypairs
                             }
 
@@ -1549,16 +1549,19 @@ processProjectSpecificMsg outerModel project msg =
                         newSharedModel =
                             GetterSetters.modelUpdateProject sharedModel newProject
                     in
-                        ( { outerModel | sharedModel = newSharedModel }
-                            , Route.pushUrl sharedModel.viewContext (Route.ProjectRoute (GetterSetters.projectIdentifier project) Route.KeypairList)
-                            )
+                    ( { outerModel | sharedModel = newSharedModel }
+                    , Route.pushUrl sharedModel.viewContext (Route.ProjectRoute (GetterSetters.projectIdentifier project) Route.KeypairList)
+                    )
 
                 Err e ->
                     let
-                        newProject = {project | keypairs = RDPP.setNotLoading (Just (e, sharedModel.clientCurrentTime)) project.keypairs}
-                        newSharedModel = GetterSetters.modelUpdateProject sharedModel newProject
-                   in
-                        State.Error.processSynchronousApiError newSharedModel errorContext e
+                        newProject =
+                            { project | keypairs = RDPP.setNotLoading (Just ( e, sharedModel.clientCurrentTime )) project.keypairs }
+
+                        newSharedModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+                    in
+                    State.Error.processSynchronousApiError newSharedModel errorContext e
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
@@ -1994,29 +1997,86 @@ processProjectSpecificMsg outerModel project msg =
             ( GetterSetters.modelUpdateProject sharedModel newProject, Cmd.none )
                 |> mapToOuterModel outerModel
 
-        ReceiveComputeQuota quota ->
-            let
-                newProject =
-                    { project | computeQuota = RemoteData.Success quota }
-            in
-            ( GetterSetters.modelUpdateProject sharedModel newProject, Cmd.none )
-                |> mapToOuterModel outerModel
+        ReceiveComputeQuota errorContext result ->
+            case result of
+                Ok quota ->
+                    let
+                        newProject =
+                            { project
+                                | computeQuota =
+                                    RDPP.RemoteDataPlusPlus
+                                        (RDPP.DoHave quota sharedModel.clientCurrentTime)
+                                        (RDPP.NotLoading Nothing)
+                            }
+                    in
+                    ( GetterSetters.modelUpdateProject sharedModel newProject, Cmd.none )
+                        |> mapToOuterModel outerModel
 
-        ReceiveVolumeQuota quota ->
-            let
-                newProject =
-                    { project | volumeQuota = RemoteData.Success quota }
-            in
-            ( GetterSetters.modelUpdateProject sharedModel newProject, Cmd.none )
-                |> mapToOuterModel outerModel
+                Err httpError ->
+                    let
+                        newProject =
+                            { project | computeQuota = RDPP.setNotLoading (Just ( httpError, sharedModel.clientCurrentTime )) project.computeQuota }
 
-        ReceiveNetworkQuota quota ->
-            let
-                newProject =
-                    { project | networkQuota = RemoteData.Success quota }
-            in
-            ( GetterSetters.modelUpdateProject sharedModel newProject, Cmd.none )
-                |> mapToOuterModel outerModel
+                        newModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+                    in
+                    State.Error.processSynchronousApiError newModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+        ReceiveVolumeQuota errorContext result ->
+            case result of
+                Ok quota ->
+                    let
+                        newProject =
+                            { project
+                                | volumeQuota =
+                                    RDPP.RemoteDataPlusPlus
+                                        (RDPP.DoHave quota sharedModel.clientCurrentTime)
+                                        (RDPP.NotLoading Nothing)
+                            }
+                    in
+                    ( GetterSetters.modelUpdateProject sharedModel newProject, Cmd.none )
+                        |> mapToOuterModel outerModel
+
+                Err httpError ->
+                    let
+                        newProject =
+                            { project | volumeQuota = RDPP.setNotLoading (Just ( httpError, sharedModel.clientCurrentTime )) project.volumeQuota }
+
+                        newModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+                    in
+                    State.Error.processSynchronousApiError newModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+        ReceiveNetworkQuota errorContext result ->
+            case result of
+                Ok quota ->
+                    let
+                        newProject =
+                            { project
+                                | networkQuota =
+                                    RDPP.RemoteDataPlusPlus
+                                        (RDPP.DoHave quota sharedModel.clientCurrentTime)
+                                        (RDPP.NotLoading Nothing)
+                            }
+                    in
+                    ( GetterSetters.modelUpdateProject sharedModel newProject, Cmd.none )
+                        |> mapToOuterModel outerModel
+
+                Err httpError ->
+                    let
+                        newProject =
+                            { project | networkQuota = RDPP.setNotLoading (Just ( httpError, sharedModel.clientCurrentTime )) project.networkQuota }
+
+                        newModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+                    in
+                    State.Error.processSynchronousApiError newModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
 
         RequestDeleteImage imageUuid ->
             ( outerModel, Rest.Glance.requestDeleteImage project imageUuid )
@@ -2760,9 +2820,9 @@ createProject_ outerModel description authToken region endpoints =
             , floatingIps = RDPP.empty
             , ports = RDPP.empty
             , securityGroups = RDPP.empty
-            , computeQuota = RemoteData.NotAsked
-            , volumeQuota = RemoteData.NotAsked
-            , networkQuota = RemoteData.NotAsked
+            , computeQuota = RDPP.empty
+            , volumeQuota = RDPP.empty
+            , networkQuota = RDPP.empty
             , jetstream2Allocations = RDPP.empty
             }
 

@@ -107,9 +107,9 @@ hydrateProjectFromStoredProject storedProject =
     , floatingIps = RDPP.empty
     , ports = RDPP.empty
     , securityGroups = RDPP.empty
-    , computeQuota = RemoteData.NotAsked
-    , volumeQuota = RemoteData.NotAsked
-    , networkQuota = RemoteData.NotAsked
+    , computeQuota = RDPP.empty
+    , volumeQuota = RDPP.empty
+    , networkQuota = RDPP.empty
     , jetstream2Allocations = RDPP.empty
     }
 

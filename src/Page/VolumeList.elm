@@ -136,7 +136,7 @@ view context project currentTime model =
 
           else
             Element.none
-        , Page.QuotaUsage.view context Page.QuotaUsage.Full (Page.QuotaUsage.Volume ( project.volumeQuota, RDPP.toWebData project.volumeSnapshots ))
+        , Page.QuotaUsage.view context Page.QuotaUsage.Full (Page.QuotaUsage.Volume ( project.volumeQuota, project.volumeSnapshots ))
         , VH.renderWebData
             context
             (RemoteData.map2 Tuple.pair project.volumes (RDPP.toWebData project.volumeSnapshots))

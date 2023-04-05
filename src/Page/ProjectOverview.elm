@@ -11,7 +11,6 @@ import Html.Attributes
 import OpenStack.Types as OSTypes
 import Page.Jetstream2Allocation
 import Page.QuotaUsage
-import RemoteData
 import Route
 import Style.Helpers as SH
 import Style.Widgets.Card
@@ -136,7 +135,7 @@ view context project currentTime _ =
                     |> Helpers.String.toTitleCase
                 )
                 Route.VolumeList
-                (Just <| Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.Volume ( project.volumeQuota, RDPP.toWebData project.volumeSnapshots )))
+                (Just <| Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.Volume ( project.volumeQuota, project.volumeSnapshots )))
                 (volumeTileContents context project)
             , renderTile
                 (Icon.ipAddress (SH.toElementColor context.palette.neutral.text.default) 24)

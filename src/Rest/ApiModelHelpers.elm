@@ -22,8 +22,8 @@ import OpenStack.Quotas
 import OpenStack.Shares
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes
-import RemoteData
 import Rest.Designate
+import Helpers.RemoteDataPlusPlus as RDPP
 import Rest.Glance
 import Rest.Jetstream2Accounting
 import Rest.Neutron
@@ -159,7 +159,7 @@ requestComputeQuota projectUuid model =
     case GetterSetters.projectLookup model projectUuid of
         Just project ->
             ( { project
-                | computeQuota = RemoteData.Loading
+                | computeQuota = RDPP.setLoading project.computeQuota
               }
                 |> GetterSetters.modelUpdateProject model
             , OpenStack.Quotas.requestComputeQuota project
@@ -174,7 +174,7 @@ requestVolumeQuota projectUuid model =
     case GetterSetters.projectLookup model projectUuid of
         Just project ->
             ( { project
-                | volumeQuota = RemoteData.Loading
+                | volumeQuota = RDPP.setLoading project.volumeQuota
               }
                 |> GetterSetters.modelUpdateProject model
             , OpenStack.Quotas.requestVolumeQuota project
@@ -189,7 +189,7 @@ requestNetworkQuota projectUuid model =
     case GetterSetters.projectLookup model projectUuid of
         Just project ->
             ( { project
-                | networkQuota = RemoteData.Loading
+                | networkQuota = RDPP.setLoading project.networkQuota
               }
                 |> GetterSetters.modelUpdateProject model
             , OpenStack.Quotas.requestNetworkQuota project

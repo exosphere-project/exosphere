@@ -4,12 +4,15 @@ module Helpers.RemoteDataPlusPlus exposing
     , RefreshStatus(..)
     , RemoteDataPlusPlus
     , RequestedTime
+    , andMap
     , empty
     , isPollableWithInterval
     , map
+    , map2
     , setLoading
     , setNotLoading
     , setRefreshStatus
+    , toMaybe
     , toWebData
     , withDefault
     )
@@ -53,6 +56,19 @@ type alias ReceivedTime =
 -- Convenience functions
 
 
+andMap : RemoteDataPlusPlus e a -> RemoteDataPlusPlus e (a -> b) -> RemoteDataPlusPlus e b
+andMap wrappedValue wrappedFunction =
+    case ( wrappedFunction.data, wrappedValue.data ) of
+        ( DoHave f _, DoHave b t ) ->
+            RemoteDataPlusPlus (DoHave (f b) t) wrappedValue.refreshStatus
+
+        ( DontHave, _ ) ->
+            RemoteDataPlusPlus DontHave wrappedFunction.refreshStatus
+
+        ( _, DontHave ) ->
+            RemoteDataPlusPlus DontHave wrappedValue.refreshStatus
+
+
 map : (a -> b) -> RemoteDataPlusPlus error a -> RemoteDataPlusPlus error b
 map f rdpp =
     let
@@ -65,6 +81,11 @@ map f rdpp =
                     DontHave
     in
     RemoteDataPlusPlus newData rdpp.refreshStatus
+
+
+map2 : (a -> b -> c) -> RemoteDataPlusPlus error a -> RemoteDataPlusPlus error b -> RemoteDataPlusPlus error c
+map2 f a b =
+    map f a |> andMap b
 
 
 withDefault : data -> RemoteDataPlusPlus error data -> data
@@ -102,6 +123,16 @@ type alias HttpErrorWithBody =
     { error : Http.Error
     , body : String
     }
+
+
+toMaybe : RemoteDataPlusPlus error data -> Maybe data
+toMaybe rdpp =
+    case rdpp.data of
+        DoHave data _ ->
+            Just data
+
+        _ ->
+            Nothing
 
 
 toWebData : RemoteDataPlusPlus HttpErrorWithBody data -> RemoteData.WebData data

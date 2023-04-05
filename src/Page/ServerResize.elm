@@ -63,7 +63,7 @@ update msg { viewContext } project model =
 
 view : View.Types.Context -> Project -> Model -> Element.Element Msg
 view context project model =
-    VH.renderWebData
+    VH.renderRDPP
         context
         project.computeQuota
         context.localization.maxResourcesPerProject

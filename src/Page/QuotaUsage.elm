@@ -7,7 +7,8 @@ import Helpers.Formatting exposing (Unit(..), humanNumber)
 import Helpers.String
 import OpenStack.Types as OSTypes
 import OpenStack.VolumeSnapshots exposing (VolumeSnapshot)
-import RemoteData exposing (RemoteData(..), WebData)
+import Types.Error exposing (HttpErrorWithBody)
+import Helpers.RemoteDataPlusPlus as RDPP
 import Style.Helpers as SH
 import Style.Widgets.Meter
 import Style.Widgets.MultiMeter exposing (multiMeter)
@@ -17,10 +18,10 @@ import View.Types
 
 
 type ResourceType
-    = Compute (WebData OSTypes.ComputeQuota)
-    | FloatingIp (WebData OSTypes.NetworkQuota)
-    | Volume ( WebData OSTypes.VolumeQuota, WebData (List VolumeSnapshot) )
-    | Keypair (WebData OSTypes.ComputeQuota) Int
+    = Compute (RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.ComputeQuota)
+    | FloatingIp (RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.NetworkQuota)
+    | Volume ( RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.VolumeQuota, RDPP.RemoteDataPlusPlus HttpErrorWithBody (List VolumeSnapshot) )
+    | Keypair (RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.ComputeQuota) Int
 
 
 type Display
@@ -99,7 +100,7 @@ computeInfoItems context display quota =
                 ]
 
 
-quotaDetail : View.Types.Context -> WebData q -> (q -> Element.Element msg) -> Element.Element msg
+quotaDetail : View.Types.Context -> RDPP.RemoteDataPlusPlus HttpErrorWithBody q -> (q -> Element.Element msg) -> Element.Element msg
 quotaDetail context quota infoItemsF =
     let
         resourceWord =
@@ -109,10 +110,10 @@ quotaDetail context quota infoItemsF =
                 , "data"
                 ]
     in
-    VH.renderWebData context quota resourceWord infoItemsF
+    VH.renderRDPP context quota resourceWord infoItemsF
 
 
-computeQuotaDetails : View.Types.Context -> Display -> WebData OSTypes.ComputeQuota -> Element.Element msg
+computeQuotaDetails : View.Types.Context -> Display -> RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.ComputeQuota -> Element.Element msg
 computeQuotaDetails context display quota =
     quotaDetail context quota (computeInfoItems context display)
 
@@ -142,7 +143,7 @@ floatingIpInfoItems context display quota =
                 ]
 
 
-floatingIpQuotaDetails : View.Types.Context -> Display -> WebData OSTypes.NetworkQuota -> Element.Element msg
+floatingIpQuotaDetails : View.Types.Context -> Display -> RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.NetworkQuota -> Element.Element msg
 floatingIpQuotaDetails context display quota =
     quotaDetail context quota (floatingIpInfoItems context display)
 
@@ -171,7 +172,7 @@ keypairInfoItems context display keypairsUsed quota =
                 [ brief ]
 
 
-keypairQuotaDetails : View.Types.Context -> Display -> WebData OSTypes.ComputeQuota -> Int -> Element.Element msg
+keypairQuotaDetails : View.Types.Context -> Display -> RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.ComputeQuota -> Int -> Element.Element msg
 keypairQuotaDetails context display quota keypairsUsed =
     quotaDetail context quota (keypairInfoItems context display keypairsUsed)
 
@@ -263,17 +264,17 @@ volumeInfoItems context display volumeInfo =
             fullVolumeInfoItems context volumeInfo
 
 
-volumeQuotaDetails : View.Types.Context -> Display -> ( WebData OSTypes.VolumeQuota, WebData (List VolumeSnapshot) ) -> Element.Element msg
+volumeQuotaDetails : View.Types.Context -> Display -> ( RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.VolumeQuota, RDPP.RemoteDataPlusPlus HttpErrorWithBody (List VolumeSnapshot) ) -> Element.Element msg
 volumeQuotaDetails context display ( quota, snapshotData ) =
     let
         sumSizes =
             List.foldl (\{ sizeInGiB } total -> sizeInGiB + total) 0
 
         snapshotUsage =
-            RemoteData.map sumSizes snapshotData
+            RDPP.map sumSizes snapshotData
 
         pairedData =
-            RemoteData.map2 Tuple.pair quota snapshotUsage
+            RDPP.map2 Tuple.pair quota snapshotUsage
     in
     quotaDetail context pairedData (volumeInfoItems context display)
 
