@@ -60,7 +60,7 @@ sshKeyNameExists project sshKeyName =
         name =
             String.trim sshKeyName
     in
-    RemoteData.withDefault [] project.keypairs
+    RDPP.withDefault [] project.keypairs
         |> List.map .name
         |> List.member name
 

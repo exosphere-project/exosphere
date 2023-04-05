@@ -25,7 +25,7 @@ type alias Project =
     , servers : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List Server)
     , shares : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Share)
     , flavors : List OSTypes.Flavor
-    , keypairs : WebData (List OSTypes.Keypair)
+    , keypairs : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Keypair)
     , volumes : WebData (List OSTypes.Volume)
     , volumeSnapshots : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List VolumeSnapshot)
     , networks : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Network)

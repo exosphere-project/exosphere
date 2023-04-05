@@ -1399,15 +1399,10 @@ processProjectSpecificMsg outerModel project msg =
 
                 Err e ->
                     let
-                        oldServersData =
-                            project.servers.data
-
                         newProject =
                             { project
                                 | servers =
-                                    RDPP.RemoteDataPlusPlus
-                                        oldServersData
-                                        (RDPP.NotLoading (Just ( e, sharedModel.clientCurrentTime )))
+                                    RDPP.setNotLoading (Just ( e, sharedModel.clientCurrentTime )) project.servers
                             }
 
                         newSharedModel =
@@ -1502,12 +1497,7 @@ processProjectSpecificMsg outerModel project msg =
         RequestKeypairs ->
             let
                 newKeypairs =
-                    case project.keypairs of
-                        RemoteData.Success _ ->
-                            project.keypairs
-
-                        _ ->
-                            RemoteData.Loading
+                    RDPP.setLoading project.keypairs
 
                 newProject =
                     { project | keypairs = newKeypairs }
@@ -1521,26 +1511,56 @@ processProjectSpecificMsg outerModel project msg =
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
-        ReceiveKeypairs keypairs ->
-            Rest.Nova.receiveKeypairs sharedModel project keypairs
-                |> mapToOuterMsg
-                |> mapToOuterModel outerModel
+        ReceiveKeypairs errorContext result ->
+            case result of
+                Ok keypairs ->
+                    Rest.Nova.receiveKeypairs sharedModel project keypairs
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+                Err e ->
+                    let
+                        newProject =
+                            { project
+                                | keypairs =
+                                    RDPP.setNotLoading
+                                        (Just (e, sharedModel.clientCurrentTime))
+                                        project.keypairs
+                            }
+
+                        newSharedModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+                    in
+                    State.Error.processSynchronousApiError newSharedModel errorContext e
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
 
         RequestCreateKeypair keypairName publicKey ->
             ( outerModel, Rest.Nova.requestCreateKeypair project keypairName publicKey )
                 |> mapToOuterMsg
 
-        ReceiveCreateKeypair keypair ->
-            let
-                newProject =
-                    GetterSetters.projectUpdateKeypair project keypair
+        ReceiveCreateKeypair errorContext result ->
+            case result of
+                Ok keypair ->
+                    let
+                        newProject =
+                            GetterSetters.projectUpdateKeypair sharedModel project keypair
 
-                newSharedModel =
-                    GetterSetters.modelUpdateProject sharedModel newProject
-            in
-            ( { outerModel | sharedModel = newSharedModel }
-            , Route.pushUrl sharedModel.viewContext (Route.ProjectRoute (GetterSetters.projectIdentifier project) Route.KeypairList)
-            )
+                        newSharedModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+                    in
+                        ( { outerModel | sharedModel = newSharedModel }
+                            , Route.pushUrl sharedModel.viewContext (Route.ProjectRoute (GetterSetters.projectIdentifier project) Route.KeypairList)
+                            )
+
+                Err e ->
+                    let
+                        newProject = {project | keypairs = RDPP.setNotLoading (Just (e, sharedModel.clientCurrentTime)) project.keypairs}
+                        newSharedModel = GetterSetters.modelUpdateProject sharedModel newProject
+                   in
+                        State.Error.processSynchronousApiError newSharedModel errorContext e
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
 
         RequestDeleteKeypair keypairId ->
             ( outerModel, Rest.Nova.requestDeleteKeypair project keypairId )
@@ -1556,11 +1576,11 @@ processProjectSpecificMsg outerModel project msg =
                 Ok () ->
                     let
                         newKeypairs =
-                            case project.keypairs of
-                                RemoteData.Success keypairs ->
-                                    keypairs
-                                        |> List.filter (\k -> k.name /= keypairName)
-                                        |> RemoteData.Success
+                            case project.keypairs.data of
+                                RDPP.DoHave keypairs _ ->
+                                    RDPP.RemoteDataPlusPlus
+                                        (RDPP.DoHave (List.filter (\k -> k.name /= keypairName) keypairs) sharedModel.clientCurrentTime)
+                                        (RDPP.NotLoading Nothing)
 
                                 _ ->
                                     project.keypairs
@@ -2730,7 +2750,7 @@ createProject_ outerModel description authToken region endpoints =
             , images = RDPP.RemoteDataPlusPlus RDPP.DontHave RDPP.Loading
             , servers = RDPP.RemoteDataPlusPlus RDPP.DontHave RDPP.Loading
             , flavors = []
-            , keypairs = RemoteData.NotAsked
+            , keypairs = RDPP.empty
             , volumes = RemoteData.NotAsked
             , volumeSnapshots = RDPP.empty
             , shares = RDPP.empty

@@ -75,8 +75,8 @@ type ProjectSpecificMsgConstructor
     | ReceiveServers ErrorContext (Result HttpErrorWithBody (List OSTypes.Server))
     | ReceiveCreateServer ErrorContext (Result HttpErrorWithBody OSTypes.ServerUuid)
     | ReceiveFlavors (List OSTypes.Flavor)
-    | ReceiveKeypairs (List OSTypes.Keypair)
-    | ReceiveCreateKeypair OSTypes.Keypair
+    | ReceiveKeypairs ErrorContext (Result HttpErrorWithBody (List OSTypes.Keypair))
+    | ReceiveCreateKeypair ErrorContext (Result HttpErrorWithBody OSTypes.Keypair)
     | ReceiveDeleteKeypair ErrorContext OSTypes.KeypairName (Result Http.Error ())
     | ReceiveNetworks ErrorContext (Result HttpErrorWithBody (List OSTypes.Network))
     | ReceiveAutoAllocatedNetwork ErrorContext (Result HttpErrorWithBody OSTypes.NetworkUuid)

@@ -10,7 +10,7 @@ import Helpers.String
 import Html.Attributes
 import OpenStack.Types as OSTypes
 import Page.QuotaUsage
-import RemoteData
+import Helpers.RemoteDataPlusPlus as RDPP
 import Route
 import Set
 import Style.Helpers as SH
@@ -146,7 +146,7 @@ view context project model =
 
         keypairsUsedCount =
             project.keypairs
-                |> RemoteData.withDefault []
+                |> RDPP.withDefault []
                 |> List.length
     in
     Element.column
@@ -163,7 +163,7 @@ view context project model =
           else
             Element.none
         , Page.QuotaUsage.view context Page.QuotaUsage.Full (Page.QuotaUsage.Keypair project.computeQuota keypairsUsedCount)
-        , VH.renderWebData
+        , VH.renderRDPP
             context
             project.keypairs
             (Helpers.String.pluralize context.localization.pkiPublicKeyForSsh)

@@ -218,10 +218,10 @@ requestKeypairs project =
                 ErrorCrit
                 Nothing
 
-        resultToMsg_ =
-            resultToMsgErrorBody
-                errorContext
-                (\keypairs -> ProjectMsg (GetterSetters.projectIdentifier project) <| ReceiveKeypairs keypairs)
+        resultToMsg result =
+             ProjectMsg
+                (GetterSetters.projectIdentifier project)
+                (ReceiveKeypairs errorContext result)
     in
     openstackCredentialedRequest
         (GetterSetters.projectIdentifier project)
@@ -231,7 +231,7 @@ requestKeypairs project =
         (project.endpoints.nova ++ "/os-keypairs")
         Http.emptyBody
         (expectJsonWithErrorBody
-            resultToMsg_
+            resultToMsg
             decodeKeypairs
         )
 
@@ -255,12 +255,10 @@ requestCreateKeypair project keypairName publicKey =
                 ErrorCrit
                 (Just "ensure that you are entering the entire public key with no extra line breaks or other characters.")
 
-        resultToMsg_ =
-            resultToMsgErrorBody errorContext
-                (\keypair ->
-                    ProjectMsg (GetterSetters.projectIdentifier project) <|
-                        ReceiveCreateKeypair keypair
-                )
+        resultToMsg result =
+            ProjectMsg
+                (GetterSetters.projectIdentifier project)
+                (ReceiveCreateKeypair errorContext result)
     in
     openstackCredentialedRequest
         (GetterSetters.projectIdentifier project)
@@ -270,7 +268,7 @@ requestCreateKeypair project keypairName publicKey =
         (project.endpoints.nova ++ "/os-keypairs")
         (Http.jsonBody body)
         (expectJsonWithErrorBody
-            resultToMsg_
+            resultToMsg
             keypairDecoder
         )
 
@@ -922,14 +920,19 @@ receiveFlavors model project flavors =
     ( newModel, Cmd.none )
 
 
-receiveKeypairs : SharedModel -> Project -> List OSTypes.Keypair -> ( SharedModel, Cmd SharedMsg )
+receiveKeypairs : SharedModel -> Project -> (List OSTypes.Keypair) -> ( SharedModel, Cmd SharedMsg )
 receiveKeypairs model project keypairs =
     let
         sortedKeypairs =
             List.sortBy .name keypairs
 
         newProject =
-            { project | keypairs = RemoteData.Success sortedKeypairs }
+            { project
+                | keypairs =
+                    RDPP.RemoteDataPlusPlus
+                        (RDPP.DoHave sortedKeypairs model.clientCurrentTime)
+                        (RDPP.NotLoading Nothing)
+            }
 
         newModel =
             GetterSetters.modelUpdateProject model newProject

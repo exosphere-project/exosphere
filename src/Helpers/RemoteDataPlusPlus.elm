@@ -8,6 +8,8 @@ module Helpers.RemoteDataPlusPlus exposing
     , isPollableWithInterval
     , map
     , setLoading
+    , setNotLoading
+    , setRefreshStatus
     , toWebData
     , withDefault
     )
@@ -81,9 +83,19 @@ empty =
     RemoteDataPlusPlus DontHave (NotLoading Nothing)
 
 
-setLoading : RemoteDataPlusPlus x y -> RemoteDataPlusPlus x y
+setRefreshStatus : RefreshStatus error -> RemoteDataPlusPlus error data -> RemoteDataPlusPlus error data
+setRefreshStatus refreshStatus rdpp =
+    { rdpp | refreshStatus = refreshStatus }
+
+
+setLoading : RemoteDataPlusPlus error data -> RemoteDataPlusPlus error data
 setLoading rdpp =
-    { rdpp | refreshStatus = Loading }
+    setRefreshStatus Loading rdpp
+
+
+setNotLoading : Maybe ( error, ReceivedTime ) -> RemoteDataPlusPlus error data -> RemoteDataPlusPlus error data
+setNotLoading error rdpp =
+    setRefreshStatus (NotLoading error) rdpp
 
 
 type alias HttpErrorWithBody =

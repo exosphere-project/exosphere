@@ -121,7 +121,7 @@ initialKeypairName project =
     let
         projectKeypairNames : List OSTypes.KeypairName
         projectKeypairNames =
-            project.keypairs |> RemoteData.withDefault [] |> List.map .name
+            project.keypairs |> RDPP.withDefault [] |> List.map .name
 
         keypairNameOfNewestServerCreatedByUser =
             let
@@ -636,7 +636,7 @@ view context project currentTime model =
 
                 hasAnyKeypairs : Bool
                 hasAnyKeypairs =
-                    project.keypairs |> RemoteData.withDefault [] |> List.isEmpty |> not
+                    project.keypairs |> RDPP.withDefault [] |> List.isEmpty |> not
             in
             [ Element.column
                 [ Element.spacing spacer.px8
@@ -1715,7 +1715,7 @@ keypairPicker context project model =
     Element.column
         [ Element.spacing spacer.px12 ]
         [ Text.strong promptText
-        , VH.renderWebData
+        , VH.renderRDPP
             context
             project.keypairs
             (Helpers.String.pluralize context.localization.pkiPublicKeyForSsh)

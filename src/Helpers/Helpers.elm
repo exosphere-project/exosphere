@@ -316,7 +316,7 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
         getPublicKeyFromKeypairName : String -> Maybe String
         getPublicKeyFromKeypairName keypairName =
             project.keypairs
-                |> RemoteData.withDefault []
+                |> RDPP.withDefault []
                 |> List.Extra.find (\kp -> kp.name == keypairName)
                 |> Maybe.map .publicKey
 

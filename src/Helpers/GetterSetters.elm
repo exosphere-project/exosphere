@@ -678,12 +678,12 @@ cloudSpecificConfigLookup cloudSpecificConfigs project =
     Dict.get projectKeystoneHostname cloudSpecificConfigs
 
 
-projectUpdateKeypair : Project -> OSTypes.Keypair -> Project
-projectUpdateKeypair project keypair =
+projectUpdateKeypair : SharedModel -> Project -> OSTypes.Keypair -> Project
+projectUpdateKeypair sharedModel project keypair =
     let
         otherKeypairs =
             project.keypairs
-                |> RemoteData.withDefault []
+                |> RDPP.withDefault []
                 |> List.filter
                     (\k ->
                         k.fingerprint
@@ -697,4 +697,9 @@ projectUpdateKeypair project keypair =
                 :: otherKeypairs
                 |> List.sortBy .name
     in
-    { project | keypairs = RemoteData.Success keypairs }
+    { project
+        | keypairs =
+            RDPP.RemoteDataPlusPlus
+                (RDPP.DoHave keypairs sharedModel.clientCurrentTime)
+                (RDPP.NotLoading Nothing)
+    }

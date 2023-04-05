@@ -103,7 +103,7 @@ view context project currentTime _ =
 
         keypairsUsedCount =
             project.keypairs
-                |> RemoteData.withDefault []
+                |> RDPP.withDefault []
                 |> List.length
     in
     Element.column
@@ -275,7 +275,7 @@ keypairTileContents context project =
         context
         project.keypairs
         context.localization.pkiPublicKeyForSsh
-        VH.renderWebData
+        VH.renderRDPP
         renderKeypair
         (\_ -> True)
 
