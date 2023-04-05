@@ -16,7 +16,6 @@ module Helpers.RemoteDataPlusPlus exposing
     , withDefault
     )
 
-import Http
 import Time
 
 

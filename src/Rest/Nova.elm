@@ -31,7 +31,6 @@ import Json.Decode.Pipeline as Pipeline
 import Json.Encode as Encode
 import OpenStack.ServerPassword as OSServerPassword
 import OpenStack.Types as OSTypes
-import RemoteData
 import Rest.Helpers
     exposing
         ( expectJsonWithErrorBody
@@ -219,7 +218,7 @@ requestKeypairs project =
                 Nothing
 
         resultToMsg result =
-             ProjectMsg
+            ProjectMsg
                 (GetterSetters.projectIdentifier project)
                 (ReceiveKeypairs errorContext result)
     in
@@ -436,8 +435,8 @@ requestDeleteServer projectId novaUrl serverId =
 
 requestConsoleUrlIfRequestable : Project -> Server -> Cmd SharedMsg
 requestConsoleUrlIfRequestable project server =
-    case server.osProps.consoleUrl of
-        RemoteData.Success _ ->
+    case server.osProps.consoleUrl.data of
+        RDPP.DoHave _ _ ->
             Cmd.none
 
         _ ->
@@ -875,8 +874,8 @@ receiveServer_ project osServer =
 
 receiveConsoleUrl : SharedModel -> Project -> Server -> Result HttpErrorWithBody OSTypes.ConsoleUrl -> ( SharedModel, Cmd SharedMsg )
 receiveConsoleUrl model project server result =
-    case server.osProps.consoleUrl of
-        RemoteData.Success _ ->
+    case server.osProps.consoleUrl.data of
+        RDPP.DoHave _ _ ->
             -- Don't overwrite a potentially successful call to get console URL with a failed call
             ( model, Cmd.none )
 
@@ -885,10 +884,10 @@ receiveConsoleUrl model project server result =
                 consoleUrl =
                     case result of
                         Err error ->
-                            RemoteData.Failure error
+                            RDPP.RemoteDataPlusPlus RDPP.DontHave (RDPP.NotLoading (Just ( error, model.clientCurrentTime )))
 
                         Ok url ->
-                            RemoteData.Success url
+                            RDPP.RemoteDataPlusPlus (RDPP.DoHave url model.clientCurrentTime) (RDPP.NotLoading Nothing)
 
                 oldOsProps =
                     server.osProps
@@ -920,7 +919,7 @@ receiveFlavors model project flavors =
     ( newModel, Cmd.none )
 
 
-receiveKeypairs : SharedModel -> Project -> (List OSTypes.Keypair) -> ( SharedModel, Cmd SharedMsg )
+receiveKeypairs : SharedModel -> Project -> List OSTypes.Keypair -> ( SharedModel, Cmd SharedMsg )
 receiveKeypairs model project keypairs =
     let
         sortedKeypairs =
@@ -959,7 +958,7 @@ decodeServer =
         )
         (Decode.field "id" Decode.string)
         decodeServerDetails
-        (Decode.succeed RemoteData.NotAsked)
+        (Decode.succeed RDPP.empty)
 
 
 decodeServerDetails : Decode.Decoder OSTypes.ServerDetails
