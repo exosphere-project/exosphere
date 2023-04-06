@@ -18,10 +18,10 @@
       - 'iptables'
     state: 'latest'
 
-- name: 'setenforce 0'
+- name: 'SELinux set to permissive on current boot'
   shell: setenforce 0
 
-- name: Permissive SELinux
+- name: 'SELinux set to permissive on subsequent boots'
   replace:
     path: /etc/selinux/config
     regexp: '^SELINUX=(\w+)$'

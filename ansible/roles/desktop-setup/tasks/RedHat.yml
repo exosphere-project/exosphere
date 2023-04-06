@@ -1,10 +1,10 @@
+---
+
 # Workaround for RHEL reinstalling iptables, and breaking docker in the process
-- name: 'Docker service started and enabled'
+- name: 'Docker service restarted'
   systemd:
     name: 'docker'
-    enabled: true
     state: 'restarted'
-    daemon_reload: true
 
 # Disable the gnome startup tour
 - name: 'Creates .config directory in skel'
