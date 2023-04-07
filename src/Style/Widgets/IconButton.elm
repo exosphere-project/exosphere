@@ -1,6 +1,6 @@
 module Style.Widgets.IconButton exposing (FlowOrder(..), goToButton, iconButton)
 
-import Element as Element exposing (Element)
+import Element exposing (Element)
 import Element.Border as Border
 import Element.Input as Input
 import FeatherIcons
