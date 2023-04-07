@@ -5,8 +5,10 @@ import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.Url as UrlHelpers
 import OpenStack.ConsoleLog
+import OpenStack.DnsRecordSet
 import OpenStack.Types as OSTypes
 import Orchestration.Helpers exposing (applyStepToAllServers)
+import Rest.Designate
 import Rest.Guacamole
 import Rest.Neutron
 import Rest.Nova
@@ -33,6 +35,7 @@ goalNewServer exoClientUuid time project =
             [ stepServerRequestPorts time
             , stepServerRequestNetworks time
             , stepServerRequestFloatingIp time
+            , stepServerRequestHostname time
             ]
 
         ( newProject, newCmds ) =
@@ -219,6 +222,34 @@ stepServerRequestPorts time project server =
 
             _ ->
                 ( project, Cmd.none )
+
+    else
+        ( project, Cmd.none )
+
+
+stepServerRequestHostname : Time.Posix -> Project -> Server -> ( Project, Cmd SharedMsg )
+stepServerRequestHostname time project server =
+    if
+        not server.exoProps.deletionAttempted
+            && serverIsActiveEnough server
+            -- If not requested in last second
+            && RDPP.isPollableWithInterval project.dnsRecordSets time 1000
+            && (-- If any server ip is without hostname then request records
+                GetterSetters.getServerFloatingIps project server.osProps.uuid
+                    |> List.any
+                        (\ipAddress ->
+                            case OpenStack.DnsRecordSet.addressToRecord (project.dnsRecordSets |> RDPP.withDefault []) ipAddress.address of
+                                Just _ ->
+                                    False
+
+                                Nothing ->
+                                    True
+                        )
+               )
+    then
+        ( { project | dnsRecordSets = RDPP.setLoading project.dnsRecordSets }
+        , Rest.Designate.requestRecordSets project
+        )
 
     else
         ( project, Cmd.none )
