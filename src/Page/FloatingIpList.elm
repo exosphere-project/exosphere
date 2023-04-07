@@ -340,16 +340,22 @@ floatingIpView context project floatingIpRecord =
                 [ assignUnassignIpButton, deleteIpBtnWithPopconfirm ]
             ]
         , Element.row [] [ ipAssignment ]
-        , Element.row []
-            [ (case OpenStack.DnsRecordSet.addressToRecord (project.dnsRecordSets |> Helpers.RemoteDataPlusPlus.withDefault []) floatingIpRecord.ip.address of
-                Just { name } ->
-                    name
+        , case
+            OpenStack.DnsRecordSet.addressToRecord
+                (project.dnsRecordSets |> Helpers.RemoteDataPlusPlus.withDefault [])
+                floatingIpRecord.ip.address
+          of
+            Just { name } ->
+                String.concat
+                    [ context.localization.hostname |> Helpers.String.toTitleCase
+                    , ": "
+                    , name
+                    ]
+                    |> Element.text
+                    |> Element.el []
 
-                Nothing ->
-                    ""
-              )
-                |> Element.text
-            ]
+            Nothing ->
+                Element.none
         ]
 
 

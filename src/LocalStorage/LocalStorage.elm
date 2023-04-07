@@ -509,7 +509,7 @@ decodeEndpoints =
             ]
         )
         (Decode.oneOf
-            -- This decodes earlier stored projects which do not have the jetstream2Accounting field in encoded endpoints
+            -- This decodes earlier stored projects which do not have the designate field in encoded endpoints
             [ Decode.field "designate" Decode.string |> Decode.nullable
             , Decode.succeed Nothing
             ]

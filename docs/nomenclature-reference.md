@@ -24,3 +24,4 @@ Note for developers: some code in the Exosphere codebase (e.g. variable and func
 | floating IP address                                 | public IP address          | floating IP address | public IP address      | Elastic IP Address         |
 | text-based user interface served in a web browser   | terminal                   | N/A                 | web shell              | N/A                        |
 | graphical desktop interface served in a web browser | graphical environment      | N/A                 | web desktop            | N/A                        |
+| dns hostname                                        | hostname                   | N/A                 | hostname               | N/A                        |

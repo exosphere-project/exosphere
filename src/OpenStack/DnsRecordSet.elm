@@ -9,7 +9,7 @@ type alias DnsRecordSet =
     { id : OpenStack.HelperTypes.Uuid
     , name : String
     , type_ : RecordType
-    , ttl : Maybe String
+    , ttl : Maybe Int
     , records : Set.Set String
     }
 

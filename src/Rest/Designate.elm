@@ -1,11 +1,10 @@
-module Rest.Designate exposing (..)
+module Rest.Designate exposing (receiveRecordSets, requestRecordSets)
 
 import Helpers.GetterSetters
 import Helpers.RemoteDataPlusPlus
 import Http
 import Json.Decode
 import OpenStack.DnsRecordSet
-import OpenStack.Types
 import Rest.Helpers
 import Set
 import Types.Error
@@ -32,7 +31,7 @@ requestRecordSets project =
                         (\groups ->
                             Types.SharedMsg.ProjectMsg
                                 (Helpers.GetterSetters.projectIdentifier project)
-                                (Types.SharedMsg.ReceivedDnsRecordSets groups)
+                                (Types.SharedMsg.ReceiveDnsRecordSets groups)
                         )
             in
             Rest.Helpers.openstackCredentialedRequest
@@ -95,7 +94,7 @@ recordSetsDecoder =
                                     Json.Decode.succeed z
                         )
                 )
-                (Json.Decode.field "ttl" (Json.Decode.nullable Json.Decode.string))
+                (Json.Decode.field "ttl" (Json.Decode.nullable Json.Decode.int))
                 (Json.Decode.field "records" (Json.Decode.list Json.Decode.string))
             )
         )

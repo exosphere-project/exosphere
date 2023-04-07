@@ -1,6 +1,7 @@
 module Types.Project exposing (Endpoints, Project, ProjectName, ProjectSecret(..), ProjectTitle)
 
 import Helpers.RemoteDataPlusPlus as RDPP
+import OpenStack.DnsRecordSet
 import OpenStack.Types as OSTypes
 import OpenStack.VolumeSnapshots exposing (VolumeSnapshot)
 import RemoteData exposing (WebData)
@@ -8,7 +9,6 @@ import Types.Error exposing (HttpErrorWithBody)
 import Types.HelperTypes as HelperTypes
 import Types.Jetstream2Accounting
 import Types.Server exposing (Server)
-import OpenStack.DnsRecordSet
 
 
 
@@ -54,7 +54,7 @@ type alias Endpoints =
     , nova : HelperTypes.Url
     , neutron : HelperTypes.Url
     , jetstream2Accounting : Maybe HelperTypes.Url
-    , designate: Maybe HelperTypes.Url
+    , designate : Maybe HelperTypes.Url
     }
 
 

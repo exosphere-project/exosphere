@@ -1608,7 +1608,18 @@ renderIpAddresses context project server model =
                     |> List.map
                         (\ipAddress ->
                             Element.column []
-                                [ VH.compactKVSubRow
+                                [ case OpenStack.DnsRecordSet.addressToRecord (project.dnsRecordSets |> RDPP.withDefault []) ipAddress.address of
+                                    Just { name } ->
+                                        VH.compactKVSubRow
+                                            (Helpers.String.toTitleCase context.localization.hostname)
+                                            (Element.row [ Element.spacing spacer.px16 ]
+                                                [ copyableText context.palette [] name
+                                                ]
+                                            )
+
+                                    Nothing ->
+                                        Element.none
+                                , VH.compactKVSubRow
                                     (Helpers.String.toTitleCase context.localization.floatingIpAddress)
                                     (Element.row [ Element.spacing spacer.px16 ]
                                         [ copyableText context.palette [] ipAddress.address
@@ -1622,20 +1633,6 @@ renderIpAddresses context project server model =
                                                         SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
                                                             SharedMsg.RequestUnassignFloatingIp ipAddress.uuid
                                             }
-                                        ]
-                                    )
-                                , VH.compactKVSubRow
-                                    (Helpers.String.toTitleCase context.localization.hostname)
-                                    (Element.row [ Element.spacing spacer.px16 ]
-                                        [ copyableText context.palette
-                                            []
-                                            (case OpenStack.DnsRecordSet.addressToRecord (project.dnsRecordSets |> RDPP.withDefault []) ipAddress.address of
-                                                Just { name } ->
-                                                    name
-
-                                                Nothing ->
-                                                    ""
-                                            )
                                         ]
                                     )
                                 ]

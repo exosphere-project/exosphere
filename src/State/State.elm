@@ -44,6 +44,7 @@ import Page.VolumeList
 import Ports
 import RemoteData
 import Rest.ApiModelHelpers as ApiModelHelpers
+import Rest.Designate
 import Rest.Glance
 import Rest.Keystone
 import Rest.Neutron
@@ -82,7 +83,6 @@ import Types.Workflow
         )
 import Url
 import View.Helpers exposing (toExoPalette)
-import Rest.Designate
 
 
 update : OuterMsg -> Result AppError OuterModel -> ( Result AppError OuterModel, Cmd OuterMsg )
@@ -1211,7 +1211,7 @@ processProjectSpecificMsg outerModel project msg =
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
-        ReceivedDnsRecordSets sets ->
+        ReceiveDnsRecordSets sets ->
             Rest.Designate.receiveRecordSets sharedModel project sets
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
@@ -2694,6 +2694,8 @@ createProject_ outerModel description authToken region endpoints =
                     (ApiModelHelpers.requestPorts (GetterSetters.projectIdentifier newProject))
                 |> Helpers.pipelineCmd
                     (ApiModelHelpers.requestImages (GetterSetters.projectIdentifier newProject))
+                |> Helpers.pipelineCmd
+                    (ApiModelHelpers.requestRecordSets (GetterSetters.projectIdentifier newProject))
     in
     ( { outerModel | sharedModel = newNewSharedModel }
     , Cmd.map SharedMsg newCmd
