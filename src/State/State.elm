@@ -2655,6 +2655,7 @@ createProject_ outerModel description authToken region endpoints =
             , keypairs = RemoteData.NotAsked
             , volumes = RemoteData.NotAsked
             , volumeSnapshots = RDPP.empty
+            , shares = RDPP.empty
             , networks = RDPP.empty
             , autoAllocatedNetworkUuid = RDPP.empty
             , floatingIps = RDPP.empty

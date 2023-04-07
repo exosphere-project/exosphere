@@ -10,6 +10,7 @@ module OpenStack.Types exposing
     , CredentialsForAuthToken(..)
     , Endpoint
     , EndpointInterface(..)
+    , ExportLocation
     , Flavor
     , FlavorId
     , FloatingIp
@@ -55,6 +56,9 @@ module OpenStack.Types exposing
     , ServerUuid
     , Service
     , ServiceCatalog
+    , Share
+    , ShareName
+    , ShareUuid
     , SynchronousAPIError
     , UnscopedAuthToken
     , UserUuid
@@ -69,6 +73,8 @@ module OpenStack.Types exposing
     , imageVisibilityToString
     , serverPowerStateToString
     , serverStatusToString
+    , shareStatusToString
+    , stringToShareStatus
     , volumeStatusToString
     )
 
@@ -761,3 +767,224 @@ type alias SecurityGroupUuid =
 type alias NetworkQuota =
     { floatingIps : QuotaItemDetail
     }
+
+
+
+-- Manila
+
+
+type alias Share =
+    { name : Maybe ShareName
+    , uuid : ShareUuid
+    , status : ShareStatus
+    , size : ShareSize
+    , description : Maybe ShareDescription
+    , metadata : Dict.Dict String String
+    , createdAt : Time.Posix
+    , userUuid : UserUuid
+    , exportLocations : List ExportLocation
+    , accessRule : Maybe String
+    , accessKey : Maybe String
+    }
+
+
+type alias ExportLocation =
+    { path : String }
+
+
+type ShareStatus
+    = ShareCreating
+    | ShareCreatingFromSnapshot
+    | ShareDeleting
+    | ShareDeleted
+    | ShareError
+    | ShareErrorDeleting
+    | ShareAvailable
+    | ShareInactive
+    | ShareManageStarting
+    | ShareManageError
+    | ShareUnmanageStarting
+    | ShareUnmanageError
+    | ShareUnmanaged
+    | ShareExtending
+    | ShareExtendingError
+    | ShareShrinking
+    | ShareShrinkingError
+    | ShareShrinkingPossibleDataLossError
+    | ShareMigrating
+    | ShareMigratingTo
+    | ShareReplicationChange
+    | ShareReverting
+    | ShareRevertingError
+    | ShareAwaitingTransfer
+
+
+type alias ShareName =
+    String
+
+
+type alias ShareUuid =
+    String
+
+
+type alias ShareSize =
+    Int
+
+
+type alias ShareDescription =
+    String
+
+
+stringToShareStatus : String -> ShareStatus
+stringToShareStatus str =
+    case str of
+        "creating" ->
+            ShareCreating
+
+        "creating_from_snapshot" ->
+            ShareCreatingFromSnapshot
+
+        "deleting" ->
+            ShareDeleting
+
+        "deleted" ->
+            ShareDeleted
+
+        "error" ->
+            ShareError
+
+        "error_deleting" ->
+            ShareErrorDeleting
+
+        "available" ->
+            ShareAvailable
+
+        "inactive" ->
+            ShareInactive
+
+        "manage_starting" ->
+            ShareManageStarting
+
+        "manage_error" ->
+            ShareManageError
+
+        "unmanage_starting" ->
+            ShareUnmanageStarting
+
+        "unmanaged" ->
+            ShareUnmanaged
+
+        "unmanage_error" ->
+            ShareUnmanageError
+
+        "extending" ->
+            ShareExtending
+
+        "extending_error" ->
+            ShareExtendingError
+
+        "shrinking" ->
+            ShareShrinking
+
+        "shrinking_error" ->
+            ShareShrinkingError
+
+        "shrinking_possible_data_loss_error" ->
+            ShareShrinkingPossibleDataLossError
+
+        "migrating" ->
+            ShareMigrating
+
+        "migrating_to" ->
+            ShareMigratingTo
+
+        "replication_change" ->
+            ShareReplicationChange
+
+        "share_reverting" ->
+            ShareReverting
+
+        "share_reverting_error" ->
+            ShareRevertingError
+
+        "awaiting_transfer" ->
+            ShareAwaitingTransfer
+
+        _ ->
+            ShareError
+
+
+shareStatusToString : ShareStatus -> String
+shareStatusToString shareStatus =
+    case shareStatus of
+        ShareCreating ->
+            "Creating"
+
+        ShareCreatingFromSnapshot ->
+            "Creating from snapshot"
+
+        ShareDeleted ->
+            "Deleted"
+
+        ShareError ->
+            "Error"
+
+        ShareDeleting ->
+            "Deleting"
+
+        ShareErrorDeleting ->
+            "Error deleting"
+
+        ShareAvailable ->
+            "Available"
+
+        ShareInactive ->
+            "Inactive"
+
+        ShareManageStarting ->
+            "Manage starting"
+
+        ShareManageError ->
+            "Manage error"
+
+        ShareUnmanageStarting ->
+            "Unmanage starting"
+
+        ShareUnmanageError ->
+            "Unmanage error"
+
+        ShareUnmanaged ->
+            "Unmanaged"
+
+        ShareAwaitingTransfer ->
+            "AwaitingTransfer"
+
+        ShareExtending ->
+            "Extending"
+
+        ShareExtendingError ->
+            "Extending error"
+
+        ShareShrinking ->
+            "Shrinking"
+
+        ShareShrinkingError ->
+            "Shrinking error"
+
+        ShareShrinkingPossibleDataLossError ->
+            "Possibile data loss error"
+
+        ShareMigrating ->
+            "Migrating"
+
+        ShareMigratingTo ->
+            "Migrating to"
+
+        ShareReplicationChange ->
+            "Replication change"
+
+        ShareReverting ->
+            "Reverting"
+
+        ShareRevertingError ->
+            "Reverting error"

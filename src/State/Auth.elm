@@ -6,6 +6,7 @@ module State.Auth exposing
     )
 
 import Helpers.GetterSetters as GetterSetters
+import Helpers.Helpers as Helpers
 import OpenStack.Types as OSTypes
 import Rest.Keystone
 import Types.HelperTypes as HelperTypes
@@ -24,8 +25,20 @@ projectUpdateAuthToken : OuterModel -> Project -> OSTypes.ScopedAuthToken -> ( O
 projectUpdateAuthToken outerModel project authToken =
     -- Update auth token for existing project
     let
+        newEndpoints =
+            case Helpers.serviceCatalogToEndpoints authToken.catalog (Maybe.map .id project.region) of
+                Ok endpoints ->
+                    endpoints
+
+                Err _ ->
+                    -- If cannot decode new endpoints, don't update them.
+                    project.endpoints
+
         newProject =
-            { project | auth = authToken }
+            { project
+                | auth = authToken
+                , endpoints = newEndpoints
+            }
 
         newSharedModel =
             GetterSetters.modelUpdateProject outerModel.sharedModel newProject
