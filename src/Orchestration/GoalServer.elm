@@ -231,9 +231,9 @@ stepServerRequestHostname : Time.Posix -> Project -> Server -> ( Project, Cmd Sh
 stepServerRequestHostname time project server =
     if
         not server.exoProps.deletionAttempted
-            && serverIsActiveEnough server
-            -- If not requested in last second
-            && RDPP.isPollableWithInterval project.dnsRecordSets time 1000
+            && serverIsNew server time
+            -- If not requested in last 5 seconds
+            && RDPP.isPollableWithInterval project.dnsRecordSets time 5000
             && (-- If any server ip is without hostname then request records
                 GetterSetters.getServerFloatingIps project server.osProps.uuid
                     |> List.any
@@ -630,6 +630,13 @@ stepServerGuacamoleAuth time maybeUserAppProxy project server =
 serverIsActiveEnough : Server -> Bool
 serverIsActiveEnough server =
     List.member server.osProps.details.openstackStatus [ OSTypes.ServerActive, OSTypes.ServerPassword, OSTypes.ServerRescue, OSTypes.ServerVerifyResize ]
+
+
+{-| Server is considered new if it was created in the last 5 minutes
+-}
+serverIsNew : Server -> Time.Posix -> Bool
+serverIsNew server time =
+    Time.posixToMillis time - Time.posixToMillis server.osProps.details.created > 5 * 60 * 1000
 
 
 doNothing : Project -> ( Project, Cmd SharedMsg )
