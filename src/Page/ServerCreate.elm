@@ -523,7 +523,7 @@ view context project currentTime model =
                             model.workflowInputRepository == "" && model.workflowInputIsValid == Just False
 
                         invalidInputs =
-                            invalidVolSizeTextInput || invalidWorkflowTextInput || not hasAvailableResources
+                            invalidVolSizeTextInput || invalidWorkflowTextInput || not hasAvailableResources || (compareDiskSize project model |> isDiskSizeValid |> not)
                     in
                     case ( invalidNameReasons, invalidInputs ) of
                         ( Nothing, False ) ->
@@ -711,7 +711,7 @@ view context project currentTime model =
                 Nothing
                 model.flavorId
                 GotFlavorId
-            , volBackedPrompt context model volumeQuota flavor
+            , volBackedPrompt project context model volumeQuota flavor
             , countPicker context model computeQuota volumeQuota flavor
             , desktopEnvironmentPicker context project model
             , customWorkflowInput context project model
@@ -814,8 +814,8 @@ view context project currentTime model =
         ]
 
 
-volBackedPrompt : View.Types.Context -> Model -> OSTypes.VolumeQuota -> OSTypes.Flavor -> Element.Element Msg
-volBackedPrompt context model volumeQuota flavor =
+volBackedPrompt : Project -> View.Types.Context -> Model -> OSTypes.VolumeQuota -> OSTypes.Flavor -> Element.Element Msg
+volBackedPrompt project context model volumeQuota flavor =
     let
         { locale } =
             context
@@ -937,6 +937,19 @@ volBackedPrompt context model volumeQuota flavor =
                         ( _, _ ) ->
                             Element.none
                     ]
+        , case compareDiskSize project model of
+            LessDisk { serverDiskSize, minDiskSizeForImage } ->
+                "Root disk size of %serverDiskSize% GB is not enough for %imageName%, minimum disk size required is %minDiskSize% GB"
+                    |> String.replace "%serverDiskSize%" (serverDiskSize |> String.fromInt)
+                    |> String.replace "%minDiskSize%" (minDiskSizeForImage |> String.fromInt)
+                    |> String.replace "%imageName%" model.imageName
+                    |> invalidMessage context.palette
+
+            EnoughDisk _ ->
+                Element.none
+
+            UnableToCompute ->
+                Element.none
         ]
 
 
@@ -1793,3 +1806,67 @@ userDataInput context model =
             , spellcheck = False
             }
         ]
+
+
+type DiskSizeComparison
+    = EnoughDisk { serverDiskSize : Int, minDiskSizeForImage : Int }
+    | LessDisk { serverDiskSize : Int, minDiskSizeForImage : Int }
+    | UnableToCompute
+
+
+compareDiskSize : Project -> Model -> DiskSizeComparison
+compareDiskSize project model =
+    case model.flavorId of
+        Nothing ->
+            UnableToCompute
+
+        Just flavorId ->
+            case ( GetterSetters.imageLookup project model.imageUuid, GetterSetters.flavorLookup project flavorId ) of
+                ( Just image, Just flavor ) ->
+                    case ( image.size, image.minDiskGB ) of
+                        ( Just imageSizeBytes, Just minImageSize ) ->
+                            let
+                                imageSizeGB =
+                                    Basics.toFloat imageSizeBytes / 1.0e9
+
+                                minimumDiskSizeForImageInGB =
+                                    Basics.max minImageSize (imageSizeGB |> Basics.ceiling) + 1
+                            in
+                            case model.volSizeTextInput of
+                                Nothing ->
+                                    if flavor.disk_root >= minimumDiskSizeForImageInGB then
+                                        EnoughDisk { serverDiskSize = flavor.disk_root, minDiskSizeForImage = minimumDiskSizeForImageInGB }
+
+                                    else
+                                        LessDisk { serverDiskSize = flavor.disk_root, minDiskSizeForImage = minimumDiskSizeForImageInGB }
+
+                                Just volSize ->
+                                    case Style.Widgets.NumericTextInput.NumericTextInput.toMaybe volSize of
+                                        Nothing ->
+                                            UnableToCompute
+
+                                        Just vSize ->
+                                            if vSize >= minimumDiskSizeForImageInGB then
+                                                EnoughDisk { serverDiskSize = vSize, minDiskSizeForImage = minimumDiskSizeForImageInGB }
+
+                                            else
+                                                LessDisk { serverDiskSize = vSize, minDiskSizeForImage = minimumDiskSizeForImageInGB }
+
+                        ( _, _ ) ->
+                            UnableToCompute
+
+                ( _, _ ) ->
+                    UnableToCompute
+
+
+isDiskSizeValid : DiskSizeComparison -> Bool
+isDiskSizeValid diskSizeComparison =
+    case diskSizeComparison of
+        EnoughDisk _ ->
+            True
+
+        UnableToCompute ->
+            True
+
+        LessDisk _ ->
+            False

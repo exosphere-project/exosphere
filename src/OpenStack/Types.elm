@@ -255,6 +255,7 @@ type alias Image =
     , osVersion : Maybe String
     , protected : Bool
     , imageType : Maybe String
+    , minDiskGB : Maybe Int
     }
 
 
