@@ -42,7 +42,8 @@ type alias Style =
     , defaultLoginView : Maybe HelperTypes.DefaultLoginView
     , aboutAppMarkdown : Maybe String
     , supportInfoMarkdown : Maybe String
-    , userSupportEmail : String
+    , userSupportEmailAddress : String
+    , userSupportEmailSubject : Maybe String
     }
 
 

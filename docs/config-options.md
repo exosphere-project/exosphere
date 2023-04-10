@@ -15,7 +15,8 @@ These options are primarily intended for cloud operators who wish to offer a cus
 | defaultLoginView              | null, openstack, oidc   | Which login view to display by default                                 |
 | aboutAppMarkdown              | null, string (markdown) | What to show in the "About the app" section of Help/About view         |
 | supportInfoMarkdown           | null, string (markdown) | What to show when user clicks "Get support" button                     |
-| userSupportEmail              | null, string (markdown) | Email address to ask users to send problem report                      |
+| userSupportEmailAddress       | null, string (markdown) | Email address to ask users to send problem report                      |
+| userSupportEmailSubject       | null, string            | Text to include in subject line of support request email               |
 | openIdConnectLoginConfig      | null, JSON object       | See `docs/federated-login.md` for more info and example JSON           |
 | localization                  | null, JSON object       | Pass custom localization strings for the UI, see example below         |
 | instanceConfigMgtRepoUrl      | null, string            | Set a custom repository to use for instance setup code                 |

@@ -16,6 +16,7 @@ import Types.HelperTypes as HelperTypes
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg exposing (SharedMsg(..))
 import UUID
+import Url.Builder
 import View.Helpers as VH
 import View.Types
 
@@ -31,7 +32,7 @@ type Msg
     = GotResourceType (Maybe HelperTypes.SupportableItemType)
     | GotResourceUuid (Maybe HelperTypes.Uuid)
     | GotDescription String
-    | GotSubmit
+    | GotSubmittedForm Bool
     | NoOp
 
 
@@ -70,8 +71,8 @@ update msg _ model =
         GotDescription desc ->
             ( { model | requestDescription = desc }, Cmd.none, SharedMsg.NoOp )
 
-        GotSubmit ->
-            ( { model | isSubmitted = True }, Cmd.none, SharedMsg.NoOp )
+        GotSubmittedForm submitted ->
+            ( { model | isSubmitted = submitted }, Cmd.none, SharedMsg.NoOp )
 
         NoOp ->
             ( model, Cmd.none, SharedMsg.NoOp )
@@ -85,195 +86,243 @@ headerView context sharedModel =
         ("Get Support for " ++ sharedModel.style.appTitle)
 
 
+viewSupportInfo : View.Types.Context -> SharedModel -> Element.Element Msg
+viewSupportInfo context sharedModel =
+    case sharedModel.style.supportInfoMarkdown of
+        Just markdown ->
+            Element.column [] <|
+                VH.renderMarkdown context markdown
+
+        Nothing ->
+            Element.none
+
+
+viewSupportForm : View.Types.Context -> SharedModel -> Model -> Element.Element Msg
+viewSupportForm context sharedModel model =
+    Element.column [ Element.spacing spacer.px32, Element.width Element.fill ]
+        [ Input.radio
+            [ Element.spacing spacer.px12 ]
+            { onChange =
+                GotResourceType
+            , selected =
+                model.maybeSupportableResource
+                    |> Maybe.map Tuple.first
+                    |> Just
+            , label =
+                Input.labelAbove VH.radioLabelAttributes
+                    (Element.text "What do you need help with?")
+            , options =
+                List.map
+                    (\itemType ->
+                        let
+                            itemTypeStrProto =
+                                supportableItemTypeStr context itemType
+
+                            itemTypeStr =
+                                String.join " "
+                                    [ Helpers.String.indefiniteArticle itemTypeStrProto
+                                    , itemTypeStrProto
+                                    ]
+                                    |> Helpers.String.toTitleCase
+                        in
+                        Input.option (Just itemType) (Element.text itemTypeStr)
+                    )
+                    [ HelperTypes.SupportableServer
+                    , HelperTypes.SupportableVolume
+                    , HelperTypes.SupportableImage
+                    , HelperTypes.SupportableProject
+                    ]
+                    ++ [ Input.option Nothing (Element.text "None of these things") ]
+            }
+        , case model.maybeSupportableResource of
+            Nothing ->
+                Element.none
+
+            Just ( supportableItemType, maybeSupportableItemUuid ) ->
+                Element.column [ Element.spacing spacer.px12 ]
+                    [ Element.text <|
+                        String.join " "
+                            [ "Which"
+                            , supportableItemTypeStr context supportableItemType
+                            , "do you need help with?"
+                            ]
+                    , let
+                        options =
+                            case supportableItemType of
+                                HelperTypes.SupportableProject ->
+                                    sharedModel.projects
+                                        |> List.map
+                                            (\proj ->
+                                                ( proj.auth.project.uuid
+                                                , VH.friendlyProjectTitle sharedModel proj
+                                                )
+                                            )
+
+                                HelperTypes.SupportableImage ->
+                                    sharedModel.projects
+                                        |> List.map .images
+                                        |> List.map (RDPP.withDefault [])
+                                        |> List.concat
+                                        |> List.map
+                                            (\image ->
+                                                ( image.uuid
+                                                , VH.resourceName (Just image.name) image.uuid
+                                                )
+                                            )
+                                        -- This removes duplicate values, heh
+                                        |> Set.fromList
+                                        |> Set.toList
+                                        |> List.sortBy Tuple.second
+
+                                HelperTypes.SupportableServer ->
+                                    sharedModel.projects
+                                        |> List.map .servers
+                                        |> List.map (RDPP.withDefault [])
+                                        |> List.concat
+                                        |> List.map
+                                            (\server ->
+                                                ( server.osProps.uuid
+                                                , VH.resourceName (Just server.osProps.name) server.osProps.uuid
+                                                )
+                                            )
+                                        |> List.sortBy Tuple.second
+
+                                HelperTypes.SupportableVolume ->
+                                    sharedModel.projects
+                                        |> List.map .volumes
+                                        |> List.map (RemoteData.withDefault [])
+                                        |> List.concat
+                                        |> List.map
+                                            (\volume ->
+                                                ( volume.uuid
+                                                , VH.resourceName volume.name volume.uuid
+                                                )
+                                            )
+                                        |> List.sortBy Tuple.second
+
+                        label =
+                            let
+                                itemStrProto =
+                                    supportableItemTypeStr context supportableItemType
+                            in
+                            String.join " "
+                                [ "Select"
+                                , Helpers.String.indefiniteArticle itemStrProto
+                                , itemStrProto
+                                ]
+                      in
+                      Style.Widgets.Select.select
+                        []
+                        context.palette
+                        { onChange = GotResourceUuid
+                        , options = options
+                        , selected = maybeSupportableItemUuid
+                        , label = label
+                        }
+                    ]
+        , Input.multiline
+            (VH.inputItemAttributes context.palette
+                ++ [ Element.height <| Element.px 200
+                   , Element.width Element.fill
+                   ]
+            )
+            { onChange = GotDescription
+            , text = model.requestDescription
+            , placeholder = Nothing
+            , label = Input.labelAbove [] (Element.text "Please describe exactly what you need help with.")
+            , spellcheck = True
+            }
+        , Element.row
+            [ Element.width Element.fill ]
+            [ Element.el [ Element.alignRight ] <|
+                Button.primary
+                    context.palette
+                    { text = "Build Support Request"
+                    , onPress =
+                        if String.isEmpty model.requestDescription then
+                            Nothing
+
+                        else
+                            Just (GotSubmittedForm True)
+                    }
+            ]
+        ]
+
+
+viewBuiltSupportRequest : View.Types.Context -> SharedModel -> Model -> Element.Element Msg
+viewBuiltSupportRequest context sharedModel model =
+    let
+        boldCopyableText text =
+            Element.el [ Font.extraBold ] <|
+                Style.Widgets.CopyableText.copyableText context.palette [] text
+    in
+    Element.column
+        [ Element.spacing spacer.px32, Element.width Element.fill ]
+        [ Text.p
+            []
+            [ Element.text "To request support, click this button and send the resulting message:" ]
+        , buildMailtoLink sharedModel context model
+        , Text.p
+            []
+          <|
+            List.concat
+                [ [ Element.text "If the button does not work, please copy all of the text in the box below and paste it into an email message to: " ]
+                , [ boldCopyableText sharedModel.style.userSupportEmailAddress
+                  ]
+                , case sharedModel.style.userSupportEmailSubject of
+                    Just subject ->
+                        [ Element.text "Please also include the following text in the subject line: "
+                        , boldCopyableText subject
+                        ]
+
+                    Nothing ->
+                        []
+                , [ Element.text "Someone will respond and assist you." ]
+                ]
+        , Input.multiline
+            (VH.inputItemAttributes context.palette
+                ++ [ Element.height <| Element.px 200
+                   , Element.width Element.fill
+                   , Element.spacing spacer.px8
+                   , Text.fontFamily Text.Mono
+                   ]
+                ++ Text.typographyAttrs Tiny
+            )
+            { onChange = \_ -> NoOp
+            , text = buildSupportRequest sharedModel context model.maybeSupportableResource model.requestDescription
+            , placeholder = Nothing
+            , label = Input.labelHidden "Support request"
+            , spellcheck = False
+            }
+        , Element.row
+            [ Element.width Element.fill ]
+            [ Element.el [] <|
+                Button.default
+                    context.palette
+                    { text = "Edit Support Request"
+                    , onPress =
+                        if String.isEmpty model.requestDescription then
+                            Nothing
+
+                        else
+                            Just (GotSubmittedForm False)
+                    }
+            ]
+        ]
+
+
 view : View.Types.Context -> SharedModel -> Model -> Element.Element Msg
 view context sharedModel model =
     Element.column
         (VH.formContainer ++ [ Element.spacing spacer.px32 ])
-        [ case sharedModel.style.supportInfoMarkdown of
-            Just markdown ->
-                Element.column [] <|
-                    VH.renderMarkdown context markdown
+    <|
+        if model.isSubmitted then
+            [ viewBuiltSupportRequest context sharedModel model ]
 
-            Nothing ->
-                Element.none
-        , Element.column [ Element.spacing spacer.px32, Element.width Element.fill ]
-            [ Input.radio
-                [ Element.spacing spacer.px12 ]
-                { onChange =
-                    GotResourceType
-                , selected =
-                    model.maybeSupportableResource
-                        |> Maybe.map Tuple.first
-                        |> Just
-                , label =
-                    Input.labelAbove VH.radioLabelAttributes
-                        (Element.text "What do you need help with?")
-                , options =
-                    List.map
-                        (\itemType ->
-                            let
-                                itemTypeStrProto =
-                                    supportableItemTypeStr context itemType
-
-                                itemTypeStr =
-                                    String.join " "
-                                        [ Helpers.String.indefiniteArticle itemTypeStrProto
-                                        , itemTypeStrProto
-                                        ]
-                                        |> Helpers.String.toTitleCase
-                            in
-                            Input.option (Just itemType) (Element.text itemTypeStr)
-                        )
-                        [ HelperTypes.SupportableServer
-                        , HelperTypes.SupportableVolume
-                        , HelperTypes.SupportableImage
-                        , HelperTypes.SupportableProject
-                        ]
-                        ++ [ Input.option Nothing (Element.text "None of these things") ]
-                }
-            , case model.maybeSupportableResource of
-                Nothing ->
-                    Element.none
-
-                Just ( supportableItemType, maybeSupportableItemUuid ) ->
-                    Element.column [ Element.spacing spacer.px12 ]
-                        [ Element.text <|
-                            String.join " "
-                                [ "Which"
-                                , supportableItemTypeStr context supportableItemType
-                                , "do you need help with?"
-                                ]
-                        , let
-                            options =
-                                case supportableItemType of
-                                    HelperTypes.SupportableProject ->
-                                        sharedModel.projects
-                                            |> List.map
-                                                (\proj ->
-                                                    ( proj.auth.project.uuid
-                                                    , VH.friendlyProjectTitle sharedModel proj
-                                                    )
-                                                )
-
-                                    HelperTypes.SupportableImage ->
-                                        sharedModel.projects
-                                            |> List.map .images
-                                            |> List.map (RDPP.withDefault [])
-                                            |> List.concat
-                                            |> List.map
-                                                (\image ->
-                                                    ( image.uuid
-                                                    , VH.resourceName (Just image.name) image.uuid
-                                                    )
-                                                )
-                                            -- This removes duplicate values, heh
-                                            |> Set.fromList
-                                            |> Set.toList
-                                            |> List.sortBy Tuple.second
-
-                                    HelperTypes.SupportableServer ->
-                                        sharedModel.projects
-                                            |> List.map .servers
-                                            |> List.map (RDPP.withDefault [])
-                                            |> List.concat
-                                            |> List.map
-                                                (\server ->
-                                                    ( server.osProps.uuid
-                                                    , VH.resourceName (Just server.osProps.name) server.osProps.uuid
-                                                    )
-                                                )
-                                            |> List.sortBy Tuple.second
-
-                                    HelperTypes.SupportableVolume ->
-                                        sharedModel.projects
-                                            |> List.map .volumes
-                                            |> List.map (RemoteData.withDefault [])
-                                            |> List.concat
-                                            |> List.map
-                                                (\volume ->
-                                                    ( volume.uuid
-                                                    , VH.resourceName volume.name volume.uuid
-                                                    )
-                                                )
-                                            |> List.sortBy Tuple.second
-
-                            label =
-                                let
-                                    itemStrProto =
-                                        supportableItemTypeStr context supportableItemType
-                                in
-                                String.join " "
-                                    [ "Select"
-                                    , Helpers.String.indefiniteArticle itemStrProto
-                                    , itemStrProto
-                                    ]
-                          in
-                          Style.Widgets.Select.select
-                            []
-                            context.palette
-                            { onChange = GotResourceUuid
-                            , options = options
-                            , selected = maybeSupportableItemUuid
-                            , label = label
-                            }
-                        ]
-            , Input.multiline
-                (VH.inputItemAttributes context.palette
-                    ++ [ Element.height <| Element.px 200
-                       , Element.width Element.fill
-                       ]
-                )
-                { onChange = GotDescription
-                , text = model.requestDescription
-                , placeholder = Nothing
-                , label = Input.labelAbove [] (Element.text "Please describe exactly what you need help with.")
-                , spellcheck = True
-                }
-            , Element.row
-                [ Element.width Element.fill ]
-                [ Element.el [ Element.alignRight ] <|
-                    Button.primary
-                        context.palette
-                        { text = "Build Support Request"
-                        , onPress =
-                            if String.isEmpty model.requestDescription then
-                                Nothing
-
-                            else
-                                Just GotSubmit
-                        }
-                ]
-            , if model.isSubmitted then
-                Element.column
-                    [ Element.spacing spacer.px12, Element.width Element.fill ]
-                    [ Text.p
-                        []
-                        [ Element.text "Please copy all of the text below and paste it into an email message to: "
-                        , Element.el [ Font.extraBold ] <|
-                            Style.Widgets.CopyableText.copyableText context.palette [] sharedModel.style.userSupportEmail
-                        , Element.text "Someone will respond and assist you."
-                        ]
-                    , Input.multiline
-                        (VH.inputItemAttributes context.palette
-                            ++ [ Element.height <| Element.px 200
-                               , Element.width Element.fill
-                               , Element.spacing spacer.px8
-                               , Text.fontFamily Text.Mono
-                               ]
-                            ++ Text.typographyAttrs Tiny
-                        )
-                        { onChange = \_ -> NoOp
-                        , text = buildSupportRequest sharedModel context model.maybeSupportableResource model.requestDescription
-                        , placeholder = Nothing
-                        , label = Input.labelHidden "Support request"
-                        , spellcheck = False
-                        }
-                    ]
-
-              else
-                Element.none
+        else
+            [ viewSupportInfo context sharedModel
+            , viewSupportForm context sharedModel model
             ]
-        ]
 
 
 supportableItemTypeStr : View.Types.Context -> HelperTypes.SupportableItemType -> String
@@ -290,6 +339,32 @@ supportableItemTypeStr context supportableItemType =
 
         HelperTypes.SupportableVolume ->
             context.localization.blockDevice
+
+
+buildMailtoLink : SharedModel -> View.Types.Context -> Model -> Element.Element Msg
+buildMailtoLink sharedModel context model =
+    let
+        emailBody =
+            buildSupportRequest sharedModel context model.maybeSupportableResource model.requestDescription
+
+        queryParams =
+            [ Url.Builder.string "body" emailBody
+            , Url.Builder.string "subject" (Maybe.withDefault "" sharedModel.style.userSupportEmailSubject)
+            ]
+
+        target =
+            "mailto:"
+                ++ sharedModel.style.userSupportEmailAddress
+                ++ Url.Builder.toQuery queryParams
+
+        button =
+            Button.primary
+                context.palette
+                { text = "Generate Email"
+                , onPress = Just NoOp
+                }
+    in
+    Element.link [] { url = target, label = button }
 
 
 buildSupportRequest : SharedModel -> View.Types.Context -> Maybe ( HelperTypes.SupportableItemType, Maybe HelperTypes.Uuid ) -> String -> String
