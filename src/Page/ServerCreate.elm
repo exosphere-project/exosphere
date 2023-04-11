@@ -29,6 +29,7 @@ import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.Alert as Alert
 import Style.Widgets.Button as Button
+import Style.Widgets.Link as Link
 import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Style.Widgets.Select
@@ -1750,10 +1751,80 @@ keypairPicker context project model =
 
 userDataInput : View.Types.Context -> Model -> Element.Element Msg
 userDataInput context model =
+    let
+        cloudConfigExamplesTooltip : Element.Element Msg
+        cloudConfigExamplesTooltip =
+            Style.Widgets.ToggleTip.toggleTip
+                context
+                (\toggleId -> SharedMsg (SharedMsg.TogglePopover toggleId))
+                "ServerCreate-cloud-config-examples-tooltip"
+                (Element.el
+                    [ Text.fontSize Text.Body
+                    , Element.width (Element.px 250)
+                    ]
+                    (let
+                        t =
+                            Element.text
+
+                        examples =
+                            Link.externalLink context.palette "https://cloudinit.readthedocs.io/en/latest/reference/examples.html" "examples"
+                     in
+                     Element.paragraph []
+                        [ t "Other configuration ", examples, t "." ]
+                    )
+                )
+                ST.PositionTopLeft
+
+        cloudConfigExplainer : Element.Element Msg
+        cloudConfigExplainer =
+            let
+                t =
+                    Element.text
+
+                cloudInit =
+                    Link.externalLink context.palette "https://cloudinit.readthedocs.io/en/latest/index.html" "cloud-init"
+
+                tooltip =
+                    cloudConfigExamplesTooltip
+
+                instance =
+                    t context.localization.virtualComputer
+            in
+            Element.paragraph []
+                [ t "This ", cloudInit, tooltip, t " config describes how to provision the ", instance, t ". It's provided here to permit specific changes in rare circumstances; please modify it cautiously." ]
+
+        cloudConfigWarning : Element.Element Msg
+        cloudConfigWarning =
+            Alert.alert []
+                context.palette
+                { state = Alert.Warning
+                , showIcon = True
+                , showContainer = True
+                , content =
+                    let
+                        t =
+                            Element.text
+
+                        graphicalDesktop =
+                            t context.localization.graphicalDesktopEnvironment
+
+                        terminal =
+                            t context.localization.commandDrivenTextInterface
+                    in
+                    Element.paragraph []
+                        [ t "By editing this it's possible to break various Exosphere features like ", graphicalDesktop, t ", ", terminal, t ", usage graphs, setup status, etc." ]
+                }
+
+        receiveUserDataTemplate : String -> Msg
+        receiveUserDataTemplate =
+            GotUserDataTemplate
+    in
     Element.column
         [ Element.spacing spacer.px12 ]
         [ Text.strong
             (Helpers.String.toTitleCase context.localization.cloudInitData)
+        , cloudConfigExplainer
+        , cloudConfigWarning
         , Input.multiline
             (VH.inputItemAttributes context.palette
                 ++ [ Element.width Element.fill
@@ -1762,7 +1833,7 @@ userDataInput context model =
                    , Font.family [ Font.monospace ]
                    ]
             )
-            { onChange = GotUserDataTemplate
+            { onChange = receiveUserDataTemplate
             , text = model.userDataTemplate
             , placeholder =
                 Just
