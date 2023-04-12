@@ -1,5 +1,7 @@
+---
+
 - name: 'PolicyKit localauthority/50-local.d created'
-  file: 
+  file:
     path: '/etc/polkit-1/localauthority/50-local.d'
     state: 'directory'
 
