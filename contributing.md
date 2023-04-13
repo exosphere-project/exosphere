@@ -195,6 +195,9 @@ Relax the criteria in this section if this is a contributor's first or second MR
   + `config.js`
   + all files in `environment-configs/` **(else you may break production sites!)**
   + Documented options in [config-options.md](docs/config-options.md)
+- If the MR adds [localized strings](docs/nomenclature-reference.md) (in `src/Types/Defaults.elm`) then the following are updated accordingly:
+  + all files in `environment-configs/` which have `localization` specified **(else you may break production sites!)**
+  + Documented options for `Example Localization JSON object` section in [config-options.md](docs/config-options.md)
 - If the MR adds/changes/removes any popovers, ensure that their IDs are unique.
 
 #### Documentation
