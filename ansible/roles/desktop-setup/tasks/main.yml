@@ -3,10 +3,13 @@
 - name: 'operating system-specific variables imported'
   include_vars: "{{ item }}"
   with_first_found:
-    - "{{ ansible_distribution }}-{{ ansible_distribution_major_version}}.yml"
-    - "{{ ansible_distribution }}.yml"
-    - "{{ ansible_os_family }}.yml"
-
+    - files:
+        - "{{ ansible_distribution }}-{{ ansible_distribution_version }}.yml"
+        - "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
+        - "{{ ansible_distribution }}.yml"
+        - "{{ ansible_os_family }}.yml"
+      paths:
+        - "{{ role_path }}/vars"
 
 - name: 'graphical environment installed'
   package:
@@ -30,7 +33,7 @@
     block: |
       AutomaticLoginEnable = true
       AutomaticLogin = {{ desktop_user }}
-    insertafter: '\[default\]'
+    insertafter: '\[daemon\]'
 
 # https://askubuntu.com/questions/1048774/disabling-lock-screen-18-04
 # https://people.gnome.org/~pmkovar/system-admin-guide/screen-locking.html
@@ -76,3 +79,15 @@
   template:
     src: '49-nopasswd_global.rules.j2'
     dest: '/etc/polkit-1/rules.d/49-nopasswd_global.rules'
+
+- name: 'operating system specific tasks imported'
+  include_tasks: "{{ item }}"
+  with_first_found:
+    - files:
+        - "{{ ansible_distribution }}-{{ ansible_distribution_version }}.yml"
+        - "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
+        - "{{ ansible_distribution }}.yml"
+        - "{{ ansible_os_family }}.yml"
+      paths:
+        - "{{ role_path }}/tasks"
+      skip: true

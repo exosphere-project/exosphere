@@ -1,0 +1,20 @@
+---
+
+- name: 'packages installed'
+  yum:
+    name:
+      - 'epel-release'
+    state: 'present'
+
+- name: 'packages installed'
+  yum:
+    name:
+      - 'haveged'
+    state: 'present'
+
+- name: 'Packages installed'
+  yum:
+    name:
+      - 'iptables-nft'
+      - 'iptables-libs'
+    state: 'latest'

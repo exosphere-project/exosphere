@@ -7,7 +7,7 @@ Exosphere has a website that is built with the [MkDocs](https://www.mkdocs.org) 
 Browse to the `mkdocs/` directory and run these commands to set up your development environment:
 
 ```
-virtualenv venv
+python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 ```

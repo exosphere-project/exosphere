@@ -15,7 +15,7 @@ Note that Exosphere downloads the specified repo and runs the playbook stored at
 
 To test the instance setup code locally on a cloud instance, do this:
 ```
-virtualenv /opt/ansible-venv
+python3 -m venv /opt/ansible-venv
 . /opt/ansible-venv/bin/activate
 pip install ansible-core
 ansible-pull --url https://gitlab.com/exosphere/exosphere.git --directory /opt/instance-config-mgt -i /opt/instance-config-mgt/ansible/hosts /opt/instance-config-mgt/ansible/playbook.yml

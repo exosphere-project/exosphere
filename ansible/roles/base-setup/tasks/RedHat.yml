@@ -11,3 +11,9 @@
     name:
       - 'haveged'
     state: 'present'
+
+- name: 'Packages installed'
+  yum:
+    name:
+      - 'iptables'
+    state: 'latest'

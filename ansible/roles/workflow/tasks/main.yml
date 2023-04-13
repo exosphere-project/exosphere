@@ -28,13 +28,21 @@
     state: 'directory'
     owner: 'exouser'
 
-# We are assuming that virtualenv is installed, should already be done by cloud-init.
+# We are assuming that venv is installed, should already be done by cloud-init.
+- name: 'virtualenv set up with modern pip'
+  pip:
+    name: pip
+    state: 'latest'
+    virtualenv_command: 'python3 -m venv'
+    virtualenv: '/opt/repo2docker-venv'
+
 - name: 'repo2docker installed'
   pip:
     name:
       - 'six'
       - 'chardet'  # Temporary workaround for this bug: https://github.com/jupyterhub/repo2docker/issues/1065
       - 'jupyter-repo2docker'
+    virtualenv_command: 'python3 -m venv'
     virtualenv: '/opt/repo2docker-venv'
 
 - set_fact:

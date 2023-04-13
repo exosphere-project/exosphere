@@ -3,9 +3,13 @@
 - name: 'operating system-specific variables imported'
   include_vars: "{{ item }}"
   with_first_found:
-    - "{{ ansible_distribution }}-{{ ansible_distribution_major_version}}.yml"
-    - "{{ ansible_distribution }}.yml"
-    - "{{ ansible_os_family }}.yml"
+    - files:
+        - "{{ ansible_distribution }}-{{ ansible_distribution_version }}.yml"
+        - "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
+        - "{{ ansible_distribution }}.yml"
+        - "{{ ansible_os_family }}.yml"
+      paths:
+        - "{{ role_path }}/vars"
 
 - name: 'VNC server packages installed'
   package:
@@ -29,10 +33,13 @@
     mode: '600'
     owner: '{{ vnc_server_user }}'
 
-- name: 'configuration tasks imported for Ubuntu'
-  import_tasks: 'configure-ubuntu.yml'
-  when: 'ansible_distribution == "Ubuntu"'
-
-- name: 'configuration tasks imported for RedHat-like'
-  import_tasks: 'configure-rhel.yml'
-  when: 'ansible_os_family == "RedHat"'
+- name: 'operating system specific tasks imported'
+  include_tasks: "{{ item }}"
+  with_first_found:
+    - files:
+        - "{{ ansible_distribution }}-{{ ansible_distribution_version }}.yml"
+        - "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
+        - "{{ ansible_distribution }}.yml"
+        - "{{ ansible_os_family }}.yml"
+      paths:
+        - "{{ role_path }}/tasks"

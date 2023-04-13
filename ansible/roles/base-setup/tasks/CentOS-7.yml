@@ -1,0 +1,28 @@
+---
+
+- name: 'packages installed'
+  yum:
+    name:
+      - 'epel-release'
+    state: 'present'
+
+- name: 'packages installed'
+  yum:
+    name:
+      - 'haveged'
+    state: 'present'
+
+- name: 'Packages installed'
+  yum:
+    name:
+      - 'iptables'
+    state: 'latest'
+
+- name: 'SELinux set to permissive on current boot'
+  shell: setenforce 0
+
+- name: 'SELinux set to permissive on subsequent boots'
+  replace:
+    path: /etc/selinux/config
+    regexp: '^SELINUX=(\w+)$'
+    replace: 'permissive'
