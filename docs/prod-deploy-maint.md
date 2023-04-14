@@ -26,7 +26,7 @@ The main server runs Nginx to serve the Exosphere web application and provide th
 
 The UAP server runs Nginx to provide the [User Application Proxy](user-app-proxy.md). This server must be able to make connections to instances running on your cloud (via their floating or fixed IPs). Optimally, the UAP is an OpenStack instance on the same public Neutron segment as your instances.
 
-*The only server-side software* involved is: Nginx, possibly certbot (if you use Let's Encrypt), and possibly the Flask application that provides the OpenID Connect Redirector. There is no other back-end code and no server-side database. This is unlike most other web applications.
+*The only server-side software* involved is: Nginx and possibly certbot (if you use Let's Encrypt). There is no other back-end code and no server-side database. This is unlike most other web applications.
 
 These servers can be virtual machines on your OpenStack cloud, containers, or bare metal. They do not need to be large -- start with a couple of CPU cores and a few GB of RAM.
 
