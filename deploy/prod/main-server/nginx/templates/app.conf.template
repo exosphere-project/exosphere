@@ -12,7 +12,7 @@ map $http_origin $cors_cred {
 
 server {
     listen 80;
-    server_name example.org;
+    server_name ${NGINX_HOSTNAME};
 
     location / {
         return 301 https://$host$request_uri;
