@@ -2,7 +2,7 @@
 
 noderun="docker run -it --rm -v $PWD:/usr/src/app -w /usr/src/app node"
 
-$noderun npm install
+$noderun npm ci
 mkdir -p public
 $noderun npm run build:prod
 $noderun npm run minify
