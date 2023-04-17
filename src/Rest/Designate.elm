@@ -72,14 +72,7 @@ recordSetsDecoder =
     Json.Decode.field "recordsets"
         (Json.Decode.list
             (Json.Decode.map5
-                (\id name type_ ttl records ->
-                    { id = id
-                    , name = name
-                    , type_ = type_
-                    , ttl = ttl
-                    , records = Set.fromList records
-                    }
-                )
+                OpenStack.DnsRecordSet.DnsRecordSet
                 (Json.Decode.field "id" Json.Decode.string)
                 (Json.Decode.field "name" Json.Decode.string)
                 (Json.Decode.field "type" Json.Decode.string
@@ -95,6 +88,9 @@ recordSetsDecoder =
                         )
                 )
                 (Json.Decode.field "ttl" (Json.Decode.nullable Json.Decode.int))
-                (Json.Decode.field "records" (Json.Decode.list Json.Decode.string))
+                (Json.Decode.field "records"
+                    (Json.Decode.list Json.Decode.string)
+                    |> Json.Decode.map Set.fromList
+                )
             )
         )
