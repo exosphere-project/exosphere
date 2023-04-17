@@ -43,6 +43,14 @@ The designated maintainer should triage an issue within two working days of its 
 
 If the issue is not well-specified enough for a maintainer to triage it, they should assign it to the submitter and ask them to clarify as needed. If the submitter does not provide adequate clarification within 14 calendar days, the maintainer should close the issue.
 
+### Deduplication
+
+Ensure the new issue does not substantially duplicate any existing open issue. If it does, decide which issue to close.
+
+Your default choice should be to close the new issue _unless_ (1) the new issue is a better description of the same problem, and (2) the existing issue does not contain much discussion or linked work.
+
+Whichever you decide, close it with a comment to the effect of "Closing as duplicate of #XXX, please use that issue and update it as needed.", where XXX is the issue left open.
+
 ### Resolving Disagreements
 
 If a maintainer disagrees with how another maintainer applied the triage process, they should work with the person who triaged the issue to reach agreement.
