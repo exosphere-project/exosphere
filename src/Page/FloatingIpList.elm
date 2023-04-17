@@ -346,13 +346,17 @@ floatingIpView context project floatingIpRecord =
                 floatingIpRecord.ip.address
           of
             Just { name } ->
-                String.concat
-                    [ context.localization.hostname |> Helpers.String.toTitleCase
-                    , ": "
-                    , name
+                Element.row []
+                    [ String.concat
+                        [ context.localization.hostname |> Helpers.String.toTitleCase
+                        , ": "
+                        ]
+                        |> Text.body
+                    , Style.Widgets.CopyableText.copyableText
+                        context.palette
+                        (Text.typographyAttrs Text.Small)
+                        name
                     ]
-                    |> Element.text
-                    |> Element.el []
 
             Nothing ->
                 Element.none
