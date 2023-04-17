@@ -1827,10 +1827,10 @@ compareDiskSize project model =
                         ( Just imageSizeBytes, Just minImageSize ) ->
                             let
                                 imageSizeGB =
-                                    Basics.toFloat imageSizeBytes / 1.0e9
+                                    Basics.toFloat imageSizeBytes / 1.024e9
 
                                 minimumDiskSizeForImageInGB =
-                                    Basics.max minImageSize (imageSizeGB |> Basics.ceiling) + 1
+                                    Basics.max minImageSize (imageSizeGB |> Basics.floor)
                             in
                             case model.volSizeTextInput of
                                 Nothing ->
