@@ -15,7 +15,9 @@ import Helpers.Helpers as Helpers
 import Helpers.Random as RandomHelper
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
+import Helpers.Units
 import Helpers.Validation as Validation
+import Helpers.ValidationResult
 import Maybe
 import OpenStack.Quotas as OSQuotas
 import OpenStack.ServerNameValidator exposing (serverNameValidator)
@@ -523,7 +525,7 @@ view context project currentTime model =
                             model.workflowInputRepository == "" && model.workflowInputIsValid == Just False
 
                         invalidInputs =
-                            invalidVolSizeTextInput || invalidWorkflowTextInput || not hasAvailableResources || (compareDiskSize project model |> isDiskSizeValid |> not)
+                            invalidVolSizeTextInput || invalidWorkflowTextInput || not hasAvailableResources || (compareDiskSize project model |> Helpers.ValidationResult.isInvalid)
                     in
                     case ( invalidNameReasons, invalidInputs ) of
                         ( Nothing, False ) ->
@@ -938,17 +940,17 @@ volBackedPrompt project context model volumeQuota flavor =
                             Element.none
                     ]
         , case compareDiskSize project model of
-            LessDisk { serverDiskSize, minDiskSizeForImage } ->
+            Helpers.ValidationResult.Rejected { actual, acceptable } ->
                 "Root disk size of %serverDiskSize% GB is not enough for %imageName%, minimum disk size required is %minDiskSize% GB"
-                    |> String.replace "%serverDiskSize%" (serverDiskSize |> String.fromInt)
-                    |> String.replace "%minDiskSize%" (minDiskSizeForImage |> String.fromInt)
+                    |> String.replace "%serverDiskSize%" (actual |> String.fromInt)
+                    |> String.replace "%minDiskSize%" (acceptable |> String.fromInt)
                     |> String.replace "%imageName%" model.imageName
                     |> invalidMessage context.palette
 
-            EnoughDisk _ ->
+            Helpers.ValidationResult.Accepted _ ->
                 Element.none
 
-            UnableToCompute ->
+            Helpers.ValidationResult.Unknown ->
                 Element.none
         ]
 
@@ -1814,59 +1816,44 @@ type DiskSizeComparison
     | UnableToCompute
 
 
-compareDiskSize : Project -> Model -> DiskSizeComparison
+compareDiskSize : Project -> Model -> Helpers.ValidationResult.ValidationResult Int
 compareDiskSize project model =
-    case model.flavorId of
-        Nothing ->
-            UnableToCompute
+    let
+        minimumImageSize : Maybe Int
+        minimumImageSize =
+            Maybe.andThen
+                (\image ->
+                    Maybe.map2
+                        (\size minDisk ->
+                            Basics.max
+                                (Helpers.Units.bytesToGiB size)
+                                minDisk
+                        )
+                        image.size
+                        image.minDiskGB
+                )
+                (GetterSetters.imageLookup project model.imageUuid)
 
-        Just flavorId ->
-            case ( GetterSetters.imageLookup project model.imageUuid, GetterSetters.flavorLookup project flavorId ) of
-                ( Just image, Just flavor ) ->
-                    case ( image.size, image.minDiskGB ) of
-                        ( Just imageSizeBytes, Just minImageSize ) ->
-                            let
-                                imageSizeGB =
-                                    Basics.toFloat imageSizeBytes / 1.024e9
+        allocatedDiskSize : Maybe Int
+        allocatedDiskSize =
+            case model.volSizeTextInput of
+                Nothing ->
+                    model.flavorId
+                        |> Maybe.andThen (GetterSetters.flavorLookup project)
+                        |> Maybe.map .disk_root
 
-                                minimumDiskSizeForImageInGB =
-                                    Basics.max minImageSize (imageSizeGB |> Basics.floor)
-                            in
-                            case model.volSizeTextInput of
-                                Nothing ->
-                                    if flavor.disk_root >= minimumDiskSizeForImageInGB then
-                                        EnoughDisk { serverDiskSize = flavor.disk_root, minDiskSizeForImage = minimumDiskSizeForImageInGB }
+                Just volSize ->
+                    Style.Widgets.NumericTextInput.NumericTextInput.toMaybe volSize
 
-                                    else
-                                        LessDisk { serverDiskSize = flavor.disk_root, minDiskSizeForImage = minimumDiskSizeForImageInGB }
+        isDiskSizeEnough : Int -> Int -> Helpers.ValidationResult.ValidationResult Int
+        isDiskSizeEnough disk imageMin =
+            { acceptable = imageMin, actual = disk }
+                |> (if disk >= imageMin then
+                        Helpers.ValidationResult.Accepted
 
-                                Just volSize ->
-                                    case Style.Widgets.NumericTextInput.NumericTextInput.toMaybe volSize of
-                                        Nothing ->
-                                            UnableToCompute
-
-                                        Just vSize ->
-                                            if vSize >= minimumDiskSizeForImageInGB then
-                                                EnoughDisk { serverDiskSize = vSize, minDiskSizeForImage = minimumDiskSizeForImageInGB }
-
-                                            else
-                                                LessDisk { serverDiskSize = vSize, minDiskSizeForImage = minimumDiskSizeForImageInGB }
-
-                        ( _, _ ) ->
-                            UnableToCompute
-
-                ( _, _ ) ->
-                    UnableToCompute
-
-
-isDiskSizeValid : DiskSizeComparison -> Bool
-isDiskSizeValid diskSizeComparison =
-    case diskSizeComparison of
-        EnoughDisk _ ->
-            True
-
-        UnableToCompute ->
-            True
-
-        LessDisk _ ->
-            False
+                    else
+                        Helpers.ValidationResult.Rejected
+                   )
+    in
+    Maybe.map2 isDiskSizeEnough allocatedDiskSize minimumImageSize
+        |> Maybe.withDefault Helpers.ValidationResult.Unknown
