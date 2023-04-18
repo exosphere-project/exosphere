@@ -1810,12 +1810,6 @@ userDataInput context model =
         ]
 
 
-type DiskSizeComparison
-    = EnoughDisk { serverDiskSize : Int, minDiskSizeForImage : Int }
-    | LessDisk { serverDiskSize : Int, minDiskSizeForImage : Int }
-    | UnableToCompute
-
-
 compareDiskSize : Project -> Model -> Helpers.ValidationResult.ValidationResult Int
 compareDiskSize project model =
     let
