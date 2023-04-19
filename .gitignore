@@ -16,3 +16,6 @@ public/
 mkdocs/site
 mkdocs/venv
 .vscode
+
+# production deployment artifacts
+deploy/prod/main-server/data

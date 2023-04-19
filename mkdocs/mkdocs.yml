@@ -21,6 +21,7 @@ nav:
       - 'docs/nomenclature-reference.md'
       - 'docs/pwa-install.md'
   - For Cloud Operators:
+      - 'docs/prod-deploy-maint.md'
       - 'docs/config-options.md'
       - 'docs/instance-setup.md'
       - 'docs/solving-cors-problem.md'
