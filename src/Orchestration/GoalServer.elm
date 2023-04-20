@@ -643,7 +643,6 @@ serverIsNew server time =
         serverAgeMillis =
             Time.posixToMillis time
                 - Time.posixToMillis server.osProps.details.created
-
     in
     serverAgeMillis < fiveMinutesOfMillis
 
