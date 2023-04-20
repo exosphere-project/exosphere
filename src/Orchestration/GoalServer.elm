@@ -636,7 +636,16 @@ serverIsActiveEnough server =
 -}
 serverIsNew : Server -> Time.Posix -> Bool
 serverIsNew server time =
-    Time.posixToMillis time - Time.posixToMillis server.osProps.details.created > 5 * 60 * 1000
+    let
+        fiveMinutesOfMillis =
+            5 * 60 * 1000
+
+        serverAgeMillis =
+            Time.posixToMillis time
+                - Time.posixToMillis server.osProps.details.created
+
+    in
+    serverAgeMillis < fiveMinutesOfMillis
 
 
 doNothing : Project -> ( Project, Cmd SharedMsg )
