@@ -7,7 +7,7 @@
 
 - name: 'xstartup templated for system'
   template:
-    src: 'ubuntu-xstartup-system.j2'
+    src: 'debian-xstartup-system.j2'
     dest: '/etc/vnc/xstartup'
     mode: 'a+rx'
 
