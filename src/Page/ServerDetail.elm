@@ -338,8 +338,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                     )
                 )
 
-        firstColumnContents : List (Element.Element Msg)
-        firstColumnContents =
+        serverDetailTiles =
             let
                 usernameView =
                     case server.exoProps.serverOrigin of
@@ -353,6 +352,27 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                                     |> Font.color
                                 ]
                                 (Element.text "unknown")
+
+                buttonLabel onPress =
+                    Widget.textButton
+                        (SH.materialStyle context.palette).button
+                        { text = "Attach " ++ context.localization.blockDevice
+                        , onPress = onPress
+                        }
+
+                attachButton =
+                    if serverCanHaveVolumeAttached server then
+                        Element.link []
+                            { url =
+                                Route.toUrl context.urlPathPrefix
+                                    (Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
+                                        Route.VolumeAttach (Just server.osProps.uuid) Nothing
+                                    )
+                            , label = buttonLabel <| Just NoOp
+                            }
+
+                    else
+                        Element.none
             in
             [ tile
                 [ FeatherIcons.monitor
@@ -392,33 +412,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                     )
                     (Element.text (Maybe.withDefault "(none)" details.keypairName))
                 ]
-            ]
-
-        secondColumnContents : List (Element.Element Msg)
-        secondColumnContents =
-            let
-                buttonLabel onPress =
-                    Widget.textButton
-                        (SH.materialStyle context.palette).button
-                        { text = "Attach " ++ context.localization.blockDevice
-                        , onPress = onPress
-                        }
-
-                attachButton =
-                    if serverCanHaveVolumeAttached server then
-                        Element.link []
-                            { url =
-                                Route.toUrl context.urlPathPrefix
-                                    (Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
-                                        Route.VolumeAttach (Just server.osProps.uuid) Nothing
-                                    )
-                            , label = buttonLabel <| Just NoOp
-                            }
-
-                    else
-                        Element.none
-            in
-            [ tile
+            , tile
                 [ FeatherIcons.hardDrive
                     |> FeatherIcons.toHtml []
                     |> Element.html
@@ -510,7 +504,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
 
           else
             Element.none
-        , Element.wrappedRow [ Element.spacing spacer.px24 ] (List.append firstColumnContents secondColumnContents)
+        , Element.wrappedRow [ Element.spacing spacer.px24 ] serverDetailTiles
         ]
 
 
