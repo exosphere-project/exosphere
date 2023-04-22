@@ -490,7 +490,7 @@ decodeRegion =
 
 decodeEndpoints : Decode.Decoder Types.Project.Endpoints
 decodeEndpoints =
-    Decode.map7 Types.Project.Endpoints
+    Decode.map8 Types.Project.Endpoints
         (Decode.field "cinder" Decode.string)
         (Decode.field "glance" Decode.string)
         (Decode.field "keystone" Decode.string)
