@@ -6,6 +6,7 @@ import Element
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
+import Element.Input as Input
 import FeatherIcons
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
@@ -40,11 +41,13 @@ import Widget
 type alias Model =
     { showHeading : Bool
     , dataListModel : DataList.Model
+    , retainFloatingIpsWhenDeleting : Bool
     }
 
 
 type Msg
     = GotDeleteConfirm OSTypes.ServerUuid
+    | GotRetainFloatingIpsWhenDeleting Bool
     | OpenInteraction String
     | DataListMsg DataList.Msg
     | SharedMsg SharedMsg.SharedMsg
@@ -58,6 +61,7 @@ init project showHeading =
             DataList.getDefaultFilterOptions
                 (filters project.auth.user.name (Time.millisToPosix 0))
         )
+        False
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
@@ -68,7 +72,7 @@ update msg project model =
             , Cmd.none
             , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
                 SharedMsg.ServerMsg serverId <|
-                    SharedMsg.RequestDeleteServer False
+                    SharedMsg.RequestDeleteServer model.retainFloatingIpsWhenDeleting
             )
 
         OpenInteraction url ->
@@ -85,6 +89,9 @@ update msg project model =
             , Cmd.none
             , SharedMsg.NoOp
             )
+
+        GotRetainFloatingIpsWhenDeleting retain ->
+            ( { model | retainFloatingIpsWhenDeleting = retain }, Cmd.none, SharedMsg.NoOp )
 
         SharedMsg sharedMsg ->
             ( model, Cmd.none, sharedMsg )
@@ -151,7 +158,7 @@ view context project currentTime model =
                             DataListMsg
                             context
                             []
-                            (serverView context currentTime project)
+                            (serverView context currentTime project model.retainFloatingIpsWhenDeleting)
                             serversList
                             [ deletionAction context project ]
                             (Just
@@ -272,9 +279,10 @@ serverView :
     View.Types.Context
     -> Time.Posix
     -> Project
+    -> Bool
     -> ServerRecord Never
     -> Element.Element Msg
-serverView context currentTime project serverRecord =
+serverView context currentTime project retainFloatingIpsWhenDeleting serverRecord =
     let
         serverLink =
             Element.link []
@@ -381,8 +389,34 @@ serverView context currentTime project serverRecord =
 
         deleteServerBtnWithPopconfirm =
             let
+                renderKeepFloatingIpCheckbox : List (Element.Element Msg)
+                renderKeepFloatingIpCheckbox =
+                    if not <| List.isEmpty <| GetterSetters.getServerFloatingIps project serverRecord.id then
+                        [ Input.checkbox
+                            []
+                            { onChange = GotRetainFloatingIpsWhenDeleting
+                            , icon = Input.defaultCheckbox
+                            , checked = retainFloatingIpsWhenDeleting
+                            , label =
+                                Input.labelRight []
+                                    (Element.text <|
+                                        String.join " "
+                                            [ "Keep the"
+                                            , context.localization.floatingIpAddress
+                                            , "of this"
+                                            , context.localization.virtualComputer
+                                            , "for future use"
+                                            ]
+                                    )
+                            }
+                        ]
+
+                    else
+                        []
+
                 deleteServerBtn togglePopconfirm _ =
-                    deleteIconButton context.palette
+                    deleteIconButton
+                        context.palette
                         False
                         ("Delete " ++ context.localization.virtualComputer)
                         (if serverRecord.selectable then
@@ -400,18 +434,33 @@ serverView context currentTime project serverRecord =
                         , serverRecord.id
                         ]
             in
-            deletePopconfirm context
+            popover context
                 (\deletePopconfirmId_ -> SharedMsg <| SharedMsg.TogglePopover deletePopconfirmId_)
-                deletePopconfirmId
-                { confirmationText =
-                    "Are you sure you want to delete this "
-                        ++ context.localization.virtualComputer
-                        ++ "?"
-                , onConfirm = Just <| GotDeleteConfirm serverRecord.id
-                , onCancel = Just NoOp
+                { id = deletePopconfirmId
+                , content =
+                    \confirmEl ->
+                        Element.column [ Element.spacing spacer.px8 ] <|
+                            List.concat
+                                [ [ Style.Widgets.DeleteButton.deletePopconfirmContent
+                                        context.palette
+                                        { confirmationText =
+                                            "Are you sure you want to delete this "
+                                                ++ context.localization.virtualComputer
+                                                ++ "?"
+                                        , onCancel = Just NoOp
+                                        , onConfirm =
+                                            Just <| GotDeleteConfirm serverRecord.id
+                                        }
+                                        confirmEl
+                                  ]
+                                , renderKeepFloatingIpCheckbox
+                                ]
+                , contentStyleAttrs = []
+                , position = ST.PositionBottomRight
+                , distanceToTarget = Nothing
+                , target = deleteServerBtn
+                , targetStyleAttrs = []
                 }
-                ST.PositionBottomRight
-                deleteServerBtn
 
         floatingIpView =
             case serverRecord.floatingIpAddress of
