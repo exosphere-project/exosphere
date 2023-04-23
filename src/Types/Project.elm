@@ -37,6 +37,9 @@ type alias Project =
     , computeQuota : WebData OSTypes.ComputeQuota
     , volumeQuota : WebData OSTypes.VolumeQuota
     , networkQuota : WebData OSTypes.NetworkQuota
+
+    -- List of images  for servers
+    , serverImages : List OSTypes.Image
     , jetstream2Allocations : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List Types.Jetstream2Accounting.Allocation)
     }
 

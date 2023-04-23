@@ -96,6 +96,7 @@ hydrateProjectFromStoredProject storedProject =
     , description = storedProject.description
     , images = RDPP.empty
     , servers = RDPP.empty
+    , serverImages = []
     , flavors = []
     , keypairs = RemoteData.NotAsked
     , volumes = RemoteData.NotAsked

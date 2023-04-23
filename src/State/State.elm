@@ -1992,6 +1992,19 @@ processProjectSpecificMsg outerModel project msg =
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
+        ReceiveServerImage maybeImage ->
+            case maybeImage of
+                Nothing ->
+                    ( outerModel, Cmd.none )
+
+                Just image ->
+                    let
+                        newProject =
+                            { project | serverImages = image :: project.serverImages }
+                    in
+                    ( GetterSetters.modelUpdateProject sharedModel newProject, Cmd.none )
+                        |> mapToOuterModel outerModel
+
 
 processServerSpecificMsg : OuterModel -> Project -> Server -> ServerSpecificMsgConstructor -> ( OuterModel, Cmd OuterMsg )
 processServerSpecificMsg outerModel project server serverMsgConstructor =
@@ -2664,6 +2677,7 @@ createProject_ outerModel description authToken region endpoints =
         sharedModel =
             outerModel.sharedModel
 
+        newProject: Project
         newProject =
             { secret = NoProjectSecret
             , auth = authToken
@@ -2674,6 +2688,7 @@ createProject_ outerModel description authToken region endpoints =
             , description = description
             , images = RDPP.RemoteDataPlusPlus RDPP.DontHave RDPP.Loading
             , servers = RDPP.RemoteDataPlusPlus RDPP.DontHave RDPP.Loading
+            , serverImages = []
             , flavors = []
             , keypairs = RemoteData.NotAsked
             , volumes = RemoteData.NotAsked

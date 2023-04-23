@@ -3,6 +3,7 @@ module Rest.Glance exposing
     , receiveImages
     , requestChangeVisibility
     , requestDeleteImage
+    , requestImage
     , requestImages
     )
 
@@ -88,6 +89,36 @@ requestImagesWithVisibility maybeVisibility model project =
         (expectJsonWithErrorBody
             resultToMsg_
             (decodeImages maybeExcludeFilter)
+        )
+
+
+requestImage : OSTypes.ImageUuid -> Project -> Cmd SharedMsg
+requestImage imageId project =
+    let
+        query =
+            "?visibility=shared&limit=999999"
+
+        errorContext =
+            ErrorContext
+                ("get a image \"" ++ project.auth.project.name ++ "\"")
+                ErrorCrit
+                Nothing
+
+        resultToMsg_ =
+            resultToMsgErrorBody
+                errorContext
+                (\image -> ProjectMsg (GetterSetters.projectIdentifier project) <| Types.SharedMsg.ReceiveServerImage image)
+    in
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Get
+        Nothing
+        []
+        (project.endpoints.glance ++ "/v2/images/" ++ imageId ++ query)
+        Http.emptyBody
+        (expectJsonWithErrorBody
+            resultToMsg_
+            (imageDecoder Nothing)
         )
 
 

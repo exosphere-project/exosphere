@@ -10,6 +10,7 @@ module Rest.ApiModelHelpers exposing
     , requestRecordSets
     , requestServer
     , requestServerEvents
+    , requestServerImage
     , requestServers
     , requestShares
     , requestVolumeQuota
@@ -29,6 +30,7 @@ import Rest.Jetstream2Accounting
 import Rest.Neutron
 import Rest.Nova
 import Types.HelperTypes exposing (ProjectIdentifier)
+import Types.Project
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg exposing (SharedMsg(..))
 
@@ -60,6 +62,27 @@ requestServer projectUuid serverUuid model =
                 |> GetterSetters.modelUpdateProject model
             , Rest.Nova.requestServer project serverUuid
             )
+
+        Nothing ->
+            ( model, Cmd.none )
+
+
+{-| Requests server image if it's not found within project images
+-}
+requestServerImage : Types.Project.Project -> OSTypes.ServerUuid -> SharedModel -> ( SharedModel, Cmd SharedMsg )
+requestServerImage project serverId model =
+    case GetterSetters.serverLookup project serverId of
+        Just server ->
+            -- case GetterSetters.imageLookup project server.osProps.details.imageUuid of
+                -- Nothing ->
+                    ( project
+                        |> (\p -> GetterSetters.projectSetServerLoading p serverId)
+                        |> GetterSetters.modelUpdateProject model
+                    , Rest.Glance.requestImage server.osProps.details.imageUuid project
+                    )
+
+                -- Just _ ->
+                --     ( model, Cmd.none )
 
         Nothing ->
             ( model, Cmd.none )
