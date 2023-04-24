@@ -86,6 +86,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveUnassignFloatingIp OSTypes.FloatingIp
     | ReceiveSecurityGroups (List OSTypes.SecurityGroup)
     | ReceiveCreateExoSecurityGroup OSTypes.SecurityGroup
+    | ReceiveShares (List OSTypes.Share)
     | ReceiveCreateVolume
     | ReceiveVolumes (List OSTypes.Volume)
     | ReceiveVolumeSnapshots (List VolumeSnapshot)

@@ -782,9 +782,6 @@ type alias Share =
     , metadata : Dict.Dict String String
     , createdAt : Time.Posix
     , userUuid : UserUuid
-    , exportLocations : List ExportLocation
-    , accessRule : Maybe String
-    , accessKey : Maybe String
     }
 
 
