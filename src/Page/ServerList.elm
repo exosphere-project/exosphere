@@ -399,14 +399,14 @@ serverView context currentTime project retainFloatingIpsWhenDeleting serverRecor
                             , checked = retainFloatingIpsWhenDeleting
                             , label =
                                 Input.labelRight []
-                                    (Element.text <|
-                                        String.join " "
-                                            [ "Keep the"
-                                            , context.localization.floatingIpAddress
-                                            , "of this"
-                                            , context.localization.virtualComputer
-                                            , "for future use"
-                                            ]
+                                    (String.join " "
+                                        [ "Keep the"
+                                        , context.localization.floatingIpAddress
+                                        , "of this"
+                                        , context.localization.virtualComputer
+                                        , "for future use"
+                                        ]
+                                        |> Text.text Text.Small []
                                     )
                             }
                         ]
@@ -439,7 +439,7 @@ serverView context currentTime project retainFloatingIpsWhenDeleting serverRecor
                 { id = deletePopconfirmId
                 , content =
                     \confirmEl ->
-                        Element.column [ Element.spacing spacer.px8 ] <|
+                        Element.column [ Element.spacing spacer.px8, Element.padding spacer.px4 ] <|
                             List.concat
                                 [ [ Style.Widgets.DeleteButton.deletePopconfirmContent
                                         context.palette
