@@ -389,10 +389,10 @@ serverView context currentTime project retainFloatingIpsWhenDeleting serverRecor
 
         deleteServerBtnWithPopconfirm =
             let
-                renderKeepFloatingIpCheckbox : List (Element.Element Msg)
+                renderKeepFloatingIpCheckbox : Element.Element Msg
                 renderKeepFloatingIpCheckbox =
                     if not <| List.isEmpty <| GetterSetters.getServerFloatingIps project serverRecord.id then
-                        [ Input.checkbox
+                        Input.checkbox
                             []
                             { onChange = GotRetainFloatingIpsWhenDeleting
                             , icon = Input.defaultCheckbox
@@ -409,10 +409,9 @@ serverView context currentTime project retainFloatingIpsWhenDeleting serverRecor
                                         |> Text.text Text.Small []
                                     )
                             }
-                        ]
 
                     else
-                        []
+                        Element.none
 
                 deleteServerBtn togglePopconfirm _ =
                     deleteIconButton
@@ -440,21 +439,19 @@ serverView context currentTime project retainFloatingIpsWhenDeleting serverRecor
                 , content =
                     \confirmEl ->
                         Element.column [ Element.spacing spacer.px8, Element.padding spacer.px4 ] <|
-                            List.concat
-                                [ [ Style.Widgets.DeleteButton.deletePopconfirmContent
-                                        context.palette
-                                        { confirmationText =
-                                            "Are you sure you want to delete this "
-                                                ++ context.localization.virtualComputer
-                                                ++ "?"
-                                        , onCancel = Just NoOp
-                                        , onConfirm =
-                                            Just <| GotDeleteConfirm serverRecord.id
-                                        }
-                                        confirmEl
-                                  ]
-                                , renderKeepFloatingIpCheckbox
-                                ]
+                            [ Style.Widgets.DeleteButton.deletePopconfirmContent
+                                context.palette
+                                { confirmationText =
+                                    "Are you sure you want to delete this "
+                                        ++ context.localization.virtualComputer
+                                        ++ "?"
+                                , onCancel = Just NoOp
+                                , onConfirm =
+                                    Just <| GotDeleteConfirm serverRecord.id
+                                }
+                                confirmEl
+                            , Element.el [ Element.padding spacer.px4 ] renderKeepFloatingIpCheckbox
+                            ]
                 , contentStyleAttrs = []
                 , position = ST.PositionBottomRight
                 , distanceToTarget = Nothing
