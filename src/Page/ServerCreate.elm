@@ -1537,21 +1537,23 @@ networkPicker context project model =
 
         guidance =
             let
-                maybeStr =
-                    if networkOptions == ManualNetworkSelection && model.networkUuid == Nothing then
-                        Just "Please choose a network."
-
-                    else
-                        Just "Please only change this if you know what you are doing."
-            in
-            case maybeStr of
-                Just str ->
+                withTextColor : String -> Element.Element msg
+                withTextColor text =
                     Element.paragraph
-                        [ Font.color (context.palette.danger.textOnNeutralBG |> SH.toElementColor) ]
-                        [ Element.text str ]
+                        [ Font.color (SH.toElementColor context.palette.danger.textOnNeutralBG) ]
+                        [ Element.text text ]
 
-                Nothing ->
-                    Element.none
+                canChoose : Bool
+                canChoose =
+                    networkOptions == ManualNetworkSelection && model.networkUuid == Nothing
+            in
+            withTextColor
+                (if canChoose then
+                    "Please choose a network."
+
+                 else
+                    "Please only change this if you know what you are doing."
+                )
 
         picker =
             let
