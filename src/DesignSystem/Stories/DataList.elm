@@ -16,9 +16,12 @@ import Set
 import Style.Helpers
 import Style.Types
 import Style.Widgets.DataList
+import Style.Widgets.HumanTime exposing (relativeTimeElement)
 import Style.Widgets.Icon
 import Style.Widgets.Popover.Types
 import Style.Widgets.Text
+import Time
+import Time.Extra exposing (Interval(..))
 import UIExplorer
 import Widget
 
@@ -39,6 +42,7 @@ stories :
             (DesignSystem.Helpers.ThemeModel
                 { model
                     | dataList : Style.Widgets.DataList.Model
+                    , predefinedNow : Time.Posix
                     , servers : List Server
                     , popover : { showPopovers : Set.Set Style.Widgets.Popover.Types.PopoverId }
                 }
@@ -46,41 +50,43 @@ stories :
             msg
             { note : String }
 stories { renderer, toMsg, onDeleteServers, onDeleteServer, onPopOver } =
-    UIExplorer.storiesOf
-        "DataList"
-        [ ( "default"
-          , \model ->
-                let
-                    palette =
-                        DesignSystem.Helpers.palettize model
-                in
-                renderer palette <|
-                    Style.Widgets.DataList.view
-                        "server"
-                        model.customModel.dataList
-                        toMsg
-                        { palette = palette, showPopovers = model.customModel.popover.showPopovers }
-                        [ Element.width (Element.maximum 900 Element.fill)
-                        , Style.Widgets.Text.fontSize Style.Widgets.Text.Body
-                        ]
-                        (serverView palette onDeleteServer)
-                        model.customModel.servers
-                        [ \serverIds ->
-                            Element.el [ Element.alignRight ]
-                                (Widget.iconButton
-                                    (Style.Helpers.materialStyle palette).dangerButton
-                                    { icon = Style.Widgets.Icon.remove (Element.rgb255 255 255 255) 16
-                                    , text = "Delete"
-                                    , onPress =
-                                        Just <| onDeleteServers serverIds
-                                    }
-                                )
-                        ]
-                        (Just { filters = filters, dropdownMsgMapper = onPopOver })
-                        (Just searchFilter)
-          , { note = """""" }
-          )
-        ]
+    let
+        renderModel model =
+            let
+                now : Time.Posix
+                now =
+                    model.customModel.predefinedNow
+
+                palette =
+                    DesignSystem.Helpers.palettize model
+            in
+            renderer palette <|
+                Style.Widgets.DataList.view
+                    "server"
+                    model.customModel.dataList
+                    toMsg
+                    { palette = palette, showPopovers = model.customModel.popover.showPopovers }
+                    [ Element.width (Element.maximum 900 Element.fill)
+                    , Style.Widgets.Text.fontSize Style.Widgets.Text.Body
+                    ]
+                    (serverView palette onDeleteServer now)
+                    model.customModel.servers
+                    [ \serverIds ->
+                        Element.el [ Element.alignRight ]
+                            (Widget.iconButton
+                                (Style.Helpers.materialStyle palette).dangerButton
+                                { icon = Style.Widgets.Icon.remove (Element.rgb255 255 255 255) 16
+                                , text = "Delete"
+                                , onPress =
+                                    Just <| onDeleteServers serverIds
+                                }
+                            )
+                    ]
+                    (Just { filters = filters now, dropdownMsgMapper = onPopOver })
+                    (Just searchFilter)
+    in
+    UIExplorer.storiesOf "DataList"
+        [ ( "default", renderModel, { note = """""" } ) ]
 
 
 searchFilter : Style.Widgets.DataList.SearchFilter { record | name : String }
@@ -91,8 +97,8 @@ searchFilter =
     }
 
 
-serverView : Style.Types.ExoPalette -> (String -> msg) -> Server -> Element.Element msg
-serverView palette onDelete server =
+serverView : Style.Types.ExoPalette -> (String -> msg) -> Time.Posix -> Server -> Element.Element msg
+serverView palette onDelete now server =
     let
         statusColor =
             if server.ready then
@@ -162,13 +168,19 @@ serverView palette onDelete server =
             ]
             [ Element.el [] (Element.text server.size)
             , Element.text "·"
-            , Element.paragraph []
+            , let
+                accentColor =
+                    Style.Helpers.toElementColor palette.neutral.text.default
+
+                accented : Element.Element msg -> Element.Element msg
+                accented inner =
+                    Element.el [ Element.Font.color accentColor ] inner
+              in
+              Element.paragraph []
                 [ Element.text "created "
-                , Element.el [ Element.Font.color (Style.Helpers.toElementColor palette.neutral.text.default) ]
-                    (Element.text server.creationTime.relativeTime)
+                , accented (relativeTimeElement now server.creationTime)
                 , Element.text " by "
-                , Element.el [ Element.Font.color (Style.Helpers.toElementColor palette.neutral.text.default) ]
-                    (Element.text server.creator)
+                , accented (Element.text server.creator)
                 ]
             , Style.Widgets.Icon.ipAddress
                 (Style.Helpers.toElementColor palette.muted.textOnNeutralBG)
@@ -182,10 +194,7 @@ type alias Server =
     Style.Widgets.DataList.DataRecord
         { name : String
         , creator : String
-        , creationTime :
-            { timestamp : Int
-            , relativeTime : String
-            }
+        , creationTime : Time.Posix
         , ready : Bool
         , size : String
         , ip : String
@@ -193,14 +202,16 @@ type alias Server =
 
 
 filters :
-    List
-        (Style.Widgets.DataList.Filter
-            { record
-                | creator : String
-                , creationTime : { a | timestamp : Int }
-            }
-        )
-filters =
+    Time.Posix
+    ->
+        List
+            (Style.Widgets.DataList.Filter
+                { record
+                    | creator : String
+                    , creationTime : Time.Posix
+                }
+            )
+filters now =
     let
         currentUser =
             "ex3"
@@ -210,11 +221,31 @@ filters =
                 |> Set.fromList
                 |> Set.toList
 
+        daysBeforeNow : Int -> Int
+        daysBeforeNow count =
+            Time.Extra.add Day -count Time.utc now |> Time.posixToMillis
+
         creationTimeFilterOptions =
-            [ ( "1642501203000", "past day" )
-            , ( "1641982803000", "past 7 days" )
-            , ( "1639909203000", "past 30 days" )
+            [ ( daysBeforeNow 1 |> String.fromInt, "past day" )
+            , ( daysBeforeNow 7 |> String.fromInt, "past 7 days" )
+            , ( daysBeforeNow 30 |> String.fromInt, "past 30 days" )
             ]
+
+        sameCreator : String -> { a | creator : String } -> Bool
+        sameCreator name { creator } =
+            name == creator
+
+        createdAfter : String -> { a | creationTime : Time.Posix } -> Bool
+        createdAfter startAsMsString { creationTime } =
+            let
+                createdAt =
+                    Time.posixToMillis creationTime
+
+                startAt =
+                    String.toInt startAsMsString
+            in
+            Maybe.map ((>=) createdAt) startAt
+                |> Maybe.withDefault True
     in
     [ { id = "creator"
       , label = "Creator"
@@ -234,9 +265,7 @@ filters =
                         )
                     |> Dict.fromList
       , filterTypeAndDefaultValue = Style.Widgets.DataList.MultiselectOption (Set.fromList [ currentUser ])
-      , onFilter =
-            \optionValue server ->
-                server.creator == optionValue
+      , onFilter = sameCreator
       }
     , { id = "creationTime"
       , label = "Created within"
@@ -244,22 +273,21 @@ filters =
       , filterOptions =
             \_ -> Dict.fromList creationTimeFilterOptions
       , filterTypeAndDefaultValue = Style.Widgets.DataList.UniselectOption Style.Widgets.DataList.UniselectNoChoice
-      , onFilter =
-            \optionValue server ->
-                let
-                    optionInTimestamp =
-                        Maybe.withDefault 0 (String.toInt optionValue)
-                in
-                server.creationTime.timestamp >= optionInTimestamp
+      , onFilter = createdAfter
       }
     ]
 
 
-initServers : List Server
-initServers =
+initServers : Time.Posix -> List Server
+initServers now =
+    let
+        beforeNow : Interval -> Int -> Time.Posix
+        beforeNow interval count =
+            Time.Extra.add interval -count Time.utc now
+    in
     [ { name = "kindly_mighty_katydid"
       , creator = "ex3"
-      , creationTime = { timestamp = 1642544403000, relativeTime = "12 hours ago" }
+      , creationTime = beforeNow Hour 12
       , ready = True
       , size = "m1.tiny"
       , ip = "129.114.104.147"
@@ -268,7 +296,7 @@ initServers =
       }
     , { name = "cheaply_next_crab"
       , creator = "tg3456"
-      , creationTime = { timestamp = 1642155016000, relativeTime = "5 days ago" }
+      , creationTime = beforeNow Day 5
       , ready = False
       , size = "m1.medium"
       , ip = "129.114.104.148"
@@ -277,7 +305,7 @@ initServers =
       }
     , { name = "basically_well_cobra"
       , creator = "ex3"
-      , creationTime = { timestamp = 1639909203000, relativeTime = "1 month ago" }
+      , creationTime = beforeNow Day 30
       , ready = True
       , size = "g1.v100x"
       , ip = "129.114.104.149"
@@ -286,7 +314,7 @@ initServers =
       }
     , { name = "adorably_grumpy_cat"
       , creator = "tg3456"
-      , creationTime = { timestamp = 1637317203000, relativeTime = "2 months ago" }
+      , creationTime = beforeNow Month 2
       , ready = True
       , size = "g1.v100x"
       , ip = "129.114.104.139"

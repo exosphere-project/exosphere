@@ -35,6 +35,7 @@ import Style.Widgets.StatusBadge exposing (StatusBadgeState(..), statusBadge)
 import Style.Widgets.Tag exposing (tag)
 import Style.Widgets.Text as Text
 import Style.Widgets.Toast as Toast
+import Time
 import Toasty
 import Types.Error exposing (ErrorLevel(..), Toast)
 import UIExplorer
@@ -124,6 +125,7 @@ type alias Model =
     , dataList : Style.Widgets.DataList.Model
     , servers : List DesignSystem.Stories.DataList.Server
     , chipFilter : ChipFilterModel
+    , predefinedNow : Time.Posix
     }
 
 
@@ -137,6 +139,11 @@ initialModel =
                 , "Pineapple"
                 , "Kiwi"
                 ]
+
+        {- Jan 19, 2022 -}
+        nowTime : Time.Posix
+        nowTime =
+            Time.millisToPosix 1642501203000
     in
     { deployerColors = Style.Types.defaultColors
     , popover = { showPopovers = Set.empty }
@@ -145,8 +152,9 @@ initialModel =
     , toasties = Toast.initialModel
     , dataList =
         Style.Widgets.DataList.init
-            (Style.Widgets.DataList.getDefaultFilterOptions DesignSystem.Stories.DataList.filters)
-    , servers = DesignSystem.Stories.DataList.initServers
+            (Style.Widgets.DataList.getDefaultFilterOptions (DesignSystem.Stories.DataList.filters nowTime))
+    , predefinedNow = nowTime
+    , servers = DesignSystem.Stories.DataList.initServers nowTime
     , chipFilter =
         { selected = Set.empty
         , textInput = ""
