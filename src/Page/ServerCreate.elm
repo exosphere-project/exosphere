@@ -478,53 +478,36 @@ view context project currentTime model =
 
         contents flavor computeQuota volumeQuota =
             let
+                canBeLaunched quota fl =
+                    OSQuotas.computeQuotaFlavorAvailServers quota fl
+                        |> Maybe.map (\count -> count >= 1)
+                        |> Maybe.withDefault False
+
+                flavorAvailability : List Bool
+                flavorAvailability =
+                    model.restrictFlavorIds
+                        |> Maybe.map (List.filterMap (GetterSetters.flavorLookup project))
+                        |> Maybe.withDefault project.flavors
+                        |> List.map (canBeLaunched computeQuota)
+
                 hasAvailableResources =
-                    let
-                        allowedFlavors =
-                            case model.restrictFlavorIds of
-                                Nothing ->
-                                    project.flavors
-
-                                Just restrictedFlavorIds ->
-                                    restrictedFlavorIds
-                                        |> List.filterMap (GetterSetters.flavorLookup project)
-
-                        canBeLaunched quota fl =
-                            case OSQuotas.computeQuotaFlavorAvailServers quota fl of
-                                Nothing ->
-                                    False
-
-                                Just availServers ->
-                                    availServers >= 1
-
-                        flavorAvailability : List Bool
-                        flavorAvailability =
-                            allowedFlavors
-                                |> List.map (canBeLaunched computeQuota)
-                    in
                     List.any identity flavorAvailability
 
+                invalidVolSizeTextInput =
+                    case model.volSizeTextInput of
+                        Just (InvalidNumericTextInput _) ->
+                            True
+
+                        _ ->
+                            False
+
+                invalidWorkflowTextInput =
+                    model.workflowInputRepository == "" && model.workflowInputIsValid == Just False
+
+                invalidInputs =
+                    invalidVolSizeTextInput || invalidWorkflowTextInput || not hasAvailableResources
+
                 ( createOnPress, maybeInvalidFormFields ) =
-                    let
-                        invalidVolSizeTextInput =
-                            case model.volSizeTextInput of
-                                Just input ->
-                                    case input of
-                                        ValidNumericTextInput _ ->
-                                            False
-
-                                        InvalidNumericTextInput _ ->
-                                            True
-
-                                Nothing ->
-                                    False
-
-                        invalidWorkflowTextInput =
-                            model.workflowInputRepository == "" && model.workflowInputIsValid == Just False
-
-                        invalidInputs =
-                            invalidVolSizeTextInput || invalidWorkflowTextInput || not hasAvailableResources
-                    in
                     case ( invalidNameReasons, invalidInputs ) of
                         ( Nothing, False ) ->
                             case ( model.networkUuid, model.flavorId ) of
@@ -550,8 +533,7 @@ view context project currentTime model =
                                                 []
 
                                         invalidFormFields =
-                                            invalidNetworkField
-                                                ++ invalidFlavorField
+                                            invalidNetworkField ++ invalidFlavorField
                                     in
                                     ( Nothing, Just invalidFormFields )
 
@@ -803,13 +785,7 @@ view context project currentTime model =
                 ( Just flavor, RemoteData.Success computeQuota, RemoteData.Success volumeQuota ) ->
                     contents flavor computeQuota volumeQuota
 
-                ( _, _, RemoteData.Loading ) ->
-                    [ loading "Loading..." ]
-
-                ( _, RemoteData.Loading, _ ) ->
-                    [ loading "Loading..." ]
-
-                ( _, _, _ ) ->
+                _ ->
                     [ loading "Loading..." ]
         ]
 
@@ -824,16 +800,12 @@ volBackedPrompt context model volumeQuota flavor =
             OSQuotas.volumeQuotaAvail volumeQuota
 
         canLaunchVolBacked =
-            let
-                tooSmall quotaItem minVal =
-                    case quotaItem of
-                        Just val ->
-                            minVal > val
+            case ( volumeCountAvail, volumeSizeGbAvail ) of
+                ( Just count, Just gb ) ->
+                    count >= 1 && gb >= 2
 
-                        Nothing ->
-                            False
-            in
-            not (tooSmall volumeCountAvail 1 || tooSmall volumeSizeGbAvail 2)
+                _ ->
+                    False
 
         flavorRootDiskSize =
             flavor.disk_root
