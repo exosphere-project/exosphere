@@ -414,6 +414,6 @@ c2ysNqUmsRQkCyNqTT0D9wUK9A01KFL8RnDPu1Qp4MkOIH+cp0LNOJJRgdDEnQF94TC6sv
 unitsSuite : Test
 unitsSuite =
     describe "Units"
-        [ test "bytesToGib" <|
+        [ test "bytesToGiB" <|
             \_ -> Expect.equal (Helpers.Units.bytesToGiB 21474836480) 20
         ]
