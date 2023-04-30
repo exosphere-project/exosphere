@@ -1815,16 +1815,11 @@ compareDiskSize project model =
     let
         minimumImageSize : Maybe Int
         minimumImageSize =
-            Maybe.andThen
+            Maybe.map
                 (\image ->
-                    Maybe.map2
-                        (\size minDisk ->
-                            Basics.max
-                                (Helpers.Units.bytesToGiB size)
-                                minDisk
-                        )
-                        image.size
-                        image.minDiskGB
+                    Basics.max
+                        (image.size |> Maybe.withDefault 0 |> Helpers.Units.bytesToGiB)
+                        (image.minDiskGB |> Maybe.withDefault 0)
                 )
                 (GetterSetters.imageLookup project model.imageUuid)
 
