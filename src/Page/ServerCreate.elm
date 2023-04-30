@@ -1823,8 +1823,8 @@ compareDiskSize project model =
                 )
                 (GetterSetters.imageLookup project model.imageUuid)
 
-        allocatedDiskSize : Maybe Int
-        allocatedDiskSize =
+        selectedDiskSize : Maybe Int
+        selectedDiskSize =
             case model.volSizeTextInput of
                 Nothing ->
                     model.flavorId
@@ -1844,5 +1844,5 @@ compareDiskSize project model =
                         Helpers.ValidationResult.Rejected
                    )
     in
-    Maybe.map2 isDiskSizeEnough allocatedDiskSize minimumImageSize
+    Maybe.map2 isDiskSizeEnough selectedDiskSize minimumImageSize
         |> Maybe.withDefault Helpers.ValidationResult.Unknown
