@@ -2677,7 +2677,7 @@ createProject_ outerModel description authToken region endpoints =
         sharedModel =
             outerModel.sharedModel
 
-        newProject: Project
+        newProject : Project
         newProject =
             { secret = NoProjectSecret
             , auth = authToken

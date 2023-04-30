@@ -74,16 +74,15 @@ requestServerImage project serverId model =
     case GetterSetters.serverLookup project serverId of
         Just server ->
             -- case GetterSetters.imageLookup project server.osProps.details.imageUuid of
-                -- Nothing ->
-                    ( project
-                        |> (\p -> GetterSetters.projectSetServerLoading p serverId)
-                        |> GetterSetters.modelUpdateProject model
-                    , Rest.Glance.requestImage server.osProps.details.imageUuid project
-                    )
+            -- Nothing ->
+            ( project
+                |> (\p -> GetterSetters.projectSetServerLoading p serverId)
+                |> GetterSetters.modelUpdateProject model
+            , Rest.Glance.requestImage server.osProps.details.imageUuid project
+            )
 
-                -- Just _ ->
-                --     ( model, Cmd.none )
-
+        -- Just _ ->
+        --     ( model, Cmd.none )
         Nothing ->
             ( model, Cmd.none )
 
