@@ -40,7 +40,8 @@ var config = {
   supportInfoMarkdown:
     "Please read about [instance management actions](https://docs.jetstream-cloud.org/general/instancemgt/) or [troubleshooting](https://docs.jetstream-cloud.org/faq/trouble/) for answers to common problems before submitting a request to support staff.",
   userSupportEmailAddress: "support@access-ci.atlassian.net",
-  userSupportEmailSubject: "[Jetstream2]",
+  userSupportEmailSubject:
+    "[Jetstream2] Support Request From Exosphere for Jetstream2",
   openIdConnectLoginConfig: {
     keystoneAuthUrl: "https://js2.jetstream-cloud.org:5000/identity/v3",
     webssoKeystoneEndpoint:
