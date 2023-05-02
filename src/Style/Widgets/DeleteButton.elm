@@ -1,6 +1,7 @@
 module Style.Widgets.DeleteButton exposing
     ( deleteIconButton
     , deletePopconfirm
+    , deletePopconfirmContent
     )
 
 import Element
@@ -62,7 +63,7 @@ deleteIconButton palette styleIsPrimary text onPress =
 deletePopconfirmContent : ExoPalette -> PopconfirmContent msg -> Element.Attribute msg -> Element.Element msg
 deletePopconfirmContent palette { confirmationText, onConfirm, onCancel } closePopconfirm =
     Element.column
-        [ Element.spacing spacer.px16, Element.padding spacer.px4 ]
+        [ Element.spacing spacer.px16, Element.padding spacer.px4, Element.width Element.fill ]
         [ Element.row [ Element.spacing spacer.px8 ]
             [ FeatherIcons.alertCircle
                 |> FeatherIcons.withSize 20
