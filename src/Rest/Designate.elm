@@ -39,7 +39,7 @@ requestRecordSets project =
                 Types.HelperTypes.Get
                 Nothing
                 []
-                (designateUrl ++ "/recordsets")
+                (designateUrl ++ "v2/recordsets")
                 Http.emptyBody
                 (Rest.Helpers.expectJsonWithErrorBody
                     resultToMsg_
