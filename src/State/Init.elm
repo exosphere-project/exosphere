@@ -280,6 +280,7 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
                         |> Helpers.pipelineCmd (ApiModelHelpers.requestServers projectId)
                         |> Helpers.pipelineCmd (ApiModelHelpers.requestVolumes projectId)
                         |> Helpers.pipelineCmd (ApiModelHelpers.requestFloatingIps projectId)
+                        |> Helpers.pipelineCmd (ApiModelHelpers.requestRecordSets projectId)
                         |> Helpers.pipelineCmd (ApiModelHelpers.requestPorts projectId)
                         |> Helpers.pipelineCmd (ApiModelHelpers.requestImages projectId)
             in

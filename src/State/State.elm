@@ -44,6 +44,7 @@ import Page.VolumeList
 import Ports
 import RemoteData
 import Rest.ApiModelHelpers as ApiModelHelpers
+import Rest.Designate
 import Rest.Glance
 import Rest.Keystone
 import Rest.Neutron
@@ -1207,6 +1208,11 @@ processProjectSpecificMsg outerModel project msg =
 
         RequestServers ->
             ApiModelHelpers.requestServers (GetterSetters.projectIdentifier project) sharedModel
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
+        ReceiveDnsRecordSets sets ->
+            Rest.Designate.receiveRecordSets sharedModel project sets
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
@@ -2658,6 +2664,7 @@ createProject_ outerModel description authToken region endpoints =
             , shares = RDPP.empty
             , networks = RDPP.empty
             , autoAllocatedNetworkUuid = RDPP.empty
+            , dnsRecordSets = RDPP.empty
             , floatingIps = RDPP.empty
             , ports = RDPP.empty
             , securityGroups = []
@@ -2687,6 +2694,8 @@ createProject_ outerModel description authToken region endpoints =
                     (ApiModelHelpers.requestPorts (GetterSetters.projectIdentifier newProject))
                 |> Helpers.pipelineCmd
                     (ApiModelHelpers.requestImages (GetterSetters.projectIdentifier newProject))
+                |> Helpers.pipelineCmd
+                    (ApiModelHelpers.requestRecordSets (GetterSetters.projectIdentifier newProject))
     in
     ( { outerModel | sharedModel = newNewSharedModel }
     , Cmd.map SharedMsg newCmd

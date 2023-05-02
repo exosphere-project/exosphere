@@ -5,8 +5,10 @@ import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.Url as UrlHelpers
 import OpenStack.ConsoleLog
+import OpenStack.DnsRecordSet
 import OpenStack.Types as OSTypes
 import Orchestration.Helpers exposing (applyStepToAllServers)
+import Rest.Designate
 import Rest.Guacamole
 import Rest.Neutron
 import Rest.Nova
@@ -33,6 +35,7 @@ goalNewServer exoClientUuid time project =
             [ stepServerRequestPorts time
             , stepServerRequestNetworks time
             , stepServerRequestFloatingIp time
+            , stepServerRequestHostname time
             ]
 
         ( newProject, newCmds ) =
@@ -219,6 +222,34 @@ stepServerRequestPorts time project server =
 
             _ ->
                 ( project, Cmd.none )
+
+    else
+        ( project, Cmd.none )
+
+
+stepServerRequestHostname : Time.Posix -> Project -> Server -> ( Project, Cmd SharedMsg )
+stepServerRequestHostname time project server =
+    if
+        not server.exoProps.deletionAttempted
+            && serverIsNew server time
+            -- If not requested in last 5 seconds
+            && RDPP.isPollableWithInterval project.dnsRecordSets time 5000
+            && (-- If any server ip is without hostname then request records
+                GetterSetters.getServerFloatingIps project server.osProps.uuid
+                    |> List.any
+                        (\ipAddress ->
+                            case OpenStack.DnsRecordSet.addressToRecord (project.dnsRecordSets |> RDPP.withDefault []) ipAddress.address of
+                                Just _ ->
+                                    False
+
+                                Nothing ->
+                                    True
+                        )
+               )
+    then
+        ( { project | dnsRecordSets = RDPP.setLoading project.dnsRecordSets }
+        , Rest.Designate.requestRecordSets project
+        )
 
     else
         ( project, Cmd.none )
@@ -599,6 +630,21 @@ stepServerGuacamoleAuth time maybeUserAppProxy project server =
 serverIsActiveEnough : Server -> Bool
 serverIsActiveEnough server =
     List.member server.osProps.details.openstackStatus [ OSTypes.ServerActive, OSTypes.ServerPassword, OSTypes.ServerRescue, OSTypes.ServerVerifyResize ]
+
+
+{-| Server is considered new if it was created in the last 5 minutes
+-}
+serverIsNew : Server -> Time.Posix -> Bool
+serverIsNew server time =
+    let
+        fiveMinutesOfMillis =
+            5 * 60 * 1000
+
+        serverAgeMillis =
+            Time.posixToMillis time
+                - Time.posixToMillis server.osProps.details.created
+    in
+    serverAgeMillis < fiveMinutesOfMillis
 
 
 doNothing : Project -> ( Project, Cmd SharedMsg )

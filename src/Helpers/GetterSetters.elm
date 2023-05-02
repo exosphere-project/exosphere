@@ -24,6 +24,7 @@ module Helpers.GetterSetters exposing
     , projectIdentifier
     , projectLookup
     , projectSetAutoAllocatedNetworkUuidLoading
+    , projectSetDnsRecordSetsLoading
     , projectSetFloatingIpsLoading
     , projectSetImagesLoading
     , projectSetJetstream2AllocationLoading
@@ -608,6 +609,11 @@ projectSetNetworksLoading project =
 projectSetFloatingIpsLoading : Project -> Project
 projectSetFloatingIpsLoading project =
     { project | floatingIps = RDPP.setLoading project.floatingIps }
+
+
+projectSetDnsRecordSetsLoading : Project -> Project
+projectSetDnsRecordSetsLoading project =
+    { project | dnsRecordSets = RDPP.setLoading project.dnsRecordSets }
 
 
 projectSetPortsLoading : Project -> Project

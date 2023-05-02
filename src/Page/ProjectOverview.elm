@@ -234,7 +234,8 @@ floatingIpTileContents context project =
     let
         renderFloatingIp : OSTypes.FloatingIp -> List (Element.Element Msg)
         renderFloatingIp floatingIp =
-            [ Element.text floatingIp.address ]
+            [ Element.text floatingIp.address
+            ]
 
         showFloatingIp : OSTypes.FloatingIp -> Bool
         showFloatingIp floatingIp =

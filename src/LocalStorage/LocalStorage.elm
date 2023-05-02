@@ -103,6 +103,7 @@ hydrateProjectFromStoredProject storedProject =
     , networks = RDPP.empty
     , shares = RDPP.empty
     , autoAllocatedNetworkUuid = RDPP.empty
+    , dnsRecordSets = RDPP.empty
     , floatingIps = RDPP.empty
     , ports = RDPP.empty
     , securityGroups = []
@@ -264,6 +265,7 @@ encodeExoEndpoints endpoints =
                 |> Maybe.map Encode.string
                 |> Maybe.withDefault Encode.null
           )
+        , ( "designate", endpoints.designate |> Maybe.map Encode.string |> Maybe.withDefault Encode.null )
         ]
 
 
@@ -488,7 +490,7 @@ decodeRegion =
 
 decodeEndpoints : Decode.Decoder Types.Project.Endpoints
 decodeEndpoints =
-    Decode.map7 Types.Project.Endpoints
+    Decode.map8 Types.Project.Endpoints
         (Decode.field "cinder" Decode.string)
         (Decode.field "glance" Decode.string)
         (Decode.field "keystone" Decode.string)
@@ -503,6 +505,12 @@ decodeEndpoints =
         (Decode.oneOf
             -- This decodes earlier stored projects which do not have the jetstream2Accounting field in encoded endpoints
             [ Decode.field "jetstream2Accounting" Decode.string |> Decode.nullable
+            , Decode.succeed Nothing
+            ]
+        )
+        (Decode.oneOf
+            -- This decodes earlier stored projects which do not have the designate field in encoded endpoints
+            [ Decode.field "designate" Decode.string |> Decode.nullable
             , Decode.succeed Nothing
             ]
         )

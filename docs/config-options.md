@@ -170,7 +170,8 @@ localization: {
     nonFloatingIpAddress: "internal IP address",
     floatingIpAddress: "floating IP address",
     publiclyRoutableIpAddress: "public IP address",
-    graphicalDesktopEnvironment: "graphical desktop environment"
+    graphicalDesktopEnvironment: "graphical desktop environment",
+    hostname: "hostname"
     }
 ```
 

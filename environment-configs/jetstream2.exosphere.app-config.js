@@ -65,6 +65,7 @@ var config = {
     floatingIpAddress: "public IP address",
     publiclyRoutableIpAddress: "public IP address",
     graphicalDesktopEnvironment: "web desktop",
+    hostname: "hostname",
   },
   instanceConfigMgtRepoUrl: null,
   instanceConfigMgtRepoCheckout: null,

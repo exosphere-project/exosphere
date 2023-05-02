@@ -247,6 +247,8 @@ routeToViewStateModelCmd sharedModel route =
                                             (ApiModelHelpers.requestNetworkQuota (GetterSetters.projectIdentifier project))
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestServers (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestRecordSets (GetterSetters.projectIdentifier project))
                             in
                             ( projectViewProto <| FloatingIpList <| Page.FloatingIpList.init True
                             , newSharedModel
@@ -344,6 +346,8 @@ routeToViewStateModelCmd sharedModel route =
                                             (ApiModelHelpers.requestServer (GetterSetters.projectIdentifier project) serverId)
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestImages (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestRecordSets (GetterSetters.projectIdentifier project))
                             in
                             ( projectViewProto <| ServerDetail (Page.ServerDetail.init serverId)
                             , newNewSharedModel
