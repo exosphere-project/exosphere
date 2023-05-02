@@ -1,6 +1,5 @@
 module Page.VolumeList exposing (Model, Msg, init, update, view)
 
-import DateFormat.Relative
 import Dict
 import Element
 import Element.Font as Font
@@ -22,6 +21,7 @@ import Style.Types as ST
 import Style.Widgets.Button as Button
 import Style.Widgets.DataList as DataList
 import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
+import Style.Widgets.HumanTime exposing (relativeTimeElement)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Time
@@ -365,13 +365,15 @@ volumeView context project currentTime volumeRecord =
                             , { header = Element.none
                               , width = Element.fill
                               , view =
-                                    \snapshot ->
-                                        let
-                                            createTime =
-                                                DateFormat.Relative.relativeTime currentTime
-                                                    snapshot.createdAt
-                                        in
-                                        Element.text ("created " ++ createTime)
+                                    let
+                                        renderCreationTime : VS.VolumeSnapshot -> Element.Element msg
+                                        renderCreationTime { createdAt } =
+                                            Element.row []
+                                                [ Element.text "created "
+                                                , relativeTimeElement currentTime createdAt
+                                                ]
+                                    in
+                                    renderCreationTime
                               }
                             , { header = Element.none
                               , width = Element.shrink
@@ -439,16 +441,18 @@ volumeView context project currentTime volumeRecord =
                 [ Element.spacing spacer.px8, Element.width Element.fill ]
                 [ Element.el [] (Element.text (sizeString volumeRecord.volume.size))
                 , Element.text "·"
-                , Element.paragraph []
+                , let
+                    accentColor =
+                        context.palette.neutral.text.default |> SH.toElementColor
+
+                    accented =
+                        Element.el [ Font.color accentColor ]
+                  in
+                  Element.paragraph []
                     [ Element.text "created "
-                    , Element.el [ Font.color (SH.toElementColor context.palette.neutral.text.default) ]
-                        (Element.text <|
-                            DateFormat.Relative.relativeTime currentTime
-                                volumeRecord.volume.createdAt
-                        )
+                    , accented (relativeTimeElement currentTime volumeRecord.volume.createdAt)
                     , Element.text " by "
-                    , Element.el [ Font.color (SH.toElementColor context.palette.neutral.text.default) ]
-                        (Element.text volumeRecord.creator)
+                    , accented (Element.text volumeRecord.creator)
                     ]
                 , Element.el [ Element.alignRight ]
                     volumeActions

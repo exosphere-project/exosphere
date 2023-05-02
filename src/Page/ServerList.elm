@@ -1,6 +1,5 @@
 module Page.ServerList exposing (Model, Msg, init, update, view)
 
-import DateFormat.Relative
 import Dict
 import Element
 import Element.Background as Background
@@ -23,6 +22,7 @@ import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.DataList as DataList
 import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
+import Style.Widgets.HumanTime exposing (relativeTimeElement)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.Popover.Popover exposing (dropdownItemStyle, popover)
 import Style.Widgets.Spacer exposing (spacer)
@@ -496,16 +496,19 @@ serverView context currentTime project retainFloatingIpsWhenDeleting serverRecor
             ]
             [ Element.el [] (Element.text serverRecord.size)
             , Element.text "·"
-            , Element.paragraph []
+            , let
+                accentColor =
+                    SH.toElementColor context.palette.neutral.text.default
+
+                accented : Element.Element msg -> Element.Element msg
+                accented inner =
+                    Element.el [ Font.color accentColor ] inner
+              in
+              Element.paragraph []
                 [ Element.text "created "
-                , Element.el [ Font.color (SH.toElementColor context.palette.neutral.text.default) ]
-                    (Element.text <|
-                        DateFormat.Relative.relativeTime currentTime
-                            serverRecord.creationTime
-                    )
+                , accented (relativeTimeElement currentTime serverRecord.creationTime)
                 , Element.text " by "
-                , Element.el [ Font.color (SH.toElementColor context.palette.neutral.text.default) ]
-                    (Element.text serverRecord.creator)
+                , accented (Element.text serverRecord.creator)
                 ]
             , floatingIpView
             ]
