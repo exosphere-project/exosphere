@@ -88,6 +88,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveSecurityGroups (List OSTypes.SecurityGroup)
     | ReceiveDnsRecordSets (List OpenStack.DnsRecordSet.DnsRecordSet)
     | ReceiveCreateExoSecurityGroup OSTypes.SecurityGroup
+    | ReceiveShares (List OSTypes.Share)
     | ReceiveCreateVolume
     | ReceiveVolumes (List OSTypes.Volume)
     | ReceiveVolumeSnapshots (List VolumeSnapshot)

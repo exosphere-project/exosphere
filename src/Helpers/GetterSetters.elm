@@ -33,6 +33,7 @@ module Helpers.GetterSetters exposing
     , projectSetServerEventsLoading
     , projectSetServerLoading
     , projectSetServersLoading
+    , projectSetSharesLoading
     , projectSetVolumeSnapshotsLoading
     , projectSetVolumesLoading
     , projectUpdateKeypair
@@ -589,6 +590,11 @@ projectSetServerEventsLoading project serverUuid =
                     { server | events = RDPP.setLoading server.events }
             in
             projectUpdateServer project newServer
+
+
+projectSetSharesLoading : Project -> Project
+projectSetSharesLoading project =
+    { project | shares = RDPP.setLoading project.shares }
 
 
 projectSetVolumesLoading : Project -> Project

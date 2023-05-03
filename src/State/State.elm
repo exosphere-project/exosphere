@@ -1766,6 +1766,23 @@ processProjectSpecificMsg outerModel project msg =
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
+        ReceiveShares shares ->
+            let
+                newProject =
+                    { project
+                        | shares =
+                            RDPP.RemoteDataPlusPlus
+                                (RDPP.DoHave shares sharedModel.clientCurrentTime)
+                                (RDPP.NotLoading Nothing)
+                    }
+
+                newSharedModel =
+                    GetterSetters.modelUpdateProject sharedModel newProject
+            in
+            ( newSharedModel, Cmd.none )
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
         ReceiveCreateVolume ->
             {- Should we add new volume to model now? -}
             ( outerModel
@@ -2686,6 +2703,8 @@ createProject_ outerModel description authToken region endpoints =
                 |> List.map (\x -> x newProject)
                 |> Cmd.batch
             )
+                |> Helpers.pipelineCmd
+                    (ApiModelHelpers.requestShares (GetterSetters.projectIdentifier newProject))
                 |> Helpers.pipelineCmd
                     (ApiModelHelpers.requestVolumes (GetterSetters.projectIdentifier newProject))
                 |> Helpers.pipelineCmd

@@ -11,6 +11,7 @@ module Rest.ApiModelHelpers exposing
     , requestServer
     , requestServerEvents
     , requestServers
+    , requestShares
     , requestVolumeQuota
     , requestVolumeSnapshots
     , requestVolumes
@@ -18,6 +19,7 @@ module Rest.ApiModelHelpers exposing
 
 import Helpers.GetterSetters as GetterSetters
 import OpenStack.Quotas
+import OpenStack.Shares
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes
 import RemoteData
@@ -72,6 +74,25 @@ requestServerEvents projectId serverUuid model =
                 |> GetterSetters.modelUpdateProject model
             , Rest.Nova.requestServerEvents project serverUuid
             )
+
+        Nothing ->
+            ( model, Cmd.none )
+
+
+requestShares : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd SharedMsg )
+requestShares projectUuid model =
+    case GetterSetters.projectLookup model projectUuid of
+        Just project ->
+            case project.endpoints.manila of
+                Just url ->
+                    ( project
+                        |> GetterSetters.projectSetSharesLoading
+                        |> GetterSetters.modelUpdateProject model
+                    , OpenStack.Shares.requestShares project url
+                    )
+
+                Nothing ->
+                    ( model, Cmd.none )
 
         Nothing ->
             ( model, Cmd.none )

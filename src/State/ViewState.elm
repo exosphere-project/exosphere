@@ -209,6 +209,8 @@ routeToViewStateModelCmd sharedModel route =
                                         ]
                                     )
                                         |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestShares (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestVolumeSnapshots (GetterSetters.projectIdentifier project))
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestFloatingIps (GetterSetters.projectIdentifier project))
