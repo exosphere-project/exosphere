@@ -476,6 +476,9 @@ viewStateToSupportableItem viewState =
                 ServerCreateImage pageModel ->
                     ( HelperTypes.SupportableServer, Just pageModel.serverUuid )
 
+                ShareDetail pageModel ->
+                    ( HelperTypes.SupportableShare, Just pageModel.shareUuid )
+
                 VolumeDetail pageModel ->
                     ( HelperTypes.SupportableVolume, Just pageModel.volumeUuid )
 

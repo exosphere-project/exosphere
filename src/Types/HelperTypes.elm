@@ -267,6 +267,7 @@ type SupportableItemType
     = SupportableProject
     | SupportableImage
     | SupportableServer
+    | SupportableShare
     | SupportableVolume
 
 
