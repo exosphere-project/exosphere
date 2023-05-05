@@ -1,5 +1,6 @@
 module Rest.Helpers exposing
     ( expectJsonWithErrorBody
+    , expectJsonWithErrorBodyIgnoring404Status
     , expectStringWithErrorBody
     , idOrName
     , keystoneUrlWithVersion
@@ -196,6 +197,36 @@ expectJsonWithErrorBody toMsg decoder =
 
                 Http.BadStatus_ metadata body ->
                     Err <| HttpErrorWithBody (Http.BadStatus metadata.statusCode) body
+
+                Http.GoodStatus_ _ body ->
+                    case Decode.decodeString decoder body of
+                        Ok value ->
+                            Ok value
+
+                        Err err ->
+                            Err <| HttpErrorWithBody (Http.BadBody (Decode.errorToString err)) body
+
+
+expectJsonWithErrorBodyIgnoring404Status : (Result HttpErrorWithBody a -> msg) -> Decode.Decoder a -> a -> Http.Expect msg
+expectJsonWithErrorBodyIgnoring404Status toMsg decoder valueOn404 =
+    Http.expectStringResponse toMsg <|
+        \response ->
+            case response of
+                Http.BadUrl_ url ->
+                    Err <| HttpErrorWithBody (Http.BadUrl url) ""
+
+                Http.Timeout_ ->
+                    Err <| HttpErrorWithBody Http.Timeout ""
+
+                Http.NetworkError_ ->
+                    Err <| HttpErrorWithBody Http.NetworkError ""
+
+                Http.BadStatus_ metadata body ->
+                    if metadata.statusCode == 404 then
+                        Ok valueOn404
+
+                    else
+                        Err <| HttpErrorWithBody (Http.BadStatus metadata.statusCode) body
 
                 Http.GoodStatus_ _ body ->
                     case Decode.decodeString decoder body of
