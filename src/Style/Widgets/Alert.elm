@@ -5,9 +5,10 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Region as Region
-import FeatherIcons
+import FeatherIcons as Icons
 import Style.Helpers as SH
 import Style.Types as ST
+import Style.Widgets.Icon exposing (featherIcon)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 
@@ -34,28 +35,23 @@ alert styleAttrs palette { state, showIcon, showContainer, content } =
         ( stateColor, icon ) =
             case state of
                 Info ->
-                    ( palette.info, FeatherIcons.alertCircle )
+                    ( palette.info, Icons.alertCircle )
 
                 Success ->
-                    ( palette.success, FeatherIcons.check )
+                    ( palette.success, Icons.check )
 
                 Warning ->
-                    ( palette.warning, FeatherIcons.alertTriangle )
+                    ( palette.warning, Icons.alertTriangle )
 
                 Danger ->
-                    ( palette.danger, FeatherIcons.alertOctagon )
+                    ( palette.danger, Icons.alertOctagon )
 
         alertIcon =
             if showIcon then
-                Element.el
-                    [ Element.alignTop
-                    ]
+                featherIcon [ Element.alignTop ]
                     (icon
-                        |> FeatherIcons.withSize 1.4
-                        |> FeatherIcons.withSizeUnit "em"
-                        -- so that it can scale as per custom font size given to the alert (if any)
-                        |> FeatherIcons.toHtml []
-                        |> Element.html
+                        |> Icons.withSize 1.4
+                        |> Icons.withSizeUnit "em"
                     )
 
             else

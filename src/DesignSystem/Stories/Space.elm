@@ -5,9 +5,10 @@ import Element
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
-import FeatherIcons
+import FeatherIcons as Icons
 import Style.Helpers as SH
 import Style.Types as ST
+import Style.Widgets.Icon exposing (featherIcon)
 import Style.Widgets.Spacer exposing (Spacer, spacer)
 import Style.Widgets.Text as Text
 import UIExplorer exposing (storiesOf)
@@ -136,16 +137,13 @@ methodStatus palette isCorrect text =
     let
         ( icon, iconColor ) =
             if isCorrect then
-                ( FeatherIcons.check, palette.success.default )
+                ( Icons.check, palette.success.default )
 
             else
-                ( FeatherIcons.x, palette.danger.default )
+                ( Icons.x, palette.danger.default )
     in
     Element.row [ Element.spacing spacer.px12 ]
-        [ icon
-            |> FeatherIcons.withSize 32
-            |> FeatherIcons.toHtml []
-            |> Element.html
-            |> Element.el [ Font.color <| SH.toElementColor iconColor ]
+        [ featherIcon [ Font.color <| SH.toElementColor iconColor ]
+            (icon |> Icons.withSize 32)
         , Text.p [ Text.fontSize Text.Small ] [ Element.text text ]
         ]

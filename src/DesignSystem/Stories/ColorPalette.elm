@@ -7,9 +7,10 @@ import Element exposing (rgba)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
-import FeatherIcons
+import FeatherIcons as Icons
 import Style.Helpers as SH
 import Style.Types as ST
+import Style.Widgets.Icon exposing (featherIcon)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import UIExplorer exposing (storiesOf)
@@ -333,10 +334,7 @@ exoNeutralDemo palette =
                 ]
 
         iconDemo =
-            FeatherIcons.type_
-                |> FeatherIcons.toHtml []
-                |> Element.html
-                |> Element.el [ Font.color <| SH.toElementColor palette.neutral.icon ]
+            featherIcon [ Font.color <| SH.toElementColor palette.neutral.icon ] Icons.type_
 
         textAndIconDemo layerName =
             Element.row [ Element.spacing spacer.px8 ] [ iconDemo, textDemo layerName ]
@@ -364,10 +362,7 @@ exoUIStateDemo :
 exoUIStateDemo palette stateName toStateColor =
     let
         iconDemo =
-            FeatherIcons.eye
-                |> FeatherIcons.toHtml []
-                |> Element.html
-                |> Element.el [ Font.color <| SH.toElementColor (toStateColor palette).default ]
+            featherIcon [ Font.color <| SH.toElementColor (toStateColor palette).default ] Icons.eye
     in
     Element.column
         (demoColumnAttrs palette)

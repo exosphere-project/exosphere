@@ -3,7 +3,7 @@ module Page.ImageList exposing (Model, Msg(..), init, update, view)
 import Dict
 import Element
 import Element.Font as Font
-import FeatherIcons
+import FeatherIcons as Icons
 import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (Unit(..), humanNumber)
 import Helpers.GetterSetters as GetterSetters
@@ -19,6 +19,7 @@ import Style.Types as ST
 import Style.Widgets.Button as Button
 import Style.Widgets.DataList as DataList
 import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
+import Style.Widgets.Icon exposing (featherIcon, sizedFeatherIcon)
 import Style.Widgets.Popover.Popover as Popover
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.Spacer exposing (spacer)
@@ -116,7 +117,7 @@ view context project model =
                 [ if model.showHeading then
                     Text.heading context.palette
                         []
-                        (FeatherIcons.package |> FeatherIcons.toHtml [] |> Element.html |> Element.el [])
+                        (featherIcon [] Icons.package)
                         (context.localization.staticRepresentationOfBlockDeviceContents
                             |> Helpers.String.pluralize
                             |> Helpers.String.toTitleCase
@@ -326,13 +327,8 @@ imageView model context project imageRecord =
 
         featuredIcon =
             if imageRecord.featured then
-                FeatherIcons.award
-                    |> FeatherIcons.withSize 20
-                    |> FeatherIcons.toHtml []
-                    |> Element.html
-                    |> Element.el
-                        [ Element.htmlAttribute <| HtmlA.title "Featured"
-                        ]
+                featherIcon [ Element.htmlAttribute <| HtmlA.title "Featured" ]
+                    (Icons.award |> Icons.withSize 20)
 
             else
                 Element.none
@@ -432,17 +428,12 @@ imageVisibilityDropdown imageRecord context project =
                     Element.row
                         [ Element.spacing spacer.px4 ]
                         [ Element.text "Set visibility"
-                        , Element.el []
-                            ((if dropdownIsShown then
-                                FeatherIcons.chevronUp
+                        , sizedFeatherIcon 18 <|
+                            if dropdownIsShown then
+                                Icons.chevronUp
 
-                              else
-                                FeatherIcons.chevronDown
-                             )
-                                |> FeatherIcons.withSize 18
-                                |> FeatherIcons.toHtml []
-                                |> Element.html
-                            )
+                            else
+                                Icons.chevronDown
                         ]
                 , onPress = Just toggleDropdownMsg
                 }
@@ -490,24 +481,19 @@ setVisibilityBtn context imageUuid visibility =
         { icon =
             Element.row
                 [ Element.spacing spacer.px12 ]
-                [ Element.el []
-                    ((case visibility of
+                [ sizedFeatherIcon 16 <|
+                    case visibility of
                         OSTypes.ImagePublic ->
-                            FeatherIcons.unlock
+                            Icons.unlock
 
                         OSTypes.ImagePrivate ->
-                            FeatherIcons.lock
+                            Icons.lock
 
                         OSTypes.ImageCommunity ->
-                            FeatherIcons.users
+                            Icons.users
 
                         OSTypes.ImageShared ->
-                            FeatherIcons.share
-                     )
-                        |> FeatherIcons.withSize 16
-                        |> FeatherIcons.toHtml []
-                        |> Element.html
-                    )
+                            Icons.share
                 , Element.text (OSTypes.imageVisibilityToString visibility)
                 ]
         , text =

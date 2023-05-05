@@ -4,12 +4,13 @@ import Color
 import Element
 import Element.Background as Background
 import Element.Border as Border
-import FeatherIcons
+import FeatherIcons as Icons
 import Html exposing (Html)
 import Html.Attributes as HtmlA
 import Html.Events as HtmlE
 import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
+import Style.Widgets.Icon exposing (featherIcon)
 import Style.Widgets.Spacer exposing (spacer)
 
 
@@ -87,7 +88,7 @@ select attributes palette { onChange, options, selected, label } =
             ++ attributes
         )
         [ Element.el [ Element.width Element.fill ] <| Element.html select_
-        , FeatherIcons.chevronDown |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
+        , featherIcon [] Icons.chevronDown
         ]
 
 

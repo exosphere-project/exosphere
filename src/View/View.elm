@@ -6,7 +6,7 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Region as Region
-import FeatherIcons
+import FeatherIcons as Icons
 import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import Html
@@ -43,6 +43,7 @@ import Route
 import Style.Helpers as SH exposing (shadowDefaults)
 import Style.Types as ST
 import Style.Widgets.DeleteButton
+import Style.Widgets.Icon exposing (sizedFeatherIcon)
 import Style.Widgets.Popover.Popover exposing (dropdownItemStyle, popover)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text exposing (FontFamily(..), TextVariant(..))
@@ -432,7 +433,7 @@ projectHeaderView context p =
                     { icon =
                         Element.row [ Element.spacing spacer.px8 ]
                             [ Element.text removeText
-                            , FeatherIcons.logOut |> FeatherIcons.withSize 18 |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
+                            , sizedFeatherIcon 18 Icons.logOut
                             ]
                     , text = removeText
                     , onPress = Just toggle
@@ -472,21 +473,21 @@ createProjectResourcesButton context projectId =
             Element.column
                 []
                 [ renderButton
-                    (FeatherIcons.server |> FeatherIcons.withSize 18 |> FeatherIcons.toHtml [] |> Element.html)
+                    (sizedFeatherIcon 18 Icons.server)
                     (context.localization.virtualComputer
                         |> Helpers.String.toTitleCase
                     )
                     (Route.ProjectRoute projectId <| Route.InstanceSourcePicker)
                     closeDropdown
                 , renderButton
-                    (FeatherIcons.hardDrive |> FeatherIcons.withSize 18 |> FeatherIcons.toHtml [] |> Element.html)
+                    (sizedFeatherIcon 18 Icons.hardDrive)
                     (context.localization.blockDevice
                         |> Helpers.String.toTitleCase
                     )
                     (Route.ProjectRoute projectId <| Route.VolumeCreate)
                     closeDropdown
                 , renderButton
-                    (FeatherIcons.key |> FeatherIcons.withSize 18 |> FeatherIcons.toHtml [] |> Element.html)
+                    (sizedFeatherIcon 18 Icons.key)
                     (context.localization.pkiPublicKeyForSsh
                         |> Helpers.String.toTitleCase
                     )
@@ -502,17 +503,12 @@ createProjectResourcesButton context projectId =
                     Element.row
                         [ Element.spacing spacer.px4 ]
                         [ Element.text "Create"
-                        , Element.el []
-                            ((if dropdownIsShown then
-                                FeatherIcons.chevronUp
+                        , sizedFeatherIcon 18 <|
+                            if dropdownIsShown then
+                                Icons.chevronUp
 
-                              else
-                                FeatherIcons.chevronDown
-                             )
-                                |> FeatherIcons.withSize 18
-                                |> FeatherIcons.toHtml []
-                                |> Element.html
-                            )
+                            else
+                                Icons.chevronDown
                         ]
                 , onPress = Just toggleDropdownMsg
                 }

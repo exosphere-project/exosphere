@@ -46,7 +46,7 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input
 import Element.Region as Region
-import FeatherIcons
+import FeatherIcons as Icons
 import FormatNumber
 import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (humanCount)
@@ -72,6 +72,7 @@ import Route
 import Style.Helpers as SH
 import Style.Types as ST exposing (ExoPalette)
 import Style.Widgets.Button as Button
+import Style.Widgets.Icon exposing (featherIcon)
 import Style.Widgets.Link as Link
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.Spacer exposing (spacer)
@@ -1402,31 +1403,28 @@ radioLabelAttributes =
 
 invalidInputAttributes : ExoPalette -> List (Element.Attribute msg)
 invalidInputAttributes palette =
-    validOrInvalidInputElementAttributes palette.danger.default FeatherIcons.alertCircle
+    validOrInvalidInputElementAttributes palette.danger.default Icons.alertCircle
 
 
 warningInputAttributes : ExoPalette -> List (Element.Attribute msg)
 warningInputAttributes palette =
-    validOrInvalidInputElementAttributes palette.warning.default FeatherIcons.alertTriangle
+    validOrInvalidInputElementAttributes palette.warning.default Icons.alertTriangle
 
 
 validInputAttributes : ExoPalette -> List (Element.Attribute msg)
 validInputAttributes palette =
-    validOrInvalidInputElementAttributes palette.success.default FeatherIcons.checkCircle
+    validOrInvalidInputElementAttributes palette.success.default Icons.checkCircle
 
 
-validOrInvalidInputElementAttributes : Color.Color -> FeatherIcons.Icon -> List (Element.Attribute msg)
+validOrInvalidInputElementAttributes : Color.Color -> Icons.Icon -> List (Element.Attribute msg)
 validOrInvalidInputElementAttributes color icon =
     [ Element.onRight
-        (Element.el
-            [ Font.color (color |> SH.toElementColor)
-            , Element.moveLeft 30
-            , Element.centerY
-            ]
-            (icon
-                |> FeatherIcons.toHtml []
-                |> Element.html
-            )
+        (icon
+            |> featherIcon
+                [ Font.color (color |> SH.toElementColor)
+                , Element.moveLeft 30
+                , Element.centerY
+                ]
         )
     , Element.paddingEach
         { top = 10

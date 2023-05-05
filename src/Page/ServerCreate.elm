@@ -6,7 +6,7 @@ import Element.Border as Border
 import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
-import FeatherIcons
+import FeatherIcons as Icons
 import FormatNumber
 import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (Unit(..), humanCount)
@@ -29,6 +29,7 @@ import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.Alert as Alert
 import Style.Widgets.Button as Button
+import Style.Widgets.Icon exposing (featherIcon)
 import Style.Widgets.Link as Link
 import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
@@ -1736,11 +1737,7 @@ keypairPicker context project model =
                         Element.row
                             [ Element.spacing spacer.px4 ]
                             [ Element.text text
-                            , Element.el []
-                                (FeatherIcons.chevronRight
-                                    |> FeatherIcons.toHtml []
-                                    |> Element.html
-                                )
+                            , featherIcon [] Icons.chevronRight
                             ]
                     , onPress =
                         Just <| NoOp

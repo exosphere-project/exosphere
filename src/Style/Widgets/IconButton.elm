@@ -3,10 +3,10 @@ module Style.Widgets.IconButton exposing (FlowOrder(..), goToButton, iconButton)
 import Element exposing (Element)
 import Element.Border as Border
 import Element.Input as Input
-import FeatherIcons
+import FeatherIcons as Icons
 import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
-import Style.Widgets.Icon exposing (Icon(..), iconEl)
+import Style.Widgets.Icon exposing (Icon(..), iconEl, sizedFeatherIcon)
 import Style.Widgets.Spacer exposing (spacer)
 import View.Types
 
@@ -25,12 +25,7 @@ goToButton palette onPress =
         , Element.padding spacer.px4
         ]
         { onPress = onPress
-        , label =
-            FeatherIcons.chevronRight
-                |> FeatherIcons.withSize 14
-                |> FeatherIcons.toHtml []
-                |> Element.html
-                |> Element.el []
+        , label = sizedFeatherIcon 14 Icons.chevronRight
         }
 
 

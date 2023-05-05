@@ -2,11 +2,12 @@ module View.Breadcrumb exposing (breadcrumb)
 
 import Element
 import Element.Font as Font
-import FeatherIcons
+import FeatherIcons as Icons
 import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import Route
 import Style.Helpers as SH
+import Style.Widgets.Icon exposing (featherIcon)
 import Style.Widgets.Link as Link
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
@@ -325,11 +326,9 @@ breadcrumb_ outerModel context =
 
         separator : Element.Element msg
         separator =
-            FeatherIcons.chevronRight
-                |> FeatherIcons.withSize 14
-                |> FeatherIcons.toHtml []
-                |> Element.html
-                |> Element.el [ Font.color (context.palette.neutral.icon |> SH.toElementColor) ]
+            featherIcon
+                [ Font.color (context.palette.neutral.icon |> SH.toElementColor) ]
+                (Icons.chevronRight |> Icons.withSize 14)
     in
     Element.wrappedRow
         [ Element.spacing spacer.px8

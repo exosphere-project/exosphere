@@ -6,7 +6,7 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
-import FeatherIcons
+import FeatherIcons as Icons
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.Interaction as IHelpers
@@ -174,11 +174,7 @@ view context project currentTime model =
         [ if model.showHeading then
             Text.heading context.palette
                 []
-                (FeatherIcons.server
-                    |> FeatherIcons.toHtml []
-                    |> Element.html
-                    |> Element.el []
-                )
+                (Icon.featherIcon [] Icons.server)
                 (context.localization.virtualComputer
                     |> Helpers.String.pluralize
                     |> Helpers.String.toTitleCase
@@ -354,17 +350,12 @@ serverView context currentTime project retainFloatingIpsWhenDeleting serverRecor
                             Element.row
                                 [ Element.spacing spacer.px4 ]
                                 [ Element.text "Connect to"
-                                , Element.el []
-                                    ((if popoverIsShown then
-                                        FeatherIcons.chevronUp
+                                , Icon.sizedFeatherIcon 18 <|
+                                    if popoverIsShown then
+                                        Icons.chevronUp
 
-                                      else
-                                        FeatherIcons.chevronDown
-                                     )
-                                        |> FeatherIcons.withSize 18
-                                        |> FeatherIcons.toHtml []
-                                        |> Element.html
-                                    )
+                                    else
+                                        Icons.chevronDown
                                 ]
                         , onPress = Just togglePopover
                         }

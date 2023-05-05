@@ -20,7 +20,7 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
-import FeatherIcons
+import FeatherIcons as Icons
 import Helpers.String
 import Html.Attributes as HtmlA
 import Murmur3
@@ -368,11 +368,7 @@ view resourceName model toMsg context styleAttrs listItemView data bulkActions s
                                 SH.toElementColor context.palette.neutral.text.subdued
                            ]
                     )
-                    [ FeatherIcons.search
-                        |> FeatherIcons.withSize 36
-                        |> FeatherIcons.toHtml []
-                        |> Element.html
-                        |> Element.el [ Element.centerX ]
+                    [ Icon.featherIcon [ Element.centerX ] (Icons.search |> Icons.withSize 36)
                     , Element.el
                         ([ Element.centerX
                          , Font.color (SH.toElementColor context.palette.neutral.text.default)
@@ -709,11 +705,7 @@ filtersView model toMsg context { filters, dropdownMsgMapper } data =
                     , Element.el [ Element.alignRight, closeDropdown ]
                         (Widget.iconButton
                             (SH.materialStyle context.palette).iconButton
-                            { icon =
-                                FeatherIcons.x
-                                    |> FeatherIcons.withSize 16
-                                    |> FeatherIcons.toHtml []
-                                    |> Element.html
+                            { icon = Icon.sizedFeatherIcon 16 Icons.x
                             , text = "Close"
                             , onPress = Just NoOp
                             }
@@ -772,13 +764,7 @@ filtersView model toMsg context { filters, dropdownMsgMapper } data =
                 []
                 (Widget.iconButton
                     buttonStyle
-                    { icon =
-                        Element.el []
-                            (FeatherIcons.plus
-                                |> FeatherIcons.withSize 20
-                                |> FeatherIcons.toHtml []
-                                |> Element.html
-                            )
+                    { icon = Icon.sizedFeatherIcon 20 Icons.plus
                     , text = "Add Filters"
                     , onPress = Just toggleDropdownMsg
                     }

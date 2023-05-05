@@ -3,7 +3,7 @@ module Page.ProjectOverview exposing (Model, Msg, init, update, view)
 import Element
 import Element.Border as Border
 import Element.Font as Font
-import FeatherIcons
+import FeatherIcons as Icons
 import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
@@ -112,11 +112,7 @@ view context project currentTime _ =
         , VH.renderMaybe project.description renderDescription
         , Element.wrappedRow [ Element.spacing spacer.px24 ]
             [ renderTile
-                (FeatherIcons.server
-                    |> FeatherIcons.toHtml []
-                    |> Element.html
-                    |> Element.el []
-                )
+                (Icon.featherIcon [] Icons.server)
                 (context.localization.virtualComputer
                     |> Helpers.String.pluralize
                     |> Helpers.String.toTitleCase
@@ -125,11 +121,7 @@ view context project currentTime _ =
                 (Just <| Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.Compute project.computeQuota))
                 (serverTileContents context project)
             , renderTile
-                (FeatherIcons.hardDrive
-                    |> FeatherIcons.toHtml []
-                    |> Element.html
-                    |> Element.el []
-                )
+                (Icon.featherIcon [] Icons.hardDrive)
                 (context.localization.blockDevice
                     |> Helpers.String.pluralize
                     |> Helpers.String.toTitleCase
@@ -147,11 +139,7 @@ view context project currentTime _ =
                 (Just <| Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.FloatingIp project.networkQuota))
                 (floatingIpTileContents context project)
             , renderTile
-                (FeatherIcons.key
-                    |> FeatherIcons.toHtml []
-                    |> Element.html
-                    |> Element.el []
-                )
+                (Icon.featherIcon [] Icons.key)
                 (context.localization.pkiPublicKeyForSsh
                     |> Helpers.String.pluralize
                     |> Helpers.String.toTitleCase
@@ -160,11 +148,7 @@ view context project currentTime _ =
                 (Just <| Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.Keypair project.computeQuota keypairsUsedCount))
                 (keypairTileContents context project)
             , renderTile
-                (FeatherIcons.package
-                    |> FeatherIcons.toHtml []
-                    |> Element.html
-                    |> Element.el []
-                )
+                (Icon.featherIcon [] Icons.package)
                 (context.localization.staticRepresentationOfBlockDeviceContents
                     |> Helpers.String.pluralize
                     |> Helpers.String.toTitleCase

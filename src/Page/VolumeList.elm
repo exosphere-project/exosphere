@@ -3,7 +3,7 @@ module Page.VolumeList exposing (Model, Msg, init, update, view)
 import Dict
 import Element
 import Element.Font as Font
-import FeatherIcons
+import FeatherIcons as Icons
 import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (Unit(..), humanNumber)
 import Helpers.GetterSetters as GetterSetters
@@ -21,6 +21,7 @@ import Style.Widgets.Button as Button
 import Style.Widgets.DataList as DataList
 import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
 import Style.Widgets.HumanTime exposing (relativeTimeElement)
+import Style.Widgets.Icon exposing (featherIcon)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Time
@@ -127,7 +128,7 @@ view context project currentTime model =
         [ if model.showHeading then
             Text.heading context.palette
                 []
-                (FeatherIcons.hardDrive |> FeatherIcons.toHtml [] |> Element.html |> Element.el [])
+                (featherIcon [] Icons.hardDrive)
                 (context.localization.blockDevice
                     |> Helpers.String.pluralize
                     |> Helpers.String.toTitleCase

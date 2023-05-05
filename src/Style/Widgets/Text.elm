@@ -308,11 +308,7 @@ underline label =
 
     Text.heading context.palette
         []
-        (FeatherIcons.helpCircle
-            |> FeatherIcons.toHtml []
-            |> Element.html
-            |> Element.el []
-        )
+        (Style.Widgets.Icon.featherIcon [] FeatherIcons.helpCircle)
         "Get Support"
 
 -}
@@ -340,11 +336,7 @@ heading palette styleAttrs icon label =
         [ Element.paddingEach { bottom = 0, left = 0, right = 0, top = 0 }
         , Border.width 0
         ]
-        (FeatherIcons.server
-            |> FeatherIcons.toHtml []
-            |> Element.html
-            |> Element.el []
-        )
+        (Style.Widgets.Icon.featherIcon [] FeatherIcons.server)
         "Server A"
 
 -}

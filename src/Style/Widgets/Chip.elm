@@ -2,9 +2,10 @@ module Style.Widgets.Chip exposing (chip)
 
 import Element
 import Element.Border as Border
-import FeatherIcons
+import FeatherIcons as Icons
 import Style.Helpers as SH
 import Style.Types as ST
+import Style.Widgets.Icon exposing (sizedFeatherIcon)
 import Style.Widgets.Text as Text
 import View.Helpers exposing (edges)
 import Widget
@@ -38,13 +39,7 @@ chip palette styleAttrs chipContent onClose =
         [ chipContent
         , Widget.iconButton iconBtnStyle
             { text = "Close"
-            , icon =
-                Element.el []
-                    (FeatherIcons.x
-                        |> FeatherIcons.withSize 16
-                        |> FeatherIcons.toHtml []
-                        |> Element.html
-                    )
+            , icon = sizedFeatherIcon 16 Icons.x
             , onPress = onClose
             }
         ]

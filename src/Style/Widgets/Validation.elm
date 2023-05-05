@@ -7,10 +7,11 @@ module Style.Widgets.Validation exposing
 
 import Element exposing (Element)
 import Element.Font as Font
-import FeatherIcons
+import FeatherIcons as Icons
 import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
 import Style.Widgets.Button as Button
+import Style.Widgets.Icon exposing (featherIcon)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 
@@ -35,13 +36,8 @@ Use them in your forms together with your business logic.
 invalidMessage : ExoPalette -> String -> Element.Element msg
 invalidMessage palette helperText =
     Element.row [ Element.spacingXY spacer.px8 0 ]
-        [ Element.el
-            [ Font.color (palette.danger.textOnNeutralBG |> SH.toElementColor)
-            ]
-            (FeatherIcons.alertCircle
-                |> FeatherIcons.toHtml []
-                |> Element.html
-            )
+        [ Icons.alertCircle
+            |> featherIcon [ Font.color (palette.danger.textOnNeutralBG |> SH.toElementColor) ]
         , -- let text wrap if it exceeds container's width
           Element.paragraph
             [ Font.color (SH.toElementColor palette.danger.textOnNeutralBG)
@@ -56,13 +52,8 @@ invalidMessage palette helperText =
 warningMessage : ExoPalette -> String -> Element.Element msg
 warningMessage palette helperText =
     Element.row [ Element.spacingXY spacer.px8 0 ]
-        [ Element.el
-            [ Font.color (palette.warning.textOnNeutralBG |> SH.toElementColor)
-            ]
-            (FeatherIcons.alertTriangle
-                |> FeatherIcons.toHtml []
-                |> Element.html
-            )
+        [ Icons.alertTriangle
+            |> featherIcon [ Font.color (palette.warning.textOnNeutralBG |> SH.toElementColor) ]
         , Element.el
             [ Font.color (SH.toElementColor palette.warning.textOnNeutralBG)
             , Text.fontSize Text.Small
