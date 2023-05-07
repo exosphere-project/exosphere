@@ -12,6 +12,7 @@ import Set
 import Style.Helpers as SH
 import Style.Types
 import Style.Widgets.Card exposing (clickableCardFixedSize)
+import Style.Widgets.DeleteButton
 import Style.Widgets.Icon as Icon
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
@@ -31,6 +32,7 @@ type alias Model =
 type Msg
     = NoOp
     | Logout
+    | TogglePopover String
 
 
 init : Model
@@ -46,6 +48,9 @@ update msg model =
 
         Logout ->
             ( model, Cmd.none, SharedMsg.Logout )
+
+        TogglePopover id ->
+            ( model, Cmd.none, SharedMsg.TogglePopover id )
 
 
 uniqueKeystoneHostnames : SharedModel -> List HelperTypes.KeystoneHostname
@@ -67,6 +72,9 @@ headerView context sharedModel =
                     context.localization.unitOfTenancy
                     |> Helpers.String.pluralize
                 ]
+
+        deletePopconfirmId =
+            "RemoveAllProjects"
     in
     Element.row [ Element.width Element.fill, Element.spacing spacer.px24 ]
         [ Text.heading context.palette
@@ -77,19 +85,33 @@ headerView context sharedModel =
             Element.none
 
           else
-            Element.el [ Element.alignRight ]
-                (Widget.iconButton
-                    (SH.materialStyle context.palette).button
-                    { icon =
-                        Element.row [ Element.spacing spacer.px8 ]
-                            [ Element.text removeAllText
-                            , FeatherIcons.logOut |> FeatherIcons.withSize 18 |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
-                            ]
-                    , text = removeAllText
-                    , onPress =
-                        Just Logout
-                    }
+            Style.Widgets.DeleteButton.deletePopconfirm context
+                (\deletePopconfirmId_ -> TogglePopover deletePopconfirmId_)
+                deletePopconfirmId
+                { confirmationText =
+                    "Are you sure you want to remove all "
+                        ++ (context.localization.unitOfTenancy
+                                |> Helpers.String.pluralize
+                           )
+                        ++ " from the ui"
+                , onConfirm = Just Logout
+                , onCancel = Just NoOp
+                }
+                Style.Types.PositionLeftTop
+                (\toggle _ ->
+                    Widget.iconButton
+                        (SH.materialStyle context.palette).button
+                        { icon =
+                            Element.row [ Element.spacing spacer.px8 ]
+                                [ Element.text removeAllText
+                                , FeatherIcons.logOut |> FeatherIcons.withSize 18 |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
+                                ]
+                        , text = removeAllText
+                        , onPress =
+                            Just toggle
+                        }
                 )
+                |> Element.el [ Element.alignRight ]
         ]
 
 

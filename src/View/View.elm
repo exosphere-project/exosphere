@@ -42,6 +42,7 @@ import Page.VolumeMountInstructions
 import Route
 import Style.Helpers as SH exposing (shadowDefaults)
 import Style.Types as ST
+import Style.Widgets.DeleteButton
 import Style.Widgets.Popover.Popover exposing (dropdownItemStyle, popover)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text exposing (FontFamily(..), TextVariant(..))
@@ -380,6 +381,9 @@ projectHeaderView context p =
                 [ "Remove"
                 , Helpers.String.toTitleCase context.localization.unitOfTenancy
                 ]
+
+        deletePopconfirmId =
+            "Remove project " ++ p.auth.projectDomain.name
     in
     Element.row [ Element.width Element.fill, Element.spacing spacer.px12 ]
         [ Text.text Text.Large
@@ -398,20 +402,28 @@ projectHeaderView context p =
             , Text.strong p.auth.user.name
             , Element.text ")"
             ]
-        , Element.el
-            [ Element.alignRight ]
-          <|
-            Widget.iconButton
-                (SH.materialStyle context.palette).button
-                { icon =
-                    Element.row [ Element.spacing spacer.px8 ]
-                        [ Element.text removeText
-                        , FeatherIcons.logOut |> FeatherIcons.withSize 18 |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
-                        ]
-                , text = removeText
-                , onPress =
-                    Just <| SharedMsg <| SharedMsg.ProjectMsg (GetterSetters.projectIdentifier p) SharedMsg.RemoveProject
-                }
+        , Style.Widgets.DeleteButton.deletePopconfirm context
+            (\deletePopconfirmId_ -> SharedMsg <| SharedMsg.TogglePopover deletePopconfirmId_)
+            deletePopconfirmId
+            { confirmationText = "Are you sure you want to remove this " ++ context.localization.unitOfTenancy ++ " from the ui"
+            , onConfirm = Just <| SharedMsg <| SharedMsg.ProjectMsg (GetterSetters.projectIdentifier p) SharedMsg.RemoveProject
+            , onCancel = Just <| SharedMsg <| SharedMsg.NoOp
+            }
+            ST.PositionLeftTop
+            (\toggle _ ->
+                Widget.iconButton
+                    (SH.materialStyle context.palette).button
+                    { icon =
+                        Element.row [ Element.spacing spacer.px8 ]
+                            [ Element.text removeText
+                            , FeatherIcons.logOut |> FeatherIcons.withSize 18 |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
+                            ]
+                    , text = removeText
+                    , onPress = Just toggle
+                    }
+            )
+            |> Element.el
+                [ Element.alignRight ]
         , Element.el
             [ Element.alignRight ]
             (createProjectResourcesButton context (GetterSetters.projectIdentifier p))
