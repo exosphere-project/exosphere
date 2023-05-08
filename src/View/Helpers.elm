@@ -30,6 +30,7 @@ module View.Helpers exposing
     , requiredLabel
     , resourceName
     , serverStatusBadge
+    , shareStatusBadge
     , sortProjects
     , titleFromHostname
     , toExoPalette
@@ -66,7 +67,7 @@ import Markdown.Html
 import Markdown.Parser
 import Markdown.Renderer
 import OpenStack.Quotas as OSQuotas
-import OpenStack.Types as OSTypes
+import OpenStack.Types as OSTypes exposing (ShareStatus(..))
 import Regex
 import RemoteData
 import Route
@@ -608,6 +609,14 @@ getServerUiStatus server =
                     ServerUiStatusVerifyResize
 
 
+shareStatusBadge : ExoPalette -> ShareStatus -> Element.Element msg
+shareStatusBadge palette shareStatus =
+    StatusBadge.statusBadge
+        palette
+        (shareStatus |> getShareUiStatusBadgeState)
+        (shareStatus |> OSTypes.shareStatusToString |> Element.text)
+
+
 getExoSetupStatusStr : Server -> Maybe String
 getExoSetupStatusStr server =
     case server.exoProps.serverOrigin of
@@ -786,6 +795,82 @@ getServerUiStatusBadgeState status =
 
         ServerUiStatusPassword ->
             StatusBadge.ReadyGood
+
+
+getShareUiStatusBadgeState : ShareStatus -> StatusBadge.StatusBadgeState
+getShareUiStatusBadgeState status =
+    case status of
+        ShareCreating ->
+            StatusBadge.Warning
+
+        ShareCreatingFromSnapshot ->
+            StatusBadge.Warning
+
+        ShareDeleted ->
+            StatusBadge.Muted
+
+        ShareError ->
+            StatusBadge.Error
+
+        ShareDeleting ->
+            StatusBadge.Muted
+
+        ShareErrorDeleting ->
+            StatusBadge.Error
+
+        ShareAvailable ->
+            StatusBadge.ReadyGood
+
+        ShareInactive ->
+            StatusBadge.Muted
+
+        ShareManageStarting ->
+            StatusBadge.Warning
+
+        ShareManageError ->
+            StatusBadge.Error
+
+        ShareUnmanageStarting ->
+            StatusBadge.Warning
+
+        ShareUnmanageError ->
+            StatusBadge.Error
+
+        ShareUnmanaged ->
+            StatusBadge.Muted
+
+        ShareAwaitingTransfer ->
+            StatusBadge.Warning
+
+        ShareExtending ->
+            StatusBadge.Warning
+
+        ShareExtendingError ->
+            StatusBadge.Error
+
+        ShareShrinking ->
+            StatusBadge.Warning
+
+        ShareShrinkingError ->
+            StatusBadge.Error
+
+        ShareShrinkingPossibleDataLossError ->
+            StatusBadge.Error
+
+        ShareMigrating ->
+            StatusBadge.Warning
+
+        ShareMigratingTo ->
+            StatusBadge.Warning
+
+        ShareReplicationChange ->
+            StatusBadge.Warning
+
+        ShareReverting ->
+            StatusBadge.Warning
+
+        ShareRevertingError ->
+            StatusBadge.Error
 
 
 renderMarkdown : View.Types.Context -> String -> List (Element.Element msg)

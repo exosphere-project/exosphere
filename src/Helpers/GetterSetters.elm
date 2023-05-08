@@ -41,6 +41,7 @@ module Helpers.GetterSetters exposing
     , serverCreatedByCurrentUser
     , serverLookup
     , serverPresentNotDeleting
+    , shareLookup
     , sortedFlavors
     , transformRDPP
     , unscopedProjectLookup
@@ -99,6 +100,12 @@ serverLookup : Project -> OSTypes.ServerUuid -> Maybe Server
 serverLookup project serverUuid =
     RDPP.withDefault [] project.servers
         |> List.Extra.find (\s -> s.osProps.uuid == serverUuid)
+
+
+shareLookup : Project -> OSTypes.ShareUuid -> Maybe OSTypes.Share
+shareLookup project shareUuid =
+    RDPP.withDefault [] project.shares
+        |> List.Extra.find (\s -> s.uuid == shareUuid)
 
 
 projectLookup : SharedModel -> HelperTypes.ProjectIdentifier -> Maybe Project

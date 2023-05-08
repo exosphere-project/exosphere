@@ -58,6 +58,7 @@ module OpenStack.Types exposing
     , ServiceCatalog
     , Share
     , ShareName
+    , ShareStatus(..)
     , ShareUuid
     , SynchronousAPIError
     , UnscopedAuthToken

@@ -28,6 +28,7 @@ import Page.ServerDetail
 import Page.ServerList
 import Page.ServerResize
 import Page.Settings
+import Page.ShareDetail
 import Page.VolumeAttach
 import Page.VolumeCreate
 import Page.VolumeDetail
@@ -383,6 +384,28 @@ routeToViewStateModelCmd sharedModel route =
                                 [ Rest.Nova.requestFlavors project
                                 , OSQuotas.requestComputeQuota project
                                 ]
+                            )
+
+                        Route.ShareDetail shareId ->
+                            let
+                                newSharedModel =
+                                    project
+                                        |> GetterSetters.modelUpdateProject sharedModel
+
+                                cmd =
+                                    Cmd.batch
+                                        [ -- TODO: Get Share access rules, export locations, quotas.
+                                          Ports.instantiateClipboardJs ()
+                                        ]
+
+                                ( newNewSharedModel, newCmd ) =
+                                    ( newSharedModel, cmd )
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestShares (GetterSetters.projectIdentifier project))
+                            in
+                            ( projectViewProto <| ShareDetail (Page.ShareDetail.init shareId)
+                            , newNewSharedModel
+                            , newCmd
                             )
 
                         Route.VolumeAttach maybeServerUuid maybeVolumeUuid ->
