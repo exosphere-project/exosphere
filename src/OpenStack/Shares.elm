@@ -62,3 +62,6 @@ shareDecoder =
         |> Pipeline.required "metadata" (Decode.dict Decode.string)
         |> Pipeline.required "created_at" (Decode.string |> Decode.andThen Helpers.Time.iso8601StringToPosixDecodeError)
         |> Pipeline.required "user_id" Decode.string
+        |> Pipeline.required "is_public" (Decode.bool |> Decode.map OSTypes.boolToShareVisibility)
+        |> Pipeline.required "share_proto" (Decode.string |> Decode.map OSTypes.stringToShareProtocol)
+        |> Pipeline.required "share_type_name" Decode.string

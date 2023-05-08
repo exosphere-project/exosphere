@@ -5,6 +5,8 @@ import Element
 import Element.Border as Border
 import Element.Font as Font
 import FeatherIcons
+import FormatNumber.Locales exposing (Decimals(..))
+import Helpers.Formatting exposing (Unit(..), humanNumber)
 import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import Helpers.Time
@@ -58,40 +60,68 @@ popoverMsgMapper popoverId =
 
 view : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> Model -> Element.Element Msg
 view context project currentTimeAndZone model =
-    {- Attempt to look up a given share uuid; if a share is found, call render. -}
-    case GetterSetters.shareLookup project model.shareUuid of
-        Just share ->
-            render context project currentTimeAndZone share
+    VH.renderRDPP context
+        project.shares
+        context.localization.share
+        (\_ ->
+            {- Attempt to look up a given share uuid; if a share is found, call render. -}
+            case GetterSetters.shareLookup project model.shareUuid of
+                Just share ->
+                    render context project currentTimeAndZone share
 
-        Nothing ->
-            Element.text <|
-                String.join " "
-                    [ "No"
-                    , context.localization.share
-                    , "found"
-                    ]
+                Nothing ->
+                    Element.text <|
+                        String.join " "
+                            [ "No"
+                            , context.localization.share
+                            , "found"
+                            ]
+        )
 
 
-createdAgoBy :
+createdAgoByWhomEtc :
     View.Types.Context
-    -> ( String, Element.Element msg )
-    -> String
+    ->
+        { ago : ( String, Element.Element msg )
+        , creator : String
+        , size : String
+        , shareProtocol : String
+        , shareTypeName : String
+        , visibility : String
+        }
     -> Element.Element msg
-createdAgoBy context ( agoWord, agoContents ) whoCreated =
+createdAgoByWhomEtc context { ago, creator, size, shareProtocol, shareTypeName, visibility } =
     let
+        ( agoWord, agoContents ) =
+            ago
+
         subduedText =
             Font.color (context.palette.neutral.text.subdued |> SH.toElementColor)
     in
     Element.wrappedRow
-        [ Element.width Element.fill ]
+        [ Element.width Element.fill, Element.spaceEvenly ]
     <|
         [ Element.row [ Element.padding spacer.px8 ]
             [ Element.el [ subduedText ] (Element.text <| agoWord ++ " ")
             , agoContents
+            , Element.el [ subduedText ] (Element.text <| " by ")
+            , Element.text creator
             ]
         , Element.row [ Element.padding spacer.px8 ]
-            [ Element.el [ subduedText ] (Element.text <| "by ")
-            , Element.text whoCreated
+            [ Element.el [ subduedText ] (Element.text <| "size ")
+            , Element.text size
+            ]
+        , Element.row [ Element.padding spacer.px8 ]
+            [ Element.el [ subduedText ] (Element.text <| "visibility ")
+            , Element.text visibility
+            ]
+        , Element.row [ Element.padding spacer.px8 ]
+            [ Element.el [ subduedText ] (Element.text <| "protocol ")
+            , Element.text shareProtocol
+            ]
+        , Element.row [ Element.padding spacer.px8 ]
+            [ Element.el [ subduedText ] (Element.text <| "type ")
+            , Element.text shareTypeName
             ]
         ]
 
@@ -162,6 +192,28 @@ render context project ( currentTime, _ ) share =
             else
                 "another user"
 
+        sizeString =
+            let
+                locale =
+                    context.locale
+
+                ( sizeDisplay, sizeLabel ) =
+                    -- The share size, in GiBs.
+                    humanNumber { locale | decimals = Exact 0 } GibiBytes share.size
+            in
+            sizeDisplay ++ " " ++ sizeLabel
+
+        description =
+            case share.description of
+                Just str ->
+                    Element.row [ Element.padding spacer.px8 ]
+                        [ Element.paragraph [ Element.width Element.fill ] <|
+                            [ Element.text <| str ]
+                        ]
+
+                Nothing ->
+                    Element.none
+
         tile : List (Element.Element Msg) -> List (Element.Element Msg) -> Element.Element Msg
         tile headerContents contents =
             Style.Widgets.Card.exoCard context.palette
@@ -178,6 +230,7 @@ render context project ( currentTime, _ ) share =
                                 )
                                 headerContents
                           ]
+                        , [ description ]
                         , contents
                         ]
                     )
@@ -208,9 +261,14 @@ render context project ( currentTime, _ ) share =
                     share.uuid
                 )
             ]
-            [ createdAgoBy
+            [ createdAgoByWhomEtc
                 context
-                ( "created", whenCreated )
-                creator
+                { ago = ( "created", whenCreated )
+                , creator = creator
+                , size = sizeString
+                , shareProtocol = OSTypes.shareProtocolToString share.shareProtocol
+                , shareTypeName = share.shareTypeName
+                , visibility = OSTypes.shareVisibilityToString share.visibility
+                }
             ]
         ]
