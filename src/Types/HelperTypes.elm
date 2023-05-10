@@ -103,6 +103,7 @@ type alias Localization =
     , commandDrivenTextInterface : String
     , staticRepresentationOfBlockDeviceContents : String
     , blockDevice : String
+    , share : String
     , nonFloatingIpAddress : String
     , floatingIpAddress : String
     , publiclyRoutableIpAddress : String
@@ -266,6 +267,7 @@ type SupportableItemType
     = SupportableProject
     | SupportableImage
     | SupportableServer
+    | SupportableShare
     | SupportableVolume
 
 

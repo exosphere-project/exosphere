@@ -147,6 +147,7 @@ localizationDecoder =
         |> required "commandDrivenTextInterface" string
         |> required "staticRepresentationOfBlockDeviceContents" string
         |> required "blockDevice" string
+        |> required "share" string
         |> required "nonFloatingIpAddress" string
         |> required "floatingIpAddress" string
         |> required "publiclyRoutableIpAddress" string

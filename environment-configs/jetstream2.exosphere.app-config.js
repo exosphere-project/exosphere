@@ -62,6 +62,7 @@ var config = {
     commandDrivenTextInterface: "web shell",
     staticRepresentationOfBlockDeviceContents: "image",
     blockDevice: "volume",
+    share: "share",
     nonFloatingIpAddress: "internal IP address",
     floatingIpAddress: "public IP address",
     publiclyRoutableIpAddress: "public IP address",

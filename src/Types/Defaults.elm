@@ -16,6 +16,7 @@ localization =
     , commandDrivenTextInterface = "terminal"
     , staticRepresentationOfBlockDeviceContents = "image"
     , blockDevice = "volume"
+    , share = "share"
     , nonFloatingIpAddress = "internal IP address"
     , floatingIpAddress = "floating IP address"
     , publiclyRoutableIpAddress = "public IP address"

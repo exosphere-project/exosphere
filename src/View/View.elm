@@ -33,6 +33,7 @@ import Page.ServerDetail
 import Page.ServerList
 import Page.ServerResize
 import Page.Settings
+import Page.ShareDetail
 import Page.VolumeAttach
 import Page.VolumeCreate
 import Page.VolumeDetail
@@ -345,6 +346,10 @@ projectContentView model context p viewConstructor =
         ServerResize pageModel ->
             Page.ServerResize.view context p pageModel
                 |> Element.map ServerResizeMsg
+
+        ShareDetail pageModel ->
+            Page.ShareDetail.view context p ( model.clientCurrentTime, model.timeZone ) pageModel
+                |> Element.map ShareDetailMsg
 
         VolumeAttach pageModel ->
             Page.VolumeAttach.view context p pageModel
