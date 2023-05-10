@@ -5,6 +5,7 @@ module Tests exposing
     , processOpenRcSuite
     , sshKeySuite
     , stringIsUuidOrDefaultSuite
+    , unitsSuite
     , volumeQuotasAndLimitsSuite
     , volumeSnapshotsSuite
     )
@@ -16,6 +17,7 @@ import Expect exposing (Expectation)
 import Helpers.Helpers as Helpers
 import Helpers.SshKeyTypeGuesser
 import Helpers.String
+import Helpers.Units
 import Json.Decode as Decode
 import OpenStack.Error as OSError
 import OpenStack.OpenRc
@@ -406,4 +408,12 @@ c2ysNqUmsRQkCyNqTT0D9wUK9A01KFL8RnDPu1Qp4MkOIH+cp0LNOJJRgdDEnQF94TC6sv
             \_ ->
                 Expect.equal Helpers.SshKeyTypeGuesser.Unknown
                     (Helpers.SshKeyTypeGuesser.guessKeyType """this is not an ssh key""")
+        ]
+
+
+unitsSuite : Test
+unitsSuite =
+    describe "Units"
+        [ test "bytesToGiB" <|
+            \_ -> Expect.equal (Helpers.Units.bytesToGiB 21474836480) 20
         ]
