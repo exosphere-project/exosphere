@@ -182,9 +182,10 @@ specialIntToMaybe =
             )
 
 
+{-| Given a compute quota and a flavor, determine how many servers of that flavor can be launched
+-}
 computeQuotaFlavorAvailServers : OSTypes.ComputeQuota -> OSTypes.Flavor -> Maybe Int
 computeQuotaFlavorAvailServers computeQuota flavor =
-    -- Given a compute quota and a flavor, determine how many servers of that flavor can be launched
     [ computeQuota.cores.limit
         |> Maybe.map
             (\coreLimit ->
