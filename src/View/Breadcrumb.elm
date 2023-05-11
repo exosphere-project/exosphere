@@ -231,6 +231,18 @@ breadcrumb_ outerModel context =
                                       }
                                     ]
 
+                                ShareDetail pageModel ->
+                                    [ -- TODO: Add another breadcrumb when the shares list exists.
+                                      { route = Nothing
+                                      , label =
+                                            String.join " "
+                                                [ context.localization.share
+                                                    |> Helpers.String.toTitleCase
+                                                , View.PageTitle.shareName (GetterSetters.projectLookup outerModel.sharedModel projectId) pageModel.shareUuid
+                                                ]
+                                      }
+                                    ]
+
                                 VolumeAttach _ ->
                                     [ { route = Nothing
                                       , label =

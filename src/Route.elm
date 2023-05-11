@@ -60,6 +60,7 @@ type ProjectRouteConstructor
     | ServerDetail OSTypes.ServerUuid
     | ServerList
     | ServerResize OSTypes.ServerUuid
+    | ShareDetail OSTypes.ShareUuid
     | VolumeAttach (Maybe OSTypes.ServerUuid) (Maybe OSTypes.VolumeUuid)
     | VolumeCreate
     | VolumeDetail OSTypes.VolumeUuid
@@ -265,6 +266,13 @@ toUrl maybePathPrefix route =
                             ( [ "servers"
                               , serverUuid
                               , "resize"
+                              ]
+                            , []
+                            )
+
+                        ShareDetail shareUuid ->
+                            ( [ "shares"
+                              , shareUuid
                               ]
                             , []
                             )
@@ -563,6 +571,9 @@ projectRouteParsers =
     , map
         ServerResize
         (s "servers" </> string </> s "resize")
+    , map
+        ShareDetail
+        (s "shares" </> string)
     , map
         VolumeDetail
         (s "volumes" </> string)

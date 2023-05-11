@@ -1,4 +1,4 @@
-module View.PageTitle exposing (pageTitle, serverName, volumeName)
+module View.PageTitle exposing (pageTitle, serverName, shareName, volumeName)
 
 import Helpers.GetterSetters as GetterSetters
 import Helpers.String
@@ -197,6 +197,13 @@ pageTitle outerModel =
                         , serverName maybeProject pageModel.serverUuid
                         ]
 
+                ShareDetail pageModel ->
+                    String.join " "
+                        [ localization.share
+                            |> Helpers.String.toTitleCase
+                        , shareName maybeProject pageModel.shareUuid
+                        ]
+
                 VolumeAttach _ ->
                     String.join " "
                         [ "Attach"
@@ -241,6 +248,14 @@ serverName maybeProject serverUuid =
         |> Maybe.andThen (\proj -> GetterSetters.serverLookup proj serverUuid)
         |> Maybe.map (\server -> server.osProps.name)
         |> Maybe.withDefault serverUuid
+
+
+shareName : Maybe Project -> OSTypes.ShareUuid -> String
+shareName maybeProject shareUuid =
+    maybeProject
+        |> Maybe.andThen (\proj -> GetterSetters.shareLookup proj shareUuid)
+        |> Maybe.andThen (\share -> share.name)
+        |> Maybe.withDefault shareUuid
 
 
 volumeName : Maybe Project -> OSTypes.VolumeUuid -> String

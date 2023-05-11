@@ -20,6 +20,7 @@ Note for developers: some code in the Exosphere codebase (e.g. variable and func
 | buffer passed to cloud-init on first boot           | boot script                | user data           | boot script            | user data                  |
 | static representation of hard drive contents        | image                      | image               | image                  | Amazon Machine Image (AMI) |
 | storage block device                                | volume                     | volume              | volume                 | volume                     |
+| shared file system (the OpenStack Manila project)   | share                      | share               | manila share           | Amazon Elastic File System |
 | non-floating IP address                             | internal IP address        | fixed IP address    | internal IP address    | private IPv4 address       |
 | floating IP address                                 | public IP address          | floating IP address | public IP address      | Elastic IP Address         |
 | text-based user interface served in a web browser   | terminal                   | N/A                 | web shell              | N/A                        |

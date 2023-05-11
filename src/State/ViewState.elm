@@ -28,6 +28,7 @@ import Page.ServerDetail
 import Page.ServerList
 import Page.ServerResize
 import Page.Settings
+import Page.ShareDetail
 import Page.VolumeAttach
 import Page.VolumeCreate
 import Page.VolumeDetail
@@ -385,6 +386,28 @@ routeToViewStateModelCmd sharedModel route =
                                 ]
                             )
 
+                        Route.ShareDetail shareId ->
+                            let
+                                newSharedModel =
+                                    project
+                                        |> GetterSetters.modelUpdateProject sharedModel
+
+                                cmd =
+                                    Cmd.batch
+                                        [ -- TODO: Get Share access rules, export locations, quotas.
+                                          Ports.instantiateClipboardJs ()
+                                        ]
+
+                                ( newNewSharedModel, newCmd ) =
+                                    ( newSharedModel, cmd )
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestShares (GetterSetters.projectIdentifier project))
+                            in
+                            ( projectViewProto <| ShareDetail (Page.ShareDetail.init shareId)
+                            , newNewSharedModel
+                            , newCmd
+                            )
+
                         Route.VolumeAttach maybeServerUuid maybeVolumeUuid ->
                             let
                                 ( newSharedModel, newCmd ) =
@@ -475,6 +498,9 @@ viewStateToSupportableItem viewState =
 
                 ServerCreateImage pageModel ->
                     ( HelperTypes.SupportableServer, Just pageModel.serverUuid )
+
+                ShareDetail pageModel ->
+                    ( HelperTypes.SupportableShare, Just pageModel.shareUuid )
 
                 VolumeDetail pageModel ->
                     ( HelperTypes.SupportableVolume, Just pageModel.volumeUuid )

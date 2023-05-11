@@ -57,7 +57,12 @@ module OpenStack.Types exposing
     , Service
     , ServiceCatalog
     , Share
+    , ShareDescription
     , ShareName
+    , ShareProtocol
+    , ShareSize
+    , ShareStatus(..)
+    , ShareTypeName
     , ShareUuid
     , SynchronousAPIError
     , UnscopedAuthToken
@@ -70,10 +75,14 @@ module OpenStack.Types exposing
     , VolumeSize
     , VolumeStatus(..)
     , VolumeUuid
+    , boolToShareVisibility
     , imageVisibilityToString
     , serverPowerStateToString
     , serverStatusToString
+    , shareProtocolToString
     , shareStatusToString
+    , shareVisibilityToString
+    , stringToShareProtocol
     , stringToShareStatus
     , volumeStatusToString
     )
@@ -255,6 +264,7 @@ type alias Image =
     , osVersion : Maybe String
     , protected : Bool
     , imageType : Maybe String
+    , minDiskGB : Maybe Int
     }
 
 
@@ -784,6 +794,9 @@ type alias Share =
     , metadata : Dict.Dict String String
     , createdAt : Time.Posix
     , userUuid : UserUuid
+    , visibility : ShareVisibility
+    , shareProtocol : ShareProtocol
+    , shareTypeName : ShareTypeName
     }
 
 
@@ -832,6 +845,20 @@ type alias ShareSize =
 
 type alias ShareDescription =
     String
+
+
+type ShareProtocol
+    = CephFS
+    | UnsupportedShareProtocol String
+
+
+type alias ShareTypeName =
+    String
+
+
+type ShareVisibility
+    = SharePrivate
+    | SharePublic
 
 
 stringToShareStatus : String -> ShareStatus
@@ -987,3 +1014,42 @@ shareStatusToString shareStatus =
 
         ShareRevertingError ->
             "Reverting error"
+
+
+boolToShareVisibility : Bool -> ShareVisibility
+boolToShareVisibility isPublic =
+    if isPublic then
+        SharePublic
+
+    else
+        SharePrivate
+
+
+shareVisibilityToString : ShareVisibility -> String
+shareVisibilityToString visibility =
+    case visibility of
+        SharePrivate ->
+            "Private"
+
+        SharePublic ->
+            "Public"
+
+
+stringToShareProtocol : String -> ShareProtocol
+stringToShareProtocol str =
+    case String.toUpper str of
+        "CEPHFS" ->
+            CephFS
+
+        _ ->
+            UnsupportedShareProtocol str
+
+
+shareProtocolToString : ShareProtocol -> String
+shareProtocolToString shareProto =
+    case shareProto of
+        CephFS ->
+            "CephFS"
+
+        UnsupportedShareProtocol str ->
+            str

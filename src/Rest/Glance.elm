@@ -352,6 +352,7 @@ imageDecoderHelper =
         |> Pipeline.optional "os_version" (Decode.string |> Decode.andThen (\s -> Decode.succeed <| Just s)) Nothing
         |> Pipeline.required "protected" Decode.bool
         |> Pipeline.optional "image_type" (Decode.string |> Decode.andThen (\s -> Decode.succeed <| Just s)) Nothing
+        |> Pipeline.optional "min_disk" (Decode.nullable Decode.int) Nothing
 
 
 imageVisibilityDecoder : String -> Decode.Decoder OSTypes.ImageVisibility
