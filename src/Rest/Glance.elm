@@ -92,15 +92,9 @@ requestImagesWithVisibility maybeVisibility model project =
         )
 
 
-requestImage : OSTypes.ImageUuid -> Project -> Cmd SharedMsg
-requestImage imageId project =
+requestImage : OSTypes.ImageUuid -> Project -> ErrorContext -> Cmd SharedMsg
+requestImage imageId project errorContext =
     let
-        errorContext =
-            ErrorContext
-                ("get a image \"" ++ project.auth.project.name ++ "\"")
-                ErrorCrit
-                Nothing
-
         resultToMsg_ =
             resultToMsgErrorBody
                 errorContext
@@ -113,10 +107,9 @@ requestImage imageId project =
         []
         (project.endpoints.glance ++ "/v2/images/" ++ imageId)
         Http.emptyBody
-        (Rest.Helpers.expectJsonWithErrorBodyIgnoring404Status
+        (Rest.Helpers.expectJsonWithErrorBody
             resultToMsg_
             (imageDecoder Nothing)
-            Nothing
         )
 
 

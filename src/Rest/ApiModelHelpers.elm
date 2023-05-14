@@ -10,7 +10,7 @@ module Rest.ApiModelHelpers exposing
     , requestRecordSets
     , requestServer
     , requestServerEvents
-    , requestServerImage
+    , requestServerImageIfNotFound
     , requestServers
     , requestShares
     , requestVolumeQuota
@@ -29,6 +29,7 @@ import Rest.Glance
 import Rest.Jetstream2Accounting
 import Rest.Neutron
 import Rest.Nova
+import Types.Error
 import Types.HelperTypes exposing (ProjectIdentifier)
 import Types.Project
 import Types.SharedModel exposing (SharedModel)
@@ -69,16 +70,20 @@ requestServer projectUuid serverUuid model =
 
 {-| Requests server image if it's not found within project images
 -}
-requestServerImage : Types.Project.Project -> OSTypes.ServerUuid -> SharedModel -> ( SharedModel, Cmd SharedMsg )
-requestServerImage project serverId model =
+requestServerImageIfNotFound : Types.Project.Project -> OSTypes.ServerUuid -> SharedModel -> ( SharedModel, Cmd SharedMsg )
+requestServerImageIfNotFound project serverId model =
     case GetterSetters.serverLookup project serverId of
         Just server ->
             case GetterSetters.imageLookup project server.osProps.details.imageUuid of
                 Nothing ->
-                    ( project
-                        |> (\p -> GetterSetters.projectSetServerLoading p serverId)
-                        |> GetterSetters.modelUpdateProject model
-                    , Rest.Glance.requestImage server.osProps.details.imageUuid project
+                    ( model
+                    , Rest.Glance.requestImage server.osProps.details.imageUuid
+                        project
+                        (Types.Error.ErrorContext
+                            ("get an image \"" ++ server.osProps.details.imageUuid ++ "\"")
+                            Types.Error.ErrorDebug
+                            Nothing
+                        )
                     )
 
                 Just _ ->
