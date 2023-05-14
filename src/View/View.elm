@@ -42,8 +42,8 @@ import Page.VolumeMountInstructions
 import Route
 import Style.Helpers as SH exposing (shadowDefaults)
 import Style.Types as ST
-import Style.Widgets.DeleteButton
 import Style.Widgets.Popover.Popover exposing (dropdownItemStyle, popover)
+import Style.Widgets.RemoveButton
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text exposing (FontFamily(..), TextVariant(..))
 import Style.Widgets.Toast as Toast
@@ -402,10 +402,20 @@ projectHeaderView context p =
             , Text.strong p.auth.user.name
             , Element.text ")"
             ]
-        , Style.Widgets.DeleteButton.deletePopconfirm context
-            (\deletePopconfirmId_ -> SharedMsg <| SharedMsg.TogglePopover deletePopconfirmId_)
+        , Style.Widgets.RemoveButton.removePopconfirm context
+            (\removePopconfirmId_ -> SharedMsg <| SharedMsg.TogglePopover removePopconfirmId_)
             deletePopconfirmId
-            { confirmationText = "Are you sure you want to remove this " ++ context.localization.unitOfTenancy ++ " from the ui"
+            { confirmation =
+                Element.column
+                    [ Element.spacing spacer.px8
+                    , Font.color (context.palette.neutral.text.subdued |> SH.toElementColor)
+                    ]
+                    [ "Are you sure you want to remove this "
+                        ++ context.localization.unitOfTenancy
+                        ++ "?"
+                        |> Text.body
+                    , "Nothing will be deleted on the cloud, only from the view" |> Text.text Text.Small []
+                    ]
             , onConfirm = Just <| SharedMsg <| SharedMsg.ProjectMsg (GetterSetters.projectIdentifier p) SharedMsg.RemoveProject
             , onCancel = Just <| SharedMsg <| SharedMsg.NoOp
             }
