@@ -104,6 +104,7 @@ type alias Localization =
     , staticRepresentationOfBlockDeviceContents : String
     , blockDevice : String
     , share : String
+    , exportLocation : String
     , nonFloatingIpAddress : String
     , floatingIpAddress : String
     , publiclyRoutableIpAddress : String

@@ -281,7 +281,7 @@ render context project ( currentTime, _ ) share =
                 Just loadingExportLocations ->
                     VH.renderRDPP context
                         loadingExportLocations
-                        "export location"
+                        context.localization.exportLocation
                         exportLocationsTable
 
                 Nothing ->
@@ -328,9 +328,7 @@ render context project ( currentTime, _ ) share =
                 |> FeatherIcons.toHtml []
                 |> Element.html
                 |> Element.el []
-
-            -- TODO: Add a localisation for export locations.
-            , "export location"
+            , context.localization.exportLocation
                 |> Helpers.String.pluralize
                 |> Helpers.String.toTitleCase
                 |> Element.text
