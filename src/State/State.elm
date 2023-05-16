@@ -2,6 +2,7 @@ module State.State exposing (update)
 
 import Browser
 import Browser.Navigation
+import Dict
 import Helpers.ExoSetupStatus
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
@@ -1782,6 +1783,29 @@ processProjectSpecificMsg outerModel project msg =
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
+        ReceiveShareExportLocations ( shareUuid, exportLocations ) ->
+            let
+                newProject =
+                    { project
+                        | shareExportLocations =
+                            Dict.update shareUuid
+                                (\_ ->
+                                    Just
+                                        (RDPP.RemoteDataPlusPlus
+                                            (RDPP.DoHave exportLocations sharedModel.clientCurrentTime)
+                                            (RDPP.NotLoading Nothing)
+                                        )
+                                )
+                                project.shareExportLocations
+                    }
+
+                newSharedModel =
+                    GetterSetters.modelUpdateProject sharedModel newProject
+            in
+            ( newSharedModel, Cmd.none )
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
         ReceiveShares shares ->
             let
                 newProject =
@@ -2680,6 +2704,7 @@ createProject_ outerModel description authToken region endpoints =
         sharedModel =
             outerModel.sharedModel
 
+        newProject : Project
         newProject =
             { secret = NoProjectSecret
             , auth = authToken
@@ -2695,6 +2720,7 @@ createProject_ outerModel description authToken region endpoints =
             , volumes = RemoteData.NotAsked
             , volumeSnapshots = RDPP.empty
             , shares = RDPP.empty
+            , shareExportLocations = Dict.empty
             , networks = RDPP.empty
             , autoAllocatedNetworkUuid = RDPP.empty
             , dnsRecordSets = RDPP.empty

@@ -11,6 +11,7 @@ module Rest.ApiModelHelpers exposing
     , requestServer
     , requestServerEvents
     , requestServers
+    , requestShareExportLocations
     , requestShares
     , requestVolumeQuota
     , requestVolumeSnapshots
@@ -89,6 +90,25 @@ requestShares projectUuid model =
                         |> GetterSetters.projectSetSharesLoading
                         |> GetterSetters.modelUpdateProject model
                     , OpenStack.Shares.requestShares project url
+                    )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        Nothing ->
+            ( model, Cmd.none )
+
+
+requestShareExportLocations : ProjectIdentifier -> OSTypes.ShareUuid -> SharedModel -> ( SharedModel, Cmd SharedMsg )
+requestShareExportLocations projectUuid shareUuid model =
+    case GetterSetters.projectLookup model projectUuid of
+        Just project ->
+            case project.endpoints.manila of
+                Just url ->
+                    ( project
+                        |> GetterSetters.projectSetSharesLoading
+                        |> GetterSetters.modelUpdateProject model
+                    , OpenStack.Shares.requestShareExportLocations project url shareUuid
                     )
 
                 Nothing ->

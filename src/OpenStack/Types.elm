@@ -801,7 +801,10 @@ type alias Share =
 
 
 type alias ExportLocation =
-    { path : String }
+    { uuid : ExportLocationUuid
+    , path : String
+    , preferred : Bool
+    }
 
 
 type ShareStatus
@@ -859,6 +862,10 @@ type alias ShareTypeName =
 type ShareVisibility
     = SharePrivate
     | SharePublic
+
+
+type alias ExportLocationUuid =
+    String
 
 
 stringToShareStatus : String -> ShareStatus
