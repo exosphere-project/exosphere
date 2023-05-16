@@ -1581,9 +1581,9 @@ processProjectSpecificMsg outerModel project msg =
                         newKeypairs =
                             case project.keypairs.data of
                                 RDPP.DoHave keypairs _ ->
-                                    RDPP.RemoteDataPlusPlus
+                                    RDPP.setData
                                         (RDPP.DoHave (List.filter (\k -> k.name /= keypairName) keypairs) sharedModel.clientCurrentTime)
-                                        (RDPP.NotLoading Nothing)
+                                        project.keypairs
 
                                 _ ->
                                     project.keypairs

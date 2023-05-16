@@ -699,7 +699,7 @@ projectUpdateKeypair sharedModel project keypair =
     in
     { project
         | keypairs =
-            RDPP.RemoteDataPlusPlus
+            RDPP.setData
                 (RDPP.DoHave keypairs sharedModel.clientCurrentTime)
-                (RDPP.NotLoading Nothing)
+                project.keypairs
     }
