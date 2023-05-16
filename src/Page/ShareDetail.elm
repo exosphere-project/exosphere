@@ -1,6 +1,7 @@
 module Page.ShareDetail exposing (Model, Msg(..), init, update, view)
 
 import DateFormat.Relative
+import Dict
 import Element
 import Element.Border as Border
 import Element.Font as Font
@@ -10,7 +11,7 @@ import Helpers.Formatting exposing (Unit(..), humanNumber)
 import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import Helpers.Time
-import OpenStack.Types as OSTypes exposing (Share)
+import OpenStack.Types as OSTypes exposing (ExportLocation, Share)
 import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.Card
@@ -151,6 +152,46 @@ shareStatus context share =
         ]
 
 
+exportLocationsTable : List ExportLocation -> Element.Element Msg
+exportLocationsTable exportLocations =
+    case List.length exportLocations of
+        0 ->
+            Element.text "(none)"
+
+        _ ->
+            Element.table
+                [ Element.spacing spacer.px16
+                ]
+                { data = exportLocations
+                , columns =
+                    [ { header = Element.el [ Font.heavy ] <| Element.text "Path"
+                      , width = Element.fill
+                      , view =
+                            \item ->
+                                Element.el [ Element.scrollbarX ]
+                                    (Element.el
+                                        [ -- HACK: A width needs to be set so that the cell expands responsively while having a horizontal scrollbar to contain overflow.
+                                          Element.width (Element.px 0)
+                                        ]
+                                        (Element.text item.path)
+                                    )
+                      }
+                    , { header = Element.el [ Font.heavy ] <| Element.text "Preferred"
+                      , width = Element.shrink
+                      , view =
+                            \item ->
+                                Element.text
+                                    (if item.preferred then
+                                        "true"
+
+                                     else
+                                        "false"
+                                    )
+                      }
+                    ]
+                }
+
+
 render : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> Share -> Element.Element Msg
 render context project ( currentTime, _ ) share =
     let
@@ -230,11 +271,21 @@ render context project ( currentTime, _ ) share =
                                 )
                                 headerContents
                           ]
-                        , [ description ]
                         , contents
                         ]
                     )
                 )
+
+        exportLocations =
+            case Dict.get share.uuid project.shareExportLocations of
+                Just loadingExportLocations ->
+                    VH.renderRDPP context
+                        loadingExportLocations
+                        "export location"
+                        exportLocationsTable
+
+                Nothing ->
+                    Element.none
     in
     Element.column [ Element.spacing spacer.px24, Element.width Element.fill ]
         [ Element.row (Text.headingStyleAttrs context.palette)
@@ -261,7 +312,8 @@ render context project ( currentTime, _ ) share =
                     share.uuid
                 )
             ]
-            [ createdAgoByWhomEtc
+            [ description
+            , createdAgoByWhomEtc
                 context
                 { ago = ( "created", whenCreated )
                 , creator = creator
@@ -270,5 +322,19 @@ render context project ( currentTime, _ ) share =
                 , shareTypeName = share.shareTypeName
                 , visibility = OSTypes.shareVisibilityToString share.visibility
                 }
+            ]
+        , tile
+            [ FeatherIcons.cloud
+                |> FeatherIcons.toHtml []
+                |> Element.html
+                |> Element.el []
+
+            -- TODO: Add a localisation for export locations.
+            , "export location"
+                |> Helpers.String.pluralize
+                |> Helpers.String.toTitleCase
+                |> Element.text
+            ]
+            [ exportLocations
             ]
         ]
