@@ -43,7 +43,6 @@ import Page.VolumeCreate
 import Page.VolumeDetail
 import Page.VolumeList
 import Ports
-import RemoteData
 import Rest.ApiModelHelpers as ApiModelHelpers
 import Rest.Designate
 import Rest.Glance
@@ -748,7 +747,7 @@ processSharedMsg sharedMsg outerModel =
                         maybeNextUnscopedProject =
                             GetterSetters.unscopedProviderLookup outerModel_.sharedModel keystoneUrl
                                 |> Maybe.map .projectsAvailable
-                                |> Maybe.map (RemoteData.withDefault [])
+                                |> Maybe.map (RDPP.withDefault [])
                                 |> Maybe.andThen List.head
                     in
                     case maybeNextUnscopedProject of
@@ -814,51 +813,85 @@ processSharedMsg sharedMsg outerModel =
                                 |> mapToOuterMsg
                                 |> mapToOuterModel outerModel
 
-        ReceiveUnscopedProjects keystoneUrl unscopedProjects ->
-            case
-                GetterSetters.unscopedProviderLookup sharedModel keystoneUrl
-            of
+        ReceiveUnscopedProjects keystoneUrl errorContext result ->
+            case GetterSetters.unscopedProviderLookup sharedModel keystoneUrl of
                 Just provider ->
-                    let
-                        newProvider =
-                            { provider | projectsAvailable = RemoteData.Success unscopedProjects }
+                    case result of
+                        Ok unscopedProjects ->
+                            let
+                                newProvider =
+                                    { provider
+                                        | projectsAvailable =
+                                            RDPP.RemoteDataPlusPlus
+                                                (RDPP.DoHave unscopedProjects sharedModel.clientCurrentTime)
+                                                (RDPP.NotLoading Nothing)
+                                    }
 
-                        newSharedModel =
-                            GetterSetters.modelUpdateUnscopedProvider sharedModel newProvider
+                                newSharedModel =
+                                    GetterSetters.modelUpdateUnscopedProvider sharedModel newProvider
 
-                        newOuterModel =
-                            { outerModel | sharedModel = newSharedModel }
-                    in
-                    -- If we are not already on a SelectProjects view, then go there
-                    case outerModel.viewState of
-                        NonProjectView (SelectProjects _) ->
-                            ( newOuterModel, Cmd.none )
+                                newOuterModel =
+                                    { outerModel | sharedModel = newSharedModel }
+                            in
+                            -- If we are not already on a SelectProjects view, then go there
+                            case outerModel.viewState of
+                                NonProjectView (SelectProjects _) ->
+                                    ( newOuterModel, Cmd.none )
 
-                        _ ->
-                            ( newOuterModel
-                            , Route.pushUrl viewContext (Route.SelectProjects keystoneUrl)
-                            )
+                                _ ->
+                                    ( newOuterModel
+                                    , Route.pushUrl viewContext (Route.SelectProjects keystoneUrl)
+                                    )
+
+                        Err e ->
+                            let
+                                newProvider =
+                                    { provider | projectsAvailable = RDPP.setNotLoading (Just ( e, sharedModel.clientCurrentTime )) provider.projectsAvailable }
+
+                                newSharedModel =
+                                    GetterSetters.modelUpdateUnscopedProvider sharedModel newProvider
+                            in
+                            State.Error.processSynchronousApiError newSharedModel errorContext e
+                                |> mapToOuterMsg
+                                |> mapToOuterModel outerModel
 
                 Nothing ->
                     -- Provider not found, may have been removed, nothing to do
                     ( outerModel, Cmd.none )
 
-        ReceiveUnscopedRegions keystoneUrl unscopedRegions ->
-            case
-                GetterSetters.unscopedProviderLookup sharedModel keystoneUrl
-            of
+        ReceiveUnscopedRegions keystoneUrl errorContext result ->
+            case GetterSetters.unscopedProviderLookup sharedModel keystoneUrl of
                 Just provider ->
-                    let
-                        newProvider =
-                            { provider | regionsAvailable = RemoteData.Success unscopedRegions }
+                    case result of
+                        Ok unscopedRegions ->
+                            let
+                                newProvider =
+                                    { provider
+                                        | regionsAvailable =
+                                            RDPP.RemoteDataPlusPlus
+                                                (RDPP.DoHave unscopedRegions sharedModel.clientCurrentTime)
+                                                (RDPP.NotLoading Nothing)
+                                    }
 
-                        newSharedModel =
-                            GetterSetters.modelUpdateUnscopedProvider sharedModel newProvider
+                                newSharedModel =
+                                    GetterSetters.modelUpdateUnscopedProvider sharedModel newProvider
 
-                        newOuterModel =
-                            { outerModel | sharedModel = newSharedModel }
-                    in
-                    ( newOuterModel, Cmd.none )
+                                newOuterModel =
+                                    { outerModel | sharedModel = newSharedModel }
+                            in
+                            ( newOuterModel, Cmd.none )
+
+                        Err e ->
+                            let
+                                newProvider =
+                                    { provider | regionsAvailable = RDPP.setNotLoading (Just ( e, sharedModel.clientCurrentTime )) provider.regionsAvailable }
+
+                                newSharedModel =
+                                    GetterSetters.modelUpdateUnscopedProvider sharedModel newProvider
+                            in
+                            State.Error.processSynchronousApiError newSharedModel errorContext e
+                                |> mapToOuterMsg
+                                |> mapToOuterModel outerModel
 
                 Nothing ->
                     -- Provider not found, may have been removed, nothing to do
@@ -887,7 +920,7 @@ processSharedMsg sharedMsg outerModel =
 
                         notSelectedProjectUuids =
                             provider.projectsAvailable
-                                |> RemoteData.withDefault []
+                                |> RDPP.withDefault []
                                 |> List.map (\p -> p.project.uuid)
                                 |> List.filter (\uuid -> not (List.member uuid selectedProjectUuids))
 
@@ -2729,16 +2762,20 @@ removeUnscopedProject keystoneUrl projectUuid outerModel =
             ( outerModel, Cmd.none )
 
         Just unscopedProvider ->
-            case unscopedProvider.projectsAvailable of
-                RemoteData.Success projectsAvailable ->
+            case unscopedProvider.projectsAvailable.data of
+                RDPP.DoHave projectsAvailable _ ->
                     let
                         newProjectsAvailable =
                             projectsAvailable
                                 |> List.filter (\p -> p.project.uuid /= projectUuid)
-                                |> RemoteData.Success
 
                         newUnscopedProvider =
-                            { unscopedProvider | projectsAvailable = newProjectsAvailable }
+                            { unscopedProvider
+                                | projectsAvailable =
+                                    RDPP.setData
+                                        (RDPP.DoHave newProjectsAvailable outerModel.sharedModel.clientCurrentTime)
+                                        unscopedProvider.projectsAvailable
+                            }
 
                         oldSharedModel =
                             outerModel.sharedModel
@@ -2747,7 +2784,7 @@ removeUnscopedProject keystoneUrl projectUuid outerModel =
                             -- Remove unscoped provider if there are no projects left in it
                             if
                                 newUnscopedProvider.projectsAvailable
-                                    |> RemoteData.withDefault []
+                                    |> RDPP.withDefault []
                                     |> List.isEmpty
                             then
                                 { oldSharedModel
@@ -2880,8 +2917,8 @@ createUnscopedProvider model authToken authUrl =
         newProvider =
             { authUrl = authUrl
             , token = authToken
-            , projectsAvailable = RemoteData.Loading
-            , regionsAvailable = RemoteData.Loading
+            , projectsAvailable = RDPP.RemoteDataPlusPlus RDPP.DontHave RDPP.Loading
+            , regionsAvailable = RDPP.RemoteDataPlusPlus RDPP.DontHave RDPP.Loading
             }
 
         newProviders =

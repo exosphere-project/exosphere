@@ -30,8 +30,8 @@ type SharedMsg
     | RequestUnscopedToken OSTypes.OpenstackLogin
     | ReceiveProjectScopedToken OSTypes.KeystoneUrl ( Http.Metadata, String )
     | ReceiveUnscopedAuthToken OSTypes.KeystoneUrl ( Http.Metadata, String )
-    | ReceiveUnscopedProjects OSTypes.KeystoneUrl (List HelperTypes.UnscopedProviderProject)
-    | ReceiveUnscopedRegions OSTypes.KeystoneUrl (List HelperTypes.UnscopedProviderRegion)
+    | ReceiveUnscopedProjects OSTypes.KeystoneUrl ErrorContext (Result HttpErrorWithBody (List HelperTypes.UnscopedProviderProject))
+    | ReceiveUnscopedRegions OSTypes.KeystoneUrl ErrorContext (Result HttpErrorWithBody (List HelperTypes.UnscopedProviderRegion))
     | RequestProjectScopedToken OSTypes.KeystoneUrl (List HelperTypes.UnscopedProviderProject)
     | CreateProjectsFromRegionSelections OSTypes.KeystoneUrl OSTypes.ProjectUuid (List OSTypes.RegionId)
     | ProjectMsg HelperTypes.ProjectIdentifier ProjectSpecificMsgConstructor
@@ -87,7 +87,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveUnassignFloatingIp OSTypes.FloatingIp
     | ReceiveSecurityGroups ErrorContext (Result HttpErrorWithBody (List OSTypes.SecurityGroup))
     | ReceiveDnsRecordSets (List OpenStack.DnsRecordSet.DnsRecordSet)
-    | ReceiveCreateExoSecurityGroup ErrorContext (Result HttpErrorWithBody (OSTypes.SecurityGroup))
+    | ReceiveCreateExoSecurityGroup ErrorContext (Result HttpErrorWithBody OSTypes.SecurityGroup)
     | ReceiveShares (List OSTypes.Share)
     | ReceiveCreateVolume
     | ReceiveVolumes ErrorContext (Result HttpErrorWithBody (List OSTypes.Volume))

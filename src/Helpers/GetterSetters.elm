@@ -61,7 +61,6 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.Url as UrlHelpers
 import List.Extra
 import OpenStack.Types as OSTypes
-import RemoteData
 import Time
 import Types.Error
 import Types.HelperTypes as HelperTypes
@@ -85,14 +84,14 @@ unscopedProviderLookup sharedModel keystoneUrl =
 unscopedProjectLookup : HelperTypes.UnscopedProvider -> OSTypes.ProjectUuid -> Maybe HelperTypes.UnscopedProviderProject
 unscopedProjectLookup provider projectUuid =
     provider.projectsAvailable
-        |> RemoteData.withDefault []
+        |> RDPP.withDefault []
         |> List.Extra.find (\project -> project.project.uuid == projectUuid)
 
 
 unscopedRegionLookup : HelperTypes.UnscopedProvider -> OSTypes.RegionId -> Maybe OSTypes.Region
 unscopedRegionLookup provider regionId =
     provider.regionsAvailable
-        |> RemoteData.withDefault []
+        |> RDPP.withDefault []
         |> List.Extra.find (\region -> region.id == regionId)
 
 

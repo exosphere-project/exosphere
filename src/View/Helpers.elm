@@ -26,7 +26,6 @@ module View.Helpers exposing
     , renderMessageAsElement
     , renderMessageAsString
     , renderRDPP
-    , renderWebData
     , requiredLabel
     , resourceName
     , serverStatusBadge
@@ -69,7 +68,6 @@ import Markdown.Renderer
 import OpenStack.Quotas as OSQuotas
 import OpenStack.Types as OSTypes exposing (ShareStatus(..))
 import Regex
-import RemoteData
 import Route
 import Style.Helpers as SH
 import Style.Types as ST exposing (ExoPalette)
@@ -370,29 +368,6 @@ loadingStuff context resourceWord =
                 , "..."
                 ]
         ]
-
-
-renderWebData : View.Types.Context -> RemoteData.WebData a -> String -> (a -> Element.Element msg) -> Element.Element msg
-renderWebData context remoteData resourceWord renderSuccessCase =
-    case remoteData of
-        RemoteData.NotAsked ->
-            -- This is an ugly hack because some of our API calls don't set RemoteData to "Loading" when they should.
-            loadingStuff context resourceWord
-
-        RemoteData.Loading ->
-            loadingStuff context resourceWord
-
-        RemoteData.Failure error ->
-            Element.text <|
-                String.join " "
-                    [ "Could not load"
-                    , resourceWord
-                    , "because:"
-                    , Helpers.httpErrorToString error
-                    ]
-
-        RemoteData.Success resource ->
-            renderSuccessCase resource
 
 
 renderRDPP : View.Types.Context -> RDPP.RemoteDataPlusPlus Types.Error.HttpErrorWithBody a -> String -> (a -> Element.Element msg) -> Element.Element msg
