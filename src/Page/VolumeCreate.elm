@@ -4,8 +4,8 @@ import Element
 import Element.Font as Font
 import Element.Input as Input
 import Helpers.GetterSetters as GetterSetters
-import Helpers.String
 import Helpers.RemoteDataPlusPlus as RDPP
+import Helpers.String
 import OpenStack.Quotas as OSQuotas
 import String exposing (trim)
 import Style.Helpers as SH

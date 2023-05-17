@@ -82,9 +82,9 @@ requestVolumes project =
                 Nothing
 
         resultToMsg result =
-                    ProjectMsg
-                        (GetterSetters.projectIdentifier project)
-                        (ReceiveVolumes errorContext result)
+            ProjectMsg
+                (GetterSetters.projectIdentifier project)
+                (ReceiveVolumes errorContext result)
     in
     openstackCredentialedRequest
         (GetterSetters.projectIdentifier project)

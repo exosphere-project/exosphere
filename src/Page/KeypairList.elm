@@ -5,12 +5,12 @@ import Element.Font as Font
 import Element.Input
 import FeatherIcons
 import Helpers.GetterSetters as GetterSetters
+import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.ResourceList exposing (listItemColumnAttribs)
 import Helpers.String
 import Html.Attributes
 import OpenStack.Types as OSTypes
 import Page.QuotaUsage
-import Helpers.RemoteDataPlusPlus as RDPP
 import Route
 import Set
 import Style.Helpers as SH

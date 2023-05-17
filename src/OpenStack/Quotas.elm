@@ -34,9 +34,9 @@ requestComputeQuota project =
                 Nothing
 
         resultToMsg result =
-                    ProjectMsg
-                        (GetterSetters.projectIdentifier project)
-                        (ReceiveComputeQuota errorContext result)
+            ProjectMsg
+                (GetterSetters.projectIdentifier project)
+                (ReceiveComputeQuota errorContext result)
     in
     openstackCredentialedRequest
         (GetterSetters.projectIdentifier project)
@@ -83,9 +83,9 @@ requestVolumeQuota project =
                 Nothing
 
         resultToMsg result =
-                    ProjectMsg
-                        (GetterSetters.projectIdentifier project)
-                        (ReceiveVolumeQuota errorContext result)
+            ProjectMsg
+                (GetterSetters.projectIdentifier project)
+                (ReceiveVolumeQuota errorContext result)
     in
     openstackCredentialedRequest
         (GetterSetters.projectIdentifier project)
@@ -127,9 +127,9 @@ requestNetworkQuota project =
                 Nothing
 
         resultToMsg result =
-                    ProjectMsg
-                        (GetterSetters.projectIdentifier project)
-                        (ReceiveNetworkQuota errorContext result)
+            ProjectMsg
+                (GetterSetters.projectIdentifier project)
+                (ReceiveNetworkQuota errorContext result)
     in
     openstackCredentialedRequest
         (GetterSetters.projectIdentifier project)

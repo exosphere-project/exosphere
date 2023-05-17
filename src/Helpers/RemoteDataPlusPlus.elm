@@ -111,6 +111,7 @@ setData : Haveness data -> RemoteDataPlusPlus error data -> RemoteDataPlusPlus e
 setData haveness rdpp =
     RemoteDataPlusPlus haveness rdpp.refreshStatus
 
+
 setLoading : RemoteDataPlusPlus error data -> RemoteDataPlusPlus error data
 setLoading rdpp =
     setRefreshStatus Loading rdpp

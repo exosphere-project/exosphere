@@ -316,9 +316,9 @@ requestSecurityGroups project =
                 Nothing
 
         resultToMsg result =
-                    ProjectMsg
-                        (GetterSetters.projectIdentifier project)
-                        (ReceiveSecurityGroups errorContext result)
+            ProjectMsg
+                (GetterSetters.projectIdentifier project)
+                (ReceiveSecurityGroups errorContext result)
     in
     openstackCredentialedRequest
         (GetterSetters.projectIdentifier project)
@@ -356,10 +356,9 @@ requestCreateExoSecurityGroup project =
                 Nothing
 
         resultToMsg result =
-                    ProjectMsg
-                        (GetterSetters.projectIdentifier project)
-                        (ReceiveCreateExoSecurityGroup errorContext result)
-
+            ProjectMsg
+                (GetterSetters.projectIdentifier project)
+                (ReceiveCreateExoSecurityGroup errorContext result)
     in
     openstackCredentialedRequest
         (GetterSetters.projectIdentifier project)

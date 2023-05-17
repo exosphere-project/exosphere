@@ -18,12 +18,12 @@ module Rest.ApiModelHelpers exposing
     )
 
 import Helpers.GetterSetters as GetterSetters
+import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.Quotas
 import OpenStack.Shares
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes
 import Rest.Designate
-import Helpers.RemoteDataPlusPlus as RDPP
 import Rest.Glance
 import Rest.Jetstream2Accounting
 import Rest.Neutron

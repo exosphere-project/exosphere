@@ -4,15 +4,15 @@ import Element
 import Element.Background as Background
 import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (Unit(..), humanNumber)
+import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import OpenStack.Types as OSTypes
 import OpenStack.VolumeSnapshots exposing (VolumeSnapshot)
-import Types.Error exposing (HttpErrorWithBody)
-import Helpers.RemoteDataPlusPlus as RDPP
 import Style.Helpers as SH
 import Style.Widgets.Meter
 import Style.Widgets.MultiMeter exposing (multiMeter)
 import Style.Widgets.Spacer exposing (spacer)
+import Types.Error exposing (HttpErrorWithBody)
 import View.Helpers as VH
 import View.Types
 
