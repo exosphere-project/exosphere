@@ -21,7 +21,7 @@ Note for developers: some code in the Exosphere codebase (e.g. variable and func
 | static representation of hard drive contents        | image                      | image               | image                  | Amazon Machine Image (AMI) |
 | storage block device                                | volume                     | volume              | volume                 | volume                     |
 | shared file system (the OpenStack Manila project)   | share                      | share               | manila share           | Amazon Elastic File System |
-| shared file system export locations                 | export locations           | export locations    | export locations       | mount targets              |
+| shared file system export location                  | export location            | export location     | export location        | mount target               |
 | non-floating IP address                             | internal IP address        | fixed IP address    | internal IP address    | private IPv4 address       |
 | floating IP address                                 | public IP address          | floating IP address | public IP address      | Elastic IP Address         |
 | text-based user interface served in a web browser   | terminal                   | N/A                 | web shell              | N/A                        |
