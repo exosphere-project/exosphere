@@ -638,8 +638,8 @@ floatingIpDecoder =
             |> Decode.andThen ipAddressStatusDecoder
         )
         (Decode.field "port_id" <| Decode.nullable Decode.string)
-        (Decode.field "dns_domain" Decode.string)
-        (Decode.field "dns_name" Decode.string)
+        (Decode.maybe <| Decode.field "dns_domain" Decode.string)
+        (Decode.maybe <| Decode.field "dns_name" Decode.string)
 
 
 ipAddressStatusDecoder : String -> Decode.Decoder OSTypes.IpAddressStatus
