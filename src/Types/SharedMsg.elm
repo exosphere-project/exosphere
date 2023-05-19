@@ -71,6 +71,7 @@ type ProjectSpecificMsgConstructor
     | RequestUnassignFloatingIp OSTypes.IpAddressUuid
     | RequestDeleteImage OSTypes.ImageUuid
     | ReceiveImages (List OSTypes.Image)
+    | ReceiveServerImage (Maybe OSTypes.Image)
     | ReceiveServer OSTypes.ServerUuid ErrorContext (Result HttpErrorWithBody OSTypes.Server)
     | ReceiveServers ErrorContext (Result HttpErrorWithBody (List OSTypes.Server))
     | ReceiveCreateServer ErrorContext (Result HttpErrorWithBody OSTypes.ServerUuid)
