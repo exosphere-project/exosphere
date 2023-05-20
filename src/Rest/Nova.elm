@@ -318,19 +318,10 @@ requestCreateServer project createServerRequest =
                 maybeKeypairJson
                 [ ( "name", Encode.string instanceName )
                 , ( "flavorRef", Encode.string innerCreateServerRequest.flavorId )
-                , if innerCreateServerRequest.networkUuid == "auto" then
-                    ( "networks", Encode.string "auto" )
-
-                  else
-                    ( "networks"
-                    , Encode.list Encode.object
-                        [ [ ( "uuid", Encode.string innerCreateServerRequest.networkUuid ) ] ]
-                    )
+                , ( "networks", Encode.list Encode.object [ [ ( "uuid", Encode.string innerCreateServerRequest.networkUuid ) ] ] )
                 , ( "user_data", Encode.string (Base64.encode createServerRequest.userData) )
                 , ( "security_groups", Encode.array Encode.object (Array.fromList [ [ ( "name", Encode.string "exosphere" ) ] ]) )
-                , ( "metadata"
-                  , Encode.object createServerRequest.metadata
-                  )
+                , ( "metadata", Encode.object createServerRequest.metadata )
                 ]
 
         buildRequestOuterJson props =

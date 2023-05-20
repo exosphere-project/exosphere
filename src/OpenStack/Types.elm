@@ -719,8 +719,8 @@ type alias FloatingIp =
     , address : IpAddressValue
     , status : IpAddressStatus
     , portUuid : Maybe PortUuid
-    , dnsName : String
-    , dnsDomain : String
+    , dnsName : Maybe String
+    , dnsDomain : Maybe String
     }
 
 

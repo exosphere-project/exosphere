@@ -349,6 +349,7 @@ routeToViewStateModelCmd sharedModel route =
                                             (ApiModelHelpers.requestServer (GetterSetters.projectIdentifier project) serverId)
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestImages (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd (ApiModelHelpers.requestServerImageIfNotFound project serverId)
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestRecordSets (GetterSetters.projectIdentifier project))
                             in
