@@ -281,7 +281,7 @@ render context project ( currentTime, _ ) share =
                 Just loadingExportLocations ->
                     VH.renderRDPP context
                         loadingExportLocations
-                        context.localization.exportLocation
+                        (context.localization.exportLocation |> Helpers.String.pluralize)
                         exportLocationsTable
 
                 Nothing ->

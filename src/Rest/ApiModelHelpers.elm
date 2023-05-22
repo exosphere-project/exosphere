@@ -106,7 +106,7 @@ requestShareExportLocations projectUuid shareUuid model =
             case project.endpoints.manila of
                 Just url ->
                     ( project
-                        |> GetterSetters.projectSetSharesLoading
+                        |> GetterSetters.projectSetShareExportLocationsLoading shareUuid
                         |> GetterSetters.modelUpdateProject model
                     , OpenStack.Shares.requestShareExportLocations project url shareUuid
                     )
