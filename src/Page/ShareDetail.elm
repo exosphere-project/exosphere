@@ -13,9 +13,9 @@ import Helpers.String
 import Helpers.Time
 import OpenStack.Types as OSTypes exposing (ExportLocation, Share)
 import Style.Helpers as SH
-import Style.Types as ST
+import Style.Types as ST exposing (ExoPalette)
 import Style.Widgets.Card
-import Style.Widgets.CopyableText exposing (copyableText)
+import Style.Widgets.CopyableText exposing (copyableText, copyableTextAccessory)
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
@@ -152,8 +152,8 @@ shareStatus context share =
         ]
 
 
-exportLocationsTable : List ExportLocation -> Element.Element Msg
-exportLocationsTable exportLocations =
+exportLocationsTable : ExoPalette -> List ExportLocation -> Element.Element Msg
+exportLocationsTable palette exportLocations =
     case List.length exportLocations of
         0 ->
             Element.text "(none)"
@@ -168,7 +168,10 @@ exportLocationsTable exportLocations =
                       , width = Element.fill
                       , view =
                             \item ->
-                                Element.el [ Element.scrollbarX ]
+                                Element.el
+                                    [ Element.scrollbarX
+                                    , (copyableTextAccessory palette item.path).id
+                                    ]
                                     (Element.el
                                         [ -- HACK: A width needs to be set so that the cell expands responsively while having a horizontal scrollbar to contain overflow.
                                           Element.width (Element.px 0)
@@ -176,17 +179,11 @@ exportLocationsTable exportLocations =
                                         (Element.text item.path)
                                     )
                       }
-                    , { header = Element.el [ Font.heavy ] <| Element.text "Preferred"
+                    , { header = Element.none
                       , width = Element.shrink
                       , view =
                             \item ->
-                                Element.text
-                                    (if item.preferred then
-                                        "true"
-
-                                     else
-                                        "false"
-                                    )
+                                (copyableTextAccessory palette item.path).accessory
                       }
                     ]
                 }
@@ -282,7 +279,7 @@ render context project ( currentTime, _ ) share =
                     VH.renderRDPP context
                         loadingExportLocations
                         (context.localization.exportLocation |> Helpers.String.pluralize)
-                        exportLocationsTable
+                        (exportLocationsTable context.palette)
 
                 Nothing ->
                     Element.none
