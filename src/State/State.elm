@@ -44,7 +44,6 @@ import Page.VolumeCreate
 import Page.VolumeDetail
 import Page.VolumeList
 import Ports
-import RemoteData
 import Rest.ApiModelHelpers as ApiModelHelpers
 import Rest.Designate
 import Rest.Glance
@@ -749,7 +748,7 @@ processSharedMsg sharedMsg outerModel =
                         maybeNextUnscopedProject =
                             GetterSetters.unscopedProviderLookup outerModel_.sharedModel keystoneUrl
                                 |> Maybe.map .projectsAvailable
-                                |> Maybe.map (RemoteData.withDefault [])
+                                |> Maybe.map (RDPP.withDefault [])
                                 |> Maybe.andThen List.head
                     in
                     case maybeNextUnscopedProject of
@@ -815,51 +814,85 @@ processSharedMsg sharedMsg outerModel =
                                 |> mapToOuterMsg
                                 |> mapToOuterModel outerModel
 
-        ReceiveUnscopedProjects keystoneUrl unscopedProjects ->
-            case
-                GetterSetters.unscopedProviderLookup sharedModel keystoneUrl
-            of
+        ReceiveUnscopedProjects keystoneUrl errorContext result ->
+            case GetterSetters.unscopedProviderLookup sharedModel keystoneUrl of
                 Just provider ->
-                    let
-                        newProvider =
-                            { provider | projectsAvailable = RemoteData.Success unscopedProjects }
+                    case result of
+                        Ok unscopedProjects ->
+                            let
+                                newProvider =
+                                    { provider
+                                        | projectsAvailable =
+                                            RDPP.RemoteDataPlusPlus
+                                                (RDPP.DoHave unscopedProjects sharedModel.clientCurrentTime)
+                                                (RDPP.NotLoading Nothing)
+                                    }
 
-                        newSharedModel =
-                            GetterSetters.modelUpdateUnscopedProvider sharedModel newProvider
+                                newSharedModel =
+                                    GetterSetters.modelUpdateUnscopedProvider sharedModel newProvider
 
-                        newOuterModel =
-                            { outerModel | sharedModel = newSharedModel }
-                    in
-                    -- If we are not already on a SelectProjects view, then go there
-                    case outerModel.viewState of
-                        NonProjectView (SelectProjects _) ->
-                            ( newOuterModel, Cmd.none )
+                                newOuterModel =
+                                    { outerModel | sharedModel = newSharedModel }
+                            in
+                            -- If we are not already on a SelectProjects view, then go there
+                            case outerModel.viewState of
+                                NonProjectView (SelectProjects _) ->
+                                    ( newOuterModel, Cmd.none )
 
-                        _ ->
-                            ( newOuterModel
-                            , Route.pushUrl viewContext (Route.SelectProjects keystoneUrl)
-                            )
+                                _ ->
+                                    ( newOuterModel
+                                    , Route.pushUrl viewContext (Route.SelectProjects keystoneUrl)
+                                    )
+
+                        Err e ->
+                            let
+                                newProvider =
+                                    { provider | projectsAvailable = RDPP.setNotLoading (Just ( e, sharedModel.clientCurrentTime )) provider.projectsAvailable }
+
+                                newSharedModel =
+                                    GetterSetters.modelUpdateUnscopedProvider sharedModel newProvider
+                            in
+                            State.Error.processSynchronousApiError newSharedModel errorContext e
+                                |> mapToOuterMsg
+                                |> mapToOuterModel outerModel
 
                 Nothing ->
                     -- Provider not found, may have been removed, nothing to do
                     ( outerModel, Cmd.none )
 
-        ReceiveUnscopedRegions keystoneUrl unscopedRegions ->
-            case
-                GetterSetters.unscopedProviderLookup sharedModel keystoneUrl
-            of
+        ReceiveUnscopedRegions keystoneUrl errorContext result ->
+            case GetterSetters.unscopedProviderLookup sharedModel keystoneUrl of
                 Just provider ->
-                    let
-                        newProvider =
-                            { provider | regionsAvailable = RemoteData.Success unscopedRegions }
+                    case result of
+                        Ok unscopedRegions ->
+                            let
+                                newProvider =
+                                    { provider
+                                        | regionsAvailable =
+                                            RDPP.RemoteDataPlusPlus
+                                                (RDPP.DoHave unscopedRegions sharedModel.clientCurrentTime)
+                                                (RDPP.NotLoading Nothing)
+                                    }
 
-                        newSharedModel =
-                            GetterSetters.modelUpdateUnscopedProvider sharedModel newProvider
+                                newSharedModel =
+                                    GetterSetters.modelUpdateUnscopedProvider sharedModel newProvider
 
-                        newOuterModel =
-                            { outerModel | sharedModel = newSharedModel }
-                    in
-                    ( newOuterModel, Cmd.none )
+                                newOuterModel =
+                                    { outerModel | sharedModel = newSharedModel }
+                            in
+                            ( newOuterModel, Cmd.none )
+
+                        Err e ->
+                            let
+                                newProvider =
+                                    { provider | regionsAvailable = RDPP.setNotLoading (Just ( e, sharedModel.clientCurrentTime )) provider.regionsAvailable }
+
+                                newSharedModel =
+                                    GetterSetters.modelUpdateUnscopedProvider sharedModel newProvider
+                            in
+                            State.Error.processSynchronousApiError newSharedModel errorContext e
+                                |> mapToOuterMsg
+                                |> mapToOuterModel outerModel
 
                 Nothing ->
                     -- Provider not found, may have been removed, nothing to do
@@ -888,7 +921,7 @@ processSharedMsg sharedMsg outerModel =
 
                         notSelectedProjectUuids =
                             provider.projectsAvailable
-                                |> RemoteData.withDefault []
+                                |> RDPP.withDefault []
                                 |> List.map (\p -> p.project.uuid)
                                 |> List.filter (\uuid -> not (List.member uuid selectedProjectUuids))
 
@@ -1032,7 +1065,7 @@ processTick outerModel interval time =
                                     ( outerModel.sharedModel
                                     , case interval of
                                         5 ->
-                                            if List.any volNeedsFrequentPoll (RemoteData.withDefault [] project.volumes) then
+                                            if List.any volNeedsFrequentPoll (RDPP.withDefault [] project.volumes) then
                                                 OSVolumes.requestVolumes project
 
                                             else
@@ -1400,15 +1433,10 @@ processProjectSpecificMsg outerModel project msg =
 
                 Err e ->
                     let
-                        oldServersData =
-                            project.servers.data
-
                         newProject =
                             { project
                                 | servers =
-                                    RDPP.RemoteDataPlusPlus
-                                        oldServersData
-                                        (RDPP.NotLoading (Just ( e, sharedModel.clientCurrentTime )))
+                                    RDPP.setNotLoading (Just ( e, sharedModel.clientCurrentTime )) project.servers
                             }
 
                         newSharedModel =
@@ -1503,12 +1531,7 @@ processProjectSpecificMsg outerModel project msg =
         RequestKeypairs ->
             let
                 newKeypairs =
-                    case project.keypairs of
-                        RemoteData.Success _ ->
-                            project.keypairs
-
-                        _ ->
-                            RemoteData.Loading
+                    RDPP.setLoading project.keypairs
 
                 newProject =
                     { project | keypairs = newKeypairs }
@@ -1522,26 +1545,59 @@ processProjectSpecificMsg outerModel project msg =
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
-        ReceiveKeypairs keypairs ->
-            Rest.Nova.receiveKeypairs sharedModel project keypairs
-                |> mapToOuterMsg
-                |> mapToOuterModel outerModel
+        ReceiveKeypairs errorContext result ->
+            case result of
+                Ok keypairs ->
+                    Rest.Nova.receiveKeypairs sharedModel project keypairs
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+                Err e ->
+                    let
+                        newProject =
+                            { project
+                                | keypairs =
+                                    RDPP.setNotLoading
+                                        (Just ( e, sharedModel.clientCurrentTime ))
+                                        project.keypairs
+                            }
+
+                        newSharedModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+                    in
+                    State.Error.processSynchronousApiError newSharedModel errorContext e
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
 
         RequestCreateKeypair keypairName publicKey ->
             ( outerModel, Rest.Nova.requestCreateKeypair project keypairName publicKey )
                 |> mapToOuterMsg
 
-        ReceiveCreateKeypair keypair ->
-            let
-                newProject =
-                    GetterSetters.projectUpdateKeypair project keypair
+        ReceiveCreateKeypair errorContext result ->
+            case result of
+                Ok keypair ->
+                    let
+                        newProject =
+                            GetterSetters.projectUpdateKeypair sharedModel project keypair
 
-                newSharedModel =
-                    GetterSetters.modelUpdateProject sharedModel newProject
-            in
-            ( { outerModel | sharedModel = newSharedModel }
-            , Route.pushUrl sharedModel.viewContext (Route.ProjectRoute (GetterSetters.projectIdentifier project) Route.KeypairList)
-            )
+                        newSharedModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+                    in
+                    ( { outerModel | sharedModel = newSharedModel }
+                    , Route.pushUrl sharedModel.viewContext (Route.ProjectRoute (GetterSetters.projectIdentifier project) Route.KeypairList)
+                    )
+
+                Err e ->
+                    let
+                        newProject =
+                            { project | keypairs = RDPP.setNotLoading (Just ( e, sharedModel.clientCurrentTime )) project.keypairs }
+
+                        newSharedModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+                    in
+                    State.Error.processSynchronousApiError newSharedModel errorContext e
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
 
         RequestDeleteKeypair keypairId ->
             ( outerModel, Rest.Nova.requestDeleteKeypair project keypairId )
@@ -1557,11 +1613,11 @@ processProjectSpecificMsg outerModel project msg =
                 Ok () ->
                     let
                         newKeypairs =
-                            case project.keypairs of
-                                RemoteData.Success keypairs ->
-                                    keypairs
-                                        |> List.filter (\k -> k.name /= keypairName)
-                                        |> RemoteData.Success
+                            case project.keypairs.data of
+                                RDPP.DoHave keypairs _ ->
+                                    RDPP.setData
+                                        (RDPP.DoHave (List.filter (\k -> k.name /= keypairName) keypairs) sharedModel.clientCurrentTime)
+                                        project.keypairs
 
                                 _ ->
                                     project.keypairs
@@ -1637,15 +1693,12 @@ processProjectSpecificMsg outerModel project msg =
 
                 Err httpError ->
                     let
-                        oldNetworksData =
-                            project.networks.data
-
                         newProject =
                             { project
                                 | networks =
-                                    RDPP.RemoteDataPlusPlus
-                                        oldNetworksData
-                                        (RDPP.NotLoading (Just ( httpError, sharedModel.clientCurrentTime )))
+                                    RDPP.setNotLoading
+                                        (Just ( httpError, sharedModel.clientCurrentTime ))
+                                        project.networks
                             }
 
                         newModel =
@@ -1773,15 +1826,54 @@ processProjectSpecificMsg outerModel project msg =
             ( GetterSetters.modelUpdateProject sharedModel newProject, Cmd.none )
                 |> mapToOuterModel outerModel
 
-        ReceiveSecurityGroups groups ->
-            Rest.Neutron.receiveSecurityGroupsAndEnsureExoGroup sharedModel project groups
-                |> mapToOuterMsg
-                |> mapToOuterModel outerModel
+        ReceiveSecurityGroups errorContext result ->
+            case result of
+                Ok groups ->
+                    Rest.Neutron.receiveSecurityGroupsAndEnsureExoGroup sharedModel project groups
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
 
-        ReceiveCreateExoSecurityGroup group ->
-            Rest.Neutron.receiveCreateExoSecurityGroupAndRequestCreateRules sharedModel project group
-                |> mapToOuterMsg
-                |> mapToOuterModel outerModel
+                Err httpError ->
+                    let
+                        oldSecurityGroups =
+                            project.securityGroups.data
+
+                        newProject =
+                            { project | securityGroups = RDPP.RemoteDataPlusPlus oldSecurityGroups (RDPP.NotLoading (Just ( httpError, sharedModel.clientCurrentTime ))) }
+
+                        newModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+                    in
+                    State.Error.processSynchronousApiError newModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+        ReceiveCreateExoSecurityGroup errorContext result ->
+            case result of
+                Ok group ->
+                    Rest.Neutron.receiveCreateExoSecurityGroupAndRequestCreateRules sharedModel project group
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+                Err httpError ->
+                    let
+                        oldSecurityGroups =
+                            project.securityGroups.data
+
+                        newProject =
+                            { project
+                                | securityGroups =
+                                    RDPP.RemoteDataPlusPlus
+                                        oldSecurityGroups
+                                        (RDPP.NotLoading (Just ( httpError, sharedModel.clientCurrentTime )))
+                            }
+
+                        newModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+                    in
+                    State.Error.processSynchronousApiError newModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
 
         ReceiveShareExportLocations ( shareUuid, exportLocations ) ->
             let
@@ -1829,87 +1921,108 @@ processProjectSpecificMsg outerModel project msg =
             , Route.pushUrl sharedModel.viewContext (Route.ProjectRoute (GetterSetters.projectIdentifier project) Route.VolumeList)
             )
 
-        ReceiveVolumes volumes ->
-            let
-                -- Look for any server backing volumes that were created with no name, and give them a reasonable name
-                updateVolNameCmds : List (Cmd SharedMsg)
-                updateVolNameCmds =
-                    RDPP.withDefault [] project.servers
-                        -- List of tuples containing server and Maybe boot vol
-                        |> List.map
-                            (\s ->
-                                ( s
-                                , GetterSetters.getBootVolume
-                                    (RemoteData.withDefault
-                                        []
+        ReceiveVolumes errorContext result ->
+            case result of
+                Ok volumes ->
+                    let
+                        -- Look for any server backing volumes that were created with no name, and give them a reasonable name
+                        updateVolNameCmds : List (Cmd SharedMsg)
+                        updateVolNameCmds =
+                            RDPP.withDefault [] project.servers
+                                -- List of tuples containing server and Maybe boot vol
+                                |> List.map
+                                    (\s ->
+                                        ( s
+                                        , GetterSetters.getBootVolume
+                                            (RDPP.withDefault [] project.volumes)
+                                            s.osProps.uuid
+                                        )
+                                    )
+                                -- We only care about servers created by exosphere
+                                |> List.filter
+                                    (\t ->
+                                        case Tuple.first t |> .exoProps |> .serverOrigin of
+                                            ServerFromExo _ ->
+                                                True
+
+                                            ServerNotFromExo ->
+                                                False
+                                    )
+                                -- We only care about servers created as current OpenStack user
+                                |> List.filter
+                                    (\t ->
+                                        (Tuple.first t).osProps.details.userUuid
+                                            == project.auth.user.uuid
+                                    )
+                                -- We only care about servers with a non-empty name
+                                |> List.filter
+                                    (\t ->
+                                        Tuple.first t
+                                            |> .osProps
+                                            |> .name
+                                            |> String.isEmpty
+                                            |> not
+                                    )
+                                -- We only care about volume-backed servers
+                                |> List.filterMap
+                                    (\t ->
+                                        case t of
+                                            ( server, Just vol ) ->
+                                                -- Flatten second part of tuple
+                                                Just ( server, vol )
+
+                                            _ ->
+                                                Nothing
+                                    )
+                                -- We only care about unnamed backing volumes
+                                |> List.filter
+                                    (\t ->
+                                        Tuple.second t
+                                            |> .name
+                                            |> Maybe.withDefault ""
+                                            |> String.isEmpty
+                                    )
+                                |> List.map
+                                    (\t ->
+                                        OSVolumes.requestUpdateVolumeName
+                                            project
+                                            (t |> Tuple.second |> .uuid)
+                                            ("boot-vol-"
+                                                ++ (t |> Tuple.first |> .osProps |> .name)
+                                            )
+                                    )
+
+                        newProject =
+                            { project
+                                | volumes =
+                                    RDPP.RemoteDataPlusPlus
+                                        (RDPP.DoHave volumes sharedModel.clientCurrentTime)
+                                        (RDPP.NotLoading Nothing)
+                            }
+
+                        newSharedModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+                    in
+                    ( newSharedModel, Cmd.batch updateVolNameCmds )
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+                Err httpError ->
+                    let
+                        newProject =
+                            { project
+                                | volumes =
+                                    RDPP.setNotLoading
+                                        (Just ( httpError, sharedModel.clientCurrentTime ))
                                         project.volumes
-                                    )
-                                    s.osProps.uuid
-                                )
-                            )
-                        -- We only care about servers created by exosphere
-                        |> List.filter
-                            (\t ->
-                                case Tuple.first t |> .exoProps |> .serverOrigin of
-                                    ServerFromExo _ ->
-                                        True
+                            }
 
-                                    ServerNotFromExo ->
-                                        False
-                            )
-                        -- We only care about servers created as current OpenStack user
-                        |> List.filter
-                            (\t ->
-                                (Tuple.first t).osProps.details.userUuid
-                                    == project.auth.user.uuid
-                            )
-                        -- We only care about servers with a non-empty name
-                        |> List.filter
-                            (\t ->
-                                Tuple.first t
-                                    |> .osProps
-                                    |> .name
-                                    |> String.isEmpty
-                                    |> not
-                            )
-                        -- We only care about volume-backed servers
-                        |> List.filterMap
-                            (\t ->
-                                case t of
-                                    ( server, Just vol ) ->
-                                        -- Flatten second part of tuple
-                                        Just ( server, vol )
-
-                                    _ ->
-                                        Nothing
-                            )
-                        -- We only care about unnamed backing volumes
-                        |> List.filter
-                            (\t ->
-                                Tuple.second t
-                                    |> .name
-                                    |> Maybe.withDefault ""
-                                    |> String.isEmpty
-                            )
-                        |> List.map
-                            (\t ->
-                                OSVolumes.requestUpdateVolumeName
-                                    project
-                                    (t |> Tuple.second |> .uuid)
-                                    ("boot-vol-"
-                                        ++ (t |> Tuple.first |> .osProps |> .name)
-                                    )
-                            )
-
-                newProject =
-                    { project | volumes = RemoteData.succeed volumes }
-
-                newSharedModel =
-                    GetterSetters.modelUpdateProject sharedModel newProject
-            in
-            ( newSharedModel, Cmd.batch updateVolNameCmds )
-                |> mapToOuterMsg
-                |> mapToOuterModel outerModel
+                        newModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+                    in
+                    State.Error.processSynchronousApiError newModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
 
         ReceiveVolumeSnapshots snapshots ->
             let
@@ -1959,29 +2072,86 @@ processProjectSpecificMsg outerModel project msg =
             ( GetterSetters.modelUpdateProject sharedModel newProject, Cmd.none )
                 |> mapToOuterModel outerModel
 
-        ReceiveComputeQuota quota ->
-            let
-                newProject =
-                    { project | computeQuota = RemoteData.Success quota }
-            in
-            ( GetterSetters.modelUpdateProject sharedModel newProject, Cmd.none )
-                |> mapToOuterModel outerModel
+        ReceiveComputeQuota errorContext result ->
+            case result of
+                Ok quota ->
+                    let
+                        newProject =
+                            { project
+                                | computeQuota =
+                                    RDPP.RemoteDataPlusPlus
+                                        (RDPP.DoHave quota sharedModel.clientCurrentTime)
+                                        (RDPP.NotLoading Nothing)
+                            }
+                    in
+                    ( GetterSetters.modelUpdateProject sharedModel newProject, Cmd.none )
+                        |> mapToOuterModel outerModel
 
-        ReceiveVolumeQuota quota ->
-            let
-                newProject =
-                    { project | volumeQuota = RemoteData.Success quota }
-            in
-            ( GetterSetters.modelUpdateProject sharedModel newProject, Cmd.none )
-                |> mapToOuterModel outerModel
+                Err httpError ->
+                    let
+                        newProject =
+                            { project | computeQuota = RDPP.setNotLoading (Just ( httpError, sharedModel.clientCurrentTime )) project.computeQuota }
 
-        ReceiveNetworkQuota quota ->
-            let
-                newProject =
-                    { project | networkQuota = RemoteData.Success quota }
-            in
-            ( GetterSetters.modelUpdateProject sharedModel newProject, Cmd.none )
-                |> mapToOuterModel outerModel
+                        newModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+                    in
+                    State.Error.processSynchronousApiError newModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+        ReceiveVolumeQuota errorContext result ->
+            case result of
+                Ok quota ->
+                    let
+                        newProject =
+                            { project
+                                | volumeQuota =
+                                    RDPP.RemoteDataPlusPlus
+                                        (RDPP.DoHave quota sharedModel.clientCurrentTime)
+                                        (RDPP.NotLoading Nothing)
+                            }
+                    in
+                    ( GetterSetters.modelUpdateProject sharedModel newProject, Cmd.none )
+                        |> mapToOuterModel outerModel
+
+                Err httpError ->
+                    let
+                        newProject =
+                            { project | volumeQuota = RDPP.setNotLoading (Just ( httpError, sharedModel.clientCurrentTime )) project.volumeQuota }
+
+                        newModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+                    in
+                    State.Error.processSynchronousApiError newModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+        ReceiveNetworkQuota errorContext result ->
+            case result of
+                Ok quota ->
+                    let
+                        newProject =
+                            { project
+                                | networkQuota =
+                                    RDPP.RemoteDataPlusPlus
+                                        (RDPP.DoHave quota sharedModel.clientCurrentTime)
+                                        (RDPP.NotLoading Nothing)
+                            }
+                    in
+                    ( GetterSetters.modelUpdateProject sharedModel newProject, Cmd.none )
+                        |> mapToOuterModel outerModel
+
+                Err httpError ->
+                    let
+                        newProject =
+                            { project | networkQuota = RDPP.setNotLoading (Just ( httpError, sharedModel.clientCurrentTime )) project.networkQuota }
+
+                        newModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+                    in
+                    State.Error.processSynchronousApiError newModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
 
         RequestDeleteImage imageUuid ->
             ( outerModel, Rest.Glance.requestDeleteImage project imageUuid )
@@ -2030,6 +2200,19 @@ processProjectSpecificMsg outerModel project msg =
                     in
                     State.Error.processSynchronousApiError newModel errorContext httpError
                         |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+        ReceiveServerImage maybeImage ->
+            case maybeImage of
+                Nothing ->
+                    ( outerModel, Cmd.none )
+
+                Just image ->
+                    let
+                        newProject =
+                            { project | serverImages = image :: project.serverImages }
+                    in
+                    ( GetterSetters.modelUpdateProject sharedModel newProject, Cmd.none )
                         |> mapToOuterModel outerModel
 
 
@@ -2616,16 +2799,20 @@ removeUnscopedProject keystoneUrl projectUuid outerModel =
             ( outerModel, Cmd.none )
 
         Just unscopedProvider ->
-            case unscopedProvider.projectsAvailable of
-                RemoteData.Success projectsAvailable ->
+            case unscopedProvider.projectsAvailable.data of
+                RDPP.DoHave projectsAvailable _ ->
                     let
                         newProjectsAvailable =
                             projectsAvailable
                                 |> List.filter (\p -> p.project.uuid /= projectUuid)
-                                |> RemoteData.Success
 
                         newUnscopedProvider =
-                            { unscopedProvider | projectsAvailable = newProjectsAvailable }
+                            { unscopedProvider
+                                | projectsAvailable =
+                                    RDPP.setData
+                                        (RDPP.DoHave newProjectsAvailable outerModel.sharedModel.clientCurrentTime)
+                                        unscopedProvider.projectsAvailable
+                            }
 
                         oldSharedModel =
                             outerModel.sharedModel
@@ -2634,7 +2821,7 @@ removeUnscopedProject keystoneUrl projectUuid outerModel =
                             -- Remove unscoped provider if there are no projects left in it
                             if
                                 newUnscopedProvider.projectsAvailable
-                                    |> RemoteData.withDefault []
+                                    |> RDPP.withDefault []
                                     |> List.isEmpty
                             then
                                 { oldSharedModel
@@ -2715,9 +2902,10 @@ createProject_ outerModel description authToken region endpoints =
             , description = description
             , images = RDPP.RemoteDataPlusPlus RDPP.DontHave RDPP.Loading
             , servers = RDPP.RemoteDataPlusPlus RDPP.DontHave RDPP.Loading
+            , serverImages = []
             , flavors = []
-            , keypairs = RemoteData.NotAsked
-            , volumes = RemoteData.NotAsked
+            , keypairs = RDPP.empty
+            , volumes = RDPP.empty
             , volumeSnapshots = RDPP.empty
             , shares = RDPP.empty
             , shareExportLocations = Dict.empty
@@ -2726,10 +2914,10 @@ createProject_ outerModel description authToken region endpoints =
             , dnsRecordSets = RDPP.empty
             , floatingIps = RDPP.empty
             , ports = RDPP.empty
-            , securityGroups = []
-            , computeQuota = RemoteData.NotAsked
-            , volumeQuota = RemoteData.NotAsked
-            , networkQuota = RemoteData.NotAsked
+            , securityGroups = RDPP.empty
+            , computeQuota = RDPP.empty
+            , volumeQuota = RDPP.empty
+            , networkQuota = RDPP.empty
             , jetstream2Allocations = RDPP.empty
             }
 
@@ -2769,8 +2957,8 @@ createUnscopedProvider model authToken authUrl =
         newProvider =
             { authUrl = authUrl
             , token = authToken
-            , projectsAvailable = RemoteData.Loading
-            , regionsAvailable = RemoteData.Loading
+            , projectsAvailable = RDPP.RemoteDataPlusPlus RDPP.DontHave RDPP.Loading
+            , regionsAvailable = RDPP.RemoteDataPlusPlus RDPP.DontHave RDPP.Loading
             }
 
         newProviders =

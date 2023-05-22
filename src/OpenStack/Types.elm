@@ -88,10 +88,10 @@ module OpenStack.Types exposing
     )
 
 import Dict
+import Helpers.RemoteDataPlusPlus as RDPP
 import Json.Encode
 import OpenStack.HelperTypes as HelperTypes
 import OpenStack.SecurityGroupRule exposing (SecurityGroupRule)
-import RemoteData exposing (RemoteData)
 import Time
 import Types.Error exposing (HttpErrorWithBody)
 
@@ -351,7 +351,7 @@ type alias Server =
     { name : String
     , uuid : ServerUuid
     , details : ServerDetails
-    , consoleUrl : RemoteData HttpErrorWithBody ConsoleUrl
+    , consoleUrl : RDPP.RemoteDataPlusPlus HttpErrorWithBody ConsoleUrl
     }
 
 
@@ -719,8 +719,8 @@ type alias FloatingIp =
     , address : IpAddressValue
     , status : IpAddressStatus
     , portUuid : Maybe PortUuid
-    , dnsName : String
-    , dnsDomain : String
+    , dnsName : Maybe String
+    , dnsDomain : Maybe String
     }
 
 

@@ -7,7 +7,6 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import Helpers.Url as UrlHelpers
-import RemoteData
 import Route
 import Set
 import Style.Helpers as SH
@@ -255,7 +254,7 @@ renderProject context project =
                 , renderResourceQuantity
                     context.localization.blockDevice
                     (FeatherIcons.hardDrive |> FeatherIcons.toHtml [] |> Element.html |> Element.el [])
-                    (RemoteData.withDefault [] project.volumes)
+                    (RDPP.withDefault [] project.volumes)
                 , renderResourceQuantity
                     context.localization.floatingIpAddress
                     (Icon.ipAddress (SH.toElementColor context.palette.neutral.text.default) 24)

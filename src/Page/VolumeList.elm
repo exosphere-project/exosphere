@@ -13,7 +13,6 @@ import Helpers.String
 import OpenStack.Types as OSTypes
 import OpenStack.VolumeSnapshots as VS
 import Page.QuotaUsage
-import RemoteData
 import Route
 import Set
 import Style.Helpers as SH
@@ -136,10 +135,10 @@ view context project currentTime model =
 
           else
             Element.none
-        , Page.QuotaUsage.view context Page.QuotaUsage.Full (Page.QuotaUsage.Volume ( project.volumeQuota, RDPP.toWebData project.volumeSnapshots ))
-        , VH.renderWebData
+        , Page.QuotaUsage.view context Page.QuotaUsage.Full (Page.QuotaUsage.Volume ( project.volumeQuota, project.volumeSnapshots ))
+        , VH.renderRDPP
             context
-            (RemoteData.map2 Tuple.pair project.volumes (RDPP.toWebData project.volumeSnapshots))
+            (RDPP.map2 Tuple.pair project.volumes project.volumeSnapshots)
             (Helpers.String.pluralize context.localization.blockDevice)
             renderSuccessCase
         ]

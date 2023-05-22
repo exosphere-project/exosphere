@@ -11,7 +11,6 @@ import Json.Decode as Decode
 import Json.Encode as Encode
 import LocalStorage.Types exposing (StoredProject, StoredProject2, StoredProject3, StoredProject4, StoredState)
 import OpenStack.Types as OSTypes
-import RemoteData
 import Style.Types as ST
 import Time
 import Types.Project
@@ -97,9 +96,10 @@ hydrateProjectFromStoredProject storedProject =
     , description = storedProject.description
     , images = RDPP.empty
     , servers = RDPP.empty
+    , serverImages = []
     , flavors = []
-    , keypairs = RemoteData.NotAsked
-    , volumes = RemoteData.NotAsked
+    , keypairs = RDPP.empty
+    , volumes = RDPP.empty
     , volumeSnapshots = RDPP.empty
     , networks = RDPP.empty
     , shares = RDPP.empty
@@ -108,10 +108,10 @@ hydrateProjectFromStoredProject storedProject =
     , dnsRecordSets = RDPP.empty
     , floatingIps = RDPP.empty
     , ports = RDPP.empty
-    , securityGroups = []
-    , computeQuota = RemoteData.NotAsked
-    , volumeQuota = RemoteData.NotAsked
-    , networkQuota = RemoteData.NotAsked
+    , securityGroups = RDPP.empty
+    , computeQuota = RDPP.empty
+    , volumeQuota = RDPP.empty
+    , networkQuota = RDPP.empty
     , jetstream2Allocations = RDPP.empty
     }
 

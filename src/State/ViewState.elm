@@ -5,6 +5,7 @@ module State.ViewState exposing
 
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
+import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.Quotas as OSQuotas
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes as OSVolumes
@@ -35,7 +36,6 @@ import Page.VolumeDetail
 import Page.VolumeList
 import Page.VolumeMountInstructions
 import Ports
-import RemoteData
 import Rest.ApiModelHelpers as ApiModelHelpers
 import Rest.Keystone
 import Rest.Nova
@@ -134,8 +134,8 @@ routeToViewStateModelCmd sharedModel route =
                                             tokenExpiry
                                             authTokenString
                                         )
-                                        RemoteData.NotAsked
-                                        RemoteData.NotAsked
+                                        RDPP.empty
+                                        RDPP.empty
 
                                 newUnscopedProviders =
                                     unscopedProvider :: sharedModel.unscopedProviders
@@ -349,6 +349,7 @@ routeToViewStateModelCmd sharedModel route =
                                             (ApiModelHelpers.requestServer (GetterSetters.projectIdentifier project) serverId)
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestImages (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd (ApiModelHelpers.requestServerImageIfNotFound project serverId)
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestRecordSets (GetterSetters.projectIdentifier project))
                             in

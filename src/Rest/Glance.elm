@@ -3,6 +3,7 @@ module Rest.Glance exposing
     , receiveImages
     , requestChangeVisibility
     , requestDeleteImage
+    , requestImage
     , requestImages
     )
 
@@ -88,6 +89,27 @@ requestImagesWithVisibility maybeVisibility model project =
         (expectJsonWithErrorBody
             resultToMsg_
             (decodeImages maybeExcludeFilter)
+        )
+
+
+requestImage : OSTypes.ImageUuid -> Project -> ErrorContext -> Cmd SharedMsg
+requestImage imageId project errorContext =
+    let
+        resultToMsg_ =
+            resultToMsgErrorBody
+                errorContext
+                (\image -> ProjectMsg (GetterSetters.projectIdentifier project) <| Types.SharedMsg.ReceiveServerImage image)
+    in
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Get
+        Nothing
+        []
+        (project.endpoints.glance ++ "/v2/images/" ++ imageId)
+        Http.emptyBody
+        (Rest.Helpers.expectJsonWithErrorBody
+            resultToMsg_
+            (imageDecoder Nothing)
         )
 
 

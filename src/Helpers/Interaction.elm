@@ -8,7 +8,6 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import Helpers.Url as UrlHelpers
 import OpenStack.Types as OSTypes
-import RemoteData
 import Style.Helpers as SH
 import Style.Types
 import Style.Widgets.Icon as Icon
@@ -351,18 +350,18 @@ interactionStatus project server interaction context currentTime tlsReverseProxy
                             ITypes.Ready <| "exouser@" ++ floatingIp
 
                 ITypes.Console ->
-                    case server.osProps.consoleUrl of
-                        RemoteData.NotAsked ->
+                    case ( server.osProps.consoleUrl.data, server.osProps.consoleUrl.refreshStatus ) of
+                        ( RDPP.DoHave consoleUrl _, _ ) ->
+                            ITypes.Ready consoleUrl
+
+                        ( _, RDPP.NotLoading Nothing ) ->
                             ITypes.Unavailable "Console URL is not queried yet"
 
-                        RemoteData.Loading ->
+                        ( _, RDPP.Loading ) ->
                             ITypes.Loading
 
-                        RemoteData.Failure httpErrorWithBody ->
-                            ITypes.Error ("Exosphere requested a console URL and got the following error: " ++ Helpers.httpErrorToString httpErrorWithBody.error)
-
-                        RemoteData.Success consoleUrl ->
-                            ITypes.Ready consoleUrl
+                        ( _, RDPP.NotLoading (Just ( err, _ )) ) ->
+                            ITypes.Error ("Exosphere requested a console URL and got the following error: " ++ Helpers.httpErrorToString err.error)
 
                 ITypes.CustomWorkflow ->
                     customWorkflowInteraction

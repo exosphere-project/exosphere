@@ -7,7 +7,6 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import OpenStack.ServerVolumes exposing (serversCanHaveVolumeAttached)
 import OpenStack.Types as OSTypes
-import RemoteData
 import Route
 import Style.Helpers as SH
 import Style.Widgets.Button as Button
@@ -85,7 +84,7 @@ view context project model =
                     )
 
         volumeChoices =
-            RemoteData.withDefault [] project.volumes
+            RDPP.withDefault [] project.volumes
                 |> List.filter (\v -> v.status == OSTypes.Available)
                 |> List.map
                     (\v ->

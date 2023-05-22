@@ -5,7 +5,6 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.DnsRecordSet
 import OpenStack.Types as OSTypes
 import OpenStack.VolumeSnapshots exposing (VolumeSnapshot)
-import RemoteData exposing (WebData)
 import Types.Error exposing (HttpErrorWithBody)
 import Types.HelperTypes as HelperTypes
 import Types.Jetstream2Accounting
@@ -27,18 +26,21 @@ type alias Project =
     , shares : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Share)
     , shareExportLocations : Dict OSTypes.ShareUuid (RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.ExportLocation))
     , flavors : List OSTypes.Flavor
-    , keypairs : WebData (List OSTypes.Keypair)
-    , volumes : WebData (List OSTypes.Volume)
+    , keypairs : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Keypair)
+    , volumes : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Volume)
     , volumeSnapshots : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List VolumeSnapshot)
     , networks : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Network)
     , autoAllocatedNetworkUuid : RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.NetworkUuid
     , floatingIps : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.FloatingIp)
     , dnsRecordSets : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OpenStack.DnsRecordSet.DnsRecordSet)
     , ports : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Port)
-    , securityGroups : List OSTypes.SecurityGroup
-    , computeQuota : WebData OSTypes.ComputeQuota
-    , volumeQuota : WebData OSTypes.VolumeQuota
-    , networkQuota : WebData OSTypes.NetworkQuota
+    , securityGroups : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.SecurityGroup)
+    , computeQuota : RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.ComputeQuota
+    , volumeQuota : RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.VolumeQuota
+    , networkQuota : RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.NetworkQuota
+
+    -- List of server-backing images that we request separately (because the server's image is not in the default image list)
+    , serverImages : List OSTypes.Image
     , jetstream2Allocations : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List Types.Jetstream2Accounting.Allocation)
     }
 

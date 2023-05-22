@@ -22,7 +22,6 @@ import Maybe
 import OpenStack.Quotas as OSQuotas
 import OpenStack.ServerNameValidator exposing (serverNameValidator)
 import OpenStack.Types as OSTypes
-import RemoteData
 import Rest.Naming
 import Route
 import ServerDeploy exposing (cloudInitUserDataTemplate)
@@ -121,7 +120,7 @@ initialKeypairName project =
     let
         projectKeypairNames : List OSTypes.KeypairName
         projectKeypairNames =
-            project.keypairs |> RemoteData.withDefault [] |> List.map .name
+            project.keypairs |> RDPP.withDefault [] |> List.map .name
 
         keypairNameOfNewestServerCreatedByUser =
             let
@@ -377,11 +376,11 @@ enforceQuotaCompliance project model =
     -- that would exceed quota, reduce count to comply with quota.
     case
         ( model.flavorId |> Maybe.andThen (GetterSetters.flavorLookup project)
-        , project.computeQuota
-        , project.volumeQuota
+        , project.computeQuota.data
+        , project.volumeQuota.data
         )
     of
-        ( Just flavor, RemoteData.Success computeQuota, RemoteData.Success volumeQuota ) ->
+        ( Just flavor, RDPP.DoHave computeQuota _, RDPP.DoHave volumeQuota _ ) ->
             let
                 availServers =
                     OSQuotas.overallQuotaAvailServers
@@ -636,7 +635,7 @@ view context project currentTime model =
 
                 hasAnyKeypairs : Bool
                 hasAnyKeypairs =
-                    project.keypairs |> RemoteData.withDefault [] |> List.isEmpty |> not
+                    project.keypairs |> RDPP.withDefault [] |> List.isEmpty |> not
             in
             [ Element.column
                 [ Element.spacing spacer.px8
@@ -780,11 +779,11 @@ view context project currentTime model =
           <|
             case
                 ( model.flavorId |> Maybe.andThen (GetterSetters.flavorLookup project)
-                , project.computeQuota
-                , project.volumeQuota
+                , RDPP.toMaybe project.computeQuota
+                , RDPP.toMaybe project.volumeQuota
                 )
             of
-                ( Just flavor, RemoteData.Success computeQuota, RemoteData.Success volumeQuota ) ->
+                ( Just flavor, Just computeQuota, Just volumeQuota ) ->
                     contents flavor computeQuota volumeQuota
 
                 _ ->
@@ -1524,21 +1523,23 @@ networkPicker context project model =
 
         guidance =
             let
-                maybeStr =
-                    if networkOptions == ManualNetworkSelection && model.networkUuid == Nothing then
-                        Just "Please choose a network."
-
-                    else
-                        Just "Please only change this if you know what you are doing."
-            in
-            case maybeStr of
-                Just str ->
+                withTextColor : String -> Element.Element msg
+                withTextColor text =
                     Element.paragraph
-                        [ Font.color (context.palette.danger.textOnNeutralBG |> SH.toElementColor) ]
-                        [ Element.text str ]
+                        [ Font.color (SH.toElementColor context.palette.danger.textOnNeutralBG) ]
+                        [ Element.text text ]
 
-                Nothing ->
-                    Element.none
+                canChoose : Bool
+                canChoose =
+                    networkOptions == ManualNetworkSelection && model.networkUuid == Nothing
+            in
+            withTextColor
+                (if canChoose then
+                    "Please choose a network."
+
+                 else
+                    "Please only change this if you know what you are doing."
+                )
 
         picker =
             let
@@ -1715,7 +1716,7 @@ keypairPicker context project model =
     Element.column
         [ Element.spacing spacer.px12 ]
         [ Text.strong promptText
-        , VH.renderWebData
+        , VH.renderRDPP
             context
             project.keypairs
             (Helpers.String.pluralize context.localization.pkiPublicKeyForSsh)

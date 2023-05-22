@@ -31,7 +31,6 @@ import Json.Decode.Pipeline as Pipeline
 import Json.Encode as Encode
 import OpenStack.ServerPassword as OSServerPassword
 import OpenStack.Types as OSTypes
-import RemoteData
 import Rest.Helpers
     exposing
         ( expectJsonWithErrorBody
@@ -218,10 +217,10 @@ requestKeypairs project =
                 ErrorCrit
                 Nothing
 
-        resultToMsg_ =
-            resultToMsgErrorBody
-                errorContext
-                (\keypairs -> ProjectMsg (GetterSetters.projectIdentifier project) <| ReceiveKeypairs keypairs)
+        resultToMsg result =
+            ProjectMsg
+                (GetterSetters.projectIdentifier project)
+                (ReceiveKeypairs errorContext result)
     in
     openstackCredentialedRequest
         (GetterSetters.projectIdentifier project)
@@ -231,7 +230,7 @@ requestKeypairs project =
         (project.endpoints.nova ++ "/os-keypairs")
         Http.emptyBody
         (expectJsonWithErrorBody
-            resultToMsg_
+            resultToMsg
             decodeKeypairs
         )
 
@@ -255,12 +254,10 @@ requestCreateKeypair project keypairName publicKey =
                 ErrorCrit
                 (Just "ensure that you are entering the entire public key with no extra line breaks or other characters.")
 
-        resultToMsg_ =
-            resultToMsgErrorBody errorContext
-                (\keypair ->
-                    ProjectMsg (GetterSetters.projectIdentifier project) <|
-                        ReceiveCreateKeypair keypair
-                )
+        resultToMsg result =
+            ProjectMsg
+                (GetterSetters.projectIdentifier project)
+                (ReceiveCreateKeypair errorContext result)
     in
     openstackCredentialedRequest
         (GetterSetters.projectIdentifier project)
@@ -270,7 +267,7 @@ requestCreateKeypair project keypairName publicKey =
         (project.endpoints.nova ++ "/os-keypairs")
         (Http.jsonBody body)
         (expectJsonWithErrorBody
-            resultToMsg_
+            resultToMsg
             keypairDecoder
         )
 
@@ -321,19 +318,10 @@ requestCreateServer project createServerRequest =
                 maybeKeypairJson
                 [ ( "name", Encode.string instanceName )
                 , ( "flavorRef", Encode.string innerCreateServerRequest.flavorId )
-                , if innerCreateServerRequest.networkUuid == "auto" then
-                    ( "networks", Encode.string "auto" )
-
-                  else
-                    ( "networks"
-                    , Encode.list Encode.object
-                        [ [ ( "uuid", Encode.string innerCreateServerRequest.networkUuid ) ] ]
-                    )
+                , ( "networks", Encode.list Encode.object [ [ ( "uuid", Encode.string innerCreateServerRequest.networkUuid ) ] ] )
                 , ( "user_data", Encode.string (Base64.encode createServerRequest.userData) )
                 , ( "security_groups", Encode.array Encode.object (Array.fromList [ [ ( "name", Encode.string "exosphere" ) ] ]) )
-                , ( "metadata"
-                  , Encode.object createServerRequest.metadata
-                  )
+                , ( "metadata", Encode.object createServerRequest.metadata )
                 ]
 
         buildRequestOuterJson props =
@@ -438,8 +426,8 @@ requestDeleteServer projectId novaUrl serverId =
 
 requestConsoleUrlIfRequestable : Project -> Server -> Cmd SharedMsg
 requestConsoleUrlIfRequestable project server =
-    case server.osProps.consoleUrl of
-        RemoteData.Success _ ->
+    case server.osProps.consoleUrl.data of
+        RDPP.DoHave _ _ ->
             Cmd.none
 
         _ ->
@@ -877,8 +865,8 @@ receiveServer_ project osServer =
 
 receiveConsoleUrl : SharedModel -> Project -> Server -> Result HttpErrorWithBody OSTypes.ConsoleUrl -> ( SharedModel, Cmd SharedMsg )
 receiveConsoleUrl model project server result =
-    case server.osProps.consoleUrl of
-        RemoteData.Success _ ->
+    case server.osProps.consoleUrl.data of
+        RDPP.DoHave _ _ ->
             -- Don't overwrite a potentially successful call to get console URL with a failed call
             ( model, Cmd.none )
 
@@ -887,10 +875,10 @@ receiveConsoleUrl model project server result =
                 consoleUrl =
                     case result of
                         Err error ->
-                            RemoteData.Failure error
+                            RDPP.RemoteDataPlusPlus RDPP.DontHave (RDPP.NotLoading (Just ( error, model.clientCurrentTime )))
 
                         Ok url ->
-                            RemoteData.Success url
+                            RDPP.RemoteDataPlusPlus (RDPP.DoHave url model.clientCurrentTime) (RDPP.NotLoading Nothing)
 
                 oldOsProps =
                     server.osProps
@@ -929,7 +917,12 @@ receiveKeypairs model project keypairs =
             List.sortBy .name keypairs
 
         newProject =
-            { project | keypairs = RemoteData.Success sortedKeypairs }
+            { project
+                | keypairs =
+                    RDPP.RemoteDataPlusPlus
+                        (RDPP.DoHave sortedKeypairs model.clientCurrentTime)
+                        (RDPP.NotLoading Nothing)
+            }
 
         newModel =
             GetterSetters.modelUpdateProject model newProject
@@ -956,7 +949,7 @@ decodeServer =
         )
         (Decode.field "id" Decode.string)
         decodeServerDetails
-        (Decode.succeed RemoteData.NotAsked)
+        (Decode.succeed RDPP.empty)
 
 
 decodeServerDetails : Decode.Decoder OSTypes.ServerDetails

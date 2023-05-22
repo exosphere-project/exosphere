@@ -10,6 +10,7 @@ module Rest.ApiModelHelpers exposing
     , requestRecordSets
     , requestServer
     , requestServerEvents
+    , requestServerImageIfNotFound
     , requestServers
     , requestShareExportLocations
     , requestShares
@@ -19,17 +20,19 @@ module Rest.ApiModelHelpers exposing
     )
 
 import Helpers.GetterSetters as GetterSetters
+import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.Quotas
 import OpenStack.Shares
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes
-import RemoteData
 import Rest.Designate
 import Rest.Glance
 import Rest.Jetstream2Accounting
 import Rest.Neutron
 import Rest.Nova
+import Types.Error
 import Types.HelperTypes exposing (ProjectIdentifier)
+import Types.Project
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg exposing (SharedMsg(..))
 
@@ -61,6 +64,31 @@ requestServer projectUuid serverUuid model =
                 |> GetterSetters.modelUpdateProject model
             , Rest.Nova.requestServer project serverUuid
             )
+
+        Nothing ->
+            ( model, Cmd.none )
+
+
+{-| Requests server image if it's not found within project images
+-}
+requestServerImageIfNotFound : Types.Project.Project -> OSTypes.ServerUuid -> SharedModel -> ( SharedModel, Cmd SharedMsg )
+requestServerImageIfNotFound project serverId model =
+    case GetterSetters.serverLookup project serverId of
+        Just server ->
+            case GetterSetters.imageLookup project server.osProps.details.imageUuid of
+                Nothing ->
+                    ( model
+                    , Rest.Glance.requestImage server.osProps.details.imageUuid
+                        project
+                        (Types.Error.ErrorContext
+                            ("get an image \"" ++ server.osProps.details.imageUuid ++ "\"")
+                            Types.Error.ErrorDebug
+                            Nothing
+                        )
+                    )
+
+                Just _ ->
+                    ( model, Cmd.none )
 
         Nothing ->
             ( model, Cmd.none )
@@ -179,7 +207,7 @@ requestComputeQuota projectUuid model =
     case GetterSetters.projectLookup model projectUuid of
         Just project ->
             ( { project
-                | computeQuota = RemoteData.Loading
+                | computeQuota = RDPP.setLoading project.computeQuota
               }
                 |> GetterSetters.modelUpdateProject model
             , OpenStack.Quotas.requestComputeQuota project
@@ -194,7 +222,7 @@ requestVolumeQuota projectUuid model =
     case GetterSetters.projectLookup model projectUuid of
         Just project ->
             ( { project
-                | volumeQuota = RemoteData.Loading
+                | volumeQuota = RDPP.setLoading project.volumeQuota
               }
                 |> GetterSetters.modelUpdateProject model
             , OpenStack.Quotas.requestVolumeQuota project
@@ -209,7 +237,7 @@ requestNetworkQuota projectUuid model =
     case GetterSetters.projectLookup model projectUuid of
         Just project ->
             ( { project
-                | networkQuota = RemoteData.Loading
+                | networkQuota = RDPP.setLoading project.networkQuota
               }
                 |> GetterSetters.modelUpdateProject model
             , OpenStack.Quotas.requestNetworkQuota project

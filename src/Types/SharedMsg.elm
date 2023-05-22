@@ -30,8 +30,8 @@ type SharedMsg
     | RequestUnscopedToken OSTypes.OpenstackLogin
     | ReceiveProjectScopedToken OSTypes.KeystoneUrl ( Http.Metadata, String )
     | ReceiveUnscopedAuthToken OSTypes.KeystoneUrl ( Http.Metadata, String )
-    | ReceiveUnscopedProjects OSTypes.KeystoneUrl (List HelperTypes.UnscopedProviderProject)
-    | ReceiveUnscopedRegions OSTypes.KeystoneUrl (List HelperTypes.UnscopedProviderRegion)
+    | ReceiveUnscopedProjects OSTypes.KeystoneUrl ErrorContext (Result HttpErrorWithBody (List HelperTypes.UnscopedProviderProject))
+    | ReceiveUnscopedRegions OSTypes.KeystoneUrl ErrorContext (Result HttpErrorWithBody (List HelperTypes.UnscopedProviderRegion))
     | RequestProjectScopedToken OSTypes.KeystoneUrl (List HelperTypes.UnscopedProviderProject)
     | CreateProjectsFromRegionSelections OSTypes.KeystoneUrl OSTypes.ProjectUuid (List OSTypes.RegionId)
     | ProjectMsg HelperTypes.ProjectIdentifier ProjectSpecificMsgConstructor
@@ -71,12 +71,13 @@ type ProjectSpecificMsgConstructor
     | RequestUnassignFloatingIp OSTypes.IpAddressUuid
     | RequestDeleteImage OSTypes.ImageUuid
     | ReceiveImages (List OSTypes.Image)
+    | ReceiveServerImage (Maybe OSTypes.Image)
     | ReceiveServer OSTypes.ServerUuid ErrorContext (Result HttpErrorWithBody OSTypes.Server)
     | ReceiveServers ErrorContext (Result HttpErrorWithBody (List OSTypes.Server))
     | ReceiveCreateServer ErrorContext (Result HttpErrorWithBody OSTypes.ServerUuid)
     | ReceiveFlavors (List OSTypes.Flavor)
-    | ReceiveKeypairs (List OSTypes.Keypair)
-    | ReceiveCreateKeypair OSTypes.Keypair
+    | ReceiveKeypairs ErrorContext (Result HttpErrorWithBody (List OSTypes.Keypair))
+    | ReceiveCreateKeypair ErrorContext (Result HttpErrorWithBody OSTypes.Keypair)
     | ReceiveDeleteKeypair ErrorContext OSTypes.KeypairName (Result Http.Error ())
     | ReceiveNetworks ErrorContext (Result HttpErrorWithBody (List OSTypes.Network))
     | ReceiveAutoAllocatedNetwork ErrorContext (Result HttpErrorWithBody OSTypes.NetworkUuid)
@@ -85,22 +86,22 @@ type ProjectSpecificMsgConstructor
     | ReceiveDeleteFloatingIp OSTypes.IpAddressUuid
     | ReceiveAssignFloatingIp OSTypes.FloatingIp
     | ReceiveUnassignFloatingIp OSTypes.FloatingIp
-    | ReceiveSecurityGroups (List OSTypes.SecurityGroup)
+    | ReceiveSecurityGroups ErrorContext (Result HttpErrorWithBody (List OSTypes.SecurityGroup))
     | ReceiveDnsRecordSets (List OpenStack.DnsRecordSet.DnsRecordSet)
-    | ReceiveCreateExoSecurityGroup OSTypes.SecurityGroup
+    | ReceiveCreateExoSecurityGroup ErrorContext (Result HttpErrorWithBody OSTypes.SecurityGroup)
     | ReceiveShareExportLocations ( OSTypes.ShareUuid, List OSTypes.ExportLocation )
     | ReceiveShares (List OSTypes.Share)
     | ReceiveCreateVolume
-    | ReceiveVolumes (List OSTypes.Volume)
+    | ReceiveVolumes ErrorContext (Result HttpErrorWithBody (List OSTypes.Volume))
     | ReceiveVolumeSnapshots (List VolumeSnapshot)
     | ReceiveDeleteVolume
     | ReceiveUpdateVolumeName
     | ReceiveDeleteVolumeSnapshot
     | ReceiveAttachVolume OSTypes.VolumeAttachment
     | ReceiveDetachVolume
-    | ReceiveComputeQuota OSTypes.ComputeQuota
-    | ReceiveVolumeQuota OSTypes.VolumeQuota
-    | ReceiveNetworkQuota OSTypes.NetworkQuota
+    | ReceiveComputeQuota ErrorContext (Result HttpErrorWithBody OSTypes.ComputeQuota)
+    | ReceiveVolumeQuota ErrorContext (Result HttpErrorWithBody OSTypes.VolumeQuota)
+    | ReceiveNetworkQuota ErrorContext (Result HttpErrorWithBody OSTypes.NetworkQuota)
     | ReceiveDeleteImage OSTypes.ImageUuid
     | ReceiveJetstream2Allocations (Result HttpErrorWithBody (List Types.Jetstream2Accounting.Allocation))
     | ReceiveImageVisibilityChange OSTypes.ImageUuid OSTypes.ImageVisibility

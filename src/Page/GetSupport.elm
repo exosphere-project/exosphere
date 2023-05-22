@@ -5,7 +5,6 @@ import Element.Font as Font
 import Element.Input as Input
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
-import RemoteData
 import Set
 import Style.Widgets.Button as Button
 import Style.Widgets.CopyableText
@@ -204,7 +203,7 @@ viewSupportForm context sharedModel model =
                                 HelperTypes.SupportableVolume ->
                                     sharedModel.projects
                                         |> List.map .volumes
-                                        |> List.map (RemoteData.withDefault [])
+                                        |> List.map (RDPP.withDefault [])
                                         |> List.concat
                                         |> List.map
                                             (\volume ->

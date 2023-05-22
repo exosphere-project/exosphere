@@ -62,7 +62,6 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.Url as UrlHelpers
 import List.Extra
 import OpenStack.Types as OSTypes
-import RemoteData
 import Time
 import Types.Error
 import Types.HelperTypes as HelperTypes
@@ -86,14 +85,14 @@ unscopedProviderLookup sharedModel keystoneUrl =
 unscopedProjectLookup : HelperTypes.UnscopedProvider -> OSTypes.ProjectUuid -> Maybe HelperTypes.UnscopedProviderProject
 unscopedProjectLookup provider projectUuid =
     provider.projectsAvailable
-        |> RemoteData.withDefault []
+        |> RDPP.withDefault []
         |> List.Extra.find (\project -> project.project.uuid == projectUuid)
 
 
 unscopedRegionLookup : HelperTypes.UnscopedProvider -> OSTypes.RegionId -> Maybe OSTypes.Region
 unscopedRegionLookup provider regionId =
     provider.regionsAvailable
-        |> RemoteData.withDefault []
+        |> RDPP.withDefault []
         |> List.Extra.find (\region -> region.id == regionId)
 
 
@@ -135,6 +134,7 @@ flavorLookup project flavorId =
 imageLookup : Project -> OSTypes.ImageUuid -> Maybe OSTypes.Image
 imageLookup project imageUuid =
     RDPP.withDefault [] project.images
+        |> List.append project.serverImages
         |> List.Extra.find (\i -> i.uuid == imageUuid)
 
 
@@ -147,7 +147,7 @@ imageGetDesktopMessage image =
 volumeLookup : Project -> OSTypes.VolumeUuid -> Maybe OSTypes.Volume
 volumeLookup project volumeUuid =
     project.volumes
-        |> RemoteData.withDefault []
+        |> RDPP.withDefault []
         |> List.Extra.find (\v -> v.uuid == volumeUuid)
 
 
@@ -306,7 +306,7 @@ sortedFlavors =
 getVolsAttachedToServer : Project -> Server -> List OSTypes.Volume
 getVolsAttachedToServer project server =
     project.volumes
-        |> RemoteData.withDefault []
+        |> RDPP.withDefault []
         |> List.filter (\v -> List.member v.uuid server.osProps.details.volumesAttached)
 
 
@@ -624,7 +624,7 @@ projectSetShareExportLocationsLoading shareUuid project =
 
 projectSetVolumesLoading : Project -> Project
 projectSetVolumesLoading project =
-    { project | volumes = RemoteData.Loading }
+    { project | volumes = RDPP.setLoading project.volumes }
 
 
 projectSetVolumeSnapshotsLoading : Project -> Project
@@ -696,12 +696,12 @@ cloudSpecificConfigLookup cloudSpecificConfigs project =
     Dict.get projectKeystoneHostname cloudSpecificConfigs
 
 
-projectUpdateKeypair : Project -> OSTypes.Keypair -> Project
-projectUpdateKeypair project keypair =
+projectUpdateKeypair : SharedModel -> Project -> OSTypes.Keypair -> Project
+projectUpdateKeypair sharedModel project keypair =
     let
         otherKeypairs =
             project.keypairs
-                |> RemoteData.withDefault []
+                |> RDPP.withDefault []
                 |> List.filter
                     (\k ->
                         k.fingerprint
@@ -715,4 +715,9 @@ projectUpdateKeypair project keypair =
                 :: otherKeypairs
                 |> List.sortBy .name
     in
-    { project | keypairs = RemoteData.Success keypairs }
+    { project
+        | keypairs =
+            RDPP.setData
+                (RDPP.DoHave keypairs sharedModel.clientCurrentTime)
+                project.keypairs
+    }
