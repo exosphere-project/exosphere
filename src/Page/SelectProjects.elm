@@ -106,7 +106,7 @@ views context sharedModel model =
                         , urlLabel
                         ]
                     )
-            , VH.renderWebData
+            , VH.renderRDPP
                 context
                 provider.projectsAvailable
                 (context.localization.unitOfTenancy

@@ -21,7 +21,6 @@ import OpenStack.ServerVolumes exposing (serverCanHaveVolumeAttached)
 import OpenStack.Types as OSTypes
 import Page.ServerResourceUsageAlerts
 import Page.ServerResourceUsageCharts
-import RemoteData
 import Route
 import Style.Helpers as SH
 import Style.Types as ST
@@ -300,7 +299,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                 maybeVolBackedImageName =
                     let
                         vols =
-                            RemoteData.withDefault [] project.volumes
+                            RDPP.withDefault [] project.volumes
                     in
                     GetterSetters.getBootVolume vols server.osProps.uuid
                         |> Maybe.andThen .imageMetadata

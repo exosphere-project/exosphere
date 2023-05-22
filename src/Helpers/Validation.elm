@@ -10,7 +10,6 @@ import DateFormat
 import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.ServerNameValidator as OSServerNameValidator
 import Regex
-import RemoteData
 import String exposing (isEmpty)
 import Time
 import Types.Project exposing (Project)
@@ -47,7 +46,7 @@ volumeNameExists project volumeName_ =
         False
 
     else
-        RemoteData.withDefault [] project.volumes
+        RDPP.withDefault [] project.volumes
             |> List.map .name
             |> List.member (Just name)
 
@@ -60,7 +59,7 @@ sshKeyNameExists project sshKeyName =
         name =
             String.trim sshKeyName
     in
-    RemoteData.withDefault [] project.keypairs
+    RDPP.withDefault [] project.keypairs
         |> List.map .name
         |> List.member name
 

@@ -98,7 +98,7 @@ views context sharedModel model =
                         , scopedAuthToken.project.name
                         ]
                     )
-            , VH.renderWebData
+            , VH.renderRDPP
                 context
                 provider.regionsAvailable
                 (context.localization.openstackSharingKeystoneWithAnother

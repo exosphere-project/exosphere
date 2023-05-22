@@ -4,16 +4,19 @@ module Helpers.RemoteDataPlusPlus exposing
     , RefreshStatus(..)
     , RemoteDataPlusPlus
     , RequestedTime
+    , andMap
     , empty
     , isPollableWithInterval
     , map
+    , map2
+    , setData
     , setLoading
-    , toWebData
+    , setNotLoading
+    , setRefreshStatus
+    , toMaybe
     , withDefault
     )
 
-import Http
-import RemoteData
 import Time
 
 
@@ -51,6 +54,19 @@ type alias ReceivedTime =
 -- Convenience functions
 
 
+andMap : RemoteDataPlusPlus e a -> RemoteDataPlusPlus e (a -> b) -> RemoteDataPlusPlus e b
+andMap wrappedValue wrappedFunction =
+    case ( wrappedFunction.data, wrappedValue.data ) of
+        ( DoHave f _, DoHave b t ) ->
+            RemoteDataPlusPlus (DoHave (f b) t) wrappedValue.refreshStatus
+
+        ( DontHave, _ ) ->
+            RemoteDataPlusPlus DontHave wrappedFunction.refreshStatus
+
+        ( _, DontHave ) ->
+            RemoteDataPlusPlus DontHave wrappedValue.refreshStatus
+
+
 map : (a -> b) -> RemoteDataPlusPlus error a -> RemoteDataPlusPlus error b
 map f rdpp =
     let
@@ -63,6 +79,11 @@ map f rdpp =
                     DontHave
     in
     RemoteDataPlusPlus newData rdpp.refreshStatus
+
+
+map2 : (a -> b -> c) -> RemoteDataPlusPlus error a -> RemoteDataPlusPlus error b -> RemoteDataPlusPlus error c
+map2 f a b =
+    map f a |> andMap b
 
 
 withDefault : data -> RemoteDataPlusPlus error data -> data
@@ -81,37 +102,34 @@ empty =
     RemoteDataPlusPlus DontHave (NotLoading Nothing)
 
 
-setLoading : RemoteDataPlusPlus x y -> RemoteDataPlusPlus x y
+setRefreshStatus : RefreshStatus error -> RemoteDataPlusPlus error data -> RemoteDataPlusPlus error data
+setRefreshStatus refreshStatus rdpp =
+    { rdpp | refreshStatus = refreshStatus }
+
+
+setData : Haveness data -> RemoteDataPlusPlus error data -> RemoteDataPlusPlus error data
+setData haveness rdpp =
+    RemoteDataPlusPlus haveness rdpp.refreshStatus
+
+
+setLoading : RemoteDataPlusPlus error data -> RemoteDataPlusPlus error data
 setLoading rdpp =
-    { rdpp | refreshStatus = Loading }
+    setRefreshStatus Loading rdpp
 
 
-type alias HttpErrorWithBody =
-    { error : Http.Error
-    , body : String
-    }
+setNotLoading : Maybe ( error, ReceivedTime ) -> RemoteDataPlusPlus error data -> RemoteDataPlusPlus error data
+setNotLoading error rdpp =
+    setRefreshStatus (NotLoading error) rdpp
 
 
-toWebData : RemoteDataPlusPlus HttpErrorWithBody data -> RemoteData.WebData data
-toWebData rdpp =
-    -- This is a _transitional function_ that we should remove once the app uses RDPP instead of RemoteData:
-    -- https://gitlab.com/exosphere/exosphere/-/issues/339
-    -- Please do not use this function to implement new polling logic.
-    -- This function is lossy: RDPP can express data and loading/error state simultaneously, while RemoteData cannot.
+toMaybe : RemoteDataPlusPlus error data -> Maybe data
+toMaybe rdpp =
     case rdpp.data of
-        DoHave d _ ->
-            RemoteData.Success d
+        DoHave data _ ->
+            Just data
 
-        DontHave ->
-            case rdpp.refreshStatus of
-                Loading ->
-                    RemoteData.Loading
-
-                NotLoading (Just ( error, _ )) ->
-                    RemoteData.Failure error.error
-
-                NotLoading Nothing ->
-                    RemoteData.NotAsked
+        _ ->
+            Nothing
 
 
 isPollableWithInterval : RemoteDataPlusPlus x y -> Time.Posix -> Int -> Bool

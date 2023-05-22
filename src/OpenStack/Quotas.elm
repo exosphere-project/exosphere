@@ -13,7 +13,7 @@ import Helpers.GetterSetters as GetterSetters
 import Http
 import Json.Decode as Decode
 import OpenStack.Types as OSTypes
-import Rest.Helpers exposing (expectJsonWithErrorBody, openstackCredentialedRequest, resultToMsgErrorBody)
+import Rest.Helpers exposing (expectJsonWithErrorBody, openstackCredentialedRequest)
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.HelperTypes exposing (HttpRequestMethod(..))
 import Types.Project exposing (Project)
@@ -33,14 +33,10 @@ requestComputeQuota project =
                 ErrorCrit
                 Nothing
 
-        resultToMsg_ =
-            resultToMsgErrorBody
-                errorContext
-                (\quota ->
-                    ProjectMsg
-                        (GetterSetters.projectIdentifier project)
-                        (ReceiveComputeQuota quota)
-                )
+        resultToMsg result =
+            ProjectMsg
+                (GetterSetters.projectIdentifier project)
+                (ReceiveComputeQuota errorContext result)
     in
     openstackCredentialedRequest
         (GetterSetters.projectIdentifier project)
@@ -50,7 +46,7 @@ requestComputeQuota project =
         (project.endpoints.nova ++ "/limits")
         Http.emptyBody
         (expectJsonWithErrorBody
-            resultToMsg_
+            resultToMsg
             (Decode.field "limits" computeQuotaDecoder)
         )
 
@@ -86,14 +82,10 @@ requestVolumeQuota project =
                 ErrorCrit
                 Nothing
 
-        resultToMsg_ =
-            resultToMsgErrorBody
-                errorContext
-                (\quota ->
-                    ProjectMsg
-                        (GetterSetters.projectIdentifier project)
-                        (ReceiveVolumeQuota quota)
-                )
+        resultToMsg result =
+            ProjectMsg
+                (GetterSetters.projectIdentifier project)
+                (ReceiveVolumeQuota errorContext result)
     in
     openstackCredentialedRequest
         (GetterSetters.projectIdentifier project)
@@ -103,7 +95,7 @@ requestVolumeQuota project =
         (project.endpoints.cinder ++ "/limits")
         Http.emptyBody
         (expectJsonWithErrorBody
-            resultToMsg_
+            resultToMsg
             (Decode.field "limits" volumeQuotaDecoder)
         )
 
@@ -134,14 +126,10 @@ requestNetworkQuota project =
                 ErrorCrit
                 Nothing
 
-        resultToMsg_ =
-            resultToMsgErrorBody
-                errorContext
-                (\quota ->
-                    ProjectMsg
-                        (GetterSetters.projectIdentifier project)
-                        (ReceiveNetworkQuota quota)
-                )
+        resultToMsg result =
+            ProjectMsg
+                (GetterSetters.projectIdentifier project)
+                (ReceiveNetworkQuota errorContext result)
     in
     openstackCredentialedRequest
         (GetterSetters.projectIdentifier project)
@@ -151,7 +139,7 @@ requestNetworkQuota project =
         (project.endpoints.neutron ++ "/v2.0/quotas/" ++ project.auth.project.uuid ++ "/details.json")
         Http.emptyBody
         (expectJsonWithErrorBody
-            resultToMsg_
+            resultToMsg
             (Decode.field "quota" networkQuotaDecoder)
         )
 

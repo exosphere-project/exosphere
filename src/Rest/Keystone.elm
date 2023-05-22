@@ -292,7 +292,7 @@ requestUnscopedRegions provider maybeProxyUrl =
     requestUnscoped_ provider maybeProxyUrl "regions" "regions" decodeUnscopedRegions ReceiveUnscopedRegions
 
 
-requestUnscoped_ : UnscopedProvider -> Maybe HelperTypes.Url -> String -> String -> Decode.Decoder a -> (OSTypes.KeystoneUrl -> a -> SharedMsg) -> Cmd SharedMsg
+requestUnscoped_ : UnscopedProvider -> Maybe HelperTypes.Url -> String -> String -> Decode.Decoder a -> (OSTypes.KeystoneUrl -> ErrorContext -> Result HttpErrorWithBody a -> SharedMsg) -> Cmd SharedMsg
 requestUnscoped_ provider maybeProxyUrl resourcePathFragment resourceStr decoder toSharedMsg =
     let
         correctedUrl =
@@ -327,10 +327,8 @@ requestUnscoped_ provider maybeProxyUrl resourcePathFragment resourceStr decoder
                 ErrorCrit
                 Nothing
 
-        resultToMsg_ =
-            resultToMsgErrorBody
-                errorContext
-                (toSharedMsg provider.authUrl)
+        resultToMsg result =
+            toSharedMsg provider.authUrl errorContext result
     in
     Http.request
         { method = "GET"
@@ -339,7 +337,7 @@ requestUnscoped_ provider maybeProxyUrl resourcePathFragment resourceStr decoder
         , body = Http.emptyBody
         , expect =
             expectJsonWithErrorBody
-                resultToMsg_
+                resultToMsg
                 decoder
         , timeout = Nothing
         , tracker = Nothing

@@ -34,9 +34,10 @@ module Types.HelperTypes exposing
     )
 
 import Dict exposing (Dict)
+import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.Types as OSTypes
-import RemoteData exposing (WebData)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput)
+import Types.Error exposing (HttpErrorWithBody)
 
 
 
@@ -194,8 +195,8 @@ type alias FlavorGroupTitle =
 type alias UnscopedProvider =
     { authUrl : OSTypes.KeystoneUrl
     , token : OSTypes.UnscopedAuthToken
-    , projectsAvailable : WebData (List UnscopedProviderProject)
-    , regionsAvailable : WebData (List UnscopedProviderRegion)
+    , projectsAvailable : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List UnscopedProviderProject)
+    , regionsAvailable : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List UnscopedProviderRegion)
     }
 
 
