@@ -5,6 +5,7 @@ import Color
 import DesignSystem.Helpers exposing (Plugins, palettize, toHtml)
 import DesignSystem.Stories.Card as CardStories
 import DesignSystem.Stories.ColorPalette as ColorPalette
+import DesignSystem.Stories.CopyableText as CopyableTextStories
 import DesignSystem.Stories.DataList
 import DesignSystem.Stories.Link as LinkStories
 import DesignSystem.Stories.Space as SpaceStories
@@ -14,7 +15,6 @@ import DesignSystem.Stories.ToggleTip as ToggleTip
 import DesignSystem.Stories.Validation as Validation
 import Element
 import Element.Background as Background
-import Element.Font as Font
 import Html
 import Html.Attributes exposing (src, style)
 import Set
@@ -23,7 +23,6 @@ import Style.Types
 import Style.Widgets.Button as Button
 import Style.Widgets.Chip exposing (chip)
 import Style.Widgets.ChipsFilter
-import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.DataList
 import Style.Widgets.Icon exposing (bell, console, copyToClipboard, history, ipAddress, lock, lockOpen, plusCircle, remove, roundRect, timesCircle)
 import Style.Widgets.Meter exposing (meter)
@@ -557,26 +556,7 @@ To display a read-only label which clearly shows the current status of a resourc
                 ]
             |> category "Molecules"
                 [ --TODO: Add `filterChipView` (inside DataList) since `chip` is not in use.
-                  storiesOf
-                    "Copyable Text"
-                    [ ( "default"
-                      , \m ->
-                            toHtml (palettize m) <|
-                                copyableText
-                                    (palettize m)
-                                    [ Font.family [ Font.monospace ]
-                                    , Element.width Element.shrink
-                                    ]
-                                    "192.168.1.1"
-                      , { note = """
-## Usage
-
-Shows stylable text with an accessory button for copying the text content to the user's clipboard.
-
-It uses [clipboard.js](https://clipboardjs.com/) under the hood & relies on a [port for initialisation](https://gitlab.com/exosphere/exosphere/-/blob/master/ports.js#L101).
-                        """ }
-                      )
-                    ]
+                  CopyableTextStories.stories toHtml (\_ -> NoOp)
                 , storiesOf
                     "Meter"
                     [ ( "default", \m -> toHtml (palettize m) <| meter (palettize m) "Space used" "6 of 10 GB" 6 10, { note = """
