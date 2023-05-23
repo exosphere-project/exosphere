@@ -7,7 +7,7 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import Set
 import Style.Widgets.Button as Button
-import Style.Widgets.CopyableText
+import Style.Widgets.CopyableText exposing (copyableTextAccessory)
 import Style.Widgets.Select
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text exposing (TextVariant(..))
@@ -268,6 +268,12 @@ viewBuiltSupportRequest context sharedModel model =
         boldCopyableText text =
             Element.el [ Font.extraBold ] <|
                 Style.Widgets.CopyableText.copyableText context.palette [] text
+
+        supportRequest =
+            buildSupportRequest sharedModel context model.maybeSupportableResource model.requestDescription
+
+        copyable =
+            copyableTextAccessory context.palette supportRequest
     in
     Element.column
         [ Element.spacing spacer.px32, Element.width Element.fill ]
@@ -292,21 +298,26 @@ viewBuiltSupportRequest context sharedModel model =
                         []
                 , [ Element.text "Someone will respond and assist you." ]
                 ]
-        , Input.multiline
-            (VH.inputItemAttributes context.palette
-                ++ [ Element.height <| Element.px 200
-                   , Element.width Element.fill
-                   , Element.spacing spacer.px8
-                   , Text.fontFamily Text.Mono
-                   ]
-                ++ Text.typographyAttrs Tiny
-            )
-            { onChange = \_ -> NoOp
-            , text = buildSupportRequest sharedModel context model.maybeSupportableResource model.requestDescription
-            , placeholder = Nothing
-            , label = Input.labelHidden "Support request"
-            , spellcheck = False
-            }
+        , Element.row
+            [ Element.spacing spacer.px8 ]
+            [ Input.multiline
+                (VH.inputItemAttributes context.palette
+                    ++ [ Element.height <| Element.px 200
+                       , Element.width Element.fill
+                       , Element.spacing spacer.px8
+                       , Text.fontFamily Text.Mono
+                       ]
+                    ++ Text.typographyAttrs Tiny
+                    ++ [ copyable.id ]
+                )
+                { onChange = \_ -> NoOp
+                , text = supportRequest
+                , placeholder = Nothing
+                , label = Input.labelHidden "Support request"
+                , spellcheck = False
+                }
+            , copyable.accessory
+            ]
         , Element.row
             [ Element.width Element.fill ]
             [ Element.el [] <|
