@@ -1,5 +1,6 @@
 module Types.Project exposing (Endpoints, Project, ProjectName, ProjectSecret(..), ProjectTitle)
 
+import Dict exposing (Dict)
 import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.DnsRecordSet
 import OpenStack.Types as OSTypes
@@ -23,6 +24,7 @@ type alias Project =
     , images : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Image)
     , servers : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List Server)
     , shares : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Share)
+    , shareExportLocations : Dict OSTypes.ShareUuid (RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.ExportLocation))
     , flavors : List OSTypes.Flavor
     , keypairs : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Keypair)
     , volumes : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Volume)

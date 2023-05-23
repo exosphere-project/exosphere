@@ -1,4 +1,4 @@
-module OpenStack.Shares exposing (requestShares)
+module OpenStack.Shares exposing (requestShareExportLocations, requestShares)
 
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Time
@@ -65,3 +65,44 @@ shareDecoder =
         |> Pipeline.required "is_public" (Decode.bool |> Decode.map OSTypes.boolToShareVisibility)
         |> Pipeline.required "share_proto" (Decode.string |> Decode.map OSTypes.stringToShareProtocol)
         |> Pipeline.required "share_type_name" Decode.string
+
+
+requestShareExportLocations : Project -> Url -> OSTypes.ShareUuid -> Cmd SharedMsg
+requestShareExportLocations project url shareUuid =
+    let
+        errorContext =
+            ErrorContext
+                ("get export location of share with UUID \"" ++ shareUuid ++ "\"")
+                ErrorCrit
+                Nothing
+
+        resultToMsg_ =
+            resultToMsgErrorBody
+                errorContext
+                (\exportLocations ->
+                    ProjectMsg
+                        (GetterSetters.projectIdentifier project)
+                        (ReceiveShareExportLocations ( shareUuid, exportLocations ))
+                )
+    in
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Get
+        Nothing
+        -- `preferred` is returned from v2.14 onwards to identify which export locations are most efficient
+        [ ( "X-OpenStack-Manila-API-Version", "2.14" ) ]
+        (url ++ "/shares/" ++ shareUuid ++ "/export_locations")
+        Http.emptyBody
+        (expectJsonWithErrorBody
+            resultToMsg_
+            (Decode.field "export_locations" <| Decode.list exportLocationDecoder)
+        )
+
+
+exportLocationDecoder : Decode.Decoder OSTypes.ExportLocation
+exportLocationDecoder =
+    Decode.succeed
+        OSTypes.ExportLocation
+        |> Pipeline.required "id" Decode.string
+        |> Pipeline.required "path" Decode.string
+        |> Pipeline.required "preferred" Decode.bool

@@ -148,6 +148,7 @@ localizationDecoder =
         |> required "staticRepresentationOfBlockDeviceContents" string
         |> required "blockDevice" string
         |> required "share" string
+        |> required "exportLocation" string
         |> required "nonFloatingIpAddress" string
         |> required "floatingIpAddress" string
         |> required "publiclyRoutableIpAddress" string

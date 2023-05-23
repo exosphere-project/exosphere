@@ -4,6 +4,7 @@ module LocalStorage.LocalStorage exposing
     , hydrateModelFromStoredState
     )
 
+import Dict
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Json.Decode as Decode
@@ -102,6 +103,7 @@ hydrateProjectFromStoredProject storedProject =
     , volumeSnapshots = RDPP.empty
     , networks = RDPP.empty
     , shares = RDPP.empty
+    , shareExportLocations = Dict.empty
     , autoAllocatedNetworkUuid = RDPP.empty
     , dnsRecordSets = RDPP.empty
     , floatingIps = RDPP.empty
