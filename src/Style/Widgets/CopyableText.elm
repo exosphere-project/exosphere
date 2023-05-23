@@ -8,6 +8,7 @@ import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
 import Style.Widgets.Icon exposing (copyToClipboard)
 import Style.Widgets.Spacer exposing (spacer)
+import Style.Widgets.Text as Text
 
 
 {-| Display text with a button to copy to the clipboard. Requires you to do a Ports.InstantiateClipboardJS
@@ -49,7 +50,7 @@ copyTextButton palette text =
                 ]
             <|
                 [ copyToClipboard (SH.toElementColor palette.primary) 18
-                , Element.text "Copy"
+                , Text.text Text.Small [] "Copy"
                 ]
         ]
         { onPress = Nothing
