@@ -130,6 +130,11 @@ var cloud_configs = {
           title: "GPU",
           description: "These have a graphics processing unit.",
         },
+        {
+          matchOn: "p3..*",
+          title: "Private",
+          description: "Special-purpose private flavors.",
+        },
       ],
       desktopMessage: "",
     },
