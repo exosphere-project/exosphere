@@ -1,4 +1,4 @@
-module Style.Widgets.CopyableText exposing (copyableText, copyableTextAccessory)
+module Style.Widgets.CopyableText exposing (copyableText, copyableTextAccessory, notes)
 
 import Element exposing (Element)
 import Element.Input as Input
@@ -8,9 +8,21 @@ import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
 import Style.Widgets.Icon exposing (copyToClipboard)
 import Style.Widgets.Spacer exposing (spacer)
+import Style.Widgets.Text as Text
 
 
-{-| Display text with a button to copy to the clipboard. Requires you to do a Ports.InstantiateClipboardJS
+notes : String
+notes =
+    """
+## Usage
+
+Shows stylable text with an accessory button for copying the text content to the user's clipboard.
+
+It uses [clipboard.js](https://clipboardjs.com/) under the hood & relies on a port (`Ports.instantiateClipboardJs`) for initialization.
+"""
+
+
+{-| Display text with a button to copy to the clipboard. Requires you to do a `Ports.instantiateClipboardJs`.
 
     copyableText (Element.text "foobar")
 
@@ -30,6 +42,28 @@ copyableText palette textAttributes text =
         ]
 
 
+{-| Create a copy text accessory & an html attribute id to identify the copyable text.
+When text appears inside a custom element, it can be useful to display the copy text accessory button separately.
+Clipboard.js requires a unique id to be present on visible text for the copy action to work. Add this id to the widget containing your text.
+
+    let
+        copyable =
+            copyableTextAccessory palette text
+    in
+    Element.row
+        [ Element.spacing spacer.px8 ]
+        [ Input.multiline
+            [ copyable.id ]
+            { onChange = \_ -> NoOp
+            , text = text
+            , placeholder = Nothing
+            , label = Input.labelHidden "Greeting"
+            , spellcheck = False
+            }
+        , copyable.accessory
+        ]
+
+-}
 copyableTextAccessory : ExoPalette -> String -> { id : Element.Attribute msg, accessory : Element msg }
 copyableTextAccessory palette text =
     { id = Html.Attributes.id ("copy-me-" ++ hash text) |> Element.htmlAttribute, accessory = copyTextButton palette text }
@@ -49,7 +83,7 @@ copyTextButton palette text =
                 ]
             <|
                 [ copyToClipboard (SH.toElementColor palette.primary) 18
-                , Element.text "Copy"
+                , Text.text Text.Small [] "Copy"
                 ]
         ]
         { onPress = Nothing
@@ -58,10 +92,6 @@ copyTextButton palette text =
                 [ Element.mouseOver [ Element.transparent True ] ]
                 (copyToClipboard (SH.toElementColor palette.neutral.icon) 18)
         }
-
-
-
--- TODO copyableTextarea
 
 
 hash : String -> String
