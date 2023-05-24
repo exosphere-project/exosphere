@@ -18,11 +18,11 @@ notes =
 
 Shows stylable text with an accessory button for copying the text content to the user's clipboard.
 
-It uses [clipboard.js](https://clipboardjs.com/) under the hood & relies on a [port for initialisation](https://gitlab.com/exosphere/exosphere/-/blob/master/ports.js#L101).
+It uses [clipboard.js](https://clipboardjs.com/) under the hood & relies on a port (`Ports.instantiateClipboardJs`) for initialization.
 """
 
 
-{-| Display text with a button to copy to the clipboard. Requires you to do a `Ports.InstantiateClipboardJS`.
+{-| Display text with a button to copy to the clipboard. Requires you to do a `Ports.instantiateClipboardJs`.
 
     copyableText (Element.text "foobar")
 
@@ -44,7 +44,7 @@ copyableText palette textAttributes text =
 
 {-| Create a copy text accessory & an html attribute id to identify the copyable text.
 When text appears inside a custom element, it can be useful to display the copy text accessory button separately.
-Clipboard.js requires an unique id to be present on visible text for the copy action to work. Add this id to the widget containing your text.
+Clipboard.js requires a unique id to be present on visible text for the copy action to work. Add this id to the widget containing your text.
 
     let
         copyable =
