@@ -28,3 +28,6 @@ mkdocs/venv
 
 # production deployment artifacts
 deploy/prod/main-server/data
+
+# Ignore common editor files
+/.vscode/

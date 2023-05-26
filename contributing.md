@@ -150,14 +150,15 @@ In addition to [Running Exosphere For Development Work](docs/run-exosphere.md#fo
   - [configure your editor](https://github.com/avh4/elm-format#editor-integration) to apply code formatting whenever you save a file.
   - If you save files often, you save yourself a lot of typing and indenting work.
   - Similarly, if you find yourself editing `js`, `json`, or `html` files, you can [enable Prettier integration](https://prettier.io/docs/en/editors.html) to automatically format those.
-- **`husky` pre-push hook**
+- **`husky` pre-commit hook**
   - Run `npm install` and `npm run prepare` to set up `husky` in your development environment.
-  - When you try to `git push`, husky will run these, and stop the push if anything fails:
+  - When you try to `git commit`, husky will run these, and stop the commit if anything fails:
     - unit tests in `tests/`
     - `elm-analyse` static analysis tool
     - `elm-format` Elm code formatter
     - `prettier` JavaScript, JSON, and HTML formatter
   - This will catch many common issues long before GitLab's CI pipeline does.
+  - If you need to bypass this for any reason, `git commit --no-verify` will skip this validation.
 
 ### Design Review Process
 
@@ -228,7 +229,7 @@ Our continuous integration (CI) pipeline runs:
 - [unit tests](tests/README.md)
 - End-to-end tests which exercise the application in real web browsers 
 
-You can run all of these but the browser tests locally. The easiest way is to set up `husky` (per the section above) and try to `git push`. Or, you can test manually with these commands:
+You can run all of these but the browser tests locally. The easiest way is to set up `husky` (per the section above) and try to `git commit`. Or, you can test manually with these commands:
 
  ```bash
  npm install
