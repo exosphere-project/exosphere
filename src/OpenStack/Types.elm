@@ -1,5 +1,9 @@
 module OpenStack.Types exposing
-    ( ApplicationCredential
+    ( AccessRule
+    , AccessRuleAccessLevel
+    , AccessRuleAccessType
+    , AccessRuleState
+    , ApplicationCredential
     , ApplicationCredentialSecret
     , ApplicationCredentialUuid
     , AuthTokenString
@@ -11,6 +15,7 @@ module OpenStack.Types exposing
     , Endpoint
     , EndpointInterface(..)
     , ExportLocation
+    , ExportLocationUuid
     , Flavor
     , FlavorId
     , FloatingIp
@@ -75,6 +80,9 @@ module OpenStack.Types exposing
     , VolumeSize
     , VolumeStatus(..)
     , VolumeUuid
+    , accessRuleAccessLevelToString
+    , accessRuleAccessTypeToString
+    , accessRuleStateToString
     , boolToShareVisibility
     , imageVisibilityToString
     , serverPowerStateToString
@@ -82,6 +90,9 @@ module OpenStack.Types exposing
     , shareProtocolToString
     , shareStatusToString
     , shareVisibilityToString
+    , stringToAccessRuleAccessLevel
+    , stringToAccessRuleAccessType
+    , stringToAccessRuleState
     , stringToShareProtocol
     , stringToShareStatus
     , volumeStatusToString
@@ -800,6 +811,17 @@ type alias Share =
     }
 
 
+type alias AccessRule =
+    { uuid : AccessRuleUuid
+    , accessLevel : AccessRuleAccessLevel
+    , accessType : AccessRuleAccessType
+    , accessTo : AccessRuleAccessTo
+    , accessKey : Maybe AccessRuleAccessKey
+    , state : AccessRuleState
+    , createdAt : Time.Posix
+    }
+
+
 type alias ExportLocation =
     { uuid : ExportLocationUuid
     , path : String
@@ -862,6 +884,38 @@ type alias ShareTypeName =
 type ShareVisibility
     = SharePrivate
     | SharePublic
+
+
+type alias AccessRuleUuid =
+    String
+
+
+type alias AccessRuleAccessTo =
+    String
+
+
+type alias AccessRuleAccessKey =
+    String
+
+
+type AccessRuleAccessLevel
+    = RO
+    | RW
+    | UnsupportedAccessLevel String
+
+
+type AccessRuleAccessType
+    = CephX
+    | UnsupportedAccessType String
+
+
+type AccessRuleState
+    = QueuedToApply
+    | Applying
+    | Active
+    | AccessRuleError
+    | QueuedToDeny
+    | Denying
 
 
 type alias ExportLocationUuid =
@@ -1060,3 +1114,96 @@ shareProtocolToString shareProto =
 
         UnsupportedShareProtocol str ->
             str
+
+
+stringToAccessRuleAccessLevel : String -> AccessRuleAccessLevel
+stringToAccessRuleAccessLevel str =
+    case String.toLower str of
+        "ro" ->
+            RO
+
+        "rw" ->
+            RW
+
+        _ ->
+            UnsupportedAccessLevel str
+
+
+accessRuleAccessLevelToString : AccessRuleAccessLevel -> String
+accessRuleAccessLevelToString accessLevel =
+    case accessLevel of
+        RO ->
+            "read-only"
+
+        RW ->
+            "read-write"
+
+        UnsupportedAccessLevel str ->
+            str
+
+
+stringToAccessRuleAccessType : String -> AccessRuleAccessType
+stringToAccessRuleAccessType str =
+    case String.toUpper str of
+        "CEPHX" ->
+            CephX
+
+        _ ->
+            UnsupportedAccessType str
+
+
+accessRuleAccessTypeToString : AccessRuleAccessType -> String
+accessRuleAccessTypeToString accessType =
+    case accessType of
+        CephX ->
+            "CephX"
+
+        UnsupportedAccessType str ->
+            str
+
+
+stringToAccessRuleState : String -> AccessRuleState
+stringToAccessRuleState str =
+    case String.toLower str of
+        "queued_to_apply" ->
+            QueuedToApply
+
+        "applying" ->
+            Applying
+
+        "active" ->
+            Active
+
+        "queued_to_deny" ->
+            QueuedToDeny
+
+        "denying" ->
+            Denying
+
+        "error" ->
+            AccessRuleError
+
+        _ ->
+            AccessRuleError
+
+
+accessRuleStateToString : AccessRuleState -> String
+accessRuleStateToString state =
+    case state of
+        QueuedToApply ->
+            "Queued to apply"
+
+        Applying ->
+            "Applying"
+
+        Active ->
+            "Active"
+
+        QueuedToDeny ->
+            "Queued to deny"
+
+        Denying ->
+            "Denying"
+
+        AccessRuleError ->
+            "Error"

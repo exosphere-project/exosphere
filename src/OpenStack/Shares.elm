@@ -1,4 +1,4 @@
-module OpenStack.Shares exposing (requestShareExportLocations, requestShares)
+module OpenStack.Shares exposing (requestShareAccessRules, requestShareExportLocations, requestShares)
 
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Time
@@ -67,12 +67,57 @@ shareDecoder =
         |> Pipeline.required "share_type_name" Decode.string
 
 
+requestShareAccessRules : Project -> Url -> OSTypes.ShareUuid -> Cmd SharedMsg
+requestShareAccessRules project url shareUuid =
+    let
+        errorContext =
+            ErrorContext
+                ("get access rules of share with UUID \"" ++ shareUuid ++ "\"")
+                ErrorCrit
+                Nothing
+
+        resultToMsg_ =
+            resultToMsgErrorBody
+                errorContext
+                (\accessRules ->
+                    ProjectMsg
+                        (GetterSetters.projectIdentifier project)
+                        (ReceiveShareAccessRules ( shareUuid, accessRules ))
+                )
+    in
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Get
+        Nothing
+        -- Replaces the older list share access rules API from before 2.45.
+        [ ( "X-OpenStack-Manila-API-Version", "2.45" ) ]
+        (url ++ "/share-access-rules?share_id=" ++ shareUuid)
+        Http.emptyBody
+        (expectJsonWithErrorBody
+            resultToMsg_
+            (Decode.field "access_list" <| Decode.list accessRulesDecoder)
+        )
+
+
+accessRulesDecoder : Decode.Decoder OSTypes.AccessRule
+accessRulesDecoder =
+    Decode.succeed
+        OSTypes.AccessRule
+        |> Pipeline.required "id" Decode.string
+        |> Pipeline.required "access_level" (Decode.string |> Decode.map OSTypes.stringToAccessRuleAccessLevel)
+        |> Pipeline.required "access_type" (Decode.string |> Decode.map OSTypes.stringToAccessRuleAccessType)
+        |> Pipeline.required "access_to" Decode.string
+        |> Pipeline.required "access_key" (Decode.maybe Decode.string)
+        |> Pipeline.required "state" (Decode.string |> Decode.map OSTypes.stringToAccessRuleState)
+        |> Pipeline.required "created_at" (Decode.string |> Decode.andThen Helpers.Time.iso8601StringToPosixDecodeError)
+
+
 requestShareExportLocations : Project -> Url -> OSTypes.ShareUuid -> Cmd SharedMsg
 requestShareExportLocations project url shareUuid =
     let
         errorContext =
             ErrorContext
-                ("get export location of share with UUID \"" ++ shareUuid ++ "\"")
+                ("get export locations of share with UUID \"" ++ shareUuid ++ "\"")
                 ErrorCrit
                 Nothing
 
