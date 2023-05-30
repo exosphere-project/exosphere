@@ -178,7 +178,7 @@ requestShareQuota project url =
         Get
         Nothing
         [ ( "X-OpenStack-Manila-API-Version", "2.62" ) ]
-        (url ++ "/quota-sets/" ++ project.auth.project.uuid ++ "/detail")
+        (url ++ "/quota-sets/" ++ project.auth.project.uuid ++ "/detail?user_id=" ++ project.auth.user.uuid)
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg
