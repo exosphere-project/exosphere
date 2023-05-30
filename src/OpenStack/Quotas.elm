@@ -13,6 +13,7 @@ module OpenStack.Quotas exposing
 import Helpers.GetterSetters as GetterSetters
 import Http
 import Json.Decode as Decode
+import Json.Decode.Pipeline exposing (required)
 import OpenStack.Types as OSTypes
 import Rest.Helpers exposing (expectJsonWithErrorBody, openstackCredentialedRequest)
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
@@ -176,48 +177,35 @@ requestShareQuota project url =
         (GetterSetters.projectIdentifier project)
         Get
         Nothing
-        []
-        (url ++ "/limits")
+        [ ( "X-OpenStack-Manila-API-Version", "2.62" ) ]
+        (url ++ "/quota-sets/" ++ project.auth.project.uuid ++ "/detail")
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg
-            (Decode.field "limits" shareLimitsDecoder)
+            (Decode.field "quota_set" shareLimitsDecoder)
         )
+
+
+quotaItemDecoder : Decode.Decoder OSTypes.QuotaItemDetail
+quotaItemDecoder =
+    Decode.succeed OSTypes.QuotaItemDetail
+        |> required "in_use" Decode.int
+        |> required "limit" specialIntToMaybe
 
 
 shareLimitsDecoder : Decode.Decoder OSTypes.ShareQuota
 shareLimitsDecoder =
-    Decode.map7 OSTypes.ShareQuota
-        (Decode.map2 OSTypes.QuotaItemDetail
-            (Decode.at [ "absolute", "totalSharesUsed" ] Decode.int)
-            (Decode.at [ "absolute", "maxTotalShares" ] specialIntToMaybe)
-        )
-        (Decode.map2 OSTypes.QuotaItemDetail
-            (Decode.at [ "absolute", "totalSharesUsed" ] Decode.int)
-            (Decode.at [ "absolute", "maxTotalShareSnapshots" ] specialIntToMaybe)
-        )
-        (Decode.map2 OSTypes.QuotaItemDetail
-            (Decode.at [ "absolute", "totalShareNetworksUsed" ] Decode.int)
-            (Decode.at [ "absolute", "maxTotalShareNetworks" ] specialIntToMaybe)
-        )
-        (Decode.map2 OSTypes.QuotaItemDetail
-            (Decode.at [ "absolute", "totalShareGigabytesUsed" ] Decode.int)
-            (Decode.at [ "absolute", "maxTotalShareGigabytes" ] specialIntToMaybe)
-        )
-        (Decode.map2 OSTypes.QuotaItemDetail
-            (Decode.at [ "absolute", "totalSnapshotGigabytesUsed" ] Decode.int)
-            (Decode.at [ "absolute", "maxTotalSnapshotGigabytes" ] specialIntToMaybe)
-        )
-        (Decode.maybe <|
-            Decode.map2 OSTypes.QuotaItemDetail
-                (Decode.at [ "absolute", "totalShareReplicasUsed" ] Decode.int)
-                (Decode.at [ "absolute", "maxTotalShareReplicas" ] specialIntToMaybe)
-        )
-        (Decode.maybe <|
-            Decode.map2 OSTypes.QuotaItemDetail
-                (Decode.at [ "absolute", "totalReplicaGigabytesUsed" ] Decode.int)
-                (Decode.at [ "absolute", "maxTotalReplicaGigabytes" ] specialIntToMaybe)
-        )
+    Decode.succeed OSTypes.ShareQuota
+        |> required "gigabytes" quotaItemDecoder
+        |> required "snapshots" quotaItemDecoder
+        |> required "shares" quotaItemDecoder
+        |> required "snapshot_gigabytes" quotaItemDecoder
+        |> required "share_networks" (Decode.maybe quotaItemDecoder)
+        |> required "share_groups" quotaItemDecoder
+        |> required "share_group_snapshots" quotaItemDecoder
+        |> required "share_replicas" quotaItemDecoder
+        |> required "replica_gigabytes" quotaItemDecoder
+        |> required "per_share_gigabytes" quotaItemDecoder
 
 
 

@@ -824,13 +824,16 @@ type alias AccessRule =
 
 
 type alias ShareQuota =
-    { shares : QuotaItemDetail -- maxTotalShares, totalSharesUsed
-    , snapshots : QuotaItemDetail -- maxTotalShareSnapshots, totalSharesUsed
-    , networks : QuotaItemDetail -- maxTotalShareNetworks, totalShareNetworksUsed
-    , shareGigabytes : QuotaItemDetail -- maxTotalShareGigabytes, totalShareGigabytesUsed
-    , snapshotGigabytes : QuotaItemDetail -- maxTotalSnapshotGigabytes, totalSnapshotGigabytesUsed
-    , replicas : Maybe QuotaItemDetail -- maxTotalShareReplicas, totalShareReplicasUsed
-    , replicaGigabytes : Maybe QuotaItemDetail -- maxTotalReplicaGigabytes, totalReplicaGigabytesUsed
+    { gigabytes : QuotaItemDetail
+    , snapshots : QuotaItemDetail
+    , shares : QuotaItemDetail
+    , snapshotGigabytes : QuotaItemDetail
+    , shareNetworks : Maybe QuotaItemDetail
+    , shareGroups : QuotaItemDetail
+    , shareGroupSnapshots : QuotaItemDetail
+    , shareReplicas : QuotaItemDetail
+    , shareReplicaGigabytes : QuotaItemDetail
+    , perShareGigabytes : QuotaItemDetail
     }
 
 
