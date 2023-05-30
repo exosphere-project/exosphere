@@ -63,6 +63,7 @@ var config = {
     staticRepresentationOfBlockDeviceContents: "image",
     blockDevice: "volume",
     share: "share",
+    accessRule: "share rule",
     exportLocation: "export location",
     nonFloatingIpAddress: "internal IP address",
     floatingIpAddress: "public IP address",
