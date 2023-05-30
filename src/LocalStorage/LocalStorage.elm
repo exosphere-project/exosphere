@@ -113,6 +113,7 @@ hydrateProjectFromStoredProject storedProject =
     , computeQuota = RDPP.empty
     , volumeQuota = RDPP.empty
     , networkQuota = RDPP.empty
+    , shareQuota = RDPP.empty
     , jetstream2Allocations = RDPP.empty
     }
 

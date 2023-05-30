@@ -4,6 +4,7 @@ module OpenStack.Quotas exposing
     , overallQuotaAvailServers
     , requestComputeQuota
     , requestNetworkQuota
+    , requestShareQuota
     , requestVolumeQuota
     , volumeQuotaAvail
     , volumeQuotaDecoder
@@ -15,7 +16,7 @@ import Json.Decode as Decode
 import OpenStack.Types as OSTypes
 import Rest.Helpers exposing (expectJsonWithErrorBody, openstackCredentialedRequest)
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
-import Types.HelperTypes exposing (HttpRequestMethod(..))
+import Types.HelperTypes exposing (HttpRequestMethod(..), Url)
 import Types.Project exposing (Project)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 
@@ -150,6 +151,72 @@ networkQuotaDecoder =
         (Decode.map2 OSTypes.QuotaItemDetail
             (Decode.at [ "floatingip", "used" ] Decode.int)
             (Decode.at [ "floatingip", "limit" ] specialIntToMaybe)
+        )
+
+
+
+-- Share Quota
+
+
+requestShareQuota : Project -> Url -> Cmd SharedMsg
+requestShareQuota project url =
+    let
+        errorContext =
+            ErrorContext
+                "get details of share quota"
+                ErrorCrit
+                Nothing
+
+        resultToMsg result =
+            ProjectMsg
+                (GetterSetters.projectIdentifier project)
+                (ReceiveShareQuota errorContext result)
+    in
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Get
+        Nothing
+        []
+        (url ++ "/limits")
+        Http.emptyBody
+        (expectJsonWithErrorBody
+            resultToMsg
+            (Decode.field "limits" shareLimitsDecoder)
+        )
+
+
+shareLimitsDecoder : Decode.Decoder OSTypes.ShareQuota
+shareLimitsDecoder =
+    Decode.map7 OSTypes.ShareQuota
+        (Decode.map2 OSTypes.QuotaItemDetail
+            (Decode.at [ "absolute", "totalSharesUsed" ] Decode.int)
+            (Decode.at [ "absolute", "maxTotalShares" ] specialIntToMaybe)
+        )
+        (Decode.map2 OSTypes.QuotaItemDetail
+            (Decode.at [ "absolute", "totalSharesUsed" ] Decode.int)
+            (Decode.at [ "absolute", "maxTotalShareSnapshots" ] specialIntToMaybe)
+        )
+        (Decode.map2 OSTypes.QuotaItemDetail
+            (Decode.at [ "absolute", "totalShareNetworksUsed" ] Decode.int)
+            (Decode.at [ "absolute", "maxTotalShareNetworks" ] specialIntToMaybe)
+        )
+        (Decode.map2 OSTypes.QuotaItemDetail
+            (Decode.at [ "absolute", "totalShareGigabytesUsed" ] Decode.int)
+            (Decode.at [ "absolute", "maxTotalShareGigabytes" ] specialIntToMaybe)
+        )
+        (Decode.map2 OSTypes.QuotaItemDetail
+            (Decode.at [ "absolute", "totalSnapshotGigabytesUsed" ] Decode.int)
+            (Decode.at [ "absolute", "maxTotalSnapshotGigabytes" ] specialIntToMaybe)
+        )
+        (Decode.maybe <|
+            Decode.map2 OSTypes.QuotaItemDetail
+                (Decode.at [ "absolute", "totalShareReplicasUsed" ] Decode.int)
+                (Decode.at [ "absolute", "maxTotalShareReplicas" ] specialIntToMaybe)
+        )
+        (Decode.maybe <|
+            Decode.map2 OSTypes.QuotaItemDetail
+                (Decode.at [ "absolute", "totalReplicaGigabytesUsed" ] Decode.int)
+                (Decode.at [ "absolute", "maxTotalReplicaGigabytes" ] specialIntToMaybe)
         )
 
 
