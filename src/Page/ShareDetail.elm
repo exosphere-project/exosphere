@@ -11,7 +11,7 @@ import Helpers.Formatting exposing (Unit(..), humanNumber)
 import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import Helpers.Time
-import OpenStack.Types as OSTypes exposing (ExportLocation, Share)
+import OpenStack.Types as OSTypes exposing (AccessRule, ExportLocation, Share, accessRuleAccessLevelToString, accessRuleAccessTypeToString, accessRuleStateToString)
 import Style.Helpers as SH
 import Style.Types as ST exposing (ExoPalette)
 import Style.Widgets.Card
@@ -152,6 +152,85 @@ shareStatus context share =
         ]
 
 
+header : String -> Element.Element msg
+header text =
+    Element.el [ Font.heavy ] <| Element.text text
+
+
+scrollableCell : List (Element.Attribute msg) -> Element.Element msg -> Element.Element msg
+scrollableCell attrs msg =
+    Element.el
+        (Element.scrollbarX
+            :: attrs
+        )
+        (Element.el
+            [ -- HACK: A width needs to be set so that the cell expands responsively while having a horizontal scrollbar to contain overflow.
+              Element.width (Element.px 0)
+            ]
+            msg
+        )
+
+
+accessRulesTable : ExoPalette -> List AccessRule -> Element.Element Msg
+accessRulesTable palette accessRules =
+    case List.length accessRules of
+        0 ->
+            Element.text "(none)"
+
+        _ ->
+            Element.table
+                [ Element.spacing spacer.px16
+                ]
+                { data = accessRules
+                , columns =
+                    [ { header = header "State"
+                      , width = Element.shrink
+                      , view =
+                            \item ->
+                                Text.body <| accessRuleStateToString <| item.state
+                      }
+                    , { header = header "Type"
+                      , width = Element.shrink
+                      , view =
+                            \item ->
+                                Text.body <| accessRuleAccessTypeToString <| item.accessType
+                      }
+                    , { header = header "Level"
+                      , width = Element.shrink
+                      , view =
+                            \item ->
+                                Text.body <| accessRuleAccessLevelToString <| item.accessLevel
+                      }
+                    , { header = header "Access To"
+                      , width = Element.fill
+                      , view =
+                            \item ->
+                                scrollableCell
+                                    []
+                                    (Text.body <| item.accessTo)
+                      }
+                    , { header = header "Access Key"
+                      , width = Element.fill
+                      , view =
+                            \item ->
+                                let
+                                    accessKey =
+                                        Maybe.withDefault "(none)" <| item.accessKey
+                                in
+                                scrollableCell
+                                    [ (copyableTextAccessory palette accessKey).id ]
+                                    (Text.mono accessKey)
+                      }
+                    , { header = Element.none
+                      , width = Element.shrink
+                      , view =
+                            \item ->
+                                (copyableTextAccessory palette <| Maybe.withDefault "(none)" <| item.accessKey).accessory
+                      }
+                    ]
+                }
+
+
 exportLocationsTable : ExoPalette -> List ExportLocation -> Element.Element Msg
 exportLocationsTable palette exportLocations =
     case List.length exportLocations of
@@ -164,20 +243,13 @@ exportLocationsTable palette exportLocations =
                 ]
                 { data = exportLocations
                 , columns =
-                    [ { header = Element.el [ Font.heavy ] <| Element.text "Path"
+                    [ { header = header "Path"
                       , width = Element.fill
                       , view =
                             \item ->
-                                Element.el
-                                    [ Element.scrollbarX
-                                    , (copyableTextAccessory palette item.path).id
-                                    ]
-                                    (Element.el
-                                        [ -- HACK: A width needs to be set so that the cell expands responsively while having a horizontal scrollbar to contain overflow.
-                                          Element.width (Element.px 0)
-                                        ]
-                                        (Element.text item.path)
-                                    )
+                                scrollableCell
+                                    [ (copyableTextAccessory palette item.path).id ]
+                                    (Text.body item.path)
                       }
                     , { header = Element.none
                       , width = Element.shrink
@@ -273,6 +345,17 @@ render context project ( currentTime, _ ) share =
                     )
                 )
 
+        accessRules =
+            case Dict.get share.uuid project.shareAccessRules of
+                Just loadingAccessRules ->
+                    VH.renderRDPP context
+                        loadingAccessRules
+                        (context.localization.accessRule |> Helpers.String.pluralize)
+                        (accessRulesTable context.palette)
+
+                Nothing ->
+                    Element.none
+
         exportLocations =
             case Dict.get share.uuid project.shareExportLocations of
                 Just loadingExportLocations ->
@@ -331,5 +414,17 @@ render context project ( currentTime, _ ) share =
                 |> Element.text
             ]
             [ exportLocations
+            ]
+        , tile
+            [ FeatherIcons.lock
+                |> FeatherIcons.toHtml []
+                |> Element.html
+                |> Element.el []
+            , context.localization.accessRule
+                |> Helpers.String.pluralize
+                |> Helpers.String.toTitleCase
+                |> Element.text
+            ]
+            [ accessRules
             ]
         ]
