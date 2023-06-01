@@ -10,6 +10,7 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.ResourceList exposing (creationTimeFilterOptions, listItemColumnAttribs, onCreationTimeFilter)
 import Helpers.String
 import OpenStack.Types as OSTypes
+import Page.QuotaUsage
 import Page.ShareDetail exposing (Msg(..))
 import Route
 import Style.Helpers as SH
@@ -88,6 +89,7 @@ view context project currentTime model =
 
           else
             Element.none
+        , Page.QuotaUsage.view context Page.QuotaUsage.Full (Page.QuotaUsage.Share project.shareQuota)
         , VH.renderRDPP
             context
             project.shares

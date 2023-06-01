@@ -20,6 +20,7 @@ import View.Types
 type ResourceType
     = Compute (RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.ComputeQuota)
     | FloatingIp (RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.NetworkQuota)
+    | Share (RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.ShareQuota)
     | Volume ( RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.VolumeQuota, RDPP.RemoteDataPlusPlus HttpErrorWithBody (List VolumeSnapshot) )
     | Keypair (RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.ComputeQuota) Int
 
@@ -37,6 +38,9 @@ view context display resourceType =
 
         FloatingIp quota ->
             floatingIpQuotaDetails context display quota
+
+        Share quota ->
+            shareQuotaDetails context display quota
 
         Volume ( quota, snapshotUsage ) ->
             volumeQuotaDetails context display ( quota, snapshotUsage )
@@ -146,6 +150,57 @@ floatingIpInfoItems context display quota =
 floatingIpQuotaDetails : View.Types.Context -> Display -> RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.NetworkQuota -> Element.Element msg
 floatingIpQuotaDetails context display quota =
     quotaDetail context quota (floatingIpInfoItems context display)
+
+
+briefShareInfoItems : View.Types.Context -> OSTypes.ShareQuota -> Element.Element msg
+briefShareInfoItems context quota =
+    infoItem context
+        quota.shares
+        ( String.join " "
+            [ context.localization.share |> Helpers.String.pluralize |> Helpers.String.toTitleCase, "used" ]
+        , Count
+        )
+
+
+fullShareInfoItems : View.Types.Context -> OSTypes.ShareQuota -> Element.Element msg
+fullShareInfoItems context quota =
+    fullQuotaRow
+        [ briefShareInfoItems context quota
+        , infoItem context
+            quota.gigabytes
+            ( "Storage used"
+            , GibiBytes
+            )
+
+        -- , infoItem context quota.gigabytes ( "Storage used", GibiBytes )
+        -- , infoItem context quota.snapshots ( "Snapshots used", Count )
+        -- , infoItem context quota.snapshotGigabytes ( "Snapshot storage used", GibiBytes )
+        -- , case quota.shareNetworks of
+        --     Just shareNetworks ->
+        --         infoItem context shareNetworks ( "Networks used", Count )
+        --     Nothing ->
+        --         Element.none
+        -- , infoItem context quota.shareGroups ( "Groups used", Count )
+        -- , infoItem context quota.shareGroupSnapshots ( "Group snapshots used", Count )
+        -- , infoItem context quota.shareReplicas ( "Replicas used", Count )
+        -- , infoItem context quota.shareReplicaGigabytes ( "Replica storage used", GibiBytes )
+        -- , infoItem context quota.perShareGigabytes ( "Per-" ++ context.localization.share ++ " storage used", GibiBytes )
+        ]
+
+
+shareInfoItems : View.Types.Context -> Display -> OSTypes.ShareQuota -> Element.Element msg
+shareInfoItems context display quota =
+    case display of
+        Brief ->
+            briefShareInfoItems context quota
+
+        Full ->
+            fullShareInfoItems context quota
+
+
+shareQuotaDetails : View.Types.Context -> Display -> RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.ShareQuota -> Element.Element msg
+shareQuotaDetails context display quota =
+    quotaDetail context quota (shareInfoItems context display)
 
 
 keypairInfoItems : View.Types.Context -> Display -> Int -> OSTypes.ComputeQuota -> Element.Element msg

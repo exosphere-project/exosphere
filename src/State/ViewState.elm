@@ -401,6 +401,8 @@ routeToViewStateModelCmd sharedModel route =
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestShareAccessRules (GetterSetters.projectIdentifier project) shareId)
                                         |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestShareQuotas (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestShareExportLocations (GetterSetters.projectIdentifier project) shareId)
                             in
                             ( projectViewProto <| ShareDetail (Page.ShareDetail.init shareId)
@@ -415,6 +417,7 @@ routeToViewStateModelCmd sharedModel route =
                                     , Cmd.batch [ Ports.instantiateClipboardJs () ]
                                     )
                                         |> Helpers.pipelineCmd (ApiModelHelpers.requestShares (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd (ApiModelHelpers.requestShareQuotas (GetterSetters.projectIdentifier project))
                             in
                             ( projectViewProto <| ShareList (Page.ShareList.init True)
                             , newNewSharedModel
