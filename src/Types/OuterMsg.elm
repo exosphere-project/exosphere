@@ -21,6 +21,7 @@ import Page.ServerList
 import Page.ServerResize
 import Page.Settings
 import Page.ShareDetail
+import Page.ShareList
 import Page.VolumeAttach
 import Page.VolumeCreate
 import Page.VolumeDetail
@@ -57,3 +58,4 @@ type OuterMsg
     | ServerListMsg Page.ServerList.Msg
     | ServerResizeMsg Page.ServerResize.Msg
     | ShareDetailMsg Page.ShareDetail.Msg
+    | ShareListMsg Page.ShareList.Msg

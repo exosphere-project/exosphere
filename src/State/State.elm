@@ -39,6 +39,7 @@ import Page.ServerList
 import Page.ServerResize
 import Page.Settings
 import Page.ShareDetail
+import Page.ShareList
 import Page.VolumeAttach
 import Page.VolumeCreate
 import Page.VolumeDetail
@@ -463,6 +464,21 @@ updateUnderlying outerMsg outerModel =
                                         ShareDetail newSharedModel
                               }
                             , Cmd.map ShareDetailMsg cmd
+                            )
+                                |> pipelineCmdOuterModelMsg
+                                    (processSharedMsg sharedMsg)
+
+                        ( ShareListMsg pageMsg, ShareList pageModel ) ->
+                            let
+                                ( newSharedModel, cmd, sharedMsg ) =
+                                    Page.ShareList.update pageMsg pageModel
+                            in
+                            ( { outerModel
+                                | viewState =
+                                    ProjectView projectId <|
+                                        ShareList newSharedModel
+                              }
+                            , Cmd.map ShareListMsg cmd
                             )
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)

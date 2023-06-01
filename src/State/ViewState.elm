@@ -30,6 +30,7 @@ import Page.ServerList
 import Page.ServerResize
 import Page.Settings
 import Page.ShareDetail
+import Page.ShareList
 import Page.VolumeAttach
 import Page.VolumeCreate
 import Page.VolumeDetail
@@ -391,18 +392,10 @@ routeToViewStateModelCmd sharedModel route =
 
                         Route.ShareDetail shareId ->
                             let
-                                newSharedModel =
-                                    project
-                                        |> GetterSetters.modelUpdateProject sharedModel
-
-                                cmd =
-                                    Cmd.batch
-                                        [ -- TODO: Get Share quotas.
-                                          Ports.instantiateClipboardJs ()
-                                        ]
-
-                                ( newNewSharedModel, newCmd ) =
-                                    ( newSharedModel, cmd )
+                                ( newSharedModel, cmd ) =
+                                    ( project |> GetterSetters.modelUpdateProject sharedModel
+                                    , Cmd.batch [ Ports.instantiateClipboardJs () ]
+                                    )
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestShares (GetterSetters.projectIdentifier project))
                                         |> Helpers.pipelineCmd
@@ -411,6 +404,19 @@ routeToViewStateModelCmd sharedModel route =
                                             (ApiModelHelpers.requestShareExportLocations (GetterSetters.projectIdentifier project) shareId)
                             in
                             ( projectViewProto <| ShareDetail (Page.ShareDetail.init shareId)
+                            , newSharedModel
+                            , cmd
+                            )
+
+                        Route.ShareList ->
+                            let
+                                ( newNewSharedModel, newCmd ) =
+                                    ( GetterSetters.modelUpdateProject sharedModel project
+                                    , Cmd.batch [ Ports.instantiateClipboardJs () ]
+                                    )
+                                        |> Helpers.pipelineCmd (ApiModelHelpers.requestShares (GetterSetters.projectIdentifier project))
+                            in
+                            ( projectViewProto <| ShareList (Page.ShareList.init True)
                             , newNewSharedModel
                             , newCmd
                             )

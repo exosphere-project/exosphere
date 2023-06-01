@@ -204,6 +204,13 @@ pageTitle outerModel =
                         , shareName maybeProject pageModel.shareUuid
                         ]
 
+                ShareList _ ->
+                    String.join " "
+                        [ localization.share |> Helpers.String.pluralize |> Helpers.String.toTitleCase
+                        , "for"
+                        , projectName
+                        ]
+
                 VolumeAttach _ ->
                     String.join " "
                         [ "Attach"
