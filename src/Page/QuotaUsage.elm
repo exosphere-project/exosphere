@@ -171,20 +171,6 @@ fullShareInfoItems context quota =
             ( "Storage used"
             , GibiBytes
             )
-
-        -- , infoItem context quota.gigabytes ( "Storage used", GibiBytes )
-        -- , infoItem context quota.snapshots ( "Snapshots used", Count )
-        -- , infoItem context quota.snapshotGigabytes ( "Snapshot storage used", GibiBytes )
-        -- , case quota.shareNetworks of
-        --     Just shareNetworks ->
-        --         infoItem context shareNetworks ( "Networks used", Count )
-        --     Nothing ->
-        --         Element.none
-        -- , infoItem context quota.shareGroups ( "Groups used", Count )
-        -- , infoItem context quota.shareGroupSnapshots ( "Group snapshots used", Count )
-        -- , infoItem context quota.shareReplicas ( "Replicas used", Count )
-        -- , infoItem context quota.shareReplicaGigabytes ( "Replica storage used", GibiBytes )
-        -- , infoItem context quota.perShareGigabytes ( "Per-" ++ context.localization.share ++ " storage used", GibiBytes )
         ]
 
 
