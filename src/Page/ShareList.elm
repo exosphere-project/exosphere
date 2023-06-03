@@ -4,14 +4,11 @@ import Dict
 import Element
 import Element.Font as Font
 import FeatherIcons
-import FormatNumber.Locales exposing (Decimals(..))
-import Helpers.Formatting exposing (Unit(..))
 import Helpers.GetterSetters as GetterSetters
 import Helpers.ResourceList exposing (creationTimeFilterOptions, listItemColumnAttribs, onCreationTimeFilter)
 import Helpers.String
 import OpenStack.Types as OSTypes
 import Page.QuotaUsage
-import Page.ShareDetail exposing (Msg(..))
 import Route
 import Style.Helpers as SH
 import Style.Widgets.DataList as DataList
@@ -163,7 +160,6 @@ shareView context project currentTime shareRecord =
     in
     Element.column
         (listItemColumnAttribs context.palette)
-        -- [ Element.column (listItemColumnAttribs context.palette)
         [ Element.row [ Element.spacing spacer.px12, Element.width Element.fill ]
             [ shareLink
             , Element.row [ Element.alignRight ]
