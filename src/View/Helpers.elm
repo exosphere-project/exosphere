@@ -877,6 +877,17 @@ renderMarkdown context markdown =
 
 elmUiRenderer : View.Types.Context -> Markdown.Renderer.Renderer (Element.Element msg)
 elmUiRenderer context =
+    let
+        codeAttrs =
+            [ Text.fontFamily Text.Mono
+            , Background.color <| SH.toElementColor context.palette.neutral.background.frontLayer
+            , Background.color <| SH.toElementColor context.palette.neutral.background.backLayer
+            ]
+
+        codeRenderer =
+            Text.text Text.Body
+                (Element.paddingXY spacer.px4 0 :: codeAttrs)
+    in
     -- Heavily borrowed and modified from https://ellie-app.com/bQLgjtbgdkZa1
     { heading = heading context.palette
     , paragraph =
@@ -888,16 +899,7 @@ elmUiRenderer context =
     , emphasis = \content -> Element.row [ Font.italic ] content
     , strikethrough = \content -> Element.row [ Font.strike ] content
     , codeSpan =
-        \content ->
-            Element.el
-                [ Element.paddingXY 3 1
-                , Border.rounded 4
-                , Border.color (SH.toElementColor context.palette.muted.border)
-                , Background.color (SH.toElementColor context.palette.muted.background)
-                , Font.color (SH.toElementColor context.palette.muted.textOnColoredBG)
-                ]
-            <|
-                Text.mono content
+        codeRenderer
     , link =
         \{ destination } body ->
             Element.newTabLink (Link.linkStyle context.palette)
@@ -964,9 +966,10 @@ elmUiRenderer context =
                         )
                 )
     , codeBlock =
-        -- TODO implement this (show fixed-width font) once we need it
         \{ body } ->
-            Element.text body
+            Element.row
+                (codeAttrs ++ [ Element.paddingXY 0 spacer.px8, Element.width Element.fill ])
+                [ codeRenderer body ]
     , html = Markdown.Html.oneOf []
     , table = Element.column []
     , tableHeader = Element.column []
