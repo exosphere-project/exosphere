@@ -5,6 +5,8 @@ module OpenStack.Quotas exposing
     , requestComputeQuota
     , requestNetworkQuota
     , requestShareQuota
+    , requestShareQuotaProject
+    , requestShareQuotaUser
     , requestVolumeQuota
     , volumeQuotaAvail
     , volumeQuotaDecoder
@@ -17,7 +19,7 @@ import Json.Decode.Pipeline exposing (required)
 import OpenStack.Types as OSTypes
 import Rest.Helpers exposing (expectJsonWithErrorBody, openstackCredentialedRequest)
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
-import Types.HelperTypes exposing (HttpRequestMethod(..), Url)
+import Types.HelperTypes exposing (HttpRequestMethod(..), Url, UserOrProject(..))
 import Types.Project exposing (Project)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 
@@ -159,8 +161,8 @@ networkQuotaDecoder =
 -- Share Quota
 
 
-requestShareQuota : Project -> Url -> Cmd SharedMsg
-requestShareQuota project url =
+requestShareQuota : UserOrProject -> Project -> Url -> Cmd SharedMsg
+requestShareQuota userOrProject project url =
     let
         errorContext =
             ErrorContext
@@ -171,19 +173,39 @@ requestShareQuota project url =
         resultToMsg result =
             ProjectMsg
                 (GetterSetters.projectIdentifier project)
-                (ReceiveShareQuota errorContext result)
+                (ReceiveShareQuota userOrProject errorContext result)
+
+        fullUrl =
+            (url ++ "/quota-sets/" ++ project.auth.project.uuid ++ "/detail")
+                ++ (case userOrProject of
+                        IsUser ->
+                            "?user_id=" ++ project.auth.user.uuid
+
+                        IsProject ->
+                            ""
+                   )
     in
     openstackCredentialedRequest
         (GetterSetters.projectIdentifier project)
         Get
         Nothing
         [ ( "X-OpenStack-Manila-API-Version", "2.62" ) ]
-        (url ++ "/quota-sets/" ++ project.auth.project.uuid ++ "/detail?user_id=" ++ project.auth.user.uuid)
+        fullUrl
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg
             (Decode.field "quota_set" shareLimitsDecoder)
         )
+
+
+requestShareQuotaProject : Project -> Url -> Cmd SharedMsg
+requestShareQuotaProject =
+    requestShareQuota IsUser
+
+
+requestShareQuotaUser : Project -> Url -> Cmd SharedMsg
+requestShareQuotaUser =
+    requestShareQuota IsProject
 
 
 quotaItemDecoder : Decode.Decoder OSTypes.QuotaItemDetail

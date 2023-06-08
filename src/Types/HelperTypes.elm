@@ -29,6 +29,7 @@ module Types.HelperTypes exposing
     , Url
     , UserAppProxyConfig
     , UserAppProxyHostname
+    , UserOrProject(..)
     , Uuid
     , WindowSize
     )
@@ -264,6 +265,11 @@ type FloatingIpAssignmentStatus
 
 
 {- Stuff that should move somewhere else -}
+
+
+type UserOrProject
+    = IsUser
+    | IsProject
 
 
 type SupportableItemType

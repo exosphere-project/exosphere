@@ -92,7 +92,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveShareAccessRules ( OSTypes.ShareUuid, List OSTypes.AccessRule )
     | ReceiveShareExportLocations ( OSTypes.ShareUuid, List OSTypes.ExportLocation )
     | ReceiveShares (List OSTypes.Share)
-    | ReceiveShareQuota ErrorContext (Result HttpErrorWithBody OSTypes.ShareQuota)
+    | ReceiveShareQuota HelperTypes.UserOrProject ErrorContext (Result HttpErrorWithBody OSTypes.ShareQuota)
     | ReceiveCreateVolume
     | ReceiveVolumes ErrorContext (Result HttpErrorWithBody (List OSTypes.Volume))
     | ReceiveVolumeSnapshots (List VolumeSnapshot)
