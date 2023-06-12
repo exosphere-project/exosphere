@@ -18,7 +18,8 @@ import Widget
 
 
 type alias PopconfirmContent msg =
-    { confirmationText : String
+    { confirmation : Element.Element msg
+    , buttonText : Maybe String
     , onConfirm : Maybe msg
     , onCancel : Maybe msg
     }
@@ -61,7 +62,7 @@ deleteIconButton palette styleIsPrimary text onPress =
 
 
 deletePopconfirmContent : ExoPalette -> PopconfirmContent msg -> Element.Attribute msg -> Element.Element msg
-deletePopconfirmContent palette { confirmationText, onConfirm, onCancel } closePopconfirm =
+deletePopconfirmContent palette { confirmation, buttonText, onConfirm, onCancel } closePopconfirm =
     Element.column
         [ Element.spacing spacer.px16, Element.padding spacer.px4, Element.width Element.fill ]
         [ Element.row [ Element.spacing spacer.px8 ]
@@ -70,7 +71,7 @@ deletePopconfirmContent palette { confirmationText, onConfirm, onCancel } closeP
                 |> FeatherIcons.toHtml []
                 |> Element.html
                 |> Element.el []
-            , Element.text confirmationText
+            , confirmation
             ]
         , Element.row [ Element.spacing spacer.px12, Element.alignRight ]
             [ Element.el [ closePopconfirm ] <|
@@ -82,7 +83,7 @@ deletePopconfirmContent palette { confirmationText, onConfirm, onCancel } closeP
             , Element.el [ closePopconfirm ] <|
                 Button.button Button.Danger
                     palette
-                    { text = "Delete"
+                    { text = Maybe.withDefault "Delete" buttonText
                     , onPress = onConfirm
                     }
             ]
@@ -101,12 +102,7 @@ deletePopconfirm context msgMapper id content position target =
     popover context
         msgMapper
         { id = id
-        , content =
-            deletePopconfirmContent context.palette
-                { confirmationText = content.confirmationText
-                , onCancel = content.onCancel
-                , onConfirm = content.onConfirm
-                }
+        , content = deletePopconfirmContent context.palette content
         , contentStyleAttrs = []
         , position = position
         , distanceToTarget = Nothing

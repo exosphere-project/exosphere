@@ -441,10 +441,12 @@ serverView context currentTime project retainFloatingIpsWhenDeleting serverRecor
                         Element.column [ Element.spacing spacer.px8, Element.padding spacer.px4 ] <|
                             [ Style.Widgets.DeleteButton.deletePopconfirmContent
                                 context.palette
-                                { confirmationText =
-                                    "Are you sure you want to delete this "
-                                        ++ context.localization.virtualComputer
-                                        ++ "?"
+                                { confirmation =
+                                    Element.text <|
+                                        "Are you sure you want to delete this "
+                                            ++ context.localization.virtualComputer
+                                            ++ "?"
+                                , buttonText = Nothing
                                 , onCancel = Just NoOp
                                 , onConfirm =
                                     Just <| GotDeleteConfirm serverRecord.id
@@ -539,18 +541,22 @@ deletionAction context project serverIds =
         deletePopconfirm context
             (\deletePopconfirmId_ -> SharedMsg <| SharedMsg.TogglePopover deletePopconfirmId_)
             deletePopconfirmId
-            { confirmationText =
-                if Set.size serverIds > 1 then
-                    "Are you sure you want to delete these "
-                        ++ (Set.size serverIds |> String.fromInt)
-                        ++ " "
-                        ++ (context.localization.virtualComputer
-                                |> Helpers.String.pluralize
-                           )
-                        ++ "?"
+            { confirmation =
+                Element.text <|
+                    if Set.size serverIds > 1 then
+                        "Are you sure you want to delete these "
+                            ++ (Set.size serverIds |> String.fromInt)
+                            ++ " "
+                            ++ (context.localization.virtualComputer
+                                    |> Helpers.String.pluralize
+                               )
+                            ++ "?"
 
-                else
-                    "Are you sure you want to delete this " ++ context.localization.virtualComputer ++ "?"
+                    else
+                        "Are you sure you want to delete this "
+                            ++ context.localization.virtualComputer
+                            ++ "?"
+            , buttonText = Nothing
             , onConfirm =
                 Just <|
                     SharedMsg

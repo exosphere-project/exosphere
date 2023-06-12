@@ -12,8 +12,8 @@ import Set
 import Style.Helpers as SH
 import Style.Types
 import Style.Widgets.Card exposing (clickableCardFixedSize)
+import Style.Widgets.DeleteButton
 import Style.Widgets.Icon as Icon
-import Style.Widgets.RemoveButton
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Types.HelperTypes as HelperTypes
@@ -85,7 +85,7 @@ headerView context sharedModel =
             Element.none
 
           else
-            Style.Widgets.RemoveButton.removePopconfirm context
+            Style.Widgets.DeleteButton.deletePopconfirm context
                 TogglePopover
                 removePopconfirmId
                 { confirmation =
@@ -101,6 +101,7 @@ headerView context sharedModel =
                             |> Text.body
                         , "Nothing will be deleted on the cloud, only from the view.\nProjects can be added back later" |> Text.text Text.Small []
                         ]
+                , buttonText = Just "Remove"
                 , onConfirm = Just Logout
                 , onCancel = Just NoOp
                 }

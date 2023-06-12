@@ -212,10 +212,12 @@ keypairView model context project keypairRecord =
             deletePopconfirm context
                 (\deletePopconfirmId_ -> SharedMsg <| SharedMsg.TogglePopover deletePopconfirmId_)
                 deletePopconfirmId
-                { confirmationText =
-                    "Are you sure you want to delete this "
-                        ++ context.localization.pkiPublicKeyForSsh
-                        ++ "?"
+                { confirmation =
+                    Element.text <|
+                        "Are you sure you want to delete this "
+                            ++ context.localization.pkiPublicKeyForSsh
+                            ++ "?"
+                , buttonText = Nothing
                 , onConfirm = Just <| GotDeleteConfirm keypairId
                 , onCancel = Just NoOp
                 }
