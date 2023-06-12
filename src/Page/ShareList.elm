@@ -4,6 +4,8 @@ import Dict
 import Element
 import Element.Font as Font
 import FeatherIcons
+import FormatNumber.Locales exposing (Decimals(..))
+import Helpers.Formatting exposing (Unit(..), humanNumber)
 import Helpers.GetterSetters as GetterSetters
 import Helpers.ResourceList exposing (creationTimeFilterOptions, listItemColumnAttribs, onCreationTimeFilter)
 import Helpers.String
@@ -58,7 +60,7 @@ view context project currentTime model =
         renderSuccessCase : List OSTypes.Share -> Element.Element Msg
         renderSuccessCase shares =
             DataList.view
-                (context.localization.share |> Helpers.String.toTitleCase)
+                context.localization.share
                 model.dataListModel
                 DataListMsg
                 context
@@ -86,7 +88,7 @@ view context project currentTime model =
 
           else
             Element.none
-        , Page.QuotaUsage.view context Page.QuotaUsage.Full (Page.QuotaUsage.Share project.shareQuota)
+        , Page.QuotaUsage.view context Page.QuotaUsage.Full (Page.QuotaUsage.Share ( project.shareQuotaProject, project.shareQuotaUser ))
         , VH.renderRDPP
             context
             project.shares
@@ -127,8 +129,8 @@ shareRecords project shares =
 shareView : View.Types.Context -> Project -> Time.Posix -> ShareRecord -> Element.Element msg
 shareView context project currentTime shareRecord =
     let
-        _ =
-            SH.toElementColor context.palette.neutral.text.default
+        { locale } =
+            context
 
         shareLink =
             Element.link []
@@ -139,7 +141,10 @@ shareView context project currentTime shareRecord =
                         )
                 , label =
                     Element.el
-                        (Text.typographyAttrs Text.Emphasized ++ [ Font.color (SH.toElementColor context.palette.primary) ])
+                        (Text.typographyAttrs Text.Emphasized
+                            ++ [ Font.color (SH.toElementColor context.palette.primary)
+                               ]
+                        )
                         (Element.text <|
                             VH.extendedResourceName
                                 shareRecord.share.name
@@ -148,9 +153,15 @@ shareView context project currentTime shareRecord =
                         )
                 }
 
+        ( shareBytes, shareBytesSuffix ) =
+            humanNumber
+                { locale | decimals = Exact 0 }
+                GibiBytes
+                shareRecord.share.size
+
         shareSize =
             Element.el [ Element.alignRight ]
-                (Element.text (String.fromInt shareRecord.share.size ++ " GB"))
+                (Element.text (shareBytes ++ " " ++ shareBytesSuffix))
 
         accentColor =
             context.palette.neutral.text.default |> SH.toElementColor
