@@ -99,7 +99,13 @@ headerView context sharedModel =
                                )
                             ++ "?"
                             |> Text.body
-                        , "Nothing will be deleted on the cloud, only from the view.\nProjects can be added back later" |> Text.text Text.Small []
+                        , "Nothing will be deleted on the cloud, only from the view." |> Text.text Text.Small []
+                        , (context.localization.unitOfTenancy
+                            |> Helpers.String.pluralize
+                            |> Helpers.String.toTitleCase
+                          )
+                            ++ " can be added back later."
+                            |> Text.text Text.Small []
                         ]
                 , buttonText = Just "Remove"
                 , onConfirm = Just Logout
