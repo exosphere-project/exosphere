@@ -5,8 +5,6 @@ module OpenStack.Quotas exposing
     , requestComputeQuota
     , requestNetworkQuota
     , requestShareQuota
-    , requestShareQuotaProject
-    , requestShareQuotaUser
     , requestVolumeQuota
     , volumeQuotaAvail
     , volumeQuotaDecoder
@@ -196,16 +194,6 @@ requestShareQuota userOrProject project url =
             resultToMsg
             (Decode.field "quota_set" shareLimitsDecoder)
         )
-
-
-requestShareQuotaProject : Project -> Url -> Cmd SharedMsg
-requestShareQuotaProject =
-    requestShareQuota IsUser
-
-
-requestShareQuotaUser : Project -> Url -> Cmd SharedMsg
-requestShareQuotaUser =
-    requestShareQuota IsProject
 
 
 quotaItemDecoder : Decode.Decoder OSTypes.QuotaItemDetail
