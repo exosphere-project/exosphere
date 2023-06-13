@@ -177,21 +177,39 @@ shareCountInfoItem context ( projectQuota, userQuota ) =
 
         notMyShareCount =
             projectQuota.shares.inUse - myShareCount
+
+        sharesTitleText =
+            context.localization.share
+                |> Helpers.String.pluralize
+                |> Helpers.String.toTitleCase
+
+        projectTitleText =
+            context.localization.unitOfTenancy
+                |> Helpers.String.toTitleCase
     in
     case projectQuota.shares.limit of
         Just limit ->
             multiMeter context.palette
-                "Shares used"
+                (sharesTitleText
+                    ++ " used"
+                )
                 (String.fromInt projectQuota.shares.inUse
                     ++ " of "
                     ++ Helpers.Formatting.humanCount context.locale limit
                 )
                 limit
-                [ ( "My Shares: " ++ Helpers.Formatting.humanCount context.locale myShareCount
+                [ ( "My "
+                        ++ sharesTitleText
+                        ++ ": "
+                        ++ Helpers.Formatting.humanCount context.locale myShareCount
                   , myShareCount
                   , [ multiMeterPrimaryBackground context ]
                   )
-                , ( "Project Shares: " ++ Helpers.Formatting.humanCount context.locale notMyShareCount
+                , ( projectTitleText
+                        ++ " "
+                        ++ sharesTitleText
+                        ++ ": "
+                        ++ Helpers.Formatting.humanCount context.locale notMyShareCount
                   , notMyShareCount
                   , [ multiMeterSecondaryBackground context ]
                   )
@@ -201,20 +219,22 @@ shareCountInfoItem context ( projectQuota, userQuota ) =
             case userQuota.shares.limit of
                 Just limit ->
                     multiMeter context.palette
-                        "Shares used"
+                        (sharesTitleText
+                            ++ " used"
+                        )
                         (Helpers.Formatting.humanCount context.locale myShareCount
                             ++ " of "
                             ++ Helpers.Formatting.humanCount context.locale limit
                         )
                         limit
-                        [ ( "Shares: " ++ Helpers.Formatting.humanCount context.locale myShareCount
+                        [ ( sharesTitleText ++ ": " ++ Helpers.Formatting.humanCount context.locale myShareCount
                           , myShareCount
                           , [ multiMeterPrimaryBackground context ]
                           )
                         ]
 
                 Nothing ->
-                    Element.text "No share count limits"
+                    Element.text ("No " ++ context.localization.share ++ " count limits")
 
 
 shareStorageInfoItem : View.Types.Context -> ( OSTypes.ShareQuota, OSTypes.ShareQuota ) -> Element.Element msg
@@ -240,7 +260,11 @@ shareStorageInfoItem context ( projectQuota, userQuota ) =
                   , [ multiMeterPrimaryBackground context ]
                   )
                 , ( "", limit - projectQuota.gigabytes.inUse, [] )
-                , ( "Project Usage: " ++ usageLabel context (projectGigabytesUsed - userQuota.gigabytes.inUse)
+                , ( (context.localization.unitOfTenancy
+                        |> Helpers.String.toTitleCase
+                    )
+                        ++ " Usage: "
+                        ++ usageLabel context (projectGigabytesUsed - userQuota.gigabytes.inUse)
                   , notMyGigabytesUsed
                   , [ multiMeterSecondaryBackground context ]
                   )
