@@ -1,4 +1,4 @@
-FROM node:current-buster
+FROM node:current-bullseye
 
 # Note: this docker build is intended for local development only
 # docker build -t exosphere .
