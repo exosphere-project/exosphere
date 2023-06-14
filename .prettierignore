@@ -22,6 +22,9 @@ styleguide.html
 .DS_Store
 public/
 
+# Ignore cached data on gitlab-ci
+home/
+
 # mkdocs generated files and Python virtual environment
 mkdocs/site
 mkdocs/venv
