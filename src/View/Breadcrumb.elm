@@ -233,8 +233,7 @@ breadcrumb_ outerModel context =
                                     ]
 
                                 ShareDetail pageModel ->
-                                    [ -- TODO: Add another breadcrumb when the shares list exists.
-                                      { route = Just <| Route.ProjectRoute projectId <| Route.ShareList
+                                    [ { route = Just <| Route.ProjectRoute projectId <| Route.ShareList
                                       , label =
                                             String.join " "
                                                 [ context.localization.share
