@@ -14,7 +14,20 @@ when inside the directory containing this file.
 import NoDebug.Log
 import NoDebug.TodoOrToString
 import NoElementFontSize
+import NoHardcodedLocalizedStrings
 import Review.Rule as Rule exposing (Rule)
+
+
+inPaths : List String -> String -> Bool
+inPaths paths path =
+    List.any
+        (\pfx -> String.startsWith pfx path)
+        paths
+
+
+notInPaths : List String -> String -> Bool
+notInPaths paths path =
+    not <| inPaths paths path
 
 
 config : List Rule
@@ -23,4 +36,19 @@ config =
     , NoDebug.TodoOrToString.rule
     , NoElementFontSize.rule
         |> Rule.filterErrorsForFiles ((/=) "src/Style/Widgets/Text.elm")
+    , NoHardcodedLocalizedStrings.rule NoHardcodedLocalizedStrings.exosphereLocalizedStrings
+        |> Rule.filterErrorsForFiles
+            (notInPaths
+                [ "tests/"
+                , "src/Route.elm"
+                , "src/State/Init.elm"
+                , "src/State/Error.elm"
+                , "src/Helpers/Helpers.elm"
+                , "src/Rest/"
+                , "src/Types/"
+                , "src/DesignSystem/"
+                , "src/LocalStorage/"
+                , "src/OpenStack/"
+                ]
+            )
     ]
