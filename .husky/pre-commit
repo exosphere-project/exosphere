@@ -1,0 +1,11 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+git stash save --keep-index --include-untracked --message 'Temporary stash before pre-commit'
+trap "{ git stash pop --index; }" EXIT
+
+
+npm run test
+npm run elm:analyse
+npm run elm:format
+npm run js:format
