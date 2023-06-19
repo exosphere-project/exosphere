@@ -395,7 +395,7 @@ routeToViewStateModelCmd sharedModel route =
 
                                 cmd =
                                     Cmd.batch
-                                        [ -- TODO: Get Share access rules, quotas.
+                                        [ -- TODO: Get Share quotas.
                                           Ports.instantiateClipboardJs ()
                                         ]
 
@@ -403,6 +403,8 @@ routeToViewStateModelCmd sharedModel route =
                                     ( newSharedModel, cmd )
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestShares (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestShareAccessRules (GetterSetters.projectIdentifier project) shareId)
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestShareExportLocations (GetterSetters.projectIdentifier project) shareId)
                             in

@@ -103,6 +103,7 @@ hydrateProjectFromStoredProject storedProject =
     , volumeSnapshots = RDPP.empty
     , networks = RDPP.empty
     , shares = RDPP.empty
+    , shareAccessRules = Dict.empty
     , shareExportLocations = Dict.empty
     , autoAllocatedNetworkUuid = RDPP.empty
     , dnsRecordSets = RDPP.empty

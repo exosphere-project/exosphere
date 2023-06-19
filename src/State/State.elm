@@ -1875,6 +1875,29 @@ processProjectSpecificMsg outerModel project msg =
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
+        ReceiveShareAccessRules ( shareUuid, accessRules ) ->
+            let
+                newProject =
+                    { project
+                        | shareAccessRules =
+                            Dict.update shareUuid
+                                (\_ ->
+                                    Just
+                                        (RDPP.RemoteDataPlusPlus
+                                            (RDPP.DoHave accessRules sharedModel.clientCurrentTime)
+                                            (RDPP.NotLoading Nothing)
+                                        )
+                                )
+                                project.shareAccessRules
+                    }
+
+                newSharedModel =
+                    GetterSetters.modelUpdateProject sharedModel newProject
+            in
+            ( newSharedModel, Cmd.none )
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
         ReceiveShareExportLocations ( shareUuid, exportLocations ) ->
             let
                 newProject =
@@ -2908,6 +2931,7 @@ createProject_ outerModel description authToken region endpoints =
             , volumes = RDPP.empty
             , volumeSnapshots = RDPP.empty
             , shares = RDPP.empty
+            , shareAccessRules = Dict.empty
             , shareExportLocations = Dict.empty
             , networks = RDPP.empty
             , autoAllocatedNetworkUuid = RDPP.empty

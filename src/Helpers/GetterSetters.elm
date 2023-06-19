@@ -33,6 +33,7 @@ module Helpers.GetterSetters exposing
     , projectSetServerEventsLoading
     , projectSetServerLoading
     , projectSetServersLoading
+    , projectSetShareAccessRulesLoading
     , projectSetShareExportLocationsLoading
     , projectSetSharesLoading
     , projectSetVolumeSnapshotsLoading
@@ -603,6 +604,23 @@ projectSetServerEventsLoading project serverUuid =
 projectSetSharesLoading : Project -> Project
 projectSetSharesLoading project =
     { project | shares = RDPP.setLoading project.shares }
+
+
+projectSetShareAccessRulesLoading : OSTypes.ShareUuid -> Project -> Project
+projectSetShareAccessRulesLoading shareUuid project =
+    { project
+        | shareAccessRules =
+            Dict.update shareUuid
+                (\entry ->
+                    case entry of
+                        Just accessRules ->
+                            Just (RDPP.setLoading accessRules)
+
+                        Nothing ->
+                            Just (RDPP.setLoading RDPP.empty)
+                )
+                project.shareAccessRules
+    }
 
 
 projectSetShareExportLocationsLoading : OSTypes.ShareUuid -> Project -> Project

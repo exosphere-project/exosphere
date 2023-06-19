@@ -12,6 +12,7 @@ module Rest.ApiModelHelpers exposing
     , requestServerEvents
     , requestServerImageIfNotFound
     , requestServers
+    , requestShareAccessRules
     , requestShareExportLocations
     , requestShares
     , requestVolumeQuota
@@ -118,6 +119,25 @@ requestShares projectUuid model =
                         |> GetterSetters.projectSetSharesLoading
                         |> GetterSetters.modelUpdateProject model
                     , OpenStack.Shares.requestShares project url
+                    )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        Nothing ->
+            ( model, Cmd.none )
+
+
+requestShareAccessRules : ProjectIdentifier -> OSTypes.ShareUuid -> SharedModel -> ( SharedModel, Cmd SharedMsg )
+requestShareAccessRules projectUuid shareUuid model =
+    case GetterSetters.projectLookup model projectUuid of
+        Just project ->
+            case project.endpoints.manila of
+                Just url ->
+                    ( project
+                        |> GetterSetters.projectSetShareAccessRulesLoading shareUuid
+                        |> GetterSetters.modelUpdateProject model
+                    , OpenStack.Shares.requestShareAccessRules project url shareUuid
                     )
 
                 Nothing ->

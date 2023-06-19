@@ -24,6 +24,7 @@ type alias Project =
     , images : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Image)
     , servers : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List Server)
     , shares : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Share)
+    , shareAccessRules : Dict OSTypes.ShareUuid (RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.AccessRule))
     , shareExportLocations : Dict OSTypes.ShareUuid (RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.ExportLocation))
     , flavors : List OSTypes.Flavor
     , keypairs : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Keypair)

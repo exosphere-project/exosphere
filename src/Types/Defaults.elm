@@ -17,6 +17,7 @@ localization =
     , staticRepresentationOfBlockDeviceContents = "image"
     , blockDevice = "volume"
     , share = "share"
+    , accessRule = "access rule"
     , exportLocation = "export location"
     , nonFloatingIpAddress = "internal IP address"
     , floatingIpAddress = "floating IP address"
