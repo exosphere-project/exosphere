@@ -293,10 +293,12 @@ volumeView context project currentTime volumeRecord =
                         [ deletePopconfirm context
                             (SharedMsg << SharedMsg.TogglePopover)
                             deletePopconfirmId
-                            { confirmationText =
-                                "Are you sure you want to delete this "
-                                    ++ context.localization.blockDevice
-                                    ++ "?"
+                            { confirmation =
+                                Element.text <|
+                                    "Are you sure you want to delete this "
+                                        ++ context.localization.blockDevice
+                                        ++ "?"
+                            , buttonText = Nothing
                             , onCancel = Just NoOp
                             , onConfirm = Just <| GotDeleteVolumeConfirm volumeRecord.id
                             }
@@ -394,10 +396,12 @@ volumeView context project currentTime volumeRecord =
                                                     deletePopconfirm context
                                                         (SharedMsg << SharedMsg.TogglePopover)
                                                         deletePopconfirmId
-                                                        { confirmationText =
-                                                            "Are you sure you want to delete this "
-                                                                ++ deviceLabel
-                                                                ++ "?"
+                                                        { confirmation =
+                                                            Element.text <|
+                                                                "Are you sure you want to delete this "
+                                                                    ++ deviceLabel
+                                                                    ++ "?"
+                                                        , buttonText = Nothing
                                                         , onCancel = Just NoOp
                                                         , onConfirm = Just <| GotDeleteSnapshotConfirm snapshot.uuid
                                                         }

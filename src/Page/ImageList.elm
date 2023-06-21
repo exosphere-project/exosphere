@@ -228,10 +228,12 @@ imageView model context project imageRecord =
                     deletePopconfirm context
                         (\deletePopconfirmId_ -> SharedMsg <| SharedMsg.TogglePopover deletePopconfirmId_)
                         deletePopconfirmId
-                        { confirmationText =
-                            "Are you sure you want to delete this "
-                                ++ context.localization.staticRepresentationOfBlockDeviceContents
-                                ++ "?"
+                        { confirmation =
+                            Element.text <|
+                                "Are you sure you want to delete this "
+                                    ++ context.localization.staticRepresentationOfBlockDeviceContents
+                                    ++ "?"
+                        , buttonText = Nothing
                         , onConfirm = Just <| GotDeleteConfirm imageRecord.id
                         , onCancel = Just NoOp
                         }

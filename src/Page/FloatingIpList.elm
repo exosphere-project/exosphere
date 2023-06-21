@@ -288,10 +288,12 @@ floatingIpView context project floatingIpRecord =
             deletePopconfirm context
                 (\deletePopconfirmId_ -> SharedMsg <| SharedMsg.TogglePopover deletePopconfirmId_)
                 deletePopconfirmId
-                { confirmationText =
-                    "Are you sure you want to delete this "
-                        ++ context.localization.floatingIpAddress
-                        ++ "?"
+                { confirmation =
+                    Element.text <|
+                        "Are you sure you want to delete this "
+                            ++ context.localization.floatingIpAddress
+                            ++ "?"
+                , buttonText = Nothing
                 , onConfirm = Just <| GotDeleteConfirm floatingIpRecord.id
                 , onCancel = Just NoOp
                 }
