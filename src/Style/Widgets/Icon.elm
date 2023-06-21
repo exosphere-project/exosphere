@@ -67,7 +67,7 @@ creates a plain Element given a `FeatherIcons` icon and a basic size.
 If you need anything more complicated than this, then `featherIcon` is more
 appropriate, as it allows passing arbitrary Elm-UI attributes.
 
-Since `FeatheredIcon`'s functions to add image size also return the `FeatheredIcon.Icon`
+Since `FeatherIcon`'s functions to add image size also return the `FeatherIcon.Icon`
 type, it's possible to create a size simply by piping an icon into `FeatherIcon.withSize`
 method, but this helper function exists because of how common it is within Exosphere
 to create an icon with a specific known size.
