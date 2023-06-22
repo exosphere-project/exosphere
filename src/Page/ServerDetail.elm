@@ -6,7 +6,7 @@ import Element
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
-import FeatherIcons
+import FeatherIcons as Icons
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.Interaction as IHelpers
@@ -375,10 +375,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                         Element.none
             in
             [ tile
-                [ FeatherIcons.monitor
-                    |> FeatherIcons.toHtml []
-                    |> Element.html
-                    |> Element.el []
+                [ Icon.featherIcon [] Icons.monitor
                 , Element.text "Interactions"
                 ]
                 [ interactions
@@ -389,10 +386,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                     (GetterSetters.getUserAppProxyFromContext project context)
                 ]
             , tile
-                [ FeatherIcons.key
-                    |> FeatherIcons.toHtml []
-                    |> Element.html
-                    |> Element.el []
+                [ Icon.featherIcon [] Icons.key
                 , Element.text "Credentials"
                 ]
                 [ renderIpAddresses
@@ -413,10 +407,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                     (Element.text (Maybe.withDefault "(none)" details.keypairName))
                 ]
             , tile
-                [ FeatherIcons.hardDrive
-                    |> FeatherIcons.toHtml []
-                    |> Element.html
-                    |> Element.el []
+                [ Icon.featherIcon [] Icons.hardDrive
                 , context.localization.blockDevice
                     |> Helpers.String.pluralize
                     |> Helpers.String.toTitleCase
@@ -455,7 +446,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
     in
     Element.column [ Element.spacing spacer.px24, Element.width Element.fill ]
         [ Element.row (Text.headingStyleAttrs context.palette)
-            [ FeatherIcons.server |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
+            [ Icon.featherIcon [] Icons.server
             , Text.text Text.ExtraLarge
                 []
                 (context.localization.virtualComputer
@@ -468,7 +459,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                 ]
             ]
         , tile
-            [ FeatherIcons.cpu |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
+            [ Icon.featherIcon [] Icons.cpu
             , Element.text "Info"
             , Element.el
                 [ Text.fontSize Text.Tiny
@@ -493,7 +484,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
         , serverFaultView
         , if List.member details.openstackStatus [ OSTypes.ServerActive, OSTypes.ServerVerifyResize ] then
             tile
-                [ FeatherIcons.activity |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
+                [ Icon.featherIcon [] Icons.activity
                 , Element.text "Resource Usage"
                 ]
                 [ resourceUsageCharts context
@@ -521,12 +512,7 @@ serverNameView context project currentTime model server =
                 , Widget.iconButton
                     (SH.materialStyle context.palette).button
                     { text = "Edit"
-                    , icon =
-                        FeatherIcons.edit3
-                            |> FeatherIcons.withSize 16
-                            |> FeatherIcons.toHtml []
-                            |> Element.html
-                            |> Element.el []
+                    , icon = Icon.sizedFeatherIcon 16 Icons.edit3
                     , onPress =
                         Just <| GotServerNamePendingConfirmation (Just name_)
                     }
@@ -663,24 +649,14 @@ serverNameView context project currentTime model server =
                 , Widget.iconButton
                     (SH.materialStyle context.palette).button
                     { text = "Save"
-                    , icon =
-                        FeatherIcons.save
-                            |> FeatherIcons.withSize 16
-                            |> FeatherIcons.toHtml []
-                            |> Element.html
-                            |> Element.el []
+                    , icon = Icon.sizedFeatherIcon 16 Icons.save
                     , onPress =
                         saveOnPress
                     }
                 , Widget.iconButton
                     (SH.materialStyle context.palette).button
                     { text = "Cancel"
-                    , icon =
-                        FeatherIcons.xCircle
-                            |> FeatherIcons.withSize 16
-                            |> FeatherIcons.toHtml []
-                            |> Element.html
-                            |> Element.el []
+                    , icon = Icon.sizedFeatherIcon 16 Icons.xCircle
                     , onPress =
                         Just <| GotServerNamePendingConfirmation Nothing
                     }
@@ -1086,17 +1062,12 @@ serverActionsDropdown context project model server =
                     Element.row
                         [ Element.spacing spacer.px4 ]
                         [ Element.text "Actions"
-                        , Element.el []
-                            ((if dropdownIsShown then
-                                FeatherIcons.chevronUp
+                        , Icon.sizedFeatherIcon 18 <|
+                            if dropdownIsShown then
+                                Icons.chevronUp
 
-                              else
-                                FeatherIcons.chevronDown
-                             )
-                                |> FeatherIcons.withSize 18
-                                |> FeatherIcons.toHtml []
-                                |> Element.html
-                            )
+                            else
+                                Icons.chevronDown
                         ]
                 , onPress = Just toggleDropdownMsg
                 }
@@ -1623,10 +1594,7 @@ renderIpAddresses context project server model =
         IpDetails ->
             let
                 icon =
-                    FeatherIcons.chevronDown
-                        |> FeatherIcons.withSize 12
-                        |> FeatherIcons.toHtml []
-                        |> Element.html
+                    Icon.sizedFeatherIcon 12 Icons.chevronDown
             in
             Element.column
                 [ Element.spacing spacer.px8 ]
@@ -1638,10 +1606,7 @@ renderIpAddresses context project server model =
         IpSummary ->
             let
                 icon =
-                    FeatherIcons.chevronRight
-                        |> FeatherIcons.withSize 12
-                        |> FeatherIcons.toHtml []
-                        |> Element.html
+                    Icon.sizedFeatherIcon 12 Icons.chevronRight
             in
             Element.column
                 [ Element.spacing spacer.px8 ]

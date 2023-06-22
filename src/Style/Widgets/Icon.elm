@@ -3,6 +3,7 @@ module Style.Widgets.Icon exposing
     , bell
     , console
     , copyToClipboard
+    , featherIcon
     , history
     , iconEl
     , ipAddress
@@ -11,6 +12,7 @@ module Style.Widgets.Icon exposing
     , plusCircle
     , remove
     , roundRect
+    , sizedFeatherIcon
     , timesCircle
     )
 
@@ -29,6 +31,53 @@ type Icon
     | Info
     | Logout
     | Settings
+
+
+{-| Creates an Elm-UI Element for a given FeatherIcons icon.
+
+This function accepts a list of Elm-UI attributes which can be passed in
+to apply the attributes directly, obviating the need for neutral wrapper
+Element.el elements. For example, one can pass in `alignTop` to vertically
+align the icon in the surrounding context.
+
+    featherIcon [ Element.alignTop ] FeatherIcons.server
+
+If all you need is a basic icon pass an empty array of attributes.
+
+    featherIcon [] FeatherIcons.chevronDown
+
+If you need the basic icon but want to specify a size, see [sizedFeatherIcon](Style.Widgets.Icon#sizedFeatherIcon).
+
+-}
+featherIcon : List (Element.Attribute msg) -> FeatherIcons.Icon -> Element.Element msg
+featherIcon attributes icon =
+    icon
+        |> FeatherIcons.toHtml []
+        |> Element.html
+        |> Element.el attributes
+
+
+{-| Creates an Elm-UI Element for a given FeatherIcons icon with a specific size.
+
+This is a simpler version of [featherIcon](Style.Widgets.Icon#featherIcon) which
+creates a plain Element given a `FeatherIcons` icon and a basic size.
+
+    sizedFeatherIcon 18 FeatherIcons.hardDrive
+
+If you need anything more complicated than this, then `featherIcon` is more
+appropriate, as it allows passing arbitrary Elm-UI attributes.
+
+Since `FeatherIcon`'s functions to add image size also return the `FeatherIcon.Icon`
+type, it's possible to create a size simply by piping an icon into `FeatherIcon.withSize`
+method, but this helper function exists because of how common it is within Exosphere
+to create an icon with a specific known size.
+
+-}
+sizedFeatherIcon : Float -> FeatherIcons.Icon -> Element.Element msg
+sizedFeatherIcon size icon =
+    icon
+        |> FeatherIcons.withSize size
+        |> featherIcon []
 
 
 iconEl : List (Element.Attribute msg) -> Icon -> Int -> Color.Color -> Element.Element msg

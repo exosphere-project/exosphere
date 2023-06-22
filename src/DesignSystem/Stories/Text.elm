@@ -3,7 +3,8 @@ module DesignSystem.Stories.Text exposing (stories)
 import DesignSystem.Helpers exposing (Plugins, Renderer, ThemeModel, palettize)
 import Element
 import Element.Font as Font
-import FeatherIcons
+import FeatherIcons as Icons
+import Style.Widgets.Icon exposing (featherIcon)
 import Style.Widgets.Link as Link
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text exposing (TextVariant(..))
@@ -61,11 +62,7 @@ stories renderer =
                 renderer (palettize m) <|
                     Text.heading (palettize m)
                         []
-                        (FeatherIcons.helpCircle
-                            |> FeatherIcons.toHtml []
-                            |> Element.html
-                            |> Element.el []
-                        )
+                        (featherIcon [] Icons.helpCircle)
                         "Get Support"
           , { note = Text.notes }
           )
@@ -74,11 +71,7 @@ stories renderer =
                 renderer (palettize m) <|
                     Text.subheading (palettize m)
                         []
-                        (FeatherIcons.hardDrive
-                            |> FeatherIcons.toHtml []
-                            |> Element.html
-                            |> Element.el []
-                        )
+                        (featherIcon [] Icons.hardDrive)
                         "Volumes"
           , { note = Text.notes }
           )

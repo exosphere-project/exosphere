@@ -465,7 +465,7 @@ Exosphere has several **custom icons**.
 
 For everything else, use [FeatherIcons](https://package.elm-lang.org/packages/1602/elm-feather/latest/FeatherIcons):
 
-    FeatherIcons.logOut |> FeatherIcons.withSize 18 |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
+    Style.Widgets.Icon.featherIcon [] (FeatherIcons.logOut |> FeatherIcons.withSize 18)
                             """ }
                             )
                         )

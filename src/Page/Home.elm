@@ -2,7 +2,7 @@ module Page.Home exposing (Model, Msg, headerView, init, update, view)
 
 import Element
 import Element.Font as Font
-import FeatherIcons
+import FeatherIcons as Icons
 import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
@@ -118,7 +118,7 @@ headerView context sharedModel =
                         { icon =
                             Element.row [ Element.spacing spacer.px8 ]
                                 [ Element.text removeAllText
-                                , FeatherIcons.logOut |> FeatherIcons.withSize 18 |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
+                                , Icon.sizedFeatherIcon 18 Icons.logOut
                                 ]
                         , text = removeAllText
                         , onPress =
@@ -168,15 +168,8 @@ addProjectCard context sharedModel =
                 context.palette
                 [ Element.column
                     [ Element.centerX, Element.centerY, Element.spacing spacer.px24 ]
-                    [ FeatherIcons.plusCircle
-                        |> FeatherIcons.withSize 85
-                        |> FeatherIcons.toHtml []
-                        |> Element.html
-                        |> Element.el
-                            [ context.palette.neutral.icon
-                                |> SH.toElementColor
-                                |> Font.color
-                            ]
+                    [ Icon.featherIcon [ Font.color (context.palette.neutral.icon |> SH.toElementColor) ]
+                        (Icons.plusCircle |> Icons.withSize 85)
                     , Element.text ("Add " ++ context.localization.unitOfTenancy)
                     ]
                 ]
@@ -285,11 +278,11 @@ renderProject context project =
                 ]
                 [ renderResourceQuantity
                     context.localization.virtualComputer
-                    (FeatherIcons.server |> FeatherIcons.toHtml [] |> Element.html |> Element.el [])
+                    (Icon.featherIcon [] Icons.server)
                     (RDPP.withDefault [] project.servers)
                 , renderResourceQuantity
                     context.localization.blockDevice
-                    (FeatherIcons.hardDrive |> FeatherIcons.toHtml [] |> Element.html |> Element.el [])
+                    (Icon.featherIcon [] Icons.hardDrive)
                     (RDPP.withDefault [] project.volumes)
                 , renderResourceQuantity
                     context.localization.floatingIpAddress

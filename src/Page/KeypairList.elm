@@ -3,7 +3,7 @@ module Page.KeypairList exposing (Model, Msg(..), init, update, view)
 import Element
 import Element.Font as Font
 import Element.Input
-import FeatherIcons
+import FeatherIcons as Icons
 import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.ResourceList exposing (listItemColumnAttribs)
@@ -18,6 +18,7 @@ import Style.Types as ST
 import Style.Widgets.CopyableText
 import Style.Widgets.DataList as DataList
 import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
+import Style.Widgets.Icon exposing (featherIcon)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Types.Project exposing (Project)
@@ -119,11 +120,7 @@ view context project model =
                                     Element.row
                                         [ Element.spacing spacer.px4 ]
                                         [ Element.text text
-                                        , Element.el []
-                                            (FeatherIcons.chevronRight
-                                                |> FeatherIcons.toHtml []
-                                                |> Element.html
-                                            )
+                                        , featherIcon [] Icons.chevronRight
                                         ]
                                 , onPress =
                                     Just <| NoOp
@@ -154,7 +151,7 @@ view context project model =
         [ if model.showHeading then
             Text.heading context.palette
                 []
-                (FeatherIcons.key |> FeatherIcons.toHtml [] |> Element.html |> Element.el [])
+                (featherIcon [] Icons.key)
                 (context.localization.pkiPublicKeyForSsh
                     |> Helpers.String.pluralize
                     |> Helpers.String.toTitleCase

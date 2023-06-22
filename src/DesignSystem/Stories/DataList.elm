@@ -11,13 +11,13 @@ import Element
 import Element.Background
 import Element.Border
 import Element.Font
-import FeatherIcons
+import FeatherIcons as Icons
 import Set
 import Style.Helpers
 import Style.Types
 import Style.Widgets.DataList
 import Style.Widgets.HumanTime exposing (relativeTimeElement)
-import Style.Widgets.Icon
+import Style.Widgets.Icon exposing (sizedFeatherIcon)
 import Style.Widgets.Popover.Types
 import Style.Widgets.Text
 import Time
@@ -115,12 +115,7 @@ serverView palette onDelete now server =
                     Element.row
                         [ Element.spacing 5 ]
                         [ Element.text "Connect to"
-                        , Element.el []
-                            (FeatherIcons.chevronDown
-                                |> FeatherIcons.withSize 18
-                                |> FeatherIcons.toHtml []
-                                |> Element.html
-                            )
+                        , sizedFeatherIcon 18 Icons.chevronDown
                         ]
                 , onPress = Nothing
                 }

@@ -4,10 +4,11 @@ import Element
 import Element.Border as Border
 import Element.Events as Events
 import Element.Font as Font
-import FeatherIcons exposing (Icon)
+import FeatherIcons as Icons
 import Set
 import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
+import Style.Widgets.Icon exposing (featherIcon)
 import Style.Widgets.Popover.Popover exposing (popover)
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.Spacer exposing (spacer)
@@ -30,7 +31,7 @@ toggleTip context msgMapper id content position =
         id
         content
         position
-        FeatherIcons.info
+        Icons.info
         (context.palette.neutral.icon |> SH.toElementColor)
         (context.palette.neutral.text.default |> SH.toElementColor)
 
@@ -51,7 +52,7 @@ warningToggleTip context msgMapper id content position =
         id
         content
         position
-        FeatherIcons.alertTriangle
+        Icons.alertTriangle
         -- FIXME: Palette's warning `default` is difficult to read on a neutral bg so `textOnNeutralBG` is better; but the focus color must be darker & `textOnColoredBG` is a bit too dark.
         (context.palette.warning.textOnNeutralBG |> SH.toElementColor)
         (context.palette.warning.textOnColoredBG |> SH.toElementColor)
@@ -65,7 +66,7 @@ toggleTipWithIcon :
     -> PopoverId
     -> Element.Element msg
     -> Style.Types.PopoverPosition
-    -> Icon
+    -> Icons.Icon
     -> Element.Color
     -> Element.Color
     -> Element.Element msg
@@ -83,11 +84,8 @@ toggleTipWithIcon context msgMapper id content position icon color hoverColor =
             ]
 
         tipIconBtn toggleMsg tipIsShown =
-            icon
-                |> FeatherIcons.withSize 20
-                |> FeatherIcons.toHtml []
-                |> Element.html
-                |> Element.el
+            (icon |> Icons.withSize 20)
+                |> featherIcon
                     ([ Element.paddingXY spacer.px4 0
                      , Events.onClick toggleMsg
                      , Element.pointer

@@ -5,12 +5,13 @@ module Style.Widgets.DeleteButton exposing
     )
 
 import Element
-import FeatherIcons
+import FeatherIcons as Icons
 import Html.Attributes as HtmlA
 import Set
 import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
 import Style.Widgets.Button as Button
+import Style.Widgets.Icon exposing (sizedFeatherIcon)
 import Style.Widgets.Popover.Popover exposing (popover)
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.Spacer exposing (spacer)
@@ -51,11 +52,7 @@ deleteIconButton palette styleIsPrimary text onPress =
     in
     Widget.iconButton
         deleteBtnStyle
-        { icon =
-            FeatherIcons.trash2
-                |> FeatherIcons.withSize 18
-                |> FeatherIcons.toHtml []
-                |> Element.html
+        { icon = sizedFeatherIcon 18 Icons.trash2
         , text = text
         , onPress = onPress
         }
@@ -66,11 +63,7 @@ deletePopconfirmContent palette { confirmation, buttonText, onConfirm, onCancel 
     Element.column
         [ Element.spacing spacer.px16, Element.padding spacer.px4, Element.width Element.fill ]
         [ Element.row [ Element.spacing spacer.px8 ]
-            [ FeatherIcons.alertCircle
-                |> FeatherIcons.withSize 20
-                |> FeatherIcons.toHtml []
-                |> Element.html
-                |> Element.el []
+            [ sizedFeatherIcon 20 Icons.alertCircle
             , confirmation
             ]
         , Element.row [ Element.spacing spacer.px12, Element.alignRight ]
