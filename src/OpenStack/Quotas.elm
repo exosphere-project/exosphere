@@ -17,7 +17,7 @@ import Json.Decode.Pipeline exposing (required)
 import OpenStack.Types as OSTypes
 import Rest.Helpers exposing (expectJsonWithErrorBody, openstackCredentialedRequest)
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
-import Types.HelperTypes exposing (HttpRequestMethod(..), Url, UserOrProject(..))
+import Types.HelperTypes exposing (HttpRequestMethod(..), Url)
 import Types.Project exposing (Project)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 
@@ -159,8 +159,8 @@ networkQuotaDecoder =
 -- Share Quota
 
 
-requestShareQuota : UserOrProject -> Project -> Url -> Cmd SharedMsg
-requestShareQuota userOrProject project url =
+requestShareQuota : Project -> Url -> Cmd SharedMsg
+requestShareQuota project url =
     let
         errorContext =
             ErrorContext
@@ -171,24 +171,14 @@ requestShareQuota userOrProject project url =
         resultToMsg result =
             ProjectMsg
                 (GetterSetters.projectIdentifier project)
-                (ReceiveShareQuota userOrProject errorContext result)
-
-        fullUrl =
-            (url ++ "/quota-sets/" ++ project.auth.project.uuid ++ "/detail")
-                ++ (case userOrProject of
-                        IsUser ->
-                            "?user_id=" ++ project.auth.user.uuid
-
-                        IsProject ->
-                            ""
-                   )
+                (ReceiveShareQuota errorContext result)
     in
     openstackCredentialedRequest
         (GetterSetters.projectIdentifier project)
         Get
         Nothing
         [ ( "X-OpenStack-Manila-API-Version", "2.62" ) ]
-        fullUrl
+        (url ++ "/quota-sets/" ++ project.auth.project.uuid ++ "/detail")
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg

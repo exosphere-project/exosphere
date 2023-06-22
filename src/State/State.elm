@@ -61,7 +61,7 @@ import Task
 import Time
 import Types.Error as Error exposing (AppError, ErrorContext, ErrorLevel(..))
 import Types.Guacamole as GuacTypes
-import Types.HelperTypes as HelperTypes exposing (HttpRequestMethod(..), UnscopedProviderProject, UserOrProject(..))
+import Types.HelperTypes as HelperTypes exposing (HttpRequestMethod(..), UnscopedProviderProject)
 import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Endpoints, Project, ProjectSecret(..))
@@ -2176,17 +2176,12 @@ processProjectSpecificMsg outerModel project msg =
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
-        ReceiveShareQuota isProjectOrUser errorContext result ->
+        ReceiveShareQuota errorContext result ->
             case result of
                 Ok quota ->
                     let
                         newProject =
-                            case isProjectOrUser of
-                                IsUser ->
-                                    { project | shareQuotaUser = RDPP.RemoteDataPlusPlus (RDPP.DoHave quota sharedModel.clientCurrentTime) (RDPP.NotLoading Nothing) }
-
-                                IsProject ->
-                                    { project | shareQuotaProject = RDPP.RemoteDataPlusPlus (RDPP.DoHave quota sharedModel.clientCurrentTime) (RDPP.NotLoading Nothing) }
+                            { project | shareQuota = RDPP.RemoteDataPlusPlus (RDPP.DoHave quota sharedModel.clientCurrentTime) (RDPP.NotLoading Nothing) }
                     in
                     ( GetterSetters.modelUpdateProject sharedModel newProject, Cmd.none )
                         |> mapToOuterModel outerModel
@@ -2194,12 +2189,7 @@ processProjectSpecificMsg outerModel project msg =
                 Err httpError ->
                     let
                         newProject =
-                            case isProjectOrUser of
-                                IsUser ->
-                                    { project | shareQuotaUser = RDPP.setNotLoading (Just ( httpError, sharedModel.clientCurrentTime )) project.shareQuotaUser }
-
-                                IsProject ->
-                                    { project | shareQuotaProject = RDPP.setNotLoading (Just ( httpError, sharedModel.clientCurrentTime )) project.shareQuotaProject }
+                            { project | shareQuota = RDPP.setNotLoading (Just ( httpError, sharedModel.clientCurrentTime )) project.shareQuota }
 
                         newModel =
                             GetterSetters.modelUpdateProject sharedModel newProject
@@ -2974,8 +2964,7 @@ createProject_ outerModel description authToken region endpoints =
             , computeQuota = RDPP.empty
             , volumeQuota = RDPP.empty
             , networkQuota = RDPP.empty
-            , shareQuotaProject = RDPP.empty
-            , shareQuotaUser = RDPP.empty
+            , shareQuota = RDPP.empty
             , jetstream2Allocations = RDPP.empty
             }
 

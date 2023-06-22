@@ -33,7 +33,7 @@ import Rest.Jetstream2Accounting
 import Rest.Neutron
 import Rest.Nova
 import Types.Error
-import Types.HelperTypes exposing (ProjectIdentifier, UserOrProject(..))
+import Types.HelperTypes exposing (ProjectIdentifier)
 import Types.Project
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg exposing (SharedMsg(..))
@@ -155,14 +155,10 @@ requestShareQuotas projectUuid model =
             case project.endpoints.manila of
                 Just url ->
                     ( { project
-                        | shareQuotaProject = RDPP.setLoading project.shareQuotaProject
-                        , shareQuotaUser = RDPP.setLoading project.shareQuotaUser
+                        | shareQuota = RDPP.setLoading project.shareQuota
                       }
                         |> GetterSetters.modelUpdateProject model
-                    , Cmd.batch
-                        [ OpenStack.Quotas.requestShareQuota IsProject project url
-                        , OpenStack.Quotas.requestShareQuota IsUser project url
-                        ]
+                    , OpenStack.Quotas.requestShareQuota project url
                     )
 
                 Nothing ->
