@@ -829,11 +829,11 @@ type alias ShareQuota =
     , shares : QuotaItemDetail
     , snapshotGigabytes : QuotaItemDetail
     , shareNetworks : Maybe QuotaItemDetail
-    , shareGroups : QuotaItemDetail
-    , shareGroupSnapshots : QuotaItemDetail
-    , shareReplicas : QuotaItemDetail
-    , shareReplicaGigabytes : QuotaItemDetail
-    , perShareGigabytes : QuotaItemDetail
+    , shareReplicas : Maybe QuotaItemDetail
+    , shareReplicaGigabytes : Maybe QuotaItemDetail
+    , shareGroups : Maybe QuotaItemDetail
+    , shareGroupSnapshots : Maybe QuotaItemDetail
+    , perShareGigabytes : Maybe QuotaItemDetail
     }
 
 

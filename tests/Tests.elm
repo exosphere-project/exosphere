@@ -2,6 +2,7 @@ module Tests exposing
     ( computeQuotasAndLimitsSuite
     , decodeSynchronousOpenStackAPIErrorSuite
     , indefiniteArticlesSuite
+    , manilaQuotasAndLimitsSuite
     , processOpenRcSuite
     , sshKeySuite
     , stringIsUuidOrDefaultSuite
@@ -24,14 +25,10 @@ import OpenStack.OpenRc
 import OpenStack.Quotas
     exposing
         ( computeQuotaDecoder
+        , shareQuotaDecoder
         , volumeQuotaDecoder
         )
-import OpenStack.Types as OSTypes
-    exposing
-        ( ComputeQuota
-        , OpenstackLogin
-        , VolumeQuota
-        )
+import OpenStack.Types as OSTypes exposing (OpenstackLogin)
 import OpenStack.VolumeSnapshots exposing (Status(..), volumeSnapshotDecoder)
 import Page.LoginOpenstack
 import Test exposing (..)
@@ -150,6 +147,29 @@ volumeQuotasAndLimitsSuite =
                             { inUse = 82
                             , limit = Just 1000
                             }
+                        }
+                    )
+        ]
+
+
+manilaQuotasAndLimitsSuite : Test
+manilaQuotasAndLimitsSuite =
+    describe "Decoding share quotas and limits"
+        [ test "quota limits" <|
+            \_ ->
+                Expect.equal
+                    (Decode.decodeString shareQuotaDecoder TestData.manilaLimits)
+                    (Ok
+                        { gigabytes = { inUse = 122, limit = Just 1000 }
+                        , snapshots = { inUse = 0, limit = Just 50 }
+                        , shares = { inUse = 5, limit = Just 50 }
+                        , snapshotGigabytes = { inUse = 0, limit = Just 1000 }
+                        , shareNetworks = Just { inUse = 0, limit = Just 10 }
+                        , shareReplicas = Nothing
+                        , shareReplicaGigabytes = Nothing
+                        , shareGroups = Nothing
+                        , shareGroupSnapshots = Nothing
+                        , perShareGigabytes = Nothing
                         }
                     )
         ]
