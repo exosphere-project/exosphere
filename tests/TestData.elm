@@ -2,6 +2,7 @@ module TestData exposing
     ( cinderLimits
     , cinderQuotaSetDetail
     , cinderVolumeSnapshots
+    , manilaLimits
     , novaLimits
     , novaQuotaSetDetail
     , openrcNoExportKeyword
@@ -312,6 +313,29 @@ novaLimits =
             "totalSecurityGroupsUsed": 1,
             "maxTotalInstances": 10,
             "maxTotalRAMSize": 999999
+        }
+    }
+}
+    """
+
+
+manilaLimits : String
+manilaLimits =
+    """
+{
+    "limits": {
+        "rate": [],
+        "absolute": {
+            "maxTotalShares": 50,
+            "maxTotalShareSnapshots": 50,
+            "maxTotalShareGigabytes": 1000,
+            "maxTotalSnapshotGigabytes": 1000,
+            "maxTotalShareNetworks": 10,
+            "totalSharesUsed": 5,
+            "totalShareSnapshotsUsed": 0,
+            "totalShareGigabytesUsed": 122,
+            "totalSnapshotGigabytesUsed": 0,
+            "totalShareNetworksUsed": 0
         }
     }
 }

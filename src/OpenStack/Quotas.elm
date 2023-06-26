@@ -6,14 +6,15 @@ module OpenStack.Quotas exposing
     , requestNetworkQuota
     , requestShareQuota
     , requestVolumeQuota
+    , shareQuotaDecoder
     , volumeQuotaAvail
     , volumeQuotaDecoder
     )
 
 import Helpers.GetterSetters as GetterSetters
 import Http
-import Json.Decode as Decode
-import Json.Decode.Pipeline exposing (required)
+import Json.Decode as Decode exposing (maybe)
+import Json.Decode.Pipeline exposing (custom, hardcoded)
 import OpenStack.Types as OSTypes
 import Rest.Helpers exposing (expectJsonWithErrorBody, openstackCredentialedRequest)
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
@@ -177,35 +178,38 @@ requestShareQuota project url =
         (GetterSetters.projectIdentifier project)
         Get
         Nothing
-        [ ( "X-OpenStack-Manila-API-Version", "2.62" ) ]
-        (url ++ "/quota-sets/" ++ project.auth.project.uuid ++ "/detail")
+        [ ( "X-OpenStack-Manila-API-Version", "2.42" ) ]
+        (url
+            ++ "/"
+            ++ project.auth.project.uuid
+            ++ "/limits"
+        )
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg
-            (Decode.field "quota_set" shareLimitsDecoder)
+            shareQuotaDecoder
         )
 
 
-quotaItemDecoder : Decode.Decoder OSTypes.QuotaItemDetail
-quotaItemDecoder =
-    Decode.succeed OSTypes.QuotaItemDetail
-        |> required "in_use" Decode.int
-        |> required "limit" specialIntToMaybe
+
+{- Hardcoded Nothing fields are configurable manila limits that are not exposed in the older microversion limits api -}
 
 
-shareLimitsDecoder : Decode.Decoder OSTypes.ShareQuota
-shareLimitsDecoder =
-    Decode.succeed OSTypes.ShareQuota
-        |> required "gigabytes" quotaItemDecoder
-        |> required "snapshots" quotaItemDecoder
-        |> required "shares" quotaItemDecoder
-        |> required "snapshot_gigabytes" quotaItemDecoder
-        |> required "share_networks" (Decode.maybe quotaItemDecoder)
-        |> required "share_groups" quotaItemDecoder
-        |> required "share_group_snapshots" quotaItemDecoder
-        |> required "share_replicas" quotaItemDecoder
-        |> required "replica_gigabytes" quotaItemDecoder
-        |> required "per_share_gigabytes" quotaItemDecoder
+shareQuotaDecoder : Decode.Decoder OSTypes.ShareQuota
+shareQuotaDecoder =
+    Decode.at [ "limits", "absolute" ]
+        (Decode.succeed OSTypes.ShareQuota
+            |> custom (quotaItemDetailPairDecoder "totalShareGigabytesUsed" "maxTotalShareGigabytes")
+            |> custom (quotaItemDetailPairDecoder "totalShareSnapshotsUsed" "maxTotalShareSnapshots")
+            |> custom (quotaItemDetailPairDecoder "totalSharesUsed" "maxTotalShares")
+            |> custom (quotaItemDetailPairDecoder "totalSnapshotGigabytesUsed" "maxTotalSnapshotGigabytes")
+            |> custom (maybe (quotaItemDetailPairDecoder "totalShareNetworksUsed" "maxTotalShareNetworks"))
+            |> custom (maybe (quotaItemDetailPairDecoder "totalShareReplicasUsed" "maxTotalShareReplicas"))
+            |> custom (maybe (quotaItemDetailPairDecoder "totalReplicaGigabytesUsed" "maxTotalReplicaGigabytes"))
+            |> hardcoded Nothing
+            |> hardcoded Nothing
+            |> hardcoded Nothing
+        )
 
 
 
@@ -247,6 +251,17 @@ computeQuotaFlavorAvailServers computeQuota flavor =
     ]
         |> List.filterMap identity
         |> List.minimum
+
+
+
+{- Decode an OSTypes.QuotaItemDetail from a pair of keys -}
+
+
+quotaItemDetailPairDecoder : String -> String -> Decode.Decoder OSTypes.QuotaItemDetail
+quotaItemDetailPairDecoder usedKey totalKey =
+    Decode.map2 OSTypes.QuotaItemDetail
+        (Decode.field usedKey Decode.int)
+        (Decode.field totalKey specialIntToMaybe)
 
 
 {-| Returns tuple showing # volumes and # total gigabytes that are available given quota and usage.
