@@ -262,13 +262,13 @@ fullVolumeInfoItems context ( quota, snapshotUsage ) =
             Just limit ->
                 multiMeter context.palette
                     "Storage used"
-                    (usageComparison context quota.gigabytes.inUse limit)
+                    (usageComparison context GibiBytes quota.gigabytes.inUse limit)
                     limit
-                    [ ( "Volume Usage: " ++ usageLabel context volumeUsage
+                    [ ( "Volume Usage: " ++ usageLabel context GibiBytes volumeUsage
                       , volumeUsage
                       , [ multiMeterPrimaryBackground context ]
                       )
-                    , ( "Snapshot Usage: " ++ usageLabel context snapshotUsage
+                    , ( "Snapshot Usage: " ++ usageLabel context GibiBytes snapshotUsage
                       , snapshotUsage
                       , [ multiMeterSecondaryBackground context
                         ]
@@ -318,28 +318,28 @@ fullQuotaRow items =
 -- Some helper functions
 
 
-usageLabels : View.Types.Context -> Int -> ( String, String )
-usageLabels { locale } usage =
-    humanNumber { locale | decimals = Exact 0 } GibiBytes usage
+usageLabels : View.Types.Context -> Unit -> Int -> ( String, String )
+usageLabels { locale } unit usage =
+    humanNumber { locale | decimals = Exact 0 } unit usage
 
 
-usageLabel : View.Types.Context -> Int -> String
-usageLabel context usage =
+usageLabel : View.Types.Context -> Unit -> Int -> String
+usageLabel context unit usage =
     let
         ( count, label ) =
-            usageLabels context usage
+            usageLabels context unit usage
     in
     count ++ " " ++ label
 
 
-usageComparison : View.Types.Context -> Int -> Int -> String
-usageComparison context used total =
+usageComparison : View.Types.Context -> Unit -> Int -> Int -> String
+usageComparison context unit used total =
     let
         ( usedCount, usedLabel ) =
-            usageLabels context used
+            usageLabels context unit used
 
         ( totalCount, totalLabel ) =
-            usageLabels context total
+            usageLabels context unit total
     in
     -- No need to display the units on both numbers if they are the same.
     String.join " "
