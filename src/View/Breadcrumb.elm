@@ -245,7 +245,6 @@ breadcrumb_ outerModel context =
                                       , label =
                                             String.join " "
                                                 [ context.localization.share
-                                                    |> Helpers.String.pluralize
                                                     |> Helpers.String.toTitleCase
                                                 , View.PageTitle.shareName (GetterSetters.projectLookup outerModel.sharedModel projectId) pageModel.shareUuid
                                                 ]
