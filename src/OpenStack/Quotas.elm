@@ -56,20 +56,12 @@ requestComputeQuota project =
 
 computeQuotaDecoder : Decode.Decoder OSTypes.ComputeQuota
 computeQuotaDecoder =
-    Decode.map4 OSTypes.ComputeQuota
-        (Decode.map2 OSTypes.QuotaItemDetail
-            (Decode.at [ "absolute", "totalCoresUsed" ] Decode.int)
-            (Decode.at [ "absolute", "maxTotalCores" ] specialIntToMaybe)
-        )
-        (Decode.map2 OSTypes.QuotaItemDetail
-            (Decode.at [ "absolute", "totalInstancesUsed" ] Decode.int)
-            (Decode.at [ "absolute", "maxTotalInstances" ] specialIntToMaybe)
-        )
-        (Decode.map2 OSTypes.QuotaItemDetail
-            (Decode.at [ "absolute", "totalRAMUsed" ] Decode.int)
-            (Decode.at [ "absolute", "maxTotalRAMSize" ] specialIntToMaybe)
-        )
-        (Decode.at [ "absolute", "maxTotalKeypairs" ] Decode.int)
+    Decode.field "absolute" <|
+        Decode.map4 OSTypes.ComputeQuota
+            (quotaItemDetailPairDecoder "totalCoresUsed" "maxTotalCores")
+            (quotaItemDetailPairDecoder "totalInstancesUsed" "maxTotalInstances")
+            (quotaItemDetailPairDecoder "totalRAMUsed" "maxTotalRAMSize")
+            (Decode.field "maxTotalKeypairs" Decode.int)
 
 
 
@@ -105,15 +97,10 @@ requestVolumeQuota project =
 
 volumeQuotaDecoder : Decode.Decoder OSTypes.VolumeQuota
 volumeQuotaDecoder =
-    Decode.map2 OSTypes.VolumeQuota
-        (Decode.map2 OSTypes.QuotaItemDetail
-            (Decode.at [ "absolute", "totalVolumesUsed" ] Decode.int)
-            (Decode.at [ "absolute", "maxTotalVolumes" ] specialIntToMaybe)
-        )
-        (Decode.map2 OSTypes.QuotaItemDetail
-            (Decode.at [ "absolute", "totalGigabytesUsed" ] Decode.int)
-            (Decode.at [ "absolute", "maxTotalVolumeGigabytes" ] specialIntToMaybe)
-        )
+    Decode.field "absolute" <|
+        Decode.map2 OSTypes.VolumeQuota
+            (quotaItemDetailPairDecoder "totalVolumesUsed" "maxTotalVolumes")
+            (quotaItemDetailPairDecoder "totalGigabytesUsed" "maxTotalVolumeGigabytes")
 
 
 
@@ -149,11 +136,8 @@ requestNetworkQuota project =
 
 networkQuotaDecoder : Decode.Decoder OSTypes.NetworkQuota
 networkQuotaDecoder =
-    Decode.map OSTypes.NetworkQuota
-        (Decode.map2 OSTypes.QuotaItemDetail
-            (Decode.at [ "floatingip", "used" ] Decode.int)
-            (Decode.at [ "floatingip", "limit" ] specialIntToMaybe)
-        )
+    Decode.map OSTypes.NetworkQuota <|
+        Decode.field "floatingip" (quotaItemDetailPairDecoder "used" "limit")
 
 
 
