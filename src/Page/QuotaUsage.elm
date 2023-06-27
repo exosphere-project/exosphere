@@ -13,7 +13,6 @@ import Style.Widgets.Meter
 import Style.Widgets.MultiMeter exposing (multiMeter)
 import Style.Widgets.Spacer exposing (spacer)
 import Types.Error exposing (HttpErrorWithBody)
-import Types.HelperTypes exposing (UserOrProject(..))
 import View.Helpers as VH
 import View.Types
 
@@ -21,7 +20,7 @@ import View.Types
 type ResourceType
     = Compute (RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.ComputeQuota)
     | FloatingIp (RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.NetworkQuota)
-    | Share ( RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.ShareQuota, RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.ShareQuota )
+    | Share (RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.ShareQuota)
     | Volume ( RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.VolumeQuota, RDPP.RemoteDataPlusPlus HttpErrorWithBody (List VolumeSnapshot) )
     | Keypair (RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.ComputeQuota) Int
 
@@ -169,144 +168,43 @@ floatingIpQuotaDetails context display quota =
     quotaDetail context quota (floatingIpInfoItems context display)
 
 
-shareCountInfoItem : View.Types.Context -> ( OSTypes.ShareQuota, OSTypes.ShareQuota ) -> Element.Element msg
-shareCountInfoItem context ( projectQuota, userQuota ) =
-    let
-        myShareCount =
-            userQuota.shares.inUse
-
-        notMyShareCount =
-            projectQuota.shares.inUse - myShareCount
-
-        sharesTitleText =
-            context.localization.share
+shareCountInfoItem : View.Types.Context -> OSTypes.ShareQuota -> Element.Element msg
+shareCountInfoItem context projectQuota =
+    infoItem context
+        projectQuota.shares
+        ( String.concat
+            [ context.localization.share
                 |> Helpers.String.pluralize
                 |> Helpers.String.toTitleCase
-
-        projectTitleText =
-            context.localization.unitOfTenancy
-                |> Helpers.String.toTitleCase
-    in
-    case projectQuota.shares.limit of
-        Just limit ->
-            multiMeter context.palette
-                (sharesTitleText
-                    ++ " used"
-                )
-                (String.fromInt projectQuota.shares.inUse
-                    ++ " of "
-                    ++ Helpers.Formatting.humanCount context.locale limit
-                )
-                limit
-                [ ( "My "
-                        ++ sharesTitleText
-                        ++ ": "
-                        ++ Helpers.Formatting.humanCount context.locale myShareCount
-                  , myShareCount
-                  , [ multiMeterPrimaryBackground context ]
-                  )
-                , ( projectTitleText
-                        ++ " "
-                        ++ sharesTitleText
-                        ++ ": "
-                        ++ Helpers.Formatting.humanCount context.locale notMyShareCount
-                  , notMyShareCount
-                  , [ multiMeterSecondaryBackground context ]
-                  )
-                ]
-
-        Nothing ->
-            case userQuota.shares.limit of
-                Just limit ->
-                    multiMeter context.palette
-                        (sharesTitleText
-                            ++ " used"
-                        )
-                        (Helpers.Formatting.humanCount context.locale myShareCount
-                            ++ " of "
-                            ++ Helpers.Formatting.humanCount context.locale limit
-                        )
-                        limit
-                        [ ( sharesTitleText ++ ": " ++ Helpers.Formatting.humanCount context.locale myShareCount
-                          , myShareCount
-                          , [ multiMeterPrimaryBackground context ]
-                          )
-                        ]
-
-                Nothing ->
-                    Element.text ("No " ++ context.localization.share ++ " count limits")
+            , " used"
+            ]
+        , Count
+        )
 
 
-shareStorageInfoItem : View.Types.Context -> ( OSTypes.ShareQuota, OSTypes.ShareQuota ) -> Element.Element msg
-shareStorageInfoItem context ( projectQuota, userQuota ) =
-    let
-        projectGigabytesUsed =
-            projectQuota.gigabytes.inUse
-
-        myGigabytesUsed =
-            userQuota.gigabytes.inUse
-
-        notMyGigabytesUsed =
-            projectGigabytesUsed - myGigabytesUsed
-    in
-    case projectQuota.gigabytes.limit of
-        Just limit ->
-            multiMeter context.palette
-                "Storage used"
-                (usageComparison context projectGigabytesUsed limit)
-                limit
-                [ ( "My Usage: " ++ usageLabel context userQuota.gigabytes.inUse
-                  , userQuota.gigabytes.inUse
-                  , [ multiMeterPrimaryBackground context ]
-                  )
-                , ( "", limit - projectQuota.gigabytes.inUse, [] )
-                , ( (context.localization.unitOfTenancy
-                        |> Helpers.String.toTitleCase
-                    )
-                        ++ " Usage: "
-                        ++ usageLabel context (projectGigabytesUsed - userQuota.gigabytes.inUse)
-                  , notMyGigabytesUsed
-                  , [ multiMeterSecondaryBackground context ]
-                  )
-                ]
-
-        Nothing ->
-            case userQuota.gigabytes.limit of
-                Just limit ->
-                    multiMeter context.palette
-                        "Storage used"
-                        (usageComparison context myGigabytesUsed limit)
-                        limit
-                        [ ( "My Usage: " ++ usageLabel context myGigabytesUsed
-                          , myGigabytesUsed
-                          , [ multiMeterPrimaryBackground context ]
-                          )
-                        ]
-
-                Nothing ->
-                    Element.text "No storage limits"
+shareStorageInfoItem : View.Types.Context -> OSTypes.ShareQuota -> Element.Element msg
+shareStorageInfoItem context projectQuota =
+    infoItem context
+        projectQuota.gigabytes
+        ( "Storage used", GibiBytes )
 
 
-shareInfoItems : View.Types.Context -> Display -> ( OSTypes.ShareQuota, OSTypes.ShareQuota ) -> Element.Element msg
-shareInfoItems context display shareQuotas =
+shareInfoItems : View.Types.Context -> Display -> OSTypes.ShareQuota -> Element.Element msg
+shareInfoItems context display shareQuota =
     case display of
         Brief ->
-            shareCountInfoItem context shareQuotas
+            shareCountInfoItem context shareQuota
 
         Full ->
             fullQuotaRow
-                [ shareCountInfoItem context shareQuotas
-                , shareStorageInfoItem context shareQuotas
+                [ shareCountInfoItem context shareQuota
+                , shareStorageInfoItem context shareQuota
                 ]
 
 
-shareQuotaDetails : View.Types.Context -> Display -> ( RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.ShareQuota, RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.ShareQuota ) -> Element.Element msg
-shareQuotaDetails context display ( projectQuota, userQuota ) =
-    let
-        quotaPair =
-            RDPP.map2 Tuple.pair projectQuota userQuota
-    in
-    quotaDetail context quotaPair (shareInfoItems context display)
+shareQuotaDetails : View.Types.Context -> Display -> RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.ShareQuota -> Element.Element msg
+shareQuotaDetails context display projectQuota =
+    quotaDetail context projectQuota (shareInfoItems context display)
 
 
 keypairInfoItems : View.Types.Context -> Display -> Int -> OSTypes.ComputeQuota -> Element.Element msg

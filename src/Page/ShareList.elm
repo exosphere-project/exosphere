@@ -88,7 +88,7 @@ view context project currentTime model =
 
           else
             Element.none
-        , Page.QuotaUsage.view context Page.QuotaUsage.Full (Page.QuotaUsage.Share ( project.shareQuotaProject, project.shareQuotaUser ))
+        , Page.QuotaUsage.view context Page.QuotaUsage.Full (Page.QuotaUsage.Share project.shareQuota)
         , VH.renderRDPP
             context
             project.shares
@@ -173,26 +173,16 @@ shareView context project currentTime shareRecord =
         (listItemColumnAttribs context.palette)
         [ Element.row [ Element.spacing spacer.px12, Element.width Element.fill ]
             [ shareLink
-            , Element.row [ Element.alignRight ]
-                [ Element.text (OSTypes.shareProtocolToString shareRecord.share.shareProtocol)
-                , Element.text " · "
-                , Element.text (OSTypes.shareStatusToString shareRecord.share.status)
-                , Element.text " · "
-                , Element.text (OSTypes.shareVisibilityToString shareRecord.share.visibility)
-                ]
+            , Element.el [ Element.alignRight ]
+                shareSize
             ]
-        , Element.row [ Element.spacing spacer.px8, Element.width Element.fill ]
-            [ Element.row [ Element.spacing spacer.px8, Element.width Element.fill ]
-                [ shareSize
-                , Element.text "·"
-                , Element.paragraph []
-                    [ Element.text "created "
-                    , accented (relativeTimeElement currentTime shareRecord.share.createdAt)
-                    , Element.text " by "
-                    , accented (Element.text shareRecord.creator)
-                    ]
+        , Element.el [ Element.spacing spacer.px8, Element.width Element.fill ] <|
+            Element.paragraph [ Element.spacing spacer.px8, Element.width Element.fill ]
+                [ Element.text "created "
+                , accented (relativeTimeElement currentTime shareRecord.share.createdAt)
+                , Element.text " by "
+                , accented (Element.text shareRecord.creator)
                 ]
-            ]
         ]
 
 
