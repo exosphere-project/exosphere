@@ -344,8 +344,10 @@ usageComparison context unit used total =
     -- No need to display the units on both numbers if they are the same.
     String.join " "
         (if usedLabel == totalLabel then
+            -- 1.3 of 2.0 TB
             [ usedCount, "of", totalCount, totalLabel ]
 
          else
+            -- 743 GB of 2.0 TB
             [ usedCount, usedLabel, "of", totalCount, totalLabel ]
         )
