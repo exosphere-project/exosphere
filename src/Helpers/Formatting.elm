@@ -1,4 +1,4 @@
-module Helpers.Formatting exposing (Unit(..), humanBytes, humanCount, humanNumber, humanRatio)
+module Helpers.Formatting exposing (Unit(..), humanBytes, humanCount, humanNumber, humanRatio, usageComparison, usageLabel, usageLabels)
 
 import FormatNumber exposing (format)
 import FormatNumber.Locales exposing (Decimals(..), Locale)
@@ -78,3 +78,38 @@ humanNumber locale unit n =
 
         MebiBytes ->
             humanBytes locale (n * 1000 * 1000)
+
+
+usageLabels : Locale -> Unit -> Int -> ( String, String )
+usageLabels locale unit usage =
+    humanNumber { locale | decimals = Exact 0 } unit usage
+
+
+usageLabel : Locale -> Unit -> Int -> String
+usageLabel locale unit usage =
+    let
+        ( count, label ) =
+            usageLabels locale unit usage
+    in
+    count ++ " " ++ label
+
+
+usageComparison : Locale -> Unit -> Int -> Int -> String
+usageComparison locale unit used total =
+    let
+        ( usedCount, usedLabel ) =
+            usageLabels locale unit used
+
+        ( totalCount, totalLabel ) =
+            usageLabels locale unit total
+    in
+    -- No need to display the units on both numbers if they are the same.
+    String.join " "
+        (if usedLabel == totalLabel then
+            -- 1.3 of 2.0 TB
+            [ usedCount, "of", totalCount, totalLabel ]
+
+         else
+            -- 743 GB of 2.0 TB
+            [ usedCount, usedLabel, "of", totalCount, totalLabel ]
+        )
