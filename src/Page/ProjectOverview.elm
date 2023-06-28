@@ -210,7 +210,9 @@ volumeTileContents context project =
                     , Element.width Element.fill
                     , Element.htmlAttribute <| Html.Attributes.style "min-width" "0"
                     ]
-            , (String.fromInt volume.size ++ " GB") |> Element.text |> Element.el [ Element.centerY ]
+            , Helpers.Formatting.usageLabel context.locale Helpers.Formatting.GibiBytes volume.size
+                |> Element.text
+                |> Element.el [ Element.centerY ]
             ]
     in
     tileContents
