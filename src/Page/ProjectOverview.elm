@@ -130,15 +130,20 @@ view context project currentTime _ =
                 Route.VolumeList
                 (Just <| Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.Volume ( project.volumeQuota, project.volumeSnapshots )))
                 (volumeTileContents context project)
-            , renderTile
-                (Icon.featherIcon [] Icons.share2)
-                (context.localization.share
-                    |> Helpers.String.pluralize
-                    |> Helpers.String.toTitleCase
-                )
-                Route.ShareList
-                (Just <| Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.Share project.shareQuota))
-                (shareTileContents context project)
+            , case ( context.experimentalFeaturesEnabled, project.endpoints.manila ) of
+                ( True, Just _ ) ->
+                    renderTile
+                        (Icon.featherIcon [] Icons.share2)
+                        (context.localization.share
+                            |> Helpers.String.pluralize
+                            |> Helpers.String.toTitleCase
+                        )
+                        Route.ShareList
+                        (Just <| Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.Share project.shareQuota))
+                        (shareTileContents context project)
+
+                _ ->
+                    Element.none
             , renderTile
                 (Icon.ipAddress (SH.toElementColor context.palette.neutral.text.default) 24)
                 (context.localization.floatingIpAddress
