@@ -4,18 +4,21 @@ module OpenStack.Quotas exposing
     , overallQuotaAvailServers
     , requestComputeQuota
     , requestNetworkQuota
+    , requestShareQuota
     , requestVolumeQuota
+    , shareQuotaDecoder
     , volumeQuotaAvail
     , volumeQuotaDecoder
     )
 
 import Helpers.GetterSetters as GetterSetters
 import Http
-import Json.Decode as Decode
+import Json.Decode as Decode exposing (maybe)
+import Json.Decode.Pipeline exposing (custom, hardcoded)
 import OpenStack.Types as OSTypes
 import Rest.Helpers exposing (expectJsonWithErrorBody, openstackCredentialedRequest)
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
-import Types.HelperTypes exposing (HttpRequestMethod(..))
+import Types.HelperTypes exposing (HttpRequestMethod(..), Url)
 import Types.Project exposing (Project)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 
@@ -53,20 +56,12 @@ requestComputeQuota project =
 
 computeQuotaDecoder : Decode.Decoder OSTypes.ComputeQuota
 computeQuotaDecoder =
-    Decode.map4 OSTypes.ComputeQuota
-        (Decode.map2 OSTypes.QuotaItemDetail
-            (Decode.at [ "absolute", "totalCoresUsed" ] Decode.int)
-            (Decode.at [ "absolute", "maxTotalCores" ] specialIntToMaybe)
-        )
-        (Decode.map2 OSTypes.QuotaItemDetail
-            (Decode.at [ "absolute", "totalInstancesUsed" ] Decode.int)
-            (Decode.at [ "absolute", "maxTotalInstances" ] specialIntToMaybe)
-        )
-        (Decode.map2 OSTypes.QuotaItemDetail
-            (Decode.at [ "absolute", "totalRAMUsed" ] Decode.int)
-            (Decode.at [ "absolute", "maxTotalRAMSize" ] specialIntToMaybe)
-        )
-        (Decode.at [ "absolute", "maxTotalKeypairs" ] Decode.int)
+    Decode.field "absolute" <|
+        Decode.map4 OSTypes.ComputeQuota
+            (quotaItemDetailPairDecoder "totalCoresUsed" "maxTotalCores")
+            (quotaItemDetailPairDecoder "totalInstancesUsed" "maxTotalInstances")
+            (quotaItemDetailPairDecoder "totalRAMUsed" "maxTotalRAMSize")
+            (Decode.field "maxTotalKeypairs" Decode.int)
 
 
 
@@ -102,15 +97,10 @@ requestVolumeQuota project =
 
 volumeQuotaDecoder : Decode.Decoder OSTypes.VolumeQuota
 volumeQuotaDecoder =
-    Decode.map2 OSTypes.VolumeQuota
-        (Decode.map2 OSTypes.QuotaItemDetail
-            (Decode.at [ "absolute", "totalVolumesUsed" ] Decode.int)
-            (Decode.at [ "absolute", "maxTotalVolumes" ] specialIntToMaybe)
-        )
-        (Decode.map2 OSTypes.QuotaItemDetail
-            (Decode.at [ "absolute", "totalGigabytesUsed" ] Decode.int)
-            (Decode.at [ "absolute", "maxTotalVolumeGigabytes" ] specialIntToMaybe)
-        )
+    Decode.field "absolute" <|
+        Decode.map2 OSTypes.VolumeQuota
+            (quotaItemDetailPairDecoder "totalVolumesUsed" "maxTotalVolumes")
+            (quotaItemDetailPairDecoder "totalGigabytesUsed" "maxTotalVolumeGigabytes")
 
 
 
@@ -146,10 +136,63 @@ requestNetworkQuota project =
 
 networkQuotaDecoder : Decode.Decoder OSTypes.NetworkQuota
 networkQuotaDecoder =
-    Decode.map OSTypes.NetworkQuota
-        (Decode.map2 OSTypes.QuotaItemDetail
-            (Decode.at [ "floatingip", "used" ] Decode.int)
-            (Decode.at [ "floatingip", "limit" ] specialIntToMaybe)
+    Decode.map OSTypes.NetworkQuota <|
+        Decode.field "floatingip" (quotaItemDetailPairDecoder "used" "limit")
+
+
+
+-- Share Quota
+
+
+requestShareQuota : Project -> Url -> Cmd SharedMsg
+requestShareQuota project url =
+    let
+        errorContext =
+            ErrorContext
+                "get details of share quota"
+                ErrorCrit
+                Nothing
+
+        resultToMsg result =
+            ProjectMsg
+                (GetterSetters.projectIdentifier project)
+                (ReceiveShareQuota errorContext result)
+    in
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Get
+        Nothing
+        [ ( "X-OpenStack-Manila-API-Version", "2.42" ) ]
+        (url
+            ++ "/"
+            ++ project.auth.project.uuid
+            ++ "/limits"
+        )
+        Http.emptyBody
+        (expectJsonWithErrorBody
+            resultToMsg
+            shareQuotaDecoder
+        )
+
+
+
+{- Hardcoded Nothing fields are configurable manila limits that are not exposed in the older microversion limits api -}
+
+
+shareQuotaDecoder : Decode.Decoder OSTypes.ShareQuota
+shareQuotaDecoder =
+    Decode.at [ "limits", "absolute" ]
+        (Decode.succeed OSTypes.ShareQuota
+            |> custom (quotaItemDetailPairDecoder "totalShareGigabytesUsed" "maxTotalShareGigabytes")
+            |> custom (quotaItemDetailPairDecoder "totalShareSnapshotsUsed" "maxTotalShareSnapshots")
+            |> custom (quotaItemDetailPairDecoder "totalSharesUsed" "maxTotalShares")
+            |> custom (quotaItemDetailPairDecoder "totalSnapshotGigabytesUsed" "maxTotalSnapshotGigabytes")
+            |> custom (maybe (quotaItemDetailPairDecoder "totalShareNetworksUsed" "maxTotalShareNetworks"))
+            |> custom (maybe (quotaItemDetailPairDecoder "totalShareReplicasUsed" "maxTotalShareReplicas"))
+            |> custom (maybe (quotaItemDetailPairDecoder "totalReplicaGigabytesUsed" "maxTotalReplicaGigabytes"))
+            |> hardcoded Nothing
+            |> hardcoded Nothing
+            |> hardcoded Nothing
         )
 
 
@@ -192,6 +235,17 @@ computeQuotaFlavorAvailServers computeQuota flavor =
     ]
         |> List.filterMap identity
         |> List.minimum
+
+
+
+{- Decode an OSTypes.QuotaItemDetail from a pair of keys -}
+
+
+quotaItemDetailPairDecoder : String -> String -> Decode.Decoder OSTypes.QuotaItemDetail
+quotaItemDetailPairDecoder usedKey totalKey =
+    Decode.map2 OSTypes.QuotaItemDetail
+        (Decode.field usedKey Decode.int)
+        (Decode.field totalKey specialIntToMaybe)
 
 
 {-| Returns tuple showing # volumes and # total gigabytes that are available given quota and usage.

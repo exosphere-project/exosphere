@@ -39,6 +39,7 @@ type alias Project =
     , computeQuota : RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.ComputeQuota
     , volumeQuota : RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.VolumeQuota
     , networkQuota : RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.NetworkQuota
+    , shareQuota : RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.ShareQuota
 
     -- List of server-backing images that we request separately (because the server's image is not in the default image list)
     , serverImages : List OSTypes.Image

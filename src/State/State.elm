@@ -2176,6 +2176,28 @@ processProjectSpecificMsg outerModel project msg =
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
+        ReceiveShareQuota errorContext result ->
+            case result of
+                Ok quota ->
+                    let
+                        newProject =
+                            { project | shareQuota = RDPP.RemoteDataPlusPlus (RDPP.DoHave quota sharedModel.clientCurrentTime) (RDPP.NotLoading Nothing) }
+                    in
+                    ( GetterSetters.modelUpdateProject sharedModel newProject, Cmd.none )
+                        |> mapToOuterModel outerModel
+
+                Err httpError ->
+                    let
+                        newProject =
+                            { project | shareQuota = RDPP.setNotLoading (Just ( httpError, sharedModel.clientCurrentTime )) project.shareQuota }
+
+                        newModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+                    in
+                    State.Error.processSynchronousApiError newModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
         RequestDeleteImage imageUuid ->
             ( outerModel, Rest.Glance.requestDeleteImage project imageUuid )
                 |> mapToOuterMsg
@@ -2942,6 +2964,7 @@ createProject_ outerModel description authToken region endpoints =
             , computeQuota = RDPP.empty
             , volumeQuota = RDPP.empty
             , networkQuota = RDPP.empty
+            , shareQuota = RDPP.empty
             , jetstream2Allocations = RDPP.empty
             }
 

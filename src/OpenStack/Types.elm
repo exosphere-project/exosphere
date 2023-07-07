@@ -65,6 +65,7 @@ module OpenStack.Types exposing
     , ShareDescription
     , ShareName
     , ShareProtocol
+    , ShareQuota
     , ShareSize
     , ShareStatus(..)
     , ShareTypeName
@@ -819,6 +820,20 @@ type alias AccessRule =
     , accessKey : Maybe AccessRuleAccessKey
     , state : AccessRuleState
     , createdAt : Time.Posix
+    }
+
+
+type alias ShareQuota =
+    { gigabytes : QuotaItemDetail
+    , snapshots : QuotaItemDetail
+    , shares : QuotaItemDetail
+    , snapshotGigabytes : QuotaItemDetail
+    , shareNetworks : Maybe QuotaItemDetail
+    , shareReplicas : Maybe QuotaItemDetail
+    , shareReplicaGigabytes : Maybe QuotaItemDetail
+    , shareGroups : Maybe QuotaItemDetail
+    , shareGroupSnapshots : Maybe QuotaItemDetail
+    , perShareGigabytes : Maybe QuotaItemDetail
     }
 
 

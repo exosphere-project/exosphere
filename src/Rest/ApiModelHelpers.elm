@@ -14,6 +14,7 @@ module Rest.ApiModelHelpers exposing
     , requestServers
     , requestShareAccessRules
     , requestShareExportLocations
+    , requestShareQuotas
     , requestShares
     , requestVolumeQuota
     , requestVolumeSnapshots
@@ -138,6 +139,26 @@ requestShareAccessRules projectUuid shareUuid model =
                         |> GetterSetters.projectSetShareAccessRulesLoading shareUuid
                         |> GetterSetters.modelUpdateProject model
                     , OpenStack.Shares.requestShareAccessRules project url shareUuid
+                    )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        Nothing ->
+            ( model, Cmd.none )
+
+
+requestShareQuotas : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd SharedMsg )
+requestShareQuotas projectUuid model =
+    case GetterSetters.projectLookup model projectUuid of
+        Just project ->
+            case project.endpoints.manila of
+                Just url ->
+                    ( { project
+                        | shareQuota = RDPP.setLoading project.shareQuota
+                      }
+                        |> GetterSetters.modelUpdateProject model
+                    , OpenStack.Quotas.requestShareQuota project url
                     )
 
                 Nothing ->
