@@ -20,6 +20,7 @@ import View.Types
 type ResourceType
     = Compute (RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.ComputeQuota)
     | FloatingIp (RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.NetworkQuota)
+    | Share (RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.ShareQuota)
     | Volume ( RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.VolumeQuota, RDPP.RemoteDataPlusPlus HttpErrorWithBody (List VolumeSnapshot) )
     | Keypair (RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.ComputeQuota) Int
 
@@ -37,6 +38,9 @@ view context display resourceType =
 
         FloatingIp quota ->
             floatingIpQuotaDetails context display quota
+
+        Share quota ->
+            shareQuotaDetails context display quota
 
         Volume ( quota, snapshotUsage ) ->
             volumeQuotaDetails context display ( quota, snapshotUsage )
@@ -143,9 +147,64 @@ floatingIpInfoItems context display quota =
                 ]
 
 
+multiMeterPrimaryBackground : View.Types.Context -> Element.Attr aligned attr
+multiMeterPrimaryBackground context =
+    Background.color (SH.toElementColor context.palette.primary)
+
+
+multiMeterSecondaryBackground : View.Types.Context -> Element.Attr aligned attr
+multiMeterSecondaryBackground context =
+    Background.gradient
+        { angle = pi / 2
+        , steps =
+            [ SH.toElementColorWithOpacity context.palette.primary 0.75
+            , SH.toElementColor context.palette.primary
+            ]
+        }
+
+
 floatingIpQuotaDetails : View.Types.Context -> Display -> RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.NetworkQuota -> Element.Element msg
 floatingIpQuotaDetails context display quota =
     quotaDetail context quota (floatingIpInfoItems context display)
+
+
+shareCountInfoItem : View.Types.Context -> OSTypes.ShareQuota -> Element.Element msg
+shareCountInfoItem context projectQuota =
+    infoItem context
+        projectQuota.shares
+        ( String.concat
+            [ context.localization.share
+                |> Helpers.String.pluralize
+                |> Helpers.String.toTitleCase
+            , " used"
+            ]
+        , Count
+        )
+
+
+shareStorageInfoItem : View.Types.Context -> OSTypes.ShareQuota -> Element.Element msg
+shareStorageInfoItem context projectQuota =
+    infoItem context
+        projectQuota.gigabytes
+        ( "Storage used", GibiBytes )
+
+
+shareInfoItems : View.Types.Context -> Display -> OSTypes.ShareQuota -> Element.Element msg
+shareInfoItems context display shareQuota =
+    case display of
+        Brief ->
+            shareCountInfoItem context shareQuota
+
+        Full ->
+            fullQuotaRow
+                [ shareCountInfoItem context shareQuota
+                , shareStorageInfoItem context shareQuota
+                ]
+
+
+shareQuotaDetails : View.Types.Context -> Display -> RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.ShareQuota -> Element.Element msg
+shareQuotaDetails context display projectQuota =
+    quotaDetail context projectQuota (shareInfoItems context display)
 
 
 keypairInfoItems : View.Types.Context -> Display -> Int -> OSTypes.ComputeQuota -> Element.Element msg
@@ -194,35 +253,8 @@ briefVolumeInfoItems context ( quota, _ ) =
 fullVolumeInfoItems : View.Types.Context -> ( OSTypes.VolumeQuota, Int ) -> Element.Element msg
 fullVolumeInfoItems context ( quota, snapshotUsage ) =
     let
-        { locale } =
-            context
-
         volumeUsage =
             quota.gigabytes.inUse - snapshotUsage
-
-        usageLabels usage =
-            humanNumber { locale | decimals = Exact 0 } CinderGB usage
-
-        join ( a, b ) =
-            a ++ " " ++ b
-
-        ( usedCount, usedLabel ) =
-            usageLabels quota.gigabytes.inUse
-
-        ( limitCount, limitLabel ) =
-            quota.gigabytes.limit
-                |> Maybe.map usageLabels
-                |> Maybe.withDefault ( "", "N/A" )
-
-        -- No need to display the units on both numbers if they are the same.
-        usageDescription =
-            if usedLabel == limitLabel then
-                -- 1.3 of 2.0 TB
-                usedCount ++ " of " ++ limitCount ++ " " ++ limitLabel
-
-            else
-                -- 743 GB of 2.0 TB
-                usedCount ++ " " ++ usedLabel ++ " of " ++ limitCount ++ " " ++ limitLabel
     in
     fullQuotaRow
         [ briefVolumeInfoItems context ( quota, snapshotUsage )
@@ -230,21 +262,15 @@ fullVolumeInfoItems context ( quota, snapshotUsage ) =
             Just limit ->
                 multiMeter context.palette
                     "Storage used"
-                    usageDescription
+                    (usageComparison context GibiBytes quota.gigabytes.inUse limit)
                     limit
-                    [ ( "Volume Usage: " ++ join (usageLabels volumeUsage)
+                    [ ( "Volume Usage: " ++ usageLabel context GibiBytes volumeUsage
                       , volumeUsage
-                      , [ Background.color (SH.toElementColor context.palette.primary) ]
+                      , [ multiMeterPrimaryBackground context ]
                       )
-                    , ( "Snapshot Usage: " ++ join (usageLabels snapshotUsage)
+                    , ( "Snapshot Usage: " ++ usageLabel context GibiBytes snapshotUsage
                       , snapshotUsage
-                      , [ Background.gradient
-                            { angle = pi / 2
-                            , steps =
-                                [ SH.toElementColorWithOpacity context.palette.primary 0.75
-                                , SH.toElementColor context.palette.primary
-                                ]
-                            }
+                      , [ multiMeterSecondaryBackground context
                         ]
                       )
                     ]
@@ -286,3 +312,42 @@ fullQuotaRow items =
         , Element.spacing spacer.px32
         ]
         items
+
+
+
+-- Some helper functions
+
+
+usageLabels : View.Types.Context -> Unit -> Int -> ( String, String )
+usageLabels { locale } unit usage =
+    humanNumber { locale | decimals = Exact 0 } unit usage
+
+
+usageLabel : View.Types.Context -> Unit -> Int -> String
+usageLabel context unit usage =
+    let
+        ( count, label ) =
+            usageLabels context unit usage
+    in
+    count ++ " " ++ label
+
+
+usageComparison : View.Types.Context -> Unit -> Int -> Int -> String
+usageComparison context unit used total =
+    let
+        ( usedCount, usedLabel ) =
+            usageLabels context unit used
+
+        ( totalCount, totalLabel ) =
+            usageLabels context unit total
+    in
+    -- No need to display the units on both numbers if they are the same.
+    String.join " "
+        (if usedLabel == totalLabel then
+            -- 1.3 of 2.0 TB
+            [ usedCount, "of", totalCount, totalLabel ]
+
+         else
+            -- 743 GB of 2.0 TB
+            [ usedCount, usedLabel, "of", totalCount, totalLabel ]
+        )
