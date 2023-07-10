@@ -4,6 +4,7 @@ import Element
 import Element.Border as Border
 import Element.Font as Font
 import FeatherIcons as Icons
+import Helpers.Formatting
 import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
@@ -129,6 +130,20 @@ view context project currentTime _ =
                 Route.VolumeList
                 (Just <| Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.Volume ( project.volumeQuota, project.volumeSnapshots )))
                 (volumeTileContents context project)
+            , case ( context.experimentalFeaturesEnabled, project.endpoints.manila ) of
+                ( True, Just _ ) ->
+                    renderTile
+                        (Icon.featherIcon [] Icons.share2)
+                        (context.localization.share
+                            |> Helpers.String.pluralize
+                            |> Helpers.String.toTitleCase
+                        )
+                        Route.ShareList
+                        (Just <| Page.QuotaUsage.view context Page.QuotaUsage.Brief (Page.QuotaUsage.Share project.shareQuota))
+                        (shareTileContents context project)
+
+                _ ->
+                    Element.none
             , renderTile
                 (Icon.ipAddress (SH.toElementColor context.palette.neutral.text.default) 24)
                 (context.localization.floatingIpAddress
@@ -200,7 +215,9 @@ volumeTileContents context project =
                     , Element.width Element.fill
                     , Element.htmlAttribute <| Html.Attributes.style "min-width" "0"
                     ]
-            , (String.fromInt volume.size ++ " GB") |> Element.text |> Element.el [ Element.centerY ]
+            , Helpers.Formatting.usageLabel context.locale Helpers.Formatting.GibiBytes volume.size
+                |> Element.text
+                |> Element.el [ Element.centerY ]
             ]
     in
     tileContents
@@ -210,6 +227,36 @@ volumeTileContents context project =
         VH.renderRDPP
         renderVolume
         (\_ -> True)
+
+
+shareTileContents : View.Types.Context -> Project -> Element.Element Msg
+shareTileContents context project =
+    let
+        renderShare : OSTypes.Share -> List (Element.Element Msg)
+        renderShare share =
+            [ VH.extendedResourceName share.name share.uuid context.localization.share
+                |> VH.ellipsizedText
+                |> Element.el
+                    [ Element.centerY
+                    , Element.width Element.fill
+                    , Element.htmlAttribute <| Html.Attributes.style "min-width" "0"
+                    ]
+            , Helpers.Formatting.usageLabel context.locale Helpers.Formatting.GibiBytes share.size
+                |> Element.text
+                |> Element.el [ Element.centerY ]
+            ]
+
+        showShare : OSTypes.Share -> Bool
+        showShare share =
+            share.userUuid == project.auth.user.uuid
+    in
+    tileContents
+        context
+        project.shares
+        context.localization.share
+        VH.renderRDPP
+        renderShare
+        showShare
 
 
 floatingIpTileContents : View.Types.Context -> Project -> Element.Element Msg

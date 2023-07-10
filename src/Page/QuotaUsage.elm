@@ -3,7 +3,7 @@ module Page.QuotaUsage exposing (Display(..), ResourceType(..), view)
 import Element
 import Element.Background as Background
 import FormatNumber.Locales exposing (Decimals(..))
-import Helpers.Formatting exposing (Unit(..), humanNumber)
+import Helpers.Formatting exposing (Unit(..), humanNumber, usageComparison, usageLabel)
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import OpenStack.Types as OSTypes
@@ -253,6 +253,9 @@ briefVolumeInfoItems context ( quota, _ ) =
 fullVolumeInfoItems : View.Types.Context -> ( OSTypes.VolumeQuota, Int ) -> Element.Element msg
 fullVolumeInfoItems context ( quota, snapshotUsage ) =
     let
+        { locale } =
+            context
+
         volumeUsage =
             quota.gigabytes.inUse - snapshotUsage
     in
@@ -262,13 +265,13 @@ fullVolumeInfoItems context ( quota, snapshotUsage ) =
             Just limit ->
                 multiMeter context.palette
                     "Storage used"
-                    (usageComparison context GibiBytes quota.gigabytes.inUse limit)
+                    (usageComparison locale GibiBytes quota.gigabytes.inUse limit)
                     limit
-                    [ ( "Volume Usage: " ++ usageLabel context GibiBytes volumeUsage
+                    [ ( "Volume Usage: " ++ usageLabel locale GibiBytes volumeUsage
                       , volumeUsage
                       , [ multiMeterPrimaryBackground context ]
                       )
-                    , ( "Snapshot Usage: " ++ usageLabel context GibiBytes snapshotUsage
+                    , ( "Snapshot Usage: " ++ usageLabel locale GibiBytes snapshotUsage
                       , snapshotUsage
                       , [ multiMeterSecondaryBackground context
                         ]
@@ -312,42 +315,3 @@ fullQuotaRow items =
         , Element.spacing spacer.px32
         ]
         items
-
-
-
--- Some helper functions
-
-
-usageLabels : View.Types.Context -> Unit -> Int -> ( String, String )
-usageLabels { locale } unit usage =
-    humanNumber { locale | decimals = Exact 0 } unit usage
-
-
-usageLabel : View.Types.Context -> Unit -> Int -> String
-usageLabel context unit usage =
-    let
-        ( count, label ) =
-            usageLabels context unit usage
-    in
-    count ++ " " ++ label
-
-
-usageComparison : View.Types.Context -> Unit -> Int -> Int -> String
-usageComparison context unit used total =
-    let
-        ( usedCount, usedLabel ) =
-            usageLabels context unit used
-
-        ( totalCount, totalLabel ) =
-            usageLabels context unit total
-    in
-    -- No need to display the units on both numbers if they are the same.
-    String.join " "
-        (if usedLabel == totalLabel then
-            -- 1.3 of 2.0 TB
-            [ usedCount, "of", totalCount, totalLabel ]
-
-         else
-            -- 743 GB of 2.0 TB
-            [ usedCount, usedLabel, "of", totalCount, totalLabel ]
-        )
