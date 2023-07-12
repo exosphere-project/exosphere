@@ -41,6 +41,7 @@ nav:
       - 'docs/mkdocs-site.md'
       - 'docs/code-of-conduct.md'
       - 'docs/governance.md'
+      - 'docs/sustainability-goals.md'
   - Legal Docs:
       - 'Exosphere License': 'LICENSE'
       - 'docs/acceptable-use-policy.md'
