@@ -102,15 +102,6 @@ var cloud_configs = {
               },
               restrictFlavorIds: null,
             },
-            {
-              friendlyName: "CentOS 7",
-              isPrimary: false,
-              imageFilters: {
-                name: "Featured-CentOS7",
-                visibility: "public",
-              },
-              restrictFlavorIds: null,
-            },
           ],
         },
       ],
