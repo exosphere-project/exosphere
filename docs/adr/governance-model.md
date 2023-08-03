@@ -111,18 +111,25 @@ Finally, we would need to meet the [graduation criteria](https://github.com/cncf
 
 ### 4. Open Infrastructure Foundation model
 
-Assuming we fit best as a project under the wider Open Infrastructure umbrella, and not OpenStack specifically, for Exosphere this would mean:
+#### Determining Project Fit
 
-- Work with the OpenInfra Foundation on a governance process, because according to the [bylaws](https://openinfra.dev/legal/bylaws):
-    > The governance of the OpenStack Project is set forth in the Bylaws, but each Open Infrastructure Project is governed separately by procedures approved by the Board of Directors. The application of the other terms of the Bylaws which apply to the OpenStack Project will not apply to the Open Infrastructure Projects unless determined by Board of Directors.
-- Adopt the [OpenInfra Contributor License Agreement (CLA)](https://openinfra.dev/cla/) and Apache 2.0 License
-    > Open Infrastructure Foundation projects use the Apache License, Version 2.0 with a Contributor License Agreement (CLA), in a way comparable to Apache Foundation projects
-  - Rationale from ['source' chapter of the Four Opens](https://opendev.org/openinfra/four-opens/src/branch/master/doc/source/opensource.rst):
-    > (Apache Licence V2.0) includes a number of provisions that also protect end-users by granting copyright and patent licenses to all, while limiting liability to the original copyright holder. This patent protection is one of the distinguishing features in comparison to other open source licenses, like the MIT License.
-  - Though we _might_ be able to avoid relicensing to Apache 2.0. See [Bylaws Article VII. Intellectual Property Policy, 7.1 (c)](https://openinfra.dev/legal/bylaws):
-    > The Board of Directors may approve a license for an Open Infrastructure Project other than Apache License 2.0, ...
-- Migrate to [OpenDev](https://opendev.org/) for code hosting, code review, and CI/CD (Gitea, Gerrit, and Zuul respectively), even though in theory this is negotiable
-- Use mailing lists and IRC as main means of communication and decision making
+For Exosphere, we would first need to determine if we fit best as a project under the wider Open Infrastructure umbrella, and not OpenStack specifically.
+
+#### Working on a Governance Process
+
+We would need to work with the OpenInfra Foundation on a governance process, as each Open Infrastructure Project is governed separately by procedures approved by the Board of Directors according to the [bylaws](https://openinfra.dev/legal/bylaws).
+
+#### Adopting the OpenInfra Contributor License Agreement (CLA) and Apache 2.0 License
+
+This would involve adopting the [OpenInfra Contributor License Agreement (CLA)](https://openinfra.dev/cla/) and Apache 2.0 License. However, we _might_ be able to avoid relicensing to Apache 2.0 based on [Bylaws Article VII. Intellectual Property Policy, 7.1 (c)](https://openinfra.dev/legal/bylaws).
+
+#### Migrating to OpenDev
+
+We would likely need to migrate to [OpenDev](https://opendev.org/) for code hosting, code review, and CI/CD (Gitea, Gerrit, and Zuul respectively), even though in theory this is negotiable.
+
+#### Using Mailing Lists and IRC
+
+We would need to use mailing lists and IRC as the main means of communication and decision making.
 
 **Pros & Cons**
 
