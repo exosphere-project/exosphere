@@ -37,7 +37,9 @@ That results in us achieving [our sustainability goals](https://exosphere.app/do
 
 ## Choices
 
-### 1. Status quo
+We have identified several potential governance models for Exosphere. Each of these models has its own pros and cons, which we have outlined below.
+
+### 1. Interim Governance Model
 
 We continue with our [interim governance model](https://exosphere.app/docs/governance/), evolving over time in response to community needs.
 
