@@ -6,4 +6,4 @@ See: <https://adr.github.io/>
 - [ADR 2: Configuration management for instance provisioning](config-mgt-instance-provisioning.md)
 - [ADR 3: Storing, versioning, and consuming instance provisioning code](storing-versioning-consuming-instance-provisioning-code.md)
 - [ADR 4: Using unpublished Elm dependencies](using-unpublished-elm-dependencies.md)
-- [ADR 5: Governance model](governance-model.md)
+- [ADR 5: Selecting a Governance Model for Exosphere](governance-model.md)

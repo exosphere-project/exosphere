@@ -1,4 +1,4 @@
-# ADR 5: Governance model
+# ADR 5: Selecting a Governance Model for Exosphere
 
 ## Status
 
