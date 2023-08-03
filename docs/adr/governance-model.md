@@ -171,13 +171,14 @@ Maintainers SHOULD close user issues that are left open without action for an un
 
 **Pros & Cons**
 
-- Good: Very simple and lightweight governance process ([one short page](https://rfc.zeromq.org/spec/42/))
-- Good: Goals are closely aligned with our requirements
-- Good: Workflow is very close to what we are used to
-- Good and Bad: No organization to join, this is self-governance. So no benefits of being part of a larger organization, but also none of the downsides.
-- Unknown: Not sure if this is compatible with the BSD 3-Clause license
-- Unknown: Because we are used to tighter control over the codebase, the policy of no value judgments and rapid merging of correct patches might require some adjustment and cause conflict in the short term. It could be beneficial in the long term if it pays off in more contributions and more contributors, as long as we can ensure that the quality of the codebase remains high.
-- Bad: Less appealing for corporations to adopt, promote, and contribute to Exosphere
+- Pro: The C4 model offers a simple and lightweight governance process ([one short page](https://rfc.zeromq.org/spec/42/)), which can be beneficial for a project that values agility and minimal bureaucracy.
+- Pro: The goals of the C4 model align closely with our requirements, suggesting that it could be a good fit for our project's needs and values.
+- Pro: The workflow prescribed by the C4 model is very similar to our current practices, which could make the transition smoother and less disruptive for our team.
+- Mixed: The C4 model is self-governing, which means there's no need to join an organization. This could be seen as a pro because it allows for greater autonomy and flexibility, but it could also be a con because it means we won't have the support or resources of a larger organization.
+- Unknown: It's unclear whether the C4 model is compatible with the BSD 3-Clause license. We would need to investigate this further to ensure we're not violating any licensing terms.
+- Unknown: The C4 model's policy of not making value judgments and rapidly merging correct patches could require some adjustment from our team, as we're used to having tighter control over the codebase. While this could potentially lead to conflicts in the short term, it could also result in more contributions and contributors in the long term, provided we can maintain the high quality of our codebase.
+- Con: The C4 model may be less appealing to corporations looking to adopt, promote, and contribute to Exosphere. This could potentially limit our project's reach and impact in the corporate sector.
+
 
 ## Decision
 
