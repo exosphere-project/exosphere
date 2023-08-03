@@ -141,18 +141,33 @@ We would need to use mailing lists and IRC as the main means of communication an
 
 ### 5. C4 (Collective Code Construction Contract) model
 
-For Exosphere this would mean mostly business as usual, with some notable exceptions below:
+#### Adopting a Share-alike License
 
-- Use a share-alike license such as the MPLv2, or a GPLv3 variant thereof (GPL, LGPL, AGPL), unless we can modify C4 to be compatible with the BSD 3-Clause license (see below)
-  - There is no copyright assignment or CLA, and all patches are owned by their authors, and shall use the same license as the project
-  - Unknown: Is this compatible with the BSD 3-Clause license?
-- A patch (merge request) SHOULD be a minimal and accurate answer to exactly one identified and agreed problem
-- The release history of the project SHALL be a list of meaningful issues logged and solved
-- Standardize formatting of commit messages
-- Maintainers SHALL NOT make value judgments on correct patches
-- Maintainers SHALL merge correct patches from other Contributors rapidly
-- Any Contributor who has value judgments on a patch SHOULD express these via their own patches
-- Maintainers SHOULD close user issues that are left open without action for an uncomfortable period of time
+For Exosphere, this would mean using a share-alike license such as the MPLv2, or a GPLv3 variant thereof (GPL, LGPL, AGPL), unless we can modify C4 to be compatible with the BSD 3-Clause license. There is no copyright assignment or CLA, and all patches are owned by their authors, and shall use the same license as the project.
+
+#### Ensuring Minimal and Accurate Patches
+
+A patch (merge request) SHOULD be a minimal and accurate answer to exactly one identified and agreed problem.
+
+#### Maintaining a List of Meaningful Issues
+
+The release history of the project SHALL be a list of meaningful issues logged and solved.
+
+#### Standardizing Commit Messages
+
+We would need to standardize the formatting of commit messages.
+
+#### Avoiding Value Judgments on Patches
+
+Maintainers SHALL NOT make value judgments on correct patches. Any Contributor who has value judgments on a patch SHOULD express these via their own patches.
+
+#### Merging Correct Patches Rapidly
+
+Maintainers SHALL merge correct patches from other Contributors rapidly.
+
+#### Closing User Issues
+
+Maintainers SHOULD close user issues that are left open without action for an uncomfortable period of time.
 
 **Pros & Cons**
 
