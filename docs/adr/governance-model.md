@@ -63,10 +63,10 @@ For Exosphere this would mean:
 - Move to an ASF-blessed code platform (GitHub or Apache's GitBox) and use Apache's CI/CD infrastructure
 - ...and more
 
-- Good: The ASF is a well-established, well-respected, and well-funded organization with a proven track record of successfully incubating and managing open source projects.
-- Bad: The ASF is a large, bureaucratic organization with a lot of overhead.
-- Bad: We would have to relicense all past contributions to the codebase.
-- Bad: We would have to move to a new code platform and CI/CD infrastructure.
+- Good: The ASF is a well-established, well-respected, and well-funded organization with a proven track record of successfully incubating and managing open source projects
+- Bad: The ASF is a large, bureaucratic organization with a lot of overhead
+- Bad: We would have to relicense all past contributions to the codebase
+- Bad: We would have to move to a new code platform and CI/CD infrastructure
 
 ### 3. Cloud Native Computing Foundation (CNCF) model
 
@@ -91,14 +91,30 @@ For Exosphere this would mean:
   - Explicitly define a project governance and committer process. The committer process should cover the full committer lifecycle including onboarding and offboarding or emeritus criteria. This preferably is laid out in a GOVERNANCE.md file and references an OWNERS.md file showing the current and emeritus committers.
   - Explicitly define the criteria, process and offboarding or emeritus conditions for project maintainers; or those who may interact with the CNCF on behalf of the project. The list of maintainers should be preferably be stored in a MAINTAINERS.md file and audited at a minimum of an annual cadence.
 
-- Good: The CNCF is a well-established, well-respected, and well-funded organization with a proven track record of successfully incubating and managing open source projects.
-- Good: The CNCF governance process is not as heavy as the ASF's.
-- Good: We can continue to use GitLab and our existing CI/CD infrastructure.
-- Bad: Unclear if Exosphere "fits" in the Cloud Native landscape.
+- Good: The CNCF is a well-established, well-respected, and well-funded organization with a proven track record of successfully incubating and managing open source projects
+- Good: The CNCF governance process is more modern, and not as heavy as the ASF's
+- Good: We can continue to use GitLab and our existing CI/CD infrastructure
+- Bad: Unclear if Exosphere "fits" in the Cloud Native landscape
 
 ### 4. Open Infrastructure Foundation model
 
-TODO
+Assuming we fit best as a project under the wider Open Infrastructure umbrella, and not OpenStack specifically, for Exosphere this would mean:
+
+- Work with the OpenInfra Foundation on a governance process, because according to the [bylaws](https://openinfra.dev/legal/bylaws):
+    > The governance of the OpenStack Project is set forth in the Bylaws, but each Open Infrastructure Project is governed separately by procedures approved by the Board of Directors. The application of the other terms of the Bylaws which apply to the OpenStack Project will not apply to the Open Infrastructure Projects unless determined by Board of Directors.
+- Adopt the [OpenInfra Contributor License Agreement (CLA)](https://openinfra.dev/cla/) and Apache 2.0 License
+    > Open Infrastructure Foundation projects use the Apache License, Version 2.0 with a Contributor License Agreement (CLA), in a way comparable to Apache Foundation projects
+  - Rationale from ['source' chapter of the Four Opens](https://opendev.org/openinfra/four-opens/src/branch/master/doc/source/opensource.rst):
+    > (Apache Licence V2.0) includes a number of provisions that also protect end-users by granting copyright and patent licenses to all, while limiting liability to the original copyright holder. This patent protection is one of the distinguishing features in comparison to other open source licenses, like the MIT License.
+  - Though we _might_ be able to avoid relicensing to Apache 2.0. See [Bylaws Article VII. Intellectual Property Policy, 7.1 (c)](https://openinfra.dev/legal/bylaws):
+    > The Board of Directors may approve a license for an Open Infrastructure Project other than Apache License 2.0, ...
+- Migrate to [OpenDev](https://opendev.org/) for code hosting, code review, and CI/CD (Gitea, Gerrit, and Zuul respectively), even though in theory this is negotiable
+- Use mailing lists and IRC as main means of communication and decision making
+
+- Good: The OpenInfra Foundation is a well-established, well-respected, and well-funded organization with a proven track record of successfully managing open source projects
+- Good: Exosphere could be a good fit, because it both builds on, and enhances the appeal of OpenStack
+- Bad: Not many examples of successfully incubating non-OpenStack projects
+- Bad: We would probably have to move to a new code platform and CI/CD infrastructure
 
 ### 5. C4 (Collective Code Construction Contract) model
 
