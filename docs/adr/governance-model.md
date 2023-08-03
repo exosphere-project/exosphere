@@ -50,7 +50,7 @@ TODO:
 
 ### 2. Apache Software Foundation (ASF) model
 
-In Exosphere this would mean:
+For Exosphere this would mean:
 
 - Studying [the incubator cookbook](https://incubator.apache.org/cookbook/) in detail to decide if the ASF is a good fit, then going through the steps to join the [ASF Incubator](https://incubator.apache.org/).
 - Execute a formal [Software Grant Agreement (SGA)](https://www.apache.org/licenses/contributor-agreements.html#grants) to transfer the Exosphere codebase to the ASF
@@ -63,12 +63,38 @@ In Exosphere this would mean:
 - Move to an ASF-blessed code platform (GitHub or Apache's GitBox) and use Apache's CI/CD infrastructure
 - ...and more
 
-- Good: The ASF is a well-established, well-respected, and well-funded organization with a proven track record of successfully incubating and managing open source projects. The ASF has a well-defined governance model that addresses all of our governance acceptance criteria.
-- Bad: The ASF is a large, bureaucratic organization with a lot of overhead. It's not clear that the ASF is a good fit for Exosphere, and it's not clear that we would be accepted into the ASF Incubator.
+- Good: The ASF is a well-established, well-respected, and well-funded organization with a proven track record of successfully incubating and managing open source projects.
+- Bad: The ASF is a large, bureaucratic organization with a lot of overhead.
+- Bad: We would have to relicense all past contributions to the codebase.
+- Bad: We would have to move to a new code platform and CI/CD infrastructure.
 
 ### 3. Cloud Native Computing Foundation (CNCF) model
 
-TODO
+For Exosphere this would mean:
+
+- Follow the [project proposal process](https://github.com/cncf/toc/blob/main/process/project_proposals.md)
+- Adopt [IP policy](https://github.com/cncf/foundation/blob/main/charter.md#11-ip-policy), including:
+  - Decide if we want to adopt a CLA
+  - Ensure that all new code contributions are accompanied by a DCO (Developer Certificate of Origin sign-off) (https://developercertificate.org) and made under the Apache License, Version 2.0 (Note: Not clear if we would need to relicense existing contributions)
+  - Transfer ownership of trademark and logo assets to the Linux Foundation
+- Meet the [incubating stage criteria](https://github.com/cncf/toc/blob/main/process/graduation_criteria.md#incubating-stage), including:
+  - Document that it is being used successfully in production by at least three independent direct adopters which, in the TOC’s judgement, are of adequate quality and scope. For the definition of an adopter, see https://github.com/cncf/toc/blob/main/FAQ.md#what-is-the-definition-of-an-adopter.
+  - Have a healthy number of committers. A committer is defined as someone with the commit bit; i.e., someone who can accept contributions to some or all of the project.
+  - Demonstrate a substantial ongoing flow of commits and merged contributions.
+  - Since these metrics can vary significantly depending on the type, scope and size of a project, the TOC has final judgement over the level of activity that is adequate to meet these criteria
+  - A clear versioning scheme.
+  - Clearly documented security processes explaining how to report security issues to the project, and describing how the project provides updated releases or patches to resolve security vulnerabilities
+- Meet the [graduation criteria](https://github.com/cncf/toc/blob/main/process/graduation-proposal-template.md#graduation-state-criteria), including:
+  - Have committers from at least two organizations
+  - Achieve and maintain a [Core Infrastructure Initiative Best Practices Badge](https://bestpractices.coreinfrastructure.org/)
+  - Have completed an independent and third party security audit with results published of similar scope and quality as [this example](https://github.com/envoyproxy/envoy#security-audit) which includes all critical vulnerabilities and all critical vulnerabilities need to be addressed before graduation.
+  - Explicitly define a project governance and committer process. The committer process should cover the full committer lifecycle including onboarding and offboarding or emeritus criteria. This preferably is laid out in a GOVERNANCE.md file and references an OWNERS.md file showing the current and emeritus committers.
+  - Explicitly define the criteria, process and offboarding or emeritus conditions for project maintainers; or those who may interact with the CNCF on behalf of the project. The list of maintainers should be preferably be stored in a MAINTAINERS.md file and audited at a minimum of an annual cadence.
+
+- Good: The CNCF is a well-established, well-respected, and well-funded organization with a proven track record of successfully incubating and managing open source projects.
+- Good: The CNCF governance process is not as heavy as the ASF's.
+- Good: We can continue to use GitLab and our existing CI/CD infrastructure.
+- Bad: Unclear if Exosphere "fits" in the Cloud Native landscape.
 
 ### 4. Open Infrastructure Foundation model
 
