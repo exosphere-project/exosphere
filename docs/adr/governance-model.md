@@ -43,9 +43,11 @@ We have identified several potential governance models for Exosphere. Each of th
 
 We continue with our [interim governance model](https://exosphere.app/docs/governance/), evolving over time in response to community needs.
 
-- Good: No change to the way we currently operate
-- Bad: Not sure that the current model is sustainable in the long term
-- Bad: Current model will likely prevent some corporations from adopting, promoting, and contributing to Exosphere 
+**Pros & Cons**
+
+- Pro: No change to the way we currently operate, which could minimize disruption and maintain continuity.
+- Mixed: The current model is flexible and adaptable, but it may not be sustainable in the long term as the project grows and evolves.
+- Con: The lack of a formal governance model could deter some corporations from adopting, promoting, and contributing to Exosphere.
 
 ### 2. Apache Software Foundation (ASF) model
 
@@ -77,11 +79,11 @@ We would need to move to an ASF-blessed code platform (GitHub or Apache's GitBox
 
 **Pros & Cons**
 
-- Good: The ASF is a well-established, well-respected, and well-funded organization with a proven track record of successfully incubating and managing open source projects
-- Good: More appealing for corporations to adopt, promote, and contribute to Exosphere
-- Bad: The ASF is a large, bureaucratic organization with a lot of overhead
-- Bad: We would have to relicense all past contributions to the codebase
-- Bad: We would have to move to a new code platform and CI/CD infrastructure
+- Pro: The ASF is a well-established, well-respected, and well-funded organization with a proven track record of successfully incubating and managing open source projects.
+- Pro: The ASF model could make Exosphere more appealing to corporations, potentially expanding our project's reach and impact.
+- Mixed: The ASF is a large organization with a lot of overhead, which could provide valuable resources and support but also introduce bureaucracy and slow down decision-making.
+- Con: We would have to relicense all past contributions to the codebase, which could be a complex and time-consuming process.
+- Con: We would have to move to a new code platform and CI/CD infrastructure, which could disrupt our current workflows and require additional resources to implement.
 
 ### 3. Cloud Native Computing Foundation (CNCF) model
 
@@ -103,11 +105,11 @@ Finally, we would need to meet the [graduation criteria](https://github.com/cncf
 
 **Pros & Cons**
 
-- Good: The CNCF is a well-established, well-respected, and well-funded organization with a proven track record of successfully incubating and managing open source projects
-- Good: The CNCF governance process is more modern, and not as heavy as the ASF's
-- Good: We can continue to use GitLab and our existing CI/CD infrastructure
-- Good: More appealing for corporations to adopt, promote, and contribute to Exosphere
-- Bad: Unclear if Exosphere "fits" in the Cloud Native landscape
+- Pro: The CNCF is a well-established, well-respected, and well-funded organization with a proven track record of successfully incubating and managing open source projects.
+- Pro: The CNCF governance process is more modern and less bureaucratic than the ASF's, which could make it a better fit for our project's culture and values.
+- Pro: We can continue to use GitLab and our existing CI/CD infrastructure, which could minimize disruption and maintain continuity.
+- Pro: The CNCF model could make Exosphere more appealing to corporations, potentially expanding our project's reach and impact.
+- Con: It's unclear whether Exosphere fits within the Cloud Native landscape, which could complicate our application process and limit the benefits we receive from joining the CNCF.
 
 ### 4. Open Infrastructure Foundation model
 
@@ -133,11 +135,11 @@ We would need to use mailing lists and IRC as the main means of communication an
 
 **Pros & Cons**
 
-- Good: The OpenInfra Foundation is a well-established, well-respected, and well-funded organization with a proven track record of successfully managing open source projects
-- Good: Exosphere could be a good fit, because it both builds on, and enhances the appeal of OpenStack
-- Good: More appealing for corporations to adopt, promote, and contribute to Exosphere
-- Bad: Not many examples of successfully incubating non-OpenStack projects
-- Bad: We would probably have to move to a new code platform and CI/CD infrastructure
+- Pro: The OpenInfra Foundation is a well-established, well-respected, and well-funded organization with a proven track record of successfully managing open source projects.
+- Pro: Exosphere could be a good fit for the OpenInfra Foundation, as it both builds on and enhances the appeal of OpenStack.
+- Pro: The OpenInfra model could make Exosphere more appealing to corporations (especially those already using OpenStack), potentially expanding our project's reach and impact.
+- Mixed: There are not many examples of the OpenInfra Foundation successfully incubating non-OpenStack projects, which could make it harder for us to predict and navigate the incubation process.
+- Con: We would likely have to move to a new code platform and CI/CD infrastructure, which could disrupt our current workflows and require additional resources to implement.
 
 ### 5. C4 (Collective Code Construction Contract) model
 
