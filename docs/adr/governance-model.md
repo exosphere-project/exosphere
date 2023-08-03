@@ -270,6 +270,22 @@ TODO
 
 ## Appendix A: Governance Model Evaluation Rubric
 
+### Using Structured Decision-Making to Inform Intuition
+
+The process of selecting a governance model can be complex and subjective. To ensure a comprehensive and unbiased evaluation, we will use a structured decision-making approach inspired by the Mediating Assessments Protocol (MAP) from Kahneman et al.'s paper "A Structured Approach to Strategic Decisions". The steps are as follows:
+
+1. **Identify Key Factors**: We have identified key factors that will influence our decision. These factors serve as our scoring rubric and include aspects like 'Community Engagement', 'Ease of Adoption', 'Incentives for Contributors', and 'Corporate Adoption'.
+
+2. **Score Each Option**: For each governance model, we will score it independently on each factor. We will use as much factual information as possible to avoid bias. For example, we might score the Apache Software Foundation model and the C4 model on each of the factors identified.
+
+3. **Delay the Final Decision**: We will wait until all key factors have been scored for all governance models before making our final decision. This approach helps to prevent early impressions or biases from unduly influencing our decision.
+
+4. **Make the Final Decision**: Once all governance models have been scored on all factors, we can make our final decision. This decision should be based on the scores each model received.
+
+This structured approach ensures that our decision is based on a comprehensive, unbiased evaluation of all governance models. For more details on this approach, refer to the paper ["A Structured Approach to Strategic Decisions"](https://ses.library.usyd.edu.au/handle/2123/28501).
+
+### Table with Criteria
+
 | Criteria                                   | ASF | CNCF | OpenInfra | C4 | Interim |
 |--------------------------------------------|-----|------|-----------|----|---------|
 | 1. Encourages Participation                |     |      |           |    |         |
