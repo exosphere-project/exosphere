@@ -179,10 +179,6 @@ Maintainers SHOULD close user issues that are left open without action for an un
 - Unknown: Because we are used to tighter control over the codebase, the policy of no value judgments and rapid merging of correct patches might require some adjustment and cause conflict in the short term. It could be beneficial in the long term if it pays off in more contributions and more contributors, as long as we can ensure that the quality of the codebase remains high.
 - Bad: Less appealing for corporations to adopt, promote, and contribute to Exosphere
 
-### 6. Something else?
-
-TODO
-
 ## Decision
 
 TODO
