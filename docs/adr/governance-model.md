@@ -62,7 +62,7 @@ For Exosphere this would mean:
 - Move to an ASF-blessed code platform (GitHub or Apache's GitBox) and use Apache's CI/CD infrastructure
 - ...and more
 
-Pros & Cons:
+**Pros & Cons**
 
 - Good: The ASF is a well-established, well-respected, and well-funded organization with a proven track record of successfully incubating and managing open source projects
 - Good: More appealing for corporations to adopt, promote, and contribute to Exosphere
@@ -93,7 +93,7 @@ For Exosphere this would mean:
   - Explicitly define a project governance and committer process. The committer process should cover the full committer lifecycle including onboarding and offboarding or emeritus criteria. This preferably is laid out in a GOVERNANCE.md file and references an OWNERS.md file showing the current and emeritus committers.
   - Explicitly define the criteria, process and offboarding or emeritus conditions for project maintainers; or those who may interact with the CNCF on behalf of the project. The list of maintainers should be preferably be stored in a MAINTAINERS.md file and audited at a minimum of an annual cadence.
 
-Pros & Cons:
+**Pros & Cons**
 
 - Good: The CNCF is a well-established, well-respected, and well-funded organization with a proven track record of successfully incubating and managing open source projects
 - Good: The CNCF governance process is more modern, and not as heavy as the ASF's
@@ -116,7 +116,7 @@ Assuming we fit best as a project under the wider Open Infrastructure umbrella, 
 - Migrate to [OpenDev](https://opendev.org/) for code hosting, code review, and CI/CD (Gitea, Gerrit, and Zuul respectively), even though in theory this is negotiable
 - Use mailing lists and IRC as main means of communication and decision making
 
-Pros & Cons:
+**Pros & Cons**
 
 - Good: The OpenInfra Foundation is a well-established, well-respected, and well-funded organization with a proven track record of successfully managing open source projects
 - Good: Exosphere could be a good fit, because it both builds on, and enhances the appeal of OpenStack
@@ -139,7 +139,7 @@ For Exosphere this would mean mostly business as usual, with some notable except
 - Any Contributor who has value judgments on a patch SHOULD express these via their own patches
 - Maintainers SHOULD close user issues that are left open without action for an uncomfortable period of time
 
-Pros & Cons:
+**Pros & Cons**
 
 - Good: Very simple and lightweight governance process (one short page)
 - Good: Goals are closely aligned with our requirements
