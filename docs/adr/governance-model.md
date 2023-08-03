@@ -85,26 +85,21 @@ We would need to move to an ASF-blessed code platform (GitHub or Apache's GitBox
 
 ### 3. Cloud Native Computing Foundation (CNCF) model
 
-For Exosphere this would mean:
+#### Following the Project Proposal Process
 
-- Follow the [project proposal process](https://github.com/cncf/toc/blob/main/process/project_proposals.md)
-- Adopt [IP policy](https://github.com/cncf/foundation/blob/main/charter.md#11-ip-policy), including:
-  - Decide if we want to adopt a CLA
-  - Ensure that all new code contributions are accompanied by a DCO (Developer Certificate of Origin sign-off) (https://developercertificate.org) and made under the Apache License, Version 2.0 (Note: Not clear if we would need to relicense existing contributions)
-  - Transfer ownership of trademark and logo assets to the Linux Foundation
-- Meet the [incubating stage criteria](https://github.com/cncf/toc/blob/main/process/graduation_criteria.md#incubating-stage), including:
-  - Document that it is being used successfully in production by at least three independent direct adopters which, in the TOC’s judgement, are of adequate quality and scope. For the definition of an adopter, see https://github.com/cncf/toc/blob/main/FAQ.md#what-is-the-definition-of-an-adopter.
-  - Have a healthy number of committers. A committer is defined as someone with the commit bit; i.e., someone who can accept contributions to some or all of the project.
-  - Demonstrate a substantial ongoing flow of commits and merged contributions.
-  - Since these metrics can vary significantly depending on the type, scope and size of a project, the TOC has final judgement over the level of activity that is adequate to meet these criteria
-  - A clear versioning scheme.
-  - Clearly documented security processes explaining how to report security issues to the project, and describing how the project provides updated releases or patches to resolve security vulnerabilities
-- Meet the [graduation criteria](https://github.com/cncf/toc/blob/main/process/graduation-proposal-template.md#graduation-state-criteria), including:
-  - Have committers from at least two organizations
-  - Achieve and maintain a [Core Infrastructure Initiative Best Practices Badge](https://bestpractices.coreinfrastructure.org/)
-  - Have completed an independent and third party security audit with results published of similar scope and quality as [this example](https://github.com/envoyproxy/envoy#security-audit) which includes all critical vulnerabilities and all critical vulnerabilities need to be addressed before graduation.
-  - Explicitly define a project governance and committer process. The committer process should cover the full committer lifecycle including onboarding and offboarding or emeritus criteria. This preferably is laid out in a GOVERNANCE.md file and references an OWNERS.md file showing the current and emeritus committers.
-  - Explicitly define the criteria, process and offboarding or emeritus conditions for project maintainers; or those who may interact with the CNCF on behalf of the project. The list of maintainers should be preferably be stored in a MAINTAINERS.md file and audited at a minimum of an annual cadence.
+For Exosphere, this would mean following the [project proposal process](https://github.com/cncf/toc/blob/main/process/project_proposals.md).
+
+#### Adopting IP Policy
+
+This would involve adopting the CNCF's [IP policy](https://github.com/cncf/foundation/blob/main/charter.md#11-ip-policy), which includes deciding if we want to adopt a CLA, ensuring that all new code contributions are accompanied by a DCO (Developer Certificate of Origin sign-off) and made under the Apache License, Version 2.0, and transferring ownership of trademark and logo assets to the Linux Foundation.
+
+#### Meeting the Incubating Stage Criteria
+
+We would need to meet the [incubating stage criteria](https://github.com/cncf/toc/blob/main/process/graduation_criteria.md#incubating-stage), which includes demonstrating successful production usage by at least three independent adopters, having a healthy number of committers, demonstrating a substantial ongoing flow of commits and merged contributions, and having a clear versioning scheme.
+
+#### Meeting the Graduation Criteria
+
+Finally, we would need to meet the [graduation criteria](https://github.com/cncf/toc/blob/main/process/graduation-proposal-template.md#graduation-state-criteria), which includes having committers from at least two organizations, achieving and maintaining a Core Infrastructure Initiative Best Practices Badge, and having completed an independent and third party security audit with results published.
 
 **Pros & Cons**
 
