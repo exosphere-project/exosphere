@@ -130,7 +130,7 @@ For Exosphere this would mean mostly business as usual, with some notable except
 
 - Use a share-alike license such as the MPLv2, or a GPLv3 variant thereof (GPL, LGPL, AGPL), unless we can modify C4 to be compatible with the BSD 3-Clause license (see below)
   - There is no copyright assignment or CLA, and all patches are owned by their authors, and shall use the same license as the project
-  - Unknown: Is this is compatible with the BSD 3-Clause license?
+  - Unknown: Is this compatible with the BSD 3-Clause license?
 - A patch (merge request) SHOULD be a minimal and accurate answer to exactly one identified and agreed problem
 - The release history of the project SHALL be a list of meaningful issues logged and solved
 - Standardize formatting of commit messages
