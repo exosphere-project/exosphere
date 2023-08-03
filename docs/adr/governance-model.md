@@ -6,19 +6,17 @@ WIP
 
 ## Context
 
-Exosphere is a community-driven open source project.
+## Context
 
-We have an [interim governance model](https://exosphere.app/docs/governance/). From [!750 Documenting interim governance for Exosphere](https://gitlab.com/exosphere/exosphere/-/merge_requests/750):
+Exosphere is an open-source project that provides a user-friendly interface for non-proprietary cloud infrastructure. It empowers researchers and other non-IT professionals to deploy code and run services on OpenStack-based cloud systems, without requiring advanced virtualization or networking knowledge. Exosphere fills the gap between OpenStack interfaces built for system administrators and intuitive-but-proprietary services like DigitalOcean and Amazon Lightsail. It also enables cloud operators to deliver a friendly, powerful interface to their community with customized branding, nomenclature, and single sign-on integration.
 
-> #815 tracks the effort to investigate potential governance models for Exosphere. In that issue, @julianpistorius linked to the CNCF [project template](https://github.com/cncf/project-template), specifically the [simple maintainer governance](https://github.com/cncf/project-template/blob/main/GOVERNANCE-maintainer.md).
->
-> We both agreed that the template was somewhat close to how the Exosphere project has already been governed since its inception, and short enough to understand and modify with ease. So, we removed the parts that didn't already apply, and tweaked the parts which do.
->
-> This doesn't solve #815 or #819 -- it just serves to capture approximately what we already have, as a starting point to evolve it.
+As a community-driven project, Exosphere is committed to maintaining an open and inclusive governance model that encourages participation, guides discussions, builds consensus, and resolves conflicts. We currently operate under an [interim governance model](https://exosphere.app/docs/governance/), which has served us well so far. However, as the project grows and evolves, we recognize the need for a more formal and sustainable governance model.
 
-In [POSE 3.2.1: Investigate governance models #815](https://gitlab.com/exosphere/exosphere/-/issues/815#note_1404718326) we have a fairly detailed investigation of four governance models. Specifically we evaluated how/if each model addresses governance acceptance criteria required by the [Open Source Security Foundation (OpenSSF) Best Practices](https://bestpractices.coreinfrastructure.org/en/criteria.ce) program, as well as the [Open Source Collective](https://docs.oscollective.org/getting-started/acceptance-criteria).
+In our pursuit of a new governance model, we have conducted a detailed investigation of several potential models, evaluating how each one addresses the governance acceptance criteria required by the [Open Source Security Foundation (OpenSSF) Best Practices](https://bestpractices.coreinfrastructure.org/en/criteria.ce) program, as well as the [Open Source Collective](https://docs.oscollective.org/getting-started/acceptance-criteria).
 
-### What would success / a fix look like?
+Our goal is to adopt a governance model that provides well-defined mechanisms for stakeholders to act in neutral forums, encourage participation, guide discussions, build consensus, and resolve conflicts. Ultimately, we aim to achieve [our sustainability goals](https://exosphere.app/docs/sustainability-goals/), ensuring that Exosphere remains responsive to the changing needs of its community, recruits and grows new project members, and maintains a secure, trustworthy open source product.
+
+### Success Criteria
 
 From our POSE Phase I proposal, a governance model that provides well-defined mechanisms for stakeholders to:
 
