@@ -141,7 +141,7 @@ For Exosphere this would mean mostly business as usual, with some notable except
 
 **Pros & Cons**
 
-- Good: Very simple and lightweight governance process (one short page)
+- Good: Very simple and lightweight governance process ([one short page](https://rfc.zeromq.org/spec/42/))
 - Good: Goals are closely aligned with our requirements
 - Good: Workflow is very close to what we are used to
 - Good and Bad: No organization to join, this is self-governance. So no benefits of being part of a larger organization, but also none of the downsides.
