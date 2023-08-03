@@ -118,7 +118,25 @@ Assuming we fit best as a project under the wider Open Infrastructure umbrella, 
 
 ### 5. C4 (Collective Code Construction Contract) model
 
-TODO
+For Exosphere this would mean mostly business as usual, with some notable exceptions below:
+
+- Use a share-alike license such as the MPLv2, or a GPLv3 variant thereof (GPL, LGPL, AGPL), unless we can modify C4 to be compatible with the BSD 3-Clause license (see below)
+  - There is no copyright assignment or CLA, and all patches are owned by their authors, and shall use the same license as the project
+  - Unknown: Is this is compatible with the BSD 3-Clause license?
+- A patch (merge request) SHOULD be a minimal and accurate answer to exactly one identified and agreed problem
+- The release history of the project SHALL be a list of meaningful issues logged and solved
+- Standardize formatting of commit messages
+- Maintainers SHALL NOT make value judgments on correct patches
+- Maintainers SHALL merge correct patches from other Contributors rapidly
+- Any Contributor who has value judgments on a patch SHOULD express these via their own patches
+- Maintainers SHOULD close user issues that are left open without action for an uncomfortable period of time
+
+- Good: Very simple and lightweight governance process (one short page)
+- Good: Goals are closely aligned with our requirements
+- Good: Workflow is very close to what we are used to
+- Good and Bad: No organization to join, this is self-governance. So no benefits of being part of a larger organization, but also none of the downsides.
+- Unknown: Not sure if this is compatible with the BSD 3-Clause license
+- Unknown: Because we are used to tighter control over the codebase, the policy of no value judgments and rapid merging of correct patches might require some adjustment and cause conflict in the short term. It could be beneficial in the long term if it pays off in more contributions and more contributors, as long as we can ensure that the quality of the codebase remains high.
 
 ### 6. Something else?
 
