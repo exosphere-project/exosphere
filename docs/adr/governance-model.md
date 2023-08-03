@@ -6,8 +6,6 @@ WIP
 
 ## Context
 
-## Context
-
 Exosphere is an open-source project that provides a user-friendly interface for non-proprietary cloud infrastructure. It
 empowers researchers and other non-IT professionals to deploy code and run services on OpenStack-based cloud systems,
 without requiring advanced virtualization or networking knowledge. Exosphere fills the gap between OpenStack interfaces
