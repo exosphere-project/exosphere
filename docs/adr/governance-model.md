@@ -49,18 +49,31 @@ We continue with our [interim governance model](https://exosphere.app/docs/gover
 
 ### 2. Apache Software Foundation (ASF) model
 
-For Exosphere this would mean:
+#### Joining the ASF Incubator
 
-- Studying [the incubator cookbook](https://incubator.apache.org/cookbook/) in detail to decide if the ASF is a good fit, then going through the steps to join the [ASF Incubator](https://incubator.apache.org/).
-- Execute a formal [Software Grant Agreement (SGA)](https://www.apache.org/licenses/contributor-agreements.html#grants) to transfer the Exosphere codebase to the ASF
-- Adopting the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0)
-  - We will have to contact all past & present contributors to get their explicit permission to relicense their contributions. If we can't get permission from everyone, we'll have to remove their contributions from the codebase.
-- Adopting the [Apache Contributor License Agreement (CLA)](https://www.apache.org/licenses/#clas)
-- Adopting the [Apache Way](https://www.apache.org/theapacheway/), specifically:
-    - Set up a project management committee (PMC) to oversee the project, which would involve board meetings, reporting, etc.
-    - All technical decisions and the great majority of the work should take place on public mailing lists. Decisions SHALL NOT be made in other media, like IRC, Slack channels, face to face at conferences, nor presumably on GitLab issues or MRs.
-- Move to an ASF-blessed code platform (GitHub or Apache's GitBox) and use Apache's CI/CD infrastructure
-- ...and more
+For Exosphere, this would involve studying [the incubator cookbook](https://incubator.apache.org/cookbook/) in detail to decide if the ASF is a good fit, then going through the steps to join the [ASF Incubator](https://incubator.apache.org/).
+
+#### Transferring the Exosphere Codebase
+
+We would need to execute a formal [Software Grant Agreement (SGA)](https://www.apache.org/licenses/contributor-agreements.html#grants) to transfer the Exosphere codebase to the ASF.
+
+#### Adopting the Apache License 2.0
+
+This would involve adopting the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0). We would have to contact all past & present contributors to get their explicit permission to relicense their contributions. If we can't get permission from everyone, we'll have to remove their contributions from the codebase.
+
+#### Adopting the Apache Contributor License Agreement (CLA)
+
+We would also need to adopt the [Apache Contributor License Agreement (CLA)](https://www.apache.org/licenses/#clas).
+
+#### Adopting the Apache Way
+
+This would involve adopting the [Apache Way](https://www.apache.org/theapacheway/), specifically:
+- Setting up a project management committee (PMC) to oversee the project, which would involve board meetings, reporting, etc.
+- Ensuring that all technical decisions and the great majority of the work take place on public mailing lists. Decisions SHALL NOT be made in other media, like IRC, Slack channels, face to face at conferences, nor presumably on GitLab issues or MRs.
+
+#### Moving to an ASF-blessed Code Platform
+
+We would need to move to an ASF-blessed code platform (GitHub or Apache's GitBox) and use Apache's CI/CD infrastructure.
 
 **Pros & Cons**
 
