@@ -8,13 +8,28 @@ WIP
 
 ## Context
 
-Exosphere is an open-source project that provides a user-friendly interface for non-proprietary cloud infrastructure. It empowers researchers and other non-IT professionals to deploy code and run services on OpenStack-based cloud systems, without requiring advanced virtualization or networking knowledge. Exosphere fills the gap between OpenStack interfaces built for system administrators and intuitive-but-proprietary services like DigitalOcean and Amazon Lightsail. It also enables cloud operators to deliver a friendly, powerful interface to their community with customized branding, nomenclature, and single sign-on integration.
+Exosphere is an open-source project that provides a user-friendly interface for non-proprietary cloud infrastructure. It
+empowers researchers and other non-IT professionals to deploy code and run services on OpenStack-based cloud systems,
+without requiring advanced virtualization or networking knowledge. Exosphere fills the gap between OpenStack interfaces
+built for system administrators and intuitive-but-proprietary services like DigitalOcean and Amazon Lightsail. It also
+enables cloud operators to deliver a friendly, powerful interface to their community with customized branding,
+nomenclature, and single sign-on integration.
 
-As a community-driven project, Exosphere is committed to maintaining an open and inclusive governance model that encourages participation, guides discussions, builds consensus, and resolves conflicts. We currently operate under an [interim governance model](https://exosphere.app/docs/governance/), which has served us well so far. However, as the project grows and evolves, we recognize the need for a more formal and sustainable governance model.
+As a community-driven project, Exosphere is committed to maintaining an open and inclusive governance model that
+encourages participation, guides discussions, builds consensus, and resolves conflicts. We currently operate under
+an [interim governance model](https://exosphere.app/docs/governance/), which has served us well so far. However, as the
+project grows and evolves, we recognize the need for a more formal and sustainable governance model.
 
-In our pursuit of a new governance model, we have conducted a detailed investigation of several potential models, evaluating how each one addresses the governance acceptance criteria required by the [Open Source Security Foundation (OpenSSF) Best Practices](https://bestpractices.coreinfrastructure.org/en/criteria.ce) program, as well as the [Open Source Collective](https://docs.oscollective.org/getting-started/acceptance-criteria).
+In our pursuit of a new governance model, we have conducted a detailed investigation of several potential models,
+evaluating how each one addresses the governance acceptance criteria required by
+the [Open Source Security Foundation (OpenSSF) Best Practices](https://bestpractices.coreinfrastructure.org/en/criteria.ce)
+program, as well as the [Open Source Collective](https://docs.oscollective.org/getting-started/acceptance-criteria).
 
-Our goal is to adopt a governance model that provides well-defined mechanisms for stakeholders to act in neutral forums, encourage participation, guide discussions, build consensus, and resolve conflicts. Ultimately, we aim to achieve [our sustainability goals](https://exosphere.app/docs/sustainability-goals/), ensuring that Exosphere remains responsive to the changing needs of its community, recruits and grows new project members, and maintains a secure, trustworthy open source product.
+Our goal is to adopt a governance model that provides well-defined mechanisms for stakeholders to act in neutral forums,
+encourage participation, guide discussions, build consensus, and resolve conflicts. Ultimately, we aim to
+achieve [our sustainability goals](https://exosphere.app/docs/sustainability-goals/), ensuring that Exosphere remains
+responsive to the changing needs of its community, recruits and grows new project members, and maintains a secure,
+trustworthy open source product.
 
 ### Success Criteria
 
@@ -37,31 +52,41 @@ That results in us achieving [our sustainability goals](https://exosphere.app/do
 
 ## Choices
 
-We have identified several potential governance models for Exosphere. Each of these models has its own pros and cons, which we have outlined below.
+We have identified several potential governance models for Exosphere. Each of these models has its own pros and cons,
+which we have outlined below.
 
 ### 1. Interim Governance Model
 
-We continue with our [interim governance model](https://exosphere.app/docs/governance/), evolving over time in response to community needs.
+We continue with our [interim governance model](https://exosphere.app/docs/governance/), evolving over time in response
+to community needs.
 
 **Pros & Cons**
 
 - Pro: No change to the way we currently operate, which could minimize disruption and maintain continuity.
-- Mixed: The current model is flexible and adaptable, but it may not be sustainable in the long term as the project grows and evolves.
-- Con: The lack of a formal governance model could deter some corporations from adopting, promoting, and contributing to Exosphere.
+- Mixed: The current model is flexible and adaptable, but it may not be sustainable in the long term as the project
+  grows and evolves.
+- Con: The lack of a formal governance model could deter some corporations from adopting, promoting, and contributing to
+  Exosphere.
 
 ### 2. Apache Software Foundation (ASF) model
 
 #### Joining the ASF Incubator
 
-For Exosphere, this would involve studying [the incubator cookbook](https://incubator.apache.org/cookbook/) in detail to decide if the ASF is a good fit, then going through the steps to join the [ASF Incubator](https://incubator.apache.org/).
+For Exosphere, this would involve studying [the incubator cookbook](https://incubator.apache.org/cookbook/) in detail to
+decide if the ASF is a good fit, then going through the steps to join
+the [ASF Incubator](https://incubator.apache.org/).
 
 #### Transferring the Exosphere Codebase
 
-We would need to execute a formal [Software Grant Agreement (SGA)](https://www.apache.org/licenses/contributor-agreements.html#grants) to transfer the Exosphere codebase to the ASF.
+We would need to execute a
+formal [Software Grant Agreement (SGA)](https://www.apache.org/licenses/contributor-agreements.html#grants) to transfer
+the Exosphere codebase to the ASF.
 
 #### Adopting the Apache License 2.0
 
-This would involve adopting the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0). We would have to contact all past & present contributors to get their explicit permission to relicense their contributions. If we can't get permission from everyone, we'll have to remove their contributions from the codebase.
+This would involve adopting the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0). We would have to
+contact all past & present contributors to get their explicit permission to relicense their contributions. If we can't
+get permission from everyone, we'll have to remove their contributions from the codebase.
 
 #### Adopting the Apache Contributor License Agreement (CLA)
 
@@ -70,8 +95,12 @@ We would also need to adopt the [Apache Contributor License Agreement (CLA)](htt
 #### Adopting the Apache Way
 
 This would involve adopting the [Apache Way](https://www.apache.org/theapacheway/), specifically:
-- Setting up a project management committee (PMC) to oversee the project, which would involve board meetings, reporting, etc.
-- Ensuring that all technical decisions and the great majority of the work take place on public mailing lists. Decisions SHALL NOT be made in other media, like IRC, Slack channels, face to face at conferences, nor presumably on GitLab issues or MRs.
+
+- Setting up a project management committee (PMC) to oversee the project, which would involve board meetings, reporting,
+  etc.
+- Ensuring that all technical decisions and the great majority of the work take place on public mailing lists. Decisions
+  SHALL NOT be made in other media, like IRC, Slack channels, face to face at conferences, nor presumably on GitLab
+  issues or MRs.
 
 #### Moving to an ASF-blessed Code Platform
 
@@ -79,55 +108,84 @@ We would need to move to an ASF-blessed code platform (GitHub or Apache's GitBox
 
 **Pros & Cons**
 
-- Pro: The ASF is a well-established, well-respected, and well-funded organization with a proven track record of successfully incubating and managing open source projects.
-- Pro: The ASF model could make Exosphere more appealing to corporations, potentially expanding our project's reach and impact.
-- Mixed: The ASF is a large organization with a lot of overhead, which could provide valuable resources and support but also introduce bureaucracy and slow down decision-making.
-- Con: We would have to relicense all past contributions to the codebase, which could be a complex and time-consuming process.
-- Con: We would have to move to a new code platform and CI/CD infrastructure, which could disrupt our current workflows and require additional resources to implement.
+- Pro: The ASF is a well-established, well-respected, and well-funded organization with a proven track record of
+  successfully incubating and managing open source projects.
+- Pro: The ASF model could make Exosphere more appealing to corporations, potentially expanding our project's reach and
+  impact.
+- Mixed: The ASF is a large organization with a lot of overhead, which could provide valuable resources and support but
+  also introduce bureaucracy and slow down decision-making.
+- Con: We would have to relicense all past contributions to the codebase, which could be a complex and time-consuming
+  process.
+- Con: We would have to move to a new code platform and CI/CD infrastructure, which could disrupt our current workflows
+  and require additional resources to implement.
 
 ### 3. Cloud Native Computing Foundation (CNCF) model
 
 #### Following the Project Proposal Process
 
-For Exosphere, this would mean following the [project proposal process](https://github.com/cncf/toc/blob/main/process/project_proposals.md).
+For Exosphere, this would mean following
+the [project proposal process](https://github.com/cncf/toc/blob/main/process/project_proposals.md).
 
 #### Adopting IP Policy
 
-This would involve adopting the CNCF's [IP policy](https://github.com/cncf/foundation/blob/main/charter.md#11-ip-policy), which includes deciding if we want to adopt a CLA, ensuring that all new code contributions are accompanied by a DCO (Developer Certificate of Origin sign-off) and made under the Apache License, Version 2.0, and transferring ownership of trademark and logo assets to the Linux Foundation.
+This would involve adopting the
+CNCF's [IP policy](https://github.com/cncf/foundation/blob/main/charter.md#11-ip-policy), which includes deciding if we
+want to adopt a CLA, ensuring that all new code contributions are accompanied by a DCO (Developer Certificate of Origin
+sign-off) and made under the Apache License, Version 2.0, and transferring ownership of trademark and logo assets to the
+Linux Foundation.
 
 #### Meeting the Incubating Stage Criteria
 
-We would need to meet the [incubating stage criteria](https://github.com/cncf/toc/blob/main/process/graduation_criteria.md#incubating-stage), which includes demonstrating successful production usage by at least three independent adopters, having a healthy number of committers, demonstrating a substantial ongoing flow of commits and merged contributions, and having a clear versioning scheme.
+We would need to meet
+the [incubating stage criteria](https://github.com/cncf/toc/blob/main/process/graduation_criteria.md#incubating-stage),
+which includes demonstrating successful production usage by at least three independent adopters, having a healthy number
+of committers, demonstrating a substantial ongoing flow of commits and merged contributions, and having a clear
+versioning scheme.
 
 #### Meeting the Graduation Criteria
 
-Finally, we would need to meet the [graduation criteria](https://github.com/cncf/toc/blob/main/process/graduation-proposal-template.md#graduation-state-criteria), which includes having committers from at least two organizations, achieving and maintaining a Core Infrastructure Initiative Best Practices Badge, and having completed an independent and third party security audit with results published.
+Finally, we would need to meet
+the [graduation criteria](https://github.com/cncf/toc/blob/main/process/graduation-proposal-template.md#graduation-state-criteria),
+which includes having committers from at least two organizations, achieving and maintaining a Core Infrastructure
+Initiative Best Practices Badge, and having completed an independent and third party security audit with results
+published.
 
 **Pros & Cons**
 
-- Pro: The CNCF is a well-established, well-respected, and well-funded organization with a proven track record of successfully incubating and managing open source projects.
-- Pro: The CNCF governance process is more modern and less bureaucratic than the ASF's, which could make it a better fit for our project's culture and values.
-- Pro: We can continue to use GitLab and our existing CI/CD infrastructure, which could minimize disruption and maintain continuity.
-- Pro: The CNCF model could make Exosphere more appealing to corporations, potentially expanding our project's reach and impact.
-- Con: It's unclear whether Exosphere fits within the Cloud Native landscape, which could complicate our application process and limit the benefits we receive from joining the CNCF.
+- Pro: The CNCF is a well-established, well-respected, and well-funded organization with a proven track record of
+  successfully incubating and managing open source projects.
+- Pro: The CNCF governance process is more modern and less bureaucratic than the ASF's, which could make it a better fit
+  for our project's culture and values.
+- Pro: We can continue to use GitLab and our existing CI/CD infrastructure, which could minimize disruption and maintain
+  continuity.
+- Pro: The CNCF model could make Exosphere more appealing to corporations, potentially expanding our project's reach and
+  impact.
+- Con: It's unclear whether Exosphere fits within the Cloud Native landscape, which could complicate our application
+  process and limit the benefits we receive from joining the CNCF.
 
 ### 4. Open Infrastructure Foundation model
 
 #### Determining Project Fit
 
-For Exosphere, we would first need to determine if we fit best as a project under the wider Open Infrastructure umbrella, and not OpenStack specifically.
+For Exosphere, we would first need to determine if we fit best as a project under the wider Open Infrastructure
+umbrella, and not OpenStack specifically.
 
 #### Working on a Governance Process
 
-We would need to work with the OpenInfra Foundation on a governance process, as each Open Infrastructure Project is governed separately by procedures approved by the Board of Directors according to the [bylaws](https://openinfra.dev/legal/bylaws).
+We would need to work with the OpenInfra Foundation on a governance process, as each Open Infrastructure Project is
+governed separately by procedures approved by the Board of Directors according to
+the [bylaws](https://openinfra.dev/legal/bylaws).
 
 #### Adopting the OpenInfra Contributor License Agreement (CLA) and Apache 2.0 License
 
-This would involve adopting the [OpenInfra Contributor License Agreement (CLA)](https://openinfra.dev/cla/) and Apache 2.0 License. However, we _might_ be able to avoid relicensing to Apache 2.0 based on [Bylaws Article VII. Intellectual Property Policy, 7.1 (c)](https://openinfra.dev/legal/bylaws).
+This would involve adopting the [OpenInfra Contributor License Agreement (CLA)](https://openinfra.dev/cla/) and Apache
+2.0 License. However, we _might_ be able to avoid relicensing to Apache 2.0 based
+on [Bylaws Article VII. Intellectual Property Policy, 7.1 (c)](https://openinfra.dev/legal/bylaws).
 
 #### Migrating to OpenDev
 
-We would likely need to migrate to [OpenDev](https://opendev.org/) for code hosting, code review, and CI/CD (Gitea, Gerrit, and Zuul respectively), even though in theory this is negotiable.
+We would likely need to migrate to [OpenDev](https://opendev.org/) for code hosting, code review, and CI/CD (Gitea,
+Gerrit, and Zuul respectively), even though in theory this is negotiable.
 
 #### Using Mailing Lists and IRC
 
@@ -135,17 +193,24 @@ We would need to use mailing lists and IRC as the main means of communication an
 
 **Pros & Cons**
 
-- Pro: The OpenInfra Foundation is a well-established, well-respected, and well-funded organization with a proven track record of successfully managing open source projects.
-- Pro: Exosphere could be a good fit for the OpenInfra Foundation, as it both builds on and enhances the appeal of OpenStack.
-- Pro: The OpenInfra model could make Exosphere more appealing to corporations (especially those already using OpenStack), potentially expanding our project's reach and impact.
-- Mixed: There are not many examples of the OpenInfra Foundation successfully incubating non-OpenStack projects, which could make it harder for us to predict and navigate the incubation process.
-- Con: We would likely have to move to a new code platform and CI/CD infrastructure, which could disrupt our current workflows and require additional resources to implement.
+- Pro: The OpenInfra Foundation is a well-established, well-respected, and well-funded organization with a proven track
+  record of successfully managing open source projects.
+- Pro: Exosphere could be a good fit for the OpenInfra Foundation, as it both builds on and enhances the appeal of
+  OpenStack.
+- Pro: The OpenInfra model could make Exosphere more appealing to corporations (especially those already using
+  OpenStack), potentially expanding our project's reach and impact.
+- Mixed: There are not many examples of the OpenInfra Foundation successfully incubating non-OpenStack projects, which
+  could make it harder for us to predict and navigate the incubation process.
+- Con: We would likely have to move to a new code platform and CI/CD infrastructure, which could disrupt our current
+  workflows and require additional resources to implement.
 
 ### 5. C4 (Collective Code Construction Contract) model
 
 #### Adopting a Share-alike License
 
-For Exosphere, this would mean using a share-alike license such as the MPLv2, or a GPLv3 variant thereof (GPL, LGPL, AGPL), unless we can modify C4 to be compatible with the BSD 3-Clause license. There is no copyright assignment or CLA, and all patches are owned by their authors, and shall use the same license as the project.
+For Exosphere, this would mean using a share-alike license such as the MPLv2, or a GPLv3 variant thereof (GPL, LGPL,
+AGPL), unless we can modify C4 to be compatible with the BSD 3-Clause license. There is no copyright assignment or CLA,
+and all patches are owned by their authors, and shall use the same license as the project.
 
 #### Ensuring Minimal and Accurate Patches
 
@@ -161,7 +226,8 @@ We would need to standardize the formatting of commit messages.
 
 #### Avoiding Value Judgments on Patches
 
-Maintainers SHALL NOT make value judgments on correct patches. Any Contributor who has value judgments on a patch SHOULD express these via their own patches.
+Maintainers SHALL NOT make value judgments on correct patches. Any Contributor who has value judgments on a patch SHOULD
+express these via their own patches.
 
 #### Merging Correct Patches Rapidly
 
@@ -173,14 +239,24 @@ Maintainers SHOULD close user issues that are left open without action for an un
 
 **Pros & Cons**
 
-- Pro: The C4 model offers a simple and lightweight governance process ([one short page](https://rfc.zeromq.org/spec/42/)), which can be beneficial for a project that values agility and minimal bureaucracy.
-- Pro: The goals of the C4 model align closely with our requirements, suggesting that it could be a good fit for our project's needs and values.
-- Pro: The workflow prescribed by the C4 model is very similar to our current practices, which could make the transition smoother and less disruptive for our team.
-- Mixed: The C4 model is self-governing, which means there's no need to join an organization. This could be seen as a pro because it allows for greater autonomy and flexibility, but it could also be a con because it means we won't have the support or resources of a larger organization.
-- Unknown: It's unclear whether the C4 model is compatible with the BSD 3-Clause license. We would need to investigate this further to ensure we're not violating any licensing terms.
-- Unknown: The C4 model's policy of not making value judgments and rapidly merging correct patches could require some adjustment from our team, as we're used to having tighter control over the codebase. While this could potentially lead to conflicts in the short term, it could also result in more contributions and contributors in the long term, provided we can maintain the high quality of our codebase.
-- Con: The C4 model may be less appealing to corporations looking to adopt, promote, and contribute to Exosphere. This could potentially limit our project's reach and impact in the corporate sector.
-
+- Pro: The C4 model offers a simple and lightweight governance
+  process ([one short page](https://rfc.zeromq.org/spec/42/)), which can be beneficial for a project that values agility
+  and minimal bureaucracy.
+- Pro: The goals of the C4 model align closely with our requirements, suggesting that it could be a good fit for our
+  project's needs and values.
+- Pro: The workflow prescribed by the C4 model is very similar to our current practices, which could make the transition
+  smoother and less disruptive for our team.
+- Mixed: The C4 model is self-governing, which means there's no need to join an organization. This could be seen as a
+  pro because it allows for greater autonomy and flexibility, but it could also be a con because it means we won't have
+  the support or resources of a larger organization.
+- Unknown: It's unclear whether the C4 model is compatible with the BSD 3-Clause license. We would need to investigate
+  this further to ensure we're not violating any licensing terms.
+- Unknown: The C4 model's policy of not making value judgments and rapidly merging correct patches could require some
+  adjustment from our team, as we're used to having tighter control over the codebase. While this could potentially lead
+  to conflicts in the short term, it could also result in more contributions and contributors in the long term, provided
+  we can maintain the high quality of our codebase.
+- Con: The C4 model may be less appealing to corporations looking to adopt, promote, and contribute to Exosphere. This
+  could potentially limit our project's reach and impact in the corporate sector.
 
 ## Decision
 
@@ -189,3 +265,84 @@ TODO
 ## Consequences
 
 TODO
+
+---
+
+## Appendix A: Governance Model Evaluation Rubric
+
+| Criteria                                   | ASF | CNCF | OpenInfra | C4 | Interim |
+|--------------------------------------------|-----|------|-----------|----|---------|
+| 1. Encourages Participation                |     |      |           |    |         |
+| 2. Builds Consensus                        |     |      |           |    |         |
+| 3. Guides Discussions                      |     |      |           |    |         |
+| 4. Resolves Conflicts                      |     |      |           |    |         |
+| 5. Responsiveness to Community Needs       |     |      |           |    |         |
+| 6. Strategic Direction Setting             |     |      |           |    |         |
+| 7. Regular Engagement                      |     |      |           |    |         |
+| 8. Recruitment of New Members              |     |      |           |    |         |
+| 9. Growth of Existing Members              |     |      |           |    |         |
+| 10. Security and Trustworthiness           |     |      |           |    |         |
+| 11. Contributor Recognition                |     |      |           |    |         |
+| 12. Community Building and Engagement      |     |      |           |    |         |
+| 13. Licensing Compatibility                |     |      |           |    |         |
+| 14. Corporate Adoption                     |     |      |           |    |         |
+| 15. Autonomy and Flexibility               |     |      |           |    |         |
+| 16. Overhead and Bureaucracy               |     |      |           |    |         |
+| 17. Relicensing Requirements               |     |      |           |    |         |
+| 18. Code Platform and CI/CD Infrastructure |     |      |           |    |         |
+| 19. Fit with Project                       |     |      |           |    |         |
+| 20. Success with Similar Projects          |     |      |           |    |         |
+
+Each criterion should be scored on a scale of 1 (poor fit) to 5 (excellent fit), based on your research and
+understanding of each model. Remember that this is a subjective process, and it's okay if different people have different opinions. The goal is to facilitate discussion and guide your decision-making process.
+
+### Scoring Scale
+
+- **1 (Poor Fit)**: The governance model does not meet this criterion at all or does so very poorly.
+- **2 (Below Average Fit)**: The governance model somewhat meets this criterion, but there are significant shortcomings.
+- **3 (Average Fit)**: The governance model meets this criterion to an acceptable degree, but there may be some
+  shortcomings.
+- **4 (Above Average Fit)**: The governance model meets this criterion well, with only minor shortcomings.
+- **5 (Excellent Fit)**: The governance model meets this criterion exceptionally well.
+
+### Scoring Guidelines
+
+**1. Encourages Participation:** Evaluate how well the model encourages participation from all stakeholders, including users, developers, and other community members. This could involve looking at the model's policies on inclusivity, transparency, and openness, as well as any mechanisms it has in place to encourage and facilitate participation.
+
+**2. Builds Consensus:** Consider how effectively the model builds consensus among stakeholders. This could involve looking at the model's decision-making processes, conflict resolution mechanisms, and any structures it has in place for facilitating discussion and building agreement.
+
+**3. Guides Discussions:** Assess how well the model guides discussions among stakeholders. This could involve looking at the model's communication channels, meeting structures, and any guidelines it has for discussion and debate.
+
+**4. Resolves Conflicts:** Evaluate how effectively the model resolves conflicts among stakeholders. This could involve looking at the model's conflict resolution mechanisms, as well as any policies or guidelines it has for managing disagreements and disputes.
+
+**5. Responsiveness to Community Needs:** Consider how responsive the model is to the needs of the community. This could involve looking at the model's mechanisms for gathering and responding to community feedback, as well as its flexibility and adaptability to changing needs and circumstances.
+
+**6. Strategic Direction Setting:** Evaluate how well the model allows for setting strategic direction to meet community needs and ensure the long-term health of the project. This could involve looking at the model's leadership structures, strategic planning processes, and any mechanisms it has for setting and adjusting the project's strategic direction.
+
+**7. Regular Engagement:** Assess how well the model ensures regular engagement from project members. This could involve looking at the model's expectations for member involvement, as well as any mechanisms it has for encouraging and facilitating regular engagement.
+
+**8. Recruitment of New Members:** Consider how effectively the model recruits new project members. This could involve looking at the model's outreach strategies, onboarding processes, and any incentives it offers for new members.
+
+**9. Growth of Existing Members:** Evaluate how well the model supports the growth of existing project members. This could involve looking at the model's professional development opportunities, mentorship programs, and any other mechanisms it has for supporting member growth and advancement.
+
+**10. Security and Trustworthiness:** Assess how well the model ensures the security and trustworthiness of the open source product. This could involve looking at the model's security policies and procedures, as well as any mechanisms it has for ensuring the quality and reliability of the product.
+
+**11. Contributor Recognition:** Consider how well the model recognizes and rewards contributors. This could involve looking at the model's mechanisms for acknowledging contributions, as well as any incentives or rewards it offers for contributors.
+
+**12. Community Building and Engagement:** Evaluate how effectively the model builds and engages the community. This could involve looking at the model's community-building strategies, engagement activities, and any other mechanisms it has for fostering a strong and active community.
+
+**13. Licensing Compatibility:** Assess how compatible the model's licensing requirements are with the project's current license and the licenses of potential dependencies. This could involve looking at the model's licensing policies, as well as any guidelines or support it offers for managing licensing issues.
+
+**14. Corporate Adoption:** Consider how well the model supports adoption by corporations. This could include looking at whether the model provides mechanisms for corporate involvement (like sponsorship or partnership opportunities), how it handles intellectual property and commercial use of the project, and whether it has a track record of successful corporate adoption.
+
+**15. Autonomy and Flexibility:** Evaluate how much autonomy and flexibility the model allows the project. This could involve looking at the model's governance structures, decision-making processes, and any restrictions or requirements it imposes on the project.
+
+**16. Overhead and Bureaucracy:** Assess how much overhead and bureaucracy the model involves. This could involve looking at the model's administrative requirements, reporting processes, and any other bureaucratic elements that could add complexity or slow down the project.
+
+**17. Relicensing Requirements:** Consider how onerous the model's relicensing requirements are. This could involve looking at the model's policies on relicensing, as well as any support or guidance it offers for managing the relicensing process.
+
+**18. Code Platform and CI/CD Infrastructure:** Evaluate how compatible the model's preferred code platform and CI/CD infrastructure are with the project's current tools and processes. This could involve looking at the model's policies on code hosting and CI/CD, as well as any support or guidance it offers for managing these aspects of the project.
+
+**19. Fit with Project:** Assess how well the model fits with the project's needs, values, and culture. This could involve looking at the model's principles and practices, as well as any feedback from the project team and community about the model's fit.
+
+**20. Success with Similar Projects:** Consider how successful the model has been with similar projects. This could involve looking at the model's track record, as well as any case studies or testimonials from similar projects that have used the model.
