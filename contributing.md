@@ -162,7 +162,6 @@ In addition to [Running Exosphere For Development Work](docs/run-exosphere.md#fo
     - `elm-analyse` static analysis tool
     - `elm-format` Elm code formatter
     - `prettier` JavaScript, JSON, and HTML formatter
-    - `ansible-lint` to verify any changes to the [Ansible](/ansible/) playbook
   - This will catch many common issues long before GitLab's CI pipeline does.
   - If you need to bypass this for any reason, `git commit --no-verify` will skip this validation.
 
