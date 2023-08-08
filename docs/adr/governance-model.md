@@ -307,7 +307,7 @@ This structured approach ensures that our decision is based on a comprehensive, 
 | 19. Success with Similar Projects          |     |      |           |    |         |
 
 Each criterion should be scored on a scale of 1 (poor fit) to 5 (excellent fit), based on your research and
-understanding of each model. Remember that this is a subjective process, and it's okay if different people have different opinions. The goal is to facilitate discussion and guide your decision-making process.
+understanding of each model. Use `N/A` if a model does not address a criterion. Remember that this is a subjective process, and it's okay if different people have different opinions. The goal is to facilitate discussion and guide your decision-making process.
 
 ### Scoring Scale
 
