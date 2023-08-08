@@ -199,7 +199,7 @@ We would need to use mailing lists and IRC as the main means of communication an
   OpenStack), potentially expanding our project's reach and impact.
 - Mixed: There are not many examples of the OpenInfra Foundation successfully incubating non-OpenStack projects, which
   could make it harder for us to predict and navigate the incubation process.
-- Con: We would likely have to move to a new code platform and CI/CD infrastructure, which could disrupt our current
+- Con: We might have to move to a new code platform and CI/CD infrastructure, which could disrupt our current
   workflows and require additional resources to implement.
 
 ### 5. C4 (Collective Code Construction Contract) model
