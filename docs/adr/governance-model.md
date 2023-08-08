@@ -304,8 +304,7 @@ This structured approach ensures that our decision is based on a comprehensive, 
 | 16. Overhead and Bureaucracy               |     |      |           |    |         |
 | 17. Relicensing Requirements               |     |      |           |    |         |
 | 18. Code Platform and CI/CD Infrastructure |     |      |           |    |         |
-| 19. Fit with Project                       |     |      |           |    |         |
-| 20. Success with Similar Projects          |     |      |           |    |         |
+| 19. Success with Similar Projects          |     |      |           |    |         |
 
 Each criterion should be scored on a scale of 1 (poor fit) to 5 (excellent fit), based on your research and
 understanding of each model. Remember that this is a subjective process, and it's okay if different people have different opinions. The goal is to facilitate discussion and guide your decision-making process.
@@ -357,6 +356,4 @@ understanding of each model. Remember that this is a subjective process, and it'
 
 **18. Code Platform and CI/CD Infrastructure:** Evaluate how compatible the model's preferred code platform and CI/CD infrastructure are with the project's current tools and processes. This could involve looking at the model's policies on code hosting and CI/CD, as well as any support or guidance it offers for managing these aspects of the project.
 
-**19. Fit with Project:** Assess how well the model fits with the project's needs, values, and culture. This could involve looking at the model's principles and practices, as well as any feedback from the project team and community about the model's fit.
-
-**20. Success with Similar Projects:** Consider how successful the model has been with similar projects. This could involve looking at the model's track record, as well as any case studies or testimonials from similar projects that have used the model.
+**19. Success with Similar Projects:** Consider how successful the model has been with similar projects. This could involve looking at the model's track record, as well as any case studies or testimonials from similar projects that have used the model.
