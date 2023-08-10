@@ -150,9 +150,14 @@ In addition to [Running Exosphere For Development Work](docs/run-exosphere.md#fo
   - [configure your editor](https://github.com/avh4/elm-format#editor-integration) to apply code formatting whenever you save a file.
   - If you save files often, you save yourself a lot of typing and indenting work.
   - Similarly, if you find yourself editing `js`, `json`, or `html` files, you can [enable Prettier integration](https://prettier.io/docs/en/editors.html) to automatically format those.
-- **`husky` pre-commit hook**
-  - Run `npm install` and `npm run prepare` to set up `husky` in your development environment.
-  - When you try to `git commit`, husky will run these, and stop the commit if anything fails:
+- **`pre-commit` for verifying your commits**
+  `pre-commit` is a utility for managing git hooks. We use it to run tests, format tools, and code analysis tools.
+  - Install [`pre-commit`](https://pre-commit.com/index.html#install)
+    - If you already have Python, run `pip install --user pre-commit`
+    - Using [Homebrew](https://brew.sh/) on MacOS, run `brew install pre-commit`
+    - If you use [Conda](https://conda.io/), run `conda install -c conda-forge pre-commit`
+  - Run `npm install` and `npm run prepare` to set up `pre-commit` in your development environment.
+  - When you try to `git commit`, pre-commit will run these, and stop the commit if anything fails:
     - unit tests in `tests/`
     - `elm-analyse` static analysis tool
     - `elm-format` Elm code formatter
@@ -184,7 +189,7 @@ Maintainers, please ensure every MR passes this checklist before approving, incl
 
 - MR description is fully populated.
 - MR effectively fixes all issues that it claims to fix.
-  - If not, change the `fixes #123` text in the description (e.g. `fixes part of #123`) 
+  - If not, change the `fixes #123` text in the description (e.g. `fixes part of #123`)
 - Follow-up issues are created for any new issues that the MR causes or uncovers.
   - If the MR introduces any technical debt, these issues are assigned to MR author, unless they are a first- or second-time contributor.
 
@@ -222,12 +227,12 @@ The information below is for reference. You don't need to understand it to contr
 
 Our continuous integration (CI) pipeline runs:
 
-- [elm-format](https://github.com/avh4/elm-format) (to ensure that contributions comply with the   
+- [elm-format](https://github.com/avh4/elm-format) (to ensure that contributions comply with the
   [Elm Style Guide](https://elm-lang.org/docs/style-guide))
 - [prettier](https://prettier.io/) (to ensure consistent javascript & html file formatting)
 - [elm-analyse](https://stil4m.github.io/elm-analyse/)
 - [unit tests](tests/README.md)
-- End-to-end tests which exercise the application in real web browsers 
+- End-to-end tests which exercise the application in real web browsers
 
 You can run all of these but the browser tests locally. The easiest way is to set up `husky` (per the section above) and try to `git commit`. Or, you can test manually with these commands:
 

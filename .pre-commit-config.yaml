@@ -1,0 +1,30 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+repos:
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v2.7.1
+    hooks:
+      - id: prettier
+
+  - repo: local
+    hooks:
+      - id: elm-test
+        name: elm-test
+        language: system
+        files: \.elm$
+        pass_filenames: false
+        entry: npm run test
+
+      - id: elm-analyse
+        name: elm-analyse
+        language: system
+        files: \.elm$
+        pass_filenames: false
+        entry: npm run elm:analyse
+
+      - id: elm-format
+        name: elm-format
+        language: system
+        files: \.elm$
+        pass_filenames: false
+        entry: npm run elm:format

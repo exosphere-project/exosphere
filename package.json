@@ -18,7 +18,7 @@
     "elm:format": "npx elm-format --validate src",
     "elm:analyse": "npx elm-analyse",
     "elm:git": "npx elm-git-install",
-    "prepare": "husky install"
+    "prepare": "command -v pre-commit && pre-commit install || echo 'pre-commit is not installed, see docs/contributing.md'"
   },
   "author": {
     "email": "dont@spam.me"
@@ -35,7 +35,6 @@
     "elm-git-install": "^0.1.4",
     "elm-live": "^4.0.2",
     "elm-tooling": "^1.14.0",
-    "husky": "^8.0.3",
     "prettier": "^2.8.8",
     "uglify-js": "^3.17.4"
   },
