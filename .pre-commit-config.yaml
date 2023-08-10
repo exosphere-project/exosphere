@@ -22,6 +22,13 @@ repos:
         pass_filenames: false
         entry: npm run elm:analyse
 
+      - id: elm-review
+        name: elm-review
+        language: system
+        files: \.elm$
+        pass_filenames: false
+        entry: npm run elm:review
+
       - id: elm-format
         name: elm-format
         language: system

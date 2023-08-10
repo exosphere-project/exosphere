@@ -179,6 +179,7 @@ static_analysis:
   script:
     - npx elm-analyse
     - npx elm-format --validate src
+    - npx elm-review
     - npm run js:format
   after_script:
     - mkdir -p home && rsync -a ~/.elm home

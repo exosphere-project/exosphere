@@ -161,6 +161,7 @@ In addition to [Running Exosphere For Development Work](docs/run-exosphere.md#fo
     - unit tests in `tests/`
     - `elm-analyse` static analysis tool
     - `elm-format` Elm code formatter
+    - `elm-review` code linting tool
     - `prettier` JavaScript, JSON, and HTML formatter
   - This will catch many common issues long before GitLab's CI pipeline does.
   - If you need to bypass this for any reason, `git commit --no-verify` will skip this validation.
@@ -231,6 +232,7 @@ Our continuous integration (CI) pipeline runs:
   [Elm Style Guide](https://elm-lang.org/docs/style-guide))
 - [prettier](https://prettier.io/) (to ensure consistent javascript & html file formatting)
 - [elm-analyse](https://stil4m.github.io/elm-analyse/)
+- [elm-review](https://package.elm-lang.org/packages/jfmengels/elm-review/)
 - [unit tests](tests/README.md)
 - End-to-end tests which exercise the application in real web browsers
 
@@ -241,6 +243,7 @@ You can run all of these but the browser tests locally. The easiest way is to se
  npm run test
  npm run elm:analyse
  npm run elm:format
+ npm run elm:review
  npm run js:format
  ```
 
