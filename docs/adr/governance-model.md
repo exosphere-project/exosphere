@@ -284,27 +284,27 @@ This structured approach ensures that our decision is based on a comprehensive, 
 
 ### Table with Criteria
 
-| Criteria                                   | ASF | CNCF | OpenInfra | C4 | Interim |
-|--------------------------------------------|-----|------|-----------|----|---------|
-| 1. Encourages Participation                |     |      |           |    |         |
-| 2. Builds Consensus                        |     |      |           |    |         |
-| 3. Guides Discussions                      |     |      |           |    |         |
-| 4. Resolves Conflicts                      |     |      |           |    |         |
-| 5. Responsiveness to Community Needs       |     |      |           |    |         |
-| 6. Strategic Direction Setting             |     |      |           |    |         |
-| 7. Regular Engagement                      |     |      |           |    |         |
-| 8. Recruitment of New Members              |     |      |           |    |         |
-| 9. Growth of Existing Members              |     |      |           |    |         |
-| 10. Security and Trustworthiness           |     |      |           |    |         |
-| 11. Contributor Recognition                |     |      |           |    |         |
-| 12. Community Building and Engagement      |     |      |           |    |         |
-| 13. Licensing Compatibility                |     |      |           |    |         |
-| 14. Corporate Adoption                     |     |      |           |    |         |
-| 15. Autonomy and Flexibility               |     |      |           |    |         |
-| 16. Overhead and Bureaucracy               |     |      |           |    |         |
-| 17. Relicensing Requirements               |     |      |           |    |         |
-| 18. Code Platform and CI/CD Infrastructure |     |      |           |    |         |
-| 19. Success with Similar Projects          |     |      |           |    |         |
+| Criteria                                  | ASF | CNCF | OpenInfra | C4 | Interim |
+|-------------------------------------------|-----|------|-----------|----|---------|
+| x. Encourages Participation               |     |      |           |    |         |
+| x. Builds Consensus                       |     |      |           |    |         |
+| x. Guides Discussions                     |     |      |           |    |         |
+| x. Resolves Conflicts                     |     |      |           |    |         |
+| x. Responsiveness to Community Needs      |     |      |           |    |         |
+| x. Strategic Direction Setting            |     |      |           |    |         |
+| x. Regular Engagement                     |     |      |           |    |         |
+| x. Recruitment of New Members             |     |      |           |    |         |
+| x. Growth of Existing Members             |     |      |           |    |         |
+| x. Security and Trustworthiness           |     |      |           |    |         |
+| x. Contributor Recognition                |     |      |           |    |         |
+| x. Community Building and Engagement      |     |      |           |    |         |
+| x. Licensing Compatibility                |     |      |           |    |         |
+| x. Corporate Adoption                     |     |      |           |    |         |
+| x. Autonomy and Flexibility               |     |      |           |    |         |
+| x. Overhead and Bureaucracy               |     |      |           |    |         |
+| x. Relicensing Requirements               |     |      |           |    |         |
+| x. Code Platform and CI/CD Infrastructure |     |      |           |    |         |
+| x. Success with Similar Projects          |     |      |           |    |         |
 
 Each criterion should be scored on a scale of 1 (poor fit) to 5 (excellent fit), based on your research and
 understanding of each model. Use `N/A` if a model does not address a criterion. Remember that this is a subjective process, and it's okay if different people have different opinions. The goal is to facilitate discussion and guide your decision-making process.
@@ -320,40 +320,77 @@ understanding of each model. Use `N/A` if a model does not address a criterion. 
 
 ### Scoring Guidelines
 
-**1. Encourages Participation:** Evaluate how well the model encourages participation from all stakeholders, including users, developers, and other community members. This could involve looking at the model's policies on inclusivity, transparency, and openness, as well as any mechanisms it has in place to encourage and facilitate participation.
+**x. Encourages Participation:** Evaluate how well the model encourages participation from all stakeholders, including
+users, developers, and other community members. This could involve looking at the model's policies on inclusivity,
+transparency, and openness, as well as any mechanisms it has in place to encourage and facilitate participation.
 
-**2. Builds Consensus:** Consider how effectively the model builds consensus among stakeholders. This could involve looking at the model's decision-making processes, conflict resolution mechanisms, and any structures it has in place for facilitating discussion and building agreement.
+**x. Builds Consensus:** Consider how effectively the model builds consensus among stakeholders. This could involve
+looking at the model's decision-making processes, conflict resolution mechanisms, and any structures it has in place for
+facilitating discussion and building agreement.
 
-**3. Guides Discussions:** Assess how well the model guides discussions among stakeholders. This could involve looking at the model's communication channels, meeting structures, and any guidelines it has for discussion and debate.
+**x. Guides Discussions:** Assess how well the model guides discussions among stakeholders. This could involve looking
+at the model's communication channels, meeting structures, and any guidelines it has for discussion and debate.
 
-**4. Resolves Conflicts:** Evaluate how effectively the model resolves conflicts among stakeholders. This could involve looking at the model's conflict resolution mechanisms, as well as any policies or guidelines it has for managing disagreements and disputes.
+**x. Resolves Conflicts:** Evaluate how effectively the model resolves conflicts among stakeholders. This could involve
+looking at the model's conflict resolution mechanisms, as well as any policies or guidelines it has for managing
+disagreements and disputes.
 
-**5. Responsiveness to Community Needs:** Consider how responsive the model is to the needs of the community. This could involve looking at the model's mechanisms for gathering and responding to community feedback, as well as its flexibility and adaptability to changing needs and circumstances.
+**x. Responsiveness to Community Needs:** Consider how responsive the model is to the needs of the community. This could
+involve looking at the model's mechanisms for gathering and responding to community feedback, as well as its flexibility
+and adaptability to changing needs and circumstances.
 
-**6. Strategic Direction Setting:** Evaluate how well the model allows for setting strategic direction to meet community needs and ensure the long-term health of the project. This could involve looking at the model's leadership structures, strategic planning processes, and any mechanisms it has for setting and adjusting the project's strategic direction.
+**x. Strategic Direction Setting:** Evaluate how well the model allows for setting strategic direction to meet community
+needs and ensure the long-term health of the project. This could involve looking at the model's leadership structures,
+strategic planning processes, and any mechanisms it has for setting and adjusting the project's strategic direction.
 
-**7. Regular Engagement:** Assess how well the model ensures regular engagement from project members. This could involve looking at the model's expectations for member involvement, as well as any mechanisms it has for encouraging and facilitating regular engagement.
+**x. Regular Engagement:** Assess how well the model ensures regular engagement from project members. This could involve
+looking at the model's expectations for member involvement, as well as any mechanisms it has for encouraging and
+facilitating regular engagement.
 
-**8. Recruitment of New Members:** Consider how effectively the model recruits new project members. This could involve looking at the model's outreach strategies, onboarding processes, and any incentives it offers for new members.
+**x. Recruitment of New Members:** Consider how effectively the model recruits new project members. This could involve
+looking at the model's outreach strategies, onboarding processes, and any incentives it offers for new members.
 
-**9. Growth of Existing Members:** Evaluate how well the model supports the growth of existing project members. This could involve looking at the model's professional development opportunities, mentorship programs, and any other mechanisms it has for supporting member growth and advancement.
+**x. Growth of Existing Members:** Evaluate how well the model supports the growth of existing project members. This
+could involve looking at the model's professional development opportunities, mentorship programs, and any other
+mechanisms it has for supporting member growth and advancement.
 
-**10. Security and Trustworthiness:** Assess how well the model ensures the security and trustworthiness of the open source product. This could involve looking at the model's security policies and procedures, as well as any mechanisms it has for ensuring the quality and reliability of the product.
+**x. Security and Trustworthiness:** Assess how well the model ensures the security and trustworthiness of the open
+source product. This could involve looking at the model's security policies and procedures, as well as any mechanisms it
+has for ensuring the quality and reliability of the product.
 
-**11. Contributor Recognition:** Consider how well the model recognizes and rewards contributors. This could involve looking at the model's mechanisms for acknowledging contributions, as well as any incentives or rewards it offers for contributors.
+**x. Contributor Recognition:** Consider how well the model recognizes and rewards contributors. This could involve
+looking at the model's mechanisms for acknowledging contributions, as well as any incentives or rewards it offers for
+contributors.
 
-**12. Community Building and Engagement:** Evaluate how effectively the model builds and engages the community. This could involve looking at the model's community-building strategies, engagement activities, and any other mechanisms it has for fostering a strong and active community.
+**x. Community Building and Engagement:** Evaluate how effectively the model builds and engages the community. This
+could involve looking at the model's community-building strategies, engagement activities, and any other mechanisms it
+has for fostering a strong and active community.
 
-**13. Licensing Compatibility:** Assess how compatible the model's licensing requirements are with the project's current license and the licenses of potential dependencies. This could involve looking at the model's licensing policies, as well as any guidelines or support it offers for managing licensing issues.
+**x. Licensing Compatibility:** Assess how compatible the model's licensing requirements are with the project's current
+license and the licenses of potential dependencies. This could involve looking at the model's licensing policies, as
+well as any guidelines or support it offers for managing licensing issues.
 
-**14. Corporate Adoption:** Consider how well the model supports adoption by corporations. This could include looking at whether the model provides mechanisms for corporate involvement (like sponsorship or partnership opportunities), how it handles intellectual property and commercial use of the project, and whether it has a track record of successful corporate adoption.
+**x. Corporate Adoption:** Consider how well the model supports adoption by corporations. This could include looking at
+whether the model provides mechanisms for corporate involvement (like sponsorship or partnership opportunities), how it
+handles intellectual property and commercial use of the project, and whether it has a track record of successful
+corporate adoption.
 
-**15. Autonomy and Flexibility:** Evaluate how much autonomy and flexibility the model allows the project. This could involve looking at the model's governance structures, decision-making processes, and any restrictions or requirements it imposes on the project.
+**x. Autonomy and Flexibility:** Evaluate how much autonomy and flexibility the model allows the project. This could
+involve looking at the model's governance structures, decision-making processes, and any restrictions or requirements it
+imposes on the project.
 
-**16. Overhead and Bureaucracy:** Assess how much overhead and bureaucracy the model involves. This could involve looking at the model's administrative requirements, reporting processes, and any other bureaucratic elements that could add complexity or slow down the project.
+**x. Overhead and Bureaucracy:** Assess how much overhead and bureaucracy the model involves. This could involve looking
+at the model's administrative requirements, reporting processes, and any other bureaucratic elements that could add
+complexity or slow down the project.
 
-**17. Relicensing Requirements:** Consider how onerous the model's relicensing requirements are. This could involve looking at the model's policies on relicensing, as well as any support or guidance it offers for managing the relicensing process.
+**x. Relicensing Requirements:** Consider how onerous the model's relicensing requirements are. This could involve
+looking at the model's policies on relicensing, as well as any support or guidance it offers for managing the
+relicensing process.
 
-**18. Code Platform and CI/CD Infrastructure:** Evaluate how compatible the model's preferred code platform and CI/CD infrastructure are with the project's current tools and processes. This could involve looking at the model's policies on code hosting and CI/CD, as well as any support or guidance it offers for managing these aspects of the project.
+**x. Code Platform and CI/CD Infrastructure:** Evaluate how compatible the model's preferred code platform and CI/CD
+infrastructure are with the project's current tools and processes. This could involve looking at the model's policies on
+code hosting and CI/CD, as well as any support or guidance it offers for managing these aspects of the project.
 
-**19. Success with Similar Projects:** Consider how successful the model has been with similar projects. This could involve looking at the model's track record, as well as any case studies or testimonials from similar projects that have used the model.
+**x. Success with Similar Projects:** Consider how successful the model has been with similar projects. This could
+involve looking at the model's track record, as well as any case studies or testimonials from similar projects that have
+used the model.
