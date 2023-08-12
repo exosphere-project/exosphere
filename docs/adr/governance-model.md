@@ -63,8 +63,6 @@ to community needs.
 - Pro: No change to the way we currently operate, which could minimize disruption and maintain continuity.
 - Mixed: The current model is flexible and adaptable, but it may not be sustainable in the long term as the project
   grows and evolves.
-- Con: The lack of a formal governance model could deter some corporations from adopting, promoting, and contributing to
-  Exosphere.
 
 ### 2. Apache Software Foundation (ASF) model
 
