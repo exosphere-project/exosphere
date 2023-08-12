@@ -13,25 +13,28 @@ built for system administrators and intuitive-but-proprietary services like Digi
 enables cloud operators to deliver a friendly, powerful interface to their community with customized branding,
 nomenclature, and single sign-on integration.
 
-As a community-driven project, Exosphere is committed to maintaining an open and inclusive governance model that
-encourages participation, guides discussions, builds consensus, and resolves conflicts. We currently operate under
-an [interim governance model](https://exosphere.app/docs/governance/), which has served us well so far. However, as the
-project grows and evolves, we recognize the need for a more formal and sustainable governance model.
+From [What is open source project governance?](https://opensource.com/article/20/5/open-source-governance):
 
-In our pursuit of a new governance model, we have conducted a detailed investigation of several potential models,
-evaluating how each one addresses the governance acceptance criteria required by
+> In short, governance is the rules or customs by which projects decide who gets to do what or is supposed to do what, how they're supposed to do it, and when.
+> ...
+> When you define governance for a project, you need to identify the following five things:
+>
+> 1. What roles can contributors play in the project?
+> 2. What qualifications, duties, privileges, and authority are associated with each role?
+> 3. How do people get assigned to (and removed from) roles?
+> 4. How can role definitions be changed?
+> 5. What are the project's collected policies and procedures?
+
+Before selecting a governance model, we first formalized and documented our existing governance in 
+an [interim governance document](https://exosphere.app/docs/governance/), based on a [CNCF template for maintainer-governed projects](https://github.com/cncf/project-template/blob/main/GOVERNANCE-maintainer.md).
+
+In our pursuit of a suitable governance model, we have conducted a detailed investigation of several potential models. We evaluated how each one addresses the governance acceptance criteria required by
 the [Open Source Security Foundation (OpenSSF) Best Practices](https://bestpractices.coreinfrastructure.org/en/criteria.ce)
 program, as well as the [Open Source Collective](https://docs.oscollective.org/getting-started/acceptance-criteria).
 
-Our goal is to adopt a governance model that provides well-defined mechanisms for stakeholders to act in neutral forums,
-encourage participation, guide discussions, build consensus, and resolve conflicts. Ultimately, we aim to
-achieve [our sustainability goals](https://exosphere.app/docs/sustainability-goals/), ensuring that Exosphere remains
-responsive to the changing needs of its community, recruits and grows new project members, and maintains a secure,
-trustworthy open source product.
-
 ### Success Criteria
 
-From our POSE Phase I proposal, a governance model that provides well-defined mechanisms for stakeholders to:
+From our POSE Phase I proposal, we will adopt a governance model that provides well-defined mechanisms for stakeholders to:
 
 1. Act in neutral forums
 2. Encourage participation
@@ -39,7 +42,7 @@ From our POSE Phase I proposal, a governance model that provides well-defined me
 4. Build consensus
 5. Resolve conflicts
 
-That results in us achieving [our sustainability goals](https://exosphere.app/docs/sustainability-goals/):
+Ultimately we aim to achieve [our sustainability goals](https://exosphere.app/docs/sustainability-goals/):
 
 > - Is responsive to changing needs of its community
 > - Has maintainers who set strategic direction to meet community needs, and ensure the long-term health of the project
@@ -60,9 +63,9 @@ to community needs.
 
 **Pros & Cons**
 
-- Pro: No change to the way we currently operate, which could minimize disruption and maintain continuity.
+- Pro: No change to the way we currently operate, which would minimize disruption and maintain continuity.
 
-### 2. Apache Software Foundation (ASF) model
+### 2. Apache Software Foundation (ASF)
 
 #### Joining the ASF Incubator
 
@@ -104,7 +107,7 @@ We would need to move to an ASF-blessed code platform (GitHub or Apache's GitBox
 
 - Pro: The ASF is a well-established, well-respected, and well-funded organization with a proven track record of
   successfully incubating and managing open source projects.
-- Pro: The ASF model could make Exosphere more appealing to corporations, potentially expanding our project's reach and
+- Pro: Joining the ASF could make Exosphere more appealing to corporations, potentially expanding our project's reach and
   impact.
 - Mixed: The ASF is a large organization with a lot of overhead, which could provide valuable resources and support but
   also introduce bureaucracy and slow down decision-making.
@@ -113,7 +116,7 @@ We would need to move to an ASF-blessed code platform (GitHub or Apache's GitBox
 - Con: We would have to move to a new code platform and CI/CD infrastructure, which could disrupt our current workflows
   and require additional resources to implement.
 
-### 3. Cloud Native Computing Foundation (CNCF) model
+### 3. Cloud Native Computing Foundation (CNCF)
 
 #### Following the Project Proposal Process
 
@@ -152,12 +155,12 @@ published.
   for our project's culture and values.
 - Pro: We can continue to use GitLab and our existing CI/CD infrastructure, which could minimize disruption and maintain
   continuity.
-- Pro: The CNCF model could make Exosphere more appealing to corporations, potentially expanding our project's reach and
+- Pro: Joining the CNCF could make Exosphere more appealing to corporations, potentially expanding our project's reach and
   impact.
 - Con: It's unclear whether Exosphere fits within the Cloud Native landscape, which could complicate our application
   process and limit the benefits we receive from joining the CNCF.
 
-### 4. Open Infrastructure Foundation model
+### 4. Open Infrastructure Foundation
 
 #### Determining Project Fit
 
@@ -191,7 +194,7 @@ We would need to use mailing lists and IRC as the main means of communication an
   record of successfully managing open source projects.
 - Pro: Exosphere could be a good fit for the OpenInfra Foundation, as it both builds on and enhances the appeal of
   OpenStack.
-- Pro: The OpenInfra model could make Exosphere more appealing to corporations (especially those already using
+- Pro: Joining the OpenInfra Foundation could make Exosphere more appealing to corporations (especially those already using
   OpenStack), potentially expanding our project's reach and impact.
 - Mixed: There are not many examples of the OpenInfra Foundation successfully incubating non-OpenStack projects, which
   could make it harder for us to predict and navigate the incubation process.
@@ -263,9 +266,9 @@ TODO
 
 The process of selecting a governance model can be complex and subjective. To ensure a comprehensive and unbiased evaluation, we will use a structured decision-making approach inspired by the Mediating Assessments Protocol (MAP) from Kahneman et al.'s paper "A Structured Approach to Strategic Decisions". The steps are as follows:
 
-1. **Identify Key Factors**: We have identified key factors that will influence our decision. These factors serve as our scoring rubric and include aspects like 'Community Engagement', 'Ease of Adoption', 'Incentives for Contributors', and 'Corporate Adoption'.
+1. **Identify Key Factors**: We have identified key factors that will influence our decision. These factors serve as our scoring rubric and include aspects like 'Builds Consensus', 'Responsiveness to Community Needs', and 'Corporate Adoption'.
 
-2. **Score Each Option**: For each governance model, we will score it independently on each factor. We will use as much factual information as possible to avoid bias. For example, we might score the Apache Software Foundation model and the C4 model on each of the factors identified.
+2. **Score Each Option**: For each governance model, we will score it independently on each factor. We will use as much factual information as possible to avoid bias.
 
 3. **Delay the Final Decision**: We will wait until all key factors have been scored for all governance models before making our final decision. This approach helps to prevent early impressions or biases from unduly influencing our decision.
 
@@ -283,20 +286,19 @@ This structured approach ensures that our decision is based on a comprehensive, 
 | 4. Contributor Recruitment and Retention  |     |      |           |    |         |
 | 5. Licensing                              |     |      |           |    |         |
 | 6. Corporate Adoption                     |     |      |           |    |         |
-| 7. Autonomy and Flexibility               |     |      |           |    |         |
-| 8. Overhead and Bureaucracy               |     |      |           |    |         |
+| 7. Overhead and Bureaucracy               |     |      |           |    |         |
 
-Each criterion should be scored on a scale of 1 (poor fit) to 5 (excellent fit), based on your research and
-understanding of each model. Use `N/A` if a model does not address a criterion. Remember that this is a subjective process, and it's okay if different people have different opinions. The goal is to facilitate discussion and guide your decision-making process.
+Score each model for all criteria on a scale of 1 (poor fit) to 5 (excellent fit), based on your research and
+understanding of its rules, processes, customs, track record, and examplar projects. Remember that this is a subjective process, and it's okay if different people have different opinions. The goal is to facilitate discussion and guide your decision-making process.
 
 ### Scoring Scale
 
-- **1 (Poor Fit)**: The governance model does not meet this criterion at all or does so very poorly.
-- **2 (Below Average Fit)**: The governance model somewhat meets this criterion, but there are significant shortcomings.
-- **3 (Average Fit)**: The governance model meets this criterion to an acceptable degree, but there may be some
-  shortcomings.
-- **4 (Above Average Fit)**: The governance model meets this criterion well, with only minor shortcomings.
-- **5 (Excellent Fit)**: The governance model meets this criterion exceptionally well.
+- **1 (Poor Fit)**: Does not meet this criterion at all or does so very poorly
+- **2 (Below Average Fit)**: Somewhat meets this criterion, but there are significant shortcomings
+- **3 (Average Fit)**: Meets this criterion to an acceptable degree, but there may be some
+  shortcomings
+- **4 (Above Average Fit)**: Meets this criterion well, with only minor shortcomings
+- **5 (Excellent Fit)**: Meets this criterion exceptionally well.
 
 ### Scoring Guidelines
 
@@ -312,12 +314,10 @@ and adaptability to changing needs and circumstances
 mechanisms for supporting member growth and advancement
 
 **5. Licensing:** Compatibility with the project's current
-license (BSD-3 Clause), relicensing requirements
+license (BSD-3 Clause), any onerous relicensing requirements
 
 **6. Corporate Adoption:** Permissive license (with possible patent grant), mechanisms for corporate involvement (like sponsorship or partnership opportunities), track record of successful
 corporate adoption.
 
-**7. Autonomy and Flexibility:** Governance structures, decision-making processes, code hosting & CI/CD requirements, other restrictions on the project
-
-**8. Overhead and Bureaucracy:** Administrative requirements, reporting processes, and any other bureaucratic elements that could add
+**7. Overhead and Bureaucracy:** Administrative requirements, reporting processes, code hosting & CI/CD requirements, and any other bureaucratic elements that could add
 complexity or slow down the project
