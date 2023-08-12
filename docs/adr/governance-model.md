@@ -61,8 +61,6 @@ to community needs.
 **Pros & Cons**
 
 - Pro: No change to the way we currently operate, which could minimize disruption and maintain continuity.
-- Mixed: The current model is flexible and adaptable, but it may not be sustainable in the long term as the project
-  grows and evolves.
 
 ### 2. Apache Software Foundation (ASF) model
 
