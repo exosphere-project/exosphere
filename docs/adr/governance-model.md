@@ -253,8 +253,6 @@ Maintainers SHOULD close user issues that are left open without action for an un
   adjustment from our team, as we're used to having tighter control over the codebase. While this could potentially lead
   to conflicts in the short term, it could also result in more contributions and contributors in the long term, provided
   we can maintain the high quality of our codebase.
-- Con: The C4 model may be less appealing to corporations looking to adopt, promote, and contribute to Exosphere. This
-  could potentially limit our project's reach and impact in the corporate sector.
 
 ## Decision
 
