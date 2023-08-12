@@ -244,9 +244,6 @@ Maintainers SHOULD close user issues that are left open without action for an un
   project's needs and values.
 - Pro: The workflow prescribed by the C4 model is very similar to our current practices, which could make the transition
   smoother and less disruptive for our team.
-- Mixed: The C4 model is self-governing, which means there's no need to join an organization. This could be seen as a
-  pro because it allows for greater autonomy and flexibility, but it could also be a con because it means we won't have
-  the support or resources of a larger organization.
 - Unknown: It's unclear whether the C4 model is compatible with the BSD 3-Clause license. We would need to investigate
   this further to ensure we're not violating any licensing terms.
 - Unknown: The C4 model's policy of not making value judgments and rapidly merging correct patches could require some
