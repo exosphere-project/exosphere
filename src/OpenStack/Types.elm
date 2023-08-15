@@ -45,6 +45,7 @@ module OpenStack.Types exposing
     , ProjectUuid
     , PublicKey
     , QuotaItem
+    , QuotaItemLimit(..)
     , Region
     , RegionDescription
     , RegionId
@@ -132,8 +133,13 @@ type alias MetadataValue =
 type alias QuotaItem =
     -- OpenStack uses -1 for "no limit", but we'll use Nothing for that case
     { inUse : Int
-    , limit : Maybe Int
+    , limit : QuotaItemLimit
     }
+
+
+type QuotaItemLimit
+    = Limit Int
+    | Unlimited
 
 
 type alias SynchronousAPIError =

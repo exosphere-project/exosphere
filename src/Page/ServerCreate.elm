@@ -802,13 +802,24 @@ volBackedPrompt project context model volumeQuota flavor =
         ( volumeCountAvail, volumeSizeGbAvail ) =
             OSQuotas.volumeQuotaAvail volumeQuota
 
-        canLaunchVolBacked =
-            case ( volumeCountAvail, volumeSizeGbAvail ) of
-                ( Just count, Just gb ) ->
-                    count >= 1 && gb >= 2
+        canLaunchVolBackedCount =
+            case volumeCountAvail of
+                OSTypes.Limit l ->
+                    l >= 1
 
-                _ ->
+                OSTypes.Unlimited ->
                     False
+
+        canLaunchVolBackedSizeGb =
+            case volumeSizeGbAvail of
+                OSTypes.Limit l ->
+                    l >= 2
+
+                OSTypes.Unlimited ->
+                    False
+
+        canLaunchVolBacked =
+            canLaunchVolBackedCount && canLaunchVolBackedSizeGb
 
         flavorRootDiskSize =
             flavor.disk_root
@@ -835,7 +846,13 @@ volBackedPrompt project context model volumeQuota flavor =
         defaultVolNumericInputParams =
             { labelText = "Root disk size (GB)"
             , minVal = Just 2
-            , maxVal = volumeSizeGbAvail
+            , maxVal =
+                case volumeSizeGbAvail of
+                    OSTypes.Limit l ->
+                        Just l
+
+                    OSTypes.Unlimited ->
+                        Nothing
             , defaultVal = Just defaultVolSizeGB
             }
 
@@ -902,7 +919,7 @@ volBackedPrompt project context model volumeQuota flavor =
                         defaultVolNumericInputParams
                         (\newInput -> GotVolSizeTextInput <| Just newInput)
                     , case ( volumeSizeGbAvail, volSizeTextInput ) of
-                        ( Just volumeSizeAvail_, ValidNumericTextInput i ) ->
+                        ( OSTypes.Limit volumeSizeAvail_, ValidNumericTextInput i ) ->
                             if i == volumeSizeAvail_ then
                                 Element.text ("(" ++ context.localization.maxResourcesPerProject ++ " max)")
 

@@ -200,38 +200,54 @@ shareQuotaDecoder =
 -- Helpers
 
 
-specialIntToMaybe : Decode.Decoder (Maybe Int)
-specialIntToMaybe =
+quotaItemLimitDecoder : Decode.Decoder OSTypes.QuotaItemLimit
+quotaItemLimitDecoder =
     Decode.int
         |> Decode.map
             (\i ->
                 if i == -1 then
-                    Nothing
+                    OSTypes.Unlimited
 
                 else
-                    Just i
+                    OSTypes.Limit i
             )
+
+
+quotaItemLimitMap : (Int -> Int) -> OSTypes.QuotaItemLimit -> OSTypes.QuotaItemLimit
+quotaItemLimitMap func limit =
+    case limit of
+        OSTypes.Limit l ->
+            OSTypes.Limit <| func l
+
+        OSTypes.Unlimited ->
+            OSTypes.Unlimited
 
 
 {-| Given a compute quota and a flavor, determine how many servers of that flavor can be launched
+
+In the future this could use a refactor to return an OSTypes.QuotaItemLimit
+
 -}
 computeQuotaFlavorAvailServers : OSTypes.ComputeQuota -> OSTypes.Flavor -> Maybe Int
 computeQuotaFlavorAvailServers computeQuota flavor =
-    [ computeQuota.cores.limit
-        |> Maybe.map
-            (\coreLimit ->
-                (coreLimit - computeQuota.cores.inUse) // flavor.vcpu
-            )
-    , computeQuota.ram.limit
-        |> Maybe.map
-            (\ramLimit ->
-                (ramLimit - computeQuota.ram.inUse) // flavor.ram_mb
-            )
-    , computeQuota.instances.limit
-        |> Maybe.map
-            (\countLimit ->
-                countLimit - computeQuota.instances.inUse
-            )
+    [ case computeQuota.cores.limit of
+        OSTypes.Limit l ->
+            Just <| (l - computeQuota.cores.inUse) // flavor.vcpu
+
+        OSTypes.Unlimited ->
+            Nothing
+    , case computeQuota.ram.limit of
+        OSTypes.Limit l ->
+            Just <| (l - computeQuota.ram.inUse) // flavor.ram_mb
+
+        OSTypes.Unlimited ->
+            Nothing
+    , case computeQuota.instances.limit of
+        OSTypes.Limit l ->
+            Just <| l - computeQuota.instances.inUse
+
+        OSTypes.Unlimited ->
+            Nothing
     ]
         |> List.filterMap identity
         |> List.minimum
@@ -245,7 +261,7 @@ quotaItemPairDecoder : String -> String -> Decode.Decoder OSTypes.QuotaItem
 quotaItemPairDecoder usedKey totalKey =
     Decode.map2 OSTypes.QuotaItem
         (Decode.field usedKey Decode.int)
-        (Decode.field totalKey specialIntToMaybe)
+        (Decode.field totalKey quotaItemLimitDecoder)
 
 
 {-| Returns tuple showing # volumes and # total gigabytes that are available given quota and usage.
@@ -253,20 +269,15 @@ quotaItemPairDecoder usedKey totalKey =
 Nothing implies no limit.
 
 -}
-volumeQuotaAvail : OSTypes.VolumeQuota -> ( Maybe Int, Maybe Int )
+volumeQuotaAvail : OSTypes.VolumeQuota -> ( OSTypes.QuotaItemLimit, OSTypes.QuotaItemLimit )
 volumeQuotaAvail volumeQuota =
     -- Returns tuple showing # volumes and # total gigabytes that are available given quota and usage.
-    -- Nothing implies no limit.
     ( volumeQuota.volumes.limit
-        |> Maybe.map
-            (\volLimit ->
-                volLimit - volumeQuota.volumes.inUse
-            )
+        |> quotaItemLimitMap
+            (\l -> l - volumeQuota.volumes.inUse)
     , volumeQuota.gigabytes.limit
-        |> Maybe.map
-            (\gbLimit ->
-                gbLimit - volumeQuota.gigabytes.inUse
-            )
+        |> quotaItemLimitMap
+            (\l -> l - volumeQuota.gigabytes.inUse)
     )
 
 
@@ -285,15 +296,24 @@ overallQuotaAvailServers maybeVolBackedGb flavor computeQuota volumeQuota =
                 ( volumeQuotaAvailVolumes, volumeQuotaAvailGb ) =
                     volumeQuotaAvail volumeQuota
 
+                volumeQuotaAvailVolumesCount =
+                    case volumeQuotaAvailVolumes of
+                        OSTypes.Limit l ->
+                            Just l
+
+                        OSTypes.Unlimited ->
+                            Nothing
+
                 volumeQuotaAvailGbCount =
-                    volumeQuotaAvailGb
-                        |> Maybe.map
-                            (\availGb ->
-                                availGb // volBackedGb
-                            )
+                    case volumeQuotaAvailGb of
+                        OSTypes.Limit l ->
+                            Just <| l // volBackedGb
+
+                        OSTypes.Unlimited ->
+                            Nothing
             in
             [ computeQuotaAvailServers
-            , volumeQuotaAvailVolumes
+            , volumeQuotaAvailVolumesCount
             , volumeQuotaAvailGbCount
             ]
                 |> List.filterMap identity
