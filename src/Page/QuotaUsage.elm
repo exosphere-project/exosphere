@@ -212,7 +212,7 @@ keypairInfoItems context display keypairsUsed quota =
     let
         brief =
             infoItem context
-                (OSTypes.QuotaItemDetail keypairsUsed (Just quota.keypairsLimit))
+                (OSTypes.QuotaItem keypairsUsed (Just quota.keypairsLimit))
                 ( String.join " "
                     [ context.localization.pkiPublicKeyForSsh
                         |> Helpers.String.pluralize
