@@ -808,7 +808,7 @@ volBackedPrompt project context model volumeQuota flavor =
                     l >= 1
 
                 OSTypes.Unlimited ->
-                    False
+                    True
 
         canLaunchVolBackedSizeGb =
             case volumeSizeGbAvail of
@@ -816,7 +816,7 @@ volBackedPrompt project context model volumeQuota flavor =
                     l >= 2
 
                 OSTypes.Unlimited ->
-                    False
+                    True
 
         canLaunchVolBacked =
             canLaunchVolBackedCount && canLaunchVolBackedSizeGb
