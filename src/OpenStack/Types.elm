@@ -131,7 +131,7 @@ type alias MetadataValue =
 
 
 type alias QuotaItem =
-    -- OpenStack uses -1 for "no limit", but we'll use Nothing for that case
+    -- OpenStack uses -1 for "no limit", and we'll use the `Unlimited` variant of the `QuotaItemLimit` type in that case
     { inUse : Int
     , limit : QuotaItemLimit
     }
