@@ -44,7 +44,8 @@ module OpenStack.Types exposing
     , ProjectDescription
     , ProjectUuid
     , PublicKey
-    , QuotaItemDetail
+    , QuotaItem
+    , QuotaItemLimit(..)
     , Region
     , RegionDescription
     , RegionId
@@ -129,11 +130,16 @@ type alias MetadataValue =
     String
 
 
-type alias QuotaItemDetail =
-    -- OpenStack uses -1 for "no limit", but we'll use Nothing for that case
+type alias QuotaItem =
+    -- OpenStack uses -1 for "no limit", and we'll use the `Unlimited` variant of the `QuotaItemLimit` type in that case
     { inUse : Int
-    , limit : Maybe Int
+    , limit : QuotaItemLimit
     }
+
+
+type QuotaItemLimit
+    = Limit Int
+    | Unlimited
 
 
 type alias SynchronousAPIError =
@@ -536,9 +542,9 @@ type alias ServerFault =
 
 
 type alias ComputeQuota =
-    { cores : QuotaItemDetail
-    , instances : QuotaItemDetail
-    , ram : QuotaItemDetail
+    { cores : QuotaItem
+    , instances : QuotaItem
+    , ram : QuotaItem
 
     -- OpenStack doesn't tell us a quantity of keypairs in use, only the limit
     , keypairsLimit : Int
@@ -717,8 +723,8 @@ type alias VolumeAttachmentDevice =
 
 
 type alias VolumeQuota =
-    { volumes : QuotaItemDetail
-    , gigabytes : QuotaItemDetail
+    { volumes : QuotaItem
+    , gigabytes : QuotaItem
     }
 
 
@@ -789,7 +795,7 @@ type alias SecurityGroupUuid =
 
 
 type alias NetworkQuota =
-    { floatingIps : QuotaItemDetail
+    { floatingIps : QuotaItem
     }
 
 
@@ -824,16 +830,16 @@ type alias AccessRule =
 
 
 type alias ShareQuota =
-    { gigabytes : QuotaItemDetail
-    , snapshots : QuotaItemDetail
-    , shares : QuotaItemDetail
-    , snapshotGigabytes : QuotaItemDetail
-    , shareNetworks : Maybe QuotaItemDetail
-    , shareReplicas : Maybe QuotaItemDetail
-    , shareReplicaGigabytes : Maybe QuotaItemDetail
-    , shareGroups : Maybe QuotaItemDetail
-    , shareGroupSnapshots : Maybe QuotaItemDetail
-    , perShareGigabytes : Maybe QuotaItemDetail
+    { gigabytes : QuotaItem
+    , snapshots : QuotaItem
+    , shares : QuotaItem
+    , snapshotGigabytes : QuotaItem
+    , shareNetworks : Maybe QuotaItem
+    , shareReplicas : Maybe QuotaItem
+    , shareReplicaGigabytes : Maybe QuotaItem
+    , shareGroups : Maybe QuotaItem
+    , shareGroupSnapshots : Maybe QuotaItem
+    , perShareGigabytes : Maybe QuotaItem
     }
 
 

@@ -112,15 +112,15 @@ computeQuotasAndLimitsSuite =
                     (Ok
                         { cores =
                             { inUse = 1
-                            , limit = Just 48
+                            , limit = OSTypes.Limit 48
                             }
                         , instances =
                             { inUse = 1
-                            , limit = Just 10
+                            , limit = OSTypes.Limit 10
                             }
                         , ram =
                             { inUse = 1024
-                            , limit = Just 999999
+                            , limit = OSTypes.Limit 999999
                             }
                         , keypairsLimit = 100
                         }
@@ -141,11 +141,11 @@ volumeQuotasAndLimitsSuite =
                     (Ok
                         { volumes =
                             { inUse = 5
-                            , limit = Just 10
+                            , limit = OSTypes.Limit 10
                             }
                         , gigabytes =
                             { inUse = 82
-                            , limit = Just 1000
+                            , limit = OSTypes.Limit 1000
                             }
                         }
                     )
@@ -160,11 +160,11 @@ manilaQuotasAndLimitsSuite =
                 Expect.equal
                     (Decode.decodeString shareQuotaDecoder TestData.manilaLimits)
                     (Ok
-                        { gigabytes = { inUse = 122, limit = Just 1000 }
-                        , snapshots = { inUse = 0, limit = Just 50 }
-                        , shares = { inUse = 5, limit = Just 50 }
-                        , snapshotGigabytes = { inUse = 0, limit = Just 1000 }
-                        , shareNetworks = Just { inUse = 0, limit = Just 10 }
+                        { gigabytes = { inUse = 122, limit = OSTypes.Limit 1000 }
+                        , snapshots = { inUse = 0, limit = OSTypes.Limit 50 }
+                        , shares = { inUse = 5, limit = OSTypes.Limit 50 }
+                        , snapshotGigabytes = { inUse = 0, limit = OSTypes.Limit 1000 }
+                        , shareNetworks = Just { inUse = 0, limit = OSTypes.Limit 10 }
                         , shareReplicas = Nothing
                         , shareReplicaGigabytes = Nothing
                         , shareGroups = Nothing

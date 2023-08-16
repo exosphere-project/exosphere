@@ -7,6 +7,7 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import OpenStack.Quotas as OSQuotas
+import OpenStack.Types as OSTypes
 import String exposing (trim)
 import Style.Helpers as SH
 import Style.Widgets.Button as Button
@@ -82,12 +83,17 @@ view context project currentTime model =
         ( canAttemptCreateVol, volGbAvail ) =
             case maybeVolumeQuotaAvail of
                 Just ( numVolsAvail, volGbAvail_ ) ->
-                    ( numVolsAvail |> Maybe.map (\v -> v >= 1) |> Maybe.withDefault True
+                    ( case numVolsAvail of
+                        OSTypes.Limit l ->
+                            l >= 1
+
+                        OSTypes.Unlimited ->
+                            True
                     , volGbAvail_
                     )
 
                 Nothing ->
-                    ( True, Nothing )
+                    ( True, OSTypes.Unlimited )
     in
     Element.column
         VH.formContainer
@@ -126,7 +132,13 @@ view context project currentTime model =
                 model.sizeInput
                 { labelText = "Size in GB"
                 , minVal = Just 1
-                , maxVal = volGbAvail
+                , maxVal =
+                    case volGbAvail of
+                        OSTypes.Limit l ->
+                            Just l
+
+                        OSTypes.Unlimited ->
+                            Nothing
                 , defaultVal = Just 2
                 }
                 GotSize

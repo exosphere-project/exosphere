@@ -49,16 +49,19 @@ view context display resourceType =
             keypairQuotaDetails context display quota keypairsUsed
 
 
-infoItem : View.Types.Context -> { inUse : Int, limit : Maybe Int } -> ( String, Unit ) -> Element.Element msg
+infoItem : View.Types.Context -> { inUse : Int, limit : OSTypes.QuotaItemLimit } -> ( String, Unit ) -> Element.Element msg
 infoItem { locale, palette } detail ( label, units ) =
     let
         ( usedCount, usedLabel ) =
             humanNumber { locale | decimals = Exact 0 } units detail.inUse
 
         ( limitCount, limitLabel ) =
-            detail.limit
-                |> Maybe.map (humanNumber { locale | decimals = Exact 0 } units)
-                |> Maybe.withDefault ( "", "N/A" )
+            case detail.limit of
+                OSTypes.Limit l ->
+                    humanNumber { locale | decimals = Exact 0 } units l
+
+                OSTypes.Unlimited ->
+                    ( "", "N/A" )
 
         text =
             String.join " " <|
@@ -74,7 +77,17 @@ infoItem { locale, palette } detail ( label, units ) =
                     , [ limitLabel ]
                     ]
     in
-    Style.Widgets.Meter.meter palette label text detail.inUse (Maybe.withDefault -1 detail.limit)
+    Style.Widgets.Meter.meter palette
+        label
+        text
+        detail.inUse
+        (case detail.limit of
+            OSTypes.Limit l ->
+                l
+
+            OSTypes.Unlimited ->
+                -1
+        )
 
 
 computeInfoItems : View.Types.Context -> Display -> OSTypes.ComputeQuota -> Element.Element msg
@@ -212,7 +225,7 @@ keypairInfoItems context display keypairsUsed quota =
     let
         brief =
             infoItem context
-                (OSTypes.QuotaItemDetail keypairsUsed (Just quota.keypairsLimit))
+                (OSTypes.QuotaItem keypairsUsed (OSTypes.Limit quota.keypairsLimit))
                 ( String.join " "
                     [ context.localization.pkiPublicKeyForSsh
                         |> Helpers.String.pluralize
@@ -262,11 +275,11 @@ fullVolumeInfoItems context ( quota, snapshotUsage ) =
     fullQuotaRow
         [ briefVolumeInfoItems context ( quota, snapshotUsage )
         , case quota.gigabytes.limit of
-            Just limit ->
+            OSTypes.Limit l ->
                 multiMeter context.palette
                     "Storage used"
-                    (usageComparison locale GibiBytes quota.gigabytes.inUse limit)
-                    limit
+                    (usageComparison locale GibiBytes quota.gigabytes.inUse l)
+                    l
                     [ ( "Volume Usage: " ++ usageLabel locale GibiBytes volumeUsage
                       , volumeUsage
                       , [ multiMeterPrimaryBackground context ]
@@ -278,7 +291,7 @@ fullVolumeInfoItems context ( quota, snapshotUsage ) =
                       )
                     ]
 
-            Nothing ->
+            OSTypes.Unlimited ->
                 Element.text "No limits"
         ]
 
