@@ -288,36 +288,28 @@ This structured approach ensures that our decision is based on a comprehensive, 
 | 6. Corporate Adoption                     |         |     |      |           |    |
 | 7. Overhead and Bureaucracy               |         |     |      |           |    |
 
-Score each model for all criteria on a scale of 1 (poor fit) to 5 (excellent fit), based on your research and
-understanding of its rules, processes, customs, track record, and examplar projects. Remember that this is a subjective process, and it's okay if different people have different opinions. The goal is to facilitate discussion and guide your decision-making process.
+Score each model for all criteria on a scale of 1 (poor fit) to 5 (excellent fit), based on your research and understanding of its rules, processes, customs, track record, and examplar projects. Remember that this is a subjective process, and it's okay if different people have different opinions. The goal is to facilitate discussion and guide your decision-making process.
 
 ### Scoring Scale
 
 - **1 (Poor Fit)**: Does not meet this criterion at all or does so very poorly
-- **2 (Below Average Fit)**: Somewhat meets this criterion, but there are significant shortcomings
-- **3 (Average Fit)**: Meets this criterion to an acceptable degree, but there may be some
-  shortcomings
+- **2 (Below Average Fit)**: Somewhat meets this criterion, with significant shortcomings
+- **3 (Average Fit)**: Meets this criterion to an acceptable degree, with some shortcomings
 - **4 (Above Average Fit)**: Meets this criterion well, with only minor shortcomings
-- **5 (Excellent Fit)**: Meets this criterion exceptionally well.
+- **5 (Excellent Fit)**: Meets this criterion exceptionally well
 
 ### Scoring Guidelines
 
-**1. Builds Consensus:** Decision-making processes, conflict resolution mechanisms, structures for
-facilitating discussion and building agreement among stakeholders
+**1. Builds Consensus:** Decision-making processes, conflict resolution mechanisms, structures for facilitating discussion and building agreement among stakeholders
 
-**2. Responsiveness to Community Needs:** Mechanisms for gathering and responding to community feedback, flexibility
-and adaptability to changing needs and circumstances
+**2. Responsiveness to Community Needs:** Mechanisms for gathering and responding to community feedback, flexibility and adaptability to changing needs and circumstances
 
-**3. Contributor Recruitment and Retention:** Outreach strategies, onboarding processes, incentives, acknowledgment, rewards, mentorship programs and other
-mechanisms for supporting member growth and advancement
+**3. Contributor Recruitment and Retention:** Outreach strategies, onboarding processes, incentives, acknowledgment, rewards, mentorship programs and other mechanisms for supporting member growth and advancement
 
 **4. Security and Trustworthiness:** Security policies and procedures, mechanisms for ensuring the quality and reliability of the product
 
-**5. Licensing:** Compatibility with the project's current
-license (BSD-3 Clause), any onerous relicensing requirements
+**5. Licensing:** Compatibility with the project's current license (BSD-3 Clause), any onerous relicensing requirements
 
-**6. Corporate Adoption:** Permissive license (with possible patent grant), mechanisms for corporate involvement (like sponsorship or partnership opportunities), track record of successful
-corporate adoption.
+**6. Corporate Adoption:** Permissive license (with possible patent grant), mechanisms for corporate involvement (like sponsorship or partnership opportunities), track record of successful corporate adoption
 
-**7. Overhead and Bureaucracy:** Administrative requirements, reporting processes, code hosting & CI/CD requirements, and any other bureaucratic elements that could add
-complexity or slow down the project
+**7. Overhead and Bureaucracy:** Administrative requirements, reporting processes, code hosting & CI/CD requirements, and any other bureaucratic elements that could add complexity or slow down the project
