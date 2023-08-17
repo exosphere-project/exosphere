@@ -278,15 +278,15 @@ This structured approach ensures that our decision is based on a comprehensive, 
 
 ### Table with Criteria
 
-| Criteria                                  | ASF | CNCF | OpenInfra | C4 | Interim |
-|-------------------------------------------|-----|------|-----------|----|---------|
-| 1. Builds Consensus                       |     |      |           |    |         |
-| 2. Responsiveness to Community Needs      |     |      |           |    |         |
-| 3. Security and Trustworthiness           |     |      |           |    |         |
-| 4. Contributor Recruitment and Retention  |     |      |           |    |         |
-| 5. Licensing                              |     |      |           |    |         |
-| 6. Corporate Adoption                     |     |      |           |    |         |
-| 7. Overhead and Bureaucracy               |     |      |           |    |         |
+| Criteria                                  | Interim | ASF | CNCF | OpenInfra | C4 |
+|-------------------------------------------|---------|-----|------|-----------|----|
+| 1. Builds Consensus                       |         |     |      |           |    |
+| 2. Responsiveness to Community Needs      |         |     |      |           |    |
+| 3. Security and Trustworthiness           |         |     |      |           |    |
+| 4. Contributor Recruitment and Retention  |         |     |      |           |    |
+| 5. Licensing                              |         |     |      |           |    |
+| 6. Corporate Adoption                     |         |     |      |           |    |
+| 7. Overhead and Bureaucracy               |         |     |      |           |    |
 
 Score each model for all criteria on a scale of 1 (poor fit) to 5 (excellent fit), based on your research and
 understanding of its rules, processes, customs, track record, and examplar projects. Remember that this is a subjective process, and it's okay if different people have different opinions. The goal is to facilitate discussion and guide your decision-making process.
