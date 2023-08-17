@@ -282,8 +282,8 @@ This structured approach ensures that our decision is based on a comprehensive, 
 |-------------------------------------------|---------|-----|------|-----------|----|
 | 1. Builds Consensus                       |         |     |      |           |    |
 | 2. Responsiveness to Community Needs      |         |     |      |           |    |
-| 3. Security and Trustworthiness           |         |     |      |           |    |
-| 4. Contributor Recruitment and Retention  |         |     |      |           |    |
+| 3. Contributor Recruitment and Retention  |         |     |      |           |    |
+| 4. Security and Trustworthiness           |         |     |      |           |    |
 | 5. Licensing                              |         |     |      |           |    |
 | 6. Corporate Adoption                     |         |     |      |           |    |
 | 7. Overhead and Bureaucracy               |         |     |      |           |    |
@@ -308,10 +308,10 @@ facilitating discussion and building agreement among stakeholders
 **2. Responsiveness to Community Needs:** Mechanisms for gathering and responding to community feedback, flexibility
 and adaptability to changing needs and circumstances
 
-**3. Security and Trustworthiness:** Security policies and procedures, mechanisms for ensuring the quality and reliability of the product
-
-**4. Contributor Recruitment and Retention:** Outreach strategies, onboarding processes, incentives, acknowledgment, rewards, mentorship programs and other
+**3. Contributor Recruitment and Retention:** Outreach strategies, onboarding processes, incentives, acknowledgment, rewards, mentorship programs and other
 mechanisms for supporting member growth and advancement
+
+**4. Security and Trustworthiness:** Security policies and procedures, mechanisms for ensuring the quality and reliability of the product
 
 **5. Licensing:** Compatibility with the project's current
 license (BSD-3 Clause), any onerous relicensing requirements
