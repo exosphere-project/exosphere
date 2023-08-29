@@ -313,3 +313,13 @@ Score each model for all criteria on a scale of 1 (poor fit) to 5 (excellent fit
 **6. Corporate Adoption:** Permissive license (with possible patent grant), mechanisms for corporate involvement (like sponsorship or partnership opportunities), track record of successful corporate adoption
 
 **7. Overhead and Bureaucracy:** Administrative requirements, reporting processes, code hosting & CI/CD requirements, and any other bureaucratic elements that could add complexity or slow down the project
+
+### Scoring Guidance for Criterion Evaluation
+
+If you're having trouble scoring candidates for a specific criterion, it can be helpful to compare them to each other. This comparative approach can provide a more nuanced understanding of how well each candidate meets the criterion.
+
+1. **Best Candidate**: Consider the best candidate you've seen for this criterion as your benchmark. They don't have to be a perfect 5, just the best you've seen so far.
+2. **Worst Candidate**: Think about the worst candidate you've seen for this criterion. They serve as your low mark. They don't have to be a terrible 1, just the worst you've seen so far.
+3. **Scoring Calibration**: Use these benchmarks to adjust your scores. If your "best" isn't a perfect 5, maybe they're a 4. Adjust other scores based on this.
+
+By relating the candidate's performance to these benchmarks, you can arrive at a more objective and comparative score for each criterion.
