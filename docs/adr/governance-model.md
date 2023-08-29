@@ -286,7 +286,7 @@ This structured approach ensures that our decision is based on a comprehensive, 
 | 4. Security and Trustworthiness           |         |     |      |           |    |
 | 5. Licensing                              |         |     |      |           |    |
 | 6. Corporate Adoption                     |         |     |      |           |    |
-| 7. Overhead and Bureaucracy               |         |     |      |           |    |
+| 7. Simplicity, Autonomy, and Agility      |         |     |      |           |    |
 
 Score each model for all criteria on a scale of 1 (poor fit) to 5 (excellent fit), based on your research and understanding of its rules, processes, customs, track record, and examplar projects. Remember that this is a subjective process, and it's okay if different people have different opinions. The goal is to facilitate discussion and guide your decision-making process.
 
@@ -312,7 +312,7 @@ Score each model for all criteria on a scale of 1 (poor fit) to 5 (excellent fit
 
 **6. Corporate Adoption:** Permissive license (with possible patent grant), mechanisms for corporate involvement (like sponsorship or partnership opportunities), track record of successful corporate adoption
 
-**7. Overhead and Bureaucracy:** Administrative requirements, reporting processes, code hosting & CI/CD requirements, and any other bureaucratic elements that could add complexity or slow down the project
+**7. Simplicity, Autonomy, and Agility:** Low administrative requirements, simple and/or few processes (reporting, etc.), liberal code hosting & CI/CD requirements, and minimal bureaucratic elements that could add complexity or slow down the project
 
 ### Scoring Guidance for Criterion Evaluation
 
