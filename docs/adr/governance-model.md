@@ -268,7 +268,7 @@ The process of selecting a governance model can be complex and subjective. To en
 
 1. **Identify Key Factors**: We have identified key factors that will influence our decision. These factors serve as our scoring rubric and include aspects like 'Builds Consensus', 'Responsiveness to Community Needs', and 'Corporate Adoption'.
 
-2. **Score Each Option**: For each governance model, we will score it independently on each factor. We will use as much factual information as possible to avoid bias.
+2. **Score Each Option**: For each key factor, we will score it independently for each candidate. We will use as much factual information as possible to avoid bias.
 
 3. **Delay the Final Decision**: We will wait until all key factors have been scored for all governance models before making our final decision. This approach helps to prevent early impressions or biases from unduly influencing our decision.
 
@@ -276,9 +276,9 @@ The process of selecting a governance model can be complex and subjective. To en
 
 This structured approach ensures that our decision is based on a comprehensive, unbiased evaluation of all governance models. For more details on this approach, refer to the paper ["A Structured Approach to Strategic Decisions"](https://ses.library.usyd.edu.au/handle/2123/28501).
 
-### Table with Criteria
+### Table with Key Factors
 
-| Criteria                                  | Interim | ASF | CNCF | OpenInfra | C4 |
+| Key Factor                                | Interim | ASF | CNCF | OpenInfra | C4 |
 |-------------------------------------------|---------|-----|------|-----------|----|
 | 1. Builds Consensus                       |         |     |      |           |    |
 | 2. Responsiveness to Community Needs      |         |     |      |           |    |
@@ -288,15 +288,17 @@ This structured approach ensures that our decision is based on a comprehensive, 
 | 6. Corporate Adoption                     |         |     |      |           |    |
 | 7. Simplicity, Autonomy, and Agility      |         |     |      |           |    |
 
-Score each model for all criteria on a scale of 1 (poor fit) to 5 (excellent fit), based on your research and understanding of its rules, processes, customs, track record, and examplar projects. Remember that this is a subjective process, and it's okay if different people have different opinions. The goal is to facilitate discussion and guide your decision-making process.
+For each key factor, score all models on a scale of 1 (poor fit) to 5 (excellent fit), based on your research and understanding of its rules, processes, customs, track record, and examplar projects. Remember that this is a subjective process, and it's okay if different people have different opinions. The goal is to facilitate discussion and guide your decision-making process.
 
 ### Scoring Scale
 
-- **1 (Poor Fit)**: Does not meet this criterion at all or does so very poorly
-- **2 (Below Average Fit)**: Somewhat meets this criterion, with significant shortcomings
-- **3 (Average Fit)**: Meets this criterion to an acceptable degree, with some shortcomings
-- **4 (Above Average Fit)**: Meets this criterion well, with only minor shortcomings
-- **5 (Excellent Fit)**: Meets this criterion exceptionally well
+Leaving aside how important this factor is to the overall decision, how does this model compare to the other models?
+
+- **1 (Poor Fit)**: Does not satisfy this key factor at all or does so very poorly
+- **2 (Below Average Fit)**: Somewhat satisfies this key factor, with significant shortcomings
+- **3 (Average Fit)**: Satisfies this key factor to an acceptable degree, with some shortcomings
+- **4 (Above Average Fit)**: Satisfies this key factor well, with only minor shortcomings
+- **5 (Excellent Fit)**: Satisfies this key factor exceptionally well
 
 ### Scoring Guidelines
 
@@ -314,12 +316,12 @@ Score each model for all criteria on a scale of 1 (poor fit) to 5 (excellent fit
 
 **7. Simplicity, Autonomy, and Agility:** Low administrative requirements, simple and/or few processes (reporting, etc.), liberal code hosting & CI/CD requirements, and minimal bureaucratic elements that could add complexity or slow down the project
 
-### Scoring Guidance for Criterion Evaluation
+### Scoring Guidance for Key Factor Evaluation
 
-If you're having trouble scoring candidates for a specific criterion, it can be helpful to compare them to each other. This comparative approach can provide a more nuanced understanding of how well each candidate meets the criterion.
+If you're having trouble scoring candidates for a specific key factor, it can be helpful to compare candidates to each other. This comparative approach can provide a more nuanced understanding of how well each candidate satisfies the key factor.
 
-1. **Best Candidate**: Consider the best candidate you've seen for this criterion as your benchmark. They don't have to be a perfect 5, just the best you've seen so far.
-2. **Worst Candidate**: Think about the worst candidate you've seen for this criterion. They serve as your low mark. They don't have to be a terrible 1, just the worst you've seen so far.
+1. **Best Candidate**: Consider the best candidate you've seen for this key factor as your benchmark. They don't have to be a perfect 5, just the best you've seen so far.
+2. **Worst Candidate**: Think about the worst candidate you've seen for this key factor. They serve as your low mark. They don't have to be a terrible 1, just the worst you've seen so far.
 3. **Scoring Calibration**: Use these benchmarks to adjust your scores. If your "best" isn't a perfect 5, maybe they're a 4. Adjust other scores based on this.
 
-By relating the candidate's performance to these benchmarks, you can arrive at a more objective and comparative score for each criterion.
+By relating the candidate's performance to these benchmarks, you can arrive at a more objective and comparative score for each key factor.
