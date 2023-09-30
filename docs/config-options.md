@@ -191,3 +191,7 @@ localization: {
   "environmentName":"prod"
 }
 ```
+
+## Other Services
+
+See [Other Services](./other-services.md) for how to integrate services other than Sentry.

@@ -23,6 +23,7 @@ nav:
   - For Cloud Operators:
       - 'docs/prod-deploy-maint.md'
       - 'docs/config-options.md'
+      - 'docs/other-services.md'
       - 'docs/instance-setup.md'
       - 'docs/solving-cors-problem.md'
       - 'docs/user-app-proxy.md'
