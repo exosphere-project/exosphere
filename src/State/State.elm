@@ -17,6 +17,7 @@ import OpenStack.ServerTags as OSServerTags
 import OpenStack.ServerVolumes as OSSvrVols
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes as OSVolumes
+import Orchestration.GoalServer as GoalServer
 import Orchestration.Orchestration as Orchestration
 import Page.FloatingIpAssign
 import Page.FloatingIpList
@@ -2656,7 +2657,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
-        RequestServerAction func targetStatuses ->
+        RequestServerAction func targetStatuses requestFloatingIpIfAppropriate ->
             let
                 oldExoProps =
                     server.exoProps
@@ -2667,10 +2668,17 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                 newProject =
                     GetterSetters.projectUpdateServer project newServer
 
+                ( newNewProject, cmd ) =
+                    if requestFloatingIpIfAppropriate then
+                        GoalServer.requestFloatingIp newProject newServer
+
+                    else
+                        ( newProject, Cmd.none )
+
                 newSharedModel =
-                    GetterSetters.modelUpdateProject sharedModel newProject
+                    GetterSetters.modelUpdateProject sharedModel newNewProject
             in
-            ( newSharedModel, func newProject.endpoints.nova )
+            ( newSharedModel, Cmd.batch [ func newProject.endpoints.nova, cmd ] )
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
