@@ -261,6 +261,7 @@ stepServerRequestFloatingIp time project server =
     if
         not server.exoProps.deletionAttempted
             && serverIsActiveEnough server
+            && serverIsNew server time
     then
         requestFloatingIp project server
 
