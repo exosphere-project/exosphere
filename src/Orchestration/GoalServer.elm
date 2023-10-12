@@ -1,4 +1,4 @@
-module Orchestration.GoalServer exposing (goalNewServer, goalPollServers)
+module Orchestration.GoalServer exposing (goalNewServer, goalPollServers, requestFloatingIp)
 
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
@@ -256,50 +256,55 @@ stepServerRequestHostname time project server =
 
 
 stepServerRequestFloatingIp : Time.Posix -> Project -> Server -> ( Project, Cmd SharedMsg )
-stepServerRequestFloatingIp _ project server =
+stepServerRequestFloatingIp time project server =
     -- Request to create/assign floating IP address to new server
     if
         not server.exoProps.deletionAttempted
             && serverIsActiveEnough server
     then
-        case
-            ( GetterSetters.getServerPorts project server.osProps.uuid
-                |> List.head
-            , GetterSetters.getExternalNetwork project
-            )
-        of
-            ( Just port_, Just network ) ->
-                case Helpers.getNewFloatingIpOption project server.osProps server.exoProps.floatingIpCreationOption of
-                    UseFloatingIp reuseOption Attemptable ->
-                        let
-                            cmd =
-                                case reuseOption of
-                                    CreateNewFloatingIp ->
-                                        Rest.Neutron.requestCreateFloatingIp project network port_ server
-
-                                    UseExistingFloatingIp ipUuid ->
-                                        Rest.Neutron.requestAssignFloatingIp project port_ ipUuid
-
-                            newServer =
-                                let
-                                    oldExoProps =
-                                        server.exoProps
-                                in
-                                { server | exoProps = { oldExoProps | floatingIpCreationOption = UseFloatingIp reuseOption AttemptedWaiting } }
-
-                            newProject =
-                                GetterSetters.projectUpdateServer project newServer
-                        in
-                        ( newProject, cmd )
-
-                    _ ->
-                        ( project, Cmd.none )
-
-            _ ->
-                ( project, Cmd.none )
+        requestFloatingIp project server
 
     else
         ( project, Cmd.none )
+
+
+requestFloatingIp : Project -> Server -> ( Project, Cmd SharedMsg )
+requestFloatingIp project server =
+    case
+        ( GetterSetters.getServerPorts project server.osProps.uuid
+            |> List.head
+        , GetterSetters.getExternalNetwork project
+        )
+    of
+        ( Just port_, Just network ) ->
+            case Helpers.getNewFloatingIpOption project server.osProps server.exoProps.floatingIpCreationOption of
+                UseFloatingIp reuseOption Attemptable ->
+                    let
+                        cmd =
+                            case reuseOption of
+                                CreateNewFloatingIp ->
+                                    Rest.Neutron.requestCreateFloatingIp project network port_ server
+
+                                UseExistingFloatingIp ipUuid ->
+                                    Rest.Neutron.requestAssignFloatingIp project port_ ipUuid
+
+                        newServer =
+                            let
+                                oldExoProps =
+                                    server.exoProps
+                            in
+                            { server | exoProps = { oldExoProps | floatingIpCreationOption = UseFloatingIp reuseOption AttemptedWaiting } }
+
+                        newProject =
+                            GetterSetters.projectUpdateServer project newServer
+                    in
+                    ( newProject, cmd )
+
+                _ ->
+                    ( project, Cmd.none )
+
+        _ ->
+            ( project, Cmd.none )
 
 
 stepServerPollConsoleLog : Time.Posix -> Project -> Server -> ( Project, Cmd SharedMsg )
