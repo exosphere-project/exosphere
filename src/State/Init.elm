@@ -284,6 +284,7 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
                         |> Helpers.pipelineCmd (ApiModelHelpers.requestFloatingIps projectId)
                         |> Helpers.pipelineCmd (ApiModelHelpers.requestRecordSets projectId)
                         |> Helpers.pipelineCmd (ApiModelHelpers.requestPorts projectId)
+                        |> Helpers.pipelineCmd (ApiModelHelpers.requestNetworks projectId)
                         |> Helpers.pipelineCmd (ApiModelHelpers.requestImages projectId)
             in
             hydratedModel.projects

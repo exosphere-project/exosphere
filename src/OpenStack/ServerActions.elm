@@ -87,7 +87,7 @@ actions maybeWordForServer maybeWordForImage maybeWordForFlavor =
       , allowedStatuses = Just [ OSTypes.ServerVerifyResize ]
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
-            doAction (Json.Encode.object [ ( "confirmResize", Json.Encode.null ) ]) (Just [ OSTypes.ServerActive ])
+            doAction (Json.Encode.object [ ( "confirmResize", Json.Encode.null ) ]) (Just [ OSTypes.ServerActive ]) False
       , selectMod = Primary
       , confirmable = False
       }
@@ -101,7 +101,7 @@ actions maybeWordForServer maybeWordForImage maybeWordForFlavor =
       , allowedStatuses = Just [ OSTypes.ServerVerifyResize ]
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
-            doAction (Json.Encode.object [ ( "revertResize", Json.Encode.null ) ]) (Just [ OSTypes.ServerActive ])
+            doAction (Json.Encode.object [ ( "revertResize", Json.Encode.null ) ]) (Just [ OSTypes.ServerActive ]) False
       , selectMod = NoMod
       , confirmable = False
       }
@@ -115,7 +115,7 @@ actions maybeWordForServer maybeWordForImage maybeWordForFlavor =
       , allowedStatuses = Nothing
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
-            doAction (Json.Encode.object [ ( "lock", Json.Encode.null ) ]) Nothing
+            doAction (Json.Encode.object [ ( "lock", Json.Encode.null ) ]) Nothing False
       , selectMod = NoMod
       , confirmable = False
       }
@@ -129,7 +129,7 @@ actions maybeWordForServer maybeWordForImage maybeWordForFlavor =
       , allowedStatuses = Nothing
       , allowedLockStatus = Just OSTypes.ServerLocked
       , action =
-            doAction (Json.Encode.object [ ( "unlock", Json.Encode.null ) ]) Nothing
+            doAction (Json.Encode.object [ ( "unlock", Json.Encode.null ) ]) Nothing False
       , selectMod = Warning
       , confirmable = False
       }
@@ -142,7 +142,7 @@ actions maybeWordForServer maybeWordForImage maybeWordForFlavor =
       , allowedStatuses = Just [ OSTypes.ServerShutoff, OSTypes.ServerStopped ]
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
-            doAction (Json.Encode.object [ ( "os-start", Json.Encode.null ) ]) (Just [ OSTypes.ServerActive ])
+            doAction (Json.Encode.object [ ( "os-start", Json.Encode.null ) ]) (Just [ OSTypes.ServerActive ]) False
       , selectMod = Primary
       , confirmable = False
       }
@@ -155,7 +155,7 @@ actions maybeWordForServer maybeWordForImage maybeWordForFlavor =
       , allowedStatuses = Just [ OSTypes.ServerPaused ]
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
-            doAction (Json.Encode.object [ ( "unpause", Json.Encode.null ) ]) (Just [ OSTypes.ServerActive ])
+            doAction (Json.Encode.object [ ( "unpause", Json.Encode.null ) ]) (Just [ OSTypes.ServerActive ]) False
       , selectMod = Primary
       , confirmable = False
       }
@@ -168,7 +168,7 @@ actions maybeWordForServer maybeWordForImage maybeWordForFlavor =
       , allowedStatuses = Just [ OSTypes.ServerSuspended ]
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
-            doAction (Json.Encode.object [ ( "resume", Json.Encode.null ) ]) (Just [ OSTypes.ServerActive ])
+            doAction (Json.Encode.object [ ( "resume", Json.Encode.null ) ]) (Just [ OSTypes.ServerActive ]) False
       , selectMod = Primary
       , confirmable = False
       }
@@ -181,7 +181,7 @@ actions maybeWordForServer maybeWordForImage maybeWordForFlavor =
       , allowedStatuses = Just [ OSTypes.ServerShelved, OSTypes.ServerShelvedOffloaded ]
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
-            doAction (Json.Encode.object [ ( "unshelve", Json.Encode.null ) ]) (Just [ OSTypes.ServerActive ])
+            doAction (Json.Encode.object [ ( "unshelve", Json.Encode.null ) ]) (Just [ OSTypes.ServerActive ]) True
       , selectMod = Primary
       , confirmable = False
       }
@@ -190,7 +190,7 @@ actions maybeWordForServer maybeWordForImage maybeWordForFlavor =
       , allowedStatuses = Just [ OSTypes.ServerActive ]
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
-            doAction (Json.Encode.object [ ( "suspend", Json.Encode.null ) ]) (Just [ OSTypes.ServerSuspended ])
+            doAction (Json.Encode.object [ ( "suspend", Json.Encode.null ) ]) (Just [ OSTypes.ServerSuspended ]) False
       , selectMod = NoMod
       , confirmable = False
       }
@@ -206,6 +206,7 @@ actions maybeWordForServer maybeWordForImage maybeWordForFlavor =
       , action =
             doAction (Json.Encode.object [ ( "shelve", Json.Encode.null ) ])
                 (Just [ OSTypes.ServerShelved, OSTypes.ServerShelvedOffloaded ])
+                False
       , selectMod = NoMod
       , confirmable = False
       }
@@ -261,6 +262,7 @@ actions maybeWordForServer maybeWordForImage maybeWordForFlavor =
                     ]
                 )
                 (Just [ OSTypes.ServerActive ])
+                False
       , selectMod = Warning
       , confirmable = False
       }
@@ -323,8 +325,8 @@ actions maybeWordForServer maybeWordForImage maybeWordForFlavor =
     ]
 
 
-doAction : Json.Encode.Value -> Maybe (List OSTypes.ServerStatus) -> ProjectIdentifier -> Server -> Bool -> SharedMsg
-doAction jsonBody maybeTargetStatuses projectId server _ =
+doAction : Json.Encode.Value -> Maybe (List OSTypes.ServerStatus) -> Bool -> ProjectIdentifier -> Server -> Bool -> SharedMsg
+doAction jsonBody maybeTargetStatuses requestFloatingIpIfAppropriate projectId server _ =
     let
         credentialedRequest : Url -> Cmd SharedMsg
         credentialedRequest novaUrl =
@@ -358,3 +360,4 @@ doAction jsonBody maybeTargetStatuses projectId server _ =
             SharedMsg.RequestServerAction
                 credentialedRequest
                 maybeTargetStatuses
+                requestFloatingIpIfAppropriate

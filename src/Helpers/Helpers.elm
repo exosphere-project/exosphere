@@ -236,8 +236,8 @@ getNewFloatingIpOption project osServer floatingIpOption =
                 |> List.isEmpty
                 |> not
 
-        isActive =
-            osServer.details.openstackStatus == OSTypes.ServerActive
+        isDoneBuilding =
+            osServer.details.openstackStatus /= OSTypes.ServerBuild
     in
     if hasFloatingIp then
         DoNotUseFloatingIp
@@ -245,7 +245,7 @@ getNewFloatingIpOption project osServer floatingIpOption =
     else
         case floatingIpOption of
             Automatic ->
-                if isActive && hasPort then
+                if isDoneBuilding && hasPort then
                     if
                         GetterSetters.getServerFixedIps project osServer.uuid
                             |> List.map ipv4AddressInRfc1918Space
@@ -261,7 +261,7 @@ getNewFloatingIpOption project osServer floatingIpOption =
 
             UseFloatingIp reuseOption status ->
                 if List.member status [ Unknown, WaitingForResources ] then
-                    if isActive && hasPort then
+                    if isDoneBuilding && hasPort then
                         UseFloatingIp reuseOption Attemptable
 
                     else
