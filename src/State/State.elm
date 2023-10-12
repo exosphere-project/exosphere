@@ -3005,6 +3005,8 @@ createProject_ outerModel description authToken region endpoints =
                 |> Helpers.pipelineCmd
                     (ApiModelHelpers.requestPorts (GetterSetters.projectIdentifier newProject))
                 |> Helpers.pipelineCmd
+                    (ApiModelHelpers.requestNetworks (GetterSetters.projectIdentifier newProject))
+                |> Helpers.pipelineCmd
                     (ApiModelHelpers.requestImages (GetterSetters.projectIdentifier newProject))
                 |> Helpers.pipelineCmd
                     (ApiModelHelpers.requestRecordSets (GetterSetters.projectIdentifier newProject))
