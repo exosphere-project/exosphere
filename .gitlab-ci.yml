@@ -297,7 +297,7 @@ deploy_dev:
 
 .e2e:
   #Hidden job to use as an "extends" template
-  image: python:3
+  image: python:3.11
   allow_failure: true
   retry: 1
   services:
@@ -437,7 +437,7 @@ mkdocs_test:
   stage: mkdocs
   # Run as soon as possible because it doesn't depend on any other jobs
   needs: []
-  image: python:3
+  image: python:3.11
   before_script:
     - cd mkdocs
     - pip install -r requirements.txt
@@ -451,7 +451,7 @@ pages:
   stage: mkdocs
   needs:
     - mkdocs_test
-  image: python:3
+  image: python:3.11
   before_script:
     - cd mkdocs
     - pip install -r requirements.txt
