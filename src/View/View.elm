@@ -503,6 +503,16 @@ createProjectResourcesButton context projectId =
                     )
                     (Route.ProjectRoute projectId <| Route.KeypairCreate)
                     closeDropdown
+                , renderButton
+                    (Style.Widgets.Icon.ipAddress
+                        (SH.toElementColor context.palette.primary)
+                        18
+                    )
+                    (context.localization.floatingIpAddress
+                        |> Helpers.String.toTitleCase
+                    )
+                    (Route.ProjectRoute projectId <| Route.IpCreate)
+                    closeDropdown
                 ]
 
         dropdownTarget toggleDropdownMsg dropdownIsShown =
