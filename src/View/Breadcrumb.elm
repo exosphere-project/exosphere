@@ -147,6 +147,16 @@ breadcrumb_ outerModel context =
                                       }
                                     ]
 
+                                IpCreate _ ->
+                                    [ { route = Nothing
+                                      , label =
+                                            String.join " "
+                                                [ "Create"
+                                                , context.localization.floatingIpAddress
+                                                ]
+                                      }
+                                    ]
+
                                 KeypairCreate _ ->
                                     [ { route = Nothing
                                       , label =

@@ -12,6 +12,7 @@ import Page.GetSupport
 import Page.Home
 import Page.ImageList
 import Page.InstanceSourcePicker
+import Page.IpCreate
 import Page.KeypairCreate
 import Page.KeypairList
 import Page.LoginOpenIdConnect
@@ -68,6 +69,7 @@ type ProjectViewConstructor
     | FloatingIpList Page.FloatingIpList.Model
     | ImageList Page.ImageList.Model
     | InstanceSourcePicker Page.InstanceSourcePicker.Model
+    | IpCreate Page.IpCreate.Model
     | KeypairCreate Page.KeypairCreate.Model
     | KeypairList Page.KeypairList.Model
     | ServerCreate HelperTypes.CreateServerPageModel

@@ -6,6 +6,7 @@ import Page.GetSupport
 import Page.Home
 import Page.ImageList
 import Page.InstanceSourcePicker
+import Page.IpCreate
 import Page.KeypairCreate
 import Page.KeypairList
 import Page.LoginOpenstack
@@ -39,6 +40,7 @@ type OuterMsg
     | HomeMsg Page.Home.Msg
     | ImageListMsg Page.ImageList.Msg
     | InstanceSourcePickerMsg Page.InstanceSourcePicker.Msg
+    | IpCreateMsg Page.IpCreate.Msg
     | KeypairCreateMsg Page.KeypairCreate.Msg
     | KeypairListMsg Page.KeypairList.Msg
     | LoginOpenstackMsg Page.LoginOpenstack.Msg

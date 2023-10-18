@@ -18,6 +18,7 @@ import Page.HelpAbout
 import Page.Home
 import Page.ImageList
 import Page.InstanceSourcePicker
+import Page.IpCreate
 import Page.KeypairCreate
 import Page.KeypairList
 import Page.LoginOpenIdConnect
@@ -321,6 +322,10 @@ projectContentView model context p viewConstructor =
         InstanceSourcePicker pageModel ->
             Page.InstanceSourcePicker.view context p pageModel
                 |> Element.map InstanceSourcePickerMsg
+
+        IpCreate pageModel ->
+            Page.IpCreate.view context p model.clientCurrentTime pageModel
+                |> Element.map IpCreateMsg
 
         KeypairCreate pageModel ->
             Page.KeypairCreate.view context p model.clientCurrentTime pageModel
