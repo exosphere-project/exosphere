@@ -3,8 +3,13 @@ module Page.IpCreate exposing (Model, Msg(..), init, update, view)
 import Element
 import Element.Font as Font
 import Element.Input as Input
+import Helpers.GetterSetters as GetterSetters
+import Helpers.RemoteDataPlusPlus as RDPP
+import Helpers.String
+import OpenStack.Types as OSTypes
 import Style.Helpers as SH
 import Style.Widgets.Button as Button
+import Style.Widgets.Select
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Style.Widgets.Validation as Validation
@@ -16,25 +21,30 @@ import View.Types
 
 
 type alias Model =
-    { name : String
+    { ip : String
+    , serverUuid : Maybe OSTypes.ServerUuid
     }
 
 
 type Msg
-    = GotName String
+    = GotIp String
+    | GotServerUuid (Maybe OSTypes.ServerUuid)
     | GotSubmit
 
 
 init : Model
 init =
-    Model ""
+    Model "" Nothing
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
 update msg _ model =
     case msg of
-        GotName name ->
-            ( { model | name = name }, Cmd.none, SharedMsg.NoOp )
+        GotIp name ->
+            ( { model | ip = name }, Cmd.none, SharedMsg.NoOp )
+
+        GotServerUuid maybeUuid ->
+            ( { model | serverUuid = maybeUuid }, Cmd.none, SharedMsg.NoOp )
 
         GotSubmit ->
             ( model
@@ -44,7 +54,7 @@ update msg _ model =
 
 
 view : View.Types.Context -> Project -> Time.Posix -> Model -> Element.Element Msg
-view context _ _ model =
+view context project _ model =
     let
         renderInvalidReason reason =
             case reason of
@@ -68,31 +78,33 @@ view context _ _ model =
             []
             Element.none
             (String.join " "
-                [ "FIXME"
+                [ "Create"
+                , context.localization.floatingIpAddress |> Helpers.String.toTitleCase
                 ]
             )
         , Element.column [ Element.spacing spacer.px16, Element.width Element.fill ]
             [ Input.text
                 (VH.inputItemAttributes context.palette)
-                { text = model.name
+                { text = model.ip
                 , placeholder =
                     Just
                         (Input.placeholder []
                             (Element.text <|
                                 String.join " "
-                                    [ "FIXME" ]
+                                    [ "1.2.3.4" ]
                             )
                         )
-                , onChange = GotName
+                , onChange = GotIp
                 , label =
                     Input.labelAbove []
                         (Element.text <|
                             String.join " "
-                                [ "FIXME" ]
+                                [ "Specify IP (Optional)" ]
                         )
                 }
             , renderInvalidReason invalidNameReason
             ]
+        , serverPicker context project model
         , renderInvalidReason invalidValueReason
         , let
             ( createIp, ipWarnText ) =
@@ -122,3 +134,63 @@ view context _ _ model =
                     }
             ]
         ]
+
+
+serverPicker : View.Types.Context -> Project -> Model -> Element.Element Msg
+serverPicker context project model =
+    -- TODO deduplicate with FloatingIpAssign page
+    let
+        selectServerText =
+            String.join " "
+                [ "Select"
+                , Helpers.String.indefiniteArticle context.localization.virtualComputer
+                , context.localization.virtualComputer
+                , "(optional)"
+                ]
+
+        serverChoices =
+            project.servers
+                |> RDPP.withDefault []
+                |> List.filter
+                    (\s ->
+                        not <|
+                            List.member s.osProps.details.openstackStatus
+                                [ OSTypes.ServerSoftDeleted
+                                , OSTypes.ServerError
+                                , OSTypes.ServerBuild
+                                , OSTypes.ServerDeleted
+                                ]
+                    )
+                |> List.filter
+                    (\s ->
+                        GetterSetters.getServerFloatingIps project s.osProps.uuid |> List.isEmpty
+                    )
+                |> List.map
+                    (\s ->
+                        ( s.osProps.uuid
+                        , VH.extendedResourceName (Just s.osProps.name) s.osProps.uuid context.localization.virtualComputer
+                        )
+                    )
+    in
+    if List.isEmpty serverChoices then
+        Element.paragraph []
+            [ Element.text <|
+                String.join " "
+                    [ "You don't have any"
+                    , context.localization.virtualComputer
+                        |> Helpers.String.pluralize
+                    , "that don't already have a"
+                    , context.localization.floatingIpAddress
+                    , "assigned."
+                    ]
+            ]
+
+    else
+        Style.Widgets.Select.select
+            []
+            context.palette
+            { label = selectServerText
+            , onChange = GotServerUuid
+            , options = serverChoices
+            , selected = model.serverUuid
+            }

@@ -65,6 +65,7 @@ update msg { viewContext } project model =
 view : View.Types.Context -> Project -> Model -> Element.Element Msg
 view context project model =
     let
+        -- TODO deduplicate with IpCreate page
         serverChoices =
             project.servers
                 |> RDPP.withDefault []
@@ -127,6 +128,8 @@ view context project model =
                     |> Helpers.String.toTitleCase
                 ]
             )
+
+        -- TODO deduplicate with IpCreate page
         , Element.column [ Element.spacing spacer.px16 ]
             [ Text.strong selectServerText
             , if List.isEmpty serverChoices then
