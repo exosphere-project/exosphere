@@ -1377,7 +1377,7 @@ processProjectSpecificMsg outerModel project msg =
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
-        RequestCreateFloatingIp ->
+        RequestCreateFloatingIp_ ->
             case GetterSetters.getExternalNetwork project of
                 Nothing ->
                     State.Error.processStringError
@@ -2368,6 +2368,31 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
             , Rest.Nova.requestServerResize project server.osProps.uuid flavorId
             )
                 |> mapToOuterMsg
+
+        RequestCreateFloatingIp ->
+            let
+                toError errMsg =
+                    State.Error.processStringError
+                        sharedModel
+                        (ErrorContext
+                            "create a floating IP address"
+                            ErrorCrit
+                            Nothing
+                        )
+                        errMsg
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+            in
+            case ( GetterSetters.getExternalNetwork project, GetterSetters.getServerPorts project server.osProps.uuid ) of
+                ( Nothing, _ ) ->
+                    toError "Could not determine external network for floating IP address."
+
+                ( _, [] ) ->
+                    toError "Could not determine network port for server."
+
+                ( Just net, firstPort :: _ ) ->
+                    ( outerModel, Rest.Neutron.requestCreateFloatingIp project net (Just ( firstPort, server )) )
+                        |> mapToOuterMsg
 
         RequestSetServerName newServerName ->
             ( outerModel, Rest.Nova.requestSetServerName project server.osProps.uuid newServerName )

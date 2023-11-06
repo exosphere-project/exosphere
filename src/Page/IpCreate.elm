@@ -38,7 +38,7 @@ init =
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
-update msg _ model =
+update msg project model =
     case msg of
         GotIp name ->
             ( { model | ip = name }, Cmd.none, SharedMsg.NoOp )
@@ -49,7 +49,13 @@ update msg _ model =
         GotSubmit ->
             ( model
             , Cmd.none
-            , SharedMsg.NoOp
+            , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
+                case model.serverUuid of
+                    Just serverUuid ->
+                        SharedMsg.ServerMsg serverUuid SharedMsg.RequestCreateFloatingIp
+
+                    Nothing ->
+                        SharedMsg.RequestCreateFloatingIp_
             )
 
 

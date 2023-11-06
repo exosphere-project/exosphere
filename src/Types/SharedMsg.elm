@@ -66,7 +66,7 @@ type ProjectSpecificMsgConstructor
     | RequestKeypairs
     | RequestCreateKeypair OSTypes.KeypairName OSTypes.PublicKey
     | RequestDeleteKeypair OSTypes.KeypairIdentifier
-    | RequestCreateFloatingIp
+    | RequestCreateFloatingIp_
     | RequestDeleteFloatingIp ErrorContext OSTypes.IpAddressUuid
     | RequestAssignFloatingIp OSTypes.Port OSTypes.IpAddressUuid
     | RequestUnassignFloatingIp OSTypes.IpAddressUuid
@@ -119,6 +119,7 @@ type ServerSpecificMsgConstructor
     | RequestAttachVolume OSTypes.VolumeUuid
     | RequestCreateServerImage String
     | RequestResizeServer OSTypes.FlavorId
+    | RequestCreateFloatingIp
     | ReceiveServerAction
     | ReceiveServerEvents ErrorContext (Result HttpErrorWithBody (List OSTypes.ServerEvent))
     | ReceiveConsoleUrl (Result HttpErrorWithBody OSTypes.ConsoleUrl)
