@@ -1817,6 +1817,18 @@ processProjectSpecificMsg outerModel project msg =
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
+        ReceiveCreateFloatingIp_ errorContext result ->
+            case result of
+                Ok ip ->
+                    Rest.Neutron.receiveCreateFloatingIp sharedModel project Nothing ip
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+                Err httpErrorWithBody ->
+                    State.Error.processSynchronousApiError sharedModel errorContext httpErrorWithBody
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
         ReceiveDeleteFloatingIp uuid ->
             Rest.Neutron.receiveDeleteFloatingIp sharedModel project uuid
                 |> mapToOuterMsg
@@ -2412,7 +2424,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
         ReceiveCreateFloatingIp errorContext result ->
             case result of
                 Ok ip ->
-                    Rest.Neutron.receiveCreateFloatingIp sharedModel project server ip
+                    Rest.Neutron.receiveCreateFloatingIp sharedModel project (Just server) ip
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 

@@ -83,6 +83,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveAutoAllocatedNetwork ErrorContext (Result HttpErrorWithBody OSTypes.NetworkUuid)
     | ReceiveFloatingIps (List OSTypes.FloatingIp)
     | ReceivePorts ErrorContext (Result HttpErrorWithBody (List OSTypes.Port))
+    | ReceiveCreateFloatingIp_ ErrorContext (Result HttpErrorWithBody OSTypes.FloatingIp)
     | ReceiveDeleteFloatingIp OSTypes.IpAddressUuid
     | ReceiveAssignFloatingIp OSTypes.FloatingIp
     | ReceiveUnassignFloatingIp OSTypes.FloatingIp
