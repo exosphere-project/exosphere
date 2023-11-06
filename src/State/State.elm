@@ -1377,6 +1377,24 @@ processProjectSpecificMsg outerModel project msg =
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
+        RequestCreateFloatingIp ->
+            case GetterSetters.getExternalNetwork project of
+                Nothing ->
+                    State.Error.processStringError
+                        sharedModel
+                        (ErrorContext
+                            "create a floating IP address"
+                            ErrorCrit
+                            Nothing
+                        )
+                        "Could not determine external network for floating IP address."
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+                Just net ->
+                    ( outerModel, Rest.Neutron.requestCreateFloatingIp project net Nothing )
+                        |> mapToOuterMsg
+
         RequestDeleteFloatingIp errorContext floatingIpAddress ->
             ( outerModel, Rest.Neutron.requestDeleteFloatingIp project errorContext floatingIpAddress )
                 |> mapToOuterMsg
