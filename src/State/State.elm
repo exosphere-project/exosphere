@@ -25,6 +25,7 @@ import Page.GetSupport
 import Page.Home
 import Page.ImageList
 import Page.InstanceSourcePicker
+import Page.IpCreate
 import Page.KeypairCreate
 import Page.KeypairList
 import Page.LoginOpenstack
@@ -345,6 +346,21 @@ updateUnderlying outerMsg outerModel =
                                         InstanceSourcePicker newSharedModel
                               }
                             , Cmd.map InstanceSourcePickerMsg cmd
+                            )
+                                |> pipelineCmdOuterModelMsg
+                                    (processSharedMsg sharedMsg)
+
+                        ( IpCreateMsg pageMsg, IpCreate pageModel ) ->
+                            let
+                                ( newSharedModel, cmd, sharedMsg ) =
+                                    Page.IpCreate.update pageMsg sharedModel project pageModel
+                            in
+                            ( { outerModel
+                                | viewState =
+                                    ProjectView projectId <|
+                                        IpCreate newSharedModel
+                              }
+                            , Cmd.map IpCreateMsg cmd
                             )
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
