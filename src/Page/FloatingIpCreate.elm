@@ -42,8 +42,8 @@ init =
 update : Msg -> SharedModel -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
 update msg sharedModel project model =
     case msg of
-        GotIp name ->
-            ( { model | ip = name }, Cmd.none, SharedMsg.NoOp )
+        GotIp ip ->
+            ( { model | ip = ip }, Cmd.none, SharedMsg.NoOp )
 
         GotServerUuid maybeUuid ->
             ( { model | serverUuid = maybeUuid }, Cmd.none, SharedMsg.NoOp )
