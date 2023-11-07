@@ -1,14 +1,14 @@
 module Page.FloatingIpCreate exposing (Model, Msg(..), init, update, view)
 
 import Element
-import Element.Font as Font
+import Element.Events as Events
 import Element.Input as Input
 import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
+import IP
 import OpenStack.Types as OSTypes
 import Route
-import Style.Helpers as SH
 import Style.Widgets.Button as Button
 import Style.Widgets.Select
 import Style.Widgets.Spacer exposing (spacer)
@@ -23,27 +23,32 @@ import View.Types
 
 
 type alias Model =
-    { ip : String
+    { ipValue : String
+    , ipLostFocus : Bool
     , serverUuid : Maybe OSTypes.ServerUuid
     }
 
 
 type Msg
-    = GotIp String
+    = GotIpValue String
+    | GotIpLostFocus
     | GotServerUuid (Maybe OSTypes.ServerUuid)
     | GotSubmit
 
 
 init : Model
 init =
-    Model "" Nothing
+    Model "" False Nothing
 
 
 update : Msg -> SharedModel -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
 update msg sharedModel project model =
     case msg of
-        GotIp ip ->
-            ( { model | ip = ip }, Cmd.none, SharedMsg.NoOp )
+        GotIpValue ip ->
+            ( { model | ipValue = ip, ipLostFocus = False }, Cmd.none, SharedMsg.NoOp )
+
+        GotIpLostFocus ->
+            ( { model | ipLostFocus = True }, Cmd.none, SharedMsg.NoOp )
 
         GotServerUuid maybeUuid ->
             ( { model | serverUuid = maybeUuid }, Cmd.none, SharedMsg.NoOp )
@@ -51,11 +56,11 @@ update msg sharedModel project model =
         GotSubmit ->
             let
                 ipValForMsg =
-                    if String.isEmpty model.ip then
+                    if String.isEmpty model.ipValue then
                         Nothing
 
                     else
-                        Just model.ip
+                        Just model.ipValue
             in
             ( model
             , Route.pushUrl sharedModel.viewContext (Route.ProjectRoute (GetterSetters.projectIdentifier project) Route.FloatingIpList)
@@ -80,13 +85,16 @@ view context project _ model =
                 Nothing ->
                     Element.none
 
-        invalidNameReason =
-            -- TODO fixme
-            Nothing
+        invalidIpReason =
+            if model.ipLostFocus && (not <| String.isEmpty model.ipValue) then
+                if IP.validate model.ipValue then
+                    Nothing
 
-        invalidValueReason =
-            -- TODO fixme
-            Nothing
+                else
+                    Just "Invalid IP address"
+
+            else
+                Nothing
     in
     Element.column
         VH.formContainer
@@ -100,8 +108,10 @@ view context project _ model =
             )
         , Element.column [ Element.spacing spacer.px16, Element.width Element.fill ]
             [ Input.text
-                (VH.inputItemAttributes context.palette)
-                { text = model.ip
+                (VH.inputItemAttributes context.palette
+                    ++ [ Events.onLoseFocus GotIpLostFocus ]
+                )
+                { text = model.ipValue
                 , placeholder =
                     Just
                         (Input.placeholder []
@@ -110,7 +120,7 @@ view context project _ model =
                                     [ "1.2.3.4" ]
                             )
                         )
-                , onChange = GotIp
+                , onChange = GotIpValue
                 , label =
                     Input.labelAbove []
                         (Element.text <|
@@ -118,35 +128,21 @@ view context project _ model =
                                 [ "Specify IP (Optional; not all clouds allow you to do this)" ]
                         )
                 }
-            , renderInvalidReason invalidNameReason
+            , renderInvalidReason invalidIpReason
             ]
         , serverPicker context project model
-        , renderInvalidReason invalidValueReason
-        , let
-            ( createIp, ipWarnText ) =
-                case ( invalidNameReason, invalidValueReason ) of
-                    ( Nothing, Nothing ) ->
-                        ( Just GotSubmit
-                        , Nothing
-                        )
-
-                    _ ->
-                        ( Nothing
-                        , Just <| "All fields are required"
-                        )
-          in
-          Element.row [ Element.width Element.fill ]
-            [ case ipWarnText of
-                Just text ->
-                    Element.el [ Font.color <| SH.toElementColor context.palette.danger.textOnNeutralBG ] <| Element.text text
-
-                Nothing ->
-                    Element.none
-            , Element.el [ Element.alignRight ] <|
+        , Element.row [ Element.width Element.fill ]
+            [ Element.el [ Element.alignRight ] <|
                 Button.primary
                     context.palette
                     { text = "Create"
-                    , onPress = createIp
+                    , onPress =
+                        case invalidIpReason of
+                            Nothing ->
+                                Just GotSubmit
+
+                            _ ->
+                                Nothing
                     }
             ]
         ]
