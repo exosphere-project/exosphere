@@ -155,8 +155,8 @@ requestPorts project =
         )
 
 
-requestCreateFloatingIp : Project -> OSTypes.Network -> Maybe ( OSTypes.Port, Server ) -> Maybe OSTypes.IpAddressValue -> Cmd SharedMsg
-requestCreateFloatingIp project network maybePortServer maybeIp =
+requestCreateFloatingIp : Project -> OSTypes.Network -> Maybe ( OSTypes.Port, OSTypes.ServerUuid ) -> Maybe OSTypes.IpAddressValue -> Cmd SharedMsg
+requestCreateFloatingIp project network maybePortServerUuid maybeIp =
     let
         requestBody =
             Encode.object
@@ -164,7 +164,7 @@ requestCreateFloatingIp project network maybePortServer maybeIp =
                   , Encode.object <|
                         List.filterMap identity
                             [ Just ( "floating_network_id", Encode.string network.uuid )
-                            , maybePortServer
+                            , maybePortServerUuid
                                 |> Maybe.map Tuple.first
                                 |> Maybe.map (\port_ -> ( "port_id", Encode.string port_.uuid ))
                             , maybeIp
@@ -176,7 +176,7 @@ requestCreateFloatingIp project network maybePortServer maybeIp =
         errorContext =
             let
                 forPort =
-                    maybePortServer
+                    maybePortServerUuid
                         |> Maybe.map Tuple.first
                         |> Maybe.map (\port_ -> " for port" ++ port_.uuid)
                         |> Maybe.withDefault ""
@@ -189,9 +189,9 @@ requestCreateFloatingIp project network maybePortServer maybeIp =
         resultToMsg_ =
             \result ->
                 ProjectMsg (GetterSetters.projectIdentifier project) <|
-                    case maybePortServer of
-                        Just ( _, server ) ->
-                            ServerMsg server.osProps.uuid <|
+                    case maybePortServerUuid of
+                        Just ( _, serverUuid ) ->
+                            ServerMsg serverUuid <|
                                 ReceiveCreateFloatingIp errorContext result
 
                         Nothing ->

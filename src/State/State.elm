@@ -2407,7 +2407,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                     toError "Could not determine network port for server."
 
                 ( Just net, firstPort :: _ ) ->
-                    ( outerModel, Rest.Neutron.requestCreateFloatingIp project net (Just ( firstPort, server )) maybeIp )
+                    ( outerModel, Rest.Neutron.requestCreateFloatingIp project net (Just ( firstPort, server.osProps.uuid )) maybeIp )
                         |> mapToOuterMsg
 
         RequestSetServerName newServerName ->
