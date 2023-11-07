@@ -1,4 +1,4 @@
-module Page.IpCreate exposing (Model, Msg(..), init, update, view)
+module Page.FloatingIpCreate exposing (Model, Msg(..), init, update, view)
 
 import Element
 import Element.Font as Font

@@ -7,12 +7,12 @@ module Types.View exposing
 
 import OpenStack.Types as OSTypes
 import Page.FloatingIpAssign
+import Page.FloatingIpCreate
 import Page.FloatingIpList
 import Page.GetSupport
 import Page.Home
 import Page.ImageList
 import Page.InstanceSourcePicker
-import Page.IpCreate
 import Page.KeypairCreate
 import Page.KeypairList
 import Page.LoginOpenIdConnect
@@ -69,7 +69,7 @@ type ProjectViewConstructor
     | FloatingIpList Page.FloatingIpList.Model
     | ImageList Page.ImageList.Model
     | InstanceSourcePicker Page.InstanceSourcePicker.Model
-    | IpCreate Page.IpCreate.Model
+    | IpCreate Page.FloatingIpCreate.Model
     | KeypairCreate Page.KeypairCreate.Model
     | KeypairList Page.KeypairList.Model
     | ServerCreate HelperTypes.CreateServerPageModel

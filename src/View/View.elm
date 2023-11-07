@@ -12,13 +12,13 @@ import Helpers.String
 import Html
 import Html.Attributes
 import Page.FloatingIpAssign
+import Page.FloatingIpCreate
 import Page.FloatingIpList
 import Page.GetSupport
 import Page.HelpAbout
 import Page.Home
 import Page.ImageList
 import Page.InstanceSourcePicker
-import Page.IpCreate
 import Page.KeypairCreate
 import Page.KeypairList
 import Page.LoginOpenIdConnect
@@ -324,7 +324,7 @@ projectContentView model context p viewConstructor =
                 |> Element.map InstanceSourcePickerMsg
 
         IpCreate pageModel ->
-            Page.IpCreate.view context p model.clientCurrentTime pageModel
+            Page.FloatingIpCreate.view context p model.clientCurrentTime pageModel
                 |> Element.map IpCreateMsg
 
         KeypairCreate pageModel ->

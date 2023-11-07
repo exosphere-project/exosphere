@@ -10,12 +10,12 @@ import OpenStack.Quotas as OSQuotas
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes as OSVolumes
 import Page.FloatingIpAssign
+import Page.FloatingIpCreate
 import Page.FloatingIpList
 import Page.GetSupport
 import Page.Home
 import Page.ImageList
 import Page.InstanceSourcePicker
-import Page.IpCreate
 import Page.KeypairCreate
 import Page.KeypairList
 import Page.LoginOpenIdConnect
@@ -285,7 +285,7 @@ routeToViewStateModelCmd sharedModel route =
                             )
 
                         Route.IpCreate ->
-                            ( projectViewProto <| IpCreate Page.IpCreate.init, sharedModel, Cmd.none )
+                            ( projectViewProto <| IpCreate Page.FloatingIpCreate.init, sharedModel, Cmd.none )
 
                         Route.KeypairCreate ->
                             ( projectViewProto <| KeypairCreate Page.KeypairCreate.init

@@ -20,12 +20,12 @@ import OpenStack.Volumes as OSVolumes
 import Orchestration.GoalServer as GoalServer
 import Orchestration.Orchestration as Orchestration
 import Page.FloatingIpAssign
+import Page.FloatingIpCreate
 import Page.FloatingIpList
 import Page.GetSupport
 import Page.Home
 import Page.ImageList
 import Page.InstanceSourcePicker
-import Page.IpCreate
 import Page.KeypairCreate
 import Page.KeypairList
 import Page.LoginOpenstack
@@ -353,7 +353,7 @@ updateUnderlying outerMsg outerModel =
                         ( IpCreateMsg pageMsg, IpCreate pageModel ) ->
                             let
                                 ( newSharedModel, cmd, sharedMsg ) =
-                                    Page.IpCreate.update pageMsg sharedModel project pageModel
+                                    Page.FloatingIpCreate.update pageMsg sharedModel project pageModel
                             in
                             ( { outerModel
                                 | viewState =
