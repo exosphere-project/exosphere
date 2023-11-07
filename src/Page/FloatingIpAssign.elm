@@ -6,6 +6,7 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import OpenStack.Types as OSTypes
+import Page.FloatingIpHelpers
 import Route
 import Style.Helpers as SH
 import Style.Widgets.Button as Button
@@ -65,31 +66,6 @@ update msg { viewContext } project model =
 view : View.Types.Context -> Project -> Model -> Element.Element Msg
 view context project model =
     let
-        -- TODO deduplicate with IpCreate page
-        serverChoices =
-            project.servers
-                |> RDPP.withDefault []
-                |> List.filter
-                    (\s ->
-                        not <|
-                            List.member s.osProps.details.openstackStatus
-                                [ OSTypes.ServerSoftDeleted
-                                , OSTypes.ServerError
-                                , OSTypes.ServerBuild
-                                , OSTypes.ServerDeleted
-                                ]
-                    )
-                |> List.filter
-                    (\s ->
-                        GetterSetters.getServerFloatingIps project s.osProps.uuid |> List.isEmpty
-                    )
-                |> List.map
-                    (\s ->
-                        ( s.osProps.uuid
-                        , VH.extendedResourceName (Just s.osProps.name) s.osProps.uuid context.localization.virtualComputer
-                        )
-                    )
-
         ipChoices =
             -- Show only un-assigned IP addresses
             project.floatingIps
@@ -128,33 +104,9 @@ view context project model =
                     |> Helpers.String.toTitleCase
                 ]
             )
-
-        -- TODO deduplicate with IpCreate page
         , Element.column [ Element.spacing spacer.px16 ]
             [ Text.strong selectServerText
-            , if List.isEmpty serverChoices then
-                -- TODO link to create page, init it with correct server UUID
-                Element.paragraph []
-                    [ Element.text <|
-                        String.join " "
-                            [ "You don't have any"
-                            , context.localization.virtualComputer
-                                |> Helpers.String.pluralize
-                            , "that don't already have a"
-                            , context.localization.floatingIpAddress
-                            , "assigned."
-                            ]
-                    ]
-
-              else
-                Style.Widgets.Select.select
-                    []
-                    context.palette
-                    { label = selectServerText
-                    , onChange = GotServerUuid
-                    , options = serverChoices
-                    , selected = model.serverUuid
-                    }
+            , Page.FloatingIpHelpers.serverPicker context project model.serverUuid GotServerUuid
             , Text.strong selectIpText
             , if List.isEmpty ipChoices then
                 -- TODO suggest user create a floating IP and provide link to that view (once we build it)

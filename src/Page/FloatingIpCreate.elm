@@ -4,13 +4,12 @@ import Element
 import Element.Events as Events
 import Element.Input as Input
 import Helpers.GetterSetters as GetterSetters
-import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import IP
 import OpenStack.Types as OSTypes
+import Page.FloatingIpHelpers
 import Route
 import Style.Widgets.Button as Button
-import Style.Widgets.Select
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Style.Widgets.Validation as Validation
@@ -130,7 +129,7 @@ view context project _ model =
                 }
             , renderInvalidReason invalidIpReason
             ]
-        , serverPicker context project model
+        , Page.FloatingIpHelpers.serverPicker context project model.serverUuid GotServerUuid
         , Element.row [ Element.width Element.fill ]
             [ Element.el [ Element.alignRight ] <|
                 Button.primary
@@ -146,63 +145,3 @@ view context project _ model =
                     }
             ]
         ]
-
-
-serverPicker : View.Types.Context -> Project -> Model -> Element.Element Msg
-serverPicker context project model =
-    -- TODO deduplicate with FloatingIpAssign page
-    let
-        selectServerText =
-            String.join " "
-                [ "Select"
-                , Helpers.String.indefiniteArticle context.localization.virtualComputer
-                , context.localization.virtualComputer
-                , "(optional)"
-                ]
-
-        serverChoices =
-            project.servers
-                |> RDPP.withDefault []
-                |> List.filter
-                    (\s ->
-                        not <|
-                            List.member s.osProps.details.openstackStatus
-                                [ OSTypes.ServerSoftDeleted
-                                , OSTypes.ServerError
-                                , OSTypes.ServerBuild
-                                , OSTypes.ServerDeleted
-                                ]
-                    )
-                |> List.filter
-                    (\s ->
-                        GetterSetters.getServerFloatingIps project s.osProps.uuid |> List.isEmpty
-                    )
-                |> List.map
-                    (\s ->
-                        ( s.osProps.uuid
-                        , VH.extendedResourceName (Just s.osProps.name) s.osProps.uuid context.localization.virtualComputer
-                        )
-                    )
-    in
-    if List.isEmpty serverChoices then
-        Element.paragraph []
-            [ Element.text <|
-                String.join " "
-                    [ "You don't have any"
-                    , context.localization.virtualComputer
-                        |> Helpers.String.pluralize
-                    , "that don't already have a"
-                    , context.localization.floatingIpAddress
-                    , "assigned."
-                    ]
-            ]
-
-    else
-        Style.Widgets.Select.select
-            []
-            context.palette
-            { label = selectServerText
-            , onChange = GotServerUuid
-            , options = serverChoices
-            , selected = model.serverUuid
-            }
