@@ -192,10 +192,10 @@ requestCreateFloatingIp project network maybePortServerUuid maybeIp =
                     case maybePortServerUuid of
                         Just ( _, serverUuid ) ->
                             ServerMsg serverUuid <|
-                                ReceiveCreateFloatingIp errorContext result
+                                ReceiveCreateServerFloatingIp errorContext result
 
                         Nothing ->
-                            ReceiveCreateFloatingIp_ errorContext result
+                            ReceiveCreateProjectFloatingIp errorContext result
 
         requestCmd =
             openstackCredentialedRequest

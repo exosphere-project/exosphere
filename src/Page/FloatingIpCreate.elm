@@ -66,10 +66,10 @@ update msg sharedModel project model =
             , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
                 case model.serverUuid of
                     Just serverUuid ->
-                        SharedMsg.ServerMsg serverUuid <| SharedMsg.RequestCreateFloatingIp ipValForMsg
+                        SharedMsg.ServerMsg serverUuid <| SharedMsg.RequestCreateServerFloatingIp ipValForMsg
 
                     Nothing ->
-                        SharedMsg.RequestCreateFloatingIp_ ipValForMsg
+                        SharedMsg.RequestCreateProjectFloatingIp ipValForMsg
             )
 
 

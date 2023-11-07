@@ -1393,7 +1393,7 @@ processProjectSpecificMsg outerModel project msg =
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
-        RequestCreateFloatingIp_ maybeIp ->
+        RequestCreateProjectFloatingIp maybeIp ->
             case GetterSetters.getExternalNetwork project of
                 Nothing ->
                     State.Error.processStringError
@@ -1851,7 +1851,7 @@ processProjectSpecificMsg outerModel project msg =
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
-        ReceiveCreateFloatingIp_ errorContext result ->
+        ReceiveCreateProjectFloatingIp errorContext result ->
             case result of
                 Ok ip ->
                     Rest.Neutron.receiveCreateFloatingIp sharedModel project Nothing ip
@@ -2385,7 +2385,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
             )
                 |> mapToOuterMsg
 
-        RequestCreateFloatingIp maybeIp ->
+        RequestCreateServerFloatingIp maybeIp ->
             let
                 toError errMsg =
                     State.Error.processStringError
@@ -2480,7 +2480,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                     Cmd.none
             )
 
-        ReceiveCreateFloatingIp errorContext result ->
+        ReceiveCreateServerFloatingIp errorContext result ->
             case result of
                 Ok ip ->
                     Rest.Neutron.receiveCreateFloatingIp sharedModel project (Just server) ip
