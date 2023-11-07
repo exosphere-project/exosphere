@@ -7,6 +7,7 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import OpenStack.Types as OSTypes
+import Route
 import Style.Helpers as SH
 import Style.Widgets.Button as Button
 import Style.Widgets.Select
@@ -15,6 +16,7 @@ import Style.Widgets.Text as Text
 import Style.Widgets.Validation as Validation
 import Time
 import Types.Project exposing (Project)
+import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
@@ -37,8 +39,8 @@ init =
     Model "" Nothing
 
 
-update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
-update msg project model =
+update : Msg -> SharedModel -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
+update msg sharedModel project model =
     case msg of
         GotIp name ->
             ( { model | ip = name }, Cmd.none, SharedMsg.NoOp )
@@ -48,7 +50,7 @@ update msg project model =
 
         GotSubmit ->
             ( model
-            , Cmd.none
+            , Route.pushUrl sharedModel.viewContext (Route.ProjectRoute (GetterSetters.projectIdentifier project) Route.FloatingIpList)
             , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
                 case model.serverUuid of
                     Just serverUuid ->
