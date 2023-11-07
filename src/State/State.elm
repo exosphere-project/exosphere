@@ -1393,7 +1393,7 @@ processProjectSpecificMsg outerModel project msg =
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
-        RequestCreateFloatingIp_ ->
+        RequestCreateFloatingIp_ maybeIp ->
             case GetterSetters.getExternalNetwork project of
                 Nothing ->
                     State.Error.processStringError
@@ -1408,7 +1408,7 @@ processProjectSpecificMsg outerModel project msg =
                         |> mapToOuterModel outerModel
 
                 Just net ->
-                    ( outerModel, Rest.Neutron.requestCreateFloatingIp project net Nothing )
+                    ( outerModel, Rest.Neutron.requestCreateFloatingIp project net Nothing maybeIp )
                         |> mapToOuterMsg
 
         RequestDeleteFloatingIp errorContext floatingIpAddress ->
@@ -2385,7 +2385,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
             )
                 |> mapToOuterMsg
 
-        RequestCreateFloatingIp ->
+        RequestCreateFloatingIp maybeIp ->
             let
                 toError errMsg =
                     State.Error.processStringError
@@ -2407,7 +2407,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                     toError "Could not determine network port for server."
 
                 ( Just net, firstPort :: _ ) ->
-                    ( outerModel, Rest.Neutron.requestCreateFloatingIp project net (Just ( firstPort, server )) )
+                    ( outerModel, Rest.Neutron.requestCreateFloatingIp project net (Just ( firstPort, server )) maybeIp )
                         |> mapToOuterMsg
 
         RequestSetServerName newServerName ->

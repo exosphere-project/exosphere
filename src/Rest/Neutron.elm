@@ -155,8 +155,8 @@ requestPorts project =
         )
 
 
-requestCreateFloatingIp : Project -> OSTypes.Network -> Maybe ( OSTypes.Port, Server ) -> Cmd SharedMsg
-requestCreateFloatingIp project network maybePortServer =
+requestCreateFloatingIp : Project -> OSTypes.Network -> Maybe ( OSTypes.Port, Server ) -> Maybe OSTypes.IpAddressValue -> Cmd SharedMsg
+requestCreateFloatingIp project network maybePortServer maybeIp =
     let
         requestBody =
             Encode.object
@@ -167,6 +167,8 @@ requestCreateFloatingIp project network maybePortServer =
                             , maybePortServer
                                 |> Maybe.map Tuple.first
                                 |> Maybe.map (\port_ -> ( "port_id", Encode.string port_.uuid ))
+                            , maybeIp
+                                |> Maybe.map (\ip -> ( "floating_ip_address", Encode.string ip ))
                             ]
                   )
                 ]

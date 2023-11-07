@@ -49,15 +49,23 @@ update msg sharedModel project model =
             ( { model | serverUuid = maybeUuid }, Cmd.none, SharedMsg.NoOp )
 
         GotSubmit ->
+            let
+                ipValForMsg =
+                    if String.isEmpty model.ip then
+                        Nothing
+
+                    else
+                        Just model.ip
+            in
             ( model
             , Route.pushUrl sharedModel.viewContext (Route.ProjectRoute (GetterSetters.projectIdentifier project) Route.FloatingIpList)
             , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
                 case model.serverUuid of
                     Just serverUuid ->
-                        SharedMsg.ServerMsg serverUuid SharedMsg.RequestCreateFloatingIp
+                        SharedMsg.ServerMsg serverUuid <| SharedMsg.RequestCreateFloatingIp ipValForMsg
 
                     Nothing ->
-                        SharedMsg.RequestCreateFloatingIp_
+                        SharedMsg.RequestCreateFloatingIp_ ipValForMsg
             )
 
 

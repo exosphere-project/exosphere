@@ -284,7 +284,7 @@ requestFloatingIp project server =
                         cmd =
                             case reuseOption of
                                 CreateNewFloatingIp ->
-                                    Rest.Neutron.requestCreateFloatingIp project network (Just ( port_, server ))
+                                    Rest.Neutron.requestCreateFloatingIp project network (Just ( port_, server )) Nothing
 
                                 UseExistingFloatingIp ipUuid ->
                                     Rest.Neutron.requestAssignFloatingIp project port_ ipUuid

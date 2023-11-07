@@ -133,6 +133,7 @@ view context project model =
         , Element.column [ Element.spacing spacer.px16 ]
             [ Text.strong selectServerText
             , if List.isEmpty serverChoices then
+                -- TODO link to create page, init it with correct server UUID
                 Element.paragraph []
                     [ Element.text <|
                         String.join " "
