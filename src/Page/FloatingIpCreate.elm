@@ -115,7 +115,7 @@ view context project _ model =
                     Input.labelAbove []
                         (Element.text <|
                             String.join " "
-                                [ "Specify IP (Optional)" ]
+                                [ "Specify IP (Optional; not all clouds allow you to do this)" ]
                         )
                 }
             , renderInvalidReason invalidNameReason
