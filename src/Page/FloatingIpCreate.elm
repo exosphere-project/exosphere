@@ -35,9 +35,9 @@ type Msg
     | GotSubmit
 
 
-init : Model
-init =
-    Model "" False Nothing
+init : Maybe OSTypes.ServerUuid -> Model
+init maybeServerUuid =
+    Model "" False maybeServerUuid
 
 
 update : Msg -> SharedModel -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )

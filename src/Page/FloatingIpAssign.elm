@@ -18,6 +18,7 @@ import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
+import Widget
 
 
 type alias Model =
@@ -31,6 +32,7 @@ type Msg
     | GotServerUuid (Maybe OSTypes.ServerUuid)
       -- Maybe this should be a PortUuid, eh
     | SharedMsg SharedMsg.SharedMsg
+    | NoOp
 
 
 init : Maybe OSTypes.IpAddressUuid -> Maybe OSTypes.ServerUuid -> Model
@@ -61,6 +63,9 @@ update msg { viewContext } project model =
 
         SharedMsg sharedMsg ->
             ( model, Cmd.none, sharedMsg )
+
+        NoOp ->
+            ( model, Cmd.none, SharedMsg.NoOp )
 
 
 view : View.Types.Context -> Project -> Model -> Element.Element Msg
@@ -109,16 +114,31 @@ view context project model =
             , Page.FloatingIpHelpers.serverPicker context project model.serverUuid GotServerUuid
             , Text.strong selectIpText
             , if List.isEmpty ipChoices then
-                -- TODO suggest user create a floating IP and provide link to that view (once we build it)
-                Element.text <|
-                    String.concat
-                        [ "You don't have any "
-                        , context.localization.floatingIpAddress
-                            |> Helpers.String.pluralize
-                        , " that aren't already assigned to a "
-                        , context.localization.virtualComputer
-                        , "."
-                        ]
+                Element.column [ Element.spacing spacer.px12 ]
+                    [ Element.text <|
+                        String.concat
+                            [ "You don't have any "
+                            , context.localization.floatingIpAddress
+                                |> Helpers.String.pluralize
+                            , " that aren't already assigned to a "
+                            , context.localization.virtualComputer
+                            , "."
+                            ]
+                    , Element.link []
+                        { url =
+                            Route.toUrl context.urlPathPrefix <|
+                                Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
+                                    Route.FloatingIpCreate model.serverUuid
+                        , label =
+                            Widget.textButton
+                                (SH.materialStyle context.palette).button
+                                { text =
+                                    String.join " "
+                                        [ "Create a", context.localization.floatingIpAddress ]
+                                , onPress = Just NoOp
+                                }
+                        }
+                    ]
 
               else
                 Style.Widgets.Select.select

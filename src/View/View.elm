@@ -511,7 +511,7 @@ createProjectResourcesButton context projectId =
                     (context.localization.floatingIpAddress
                         |> Helpers.String.toTitleCase
                     )
-                    (Route.ProjectRoute projectId <| Route.FloatingIpCreate)
+                    (Route.ProjectRoute projectId <| Route.FloatingIpCreate Nothing)
                     closeDropdown
                 ]
 
