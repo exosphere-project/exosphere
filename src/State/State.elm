@@ -20,6 +20,7 @@ import OpenStack.Volumes as OSVolumes
 import Orchestration.GoalServer as GoalServer
 import Orchestration.Orchestration as Orchestration
 import Page.FloatingIpAssign
+import Page.FloatingIpCreate
 import Page.FloatingIpList
 import Page.GetSupport
 import Page.Home
@@ -345,6 +346,21 @@ updateUnderlying outerMsg outerModel =
                                         InstanceSourcePicker newSharedModel
                               }
                             , Cmd.map InstanceSourcePickerMsg cmd
+                            )
+                                |> pipelineCmdOuterModelMsg
+                                    (processSharedMsg sharedMsg)
+
+                        ( FloatingIpCreateMsg pageMsg, FloatingIpCreate pageModel ) ->
+                            let
+                                ( newSharedModel, cmd, sharedMsg ) =
+                                    Page.FloatingIpCreate.update pageMsg sharedModel project pageModel
+                            in
+                            ( { outerModel
+                                | viewState =
+                                    ProjectView projectId <|
+                                        FloatingIpCreate newSharedModel
+                              }
+                            , Cmd.map FloatingIpCreateMsg cmd
                             )
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
@@ -1377,6 +1393,26 @@ processProjectSpecificMsg outerModel project msg =
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
+        RequestCreateProjectFloatingIp maybeIp ->
+            case GetterSetters.getExternalNetwork project of
+                Nothing ->
+                    State.Error.processStringError
+                        sharedModel
+                        (ErrorContext
+                            ("create a " ++ sharedModel.viewContext.localization.floatingIpAddress)
+                            ErrorCrit
+                            Nothing
+                        )
+                        ("Could not determine external network for "
+                            ++ sharedModel.viewContext.localization.floatingIpAddress
+                        )
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+                Just net ->
+                    ( outerModel, Rest.Neutron.requestCreateFloatingIp project net Nothing maybeIp )
+                        |> mapToOuterMsg
+
         RequestDeleteFloatingIp errorContext floatingIpAddress ->
             ( outerModel, Rest.Neutron.requestDeleteFloatingIp project errorContext floatingIpAddress )
                 |> mapToOuterMsg
@@ -1814,6 +1850,18 @@ processProjectSpecificMsg outerModel project msg =
                             GetterSetters.modelUpdateProject sharedModel newProject
                     in
                     State.Error.processSynchronousApiError newSharedModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+        ReceiveCreateProjectFloatingIp errorContext result ->
+            case result of
+                Ok ip ->
+                    Rest.Neutron.receiveCreateFloatingIp sharedModel project Nothing ip
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+                Err httpErrorWithBody ->
+                    State.Error.processSynchronousApiError sharedModel errorContext httpErrorWithBody
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
@@ -2339,6 +2387,37 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
             )
                 |> mapToOuterMsg
 
+        RequestCreateServerFloatingIp maybeIp ->
+            let
+                toError errMsg =
+                    State.Error.processStringError
+                        sharedModel
+                        (ErrorContext
+                            ("create a " ++ sharedModel.viewContext.localization.floatingIpAddress)
+                            ErrorCrit
+                            Nothing
+                        )
+                        errMsg
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+            in
+            case ( GetterSetters.getExternalNetwork project, GetterSetters.getServerPorts project server.osProps.uuid ) of
+                ( Nothing, _ ) ->
+                    toError
+                        ("Could not determine external network for "
+                            ++ sharedModel.viewContext.localization.floatingIpAddress
+                        )
+
+                ( _, [] ) ->
+                    toError
+                        ("Could not determine network port for "
+                            ++ sharedModel.viewContext.localization.virtualComputer
+                        )
+
+                ( Just net, firstPort :: _ ) ->
+                    ( outerModel, Rest.Neutron.requestCreateFloatingIp project net (Just ( firstPort, server.osProps.uuid )) maybeIp )
+                        |> mapToOuterMsg
+
         RequestSetServerName newServerName ->
             ( outerModel, Rest.Nova.requestSetServerName project server.osProps.uuid newServerName )
                 |> mapToOuterMsg
@@ -2409,10 +2488,10 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                     Cmd.none
             )
 
-        ReceiveCreateFloatingIp errorContext result ->
+        ReceiveCreateServerFloatingIp errorContext result ->
             case result of
                 Ok ip ->
-                    Rest.Neutron.receiveCreateFloatingIp sharedModel project server ip
+                    Rest.Neutron.receiveCreateFloatingIp sharedModel project (Just server) ip
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 

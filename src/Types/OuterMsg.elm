@@ -1,6 +1,7 @@
 module Types.OuterMsg exposing (OuterMsg(..))
 
 import Page.FloatingIpAssign
+import Page.FloatingIpCreate
 import Page.FloatingIpList
 import Page.GetSupport
 import Page.Home
@@ -39,6 +40,7 @@ type OuterMsg
     | HomeMsg Page.Home.Msg
     | ImageListMsg Page.ImageList.Msg
     | InstanceSourcePickerMsg Page.InstanceSourcePicker.Msg
+    | FloatingIpCreateMsg Page.FloatingIpCreate.Msg
     | KeypairCreateMsg Page.KeypairCreate.Msg
     | KeypairListMsg Page.KeypairList.Msg
     | LoginOpenstackMsg Page.LoginOpenstack.Msg

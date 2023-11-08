@@ -66,6 +66,7 @@ type ProjectSpecificMsgConstructor
     | RequestKeypairs
     | RequestCreateKeypair OSTypes.KeypairName OSTypes.PublicKey
     | RequestDeleteKeypair OSTypes.KeypairIdentifier
+    | RequestCreateProjectFloatingIp (Maybe OSTypes.IpAddressValue)
     | RequestDeleteFloatingIp ErrorContext OSTypes.IpAddressUuid
     | RequestAssignFloatingIp OSTypes.Port OSTypes.IpAddressUuid
     | RequestUnassignFloatingIp OSTypes.IpAddressUuid
@@ -83,6 +84,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveAutoAllocatedNetwork ErrorContext (Result HttpErrorWithBody OSTypes.NetworkUuid)
     | ReceiveFloatingIps (List OSTypes.FloatingIp)
     | ReceivePorts ErrorContext (Result HttpErrorWithBody (List OSTypes.Port))
+    | ReceiveCreateProjectFloatingIp ErrorContext (Result HttpErrorWithBody OSTypes.FloatingIp)
     | ReceiveDeleteFloatingIp OSTypes.IpAddressUuid
     | ReceiveAssignFloatingIp OSTypes.FloatingIp
     | ReceiveUnassignFloatingIp OSTypes.FloatingIp
@@ -117,11 +119,12 @@ type ServerSpecificMsgConstructor
     | RequestAttachVolume OSTypes.VolumeUuid
     | RequestCreateServerImage String
     | RequestResizeServer OSTypes.FlavorId
+    | RequestCreateServerFloatingIp (Maybe OSTypes.IpAddressValue)
     | ReceiveServerAction
     | ReceiveServerEvents ErrorContext (Result HttpErrorWithBody (List OSTypes.ServerEvent))
     | ReceiveConsoleUrl (Result HttpErrorWithBody OSTypes.ConsoleUrl)
     | ReceiveDeleteServer
-    | ReceiveCreateFloatingIp ErrorContext (Result HttpErrorWithBody OSTypes.FloatingIp)
+    | ReceiveCreateServerFloatingIp ErrorContext (Result HttpErrorWithBody OSTypes.FloatingIp)
     | ReceiveServerPassphrase OSTypes.ServerPassword
     | ReceiveSetServerName String ErrorContext (Result HttpErrorWithBody String)
     | ReceiveSetServerMetadata OSTypes.MetadataItem ErrorContext (Result HttpErrorWithBody (List OSTypes.MetadataItem))

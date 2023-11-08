@@ -12,6 +12,7 @@ import Helpers.String
 import Html
 import Html.Attributes
 import Page.FloatingIpAssign
+import Page.FloatingIpCreate
 import Page.FloatingIpList
 import Page.GetSupport
 import Page.HelpAbout
@@ -322,6 +323,10 @@ projectContentView model context p viewConstructor =
             Page.InstanceSourcePicker.view context p pageModel
                 |> Element.map InstanceSourcePickerMsg
 
+        FloatingIpCreate pageModel ->
+            Page.FloatingIpCreate.view context p model.clientCurrentTime pageModel
+                |> Element.map FloatingIpCreateMsg
+
         KeypairCreate pageModel ->
             Page.KeypairCreate.view context p model.clientCurrentTime pageModel
                 |> Element.map KeypairCreateMsg
@@ -497,6 +502,16 @@ createProjectResourcesButton context projectId =
                         |> Helpers.String.toTitleCase
                     )
                     (Route.ProjectRoute projectId <| Route.KeypairCreate)
+                    closeDropdown
+                , renderButton
+                    (Style.Widgets.Icon.ipAddress
+                        (SH.toElementColor context.palette.primary)
+                        18
+                    )
+                    (context.localization.floatingIpAddress
+                        |> Helpers.String.toTitleCase
+                    )
+                    (Route.ProjectRoute projectId <| Route.FloatingIpCreate Nothing)
                     closeDropdown
                 ]
 

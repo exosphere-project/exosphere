@@ -26,6 +26,7 @@
             "elm-community/list-extra": "8.2.4",
             "elm-community/random-extra": "3.1.0",
             "feathericons/elm-feather": "1.5.0",
+            "hermanverschooten/ip": "1.0.1",
             "justinmimbs/time-extra": "1.1.1",
             "jweir/elm-iso8601": "6.0.1",
             "kalutheo/elm-ui-explorer": "9.1.0",

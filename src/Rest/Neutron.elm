@@ -155,30 +155,47 @@ requestPorts project =
         )
 
 
-requestCreateFloatingIp : Project -> OSTypes.Network -> OSTypes.Port -> Server -> Cmd SharedMsg
-requestCreateFloatingIp project network port_ server =
+requestCreateFloatingIp : Project -> OSTypes.Network -> Maybe ( OSTypes.Port, OSTypes.ServerUuid ) -> Maybe OSTypes.IpAddressValue -> Cmd SharedMsg
+requestCreateFloatingIp project network maybePortServerUuid maybeIp =
     let
         requestBody =
             Encode.object
                 [ ( "floatingip"
-                  , Encode.object
-                        [ ( "floating_network_id", Encode.string network.uuid )
-                        , ( "port_id", Encode.string port_.uuid )
-                        ]
+                  , Encode.object <|
+                        List.filterMap identity
+                            [ Just ( "floating_network_id", Encode.string network.uuid )
+                            , maybePortServerUuid
+                                |> Maybe.map Tuple.first
+                                |> Maybe.map (\port_ -> ( "port_id", Encode.string port_.uuid ))
+                            , maybeIp
+                                |> Maybe.map (\ip -> ( "floating_ip_address", Encode.string ip ))
+                            ]
                   )
                 ]
 
         errorContext =
+            let
+                forPort =
+                    maybePortServerUuid
+                        |> Maybe.map Tuple.first
+                        |> Maybe.map (\port_ -> " for port" ++ port_.uuid)
+                        |> Maybe.withDefault ""
+            in
             ErrorContext
-                ("create a floating IP address on network " ++ network.name ++ " for port " ++ port_.uuid)
+                ("create a floating IP address on network " ++ network.name ++ forPort)
                 ErrorCrit
                 (Just "It's possible your cloud has run out of public IP address space; ask your cloud administrator.")
 
         resultToMsg_ =
             \result ->
                 ProjectMsg (GetterSetters.projectIdentifier project) <|
-                    ServerMsg server.osProps.uuid <|
-                        ReceiveCreateFloatingIp errorContext result
+                    case maybePortServerUuid of
+                        Just ( _, serverUuid ) ->
+                            ServerMsg serverUuid <|
+                                ReceiveCreateServerFloatingIp errorContext result
+
+                        Nothing ->
+                            ReceiveCreateProjectFloatingIp errorContext result
 
         requestCmd =
             openstackCredentialedRequest
@@ -459,20 +476,26 @@ receiveFloatingIps model project floatingIps =
     ( newModel, Cmd.none )
 
 
-receiveCreateFloatingIp : SharedModel -> Project -> Server -> OSTypes.FloatingIp -> ( SharedModel, Cmd SharedMsg )
-receiveCreateFloatingIp model project server floatingIp =
+receiveCreateFloatingIp : SharedModel -> Project -> Maybe Server -> OSTypes.FloatingIp -> ( SharedModel, Cmd SharedMsg )
+receiveCreateFloatingIp model project maybeServer floatingIp =
     let
-        newServer =
-            let
-                oldExoProps =
-                    server.exoProps
-            in
-            { server
-                | exoProps = { oldExoProps | floatingIpCreationOption = DoNotUseFloatingIp }
-            }
-
         projectUpdatedServer =
-            GetterSetters.projectUpdateServer project newServer
+            case maybeServer of
+                Just server ->
+                    let
+                        newServer =
+                            let
+                                oldExoProps =
+                                    server.exoProps
+                            in
+                            { server
+                                | exoProps = { oldExoProps | floatingIpCreationOption = DoNotUseFloatingIp }
+                            }
+                    in
+                    GetterSetters.projectUpdateServer project newServer
+
+                Nothing ->
+                    project
 
         newFloatingIps =
             floatingIp

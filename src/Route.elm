@@ -53,6 +53,7 @@ type ProjectRouteConstructor
     | FloatingIpList
     | ImageList
     | InstanceSourcePicker
+    | FloatingIpCreate (Maybe OSTypes.ServerUuid)
     | KeypairCreate
     | KeypairList
     | ServerCreate OSTypes.ImageUuid String (Maybe (List OSTypes.FlavorId)) (Maybe Bool)
@@ -195,6 +196,20 @@ toUrl maybePathPrefix route =
                         InstanceSourcePicker ->
                             ( [ "instancesource" ]
                             , []
+                            )
+
+                        FloatingIpCreate maybeServerUuid ->
+                            let
+                                serverUuidQP =
+                                    case maybeServerUuid of
+                                        Just serverUuid ->
+                                            [ UB.string "serveruuid" serverUuid ]
+
+                                        Nothing ->
+                                            []
+                            in
+                            ( [ "createfloatingip" ]
+                            , serverUuidQP
                             )
 
                         KeypairCreate ->
@@ -602,6 +617,14 @@ projectRouteParsers =
                     (Query.string "serveruuid")
          in
          s "assignfloatingip" <?> queryparser
+        )
+    , map
+        (\maybeServerUuid -> FloatingIpCreate maybeServerUuid)
+        (let
+            queryParser =
+                Query.string "serveruuid"
+         in
+         s "createfloatingip" <?> queryParser
         )
     , map
         KeypairList

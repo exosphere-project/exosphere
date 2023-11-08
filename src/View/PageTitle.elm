@@ -140,6 +140,13 @@ pageTitle outerModel =
                         , projectName
                         ]
 
+                FloatingIpCreate _ ->
+                    String.join " "
+                        [ "Create"
+                        , localization.floatingIpAddress
+                            |> Helpers.String.toTitleCase
+                        ]
+
                 KeypairCreate _ ->
                     String.join " "
                         [ "Upload"
