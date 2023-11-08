@@ -90,7 +90,7 @@ view context project _ model =
                     Nothing
 
                 else
-                    Just "Invalid IP address"
+                    Just ("Invalid " ++ context.localization.floatingIpAddress)
 
             else
                 Nothing

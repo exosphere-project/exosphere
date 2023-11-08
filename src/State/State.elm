@@ -1399,11 +1399,13 @@ processProjectSpecificMsg outerModel project msg =
                     State.Error.processStringError
                         sharedModel
                         (ErrorContext
-                            "create a floating IP address"
+                            ("create a " ++ sharedModel.viewContext.localization.floatingIpAddress)
                             ErrorCrit
                             Nothing
                         )
-                        "Could not determine external network for floating IP address."
+                        ("Could not determine external network for "
+                            ++ sharedModel.viewContext.localization.floatingIpAddress
+                        )
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
@@ -2391,7 +2393,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                     State.Error.processStringError
                         sharedModel
                         (ErrorContext
-                            "create a floating IP address"
+                            ("create a " ++ sharedModel.viewContext.localization.floatingIpAddress)
                             ErrorCrit
                             Nothing
                         )
@@ -2401,10 +2403,16 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
             in
             case ( GetterSetters.getExternalNetwork project, GetterSetters.getServerPorts project server.osProps.uuid ) of
                 ( Nothing, _ ) ->
-                    toError "Could not determine external network for floating IP address."
+                    toError
+                        ("Could not determine external network for "
+                            ++ sharedModel.viewContext.localization.floatingIpAddress
+                        )
 
                 ( _, [] ) ->
-                    toError "Could not determine network port for server."
+                    toError
+                        ("Could not determine network port for "
+                            ++ sharedModel.viewContext.localization.virtualComputer
+                        )
 
                 ( Just net, firstPort :: _ ) ->
                     ( outerModel, Rest.Neutron.requestCreateFloatingIp project net (Just ( firstPort, server.osProps.uuid )) maybeIp )
