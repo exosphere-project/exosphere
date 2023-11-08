@@ -121,11 +121,21 @@ view context project _ model =
                         )
                 , onChange = GotIpValue
                 , label =
-                    Input.labelAbove []
-                        (Element.text <|
-                            String.join " "
-                                [ "Specify IP (Optional; not all clouds allow you to do this)" ]
-                        )
+                    Input.labelAbove [] <|
+                        Element.column [ Element.spacing spacer.px8 ]
+                            [ Element.text <|
+                                String.join " "
+                                    [ "Specify"
+                                    , context.localization.floatingIpAddress
+                                    , "(Optional)"
+                                    ]
+                            , Text.text Text.Small [] <|
+                                String.join " "
+                                    [ "Not all"
+                                    , Helpers.String.pluralize context.localization.openstackWithOwnKeystone
+                                    , "allow this. If you get an error, try again with this field empty."
+                                    ]
+                            ]
                 }
             , renderInvalidReason invalidIpReason
             ]
