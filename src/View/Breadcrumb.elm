@@ -147,7 +147,7 @@ breadcrumb_ outerModel context =
                                       }
                                     ]
 
-                                IpCreate _ ->
+                                FloatingIpCreate _ ->
                                     [ { route = Nothing
                                       , label =
                                             String.join " "

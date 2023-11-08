@@ -40,7 +40,7 @@ type OuterMsg
     | HomeMsg Page.Home.Msg
     | ImageListMsg Page.ImageList.Msg
     | InstanceSourcePickerMsg Page.InstanceSourcePicker.Msg
-    | IpCreateMsg Page.FloatingIpCreate.Msg
+    | FloatingIpCreateMsg Page.FloatingIpCreate.Msg
     | KeypairCreateMsg Page.KeypairCreate.Msg
     | KeypairListMsg Page.KeypairList.Msg
     | LoginOpenstackMsg Page.LoginOpenstack.Msg

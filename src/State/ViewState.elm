@@ -284,8 +284,8 @@ routeToViewStateModelCmd sharedModel route =
                             , newCmd
                             )
 
-                        Route.IpCreate ->
-                            ( projectViewProto <| IpCreate Page.FloatingIpCreate.init, sharedModel, Cmd.none )
+                        Route.FloatingIpCreate ->
+                            ( projectViewProto <| FloatingIpCreate Page.FloatingIpCreate.init, sharedModel, Cmd.none )
 
                         Route.KeypairCreate ->
                             ( projectViewProto <| KeypairCreate Page.KeypairCreate.init

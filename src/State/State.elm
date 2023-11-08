@@ -350,7 +350,7 @@ updateUnderlying outerMsg outerModel =
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
 
-                        ( IpCreateMsg pageMsg, IpCreate pageModel ) ->
+                        ( FloatingIpCreateMsg pageMsg, FloatingIpCreate pageModel ) ->
                             let
                                 ( newSharedModel, cmd, sharedMsg ) =
                                     Page.FloatingIpCreate.update pageMsg sharedModel project pageModel
@@ -358,9 +358,9 @@ updateUnderlying outerMsg outerModel =
                             ( { outerModel
                                 | viewState =
                                     ProjectView projectId <|
-                                        IpCreate newSharedModel
+                                        FloatingIpCreate newSharedModel
                               }
-                            , Cmd.map IpCreateMsg cmd
+                            , Cmd.map FloatingIpCreateMsg cmd
                             )
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)

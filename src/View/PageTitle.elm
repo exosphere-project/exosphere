@@ -140,7 +140,7 @@ pageTitle outerModel =
                         , projectName
                         ]
 
-                IpCreate _ ->
+                FloatingIpCreate _ ->
                     String.join " "
                         [ "Create"
                         , localization.floatingIpAddress

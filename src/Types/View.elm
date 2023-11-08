@@ -69,7 +69,7 @@ type ProjectViewConstructor
     | FloatingIpList Page.FloatingIpList.Model
     | ImageList Page.ImageList.Model
     | InstanceSourcePicker Page.InstanceSourcePicker.Model
-    | IpCreate Page.FloatingIpCreate.Model
+    | FloatingIpCreate Page.FloatingIpCreate.Model
     | KeypairCreate Page.KeypairCreate.Model
     | KeypairList Page.KeypairList.Model
     | ServerCreate HelperTypes.CreateServerPageModel

@@ -323,9 +323,9 @@ projectContentView model context p viewConstructor =
             Page.InstanceSourcePicker.view context p pageModel
                 |> Element.map InstanceSourcePickerMsg
 
-        IpCreate pageModel ->
+        FloatingIpCreate pageModel ->
             Page.FloatingIpCreate.view context p model.clientCurrentTime pageModel
-                |> Element.map IpCreateMsg
+                |> Element.map FloatingIpCreateMsg
 
         KeypairCreate pageModel ->
             Page.KeypairCreate.view context p model.clientCurrentTime pageModel
@@ -511,7 +511,7 @@ createProjectResourcesButton context projectId =
                     (context.localization.floatingIpAddress
                         |> Helpers.String.toTitleCase
                     )
-                    (Route.ProjectRoute projectId <| Route.IpCreate)
+                    (Route.ProjectRoute projectId <| Route.FloatingIpCreate)
                     closeDropdown
                 ]
 
