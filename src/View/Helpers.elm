@@ -887,8 +887,16 @@ elmUiRenderer context =
     , emphasis = \content -> Element.row [ Font.italic ] content
     , strikethrough = \content -> Element.row [ Font.strike ] content
     , codeSpan =
-        -- TODO implement this (show fixed-width font) once we need it
-        Element.text
+        \content ->
+            Element.el
+                [ Element.paddingXY 3 1
+                , Border.rounded 4
+                , Border.color (SH.toElementColor context.palette.muted.border)
+                , Background.color (SH.toElementColor context.palette.muted.background)
+                , Font.color (SH.toElementColor context.palette.muted.textOnColoredBG)
+                ]
+            <|
+                Text.mono content
     , link =
         \{ destination } body ->
             Element.newTabLink (Link.linkStyle context.palette)
