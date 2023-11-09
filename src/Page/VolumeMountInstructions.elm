@@ -58,23 +58,29 @@ view context project model =
             , Element.paragraph []
                 [ case GetterSetters.volDeviceToMountpoint model.device of
                     Just mountpoint ->
-                        Element.text <|
-                            String.join " "
-                                [ "We'll try to mount this"
-                                , context.localization.blockDevice
-                                , "at"
-                                , mountpoint
-                                , "on your instance's filesystem. You should be able to access the"
-                                , context.localization.blockDevice
-                                , "there."
-                                , "If it's a completely empty"
-                                , context.localization.blockDevice
-                                , "we'll also try to format it first."
-                                , "This may not work on older operating systems (like CentOS 7 or Ubuntu 16.04)."
-                                , "In that case, you may need to format and/or mount the"
-                                , context.localization.blockDevice
-                                , "manually."
-                                ]
+                        let
+                            markdown =
+                                String.concat
+                                    [ "The "
+                                    , context.localization.virtualComputer
+                                    , " will mount your "
+                                    , context.localization.blockDevice
+                                    , " when you access "
+                                    , mountpoint
+                                    , " on the "
+                                    , context.localization.virtualComputer
+                                    , " filesystem.\n\nFor example, type `cd "
+                                    , mountpoint
+                                    , "` in a "
+                                    , context.localization.commandDrivenTextInterface
+                                    , " on the "
+                                    , context.localization.virtualComputer
+                                    , ".\n\n(This may not work on older operating systems, like CentOS 7. In that case, you may need to format and/or mount the "
+                                    , context.localization.blockDevice
+                                    , " manually.)"
+                                    ]
+                        in
+                        Element.column [ Element.spacing spacer.px12 ] (VH.renderMarkdown context markdown)
 
                     Nothing ->
                         Element.text <|
