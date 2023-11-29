@@ -3,7 +3,7 @@ FROM selenium/standalone-firefox:4 as standalone-firefox-nodejs
 USER root
 
 # Install node and npm
-RUN curl -sL https://deb.nodesource.com/setup_15.x | bash - \
+RUN curl -sL https://deb.nodesource.com/setup_18.x | bash - \
     && apt install --yes nodejs \
     && rm -rf /var/lib/apt/lists/* \
     && npm install -g http-server

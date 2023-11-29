@@ -177,6 +177,7 @@ systemctl reload nginx
 Delete any files in `/etc/nginx/sites-enabled/` on your server, then copy `deploy/prod/uap/app.conf` from this repository to that same directory.
 
 In this file, replace:
+
 - Instances of `my-example.exosphere.app`, with the hostname of your _main server_ (not the UAP)
 - Instances of `proxy-example.exosphere.app`, with the hostname of your UAP
 - Instances of `proxy-example\.exosphere\.app`, with the hostname of your UAP, with any periods escaped (as this is part of a regular expression)
