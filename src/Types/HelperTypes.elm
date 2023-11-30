@@ -187,7 +187,12 @@ type alias FlavorGroup =
     { matchOn : String
     , title : FlavorGroupTitle
     , description : Maybe String
+    , disallowedActions : List ServerActionName
     }
+
+
+type alias ServerActionName =
+    String
 
 
 type alias FlavorGroupTitle =

@@ -8,6 +8,7 @@ module Helpers.GetterSetters exposing
     , getFloatingIpServer
     , getServerExouserPassphrase
     , getServerFixedIps
+    , getServerFlavorGroup
     , getServerFloatingIps
     , getServerPorts
     , getServersWithVolAttached
@@ -63,6 +64,7 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.Url as UrlHelpers
 import List.Extra
 import OpenStack.Types as OSTypes
+import Regex
 import Time
 import Types.Error
 import Types.HelperTypes as HelperTypes
@@ -302,6 +304,36 @@ getServerExouserPassphrase serverDetails =
 sortedFlavors : List OSTypes.Flavor -> List OSTypes.Flavor
 sortedFlavors =
     multiSortBy [ .vcpu, .ram_mb, .disk_root, .disk_ephemeral ]
+
+
+getFlavorFlavorGroup : OSTypes.Flavor -> List HelperTypes.FlavorGroup -> Maybe HelperTypes.FlavorGroup
+getFlavorFlavorGroup flavor groups =
+    let
+        regex group =
+            Regex.fromString group.matchOn
+                |> Maybe.withDefault Regex.never
+    in
+    groups
+        |> List.filter (\g -> Regex.contains (regex g) flavor.name)
+        |> List.head
+
+
+getServerFlavorGroup : Project -> View.Types.Context -> Server -> Maybe HelperTypes.FlavorGroup
+getServerFlavorGroup project context server =
+    let
+        maybeServerFlavor =
+            flavorLookup project server.osProps.details.flavorId
+
+        maybeFlavorGroups =
+            cloudSpecificConfigLookup context.cloudSpecificConfigs project
+                |> Maybe.map .flavorGroups
+    in
+    case ( maybeServerFlavor, maybeFlavorGroups ) of
+        ( Just flavor, Just flavorGroups ) ->
+            getFlavorFlavorGroup flavor flavorGroups
+
+        _ ->
+            Nothing
 
 
 getVolsAttachedToServer : Project -> Server -> List OSTypes.Volume

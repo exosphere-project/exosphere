@@ -403,7 +403,8 @@ imageFiltersDecoder =
 
 flavorGroupDecoder : Decode.Decoder HelperTypes.FlavorGroup
 flavorGroupDecoder =
-    Decode.map3 HelperTypes.FlavorGroup
+    Decode.map4 HelperTypes.FlavorGroup
         (Decode.field "matchOn" Decode.string)
         (Decode.field "title" Decode.string)
         (Decode.field "description" (Decode.nullable Decode.string))
+        (Decode.field "disallowedActions" (Decode.list Decode.string))

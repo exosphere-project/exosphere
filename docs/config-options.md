@@ -92,12 +92,14 @@ var cloud_configs = {
         {
           "matchOn":"m1\..*",
           "title":"General-purpose",
-          "description":null
+          "description":null,
+          "disallowedActions":[],
         },
         {
           "matchOn":"g1\..*",
           "title":"GPU",
-          "description":"These have a graphics processing unit."
+          "description":"These have a graphics processing unit.",
+          "disallowedActions":["Suspend"],
         }        
       ],
       "desktopMessage":null
