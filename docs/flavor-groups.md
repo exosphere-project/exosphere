@@ -24,6 +24,7 @@ Each array element in `flavorGroups` is an object with the following members:
 - `matchOn` (string) is a regular expression that matches names of flavors belonging to the group.
 - `title` (string) is something like "General-purpose" or "GPU", used as a heading for the group.
 - `description` (null or string) is optional help text that appears in a toggle tip next to the heading.
+- `disallowedActions` is an array of strings. Each string is the name of a server action that you wish to prevent users from performing (i.e. hide the button for this action), e.g. because that action doesn't work with flavors in this group.
 
 A few hints:
 - The order in which you specify flavor groups is the same order in which they will appear in Exosphere.
@@ -45,12 +46,14 @@ var config = {
         {
           "matchOn":"m1\..*",
           "title":"General-purpose",
-          "description":null
+          "description":null,
+          "disallowedActions":[],
         },
         {
           "matchOn":"g1\..*",
           "title":"GPU",
-          "description":"These have a graphics processing unit."
+          "description":"These have a graphics processing unit.",
+          "disallowedActions":["Suspend"],
         }        
       ]
     }

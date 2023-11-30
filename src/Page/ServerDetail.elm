@@ -1043,6 +1043,12 @@ serverActionsDropdown context project model server =
                 |> String.concat
 
         dropdownContent closeDropdown =
+            let
+                disallowedActions =
+                    GetterSetters.getServerFlavorGroup project context server
+                        |> Maybe.map .disallowedActions
+                        |> Maybe.withDefault []
+            in
             Element.column [ Element.spacing spacer.px8 ] <|
                 List.map
                     (renderServerActionButton context project model server closeDropdown)
@@ -1052,6 +1058,7 @@ serverActionsDropdown context project model server =
                         (Just context.localization.virtualComputerHardwareConfig)
                         server.osProps.details.openstackStatus
                         server.osProps.details.lockStatus
+                        disallowedActions
                     )
 
         dropdownTarget toggleDropdownMsg dropdownIsShown =

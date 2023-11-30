@@ -20,8 +20,8 @@ import Types.SharedMsg as SharedMsg
         )
 
 
-getAllowed : Maybe String -> Maybe String -> Maybe String -> OSTypes.ServerStatus -> OSTypes.ServerLockStatus -> List ServerAction
-getAllowed maybeWordForServer maybeWordForImage maybeWordForFlavor serverStatus serverLockStatus =
+getAllowed : Maybe String -> Maybe String -> Maybe String -> OSTypes.ServerStatus -> OSTypes.ServerLockStatus -> List ServerActionName -> List ServerAction
+getAllowed maybeWordForServer maybeWordForImage maybeWordForFlavor serverStatus serverLockStatus disallowedActions =
     let
         allowedByServerStatus action =
             case action.allowedStatuses of
@@ -38,14 +38,18 @@ getAllowed maybeWordForServer maybeWordForImage maybeWordForFlavor serverStatus 
 
                 Just allowedLockStatus_ ->
                     serverLockStatus == allowedLockStatus_
+
+        allowedByDisallowedActions action =
+            not <| List.member action.name disallowedActions
     in
     actions maybeWordForServer maybeWordForImage maybeWordForFlavor
         |> List.filter allowedByServerStatus
         |> List.filter allowedByLockStatus
+        |> List.filter allowedByDisallowedActions
 
 
 type alias ServerAction =
-    { name : String
+    { name : ServerActionName
     , description : String
     , allowedStatuses : Maybe (List OSTypes.ServerStatus)
     , allowedLockStatus : Maybe OSTypes.ServerLockStatus
@@ -53,6 +57,10 @@ type alias ServerAction =
     , selectMod : SelectMod
     , confirmable : Bool
     }
+
+
+type alias ServerActionName =
+    String
 
 
 type SelectMod
