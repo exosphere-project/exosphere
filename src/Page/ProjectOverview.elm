@@ -215,7 +215,7 @@ volumeTileContents context project =
                     , Element.width Element.fill
                     , Element.htmlAttribute <| Html.Attributes.style "min-width" "0"
                     ]
-            , Helpers.Formatting.usageLabel context.locale Helpers.Formatting.GibiBytes volume.size
+            , Helpers.Formatting.usageLabel context.locale Helpers.Formatting.GigaBytes volume.size
                 |> Element.text
                 |> Element.el [ Element.centerY ]
             ]
@@ -241,7 +241,7 @@ shareTileContents context project =
                     , Element.width Element.fill
                     , Element.htmlAttribute <| Html.Attributes.style "min-width" "0"
                     ]
-            , Helpers.Formatting.usageLabel context.locale Helpers.Formatting.GibiBytes share.size
+            , Helpers.Formatting.usageLabel context.locale Helpers.Formatting.GigaBytes share.size
                 |> Element.text
                 |> Element.el [ Element.centerY ]
             ]

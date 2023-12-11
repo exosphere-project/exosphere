@@ -113,7 +113,7 @@ computeInfoItems context display quota =
             fullQuotaRow
                 [ brief
                 , infoItem context quota.cores ( "Cores used", Count )
-                , infoItem context quota.ram ( "RAM used", MebiBytes )
+                , infoItem context quota.ram ( "RAM used", MegaBytes )
                 ]
 
 
@@ -199,7 +199,7 @@ shareStorageInfoItem : View.Types.Context -> OSTypes.ShareQuota -> Element.Eleme
 shareStorageInfoItem context projectQuota =
     infoItem context
         projectQuota.gigabytes
-        ( "Storage used", GibiBytes )
+        ( "Storage used", GigaBytes )
 
 
 shareInfoItems : View.Types.Context -> Display -> OSTypes.ShareQuota -> Element.Element msg
@@ -278,13 +278,13 @@ fullVolumeInfoItems context ( quota, snapshotUsage ) =
             OSTypes.Limit l ->
                 multiMeter context.palette
                     "Storage used"
-                    (usageComparison locale GibiBytes quota.gigabytes.inUse l)
+                    (usageComparison locale GigaBytes quota.gigabytes.inUse l)
                     l
-                    [ ( "Volume Usage: " ++ usageLabel locale GibiBytes volumeUsage
+                    [ ( "Volume Usage: " ++ usageLabel locale GigaBytes volumeUsage
                       , volumeUsage
                       , [ multiMeterPrimaryBackground context ]
                       )
-                    , ( "Snapshot Usage: " ++ usageLabel locale GibiBytes snapshotUsage
+                    , ( "Snapshot Usage: " ++ usageLabel locale GigaBytes snapshotUsage
                       , snapshotUsage
                       , [ multiMeterSecondaryBackground context
                         ]
