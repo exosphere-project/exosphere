@@ -20,6 +20,7 @@ import NoExposingEverything
 import NoHardcodedLocalizedStrings
 import NoImportingEverything
 import NoMissingTypeExpose
+import NoUnused.Variables
 import Review.Rule as Rule exposing (Rule)
 
 
@@ -67,4 +68,5 @@ config =
             )
     , NoExposingEverything.rule
     , NoImportingEverything.rule []
+    , NoUnused.Variables.rule
     ]
