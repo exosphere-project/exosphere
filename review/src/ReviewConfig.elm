@@ -18,6 +18,7 @@ import NoDeprecated
 import NoElementFontSize
 import NoExposingEverything
 import NoHardcodedLocalizedStrings
+import NoImportingEverything
 import NoMissingTypeExpose
 import Review.Rule as Rule exposing (Rule)
 
@@ -65,4 +66,5 @@ config =
                 ]
             )
     , NoExposingEverything.rule
+    , NoImportingEverything.rule [ "Test" ]
     ]
