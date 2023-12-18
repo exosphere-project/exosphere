@@ -23,6 +23,7 @@ import NoMissingTypeAnnotation
 import NoMissingTypeExpose
 import NoSimpleLetBody
 import NoUnused.CustomTypeConstructorArgs
+import NoUnused.CustomTypeConstructors
 import NoUnused.Dependencies
 import NoUnused.Parameters
 import NoUnused.Variables
@@ -76,6 +77,7 @@ config =
     , NoImportingEverything.rule []
     , NoMissingTypeAnnotation.rule
     , NoSimpleLetBody.rule
+    , NoUnused.CustomTypeConstructors.rule []
     , NoUnused.Dependencies.rule
     , NoUnused.Parameters.rule
     , NoUnused.CustomTypeConstructorArgs.rule
