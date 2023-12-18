@@ -9,6 +9,7 @@
             "elm/core": "1.0.5",
             "jfmengels/elm-review": "2.13.0",
             "jfmengels/elm-review-debug": "1.0.8",
+            "jfmengels/elm-review-unused": "1.2.0",
             "stil4m/elm-syntax": "7.2.9"
         },
         "indirect": {
