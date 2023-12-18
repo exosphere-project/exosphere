@@ -21,6 +21,7 @@ import NoHardcodedLocalizedStrings
 import NoImportingEverything
 import NoMissingTypeAnnotation
 import NoMissingTypeExpose
+import NoPrematureLetComputation
 import NoSimpleLetBody
 import NoUnused.CustomTypeConstructorArgs
 import NoUnused.CustomTypeConstructors
@@ -76,6 +77,7 @@ config =
     , NoExposingEverything.rule
     , NoImportingEverything.rule []
     , NoMissingTypeAnnotation.rule
+    , NoPrematureLetComputation.rule
     , NoSimpleLetBody.rule
     , NoUnused.CustomTypeConstructors.rule []
     , NoUnused.Dependencies.rule
