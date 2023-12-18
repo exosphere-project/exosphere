@@ -198,7 +198,7 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
                 , locale =
                     flags.localeGuessingString
                         |> FormatNumber.Locales.fromString
-                        >> Maybe.withDefault FormatNumber.Locales.usLocale
+                        |> Maybe.withDefault FormatNumber.Locales.usLocale
                 , localization = Maybe.withDefault Defaults.localization flags.localization
                 , navigationKey = Tuple.second urlKey
                 , palette = toExoPalette style
