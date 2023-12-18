@@ -15,7 +15,6 @@ import Style.Widgets.Text as Text
 
 type AlertState
     = Info
-    | Success
     | Warning
     | Danger
 
@@ -36,9 +35,6 @@ alert styleAttrs palette { state, showIcon, showContainer, content } =
             case state of
                 Info ->
                     ( palette.info, Icons.alertCircle )
-
-                Success ->
-                    ( palette.success, Icons.check )
 
                 Warning ->
                     ( palette.warning, Icons.alertTriangle )

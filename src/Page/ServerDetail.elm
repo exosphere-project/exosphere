@@ -74,8 +74,7 @@ type PassphraseVisibility
 
 
 type Msg
-    = GotShowVerboseStatus Bool
-    | GotPassphraseVisibility PassphraseVisibility
+    = GotPassphraseVisibility PassphraseVisibility
     | GotIpInfoLevel IpInfoLevel
     | GotServerActionNamePendingConfirmation (Maybe String)
     | GotServerNamePendingConfirmation (Maybe String)
@@ -100,9 +99,6 @@ init serverUuid =
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
 update msg project model =
     case msg of
-        GotShowVerboseStatus shown ->
-            ( { model | verboseStatus = shown }, Cmd.none, SharedMsg.NoOp )
-
         GotPassphraseVisibility visibility ->
             ( { model | passphraseVisibility = visibility }, Cmd.none, SharedMsg.NoOp )
 
