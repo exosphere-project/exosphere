@@ -9,7 +9,7 @@ import Element.Input as Input
 import FeatherIcons as Icons
 import FormatNumber
 import FormatNumber.Locales exposing (Decimals(..))
-import Helpers.Formatting exposing (Unit(..), humanCount)
+import Helpers.Formatting exposing (humanCount)
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.Random as RandomHelper

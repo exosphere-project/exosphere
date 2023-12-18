@@ -4,7 +4,7 @@ import Element
 import Element.Font as Font
 import Route
 import Style.Helpers as SH
-import Style.Widgets.Icon exposing (Icon(..))
+import Style.Widgets.Icon exposing (Icon)
 import Style.Widgets.IconButton exposing (FlowOrder(..), iconButton)
 import View.Types
 

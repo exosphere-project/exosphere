@@ -19,7 +19,7 @@ import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Time
 import Types.Project exposing (Project)
-import Types.SharedMsg as SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
+import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
 

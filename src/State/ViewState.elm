@@ -43,11 +43,11 @@ import Rest.Keystone
 import Rest.Nova
 import Route
 import Time
-import Types.HelperTypes as HelperTypes exposing (DefaultLoginView(..))
+import Types.HelperTypes as HelperTypes
 import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.SharedModel exposing (SharedModel)
-import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
+import Types.SharedMsg exposing (SharedMsg)
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
 import Url
 import View.PageTitle

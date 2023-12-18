@@ -14,7 +14,7 @@ module Tests exposing
 -- Test related Modules
 -- Exosphere Modules Under Test
 
-import Expect exposing (Expectation)
+import Expect
 import FormatNumber.Locales
 import Helpers.Formatting
 import Helpers.Helpers as Helpers

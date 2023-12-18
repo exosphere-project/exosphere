@@ -36,7 +36,7 @@ import Types.Error
 import Types.HelperTypes exposing (ProjectIdentifier)
 import Types.Project
 import Types.SharedModel exposing (SharedModel)
-import Types.SharedMsg exposing (SharedMsg(..))
+import Types.SharedMsg exposing (SharedMsg)
 
 
 

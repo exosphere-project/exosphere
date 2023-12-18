@@ -25,13 +25,13 @@ import Toasty
 import Types.Defaults as Defaults
 import Types.Error exposing (AppError)
 import Types.Flags exposing (ConfigurationFlags, Flags, flagsDecoder)
-import Types.HelperTypes as HelperTypes exposing (CloudSpecificConfigMap, DefaultLoginView(..), HttpRequestMethod(..), ProjectIdentifier)
+import Types.HelperTypes as HelperTypes exposing (CloudSpecificConfigMap, DefaultLoginView(..), ProjectIdentifier)
 import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project, ProjectSecret(..))
 import Types.SharedModel exposing (SharedModel)
-import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
-import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
+import Types.SharedMsg exposing (SharedMsg)
+import Types.View exposing (NonProjectViewConstructor(..), ViewState(..))
 import UUID
 import Url
 import View.Helpers exposing (toExoPalette)

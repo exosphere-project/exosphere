@@ -7,7 +7,7 @@ import OpenStack.Volumes exposing (requestVolumeSnapshots)
 import Orchestration.Helpers exposing (applyProjectStep)
 import Time
 import Types.Project exposing (Project)
-import Types.SharedMsg exposing (SharedMsg(..))
+import Types.SharedMsg exposing (SharedMsg)
 
 
 transitioningSnapshotPollInterval : Int

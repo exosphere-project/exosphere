@@ -53,7 +53,6 @@ import Types.Server
         , Server
         , ServerFromExoProps
         , ServerOrigin(..)
-        , ServerUiStatus(..)
         )
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg exposing (SharedMsg)

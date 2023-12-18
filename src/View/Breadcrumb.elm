@@ -15,8 +15,7 @@ import Types.OuterModel
 import Types.SharedMsg exposing (SharedMsg)
 import Types.View
     exposing
-        ( LoginView(..)
-        , NonProjectViewConstructor(..)
+        ( NonProjectViewConstructor(..)
         , ProjectViewConstructor(..)
         , ViewState(..)
         )

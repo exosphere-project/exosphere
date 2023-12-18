@@ -14,7 +14,7 @@ import Style.Widgets.Icon as Icon
 import Style.Widgets.NavButton exposing (navButton)
 import Style.Widgets.Spacer exposing (spacer)
 import Types.OuterModel exposing (OuterModel)
-import Types.OuterMsg exposing (OuterMsg(..))
+import Types.OuterMsg exposing (OuterMsg)
 import View.Types
 
 

@@ -13,7 +13,7 @@ import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text exposing (TextVariant(..))
 import Types.HelperTypes as HelperTypes
 import Types.SharedModel exposing (SharedModel)
-import Types.SharedMsg as SharedMsg exposing (SharedMsg(..))
+import Types.SharedMsg as SharedMsg
 import UUID
 import Url.Builder
 import View.Helpers as VH

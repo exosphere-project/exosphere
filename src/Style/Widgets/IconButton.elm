@@ -6,7 +6,7 @@ import Element.Input as Input
 import FeatherIcons as Icons
 import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
-import Style.Widgets.Icon exposing (Icon(..), iconEl, sizedFeatherIcon)
+import Style.Widgets.Icon exposing (Icon, iconEl, sizedFeatherIcon)
 import Style.Widgets.Spacer exposing (spacer)
 import View.Types
 

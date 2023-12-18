@@ -11,13 +11,12 @@ import OpenStack.Types as OSTypes
 import Rest.Keystone
 import Types.HelperTypes as HelperTypes
     exposing
-        ( HttpRequestMethod(..)
-        , UnscopedProvider
+        ( UnscopedProvider
         )
 import Types.OuterModel exposing (OuterModel)
 import Types.Project exposing (Project, ProjectSecret(..))
 import Types.SharedModel exposing (SharedModel)
-import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
+import Types.SharedMsg exposing (SharedMsg)
 import Url
 
 
