@@ -16,19 +16,17 @@ import NoDebug.Log
 import NoDebug.TodoOrToString
 import NoDeprecated
 import NoElementFontSize
-<<<<<<< HEAD
 import NoExposingEverything
 import NoHardcodedLocalizedStrings
 import NoImportingEverything
 import NoMissingTypeAnnotation
 import NoMissingTypeExpose
 import NoSimpleLetBody
+import NoUnnecessaryTrailingUnderscore
+import NoUnused.CustomTypeConstructorArgs
 import NoUnused.Dependencies
 import NoUnused.Parameters
 import NoUnused.Variables
-=======
-import NoUnnecessaryTrailingUnderscore
->>>>>>> 5d673f06 (Add elm-review rule NoUnnecessaryTrailingUnderscore)
 import Review.Rule as Rule exposing (Rule)
 
 
@@ -80,6 +78,7 @@ config =
     , NoSimpleLetBody.rule
     , NoUnused.Dependencies.rule
     , NoUnused.Parameters.rule
+    , NoUnused.CustomTypeConstructorArgs.rule
     , NoUnused.Variables.rule
     , NoUnnecessaryTrailingUnderscore.rule
     ]
