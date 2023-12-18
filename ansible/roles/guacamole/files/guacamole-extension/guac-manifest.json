@@ -1,14 +1,10 @@
 {
-    "guacamoleVersion": "*",
-    "name": "Exosphere Login Page Replacement",
-    "namespace": "exosphere",
-    "css": [
-        "css/exosphere.css"
-    ],
-    "html": [
-        "html/loginHeader.html"
-    ],
-    "resources": {
-        "resources/images/logo.svg": "image/svg+xml"
-    }
+  "guacamoleVersion": "*",
+  "name": "Exosphere Login Page Replacement",
+  "namespace": "exosphere",
+  "css": ["css/exosphere.css"],
+  "html": ["html/loginHeader.html"],
+  "resources": {
+    "resources/images/logo.svg": "image/svg+xml"
+  }
 }
