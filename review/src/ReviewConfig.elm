@@ -21,6 +21,7 @@ import NoHardcodedLocalizedStrings
 import NoImportingEverything
 import NoMissingTypeAnnotation
 import NoMissingTypeExpose
+import NoSimpleLetBody
 import NoUnused.Dependencies
 import NoUnused.Parameters
 import NoUnused.Variables
@@ -72,6 +73,7 @@ config =
     , NoExposingEverything.rule
     , NoImportingEverything.rule []
     , NoMissingTypeAnnotation.rule
+    , NoSimpleLetBody.rule
     , NoUnused.Dependencies.rule
     , NoUnused.Parameters.rule
     , NoUnused.Variables.rule
