@@ -28,7 +28,7 @@ pageTitle outerModel =
                 Home _ ->
                     "Exosphere"
 
-                LoadingUnscopedProjects _ ->
+                LoadingUnscopedProjects ->
                     String.join " "
                         [ "Loading"
                         , Helpers.String.pluralize localization.unitOfTenancy

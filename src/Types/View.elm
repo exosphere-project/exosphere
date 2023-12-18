@@ -48,7 +48,7 @@ type NonProjectViewConstructor
     = GetSupport Page.GetSupport.Model
     | HelpAbout
     | Home Page.Home.Model
-    | LoadingUnscopedProjects OSTypes.AuthTokenString
+    | LoadingUnscopedProjects
     | Login LoginView
     | LoginPicker
     | MessageLog Page.MessageLog.Model

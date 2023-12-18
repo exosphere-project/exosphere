@@ -237,7 +237,7 @@ nonProjectViews model context viewConstructor =
                 |> Element.map HomeMsg
             )
 
-        LoadingUnscopedProjects _ ->
+        LoadingUnscopedProjects ->
             ( Nothing
               -- TODO put a fidget spinner here
             , Text.body <|
