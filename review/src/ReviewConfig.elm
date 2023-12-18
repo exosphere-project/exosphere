@@ -66,5 +66,5 @@ config =
                 ]
             )
     , NoExposingEverything.rule
-    , NoImportingEverything.rule [ "Test" ]
+    , NoImportingEverything.rule []
     ]

@@ -33,7 +33,7 @@ import OpenStack.Quotas
 import OpenStack.Types as OSTypes exposing (OpenstackLogin)
 import OpenStack.VolumeSnapshots exposing (Status(..), volumeSnapshotDecoder)
 import Page.LoginOpenstack
-import Test exposing (..)
+import Test exposing (Test, describe, test)
 import TestData
 import Time exposing (millisToPosix)
 
