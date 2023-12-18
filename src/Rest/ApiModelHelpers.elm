@@ -62,7 +62,7 @@ requestServer projectUuid serverUuid model =
     case GetterSetters.projectLookup model projectUuid of
         Just project ->
             ( project
-                |> (\p -> GetterSetters.projectSetServerLoading p serverUuid)
+                |> GetterSetters.projectSetServerLoading serverUuid
                 |> GetterSetters.modelUpdateProject model
             , Rest.Nova.requestServer project serverUuid
             )
@@ -101,7 +101,7 @@ requestServerEvents projectId serverUuid model =
     case GetterSetters.projectLookup model projectId of
         Just project ->
             ( project
-                |> (\p -> GetterSetters.projectSetServerEventsLoading p serverUuid)
+                |> GetterSetters.projectSetServerEventsLoading serverUuid
                 |> GetterSetters.modelUpdateProject model
             , Rest.Nova.requestServerEvents project serverUuid
             )

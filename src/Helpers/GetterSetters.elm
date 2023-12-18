@@ -595,8 +595,8 @@ projectSetServersLoading project =
     { project | servers = RDPP.setLoading project.servers }
 
 
-projectSetServerLoading : Project -> OSTypes.ServerUuid -> Project
-projectSetServerLoading project serverUuid =
+projectSetServerLoading : OSTypes.ServerUuid -> Project -> Project
+projectSetServerLoading serverUuid project =
     case serverLookup project serverUuid of
         Nothing ->
             -- We can't do anything lol
@@ -618,8 +618,8 @@ projectSetServerLoading project serverUuid =
             projectUpdateServer project newServer
 
 
-projectSetServerEventsLoading : Project -> OSTypes.ServerUuid -> Project
-projectSetServerEventsLoading project serverUuid =
+projectSetServerEventsLoading : OSTypes.ServerUuid -> Project -> Project
+projectSetServerEventsLoading serverUuid project =
     case serverLookup project serverUuid of
         Nothing ->
             -- We can't do anything lol
