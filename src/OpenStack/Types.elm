@@ -1,11 +1,15 @@
 module OpenStack.Types exposing
     ( AccessRule
+    , AccessRuleAccessKey
     , AccessRuleAccessLevel
+    , AccessRuleAccessTo
     , AccessRuleAccessType
     , AccessRuleState
+    , AccessRuleUuid
     , ApplicationCredential
     , ApplicationCredentialSecret
     , ApplicationCredentialUuid
+    , AttachmentUuid
     , AuthTokenString
     , ComputeQuota
     , ConsoleUrl
@@ -51,6 +55,7 @@ module OpenStack.Types exposing
     , RegionId
     , ScopedAuthToken
     , SecurityGroup
+    , SecurityGroupUuid
     , Server
     , ServerDetails
     , ServerEvent
@@ -59,6 +64,7 @@ module OpenStack.Types exposing
     , ServerPassword
     , ServerPowerState(..)
     , ServerStatus(..)
+    , ServerTag
     , ServerUuid
     , Service
     , ServiceCatalog
@@ -71,12 +77,14 @@ module OpenStack.Types exposing
     , ShareStatus(..)
     , ShareTypeName
     , ShareUuid
+    , ShareVisibility
     , SynchronousAPIError
     , UnscopedAuthToken
     , UserUuid
     , Volume
     , VolumeAttachment
     , VolumeAttachmentDevice
+    , VolumeDescription
     , VolumeName
     , VolumeQuota
     , VolumeSize

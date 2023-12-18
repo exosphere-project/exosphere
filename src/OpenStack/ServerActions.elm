@@ -1,6 +1,7 @@
 module OpenStack.ServerActions exposing
     ( SelectMod(..)
     , ServerAction
+    , ServerActionName
     , getAllowed
     )
 

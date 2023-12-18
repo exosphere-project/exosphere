@@ -1,5 +1,6 @@
 module Style.Widgets.DeleteButton exposing
-    ( deleteIconButton
+    ( PopconfirmContent
+    , deleteIconButton
     , deletePopconfirm
     , deletePopconfirmContent
     )

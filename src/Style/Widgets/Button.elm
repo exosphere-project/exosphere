@@ -1,4 +1,4 @@
-module Style.Widgets.Button exposing (Variant(..), button, default, primary)
+module Style.Widgets.Button exposing (ThemedButton, Variant(..), button, default, primary)
 
 import Element
 import Style.Helpers as SH

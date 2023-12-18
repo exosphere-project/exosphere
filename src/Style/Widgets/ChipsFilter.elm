@@ -1,4 +1,4 @@
-module Style.Widgets.ChipsFilter exposing (ChipsFilterMsg(..), chipsFilter)
+module Style.Widgets.ChipsFilter exposing (ChipsFilterMsg(..), ChipsFilterStyle, chipsFilter)
 
 import Element
 import Set exposing (Set)

@@ -6,6 +6,8 @@ module Style.Types exposing
     , ElmUiWidgetStyle
     , ExoPalette
     , GrayShades15
+    , MenuColors
+    , NeutralColors
     , PopoverPosition(..)
     , StyleMode
     , Theme(..)

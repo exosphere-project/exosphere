@@ -1,12 +1,16 @@
 module Style.Widgets.DataList exposing
     ( DataRecord
     , Filter
+    , FilterId
     , FilterOptionText
     , FilterOptionValue
     , FilterSelectionValue(..)
     , Model
     , Msg
+    , MultiselectOptionIdentifier
+    , RowId
     , SearchFilter
+    , SelectedFilterOptions
     , UniselectOptionIdentifier(..)
     , getDefaultFilterOptions
     , init
