@@ -14,6 +14,7 @@ when inside the directory containing this file.
 import NoDebug.Log
 import NoDebug.TodoOrToString
 import NoElementFontSize
+import NoUnused.Parameters
 import Review.Rule as Rule exposing (Rule)
 
 
@@ -23,4 +24,5 @@ config =
     , NoDebug.TodoOrToString.rule
     , NoElementFontSize.rule
         |> Rule.filterErrorsForFiles ((/=) "src/Style/Widgets/Text.elm")
+    , NoUnused.Parameters.rule
     ]
