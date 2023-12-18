@@ -59,15 +59,12 @@ parseConsoleLogExoSetupStatus ( oldExoSetupStatus, oldTimestamp ) consoleLog ser
                 -- 2 hours
                 + 7200000
                 < Time.posixToMillis currentTime
-
-        finalStatus =
-            if statusIsNonTerminal && serverTooOldForNonTerminalStatus then
-                ( ExoSetupTimeout, Just currentTime )
-
-            else
-                ( latestStatus, latestTimestamp )
     in
-    finalStatus
+    if statusIsNonTerminal && serverTooOldForNonTerminalStatus then
+        ( ExoSetupTimeout, Just currentTime )
+
+    else
+        ( latestStatus, latestTimestamp )
 
 
 exoSetupStatusToStr : ExoSetupStatus -> String
