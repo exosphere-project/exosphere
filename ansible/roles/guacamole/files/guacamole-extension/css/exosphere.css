@@ -1,0 +1,8 @@
+/* This is logo in the login box */
+.login-ui .login-dialog .logo {
+    width: 5em;
+    height: 5em;
+    background-image: url('app/ext/exosphere/resources/images/logo.svg');
+    background-repeat: no-repeat;
+    background-size: cover;
+}

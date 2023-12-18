@@ -27,10 +27,12 @@
     src: 'guacamole.properties'
     dest: '/opt/guacamole/config/guacamole.properties'
 
-- name: 'Exosphere Guacamole replacement login page written'
-  copy:
-    src: 'guacamole-exosphere-ext.jar'
+- name: Build exosphere guacamole extension
+  files.archive:
+    format: zip
     dest: '/opt/guacamole/config/extensions/guacamole-exosphere-ext.jar'
+    path:
+      - guacamole-extension/*
 
 - name: 'docker-compose file written'
   copy:
