@@ -27,6 +27,7 @@ import NoUnused.CustomTypeConstructorArgs
 import NoUnused.Dependencies
 import NoUnused.Parameters
 import NoUnused.Variables
+import Simplify
 import Review.Rule as Rule exposing (Rule)
 
 
@@ -81,4 +82,5 @@ config =
     , NoUnused.CustomTypeConstructorArgs.rule
     , NoUnused.Variables.rule
     , NoUnnecessaryTrailingUnderscore.rule
+    , Simplify.rule Simplify.defaults
     ]
