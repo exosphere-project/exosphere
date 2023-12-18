@@ -98,9 +98,11 @@ update msg result =
             ( Err appError, Cmd.none )
 
         Ok model ->
-            case updateValid msg model of
-                ( newModel, nextMsg ) ->
-                    ( Ok newModel, nextMsg )
+            let
+                ( newModel, nextMsg ) =
+                    updateValid msg model
+            in
+            ( Ok newModel, nextMsg )
 
 
 updateValid : OuterMsg -> OuterModel -> ( OuterModel, Cmd OuterMsg )

@@ -43,9 +43,11 @@ init serializedFlags urlKey =
         Ok flags ->
             case validateCloudSpecificConfigs flags.clouds of
                 Ok cloudSpecificConfigs ->
-                    case initWithValidFlags flags cloudSpecificConfigs urlKey of
-                        ( model, cmd ) ->
-                            ( Ok model, cmd )
+                    let
+                        ( model, cmd ) =
+                            initWithValidFlags flags cloudSpecificConfigs urlKey
+                    in
+                    ( Ok model, cmd )
 
                 Err appError ->
                     ( Err appError, Cmd.none )
