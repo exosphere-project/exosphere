@@ -401,7 +401,7 @@ routeToViewStateModelCmd sharedModel route =
                             let
                                 ( newSharedModel, cmd ) =
                                     ( project |> GetterSetters.modelUpdateProject sharedModel
-                                    , Cmd.batch [ Ports.instantiateClipboardJs () ]
+                                    , Ports.instantiateClipboardJs ()
                                     )
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestShares (GetterSetters.projectIdentifier project))
@@ -421,7 +421,7 @@ routeToViewStateModelCmd sharedModel route =
                             let
                                 ( newNewSharedModel, newCmd ) =
                                     ( GetterSetters.modelUpdateProject sharedModel project
-                                    , Cmd.batch [ Ports.instantiateClipboardJs () ]
+                                    , Ports.instantiateClipboardJs ()
                                     )
                                         |> Helpers.pipelineCmd (ApiModelHelpers.requestShares (GetterSetters.projectIdentifier project))
                                         |> Helpers.pipelineCmd (ApiModelHelpers.requestShareQuotas (GetterSetters.projectIdentifier project))
