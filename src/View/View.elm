@@ -82,7 +82,7 @@ viewValid outerModel =
     { title =
         View.PageTitle.pageTitle outerModel
     , body =
-        [ view_ outerModel ]
+        [ viewWrapper outerModel ]
     }
 
 
@@ -93,8 +93,8 @@ viewInvalid appError =
     }
 
 
-view_ : OuterModel -> Html.Html OuterMsg
-view_ outerModel =
+viewWrapper : OuterModel -> Html.Html OuterMsg
+viewWrapper outerModel =
     let
         { viewContext } =
             outerModel.sharedModel
@@ -129,12 +129,12 @@ appView windowSize outerModel context =
                                     ]
                             )
 
-                        Just project_ ->
-                            ( Just <| projectHeaderView context project_
+                        Just project ->
+                            ( Just <| projectHeaderView context project
                             , projectContentView
                                 outerModel.sharedModel
                                 context
-                                project_
+                                project
                                 viewConstructor
                             )
 
@@ -466,7 +466,7 @@ createProjectResourcesButton : View.Types.Context -> ProjectIdentifier -> Elemen
 createProjectResourcesButton context projectId =
     let
         renderButton : Element.Element Never -> String -> Route.Route -> Element.Attribute OuterMsg -> Element.Element OuterMsg
-        renderButton icon_ text route closeDropdown =
+        renderButton icon text route closeDropdown =
             Element.link
                 [ Element.width Element.fill
                 , closeDropdown
@@ -476,7 +476,7 @@ createProjectResourcesButton context projectId =
                     Widget.button
                         (dropdownItemStyle context.palette)
                         { icon =
-                            Element.el [] icon_
+                            Element.el [] icon
                         , text =
                             text
                         , onPress =
