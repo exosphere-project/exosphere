@@ -28,11 +28,11 @@
     dest: '/opt/guacamole/config/guacamole.properties'
 
 - name: Build exosphere guacamole extension
-  files.archive:
+  community.general.archive:
     format: zip
     dest: '/opt/guacamole/config/extensions/guacamole-exosphere-ext.jar'
     path:
-      - guacamole-extension/*
+      - /opt/instance-config-mgt/ansible/roles/guacamole/files/guacamole-extension/*
 
 - name: 'docker-compose file written'
   copy:

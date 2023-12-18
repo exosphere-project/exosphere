@@ -33,6 +33,7 @@ runcmd:
     . /opt/ansible-venv/bin/activate
     pip install --upgrade pip
     pip install ansible-core
+    ansible-galaxy collection install community.general
     ansible-pull \\
       --url "{instance-config-mgt-repo-url}" \\
       --checkout "{instance-config-mgt-repo-checkout}" \\
