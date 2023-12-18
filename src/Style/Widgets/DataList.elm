@@ -694,7 +694,7 @@ filtersView model toMsg context { filters, dropdownMsgMapper } data =
                         )
                         []
                         filters
-                        |> String.join ""
+                        |> String.concat
                         |> Murmur3.hashString 4321
                         |> String.fromInt
                    )

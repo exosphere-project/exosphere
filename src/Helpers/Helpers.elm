@@ -445,7 +445,7 @@ write_files:"""
                 ""
 
             else
-                writeFilesHeader ++ String.join "" filesToWrite
+                writeFilesHeader ++ String.concat filesToWrite
     in
     [ ( "{ssh-authorized-keys}\n", authorizedKeysYaml )
     , ( "{ansible-extra-vars}", ansibleExtraVars )
