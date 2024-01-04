@@ -1,6 +1,6 @@
 module NoHardcodedLocalizedStringsTest exposing (all)
 
-import NoHardcodedLocalizedStrings exposing (rule)
+import NoHardcodedLocalizedStrings
 import Review.Rule exposing (Rule)
 import Review.Test
 import Test exposing (Test, describe, test)
