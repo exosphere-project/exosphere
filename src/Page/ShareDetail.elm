@@ -309,7 +309,7 @@ render context project ( currentTime, _ ) share =
 
                 ( sizeDisplay, sizeLabel ) =
                     -- The share size, in GiBs.
-                    humanNumber { locale | decimals = Exact 0 } GigaBytes share.size
+                    humanNumber { locale | decimals = Exact 0 } GibiBytes share.size
             in
             sizeDisplay ++ " " ++ sizeLabel
 

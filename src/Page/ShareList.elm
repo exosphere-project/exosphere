@@ -156,7 +156,7 @@ shareView context project currentTime shareRecord =
         ( shareBytes, shareBytesSuffix ) =
             humanNumber
                 { locale | decimals = Exact 0 }
-                GigaBytes
+                GibiBytes
                 shareRecord.share.size
 
         shareSize =

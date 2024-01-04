@@ -329,7 +329,7 @@ volumeView context project currentTime volumeRecord =
                     context.locale
 
                 ( sizeDisplay, sizeLabel ) =
-                    humanNumber { locale | decimals = Exact 0 } GigaBytes bytes
+                    humanNumber { locale | decimals = Exact 0 } GibiBytes bytes
             in
             sizeDisplay ++ " " ++ sizeLabel
 
