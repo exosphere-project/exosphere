@@ -98,7 +98,7 @@ interactionStatus project server interaction context currentTime tlsReverseProxy
                                                 -- Ignore server events which don't cause a power cycle
                                                 |> List.filter
                                                     (\event ->
-                                                        [ "lock", "unlock", "image" ]
+                                                        [ "lock", "unlock", {- @nonlocalized -} "image" ]
                                                             |> List.map (\action -> action == event.action)
                                                             |> List.any identity
                                                             |> not
@@ -177,7 +177,7 @@ interactionStatus project server interaction context currentTime tlsReverseProxy
                         -- Ignore server events which don't cause a power cycle
                         |> List.filter
                             (\event ->
-                                [ "lock", "unlock", "image" ]
+                                [ "lock", "unlock", {- @nonlocalized -} "image" ]
                                     |> List.map (\action -> action == event.action)
                                     |> List.any identity
                                     |> not

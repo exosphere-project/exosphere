@@ -1280,7 +1280,7 @@ clusterInputExperimental : View.Types.Context -> Model -> Element.Element Msg
 clusterInputExperimental context model =
     let
         warnings =
-            [ Element.text "Warning: This will only work on Jetstream Cloud, and can take 30 minutes or longer to set up a cluster."
+            [ Element.text {- @nonlocalized -} "Warning: This will only work on Jetstream Cloud, and can take 30 minutes or longer to set up a cluster."
             , Element.text <|
                 String.concat
                     [ "This feature currently only supports "

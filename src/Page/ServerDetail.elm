@@ -713,7 +713,7 @@ passphraseVulnWarning context server =
                                     context.palette
                                     "https://gitlab.com/exosphere/exosphere/issues/284"
                                     "issue #284"
-                                , Element.text " on the Exosphere GitLab project."
+                                , Element.text {- @nonlocalized -} " on the Exosphere GitLab project."
                                 ]
                         }
 
@@ -1288,7 +1288,7 @@ renderServerActionButton context project model server closeActionsDropdown serve
                                 Route.ServerCreateImage server.osProps.uuid <|
                                     Just <|
                                         server.osProps.name
-                                            ++ "-image"
+                                            ++ {- @nonlocalized -} "-image"
                             )
                     , label =
                         renderActionButton

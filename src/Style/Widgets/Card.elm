@@ -12,6 +12,7 @@ import Widget
 
 notes : String
 notes =
+    {- @nonlocalized -}
     """
 ## Usage
 
