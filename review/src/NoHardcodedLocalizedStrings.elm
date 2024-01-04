@@ -8,7 +8,7 @@ import Review.Rule as Rule exposing (Error, Rule)
 
 
 type alias Context =
-    ()
+    { tags : List (Node String) }
 
 
 type alias LocalizedString =
@@ -46,9 +46,21 @@ exosphereLocalizedStrings =
 
 rule : LocalizedStrings -> Rule
 rule localizedStrings =
-    Rule.newModuleRuleSchema "NoHardcodedLocalizedStrings" ()
+    Rule.newModuleRuleSchema "NoHardcodedLocalizedStrings" { tags = [] }
+        |> Rule.withCommentsVisitor commentVisitor
         |> Rule.withExpressionEnterVisitor (expressionVisitor localizedStrings)
         |> Rule.fromModuleRuleSchema
+
+
+commentVisitor : List (Node String) -> Context -> ( List (Error {}), Context )
+commentVisitor nodes context =
+    ( []
+    , { context
+        | tags =
+            context.tags
+                ++ List.filter (\node -> Node.value node |> String.contains "@nonlocalized") nodes
+      }
+    )
 
 
 searchStringForToken : Range -> String -> String -> String -> List (Error {})
@@ -150,16 +162,38 @@ expressionVisitor localizedStrings node context =
             let
                 range =
                     Node.range node
+
+                tagged =
+                    List.any
+                        (\tag ->
+                            let
+                                tagRange =
+                                    Node.range tag
+                            in
+                            (-- Check if any tag is on the line preceding this node
+                             (range.start.row - 1) == tagRange.start.row
+                            )
+                                || (-- Check if any tag is on the same line
+                                    (range.start.row == tagRange.start.row)
+                                        -- And within 5 characters of
+                                        && (range.start.column - tagRange.end.column < 5)
+                                   )
+                        )
+                        context.tags
             in
-            ( List.concatMap
-                (\( varName, localStr ) ->
-                    List.concatMap
-                        (searchStringForToken range varName localStr)
-                        (stringToCleanWords str)
+            if not tagged then
+                ( List.concatMap
+                    (\( varName, localStr ) ->
+                        List.concatMap
+                            (searchStringForToken range varName localStr)
+                            (stringToCleanWords str)
+                    )
+                    localizedStrings
+                , context
                 )
-                localizedStrings
-            , context
-            )
+
+            else
+                ( [], context )
 
         _ ->
             ( [], context )
