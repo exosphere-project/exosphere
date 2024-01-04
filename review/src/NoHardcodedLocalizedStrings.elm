@@ -47,9 +47,27 @@ exosphereLocalizedStrings =
 rule : LocalizedStrings -> Rule
 rule localizedStrings =
     Rule.newModuleRuleSchema "NoHardcodedLocalizedStrings" { tags = [] }
+        |> Rule.providesFixesForModuleRule
         |> Rule.withCommentsVisitor commentVisitor
         |> Rule.withExpressionEnterVisitor (expressionVisitor localizedStrings)
+        |> Rule.withFinalModuleEvaluation finalModuleEvaluation
         |> Rule.fromModuleRuleSchema
+
+
+finalModuleEvaluation : Context -> List (Error {})
+finalModuleEvaluation context =
+    List.map
+        (\tag ->
+            Rule.errorWithFix
+                { message = "Unused @nonlocalized tag"
+                , details =
+                    [ "@nonlocalized tags must only be used to mark strings that have intentional usages of localizable strings"
+                    ]
+                }
+                (Node.range tag)
+                [ Fix.removeRange (Node.range tag) ]
+        )
+        context.tags
 
 
 commentVisitor : List (Node String) -> Context -> ( List (Error {}), Context )
@@ -58,7 +76,15 @@ commentVisitor nodes context =
     , { context
         | tags =
             context.tags
-                ++ List.filter (\node -> Node.value node |> String.contains "@nonlocalized") nodes
+                ++ List.filterMap
+                    (\node ->
+                        if Node.value node |> String.contains "@nonlocalized" then
+                            Just node
+
+                        else
+                            Nothing
+                    )
+                    nodes
       }
     )
 
@@ -163,8 +189,8 @@ expressionVisitor localizedStrings node context =
                 range =
                     Node.range node
 
-                tagged =
-                    List.any
+                ( tags, unusedTags ) =
+                    List.partition
                         (\tag ->
                             let
                                 tagRange =
@@ -180,20 +206,27 @@ expressionVisitor localizedStrings node context =
                                    )
                         )
                         context.tags
-            in
-            if not tagged then
-                ( List.concatMap
-                    (\( varName, localStr ) ->
-                        List.concatMap
-                            (searchStringForToken range varName localStr)
-                            (stringToCleanWords str)
-                    )
-                    localizedStrings
-                , context
-                )
 
-            else
-                ( [], context )
+                errors =
+                    List.concatMap
+                        (\( varName, localStr ) ->
+                            List.concatMap
+                                (searchStringForToken range varName localStr)
+                                (stringToCleanWords str)
+                        )
+                        localizedStrings
+            in
+            case ( List.isEmpty tags, List.isEmpty errors ) of
+                -- We have tagged errors
+                ( False, False ) ->
+                    ( [], { context | tags = unusedTags } )
+
+                -- No errors, but we matched tags :/
+                ( False, True ) ->
+                    ( [], context )
+
+                _ ->
+                    ( errors, { context | tags = unusedTags } )
 
         _ ->
             ( [], context )
