@@ -8,8 +8,8 @@ import FormatNumber.Locales exposing (Decimals(..), Locale)
 type Unit
     = Bytes
     | Count
-    | GigaBytes
-    | MegaBytes
+    | GibiBytes
+    | MebiBytes
 
 
 byteSuffixes : Array.Array String
@@ -58,9 +58,6 @@ harmonize the UI display of storage quotas with the values
 reported by Horizon and should be fixed or removed with a
 real solution to the problem of "GB" ambiguity.
 
-@TODO: Add input and output units to this function and handle the
-conversion properly once and for all.
-
 -}
 humanNumber : Locale -> Unit -> Int -> ( String, String )
 humanNumber locale unit n =
@@ -71,10 +68,10 @@ humanNumber locale unit n =
         Count ->
             ( humanCount locale n, "total" )
 
-        GigaBytes ->
+        GibiBytes ->
             humanBytes locale (n * (1024 ^ 3))
 
-        MegaBytes ->
+        MebiBytes ->
             humanBytes locale (n * (1024 ^ 2))
 
 
