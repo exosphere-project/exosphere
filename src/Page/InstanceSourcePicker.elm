@@ -106,7 +106,7 @@ view context project model =
                         Widget.Select
                             model.tab
                             [ { text = "By Type", icon = Element.none }
-                            , { text = "By Image", icon = Element.none }
+                            , { text = "By " ++ Helpers.String.toTitleCase context.localization.staticRepresentationOfBlockDeviceContents, icon = Element.none }
                             ]
                             (\i -> Just <| SetTab i)
                     , content =

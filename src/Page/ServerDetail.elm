@@ -693,7 +693,9 @@ passphraseVulnWarning context server =
                                         , context.localization.virtualComputer
                                         , "was created with an older version of Exosphere which left the opportunity for unprivileged processes running on the"
                                         , context.localization.virtualComputer
-                                        , "to query the instance metadata service and determine the passphrase for exouser (who is a sudoer). This represents a "
+                                        , "to query the "
+                                        , context.localization.virtualComputer
+                                        , " metadata service and determine the passphrase for exouser (who is a sudoer). This represents a "
                                         ]
                                 , Link.externalLink
                                     context.palette

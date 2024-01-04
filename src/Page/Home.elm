@@ -99,7 +99,10 @@ headerView context sharedModel =
                                )
                             ++ "?"
                             |> Text.body
-                        , "Nothing will be deleted on the cloud, only from the view." |> Text.text Text.Small []
+                        , "Nothing will be deleted on the "
+                            ++ context.localization.openstackWithOwnKeystone
+                            ++ ", only from the view."
+                            |> Text.text Text.Small []
                         , (context.localization.unitOfTenancy
                             |> Helpers.String.pluralize
                             |> Helpers.String.toTitleCase

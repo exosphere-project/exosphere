@@ -88,13 +88,16 @@ breadcrumb_ outerModel context =
                             case GetterSetters.projectLookup outerModel.sharedModel projectId of
                                 Just project ->
                                     [ { route = Just <| Route.ProjectRoute projectId <| Route.ProjectOverview
-                                      , label = "Project " ++ project.auth.project.name
+                                      , label =
+                                            Helpers.String.toTitleCase context.localization.unitOfTenancy
+                                                ++ " "
+                                                ++ project.auth.project.name
                                       }
                                     ]
 
                                 Nothing ->
                                     [ { route = Nothing
-                                      , label = "Unknown project"
+                                      , label = "Unknown " ++ context.localization.unitOfTenancy
                                       }
                                     ]
 

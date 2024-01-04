@@ -280,7 +280,7 @@ fullVolumeInfoItems context ( quota, snapshotUsage ) =
                     "Storage used"
                     (usageComparison locale GibiBytes quota.gigabytes.inUse l)
                     l
-                    [ ( "Volume Usage: " ++ usageLabel locale GibiBytes volumeUsage
+                    [ ( Helpers.String.toTitleCase context.localization.blockDevice ++ " Usage: " ++ usageLabel locale GibiBytes volumeUsage
                       , volumeUsage
                       , [ multiMeterPrimaryBackground context ]
                       )

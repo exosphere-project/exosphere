@@ -463,7 +463,7 @@ view context project currentTime model =
                     Just <|
                         String.join " "
                             [ "No networks to create a server available."
-                            , "Please contact your cloud administrator."
+                            , "Please contact your " ++ context.localization.openstackWithOwnKeystone ++ " administrator."
                             ]
 
         renderNetworkGuidance =
@@ -590,11 +590,14 @@ view context project currentTime model =
                         -- this error isn't form field specific, show it over other errors
                         let
                             invalidFormHint =
-                                (context.localization.maxResourcesPerProject
-                                    |> Helpers.String.pluralize
-                                    |> Helpers.String.toTitleCase
-                                )
-                                    ++ " have been exhausted. Contact your cloud administrator, or delete some stuff"
+                                String.join " "
+                                    [ context.localization.maxResourcesPerProject
+                                        |> Helpers.String.pluralize
+                                        |> Helpers.String.toTitleCase
+                                    , "have been exhausted. Contact your"
+                                    , context.localization.openstackWithOwnKeystone
+                                    , "administrator, or delete some stuff"
+                                    ]
                         in
                         invalidMessage context.palette invalidFormHint
 
@@ -904,7 +907,9 @@ volBackedPrompt project context model volumeQuota flavor =
                     , context.localization.maxResourcesPerProject
                     , " exhausted, cannot launch a "
                     , context.localization.blockDevice
-                    , "-backed instance)"
+                    , "-backed "
+                    , context.localization.virtualComputer
+                    , ")"
                     ]
         , case model.volSizeTextInput of
             Nothing ->
