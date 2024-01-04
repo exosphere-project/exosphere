@@ -3,11 +3,20 @@ module NoHardcodedLocalizedStrings exposing (LocalizedStrings, exosphereLocalize
 import Char
 import Elm.Syntax.Expression as Expression exposing (Expression)
 import Elm.Syntax.Node as Node exposing (Node)
+import Elm.Syntax.Range exposing (Range)
 import Review.Rule as Rule exposing (Error, Rule)
 
 
+type alias Context =
+    ()
+
+
+type alias LocalizedString =
+    ( String, String )
+
+
 type alias LocalizedStrings =
-    List ( String, String )
+    List LocalizedString
 
 
 exosphereLocalizedStrings : LocalizedStrings
@@ -38,115 +47,129 @@ exosphereLocalizedStrings =
 rule : LocalizedStrings -> Rule
 rule localizedStrings =
     Rule.newModuleRuleSchema "NoHardcodedLocalizedStrings" ()
-        |> Rule.withSimpleExpressionVisitor (expressionVisitor localizedStrings)
+        |> Rule.withExpressionEnterVisitor (expressionVisitor localizedStrings)
         |> Rule.fromModuleRuleSchema
 
 
-expressionVisitor : List ( String, String ) -> Node Expression -> List (Error {})
-expressionVisitor localizedStrings node =
-    List.concatMap
-        (\( varName, localStr ) ->
-            case Node.value node of
-                Expression.Literal str ->
-                    List.concatMap
-                        (\tok ->
-                            let
-                                isMatch =
-                                    xor
-                                        (localStr == String.toLower tok)
-                                        (pluralize localStr == String.toLower tok)
+searchStringForToken : Range -> String -> String -> String -> List (Error {})
+searchStringForToken range varName localStr word =
+    let
+        isMatch =
+            xor
+                (localStr == String.toLower word)
+                (pluralize localStr == String.toLower word)
 
-                                isPluralized =
-                                    pluralize localStr == String.toLower tok
+        isPluralized =
+            pluralize localStr == String.toLower word
 
-                                ( isTitleCase, isUpperCase ) =
-                                    case String.uncons tok of
-                                        Just ( left, right ) ->
-                                            let
-                                                isFirstCharCapitalized : Bool
-                                                isFirstCharCapitalized =
-                                                    Char.isUpper left
+        ( isTitleCase, isUpperCase ) =
+            case String.uncons word of
+                Just ( left, right ) ->
+                    let
+                        isFirstCharCapitalized : Bool
+                        isFirstCharCapitalized =
+                            Char.isUpper left
 
-                                                isRestCapitalized : Bool
-                                                isRestCapitalized =
-                                                    List.all Char.isUpper (String.toList right)
+                        isRestCapitalized : Bool
+                        isRestCapitalized =
+                            List.all Char.isUpper (String.toList right)
 
-                                                isRestLowercase =
-                                                    List.all Char.isLower (String.toList right)
-                                            in
-                                            ( isFirstCharCapitalized && isRestLowercase
-                                            , isFirstCharCapitalized && isRestCapitalized
-                                            )
+                        isRestLowercase =
+                            List.all Char.isLower (String.toList right)
+                    in
+                    ( isFirstCharCapitalized && isRestLowercase
+                    , isFirstCharCapitalized && isRestCapitalized
+                    )
 
-                                        Nothing ->
-                                            ( False, False )
+                Nothing ->
+                    ( False, False )
 
-                                filters : List String
-                                filters =
-                                    List.concat
-                                        [ if isPluralized then
-                                            [ "Helpers.String.pluralized" ]
+        filters : List String
+        filters =
+            List.concat
+                [ if isPluralized then
+                    [ "Helpers.String.pluralized" ]
 
-                                          else
-                                            []
-                                        , if isTitleCase then
-                                            [ "Helpers.String.toTitleCase" ]
-
-                                          else
-                                            []
-                                        , if isUpperCase then
-                                            [ "String.toUpper" ]
-
-                                          else
-                                            []
-                                        ]
-
-                                expression =
-                                    (if List.length filters > 0 then
-                                        "("
-
-                                     else
-                                        ""
-                                    )
-                                        ++ (if List.length filters > 1 then
-                                                String.join " |> " (("context.localization." ++ varName) :: filters)
-
-                                            else
-                                                String.concat filters ++ " context.localization." ++ varName
-                                           )
-                                        ++ (if List.length filters > 0 then
-                                                ")"
-
-                                            else
-                                                ""
-                                           )
-                            in
-                            if isMatch then
-                                [ Rule.error
-                                    { message =
-                                        "Replace `"
-                                            ++ tok
-                                            ++ "` with "
-                                            ++ expression
-                                    , details = [ "This is a localized string, and should not be hardcoded" ]
-                                    }
-                                    (Node.range node)
-                                ]
-
-                            else
-                                []
-                        )
-                        (stringToWords str)
-
-                _ ->
+                  else
                     []
-        )
-        localizedStrings
+                , if isTitleCase then
+                    [ "Helpers.String.toTitleCase" ]
+
+                  else
+                    []
+                , if isUpperCase then
+                    [ "String.toUpper" ]
+
+                  else
+                    []
+                ]
+
+        expression =
+            (if List.length filters > 0 then
+                "("
+
+             else
+                ""
+            )
+                ++ (if List.length filters > 1 then
+                        String.join " |> " (("context.localization." ++ varName) :: filters)
+
+                    else
+                        String.concat filters ++ " context.localization." ++ varName
+                   )
+                ++ (if List.length filters > 0 then
+                        ")"
+
+                    else
+                        ""
+                   )
+    in
+    if isMatch then
+        [ Rule.error
+            { message =
+                "Replace `"
+                    ++ word
+                    ++ "` with "
+                    ++ expression
+            , details =
+                [ word ++ " is a localized string, and should not be hardcoded"
+                , "If this is intentional, tag the string with a {- @nonlocalized -} comment on the preceding line"
+                ]
+            }
+            range
+        ]
+
+    else
+        []
 
 
-stringToWords : String -> List String
-stringToWords str =
-    String.replace "'" " " str
+expressionVisitor : LocalizedStrings -> Node Expression -> Context -> ( List (Error {}), Context )
+expressionVisitor localizedStrings node context =
+    case Node.value node of
+        Expression.Literal str ->
+            let
+                range =
+                    Node.range node
+            in
+            ( List.concatMap
+                (\( varName, localStr ) ->
+                    List.concatMap
+                        (searchStringForToken range varName localStr)
+                        (stringToCleanWords str)
+                )
+                localizedStrings
+            , context
+            )
+
+        _ ->
+            ( [], context )
+
+
+stringToCleanWords : String -> List String
+stringToCleanWords str =
+    str
+        |> String.replace "'" " "
+        |> String.replace "\"" " "
         |> String.words
         |> List.map String.trim
         |> List.map (String.filter Char.isAlpha)
