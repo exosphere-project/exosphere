@@ -72,9 +72,7 @@ infoItem { locale, palette } detail ( label, units ) =
 
                       else
                         [ usedLabel ]
-                    , [ "of" ]
-                    , [ limitCount ]
-                    , [ limitLabel ]
+                    , [ "of", limitCount, limitLabel ]
                     ]
     in
     Style.Widgets.Meter.meter palette

@@ -281,8 +281,8 @@ viewBuiltSupportRequest context sharedModel model =
             []
           <|
             List.concat
-                [ [ Element.text "If the button does not work, please copy all of the text in the box below and paste it into an email message to: " ]
-                , [ boldCopyableText sharedModel.style.userSupportEmailAddress
+                [ [ Element.text "If the button does not work, please copy all of the text in the box below and paste it into an email message to: "
+                  , boldCopyableText sharedModel.style.userSupportEmailAddress
                   ]
                 , case sharedModel.style.userSupportEmailSubject of
                     Just subject ->
