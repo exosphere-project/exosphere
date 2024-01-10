@@ -867,7 +867,7 @@ volBackedPrompt project context model volumeQuota flavor =
                     \new ->
                         let
                             newVolSizeTextInput =
-                                if new == True then
+                                if new then
                                     Just <| ValidNumericTextInput defaultVolSizeGB
 
                                 else

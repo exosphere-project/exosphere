@@ -508,7 +508,7 @@ newServerNetworkOptions project =
                 RDPP.DoHave networks _ ->
                     networks
                         |> List.filter (\n -> n.status == "ACTIVE")
-                        |> List.filter (\n -> n.adminStateUp == True)
+                        |> List.filter (\n -> n.adminStateUp)
                         |> List.filter (\n -> n.isExternal == False)
 
                 RDPP.DontHave ->
