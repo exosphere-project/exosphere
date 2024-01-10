@@ -356,7 +356,7 @@ config =
                             { model
                                 | servers =
                                     List.filter
-                                        (\server -> not (server.id == serverId))
+                                        (\server -> server.id /= serverId)
                                         model.servers
                             }
                       }
