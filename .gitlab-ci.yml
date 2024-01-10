@@ -178,7 +178,7 @@ static_analysis:
     - npm install --no-save elm-analyse
   script:
     - npx elm-analyse
-    - npx elm-format --validate src
+    - npx elm-format --validate src tests review/src review/tests
     - npx elm-review
     - npm run js:format
   after_script:
@@ -196,6 +196,7 @@ elm_test:
     - npm install
   script:
     - npx elm-test-rs
+    - npx elm-test-rs --project review
     - npx elm-test-rs --report junit > elm-test-report.xml
   after_script:
     - mkdir -p home && rsync -a ~/.elm home
