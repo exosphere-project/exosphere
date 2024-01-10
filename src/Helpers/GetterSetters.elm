@@ -346,7 +346,7 @@ getVolsAttachedToServer project server =
 volumeIsAttachedToServer : OSTypes.VolumeUuid -> Server -> Bool
 volumeIsAttachedToServer volumeUuid server =
     server.osProps.details.volumesAttached
-        |> List.any (\v -> v == volumeUuid)
+        |> List.member volumeUuid
 
 
 getServersWithVolAttached : Project -> OSTypes.Volume -> List OSTypes.ServerUuid

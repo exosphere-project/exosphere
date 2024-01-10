@@ -248,7 +248,7 @@ getNewFloatingIpOption project osServer floatingIpOption =
                     if
                         GetterSetters.getServerFixedIps project osServer.uuid
                             |> List.map ipv4AddressInRfc1918Space
-                            |> List.any (\i -> i == Ok HelperTypes.PublicNonRfc1918Space)
+                            |> List.member (Ok HelperTypes.PublicNonRfc1918Space)
                     then
                         DoNotUseFloatingIp
 

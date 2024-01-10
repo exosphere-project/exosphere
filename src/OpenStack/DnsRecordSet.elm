@@ -45,5 +45,5 @@ addressToRecord dnsRecordSets address =
     dnsRecordSets
         |> List.Extra.find
             (\{ records } ->
-                records |> Set.toList |> List.any (\z -> z == address)
+                records |> Set.toList |> List.member address
             )
