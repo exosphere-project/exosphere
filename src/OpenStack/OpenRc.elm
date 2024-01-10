@@ -46,8 +46,7 @@ processOpenRc existingCreds openRc =
             openRc
                 |> String.split "\n"
                 |> List.map (\line -> Parser.run varParser line)
-                |> List.map Result.toMaybe
-                |> List.filterMap identity
+                |> List.filterMap Result.toMaybe
                 |> List.head
     in
     OSTypes.OpenstackLogin

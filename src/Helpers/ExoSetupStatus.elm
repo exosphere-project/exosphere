@@ -39,8 +39,7 @@ parseConsoleLogExoSetupStatus ( oldExoSetupStatus, oldTimestamp ) consoleLog ser
                             |> Maybe.withDefault line
                     )
                 |> List.map (Json.Decode.decodeString exoSetupDecoder)
-                |> List.map Result.toMaybe
-                |> List.filterMap identity
+                |> List.filterMap Result.toMaybe
 
         ( latestStatus, latestTimestamp ) =
             decodedData
