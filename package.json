@@ -15,7 +15,7 @@
     "live-design-system": "npx elm-live src/DesignSystem/Explorer.elm --port 8002 --open --start-page=explorer.html -- --output=explorer.js --debug",
     "test": "npx elm-test-rs && npx elm-test-rs --project review",
     "js:format": "prettier --check .",
-    "elm:format": "npx elm-format --validate src review/src review/tests",
+    "elm:format": "npx elm-format --validate src tests review/src review/tests",
     "elm:analyse": "npx elm-analyse",
     "elm:review": "npx elm-review",
     "elm:git": "npx elm-git-install",
