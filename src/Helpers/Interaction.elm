@@ -52,12 +52,7 @@ interactionStatus project server interaction context currentTime tlsReverseProxy
                 ServerFromExo exoOriginProps ->
                     case exoOriginProps.customWorkflowStatus of
                         NotLaunchedWithCustomWorkflow ->
-                            if exoOriginProps.exoServerVersion < 3 then
-                                ITypes.Hidden
-
-                            else
-                                -- Deployed without a workflow
-                                ITypes.Hidden
+                            ITypes.Hidden
 
                         LaunchedWithCustomWorkflow customWorkflow ->
                             case customWorkflow.authToken.data of
