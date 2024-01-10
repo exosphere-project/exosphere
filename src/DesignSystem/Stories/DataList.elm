@@ -260,7 +260,7 @@ filters now =
                             )
                         )
                     |> Dict.fromList
-      , filterTypeAndDefaultValue = Style.Widgets.DataList.MultiselectOption (Set.fromList [ currentUser ])
+      , filterTypeAndDefaultValue = Style.Widgets.DataList.MultiselectOption (Set.singleton currentUser)
       , onFilter = sameCreator
       }
     , { id = "creationTime"

@@ -478,7 +478,7 @@ filters currentTime =
                     |> List.map (\creator -> ( creator, creator ))
                     |> Dict.fromList
       , filterTypeAndDefaultValue =
-            DataList.MultiselectOption <| Set.fromList [ "me" ]
+            DataList.MultiselectOption <| Set.singleton "me"
       , onFilter =
             \optionValue volume ->
                 volume.creator == optionValue

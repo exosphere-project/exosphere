@@ -375,7 +375,7 @@ filters =
       , filterOptions =
             \_ -> Dict.fromList [ ( "yes", "assigned" ), ( "no", "unassigned" ) ]
       , filterTypeAndDefaultValue =
-            DataList.MultiselectOption <| Set.fromList [ "no" ]
+            DataList.MultiselectOption <| Set.singleton "no"
       , onFilter =
             \optionValue floatingIpRecord ->
                 let

@@ -596,7 +596,7 @@ filters currentUser currentTime =
                         )
                     |> Dict.fromList
       , filterTypeAndDefaultValue =
-            DataList.MultiselectOption <| Set.fromList [ currentUser ]
+            DataList.MultiselectOption <| Set.singleton currentUser
       , onFilter =
             \optionValue server ->
                 server.creator == optionValue
