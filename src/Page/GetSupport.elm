@@ -161,8 +161,7 @@ viewSupportForm context sharedModel model =
                                 HelperTypes.SupportableImage ->
                                     sharedModel.projects
                                         |> List.map .images
-                                        |> List.map (RDPP.withDefault [])
-                                        |> List.concat
+                                        |> List.concatMap (RDPP.withDefault [])
                                         |> List.map
                                             (\image ->
                                                 ( image.uuid
@@ -177,8 +176,7 @@ viewSupportForm context sharedModel model =
                                 HelperTypes.SupportableServer ->
                                     sharedModel.projects
                                         |> List.map .servers
-                                        |> List.map (RDPP.withDefault [])
-                                        |> List.concat
+                                        |> List.concatMap (RDPP.withDefault [])
                                         |> List.map
                                             (\server ->
                                                 ( server.osProps.uuid
@@ -190,8 +188,7 @@ viewSupportForm context sharedModel model =
                                 HelperTypes.SupportableShare ->
                                     sharedModel.projects
                                         |> List.map .shares
-                                        |> List.map (RDPP.withDefault [])
-                                        |> List.concat
+                                        |> List.concatMap (RDPP.withDefault [])
                                         |> List.map
                                             (\share ->
                                                 ( share.uuid
@@ -203,8 +200,7 @@ viewSupportForm context sharedModel model =
                                 HelperTypes.SupportableVolume ->
                                     sharedModel.projects
                                         |> List.map .volumes
-                                        |> List.map (RDPP.withDefault [])
-                                        |> List.concat
+                                        |> List.concatMap (RDPP.withDefault [])
                                         |> List.map
                                             (\volume ->
                                                 ( volume.uuid

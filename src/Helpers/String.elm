@@ -17,10 +17,8 @@ indefiniteArticle phrase =
         -- Look at whatever comes before the first space, hyphen, or period
         phrase
             |> String.split " "
-            |> List.map (String.split "-")
-            |> List.concat
-            |> List.map (String.split ".")
-            |> List.concat
+            |> List.concatMap (String.split "-")
+            |> List.concatMap (String.split ".")
             |> List.head
     of
         Nothing ->

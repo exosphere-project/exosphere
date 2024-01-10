@@ -568,8 +568,7 @@ filters localization =
       , chipPrefix = Helpers.String.toTitleCase localization.staticRepresentationOfBlockDeviceContents ++ " tag is "
       , filterOptions =
             \images ->
-                List.map (\i -> i.image.tags) images
-                    |> List.concat
+                List.concatMap (\i -> i.image.tags) images
                     |> Set.fromList
                     |> Set.toList
                     |> List.map (\tag -> ( tag, tag ))

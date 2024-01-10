@@ -250,8 +250,7 @@ getServerFixedIps project serverUuid =
     project.ports
         |> RDPP.withDefault []
         |> List.filter (\p -> p.deviceUuid == serverUuid)
-        |> List.map .fixedIps
-        |> List.concat
+        |> List.concatMap .fixedIps
 
 
 getServerFloatingIps : Project -> OSTypes.ServerUuid -> List OSTypes.FloatingIp
