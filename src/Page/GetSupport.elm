@@ -49,7 +49,7 @@ update msg _ model =
         GotResourceType maybeItemType ->
             ( { model
                 | maybeSupportableResource =
-                    Maybe.andThen (\itemType -> Just ( itemType, Nothing )) maybeItemType
+                    Maybe.map (\itemType -> ( itemType, Nothing )) maybeItemType
               }
             , Cmd.none
             , SharedMsg.NoOp
