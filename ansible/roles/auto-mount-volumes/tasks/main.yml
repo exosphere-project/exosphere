@@ -12,4 +12,6 @@
 
 - name: "reload udev rules"
   shell: "udevadm control --reload-rules"
-  
+
+- name: "force trigger udev rules in case a volume was attached before ansible finished"
+  shell: "udevadm trigger --action=add --sysname-match='[sv]d?'"
