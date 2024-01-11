@@ -1,0 +1,18 @@
+[Unit]
+Description=Exosphere - Automount volume %i
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+
+ExecStartPre=-/lib/systemd/systemd-makefs ext4 /dev/%i
+ExecStartPre=/usr/bin/env mkdir -p /media/volume/%i
+ExecStart=/usr/bin/env systemd-mount \
+                        --options="user,exec,rw,auto,nofail,X-mount.owner=exouser,X-mount.group=exouser,x-systemd.device-timeout=1s" \
+                        --collect \
+                        /dev/%i \
+                        /media/volume/%i
+ExecStartPost=/usr/bin/env chown exouser:exouser /media/volume/%i
+
+ExecStop=/usr/bin/env systemd-mount --unmount /media/volume/%i
+ExecStopPost=/usr/bin/rmdir /media/volume/%i
