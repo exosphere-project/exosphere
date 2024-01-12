@@ -339,6 +339,14 @@ volumeView context project currentTime volumeRecord =
                     []
 
                 snapshots ->
+                    let
+                        renderCreationTime : VS.VolumeSnapshot -> Element.Element msg
+                        renderCreationTime { createdAt } =
+                            Element.row []
+                                [ Element.text "created "
+                                , relativeTimeElement currentTime createdAt
+                                ]
+                    in
                     [ Element.row [ Element.spacing spacer.px8, Font.color neutralColor ] [ Element.text "Snapshots" ]
                     , Element.table
                         [ Element.spacing spacer.px12 ]
@@ -366,16 +374,7 @@ volumeView context project currentTime volumeRecord =
                               }
                             , { header = Element.none
                               , width = Element.fill
-                              , view =
-                                    let
-                                        renderCreationTime : VS.VolumeSnapshot -> Element.Element msg
-                                        renderCreationTime { createdAt } =
-                                            Element.row []
-                                                [ Element.text "created "
-                                                , relativeTimeElement currentTime createdAt
-                                                ]
-                                    in
-                                    renderCreationTime
+                              , view = renderCreationTime
                               }
                             , { header = Element.none
                               , width = Element.shrink
