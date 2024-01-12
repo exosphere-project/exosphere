@@ -80,7 +80,7 @@ Talk to us in real-time on [Matrix / Element](https://matrix.to/#/#exosphere:mat
 
 We use GitLab to track issues and contributions. To request a new feature or report a bug, [create a new issue](https://gitlab.com/exosphere/exosphere/-/issues/new) on our GitLab project.
 
-We have a **weekly community video call** Mondays at 16:00 UTC. Join by clicking on the Jitsi widget in our [Element chat](https://matrix.to/#/#exosphere:matrix.org). ([agenda](https://c-mart.sandcats.io/shared/wfRsWBVmJZ3maUn7HMFqNj_MR_Bzy1vob9CzWu1n7QI), and [previous meeting notes](https://gitlab.com/exosphere/exosphere/-/wikis/Meetings/2023/Weekly-Community-Meetings-(2023)))
+We have a **weekly community video call** Wednesdays at 15:30 UTC (**note the new day and time**). Join by clicking on the Jitsi widget in our [Element chat](https://matrix.to/#/#exosphere:matrix.org). ([agenda](https://c-mart.sandcats.io/shared/wfRsWBVmJZ3maUn7HMFqNj_MR_Bzy1vob9CzWu1n7QI), and [previous meeting notes](https://gitlab.com/exosphere/exosphere/-/wikis/Meetings/2023/Weekly-Community-Meetings-(2023)))
 
 ## Exosphere's Impact
 
