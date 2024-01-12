@@ -1,13 +1,18 @@
 ---
 
-- name: "python script copied"
+- name: "automount-volume.py copied"
   copy: 
     src: automount-volume.py
     dest: /usr/bin
     mode: 'u+rwx'
     owner: root
-    
-- name: "udev rules copied"
+
+- name: "automount-volume@.service copied"
+  copy:
+    src: automount-volume@.service
+    dest: /etc/systemd/system/
+
+- name: "99-exosphere-automount-volume.rules copied"
   copy:
     src: 99-exosphere-automount-volume.rules
     dest: /etc/udev/rules.d/

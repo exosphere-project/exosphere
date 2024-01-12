@@ -66,7 +66,6 @@ def do_mount(device: pathlib.Path):
     print(f"mounting {device} to /media/volumes/{volume_name}")
 
     mountpoint.mkdir(mode=0o755, parents=True, exist_ok=True)
-    log_exec(("/lib/systemd/systemd-makefs", "ext4", str(device)))
     log_exec(
         (
             # "/usr/bin/env",
