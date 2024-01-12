@@ -93,21 +93,18 @@ requestServer project serverUuid =
             ProjectMsg
                 (GetterSetters.projectIdentifier project)
                 (ReceiveServer serverUuid errorContext result)
-
-        requestServerCmd =
-            openstackCredentialedRequest
-                (GetterSetters.projectIdentifier project)
-                Get
-                (Just "compute 2.27")
-                []
-                (project.endpoints.nova ++ "/servers/" ++ serverUuid)
-                Http.emptyBody
-                (expectJsonWithErrorBody
-                    resultToMsg
-                    (Decode.at [ "server" ] serverDecoder)
-                )
     in
-    requestServerCmd
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Get
+        (Just "compute 2.27")
+        []
+        (project.endpoints.nova ++ "/servers/" ++ serverUuid)
+        Http.emptyBody
+        (expectJsonWithErrorBody
+            resultToMsg
+            (Decode.at [ "server" ] serverDecoder)
+        )
 
 
 requestServerEvents : Project -> OSTypes.ServerUuid -> Cmd SharedMsg

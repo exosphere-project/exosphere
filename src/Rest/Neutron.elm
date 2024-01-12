@@ -196,21 +196,18 @@ requestCreateFloatingIp project network maybePortServerUuid maybeIp =
 
                         Nothing ->
                             ReceiveCreateProjectFloatingIp errorContext result
-
-        requestCmd =
-            openstackCredentialedRequest
-                (GetterSetters.projectIdentifier project)
-                Post
-                Nothing
-                []
-                (project.endpoints.neutron ++ "/v2.0/floatingips")
-                (Http.jsonBody requestBody)
-                (expectJsonWithErrorBody
-                    resultToMsg_
-                    floatingIpDecoder
-                )
     in
-    requestCmd
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Post
+        Nothing
+        []
+        (project.endpoints.neutron ++ "/v2.0/floatingips")
+        (Http.jsonBody requestBody)
+        (expectJsonWithErrorBody
+            resultToMsg_
+            floatingIpDecoder
+        )
 
 
 requestDeleteFloatingIp : Project -> Types.Error.ErrorContext -> OSTypes.IpAddressUuid -> Cmd SharedMsg
@@ -263,21 +260,18 @@ requestAssignFloatingIp project port_ floatingIpUuid =
                         (GetterSetters.projectIdentifier project)
                         (ReceiveAssignFloatingIp ip)
                 )
-
-        requestCmd =
-            openstackCredentialedRequest
-                (GetterSetters.projectIdentifier project)
-                Put
-                Nothing
-                []
-                (project.endpoints.neutron ++ "/v2.0/floatingips/" ++ floatingIpUuid)
-                (Http.jsonBody requestBody)
-                (expectJsonWithErrorBody
-                    resultToMsg_
-                    floatingIpDecoder
-                )
     in
-    requestCmd
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Put
+        Nothing
+        []
+        (project.endpoints.neutron ++ "/v2.0/floatingips/" ++ floatingIpUuid)
+        (Http.jsonBody requestBody)
+        (expectJsonWithErrorBody
+            resultToMsg_
+            floatingIpDecoder
+        )
 
 
 requestUnassignFloatingIp : Project -> OSTypes.IpAddressUuid -> Cmd SharedMsg
@@ -306,21 +300,18 @@ requestUnassignFloatingIp project floatingIpUuid =
                         (GetterSetters.projectIdentifier project)
                         (ReceiveUnassignFloatingIp ip)
                 )
-
-        requestCmd =
-            openstackCredentialedRequest
-                (GetterSetters.projectIdentifier project)
-                Put
-                Nothing
-                []
-                (project.endpoints.neutron ++ "/v2.0/floatingips/" ++ floatingIpUuid)
-                (Http.jsonBody requestBody)
-                (expectJsonWithErrorBody
-                    resultToMsg_
-                    floatingIpDecoder
-                )
     in
-    requestCmd
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Put
+        Nothing
+        []
+        (project.endpoints.neutron ++ "/v2.0/floatingips/" ++ floatingIpUuid)
+        (Http.jsonBody requestBody)
+        (expectJsonWithErrorBody
+            resultToMsg_
+            floatingIpDecoder
+        )
 
 
 requestSecurityGroups : Project -> Cmd SharedMsg
@@ -439,11 +430,8 @@ requestCreateSecurityGroupRules project group rules errorMessage =
         bodies =
             rules
                 |> List.map (SecurityGroupRule.encode group.uuid)
-
-        cmds =
-            bodies |> List.map buildRequestCmd
     in
-    cmds
+    bodies |> List.map buildRequestCmd
 
 
 

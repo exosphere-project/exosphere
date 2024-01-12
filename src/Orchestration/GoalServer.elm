@@ -37,14 +37,11 @@ goalNewServer exoClientUuid time project =
             , stepServerRequestFloatingIp time
             , stepServerRequestHostname time
             ]
-
-        ( newProject, newCmds ) =
-            List.foldl
-                (applyStepToAllServers (Just exoClientUuid))
-                ( project, Cmd.none )
-                steps
     in
-    ( newProject, newCmds )
+    List.foldl
+        (applyStepToAllServers (Just exoClientUuid))
+        ( project, Cmd.none )
+        steps
 
 
 goalPollServers : Time.Posix -> Maybe CloudSpecificConfig -> Project -> ( Project, Cmd SharedMsg )
@@ -60,14 +57,11 @@ goalPollServers time maybeCloudSpecificConfig project =
             , stepServerPollEvents time
             , stepServerGuacamoleAuth time userAppProxy
             ]
-
-        ( newProject, newCmds ) =
-            List.foldl
-                (applyStepToAllServers Nothing)
-                ( project, Cmd.none )
-                steps
     in
-    ( newProject, newCmds )
+    List.foldl
+        (applyStepToAllServers Nothing)
+        ( project, Cmd.none )
+        steps
 
 
 stepServerPoll : Time.Posix -> Project -> Server -> ( Project, Cmd SharedMsg )

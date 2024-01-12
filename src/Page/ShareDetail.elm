@@ -131,13 +131,10 @@ shareNameView share =
     let
         name_ =
             VH.resourceName share.name share.uuid
-
-        nameViewPlain =
-            Element.row
-                [ Element.spacing spacer.px8 ]
-                [ Text.text Text.ExtraLarge [] name_ ]
     in
-    nameViewPlain
+    Element.row
+        [ Element.spacing spacer.px8 ]
+        [ Text.text Text.ExtraLarge [] name_ ]
 
 
 shareStatus : View.Types.Context -> Share -> Element.Element Msg
