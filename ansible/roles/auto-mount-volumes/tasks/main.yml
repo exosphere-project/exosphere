@@ -1,9 +1,11 @@
 ---
 
-- name: "systemd automount service copied"
-  copy:
-    src: automount-volume@.service
-    dest: /etc/systemd/system/
+- name: "python script copied"
+  copy: 
+    src: automount-volume.py
+    dest: /usr/bin
+    mode: 'u+rwx'
+    owner: root
     
 - name: "udev rules copied"
   copy:

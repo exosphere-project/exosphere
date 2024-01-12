@@ -10,6 +10,7 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.ServerResourceUsage
 import Helpers.String exposing (pluralize, toTitleCase)
 import Http
+import Json.Encode
 import List.Extra
 import LocalStorage.LocalStorage as LocalStorage
 import Maybe
@@ -1382,7 +1383,12 @@ processProjectSpecificMsg outerModel project msg =
             in
             case maybeServerUuid of
                 Just serverUuid ->
-                    ( outerModel, OSSvrVols.requestDetachVolume project serverUuid volumeUuid )
+                    ( outerModel
+                    , Cmd.batch
+                        [ OSSvrVols.requestDetachVolume project serverUuid volumeUuid
+                        , Rest.Nova.requestDeleteServerMetadata project serverUuid ("exoVolumes::" ++ volumeUuid)
+                        ]
+                    )
                         |> mapToOuterMsg
 
                 Nothing ->
@@ -2352,7 +2358,31 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                 |> mapToOuterModel outerModel
 
         RequestAttachVolume volumeUuid ->
-            ( outerModel, OSSvrVols.requestAttachVolume project server.osProps.uuid volumeUuid )
+            let
+                {- @TODO: Move this into a helper function -}
+                volumeName =
+                    GetterSetters.volumeLookup project volumeUuid
+                        |> Maybe.andThen .name
+
+                volumeMetadata =
+                    { key = "exoVolumes::" ++ volumeUuid
+                    , value =
+                        Json.Encode.encode 0 <|
+                            Json.Encode.object
+                                [ ( volumeUuid
+                                  , volumeName
+                                        |> Maybe.map Json.Encode.string
+                                        |> Maybe.withDefault Json.Encode.null
+                                  )
+                                ]
+                    }
+            in
+            ( outerModel
+            , Cmd.batch
+                [ OSSvrVols.requestAttachVolume project server.osProps.uuid volumeUuid
+                , Rest.Nova.requestSetServerMetadata project server.osProps.uuid volumeMetadata
+                ]
+            )
                 |> mapToOuterMsg
 
         RequestCreateServerImage imageName ->

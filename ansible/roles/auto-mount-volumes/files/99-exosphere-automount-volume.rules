@@ -1,2 +1,2 @@
-ACTION=="add", KERNEL=="[sv]d[b-z]", RUN+="/usr/bin/systemctl --no-block start automount-volume@%k.service"
-ACTION=="remove", KERNEL=="[sv]d[b-z]", RUN+="/usr/bin/systemctl --no-block stop automount-volume@%k.service"
+ACTION=="add", KERNEL=="[sv]d[b-z]", RUN+="/usr/bin/automount-volume.py mount /dev/%k"
+ACTION=="remove", KERNEL=="[sv]d[b-z]", RUN+="/usr/bin/automount-volume.py unmount /dev/%k"
