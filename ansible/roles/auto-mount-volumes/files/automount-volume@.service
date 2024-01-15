@@ -5,7 +5,5 @@ Description=Exosphere - Automount volume %i
 Type=oneshot
 RemainAfterExit=yes
 
-ExecStartPre=/lib/systemd/systemd-makefs ext4 /dev/%i
 ExecStart=/usr/bin/automount-volume.py mount /dev/%i
-
 ExecStop=/usr/bin/automount-volume.py unmount /dev/%i

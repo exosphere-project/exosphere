@@ -52,9 +52,13 @@ def get_mounts(device: pathlib.Path):
                 yield mount
 
 
-def log_exec(cmd, *args, **kwargs):
+def log_exec(cmd, *args, _ignore_errors=False, **kwargs):
     print("Calling", cmd, "(", *args, kwargs, ")")
-    return subprocess.check_output(cmd, *args, **kwargs)
+    try:
+        return subprocess.check_output(cmd, *args, **kwargs)
+    except subprocess.CalledProcessError:
+        if not _ignore_errors:
+            raise
 
 
 def do_mount(device: pathlib.Path):
@@ -66,6 +70,7 @@ def do_mount(device: pathlib.Path):
     print(f"mounting {device} to /media/volumes/{volume_name}")
 
     mountpoint.mkdir(mode=0o755, parents=True, exist_ok=True)
+    log_exec(("/lib/systemd/systemd-makefs", "ext4", str(device)), _ignore_errors=True)
     log_exec(
         (
             # "/usr/bin/env",
@@ -83,7 +88,7 @@ def do_mount(device: pathlib.Path):
 def do_unmount(device: pathlib.Path):
     print(f"do_unmount({device=})", file=sys.stderr)
 
-    for devname, mountpoint, *_ in get_mounts(device):
+    for _, mountpoint, *_ in get_mounts(device):
         log_exec(("/usr/bin/env", "systemd-mount", "--unmount", mountpoint))
         log_exec(("/usr/bin/rmdir", mountpoint))
 
