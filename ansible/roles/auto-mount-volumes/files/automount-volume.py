@@ -6,6 +6,7 @@ import subprocess
 import argparse
 import pathlib
 import typing
+import time
 
 MOUNT_PATH = pathlib.Path("/media/volume")
 
@@ -44,6 +45,19 @@ def get_volume_names():
     return volumes
 
 
+def get_volume_name(uuid, *, retries=0, default=None):
+    while retries >= 0:
+        names = get_volume_names()
+        if uuid in names:
+            return names[uuid]
+
+        if retries:
+            time.sleep(1)
+        retries -= 1
+
+    return default
+
+
 def get_mounts(device: pathlib.Path):
     with open("/proc/mounts", "r", encoding="utf-8") as f:
         for line in f:
@@ -63,17 +77,41 @@ def log_exec(cmd, *args, _ignore_errors=False, **kwargs):
 
 def do_mount(device: pathlib.Path):
     print(f"do_mount({device=})", file=sys.stderr)
-    uuid = get_disk_uuid(device)
-    volume_name = get_volume_names().get(uuid)
+    disk_info = udevadm_info(device)
+
+    uuid = disk_info.get("ID_SERIAL_SHORT")
+
+    volume_name = get_volume_name(uuid, default=device.name, retries=3)
+
     mountpoint: pathlib.Path = MOUNT_PATH / volume_name
 
-    print(f"mounting {device} to /media/volumes/{volume_name}")
+    has_filesystem = disk_info.get("ID_FS_USAGE", None) == "filesystem"
+    if not has_filesystem:
+        print(f'formatting {device} to ext4')
+        # Options borrowed from https://github.com/systemd/systemd/blob/0e2f18eedd/src/shared/mkfs-util.c#L418-L426
+        log_exec(
+            (
+                "mkfs.ext4",
+                "-L",  # Volume label
+                volume_name[:16],
+                "-U",  # Volume UUID, lets match OpenStack!
+                uuid,
+                "-I",  # Inode size
+                "256",
+                "-m",  # Reserved blocks percentage
+                "0",
+                "-E",  # faster formatting, copied from systemd-makefs
+                "nodiscard,lazy_itable_init=1",
+                "-b",  # Block size
+                "4096",
+                str(device),
+            )
+        )
 
+    print(f"mounting {device} to /media/volumes/{volume_name}")
     mountpoint.mkdir(mode=0o755, parents=True, exist_ok=True)
-    log_exec(("/lib/systemd/systemd-makefs", "ext4", str(device)), _ignore_errors=True)
     log_exec(
         (
-            # "/usr/bin/env",
             "systemd-mount",
             "--options",
             "user,exec,rw,auto,nofail,X-mount.owner=exouser,X-mount.group=exouser,x-systemd.device-timeout=1s",
