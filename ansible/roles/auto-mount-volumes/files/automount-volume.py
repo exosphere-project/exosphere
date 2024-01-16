@@ -7,8 +7,14 @@ import argparse
 import pathlib
 import typing
 import time
+import re
+
 
 MOUNT_PATH = pathlib.Path("/media/volume")
+
+
+def sanitize(label: str) -> str:
+    return re.sub(r"\W+", "-", label)
 
 
 def udevadm_info(device: pathlib.Path) -> dict[str, str]:
@@ -80,14 +86,11 @@ def do_mount(device: pathlib.Path):
     disk_info = udevadm_info(device)
 
     uuid = disk_info.get("ID_SERIAL_SHORT")
-
     volume_name = get_volume_name(uuid, default=device.name, retries=3)
+    mountpoint: pathlib.Path = MOUNT_PATH / sanitize(volume_name)
 
-    mountpoint: pathlib.Path = MOUNT_PATH / volume_name
-
-    has_filesystem = disk_info.get("ID_FS_USAGE", None) == "filesystem"
-    if not has_filesystem:
-        print(f'formatting {device} to ext4')
+    if disk_info.get("ID_FS_USAGE", None) != "filesystem":
+        print(f"formatting {device} to ext4")
         # Options borrowed from https://github.com/systemd/systemd/blob/0e2f18eedd/src/shared/mkfs-util.c#L418-L426
         log_exec(
             (
@@ -107,6 +110,10 @@ def do_mount(device: pathlib.Path):
                 str(device),
             )
         )
+
+    elif disk_info.get("ID_FS_LABEL", "") != volume_name:
+        print("Fixing volume label")
+        log_exec(("e2label", str(device), volume_name))
 
     print(f"mounting {device} to /media/volumes/{volume_name}")
     mountpoint.mkdir(mode=0o755, parents=True, exist_ok=True)
