@@ -40,7 +40,7 @@ import Time
 import Types.HelperTypes exposing (FloatingIpOption(..), ServerResourceQtys, UserAppProxyHostname)
 import Types.Interaction as ITypes
 import Types.Project exposing (Project)
-import Types.Server exposing (ExoSetupStatus(..), Server, ServerOrigin(..))
+import Types.Server exposing (ExoFeature(..), ExoSetupStatus(..), Server, ServerOrigin(..), exoVersionSupportsFeature)
 import Types.ServerResourceUsage
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH exposing (edges)
@@ -1625,6 +1625,14 @@ renderIpAddresses context project server model =
 serverVolumes : View.Types.Context -> Project -> Server -> Element.Element Msg
 serverVolumes context project server =
     let
+        exoServerVersion =
+            case server.exoProps.serverOrigin of
+                ServerFromExo props ->
+                    props.exoServerVersion
+
+                _ ->
+                    0
+
         vols =
             GetterSetters.getVolsAttachedToServer project server
     in
@@ -1663,12 +1671,12 @@ serverVolumes context project server =
                                 case GetterSetters.volumeDeviceRawName server v of
                                     Just device_ ->
                                         ( device_
-                                        , case GetterSetters.volDeviceToMountpoint device_ of
-                                            Just mountpoint_ ->
-                                                mountpoint_
+                                        , Maybe.withDefault "Could not determine" <|
+                                            if exoVersionSupportsFeature NamedMountpoints exoServerVersion then
+                                                v.name |> Maybe.andThen GetterSetters.volNameToMountpoint
 
-                                            Nothing ->
-                                                "Could not determine"
+                                            else
+                                                GetterSetters.volDeviceToMountpoint device_
                                         )
 
                                     Nothing ->
@@ -1679,6 +1687,33 @@ serverVolumes context project server =
                     , mountpoint = mountpoint
                     , toButton = volDetailsButton v
                     }
+
+                columns =
+                    List.concat
+                        [ [ { header = Element.el [ Font.heavy ] <| Element.text "Name"
+                            , width = Element.fill
+                            , view = \v -> Element.text v.name
+                            }
+                          ]
+                        , if exoVersionSupportsFeature NamedMountpoints exoServerVersion then
+                            []
+
+                          else
+                            [ { header = Element.el [ Font.heavy ] <| Element.text "Device"
+                              , width = Element.fill
+                              , view = vdevice
+                              }
+                            ]
+                        , [ { header = Element.el [ Font.heavy ] <| Element.text "Mount point"
+                            , width = Element.fill
+                            , view = \v -> Element.text v.mountpoint
+                            }
+                          , { header = Element.none
+                            , width = Element.px 22
+                            , view = \v -> v.toButton
+                            }
+                          ]
+                        ]
             in
             Element.table
                 []
@@ -1687,21 +1722,5 @@ serverVolumes context project server =
                         |> List.map volumeRow
                         |> List.sortBy .device
                 , columns =
-                    [ { header = Element.el [ Font.heavy ] <| Element.text "Name"
-                      , width = Element.fill
-                      , view = \v -> Element.text v.name
-                      }
-                    , { header = Element.el [ Font.heavy ] <| Element.text "Device"
-                      , width = Element.fill
-                      , view = vdevice
-                      }
-                    , { header = Element.el [ Font.heavy ] <| Element.text "Mount point"
-                      , width = Element.fill
-                      , view = \v -> Element.text v.mountpoint
-                      }
-                    , { header = Element.none
-                      , width = Element.px 22
-                      , view = \v -> v.toButton
-                      }
-                    ]
+                    columns
                 }

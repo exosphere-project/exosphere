@@ -42,6 +42,7 @@ module Helpers.GetterSetters exposing
     , projectUpdateKeypair
     , projectUpdateServer
     , serverCreatedByCurrentUser
+    , serverExoServerVersion
     , serverLookup
     , serverPresentNotDeleting
     , shareLookup
@@ -53,6 +54,7 @@ module Helpers.GetterSetters exposing
     , updateProjectWithTransformer
     , updateSharedModelWithTransformer
     , volDeviceToMountpoint
+    , volNameToMountpoint
     , volumeDeviceRawName
     , volumeIsAttachedToServer
     , volumeLookup
@@ -69,7 +71,7 @@ import Time
 import Types.Error
 import Types.HelperTypes as HelperTypes
 import Types.Project exposing (Project)
-import Types.Server exposing (Server)
+import Types.Server exposing (ExoServerVersion, Server, ServerOrigin(..))
 import Types.SharedModel exposing (SharedModel)
 import View.Types
 
@@ -103,6 +105,16 @@ serverLookup : Project -> OSTypes.ServerUuid -> Maybe Server
 serverLookup project serverUuid =
     RDPP.withDefault [] project.servers
         |> List.Extra.find (\s -> s.osProps.uuid == serverUuid)
+
+
+serverExoServerVersion : Server -> Maybe ExoServerVersion
+serverExoServerVersion server =
+    case server.exoProps.serverOrigin of
+        ServerFromExo props ->
+            Just props.exoServerVersion
+
+        _ ->
+            Nothing
 
 
 shareLookup : Project -> OSTypes.ShareUuid -> Maybe OSTypes.Share
@@ -388,6 +400,18 @@ getBootVolume : List OSTypes.Volume -> OSTypes.ServerUuid -> Maybe OSTypes.Volum
 getBootVolume vols serverUuid =
     vols
         |> List.Extra.find (isBootVolume <| Just serverUuid)
+
+
+sanitizeMountpoint : String -> String
+sanitizeMountpoint =
+    Regex.replace
+        (Regex.fromString "\\W+" |> Maybe.withDefault Regex.never)
+        (always "-")
+
+
+volNameToMountpoint : OSTypes.VolumeName -> Maybe String
+volNameToMountpoint volName =
+    Just <| "/media/volume/" ++ sanitizeMountpoint volName
 
 
 volDeviceToMountpoint : OSTypes.VolumeAttachmentDevice -> Maybe String
