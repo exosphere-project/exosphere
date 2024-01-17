@@ -19,7 +19,7 @@
     "elm:analyse": "npx elm-analyse",
     "elm:review": "npx elm-review",
     "elm:git": "npx elm-git-install",
-    "prepare": "command -v pre-commit && pre-commit install || echo 'pre-commit is not installed, see docs/contributing.md'"
+    "prepare": "command -v pre-commit && pre-commit install || echo 'pre-commit is not installed, see contributing.md'"
   },
   "author": {
     "email": "dont@spam.me"
