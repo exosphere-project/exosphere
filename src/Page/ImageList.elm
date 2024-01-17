@@ -25,6 +25,8 @@ import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Tag as Tag
 import Style.Widgets.Text as Text
+import Types.Defaults
+import Types.HelperTypes exposing (Localization)
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
@@ -53,7 +55,7 @@ init showDeleteButtons showHeading =
     { deletionsAttempted = Set.empty
     , showDeleteButtons = showDeleteButtons
     , showHeading = showHeading
-    , dataListModel = DataList.init <| DataList.getDefaultFilterOptions (filters "")
+    , dataListModel = DataList.init <| DataList.getDefaultFilterOptions (filters Types.Defaults.localization)
     }
 
 
@@ -135,7 +137,7 @@ view context project model =
                     (imageRecords context project imagesInCustomOrder)
                     []
                     (Just
-                        { filters = filters context.localization.staticRepresentationOfBlockDeviceContents
+                        { filters = filters context.localization
                         , dropdownMsgMapper =
                             \dropdownId ->
                                 SharedMsg <| SharedMsg.TogglePopover dropdownId
@@ -289,7 +291,14 @@ imageView model context project imageRecord =
                         }
 
                 _ ->
-                    Element.el [ Element.htmlAttribute <| HtmlA.title "Image is not active!" ] (textBtn Nothing)
+                    Element.el
+                        [ Element.htmlAttribute <|
+                            HtmlA.title
+                                (Helpers.String.toTitleCase context.localization.staticRepresentationOfBlockDeviceContents
+                                    ++ " is not active!"
+                                )
+                        ]
+                        (textBtn Nothing)
 
         imageActions =
             Element.row [ Element.alignRight, Element.spacing spacer.px12 ]
@@ -504,7 +513,7 @@ setVisibilityBtn context imageUuid visibility =
 
 
 filters :
-    String
+    Localization
     ->
         List
             (DataList.Filter
@@ -514,7 +523,7 @@ filters :
                     , owned : Bool
                 }
             )
-filters localizationString =
+filters localization =
     [ { id = "visibility"
       , label = "Visibility"
       , chipPrefix = "Visibilty is "
@@ -536,8 +545,10 @@ filters localizationString =
       , chipPrefix = "Belongs to "
       , filterOptions =
             \_ ->
-                [ ( "yes", "this project" ), ( "no", "other projects" ) ]
-                    |> Dict.fromList
+                Dict.fromList
+                    [ ( "yes", "this " ++ localization.unitOfTenancy )
+                    , ( "no", "other " ++ Helpers.String.pluralize localization.unitOfTenancy )
+                    ]
       , filterTypeAndDefaultValue =
             DataList.UniselectOption DataList.UniselectNoChoice
       , onFilter =
@@ -553,8 +564,8 @@ filters localizationString =
                 imageIsOwned == optionValue
       }
     , { id = "tags"
-      , label = "Image tags"
-      , chipPrefix = "Image tag is "
+      , label = Helpers.String.toTitleCase localization.staticRepresentationOfBlockDeviceContents ++ " tags"
+      , chipPrefix = Helpers.String.toTitleCase localization.staticRepresentationOfBlockDeviceContents ++ " tag is "
       , filterOptions =
             \images ->
                 List.map (\i -> i.image.tags) images
@@ -570,11 +581,11 @@ filters localizationString =
                 List.member optionValue imageRecord.image.tags
       }
     , { id = "type"
-      , label = Helpers.String.toTitleCase localizationString ++ " type"
-      , chipPrefix = Helpers.String.toTitleCase localizationString ++ " type is "
+      , label = Helpers.String.toTitleCase localization.staticRepresentationOfBlockDeviceContents ++ " type"
+      , chipPrefix = Helpers.String.toTitleCase localization.staticRepresentationOfBlockDeviceContents ++ " type is "
       , filterOptions =
             \images ->
-                List.map (\i -> Maybe.withDefault localizationString i.image.imageType) images
+                List.map (\i -> Maybe.withDefault localization.staticRepresentationOfBlockDeviceContents i.image.imageType) images
                     |> List.map (\t -> ( t, t ))
                     |> Dict.fromList
       , filterTypeAndDefaultValue =
@@ -588,7 +599,7 @@ filters localizationString =
                                 imageTypeName
 
                             Nothing ->
-                                localizationString
+                                localization.staticRepresentationOfBlockDeviceContents
                 in
                 imageType == optionValue
       }

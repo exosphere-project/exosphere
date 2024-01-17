@@ -98,7 +98,7 @@ interactionStatus project server interaction context currentTime tlsReverseProxy
                                                 -- Ignore server events which don't cause a power cycle
                                                 |> List.filter
                                                     (\event ->
-                                                        [ "lock", "unlock", "image" ]
+                                                        [ "lock", "unlock", {- @nonlocalized -} "image" ]
                                                             |> List.map (\action -> action == event.action)
                                                             |> List.any identity
                                                             |> not
@@ -177,7 +177,7 @@ interactionStatus project server interaction context currentTime tlsReverseProxy
                         -- Ignore server events which don't cause a power cycle
                         |> List.filter
                             (\event ->
-                                [ "lock", "unlock", "image" ]
+                                [ "lock", "unlock", {- @nonlocalized -} "image" ]
                                     |> List.map (\action -> action == event.action)
                                     |> List.any identity
                                     |> not
@@ -421,9 +421,13 @@ interactionDetails interaction context =
                     |> Helpers.String.toTitleCase
                 )
                 (String.concat
-                    [ "Get a terminal session to your "
+                    [ "Get a "
+                    , context.localization.commandDrivenTextInterface
+                    , " session to your "
                     , context.localization.virtualComputer
-                    , ". Pro tip, press Ctrl+Alt+Shift inside the terminal window to show a graphical file upload/download tool!"
+                    , ". Pro tip, press Ctrl+Alt+Shift inside the "
+                    , context.localization.commandDrivenTextInterface
+                    , " window to show a graphical file upload/download tool!"
                     ]
                 )
                 (\_ _ -> Icon.sizedFeatherIcon 18 Icons.terminal)
@@ -454,7 +458,7 @@ interactionDetails interaction context =
                 (String.join " "
                     [ "Advanced feature: Launching the console is like connecting a screen, mouse, and keyboard to your"
                     , context.localization.virtualComputer
-                    , "(useful for troubleshooting if the Web Terminal isn't working)"
+                    , "(useful for troubleshooting if the Web " ++ Helpers.String.toTitleCase context.localization.commandDrivenTextInterface ++ " isn't working)"
                     ]
                 )
                 Icon.console

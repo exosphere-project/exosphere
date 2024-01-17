@@ -8,6 +8,7 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.ServerResourceUsage
+import Helpers.String exposing (pluralize, toTitleCase)
 import Http
 import List.Extra
 import LocalStorage.LocalStorage as LocalStorage
@@ -708,11 +709,11 @@ processSharedMsg sharedMsg outerModel =
                                             State.Error.processStringError
                                                 outerModel_.sharedModel
                                                 (ErrorContext
-                                                    "Get project regions"
+                                                    ("Get " ++ viewContext.localization.unitOfTenancy ++ " " ++ pluralize viewContext.localization.openstackSharingKeystoneWithAnother)
                                                     ErrorCrit
-                                                    (Just "Please check with your cloud administrator or the Exosphere developers.")
+                                                    (Just ("Please check with your " ++ viewContext.localization.openstackWithOwnKeystone ++ " administrator or the Exosphere developers."))
                                                 )
-                                                "Could not find any endpoints with a region ID."
+                                                ("Could not find any endpoints with a " ++ viewContext.localization.openstackSharingKeystoneWithAnother ++ " ID.")
                                                 |> mapToOuterMsg
                                                 |> mapToOuterModel outerModel_
 
@@ -1183,6 +1184,9 @@ processProjectSpecificMsg outerModel project msg =
     let
         sharedModel =
             outerModel.sharedModel
+
+        { viewContext } =
+            sharedModel
     in
     case msg of
         PrepareCredentialedRequest requestProto posixTime ->
@@ -1225,9 +1229,9 @@ processProjectSpecificMsg outerModel project msg =
                         let
                             errorContext =
                                 ErrorContext
-                                    ("Refresh authentication token for project " ++ project.auth.project.name)
+                                    ("Refresh authentication token for " ++ viewContext.localization.unitOfTenancy ++ " " ++ project.auth.project.name)
                                     ErrorCrit
-                                    (Just "Please remove this project from Exosphere and add it again.")
+                                    (Just ("Please remove this " ++ viewContext.localization.unitOfTenancy ++ " from Exosphere and add it again."))
                         in
                         State.Error.processStringError sharedModel errorContext e
                             |> mapToOuterMsg
@@ -1275,7 +1279,7 @@ processProjectSpecificMsg outerModel project msg =
                         sharedModel
                         errorContext
                         (String.join " "
-                            [ "Instance"
+                            [ toTitleCase viewContext.localization.virtualComputer
                             , serverUuid
                             , "does not exist in the model, it may have been deleted."
                             ]
@@ -1385,11 +1389,11 @@ processProjectSpecificMsg outerModel project msg =
                     State.Error.processStringError
                         sharedModel
                         (ErrorContext
-                            ("look for server UUID with attached volume " ++ volumeUuid)
+                            ("look for server UUID with attached " ++ viewContext.localization.blockDevice ++ " " ++ volumeUuid)
                             ErrorCrit
                             Nothing
                         )
-                        "Could not determine server attached to this volume."
+                        ("Could not determine server attached to this " ++ viewContext.localization.blockDevice ++ ".")
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
@@ -2991,12 +2995,18 @@ removeUnscopedProject keystoneUrl projectUuid outerModel =
 createProject : OSTypes.KeystoneUrl -> OSTypes.ScopedAuthToken -> OSTypes.RegionId -> OuterModel -> ( OuterModel, Cmd OuterMsg )
 createProject keystoneUrl token regionId outerModel =
     let
+        { sharedModel } =
+            outerModel
+
+        { viewContext } =
+            sharedModel
+
         processError : String -> ( OuterModel, Cmd OuterMsg )
         processError error =
             State.Error.processStringError
                 outerModel.sharedModel
                 (ErrorContext
-                    "Create project"
+                    ("Create " ++ viewContext.localization.unitOfTenancy)
                     ErrorCrit
                     Nothing
                 )
@@ -3027,10 +3037,10 @@ createProject keystoneUrl token regionId outerModel =
             processError e
 
         ( _, Nothing, _ ) ->
-            processError ("Could not look up Keystone region with ID " ++ regionId)
+            processError ("Could not look up Keystone " ++ viewContext.localization.openstackSharingKeystoneWithAnother ++ " with ID " ++ regionId)
 
         ( _, _, Nothing ) ->
-            processError ("Could not look up description of project with ID " ++ token.project.uuid)
+            processError ("Could not look up description of " ++ viewContext.localization.unitOfTenancy ++ " with ID " ++ token.project.uuid)
 
 
 createProject_ : OuterModel -> Maybe OSTypes.ProjectDescription -> OSTypes.ScopedAuthToken -> OSTypes.Region -> Endpoints -> ( OuterModel, Cmd OuterMsg )

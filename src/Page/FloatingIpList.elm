@@ -219,7 +219,9 @@ ipScarcityWarning context =
                         , "are a scarce resource. Please delete your unassigned"
                         , context.localization.floatingIpAddress
                             |> Helpers.String.pluralize
-                        , "to free them up for other cloud users, unless you are saving them for a specific purpose."
+                        , "to free them up for other "
+                        , context.localization.openstackWithOwnKeystone
+                        , " users, unless you are saving them for a specific purpose."
                         ]
                 ]
         }

@@ -394,11 +394,14 @@ projectHeaderView context p =
                 ]
 
         deletePopconfirmId =
-            "Remove project "
-                ++ p.auth.project.uuid
-                ++ (Maybe.withDefault " without a region" <|
-                        Maybe.map (\region -> " in region " ++ region.id) p.region
-                   )
+            String.join " "
+                [ "Remove"
+                , context.localization.unitOfTenancy
+                , p.auth.project.uuid
+                , Maybe.withDefault
+                    ("without a " ++ context.localization.openstackSharingKeystoneWithAnother)
+                    (Maybe.map (\region -> "in " ++ context.localization.openstackSharingKeystoneWithAnother ++ " " ++ region.id) p.region)
+                ]
     in
     Element.row [ Element.width Element.fill, Element.spacing spacer.px12 ]
         [ Text.text Text.Large
@@ -430,7 +433,9 @@ projectHeaderView context p =
                             ++ context.localization.unitOfTenancy
                             ++ "?"
                     , Text.text Text.Small [] <|
-                        "Nothing will be deleted on the cloud, only removed from your browser until you log in again"
+                        "Nothing will be deleted on the "
+                            ++ context.localization.openstackWithOwnKeystone
+                            ++ ", only removed from your browser until you log in again"
                     ]
             , buttonText = Just "Remove"
             , onConfirm = Just <| SharedMsg <| SharedMsg.ProjectMsg (GetterSetters.projectIdentifier p) SharedMsg.RemoveProject
