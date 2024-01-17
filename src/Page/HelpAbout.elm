@@ -44,7 +44,7 @@ view model context =
                         [ Element.text "You are not using a proxy server." ]
 
                     Just proxyUrl ->
-                        [ Element.text ("You are using a cloud CORS proxy server at " ++ proxyUrl ++ ". All communication between Exosphere and OpenStack APIs pass through this server.") ]
+                        [ Element.text {- @nonlocalized -} ("You are using a cloud CORS proxy server at " ++ proxyUrl ++ ". All communication between Exosphere and OpenStack APIs pass through this server.") ]
             , Text.p [] [ Element.text ("Exosphere client UUID: " ++ UUID.toString model.clientUuid) ]
             ]
         ]
@@ -54,7 +54,7 @@ defaultHelpAboutText : View.Types.Context -> Element.Element msg
 defaultHelpAboutText context =
     Element.column [ Element.spacing spacer.px16 ]
         [ Text.p []
-            [ Element.text "Exosphere is a user-friendly, extensible client for cloud computing. Check out our "
+            [ Element.text {- @nonlocalized -} "Exosphere is a user-friendly, extensible client for cloud computing. Check out our "
             , Link.externalLink
                 context.palette
                 "https://gitlab.com/exosphere/exosphere/blob/master/README.md"
@@ -67,7 +67,7 @@ defaultHelpAboutText context =
                 context.palette
                 "https://gitlab.com/exosphere/exosphere/issues"
                 "create an issue"
-            , Element.text " on Exosphere's GitLab project. Someone will respond within a day or so. For real-time assistance, try Exosphere chat. Our chat is on "
+            , Element.text {- @nonlocalized -} " on Exosphere's GitLab project. Someone will respond within a day or so. For real-time assistance, try Exosphere chat. Our chat is on "
             , Link.externalLink
                 context.palette
                 "https://gitter.im/exosphere-app/community"

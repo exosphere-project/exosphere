@@ -92,7 +92,9 @@ requestAuthToken model project =
     case project.secret of
         NoProjectSecret ->
             Err <|
-                "Exosphere could not find a usable authentication method for project "
+                "Exosphere could not find a usable authentication method for "
+                    ++ model.viewContext.localization.unitOfTenancy
+                    ++ " "
                     ++ project.auth.project.name
                     ++ "."
 

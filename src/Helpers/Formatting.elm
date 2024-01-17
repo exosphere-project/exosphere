@@ -1,5 +1,6 @@
 module Helpers.Formatting exposing (Unit(..), humanBytes, humanCount, humanNumber, humanRatio, usageComparison, usageLabel, usageLabels)
 
+import Array
 import FormatNumber exposing (format)
 import FormatNumber.Locales exposing (Decimals(..), Locale)
 
@@ -7,35 +8,35 @@ import FormatNumber.Locales exposing (Decimals(..), Locale)
 type Unit
     = Bytes
     | Count
-    | CinderGB
     | GibiBytes
     | MebiBytes
+
+
+byteSuffixes : Array.Array String
+byteSuffixes =
+    Array.fromList [ "B", "KB", "MB", "GB", "TB", "PB" ]
 
 
 humanBytes : Locale -> Int -> ( String, String )
 humanBytes locale byteCount =
     let
-        n =
+        defaultSuffix =
+            Array.foldl always "" byteSuffixes
+
+        bytesFloat =
             toFloat byteCount
 
-        ( count, unit ) =
-            if n <= 1024 then
-                ( n, "B" )
+        scale =
+            logBase 1024 bytesFloat
+                |> floor
+                |> min (Array.length byteSuffixes - 1)
 
-            else if n <= 1024 * 1024 then
-                ( n / 1.0e3, "KB" )
+        count =
+            bytesFloat / (1024 ^ toFloat scale)
 
-            else if n <= 1024 * 1024 * 1024 then
-                ( n / 1.0e6, "MB" )
-
-            else if n <= 1024 * 1024 * 1024 * 1024 then
-                ( n / 1.0e9, "GB" )
-
-            else if n < 1024 * 1024 * 1024 * 1024 * 1024 then
-                ( n / 1.0e12, "TB" )
-
-            else
-                ( n / 1.0e15, "PB" )
+        unit =
+            Array.get scale byteSuffixes
+                |> Maybe.withDefault defaultSuffix
     in
     ( format { locale | decimals = Max 1 } count, unit )
 
@@ -51,15 +52,6 @@ humanRatio locale n =
 
 
 {-| Transform a number for clearer human comprehension when reading.
-
-The byte conversions here are wrong. They were introduced to
-harmonize the UI display of storage quotas with the values
-reported by Horizon and should be fixed or removed with a
-real solution to the problem of "GB" ambiguity.
-
-@TODO: Add input and output units to this function and handle the
-conversion properly once and for all.
-
 -}
 humanNumber : Locale -> Unit -> Int -> ( String, String )
 humanNumber locale unit n =
@@ -70,14 +62,11 @@ humanNumber locale unit n =
         Count ->
             ( humanCount locale n, "total" )
 
-        CinderGB ->
-            humanBytes locale (n * 1000000000)
-
         GibiBytes ->
-            humanBytes locale (n * 1000 * 1000 * 1000)
+            humanBytes locale (n * (1024 ^ 3))
 
         MebiBytes ->
-            humanBytes locale (n * 1000 * 1000)
+            humanBytes locale (n * (1024 ^ 2))
 
 
 usageLabels : Locale -> Unit -> Int -> ( String, String )
