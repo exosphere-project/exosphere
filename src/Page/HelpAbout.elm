@@ -1,6 +1,9 @@
 module Page.HelpAbout exposing (headerView, view)
 
 import Element
+import Element.Font as Font
+import Style.Helpers as SH
+import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Link as Link
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
@@ -45,7 +48,18 @@ view model context =
 
                     Just proxyUrl ->
                         [ Element.text {- @nonlocalized -} ("You are using a cloud CORS proxy server at " ++ proxyUrl ++ ". All communication between Exosphere and OpenStack APIs pass through this server.") ]
-            , Text.p [] [ Element.text ("Exosphere client UUID: " ++ UUID.toString model.clientUuid) ]
+            , Element.row []
+                [ Text.body "Exosphere client UUID:"
+                , Element.el
+                    [ Text.fontSize Text.Small
+                    , Font.color (SH.toElementColor context.palette.neutral.text.subdued)
+                    , Element.paddingEach { bottom = 0, left = spacer.px16, right = 0, top = 0 }
+                    ]
+                    (copyableText context.palette
+                        [ Element.width (Element.shrink |> Element.minimum 280) ]
+                        (UUID.toString model.clientUuid)
+                    )
+                ]
             ]
         ]
 
