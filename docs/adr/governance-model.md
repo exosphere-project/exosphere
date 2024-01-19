@@ -2,7 +2,7 @@
 
 ## Status
 
-WIP
+Accepted
 
 ## Context
 
@@ -252,11 +252,11 @@ Maintainers SHOULD close user issues that are left open without action for an un
 
 ## Decision
 
-TODO
+Transition Interim governance model to non-interim status.
 
 ## Consequences
 
-TODO
+No immediate changes to Exosphere governance, but retaining our independence and ability to adapt the governance as the project evolves.
 
 ---
 

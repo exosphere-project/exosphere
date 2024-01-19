@@ -1,4 +1,4 @@
-# Exosphere Interim Governance
+# Exosphere Governance
 
 Herein, "Exosphere" and "the project" are defined as:
 
@@ -8,7 +8,7 @@ Herein, "Exosphere" and "the project" are defined as:
 
 Exosphere is dedicated to [these goals](values-goals.md). This goverance explains how the project is run.
 
-_Interim_ means that this policy is not intended to be final; it serves mostly to document processes that have grown ad-hoc over the past 5 years. As we complete our POSE work (issues [815](https://gitlab.com/exosphere/exosphere/-/issues/815) and [819](https://gitlab.com/exosphere/exosphere/-/issues/819)), we expect to evolve or possibly replace it completely.
+This is a living document that will evolve per section "Modifying this Charter". It was originally adapted from the Cloud Native Computing Foundation [simple maintainer governance template](https://github.com/cncf/project-template/blob/main/GOVERNANCE-maintainer.md).
 
 ## Maintainers
 
@@ -44,7 +44,7 @@ To become a Maintainer you need to demonstrate the following:
 
 A new Maintainer must be proposed by an existing maintainer by sending a message to the other existing maintainers. A simple majority vote of existing Maintainers approves the application. (If there are two maintainers, both must approve.) Maintainer nominations will be evaluated without prejudice to employer or demographics.
 
-Maintainers who are selected will be granted the necessary GitLab permissions, and invited to the private maintainer chat group.
+Maintainers who are selected will be granted the necessary GitLab permissions, and invited to the [private maintainer chat](https://matrix.to/#/#exosphere-maint:matrix.org) group.
 
 ### Removing a Maintainer
 
@@ -58,13 +58,13 @@ Depending on the reason for removal, a Maintainer may be converted to Emeritus s
 
 ## Meetings
 
-Time zones permitting, Maintainers are expected to participate in the public developer meeting, the time and coordinates of which are stated in [README.md](../README.md#collaborate-with-us).
+Time zones permitting, Maintainers are expected to participate in the community meeting, the time and coordinates of which are stated in [README.md](../README.md#collaborate-with-us).
 
 Maintainers will also have closed meetings in order to discuss security reports or Code of Conduct violations. Such meetings should be scheduled by any Maintainer on receipt of a security issue or CoC violation report. All current Maintainers must be invited to such closed meetings.
 
 ## Code of Conduct
 
-[Code of Conduct](code-of-conduct.md) violations by community members will be discussed and resolved on the private maintainer chat.
+[Code of Conduct](code-of-conduct.md) violations by community members will be discussed and resolved on the [private maintainer chat](https://matrix.to/#/#exosphere-maint:matrix.org).
 
 ## Security Response Team
 
@@ -76,7 +76,7 @@ The Security Response Team is responsible for handling all reports of security i
 
 While most decisions in Exosphere are made via the 2-maintainer merge request review rule, periodically the Maintainers may need to vote on specific actions or changes.
 
-A vote can be taken on a community-facing chat, or the private Maintainer chat for security or conduct matters. Votes may also be taken at the aforementioned developer meeting. Any Maintainer may demand a vote be taken.
+A vote can be taken on a community-facing chat, or the [private Maintainer chat](https://matrix.to/#/#exosphere-maint:matrix.org) for security or conduct matters. Votes may also be taken at the aforementioned developer meeting. Any Maintainer may demand a vote be taken.
 
 Most votes require a simple majority of all existing Maintainers to succeed, except where otherwise noted in this policy. Two-thirds majority votes mean at least two-thirds of all existing maintainers.
 
