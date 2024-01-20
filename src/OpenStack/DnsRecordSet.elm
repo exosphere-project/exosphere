@@ -1,4 +1,4 @@
-module OpenStack.DnsRecordSet exposing (DnsRecordSet, addressToRecord, fromStringToRecordType)
+module OpenStack.DnsRecordSet exposing (DnsRecordSet, RecordType, addressToRecord, fromStringToRecordType)
 
 import List.Extra
 import OpenStack.HelperTypes

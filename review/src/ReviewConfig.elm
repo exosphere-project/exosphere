@@ -15,6 +15,7 @@ import NoDebug.Log
 import NoDebug.TodoOrToString
 import NoElementFontSize
 import NoHardcodedLocalizedStrings
+import NoMissingTypeExpose
 import Review.Rule as Rule exposing (Rule)
 
 
@@ -49,6 +50,13 @@ config =
                 , "src/DesignSystem/"
                 , "src/LocalStorage/"
                 , "src/OpenStack/"
+                ]
+            )
+    , NoMissingTypeExpose.rule
+        |> Rule.filterErrorsForFiles
+            (notInPaths
+                [ "src/DesignSystem/Explorer.elm"
+                , "src/Exosphere.elm"
                 ]
             )
     ]

@@ -1,4 +1,4 @@
-module Types.SharedModel exposing (LogMessage, SharedModel, Style)
+module Types.SharedModel exposing (CloudCorsProxyUrl, LogMessage, SharedModel, Style)
 
 import OpenStack.Types as OSTypes
 import Style.Types

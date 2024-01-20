@@ -2,6 +2,7 @@ module Types.Interaction exposing
     ( Interaction(..)
     , InteractionDetails
     , InteractionStatus(..)
+    , InteractionStatusReason
     , InteractionType(..)
     )
 

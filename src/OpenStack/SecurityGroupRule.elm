@@ -3,6 +3,8 @@ module OpenStack.SecurityGroupRule exposing
     , SecurityGroupRuleDirection(..)
     , SecurityGroupRuleEthertype(..)
     , SecurityGroupRuleProtocol(..)
+    , SecurityGroupRuleUuid
+    , SecurityGroupUuid
     , defaultExosphereRules
     , encode
     , matchRule

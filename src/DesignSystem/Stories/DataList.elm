@@ -1,5 +1,6 @@
 module DesignSystem.Stories.DataList exposing
-    ( Server
+    ( DataListArgs
+    , Server
     , filters
     , initServers
     , stories

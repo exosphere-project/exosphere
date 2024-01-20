@@ -1,5 +1,6 @@
 module View.Helpers exposing
-    ( compactKVRow
+    ( Edges
+    , compactKVRow
     , compactKVSubRow
     , contentContainer
     , createdAgoByFromSize

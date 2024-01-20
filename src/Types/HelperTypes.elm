@@ -21,6 +21,7 @@ module Types.HelperTypes exposing
     , Passphrase
     , ProjectIdentifier
     , SentryConfig
+    , ServerActionName
     , ServerResourceQtys
     , SupportableItemType(..)
     , UnscopedProvider

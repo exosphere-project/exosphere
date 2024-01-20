@@ -1,4 +1,4 @@
-module Types.Flags exposing (ConfigurationFlags, Flags, flagsDecoder)
+module Types.Flags exposing (ConfigurationFlags, Flags, PaletteColors, RGBTriplet, ThemePalettes, flagsDecoder)
 
 import Json.Decode exposing (Decoder, Error(..), Value, bool, int, maybe, nullable, string, succeed, value)
 import Json.Decode.Pipeline exposing (required)
