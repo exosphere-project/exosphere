@@ -54,7 +54,7 @@ expressionVisitor expression direction context =
                     ( [ Rule.error error (Node.range expression) ], context )
 
                 ( Expression.FunctionOrValue moduleName "size", _ ) ->
-                    if moduleName == (aliasing |> Maybe.withDefault [ "Font" ]) then
+                    if moduleName == (aliasing |> Maybe.withDefault [ "Element", "Font" ]) then
                         ( [ Rule.error error (Node.range expression) ], context )
 
                     else
