@@ -73,6 +73,7 @@ import Route
 import Style.Helpers as SH
 import Style.Types as ST exposing (ExoPalette)
 import Style.Widgets.Button as Button
+import Style.Widgets.CopyableText exposing (copyableTextAccessory)
 import Style.Widgets.Icon exposing (featherIcon)
 import Style.Widgets.Link as Link
 import Style.Widgets.Popover.Types exposing (PopoverId)
@@ -238,6 +239,9 @@ renderMessageAsElement context message =
 
                 ErrorCrit ->
                     context.palette.danger.textOnNeutralBG |> SH.toElementColor
+
+        copyable =
+            copyableTextAccessory context.palette message.message
     in
     Element.column [ Element.spacing spacer.px12, Element.width Element.fill ]
         [ Element.row [ Element.alignRight ]
@@ -255,7 +259,10 @@ renderMessageAsElement context message =
         , compactKVRow "We were trying to"
             (Element.paragraph [] [ Element.text message.context.actionContext ])
         , compactKVRow "Message"
-            (Element.paragraph [] [ Element.text message.message ])
+            (Element.row
+                [ Element.width Element.fill, Element.spacing spacer.px8 ]
+                [ Element.paragraph [ copyable.id ] [ Element.text message.message ], copyable.accessory ]
+            )
         , case message.context.recoveryHint of
             Just hint_ ->
                 compactKVRow "Recovery hint" (Element.paragraph [] [ Element.text hint_ ])
