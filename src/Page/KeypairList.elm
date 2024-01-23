@@ -15,7 +15,7 @@ import Route
 import Set
 import Style.Helpers as SH
 import Style.Types as ST
-import Style.Widgets.CopyableText
+import Style.Widgets.CopyableText exposing (copyableText, copyableTextAccessory)
 import Style.Widgets.DataList as DataList
 import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
 import Style.Widgets.Icon exposing (featherIcon)
@@ -226,10 +226,11 @@ keypairView model context project keypairRecord =
                 ( Element.alignTop
                 , Element.row [ Element.width Element.fill ]
                     [ Element.el [ Element.width Element.fill ]
-                        (Style.Widgets.CopyableText.copyableText
+                        (copyableText
                             context.palette
                             [ Html.Attributes.style "word-break" "break-all"
                                 |> Element.htmlAttribute
+                            , Text.fontFamily Text.Mono
                             ]
                             keypairRecord.keypair.publicKey
                         )
@@ -255,10 +256,13 @@ keypairView model context project keypairRecord =
                 , Element.row [ Element.width Element.fill ]
                     [ Element.el
                         [ -- FIXME: this should come dynamically as the space left after putting "show more"
-                          Element.width <| Element.px 640
+                          Element.width <| Element.px 580
                         , Element.htmlAttribute <| Html.Attributes.style "min-width" "0"
+                        , (copyableTextAccessory context.palette keypairRecord.keypair.publicKey).id
+                        , Text.fontFamily Text.Mono
                         ]
                         (VH.ellipsizedText keypairRecord.keypair.publicKey)
+                    , (copyableTextAccessory context.palette keypairRecord.keypair.publicKey).accessory
                     , Element.Input.button [ Element.alignRight, Element.width Element.shrink ]
                         { label =
                             Element.el
@@ -287,7 +291,7 @@ keypairView model context project keypairRecord =
             , Element.el []
                 (Style.Widgets.CopyableText.copyableText
                     context.palette
-                    []
+                    [ Text.fontFamily Text.Mono ]
                     keypairRecord.keypair.fingerprint
                 )
             ]
