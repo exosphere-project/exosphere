@@ -11,11 +11,12 @@ when inside the directory containing this file.
 
 -}
 
+import NoConfusingPrefixOperator
 import NoDebug.Log
 import NoDebug.TodoOrToString
-import NoConfusingPrefixOperator
 import NoDeprecated
 import NoElementFontSize
+import NoExposingEverything
 import NoHardcodedLocalizedStrings
 import NoMissingTypeExpose
 import Review.Rule as Rule exposing (Rule)
@@ -63,4 +64,5 @@ config =
                 , "src/Exosphere.elm"
                 ]
             )
+    , NoExposingEverything.rule
     ]
