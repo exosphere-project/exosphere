@@ -13,6 +13,7 @@ when inside the directory containing this file.
 
 import NoDebug.Log
 import NoDebug.TodoOrToString
+import NoConfusingPrefixOperator
 import NoElementFontSize
 import NoHardcodedLocalizedStrings
 import NoMissingTypeExpose
@@ -37,6 +38,7 @@ config =
     , NoDebug.TodoOrToString.rule
     , NoElementFontSize.rule
         |> Rule.filterErrorsForFiles ((/=) "src/Style/Widgets/Text.elm")
+    , NoConfusingPrefixOperator.rule
     , NoHardcodedLocalizedStrings.rule NoHardcodedLocalizedStrings.exosphereLocalizedStrings
         |> Rule.filterErrorsForFiles
             (notInPaths

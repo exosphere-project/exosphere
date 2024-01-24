@@ -240,7 +240,7 @@ filters now =
                 startAt =
                     String.toInt startAsMsString
             in
-            Maybe.map ((>=) createdAt) startAt
+            Maybe.map (\start -> createdAt >= start) startAt
                 |> Maybe.withDefault True
     in
     [ { id = "creator"
