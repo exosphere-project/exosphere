@@ -14,6 +14,7 @@ when inside the directory containing this file.
 import NoDebug.Log
 import NoDebug.TodoOrToString
 import NoConfusingPrefixOperator
+import NoDeprecated
 import NoElementFontSize
 import NoHardcodedLocalizedStrings
 import NoMissingTypeExpose
@@ -36,6 +37,7 @@ config : List Rule
 config =
     [ NoDebug.Log.rule
     , NoDebug.TodoOrToString.rule
+    , NoDeprecated.rule NoDeprecated.defaults
     , NoElementFontSize.rule
         |> Rule.filterErrorsForFiles ((/=) "src/Style/Widgets/Text.elm")
     , NoConfusingPrefixOperator.rule
