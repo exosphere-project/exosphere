@@ -45,16 +45,4 @@ runcmd:
   - sleep 1  # Ensures that console log output from any previous commands complete before the following command begins
   - >-
     echo '{"status":"'$STATUS'", "epoch": '$(date '+%s')'000}' | tee --append /dev/console > /dev/kmsg || true
-mount_default_fields: [None, None, "ext4", "user,exec,rw,auto,nofail,x-systemd.makefs,x-systemd.automount,x-systemd.device-timeout=1s", "0", "2"]
-mounts:
-  - [ /dev/sdb, /media/volume/sdb ]
-  - [ /dev/sdc, /media/volume/sdc ]
-  - [ /dev/sdd, /media/volume/sdd ]
-  - [ /dev/sde, /media/volume/sde ]
-  - [ /dev/sdf, /media/volume/sdf ]
-  - [ /dev/vdb, /media/volume/vdb ]
-  - [ /dev/vdc, /media/volume/vdc ]
-  - [ /dev/vdd, /media/volume/vdd ]
-  - [ /dev/vde, /media/volume/vde ]
-  - [ /dev/vdf, /media/volume/vdf ]
 """
