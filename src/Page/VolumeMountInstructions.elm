@@ -9,7 +9,7 @@ import Style.Widgets.Button as Button
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Types.Project exposing (Project)
-import Types.Server exposing (ExoFeature(..), ServerOrigin(..), exoVersionSupportsFeature)
+import Types.Server exposing (ExoFeature(..), exoVersionSupportsFeature)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
@@ -68,7 +68,13 @@ view context project model =
         , Element.column [ Element.spacing spacer.px16 ]
             [ case volumeName of
                 Just name ->
-                    Element.text ("Volume: " ++ name)
+                    Element.text
+                        (String.concat
+                            [ Helpers.String.toTitleCase context.localization.blockDevice
+                            , ": "
+                            , name
+                            ]
+                        )
 
                 Nothing ->
                     Element.none
