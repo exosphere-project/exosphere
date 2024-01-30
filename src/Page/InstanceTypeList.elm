@@ -28,12 +28,7 @@ type Msg
 
 type HaveUsableFlavors
     = NoUsableFlavors
-    | YesUsableFlavors FlavorRestriction
-
-
-type FlavorRestriction
-    = NoFlavorRestriction
-    | FlavorRestrictionValidFlavors
+    | YesUsableFlavors
 
 
 view : View.Types.Context -> Project -> List HelperTypes.InstanceType -> Element.Element Msg
@@ -48,7 +43,7 @@ view context project instanceTypes =
                 haveUsableFlavors =
                     case instanceTypeVersion.restrictFlavorIds of
                         Nothing ->
-                            YesUsableFlavors NoFlavorRestriction
+                            YesUsableFlavors
 
                         Just validFlavorIds ->
                             let
@@ -60,7 +55,7 @@ view context project instanceTypes =
                                 NoUsableFlavors
 
                             else
-                                YesUsableFlavors FlavorRestrictionValidFlavors
+                                YesUsableFlavors
             in
             case ( maybeImage, haveUsableFlavors ) of
                 ( Nothing, _ ) ->

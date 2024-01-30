@@ -2432,7 +2432,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
-        ReceiveServerEvents _ result ->
+        ReceiveServerEvents errorContext result ->
             case result of
                 Ok serverEvents ->
                     let
@@ -2452,9 +2452,14 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                     )
                         |> mapToOuterModel outerModel
 
-                Err _ ->
-                    -- Dropping this on the floor for now, someday we may want to do something different
-                    ( outerModel, Cmd.none )
+                Err httpErrorWithBody ->
+                    let
+                        newErrorContext =
+                            { errorContext | level = ErrorDebug }
+                    in
+                    State.Error.processSynchronousApiError sharedModel newErrorContext httpErrorWithBody
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
 
         ReceiveConsoleUrl url ->
             Rest.Nova.receiveConsoleUrl sharedModel project server url
@@ -2539,7 +2544,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                 ( outerModel, cmd )
                     |> mapToOuterMsg
 
-        ReceiveSetServerName _ errorContext result ->
+        ReceiveSetServerName errorContext result ->
             case result of
                 Err e ->
                     State.Error.processSynchronousApiError sharedModel errorContext e

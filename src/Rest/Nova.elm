@@ -557,7 +557,7 @@ requestSetServerName project serverUuid newServerName =
         resultToMsg result =
             ProjectMsg (GetterSetters.projectIdentifier project) <|
                 ServerMsg serverUuid <|
-                    ReceiveSetServerName newServerName errorContext result
+                    ReceiveSetServerName errorContext result
     in
     openstackCredentialedRequest
         (GetterSetters.projectIdentifier project)

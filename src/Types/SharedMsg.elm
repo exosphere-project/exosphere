@@ -126,7 +126,7 @@ type ServerSpecificMsgConstructor
     | ReceiveDeleteServer
     | ReceiveCreateServerFloatingIp ErrorContext (Result HttpErrorWithBody OSTypes.FloatingIp)
     | ReceiveServerPassphrase OSTypes.ServerPassword
-    | ReceiveSetServerName String ErrorContext (Result HttpErrorWithBody String)
+    | ReceiveSetServerName ErrorContext (Result HttpErrorWithBody String)
     | ReceiveSetServerMetadata OSTypes.MetadataItem ErrorContext (Result HttpErrorWithBody (List OSTypes.MetadataItem))
     | ReceiveDeleteServerMetadata OSTypes.MetadataKey ErrorContext (Result HttpErrorWithBody String)
     | ReceiveGuacamoleAuthToken (Result Http.Error GuacTypes.GuacamoleAuthToken)

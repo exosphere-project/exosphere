@@ -149,7 +149,7 @@ routeToViewStateModelCmd sharedModel route =
                                 ]
                             )
             in
-            ( NonProjectView <| LoadingUnscopedProjects authTokenString
+            ( NonProjectView <| LoadingUnscopedProjects
             , newSharedModel
             , cmd
             )

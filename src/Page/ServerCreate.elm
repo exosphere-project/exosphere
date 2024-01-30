@@ -943,7 +943,7 @@ volBackedPrompt project context model volumeQuota flavor =
                     |> String.replace "%imageName%" model.imageName
                     |> invalidMessage context.palette
 
-            Helpers.ValidationResult.Accepted _ ->
+            Helpers.ValidationResult.Accepted ->
                 Element.none
 
             Helpers.ValidationResult.Unknown ->
@@ -1909,13 +1909,11 @@ compareDiskSize project model =
 
         isDiskSizeEnough : Int -> Int -> Helpers.ValidationResult.ValidationResult Int
         isDiskSizeEnough disk imageMin =
-            { acceptable = imageMin, actual = disk }
-                |> (if disk >= imageMin then
-                        Helpers.ValidationResult.Accepted
+            if disk >= imageMin then
+                Helpers.ValidationResult.Accepted
 
-                    else
-                        Helpers.ValidationResult.Rejected
-                   )
+            else
+                Helpers.ValidationResult.Rejected { acceptable = imageMin, actual = disk }
     in
     Maybe.map2 isDiskSizeEnough selectedDiskSize minimumImageSize
         |> Maybe.withDefault Helpers.ValidationResult.Unknown

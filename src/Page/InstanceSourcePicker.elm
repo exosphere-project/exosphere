@@ -50,7 +50,7 @@ update msg project model =
             , sharedMsg
             )
 
-        InstanceTypeListMsg _ ->
+        InstanceTypeListMsg Page.InstanceTypeList.NoOp ->
             -- This page doesn't currently have a model or update function. Dummy NoOp Msg is only used so that
             -- buttons don't look disabled.
             ( model, Cmd.none, SharedMsg.NoOp )
