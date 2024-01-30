@@ -47,6 +47,7 @@ import Page.VolumeAttach
 import Page.VolumeCreate
 import Page.VolumeDetail
 import Page.VolumeList
+import Page.VolumeMountInstructions
 import Ports
 import Rest.ApiModelHelpers as ApiModelHelpers
 import Rest.Designate
@@ -557,6 +558,21 @@ updateUnderlying outerMsg outerModel =
                                         VolumeList newSharedModel
                               }
                             , Cmd.map VolumeListMsg cmd
+                            )
+                                |> pipelineCmdOuterModelMsg
+                                    (processSharedMsg sharedMsg)
+
+                        ( VolumeMountInstructionsMsg pageMsg, VolumeMountInstructions pageModel ) ->
+                            let
+                                ( newSharedModel, cmd, sharedMsg ) =
+                                    Page.VolumeMountInstructions.update pageMsg project pageModel
+                            in
+                            ( { outerModel
+                                | viewState =
+                                    ProjectView projectId <|
+                                        VolumeMountInstructions newSharedModel
+                              }
+                            , Cmd.map VolumeMountInstructionsMsg cmd
                             )
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
