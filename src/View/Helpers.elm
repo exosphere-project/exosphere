@@ -850,8 +850,8 @@ getShareUiStatusBadgeState status =
             StatusBadge.Error
 
 
-renderMarkdown : View.Types.Context -> String -> List (Element.Element msg)
-renderMarkdown context markdown =
+renderMarkdown : ExoPalette -> String -> List (Element.Element msg)
+renderMarkdown palette markdown =
     let
         deadEndsToString deadEnds =
             deadEnds
@@ -863,7 +863,7 @@ renderMarkdown context markdown =
                 |> Markdown.Parser.parse
                 |> Result.mapError deadEndsToString
                 |> Result.andThen
-                    (\ast -> Markdown.Renderer.render (elmUiRenderer context) ast)
+                    (\ast -> Markdown.Renderer.render (elmUiRenderer palette) ast)
     in
     case result of
         Ok elements ->
@@ -875,13 +875,13 @@ renderMarkdown context markdown =
             ]
 
 
-elmUiRenderer : View.Types.Context -> Markdown.Renderer.Renderer (Element.Element msg)
-elmUiRenderer context =
+elmUiRenderer : ExoPalette -> Markdown.Renderer.Renderer (Element.Element msg)
+elmUiRenderer palette =
     let
         codeAttrs =
             [ Text.fontFamily Text.Mono
-            , Background.color <| SH.toElementColor context.palette.neutral.background.frontLayer
-            , Background.color <| SH.toElementColor context.palette.neutral.background.backLayer
+            , Background.color <| SH.toElementColor palette.neutral.background.frontLayer
+            , Background.color <| SH.toElementColor palette.neutral.background.backLayer
             ]
 
         codeRenderer =
@@ -889,7 +889,7 @@ elmUiRenderer context =
                 (Element.paddingXY spacer.px4 0 :: codeAttrs)
     in
     -- Heavily borrowed and modified from https://ellie-app.com/bQLgjtbgdkZa1
-    { heading = heading context.palette
+    { heading = heading palette
     , paragraph =
         Element.paragraph
             []
@@ -902,11 +902,11 @@ elmUiRenderer context =
         codeRenderer
     , link =
         \{ destination } body ->
-            Element.newTabLink (Link.linkStyle context.palette)
+            Element.newTabLink (Link.linkStyle palette)
                 { url = destination
                 , label =
                     Element.paragraph
-                        [ context.palette.primary |> SH.toElementColor |> Font.color
+                        [ palette.primary |> SH.toElementColor |> Font.color
                         , Element.pointer
                         ]
                         body
@@ -925,8 +925,8 @@ elmUiRenderer context =
             Element.column
                 [ Border.widthEach { top = 0, right = 0, bottom = 0, left = 10 }
                 , Element.padding spacer.px12
-                , Border.color (SH.toElementColor context.palette.neutral.border)
-                , Background.color (SH.toElementColor context.palette.neutral.background.frontLayer)
+                , Border.color (SH.toElementColor palette.neutral.border)
+                , Background.color (SH.toElementColor palette.neutral.background.frontLayer)
                 ]
                 children
     , unorderedList =

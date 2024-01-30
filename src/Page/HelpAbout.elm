@@ -29,7 +29,7 @@ view model context =
         [ case model.style.aboutAppMarkdown of
             Just aboutAppMarkdown ->
                 Element.column [ Element.spacing spacer.px16 ] <|
-                    VH.renderMarkdown context aboutAppMarkdown
+                    VH.renderMarkdown context.palette aboutAppMarkdown
 
             Nothing ->
                 defaultHelpAboutText context
