@@ -19,7 +19,10 @@ import NoElementFontSize
 import NoExposingEverything
 import NoHardcodedLocalizedStrings
 import NoImportingEverything
+import NoMissingTypeAnnotation
 import NoMissingTypeExpose
+import NoUnused.Dependencies
+import NoUnused.Parameters
 import NoUnused.Variables
 import Review.Rule as Rule exposing (Rule)
 
@@ -68,5 +71,8 @@ config =
             )
     , NoExposingEverything.rule
     , NoImportingEverything.rule []
+    , NoMissingTypeAnnotation.rule
+    , NoUnused.Dependencies.rule
+    , NoUnused.Parameters.rule
     , NoUnused.Variables.rule
     ]
