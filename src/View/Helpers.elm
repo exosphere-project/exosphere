@@ -880,13 +880,15 @@ elmUiRenderer palette =
     let
         codeAttrs =
             [ Text.fontFamily Text.Mono
-            , Background.color <| SH.toElementColor palette.neutral.background.frontLayer
-            , Background.color <| SH.toElementColor palette.neutral.background.backLayer
+            , Border.rounded spacer.px4
+            , Border.color (SH.toElementColor palette.muted.border)
+            , Background.color (SH.toElementColor palette.muted.background)
+            , Font.color (SH.toElementColor palette.muted.textOnColoredBG)
             ]
 
         codeRenderer =
             Text.text Text.Body
-                (Element.paddingXY spacer.px4 0 :: codeAttrs)
+                (Element.paddingXY spacer.px4 spacer.px4 :: codeAttrs)
     in
     -- Heavily borrowed and modified from https://ellie-app.com/bQLgjtbgdkZa1
     { heading = heading palette
@@ -968,7 +970,7 @@ elmUiRenderer palette =
     , codeBlock =
         \{ body } ->
             Element.row
-                (codeAttrs ++ [ Element.paddingXY 0 spacer.px8, Element.width Element.fill ])
+                (codeAttrs ++ [ Element.paddingXY spacer.px8 spacer.px8, Element.width Element.fill ])
                 [ codeRenderer body ]
     , html = Markdown.Html.oneOf []
     , table = Element.column []
