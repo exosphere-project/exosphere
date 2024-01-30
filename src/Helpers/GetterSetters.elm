@@ -416,7 +416,7 @@ volNameToMountpoint volName =
 
 volDeviceToMountpoint : OSTypes.VolumeAttachmentDevice -> Maybe String
 volDeviceToMountpoint device =
-    -- Converts e.g. "/dev/sdc" to "/media/volume/sdc"
+    -- Converts e.g. "/dev/sdc" to "/media/volume/sdc", for exoServerVersion < 5
     device
         |> String.split "/"
         |> List.reverse
