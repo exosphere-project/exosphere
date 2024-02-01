@@ -45,6 +45,7 @@ module Helpers.GetterSetters exposing
     , serverExoServerVersion
     , serverLookup
     , serverPresentNotDeleting
+    , serverSupportsFeature
     , shareLookup
     , sortedFlavors
     , transformRDPP
@@ -115,6 +116,16 @@ serverExoServerVersion server =
 
         _ ->
             Nothing
+
+
+serverSupportsFeature : Types.Server.ExoFeature -> Server -> Bool
+serverSupportsFeature feature server =
+    case serverExoServerVersion server of
+        Just v ->
+            Types.Server.exoVersionSupportsFeature feature v
+
+        Nothing ->
+            False
 
 
 shareLookup : Project -> OSTypes.ShareUuid -> Maybe OSTypes.Share
