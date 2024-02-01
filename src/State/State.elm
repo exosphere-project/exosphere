@@ -70,7 +70,7 @@ import Types.HelperTypes as HelperTypes exposing (UnscopedProviderProject)
 import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Endpoints, Project, ProjectSecret(..))
-import Types.Server exposing (ExoSetupStatus(..), NewServerNetworkOptions(..), Server, ServerFromExoProps, ServerOrigin(..), currentExoServerVersion)
+import Types.Server exposing (ExoFeature(..), ExoSetupStatus(..), NewServerNetworkOptions(..), Server, ServerFromExoProps, ServerOrigin(..), currentExoServerVersion, exoVersionSupportsFeature)
 import Types.ServerResourceUsage
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..), TickInterval)
@@ -1376,17 +1376,26 @@ processProjectSpecificMsg outerModel project msg =
                 maybeVolume =
                     OSVolumes.volumeLookup project volumeUuid
 
-                maybeServerUuid =
+                maybeServer =
                     maybeVolume
                         |> Maybe.map (GetterSetters.getServersWithVolAttached project)
                         |> Maybe.andThen List.head
+                        |> Maybe.andThen (GetterSetters.serverLookup project)
             in
-            case maybeServerUuid of
-                Just serverUuid ->
+            case maybeServer of
+                Just server ->
+                    let
+                        serverHasVolumeMetadata =
+                            List.any (\{ key } -> key == "exoVolumes::" ++ volumeUuid) server.osProps.details.metadata
+                    in
                     ( outerModel
                     , Cmd.batch
-                        [ OSSvrVols.requestDetachVolume project serverUuid volumeUuid
-                        , Rest.Nova.requestDeleteServerMetadata project serverUuid ("exoVolumes::" ++ volumeUuid)
+                        [ OSSvrVols.requestDetachVolume project server.osProps.uuid volumeUuid
+                        , if serverHasVolumeMetadata then
+                            Rest.Nova.requestDeleteServerMetadata project server.osProps.uuid ("exoVolumes::" ++ volumeUuid)
+
+                          else
+                            Cmd.none
                         ]
                     )
                         |> mapToOuterMsg
@@ -2359,7 +2368,6 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
 
         RequestAttachVolume volumeUuid ->
             let
-                {- @TODO: Move this into a helper function -}
                 volumeName =
                     GetterSetters.volumeLookup project volumeUuid
                         |> Maybe.andThen .name
@@ -2369,7 +2377,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                     , value =
                         Json.Encode.encode 0 <|
                             Json.Encode.object
-                                [ ( volumeUuid
+                                [ ( "name"
                                   , volumeName
                                         |> Maybe.map Json.Encode.string
                                         |> Maybe.withDefault Json.Encode.null

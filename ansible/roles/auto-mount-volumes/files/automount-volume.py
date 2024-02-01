@@ -42,20 +42,21 @@ def get_openstack_metadata():
         return json.load(response)
 
 
-def get_volume_names():
+def get_all_volume_metadata():
     metadata = get_openstack_metadata()
     volumes = {}
     for k, v in metadata["meta"].items():
         if k.startswith("exoVolumes::"):
-            volumes.update(**json.loads(v))
+            uuid = k.split("::", maxsplit=1)[1]
+            volumes[uuid] = json.loads(v)
     return volumes
 
 
 def get_volume_name(uuid, *, retries=0, default=None):
     while retries >= 0:
-        names = get_volume_names()
+        names = get_all_volume_metadata()
         if uuid in names:
-            return names[uuid]
+            return names[uuid]["name"]
 
         if retries:
             time.sleep(1)
