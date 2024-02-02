@@ -34,7 +34,7 @@ subscriptionsValid outerModel =
          , changeThemePreference (decodeThemePreference >> sendThemeUpdate)
          , updateNetworkConnectivity (\online -> SharedMsg (NetworkConnection online))
          ]
-            -- Close popovers if cliked outside. Based on: https://dev.to/margaretkrutikova/elm-dom-node-decoder-to-detect-click-outside-3ioh
+            -- Close popovers if clicked outside. Based on: https://dev.to/margaretkrutikova/elm-dom-node-decoder-to-detect-click-outside-3ioh
             ++ List.map
                 (\popoverId ->
                     Browser.Events.onMouseDown
