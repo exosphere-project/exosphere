@@ -1,7 +1,8 @@
 module Rest.Jetstream2Accounting exposing (requestAllocations)
 
 import Helpers.GetterSetters as GetterSetters
-import Helpers.Time exposing (iso8601StringToPosixDecodeError)
+import Helpers.Json exposing (resultToDecoder)
+import Helpers.Time exposing (makeIso8601StringToPosixDecoder)
 import Http
 import Json.Decode as Decode
 import Rest.Helpers
@@ -26,34 +27,34 @@ requestAllocations project url =
         []
         url
         Http.emptyBody
-        (Rest.Helpers.expectJsonWithErrorBody resultToMsg decodeAllocations)
+        (Rest.Helpers.expectJsonWithErrorBody resultToMsg allocationsDecoder)
 
 
-decodeAllocations : Decode.Decoder (List Types.Jetstream2Accounting.Allocation)
-decodeAllocations =
-    Decode.list decodeAllocation
+allocationsDecoder : Decode.Decoder (List Types.Jetstream2Accounting.Allocation)
+allocationsDecoder =
+    Decode.list allocationDecoder
 
 
-decodeAllocation : Decode.Decoder Types.Jetstream2Accounting.Allocation
-decodeAllocation =
+allocationDecoder : Decode.Decoder Types.Jetstream2Accounting.Allocation
+allocationDecoder =
     Decode.map8 Types.Jetstream2Accounting.Allocation
         (Decode.field "description" Decode.string)
         (Decode.field "abstract" Decode.string)
         (Decode.field "service_units_allocated" Decode.float)
         (Decode.field "service_units_used" (Decode.nullable Decode.float))
-        (Decode.field "start_date" Decode.string |> Decode.andThen iso8601StringToPosixDecodeError)
-        (Decode.field "end_date" Decode.string |> Decode.andThen iso8601StringToPosixDecodeError)
-        (Decode.field "resource" decodeResource)
-        (Decode.field "active" decodeStatus)
+        (Decode.field "start_date" Decode.string |> Decode.andThen makeIso8601StringToPosixDecoder)
+        (Decode.field "end_date" Decode.string |> Decode.andThen makeIso8601StringToPosixDecoder)
+        (Decode.field "resource" resourceDecoder)
+        (Decode.field "active" statusDecoder)
 
 
-decodeResource : Decode.Decoder Types.Jetstream2Accounting.Resource
-decodeResource =
-    Decode.string |> Decode.andThen decodeResource_
+resourceDecoder : Decode.Decoder Types.Jetstream2Accounting.Resource
+resourceDecoder =
+    Decode.string |> Decode.andThen makeResourceDecoder
 
 
-decodeResource_ : String -> Decode.Decoder Types.Jetstream2Accounting.Resource
-decodeResource_ str =
+makeResourceDecoder : String -> Decode.Decoder Types.Jetstream2Accounting.Resource
+makeResourceDecoder str =
     case Types.Jetstream2Accounting.resourceFromStr str of
         Just resource ->
             Decode.succeed resource
@@ -62,20 +63,21 @@ decodeResource_ str =
             Decode.fail "Could not decode Jetstream2 allocation, unrecognized resource type"
 
 
-decodeStatus : Decode.Decoder Types.Jetstream2Accounting.AllocationStatus
-decodeStatus =
+statusDecoder : Decode.Decoder Types.Jetstream2Accounting.AllocationStatus
+statusDecoder =
     Decode.int
-        |> Decode.andThen intToStatus
+        |> Decode.map parseStatusInt
+        |> Decode.andThen resultToDecoder
 
 
-intToStatus : Int -> Decode.Decoder Types.Jetstream2Accounting.AllocationStatus
-intToStatus i =
+parseStatusInt : Int -> Result String Types.Jetstream2Accounting.AllocationStatus
+parseStatusInt i =
     case i of
         1 ->
-            Decode.succeed Types.Jetstream2Accounting.Active
+            Result.Ok Types.Jetstream2Accounting.Active
 
         0 ->
-            Decode.succeed Types.Jetstream2Accounting.Inactive
+            Result.Ok Types.Jetstream2Accounting.Inactive
 
         _ ->
-            Decode.fail "unrecognized value for active field"
+            Result.Err "unrecognized value for active field"

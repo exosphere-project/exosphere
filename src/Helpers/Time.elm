@@ -1,4 +1,4 @@
-module Helpers.Time exposing (humanReadableDate, humanReadableDateAndTime, iso8601StringToPosix, iso8601StringToPosixDecodeError, relativeTimeNoAffixes)
+module Helpers.Time exposing (humanReadableDate, humanReadableDateAndTime, iso8601StringToPosix, makeIso8601StringToPosixDecoder, relativeTimeNoAffixes)
 
 import DateFormat.Relative
 import ISO8601
@@ -93,8 +93,8 @@ relativeTimeNoAffixes start end =
         |> String.join " "
 
 
-iso8601StringToPosixDecodeError : String -> Decoder Time.Posix
-iso8601StringToPosixDecodeError str =
+makeIso8601StringToPosixDecoder : String -> Decoder Time.Posix
+makeIso8601StringToPosixDecoder str =
     case iso8601StringToPosix str of
         Ok posix ->
             succeed posix

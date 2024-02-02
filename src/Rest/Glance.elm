@@ -9,8 +9,9 @@ module Rest.Glance exposing
 
 import Dict
 import Helpers.GetterSetters as GetterSetters
+import Helpers.Json exposing (resultToDecoder)
 import Helpers.RemoteDataPlusPlus as RDPP
-import Helpers.Time exposing (iso8601StringToPosixDecodeError)
+import Helpers.Time exposing (makeIso8601StringToPosixDecoder)
 import Helpers.Url as UrlHelpers
 import Http
 import Json.Decode as Decode
@@ -88,7 +89,7 @@ requestImagesWithVisibility maybeVisibility model project =
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg_
-            (decodeImages maybeExcludeFilter)
+            (makeImagesDecoder maybeExcludeFilter)
         )
 
 
@@ -109,7 +110,7 @@ requestImage imageId project errorContext =
         Http.emptyBody
         (Rest.Helpers.expectJsonWithErrorBody
             resultToMsg_
-            (imageDecoder Nothing)
+            (makeImageDecoder Nothing)
         )
 
 
@@ -262,13 +263,13 @@ catMaybes =
     List.filterMap identity
 
 
-decodeImages : Maybe MetadataFilter -> Decode.Decoder (List OSTypes.Image)
-decodeImages maybeExcludeFilter =
-    Decode.field "images" (Decode.map catMaybes (Decode.list <| imageDecoder maybeExcludeFilter))
+makeImagesDecoder : Maybe MetadataFilter -> Decode.Decoder (List OSTypes.Image)
+makeImagesDecoder maybeExcludeFilter =
+    Decode.field "images" (Decode.map catMaybes (Decode.list <| makeImageDecoder maybeExcludeFilter))
 
 
-decodeAdditionalProperties : List String -> Decode.Decoder (Dict.Dict String String)
-decodeAdditionalProperties basePropertyNames =
+makeAdditionalPropertiesDecoder : List String -> Decode.Decoder (Dict.Dict String String)
+makeAdditionalPropertiesDecoder basePropertyNames =
     let
         fromBool val =
             if val then
@@ -294,8 +295,8 @@ decodeAdditionalProperties basePropertyNames =
             )
 
 
-imageDecoder : Maybe MetadataFilter -> Decode.Decoder (Maybe OSTypes.Image)
-imageDecoder maybeExcludeFilter =
+makeImageDecoder : Maybe MetadataFilter -> Decode.Decoder (Maybe OSTypes.Image)
+makeImageDecoder maybeExcludeFilter =
     case maybeExcludeFilter of
         Nothing ->
             Decode.map Just imageDecoderHelper
@@ -359,7 +360,7 @@ imageDecoderHelper =
     Decode.succeed
         OSTypes.Image
         |> Pipeline.required "name" Decode.string
-        |> Pipeline.required "status" (Decode.string |> Decode.andThen imageStatusDecoder)
+        |> Pipeline.required "status" (Decode.string |> Decode.map parseImageStatus |> Decode.andThen resultToDecoder)
         |> Pipeline.required "id" Decode.string
         |> Pipeline.required "size" (Decode.oneOf [ Decode.int, Decode.null 0 ] |> Decode.andThen (\i -> Decode.succeed <| Just i))
         |> Pipeline.optional "checksum" (Decode.string |> Decode.andThen (\s -> Decode.succeed <| Just s)) Nothing
@@ -367,9 +368,9 @@ imageDecoderHelper =
         |> Pipeline.optional "container_format" (Decode.string |> Decode.andThen (\s -> Decode.succeed <| Just s)) Nothing
         |> Pipeline.required "tags" (Decode.list Decode.string)
         |> Pipeline.required "owner" Decode.string
-        |> Pipeline.required "visibility" (Decode.string |> Decode.andThen imageVisibilityDecoder)
-        |> Pipeline.custom (decodeAdditionalProperties basePropertyNames)
-        |> Pipeline.required "created_at" (Decode.string |> Decode.andThen iso8601StringToPosixDecodeError)
+        |> Pipeline.required "visibility" (Decode.string |> Decode.map parseImageVisibility |> Decode.andThen resultToDecoder)
+        |> Pipeline.custom (makeAdditionalPropertiesDecoder basePropertyNames)
+        |> Pipeline.required "created_at" (Decode.string |> Decode.andThen makeIso8601StringToPosixDecoder)
         |> Pipeline.optional "os_distro" (Decode.string |> Decode.andThen (\s -> Decode.succeed <| Just s)) Nothing
         |> Pipeline.optional "os_version" (Decode.string |> Decode.andThen (\s -> Decode.succeed <| Just s)) Nothing
         |> Pipeline.required "protected" Decode.bool
@@ -377,48 +378,48 @@ imageDecoderHelper =
         |> Pipeline.optional "min_disk" (Decode.nullable Decode.int) Nothing
 
 
-imageVisibilityDecoder : String -> Decode.Decoder OSTypes.ImageVisibility
-imageVisibilityDecoder visibility =
+parseImageVisibility : String -> Result String OSTypes.ImageVisibility
+parseImageVisibility visibility =
     case visibility of
         "public" ->
-            Decode.succeed OSTypes.ImagePublic
+            Result.Ok OSTypes.ImagePublic
 
         "community" ->
-            Decode.succeed OSTypes.ImageCommunity
+            Result.Ok OSTypes.ImageCommunity
 
         "shared" ->
-            Decode.succeed OSTypes.ImageShared
+            Result.Ok OSTypes.ImageShared
 
         "private" ->
-            Decode.succeed OSTypes.ImagePrivate
+            Result.Ok OSTypes.ImagePrivate
 
         _ ->
-            Decode.fail "Unrecognized image visibility value"
+            Result.Err "Unrecognized image visibility value"
 
 
-imageStatusDecoder : String -> Decode.Decoder OSTypes.ImageStatus
-imageStatusDecoder status =
+parseImageStatus : String -> Result String OSTypes.ImageStatus
+parseImageStatus status =
     case status of
         "queued" ->
-            Decode.succeed OSTypes.ImageQueued
+            Result.Ok OSTypes.ImageQueued
 
         "saving" ->
-            Decode.succeed OSTypes.ImageSaving
+            Result.Ok OSTypes.ImageSaving
 
         "active" ->
-            Decode.succeed OSTypes.ImageActive
+            Result.Ok OSTypes.ImageActive
 
         "killed" ->
-            Decode.succeed OSTypes.ImageKilled
+            Result.Ok OSTypes.ImageKilled
 
         "deleted" ->
-            Decode.succeed OSTypes.ImageDeleted
+            Result.Ok OSTypes.ImageDeleted
 
         "pending_delete" ->
-            Decode.succeed OSTypes.ImagePendingDelete
+            Result.Ok OSTypes.ImagePendingDelete
 
         "deactivated" ->
-            Decode.succeed OSTypes.ImageDeactivated
+            Result.Ok OSTypes.ImageDeactivated
 
         _ ->
-            Decode.fail "Unrecognized image status"
+            Result.Err "Unrecognized image status"

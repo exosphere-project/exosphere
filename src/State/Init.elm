@@ -147,7 +147,7 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
                 Just storedStateValue ->
                     let
                         decodedValueResult =
-                            Decode.decodeValue LocalStorage.decodeStoredState storedStateValue
+                            Decode.decodeValue LocalStorage.storedStateDecoder storedStateValue
                     in
                     case decodedValueResult of
                         Result.Err e ->
@@ -317,11 +317,11 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
 
 decodeCloudSpecificConfigs : Decode.Value -> Result Decode.Error CloudSpecificConfigMap
 decodeCloudSpecificConfigs value =
-    Decode.decodeValue (Decode.list decodeCloudSpecificConfig |> Decode.map Dict.fromList) value
+    Decode.decodeValue (Decode.list cloudSpecificConfigDecoder |> Decode.map Dict.fromList) value
 
 
-decodeCloudSpecificConfig : Decode.Decoder ( HelperTypes.KeystoneHostname, HelperTypes.CloudSpecificConfig )
-decodeCloudSpecificConfig =
+cloudSpecificConfigDecoder : Decode.Decoder ( HelperTypes.KeystoneHostname, HelperTypes.CloudSpecificConfig )
+cloudSpecificConfigDecoder =
     Decode.map7 HelperTypes.CloudSpecificConfig
         (Decode.field "friendlyName" Decode.string)
         (Decode.field "userAppProxy" (Decode.nullable (Decode.list userAppProxyConfigDecoder)))

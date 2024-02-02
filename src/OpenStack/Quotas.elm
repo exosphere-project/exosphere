@@ -58,9 +58,9 @@ computeQuotaDecoder : Decode.Decoder OSTypes.ComputeQuota
 computeQuotaDecoder =
     Decode.field "absolute" <|
         Decode.map4 OSTypes.ComputeQuota
-            (quotaItemPairDecoder "totalCoresUsed" "maxTotalCores")
-            (quotaItemPairDecoder "totalInstancesUsed" "maxTotalInstances")
-            (quotaItemPairDecoder "totalRAMUsed" "maxTotalRAMSize")
+            (makeQuotaItemPairDecoder "totalCoresUsed" "maxTotalCores")
+            (makeQuotaItemPairDecoder "totalInstancesUsed" "maxTotalInstances")
+            (makeQuotaItemPairDecoder "totalRAMUsed" "maxTotalRAMSize")
             (Decode.field "maxTotalKeypairs" Decode.int)
 
 
@@ -99,8 +99,8 @@ volumeQuotaDecoder : Decode.Decoder OSTypes.VolumeQuota
 volumeQuotaDecoder =
     Decode.field "absolute" <|
         Decode.map2 OSTypes.VolumeQuota
-            (quotaItemPairDecoder "totalVolumesUsed" "maxTotalVolumes")
-            (quotaItemPairDecoder "totalGigabytesUsed" "maxTotalVolumeGigabytes")
+            (makeQuotaItemPairDecoder "totalVolumesUsed" "maxTotalVolumes")
+            (makeQuotaItemPairDecoder "totalGigabytesUsed" "maxTotalVolumeGigabytes")
 
 
 
@@ -137,7 +137,7 @@ requestNetworkQuota project =
 networkQuotaDecoder : Decode.Decoder OSTypes.NetworkQuota
 networkQuotaDecoder =
     Decode.map OSTypes.NetworkQuota <|
-        Decode.field "floatingip" (quotaItemPairDecoder "used" "limit")
+        Decode.field "floatingip" (makeQuotaItemPairDecoder "used" "limit")
 
 
 
@@ -183,13 +183,13 @@ shareQuotaDecoder : Decode.Decoder OSTypes.ShareQuota
 shareQuotaDecoder =
     Decode.at [ "limits", "absolute" ]
         (Decode.succeed OSTypes.ShareQuota
-            |> custom (quotaItemPairDecoder "totalShareGigabytesUsed" "maxTotalShareGigabytes")
-            |> custom (quotaItemPairDecoder "totalShareSnapshotsUsed" "maxTotalShareSnapshots")
-            |> custom (quotaItemPairDecoder "totalSharesUsed" "maxTotalShares")
-            |> custom (quotaItemPairDecoder "totalSnapshotGigabytesUsed" "maxTotalSnapshotGigabytes")
-            |> custom (maybe (quotaItemPairDecoder "totalShareNetworksUsed" "maxTotalShareNetworks"))
-            |> custom (maybe (quotaItemPairDecoder "totalShareReplicasUsed" "maxTotalShareReplicas"))
-            |> custom (maybe (quotaItemPairDecoder "totalReplicaGigabytesUsed" "maxTotalReplicaGigabytes"))
+            |> custom (makeQuotaItemPairDecoder "totalShareGigabytesUsed" "maxTotalShareGigabytes")
+            |> custom (makeQuotaItemPairDecoder "totalShareSnapshotsUsed" "maxTotalShareSnapshots")
+            |> custom (makeQuotaItemPairDecoder "totalSharesUsed" "maxTotalShares")
+            |> custom (makeQuotaItemPairDecoder "totalSnapshotGigabytesUsed" "maxTotalSnapshotGigabytes")
+            |> custom (maybe (makeQuotaItemPairDecoder "totalShareNetworksUsed" "maxTotalShareNetworks"))
+            |> custom (maybe (makeQuotaItemPairDecoder "totalShareReplicasUsed" "maxTotalShareReplicas"))
+            |> custom (maybe (makeQuotaItemPairDecoder "totalReplicaGigabytesUsed" "maxTotalReplicaGigabytes"))
             |> hardcoded Nothing
             |> hardcoded Nothing
             |> hardcoded Nothing
@@ -257,8 +257,8 @@ computeQuotaFlavorAvailServers computeQuota flavor =
 {- Decode an OSTypes.QuotaItem from a pair of keys -}
 
 
-quotaItemPairDecoder : String -> String -> Decode.Decoder OSTypes.QuotaItem
-quotaItemPairDecoder usedKey totalKey =
+makeQuotaItemPairDecoder : String -> String -> Decode.Decoder OSTypes.QuotaItem
+makeQuotaItemPairDecoder usedKey totalKey =
     Decode.map2 OSTypes.QuotaItem
         (Decode.field usedKey Decode.int)
         (Decode.field totalKey quotaItemLimitDecoder)

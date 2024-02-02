@@ -10,7 +10,7 @@ module OpenStack.Volumes exposing
 
 import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
-import Helpers.Time exposing (iso8601StringToPosixDecodeError)
+import Helpers.Time exposing (makeIso8601StringToPosixDecoder)
 import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
@@ -221,7 +221,7 @@ volumeDecoder =
         |> Pipeline.required "description" (Decode.nullable Decode.string)
         |> Pipeline.required "attachments" (Decode.list cinderVolumeAttachmentDecoder)
         |> Pipeline.optional "volume_image_metadata" (imageMetadataDecoder |> Decode.map Maybe.Just) Nothing
-        |> Pipeline.required "created_at" (Decode.string |> Decode.andThen iso8601StringToPosixDecodeError)
+        |> Pipeline.required "created_at" (Decode.string |> Decode.andThen makeIso8601StringToPosixDecoder)
         |> Pipeline.required "user_id" Decode.string
 
 

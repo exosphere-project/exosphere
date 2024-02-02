@@ -346,7 +346,7 @@ decodeSynchronousOpenStackAPIErrorSuite =
                             406
                     )
                     (Decode.decodeString
-                        OSError.decodeSynchronousErrorJson
+                        OSError.synchronousErrorJsonDecoder
                         """{
                            "computeFault": {
                              "message": "Version 4.87 is not supported by the API. Minimum is 2.1 and maximum is 2.65.",
@@ -363,7 +363,7 @@ decodeSynchronousOpenStackAPIErrorSuite =
                             404
                     )
                     (Decode.decodeString
-                        OSError.decodeSynchronousErrorJson
+                        OSError.synchronousErrorJsonDecoder
                         """{
                                         "itemNotFound": {
                                           "message": "Instance detailFOOBARBAZ could not be found.",

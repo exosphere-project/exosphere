@@ -54,10 +54,10 @@ requestConsoleLog project server maybeLength =
         (Http.jsonBody body)
         (expectJsonWithErrorBody
             resultToMsg
-            decodeConsoleLog
+            consoleLogDecoder
         )
 
 
-decodeConsoleLog : Json.Decode.Decoder String
-decodeConsoleLog =
+consoleLogDecoder : Json.Decode.Decoder String
+consoleLogDecoder =
     Json.Decode.field "output" Json.Decode.string

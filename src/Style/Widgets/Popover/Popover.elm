@@ -283,7 +283,7 @@ popover context msgMapper { id, content, contentStyleAttrs, position, distanceTo
 
 toggleIfTargetIsOutside : PopoverId -> (PopoverId -> msg) -> Decode.Decoder msg
 toggleIfTargetIsOutside popoverId togglePopoverMsg =
-    Decode.field "target" (isNodeOutsidePopover popoverId)
+    Decode.field "target" (makeIsNodeOutsidePopoverDecoder popoverId)
         |> Decode.andThen
             (\isOutside ->
                 if isOutside then
@@ -294,8 +294,8 @@ toggleIfTargetIsOutside popoverId togglePopoverMsg =
             )
 
 
-isNodeOutsidePopover : PopoverId -> Decode.Decoder Bool
-isNodeOutsidePopover popoverId =
+makeIsNodeOutsidePopoverDecoder : PopoverId -> Decode.Decoder Bool
+makeIsNodeOutsidePopoverDecoder popoverId =
     Decode.oneOf
         [ Decode.field "id" Decode.string
             |> Decode.andThen
@@ -308,7 +308,7 @@ isNodeOutsidePopover popoverId =
                         -- try next decoder
                         Decode.fail "check parent node"
                 )
-        , Decode.lazy (\_ -> isNodeOutsidePopover popoverId |> Decode.field "parentNode")
+        , Decode.lazy (\_ -> makeIsNodeOutsidePopoverDecoder popoverId |> Decode.field "parentNode")
 
         -- fallback if all previous decoders failed
         , Decode.succeed True

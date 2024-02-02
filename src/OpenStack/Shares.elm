@@ -60,7 +60,7 @@ shareDecoder =
         |> Pipeline.required "size" Decode.int
         |> Pipeline.required "description" (Decode.maybe Decode.string)
         |> Pipeline.required "metadata" (Decode.dict Decode.string)
-        |> Pipeline.required "created_at" (Decode.string |> Decode.andThen Helpers.Time.iso8601StringToPosixDecodeError)
+        |> Pipeline.required "created_at" (Decode.string |> Decode.andThen Helpers.Time.makeIso8601StringToPosixDecoder)
         |> Pipeline.required "user_id" Decode.string
         |> Pipeline.required "is_public" (Decode.bool |> Decode.map OSTypes.boolToShareVisibility)
         |> Pipeline.required "share_proto" (Decode.string |> Decode.map OSTypes.stringToShareProtocol)
@@ -109,7 +109,7 @@ accessRulesDecoder =
         |> Pipeline.required "access_to" Decode.string
         |> Pipeline.required "access_key" (Decode.maybe Decode.string)
         |> Pipeline.required "state" (Decode.string |> Decode.map OSTypes.stringToAccessRuleState)
-        |> Pipeline.required "created_at" (Decode.string |> Decode.andThen Helpers.Time.iso8601StringToPosixDecodeError)
+        |> Pipeline.required "created_at" (Decode.string |> Decode.andThen Helpers.Time.makeIso8601StringToPosixDecoder)
 
 
 requestShareExportLocations : Project -> Url -> OSTypes.ShareUuid -> Cmd SharedMsg

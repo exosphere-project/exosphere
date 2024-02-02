@@ -10,7 +10,8 @@ module Rest.Keystone exposing
 
 import Dict
 import Helpers.GetterSetters as GetterSetters
-import Helpers.Time exposing (iso8601StringToPosixDecodeError)
+import Helpers.Json exposing (resultToDecoder)
+import Helpers.Time exposing (makeIso8601StringToPosixDecoder)
 import Helpers.Url
 import Http
 import Json.Decode as Decode
@@ -279,17 +280,17 @@ requestAppCredential clientUuid posixTime project =
         []
         (urlWithVersion ++ "/users/" ++ project.auth.user.uuid ++ "/application_credentials")
         (Http.jsonBody requestBody)
-        (expectJsonWithErrorBody resultToMsg_ decodeAppCredential)
+        (expectJsonWithErrorBody resultToMsg_ appCredentialDecoder)
 
 
 requestUnscopedProjects : UnscopedProvider -> Maybe HelperTypes.Url -> Cmd SharedMsg
 requestUnscopedProjects provider maybeProxyUrl =
-    requestUnscoped_ provider maybeProxyUrl "auth/projects" "projects" decodeUnscopedProjects ReceiveUnscopedProjects
+    requestUnscoped_ provider maybeProxyUrl "auth/projects" "projects" unscopedProjectsDecoder ReceiveUnscopedProjects
 
 
 requestUnscopedRegions : UnscopedProvider -> Maybe HelperTypes.Url -> Cmd SharedMsg
 requestUnscopedRegions provider maybeProxyUrl =
-    requestUnscoped_ provider maybeProxyUrl "regions" "regions" decodeUnscopedRegions ReceiveUnscopedRegions
+    requestUnscoped_ provider maybeProxyUrl "regions" "regions" unscopedRegionsDecoder ReceiveUnscopedRegions
 
 
 requestUnscoped_ : UnscopedProvider -> Maybe HelperTypes.Url -> String -> String -> Decode.Decoder a -> (OSTypes.KeystoneUrl -> ErrorContext -> Result HttpErrorWithBody a -> SharedMsg) -> Cmd SharedMsg
@@ -346,18 +347,19 @@ requestUnscoped_ provider maybeProxyUrl resourcePathFragment resourceStr decoder
 
 
 {- JSON Decoders -}
+-- TODO
 
 
 decodeUnscopedAuthToken : Http.Response String -> Result String OSTypes.UnscopedAuthToken
 decodeUnscopedAuthToken response =
-    decodeAuthTokenHelper response decodeUnscopedAuthTokenDetails
+    decodeAuthTokenHelper response unscopedAuthTokenDetailsDecoder
 
 
-decodeUnscopedAuthTokenDetails : Decode.Decoder (OSTypes.AuthTokenString -> OSTypes.UnscopedAuthToken)
-decodeUnscopedAuthTokenDetails =
+unscopedAuthTokenDetailsDecoder : Decode.Decoder (OSTypes.AuthTokenString -> OSTypes.UnscopedAuthToken)
+unscopedAuthTokenDetailsDecoder =
     Decode.map OSTypes.UnscopedAuthToken
         (Decode.at [ "token", "expires_at" ] Decode.string
-            |> Decode.andThen iso8601StringToPosixDecodeError
+            |> Decode.andThen makeIso8601StringToPosixDecoder
         )
 
 
@@ -391,7 +393,7 @@ decodeScopedAuthTokenDetails =
             (Decode.at [ "token", "user", "domain", "id" ] Decode.string)
         )
         (Decode.at [ "token", "expires_at" ] Decode.string
-            |> Decode.andThen iso8601StringToPosixDecodeError
+            |> Decode.andThen makeIso8601StringToPosixDecoder
         )
 
 
@@ -407,26 +409,27 @@ openstackEndpointDecoder : Decode.Decoder OSTypes.Endpoint
 openstackEndpointDecoder =
     Decode.map3 OSTypes.Endpoint
         (Decode.field "interface" Decode.string
-            |> Decode.andThen openstackEndpointInterfaceDecoder
+            |> Decode.map parseOpenstackEndpointInterface
+            |> Decode.andThen resultToDecoder
         )
         (Decode.field "url" Decode.string)
         (Decode.field "region_id" Decode.string)
 
 
-openstackEndpointInterfaceDecoder : String -> Decode.Decoder OSTypes.EndpointInterface
-openstackEndpointInterfaceDecoder interface =
+parseOpenstackEndpointInterface : String -> Result String OSTypes.EndpointInterface
+parseOpenstackEndpointInterface interface =
     case interface of
         "public" ->
-            Decode.succeed OSTypes.Public
+            Result.Ok OSTypes.Public
 
         "admin" ->
-            Decode.succeed OSTypes.Admin
+            Result.Ok OSTypes.Admin
 
         "internal" ->
-            Decode.succeed OSTypes.Internal
+            Result.Ok OSTypes.Internal
 
         _ ->
-            Decode.fail "unrecognized interface type"
+            Result.Err "unrecognized interface type"
 
 
 decodeAuthTokenHelper : Http.Response String -> Decode.Decoder (OSTypes.AuthTokenString -> a) -> Result String a
@@ -474,15 +477,15 @@ authTokenFromHeader metadata =
                     Err "Could not find an auth token in response headers"
 
 
-decodeAppCredential : Decode.Decoder OSTypes.ApplicationCredential
-decodeAppCredential =
+appCredentialDecoder : Decode.Decoder OSTypes.ApplicationCredential
+appCredentialDecoder =
     Decode.map2 OSTypes.ApplicationCredential
         (Decode.at [ "application_credential", "id" ] Decode.string)
         (Decode.at [ "application_credential", "secret" ] Decode.string)
 
 
-decodeUnscopedProjects : Decode.Decoder (List UnscopedProviderProject)
-decodeUnscopedProjects =
+unscopedProjectsDecoder : Decode.Decoder (List UnscopedProviderProject)
+unscopedProjectsDecoder =
     Decode.field "projects" <|
         Decode.list unscopedProjectDecoder
 
@@ -499,8 +502,8 @@ unscopedProjectDecoder =
         (Decode.field "enabled" Decode.bool)
 
 
-decodeUnscopedRegions : Decode.Decoder (List UnscopedProviderRegion)
-decodeUnscopedRegions =
+unscopedRegionsDecoder : Decode.Decoder (List UnscopedProviderRegion)
+unscopedRegionsDecoder =
     Decode.field "regions" <|
         Decode.list unscopedRegionDecoder
 
