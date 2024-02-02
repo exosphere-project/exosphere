@@ -9,7 +9,7 @@ import Style.Widgets.Button as Button
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Types.Project exposing (Project)
-import Types.Server exposing (ExoFeature(..), exoVersionSupportsFeature)
+import Types.Server exposing (ExoFeature(..))
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
@@ -42,17 +42,20 @@ view context project model =
             GetterSetters.volumeLookup project model.attachmentUuid
                 |> Maybe.andThen .name
 
-        exoServerVersion =
+        maybeServer =
             GetterSetters.serverLookup project model.serverUuid
-                |> Maybe.andThen GetterSetters.serverExoServerVersion
-                |> Maybe.withDefault 0
 
         maybeMountpoint =
-            if exoVersionSupportsFeature NamedMountpoints exoServerVersion then
-                volumeName |> Maybe.andThen GetterSetters.volNameToMountpoint
+            case maybeServer of
+                Just server ->
+                    if GetterSetters.serverSupportsFeature NamedMountpoints server then
+                        volumeName |> Maybe.andThen GetterSetters.volNameToMountpoint
 
-            else
-                GetterSetters.volDeviceToMountpoint model.device
+                    else
+                        GetterSetters.volDeviceToMountpoint model.device
+
+                Nothing ->
+                    GetterSetters.volDeviceToMountpoint model.device
     in
     Element.column VH.contentContainer
         [ Text.heading context.palette

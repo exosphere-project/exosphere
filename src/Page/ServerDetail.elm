@@ -40,7 +40,7 @@ import Time
 import Types.HelperTypes exposing (FloatingIpOption(..), ServerResourceQtys, UserAppProxyHostname)
 import Types.Interaction as ITypes
 import Types.Project exposing (Project)
-import Types.Server exposing (ExoFeature(..), ExoSetupStatus(..), Server, ServerOrigin(..), exoVersionSupportsFeature)
+import Types.Server exposing (ExoFeature(..), ExoSetupStatus(..), Server, ServerOrigin(..))
 import Types.ServerResourceUsage
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH exposing (edges)
@@ -1625,14 +1625,6 @@ renderIpAddresses context project server model =
 serverVolumes : View.Types.Context -> Project -> Server -> Element.Element Msg
 serverVolumes context project server =
     let
-        exoServerVersion =
-            case server.exoProps.serverOrigin of
-                ServerFromExo props ->
-                    props.exoServerVersion
-
-                _ ->
-                    0
-
         vols =
             GetterSetters.getVolsAttachedToServer project server
     in
@@ -1672,7 +1664,7 @@ serverVolumes context project server =
                                     Just device_ ->
                                         ( device_
                                         , Maybe.withDefault "Could not determine" <|
-                                            if exoVersionSupportsFeature NamedMountpoints exoServerVersion then
+                                            if GetterSetters.serverSupportsFeature NamedMountpoints server then
                                                 v.name |> Maybe.andThen GetterSetters.volNameToMountpoint
 
                                             else
@@ -1695,7 +1687,7 @@ serverVolumes context project server =
                             , view = \v -> Element.text v.name
                             }
                           ]
-                        , if exoVersionSupportsFeature NamedMountpoints exoServerVersion then
+                        , if GetterSetters.serverSupportsFeature NamedMountpoints server then
                             []
 
                           else

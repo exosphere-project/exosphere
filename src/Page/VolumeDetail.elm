@@ -16,7 +16,7 @@ import Style.Widgets.DeleteButton exposing (deleteIconButton)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Types.Project exposing (Project)
-import Types.Server exposing (ExoFeature(..), exoVersionSupportsFeature)
+import Types.Server exposing (ExoFeature(..))
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
@@ -173,11 +173,11 @@ volumeDetail context project model =
 renderAttachment : View.Types.Context -> Project -> OSTypes.Volume -> OSTypes.VolumeAttachment -> Element.Element Msg
 renderAttachment context project volume attachment =
     let
-        server =
+        maybeServer =
             GetterSetters.serverLookup project attachment.serverUuid
 
         serverName =
-            case server of
+            case maybeServer of
                 Just { osProps } ->
                     VH.resourceName (Just osProps.name) osProps.uuid
 
@@ -187,11 +187,6 @@ renderAttachment context project volume attachment =
                         , context.localization.virtualComputer
                         , "name)"
                         ]
-
-        serverExoVersion =
-            server
-                |> Maybe.andThen GetterSetters.serverExoServerVersion
-                |> Maybe.withDefault 0
     in
     Element.column
         [ Element.spacing spacer.px12 ]
@@ -206,15 +201,19 @@ renderAttachment context project volume attachment =
                 }
         , VH.compactKVRow "Device:" <| Element.text <| attachment.device
         , VH.compactKVRow "Mount point*:" <|
-            ((if exoVersionSupportsFeature NamedMountpoints serverExoVersion then
-                volume.name |> Maybe.andThen GetterSetters.volNameToMountpoint
+            case maybeServer of
+                Just server ->
+                    (if GetterSetters.serverSupportsFeature NamedMountpoints server then
+                        volume.name |> Maybe.andThen GetterSetters.volNameToMountpoint
 
-              else
-                GetterSetters.volDeviceToMountpoint attachment.device
-             )
-                |> Maybe.withDefault ""
-                |> Element.text
-            )
+                     else
+                        GetterSetters.volDeviceToMountpoint attachment.device
+                    )
+                        |> Maybe.withDefault ""
+                        |> Element.text
+
+                Nothing ->
+                    Element.text ""
         , Element.el [ Text.fontSize Text.Tiny ] <|
             Element.text <|
                 String.join " "
