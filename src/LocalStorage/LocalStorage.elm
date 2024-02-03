@@ -353,7 +353,6 @@ storedStateDecoder =
                     , Decode.at [ "7", "styleMode" ] Decode.string
                     , Decode.at [ "8", "styleMode" ] Decode.string
                     ]
-                    --|> Decode.map parseStyleMode
                     |> Decode.map parseStyleMode
                     |> Decode.andThen resultToDecoder
                 )
