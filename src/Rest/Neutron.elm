@@ -66,7 +66,7 @@ requestNetworks project =
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg
-            decodeNetworks
+            networksDecoder
         )
 
 
@@ -124,7 +124,7 @@ requestFloatingIps project =
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg_
-            decodeFloatingIps
+            floatingIpsDecoder
         )
 
 
@@ -151,7 +151,7 @@ requestPorts project =
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg
-            decodePorts
+            portsDecoder
         )
 
 
@@ -207,7 +207,7 @@ requestCreateFloatingIp project network maybePortServerUuid maybeIp =
                 (Http.jsonBody requestBody)
                 (expectJsonWithErrorBody
                     resultToMsg_
-                    decodeFloatingIp
+                    floatingIpDecoder
                 )
     in
     requestCmd
@@ -274,7 +274,7 @@ requestAssignFloatingIp project port_ floatingIpUuid =
                 (Http.jsonBody requestBody)
                 (expectJsonWithErrorBody
                     resultToMsg_
-                    decodeFloatingIp
+                    floatingIpDecoder
                 )
     in
     requestCmd
@@ -317,7 +317,7 @@ requestUnassignFloatingIp project floatingIpUuid =
                 (Http.jsonBody requestBody)
                 (expectJsonWithErrorBody
                     resultToMsg_
-                    decodeFloatingIp
+                    floatingIpDecoder
                 )
     in
     requestCmd
@@ -346,7 +346,7 @@ requestSecurityGroups project =
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg
-            decodeSecurityGroups
+            securityGroupsDecoder
         )
 
 
@@ -386,7 +386,7 @@ requestCreateExoSecurityGroup project =
         (Http.jsonBody requestBody)
         (expectJsonWithErrorBody
             resultToMsg
-            decodeNewSecurityGroup
+            securityGroupDecoder
         )
 
 
@@ -630,8 +630,8 @@ receiveCreateExoSecurityGroupAndRequestCreateRules model project newSecGroup =
 {- JSON Decoders -}
 
 
-decodeNetworks : Decode.Decoder (List OSTypes.Network)
-decodeNetworks =
+networksDecoder : Decode.Decoder (List OSTypes.Network)
+networksDecoder =
     Decode.field "networks" (Decode.list networkDecoder)
 
 
@@ -645,18 +645,18 @@ networkDecoder =
         (Decode.field "router:external" Decode.bool)
 
 
-decodeFloatingIps : Decode.Decoder (List OSTypes.FloatingIp)
-decodeFloatingIps =
-    Decode.field "floatingips" (Decode.list floatingIpDecoder)
-
-
-decodeFloatingIp : Decode.Decoder OSTypes.FloatingIp
-decodeFloatingIp =
-    Decode.field "floatingip" floatingIpDecoder
+floatingIpsDecoder : Decode.Decoder (List OSTypes.FloatingIp)
+floatingIpsDecoder =
+    Decode.field "floatingips" (Decode.list floatingIpValueDecoder)
 
 
 floatingIpDecoder : Decode.Decoder OSTypes.FloatingIp
 floatingIpDecoder =
+    Decode.field "floatingip" floatingIpValueDecoder
+
+
+floatingIpValueDecoder : Decode.Decoder OSTypes.FloatingIp
+floatingIpValueDecoder =
     Decode.map6 OSTypes.FloatingIp
         (Decode.field "id" Decode.string)
         (Decode.field "floating_ip_address" Decode.string)
@@ -684,8 +684,8 @@ ipAddressStatusDecoder status =
             Decode.fail "unrecognised IP address type"
 
 
-decodePorts : Decode.Decoder (List OSTypes.Port)
-decodePorts =
+portsDecoder : Decode.Decoder (List OSTypes.Port)
+portsDecoder =
     Decode.field "ports" (Decode.list portDecoder)
 
 
@@ -701,18 +701,18 @@ portDecoder =
         )
 
 
-decodeSecurityGroups : Decode.Decoder (List OSTypes.SecurityGroup)
-decodeSecurityGroups =
-    Decode.field "security_groups" (Decode.list securityGroupDecoder)
-
-
-decodeNewSecurityGroup : Decode.Decoder OSTypes.SecurityGroup
-decodeNewSecurityGroup =
-    Decode.field "security_group" securityGroupDecoder
+securityGroupsDecoder : Decode.Decoder (List OSTypes.SecurityGroup)
+securityGroupsDecoder =
+    Decode.field "security_groups" (Decode.list securityGroupValueDecoder)
 
 
 securityGroupDecoder : Decode.Decoder OSTypes.SecurityGroup
 securityGroupDecoder =
+    Decode.field "security_group" securityGroupValueDecoder
+
+
+securityGroupValueDecoder : Decode.Decoder OSTypes.SecurityGroup
+securityGroupValueDecoder =
     Decode.map4 OSTypes.SecurityGroup
         (Decode.field "id" Decode.string)
         (Decode.field "name" Decode.string)

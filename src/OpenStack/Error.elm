@@ -1,20 +1,20 @@
-module OpenStack.Error exposing (decodeSynchronousErrorJson)
+module OpenStack.Error exposing (synchronousErrorJsonDecoder)
 
 import Dict
 import Json.Decode as Decode
 import OpenStack.Types as OSTypes
 
 
-decodeSynchronousErrorJson : Decode.Decoder OSTypes.SynchronousAPIError
-decodeSynchronousErrorJson =
+synchronousErrorJsonDecoder : Decode.Decoder OSTypes.SynchronousAPIError
+synchronousErrorJsonDecoder =
     let
-        decodeMessageAndCode : Decode.Decoder OSTypes.SynchronousAPIError
-        decodeMessageAndCode =
+        messageAndCodeDecoder : Decode.Decoder OSTypes.SynchronousAPIError
+        messageAndCodeDecoder =
             Decode.map2 OSTypes.SynchronousAPIError
                 (Decode.field "message" Decode.string)
                 (Decode.field "code" Decode.int)
     in
-    Decode.dict decodeMessageAndCode
+    Decode.dict messageAndCodeDecoder
         |> Decode.map Dict.values
         |> Decode.map List.head
         |> Decode.andThen

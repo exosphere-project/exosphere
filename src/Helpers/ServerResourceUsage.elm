@@ -24,7 +24,7 @@ parseConsoleLog consoleLog prevHistory =
             loglines
                 |> List.map Helpers.stripTimeSinceBootFromLogLine
                 |> List.filterMap
-                    (\l -> Json.Decode.decodeString decodeLogLine l |> Result.toMaybe)
+                    (\l -> Json.Decode.decodeString logLineDecoder l |> Result.toMaybe)
 
         newTimeSeries =
             List.foldl
@@ -42,8 +42,8 @@ parseConsoleLog consoleLog prevHistory =
     History newTimeSeries newStrikes
 
 
-decodeLogLine : Json.Decode.Decoder ( Int, DataPoint )
-decodeLogLine =
+logLineDecoder : Json.Decode.Decoder ( Int, DataPoint )
+logLineDecoder =
     Json.Decode.map2
         Tuple.pair
         (Json.Decode.field "epoch" Json.Decode.int

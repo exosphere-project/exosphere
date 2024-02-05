@@ -590,8 +590,8 @@ serverOrigin serverDetails =
         exoSetupStatusRDPP =
             RDPP.RemoteDataPlusPlus (RDPP.DoHave ( exoSetupStatus, exoSetupTimestamp ) (Time.millisToPosix 0)) (RDPP.NotLoading Nothing)
 
-        decodeGuacamoleProps : Decode.Decoder GuacTypes.LaunchedWithGuacProps
-        decodeGuacamoleProps =
+        guacamolePropsDecoder : Decode.Decoder GuacTypes.LaunchedWithGuacProps
+        guacamolePropsDecoder =
             Decode.map3
                 GuacTypes.LaunchedWithGuacProps
                 (Decode.field "ssh" Decode.bool)
@@ -606,15 +606,15 @@ serverOrigin serverDetails =
                     GuacTypes.NotLaunchedWithGuacamole
 
                 Just item ->
-                    case Decode.decodeString decodeGuacamoleProps item.value of
+                    case Decode.decodeString guacamolePropsDecoder item.value of
                         Ok launchedWithGuacProps ->
                             GuacTypes.LaunchedWithGuacamole launchedWithGuacProps
 
                         Err _ ->
                             GuacTypes.NotLaunchedWithGuacamole
 
-        decodeCustomWorkflowProps : Decode.Decoder CustomWorkflowSource
-        decodeCustomWorkflowProps =
+        customWorkflowPropsDecoder : Decode.Decoder CustomWorkflowSource
+        customWorkflowPropsDecoder =
             Decode.map3
                 CustomWorkflowSource
                 (Decode.field "repo" Decode.string)
@@ -629,7 +629,7 @@ serverOrigin serverDetails =
                     NotLaunchedWithCustomWorkflow
 
                 Just item ->
-                    case Decode.decodeString decodeCustomWorkflowProps item.value of
+                    case Decode.decodeString customWorkflowPropsDecoder item.value of
                         Ok launchedWithCustomWorkflowPropsProps ->
                             LaunchedWithCustomWorkflow
                                 { source = launchedWithCustomWorkflowPropsProps
@@ -690,7 +690,7 @@ parseConsoleLogForWorkflowToken consoleLog =
             loglines
                 |> List.map stripTimeSinceBootFromLogLine
                 |> List.filterMap
-                    (\l -> Decode.decodeString decodeWorkflowToken l |> Result.toMaybe)
+                    (\l -> Decode.decodeString workflowTokenDecoder l |> Result.toMaybe)
 
         maybeLastToken =
             List.reverse decodedData
@@ -699,8 +699,8 @@ parseConsoleLogForWorkflowToken consoleLog =
     maybeLastToken
 
 
-decodeWorkflowToken : Decode.Decoder CustomWorkflowAuthToken
-decodeWorkflowToken =
+workflowTokenDecoder : Decode.Decoder CustomWorkflowAuthToken
+workflowTokenDecoder =
     Decode.field
         "exoWorkflowToken"
         Decode.string

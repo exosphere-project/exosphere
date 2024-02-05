@@ -11,6 +11,7 @@ module OpenStack.SecurityGroupRule exposing
     , securityGroupRuleDecoder
     )
 
+import Helpers.Json exposing (resultToDecoder)
 import Json.Decode as Decode
 import Json.Encode as Encode
 
@@ -283,112 +284,112 @@ securityGroupRuleDecoder : Decode.Decoder SecurityGroupRule
 securityGroupRuleDecoder =
     Decode.map8 SecurityGroupRule
         (Decode.field "id" Decode.string)
-        (Decode.field "ethertype" Decode.string |> Decode.andThen securityGroupRuleEthertypeDecoder)
-        (Decode.field "direction" Decode.string |> Decode.andThen securityGroupRuleDirectionDecoder)
-        (Decode.field "protocol" (Decode.nullable (Decode.string |> Decode.andThen securityGroupRuleProtocolDecoder)))
+        (Decode.field "ethertype" Decode.string |> Decode.map parseSecurityGroupRuleEthertype |> Decode.andThen resultToDecoder)
+        (Decode.field "direction" Decode.string |> Decode.map parseSecurityGroupRuleDirection |> Decode.andThen resultToDecoder)
+        (Decode.field "protocol" (Decode.nullable (Decode.string |> Decode.map parseSecurityGroupRuleProtocol |> Decode.andThen resultToDecoder)))
         (Decode.field "port_range_min" (Decode.nullable Decode.int))
         (Decode.field "port_range_max" (Decode.nullable Decode.int))
         (Decode.field "remote_group_id" (Decode.nullable Decode.string))
         (Decode.field "description" (Decode.nullable Decode.string))
 
 
-securityGroupRuleEthertypeDecoder : String -> Decode.Decoder SecurityGroupRuleEthertype
-securityGroupRuleEthertypeDecoder ethertype =
+parseSecurityGroupRuleEthertype : String -> Result String SecurityGroupRuleEthertype
+parseSecurityGroupRuleEthertype ethertype =
     case ethertype of
         "IPv4" ->
-            Decode.succeed Ipv4
+            Result.Ok Ipv4
 
         "IPv6" ->
-            Decode.succeed Ipv6
+            Result.Ok Ipv6
 
         _ ->
-            Decode.fail "Ooooooops, unrecognised security group rule ethertype"
+            Result.Err "Ooooooops, unrecognised security group rule ethertype"
 
 
-securityGroupRuleDirectionDecoder : String -> Decode.Decoder SecurityGroupRuleDirection
-securityGroupRuleDirectionDecoder dir =
+parseSecurityGroupRuleDirection : String -> Result String SecurityGroupRuleDirection
+parseSecurityGroupRuleDirection dir =
     case dir of
         "ingress" ->
-            Decode.succeed Ingress
+            Result.Ok Ingress
 
         "egress" ->
-            Decode.succeed Egress
+            Result.Ok Egress
 
         _ ->
-            Decode.fail "Ooooooops, unrecognised security group rule direction"
+            Result.Err "Ooooooops, unrecognised security group rule direction"
 
 
-securityGroupRuleProtocolDecoder : String -> Decode.Decoder SecurityGroupRuleProtocol
-securityGroupRuleProtocolDecoder prot =
+parseSecurityGroupRuleProtocol : String -> Result String SecurityGroupRuleProtocol
+parseSecurityGroupRuleProtocol prot =
     case prot of
         "any" ->
-            Decode.succeed AnyProtocol
+            Result.Ok AnyProtocol
 
         "icmp" ->
-            Decode.succeed ProtocolIcmp
+            Result.Ok ProtocolIcmp
 
         "icmpv6" ->
-            Decode.succeed ProtcolIcmpv6
+            Result.Ok ProtcolIcmpv6
 
         "ipv6-icmp" ->
-            Decode.succeed ProtcolIcmpv6
+            Result.Ok ProtcolIcmpv6
 
         "tcp" ->
-            Decode.succeed ProtocolTcp
+            Result.Ok ProtocolTcp
 
         "udp" ->
-            Decode.succeed ProtocolUdp
+            Result.Ok ProtocolUdp
 
         "ah" ->
-            Decode.succeed ProtocolAh
+            Result.Ok ProtocolAh
 
         "dccp" ->
-            Decode.succeed ProtocolDccp
+            Result.Ok ProtocolDccp
 
         "egp" ->
-            Decode.succeed ProtocolEgp
+            Result.Ok ProtocolEgp
 
         "esp" ->
-            Decode.succeed ProtocolEsp
+            Result.Ok ProtocolEsp
 
         "gre" ->
-            Decode.succeed ProtocolGre
+            Result.Ok ProtocolGre
 
         "igmp" ->
-            Decode.succeed ProtocolIgmp
+            Result.Ok ProtocolIgmp
 
         "ipv6-encap" ->
-            Decode.succeed ProtocolIpv6Encap
+            Result.Ok ProtocolIpv6Encap
 
         "ipv6-frag" ->
-            Decode.succeed ProtocolIpv6Frag
+            Result.Ok ProtocolIpv6Frag
 
         "ipv6-nonxt" ->
-            Decode.succeed ProtocolIpv6Nonxt
+            Result.Ok ProtocolIpv6Nonxt
 
         "ipv6-opts" ->
-            Decode.succeed ProtocolIpv6Opts
+            Result.Ok ProtocolIpv6Opts
 
         "ipv6-route" ->
-            Decode.succeed ProtocolIpv6Route
+            Result.Ok ProtocolIpv6Route
 
         "ospf" ->
-            Decode.succeed ProtocolOspf
+            Result.Ok ProtocolOspf
 
         "pgm" ->
-            Decode.succeed ProtocolPgm
+            Result.Ok ProtocolPgm
 
         "rsvp" ->
-            Decode.succeed ProtocolRsvp
+            Result.Ok ProtocolRsvp
 
         "sctp" ->
-            Decode.succeed ProtocolSctp
+            Result.Ok ProtocolSctp
 
         "udplite" ->
-            Decode.succeed ProtocolUdpLite
+            Result.Ok ProtocolUdpLite
 
         "vrrp" ->
-            Decode.succeed ProtocolVrrp
+            Result.Ok ProtocolVrrp
 
         _ ->
-            Decode.fail "Ooooooops, unrecognised security group rule protocol"
+            Result.Err "Ooooooops, unrecognised security group rule protocol"

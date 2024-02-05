@@ -6,7 +6,7 @@ module OpenStack.VolumeSnapshots exposing
     , volumeSnapshotDecoder
     )
 
-import Helpers.Time exposing (iso8601StringToPosixDecodeError)
+import Helpers.Time exposing (makeIso8601StringToPosixDecoder)
 import Json.Decode exposing (Decoder, andThen, fail, int, map, nullable, string, succeed)
 import Json.Decode.Pipeline exposing (optional, required)
 import OpenStack.HelperTypes exposing (Uuid)
@@ -85,7 +85,7 @@ volumeSnapshotDecoder =
         |> required "description" (nullable string)
         |> required "volume_id" string
         |> required "size" int
-        |> required "created_at" (string |> andThen iso8601StringToPosixDecodeError)
+        |> required "created_at" (string |> andThen makeIso8601StringToPosixDecoder)
         |> required "status" (string |> andThen statusDecoder)
 
 

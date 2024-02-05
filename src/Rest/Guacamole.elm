@@ -13,12 +13,12 @@ requestLoginToken url username passphrase resultToMsg =
         , headers = []
         , url = url
         , body = Http.stringBody "application/x-www-form-urlencoded" <| "username=" ++ username ++ "&password=" ++ passphrase
-        , expect = Http.expectJson resultToMsg decodeLoginToken
+        , expect = Http.expectJson resultToMsg loginTokenDecoder
         , timeout = Just 10000
         , tracker = Nothing
         }
 
 
-decodeLoginToken : Decode.Decoder String
-decodeLoginToken =
+loginTokenDecoder : Decode.Decoder String
+loginTokenDecoder =
     Decode.field "authToken" Decode.string

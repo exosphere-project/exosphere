@@ -23,8 +23,9 @@ import Array
 import Base64
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
+import Helpers.Json exposing (resultToDecoder)
 import Helpers.RemoteDataPlusPlus as RDPP
-import Helpers.Time exposing (iso8601StringToPosixDecodeError)
+import Helpers.Time exposing (makeIso8601StringToPosixDecoder)
 import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
@@ -75,7 +76,7 @@ requestServers project =
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg
-            decodeServers
+            serversDecoder
         )
 
 
@@ -103,7 +104,7 @@ requestServer project serverUuid =
                 Http.emptyBody
                 (expectJsonWithErrorBody
                     resultToMsg
-                    (Decode.at [ "server" ] decodeServer)
+                    (Decode.at [ "server" ] serverDecoder)
                 )
     in
     requestServerCmd
@@ -132,7 +133,7 @@ requestServerEvents project serverUuid =
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg
-            (Decode.at [ "instanceActions" ] <| Decode.list decodeServerEvent)
+            (Decode.at [ "instanceActions" ] <| Decode.list serverEventDecoder)
         )
 
 
@@ -174,7 +175,7 @@ requestConsoleUrls project serverUuid =
                             ServerMsg serverUuid <|
                                 ReceiveConsoleUrl result
                     )
-                    decodeConsoleUrl
+                    consoleUrlDecoder
                 )
     in
     List.map buildReq reqParams
@@ -204,7 +205,7 @@ requestFlavors project =
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg_
-            decodeFlavors
+            flavorsDecoder
         )
 
 
@@ -231,7 +232,7 @@ requestKeypairs project =
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg
-            decodeKeypairs
+            keypairsDecoder
         )
 
 
@@ -934,13 +935,13 @@ receiveKeypairs model project keypairs =
 {- JSON Decoders -}
 
 
-decodeServers : Decode.Decoder (List OSTypes.Server)
-decodeServers =
-    Decode.field "servers" (Decode.list decodeServer)
+serversDecoder : Decode.Decoder (List OSTypes.Server)
+serversDecoder =
+    Decode.field "servers" (Decode.list serverDecoder)
 
 
-decodeServer : Decode.Decoder OSTypes.Server
-decodeServer =
+serverDecoder : Decode.Decoder OSTypes.Server
+serverDecoder =
     Decode.map4 OSTypes.Server
         (Decode.oneOf
             [ Decode.field "name" Decode.string
@@ -948,15 +949,15 @@ decodeServer =
             ]
         )
         (Decode.field "id" Decode.string)
-        decodeServerDetails
+        serverDetailsDecoder
         (Decode.succeed RDPP.empty)
 
 
-decodeServerDetails : Decode.Decoder OSTypes.ServerDetails
-decodeServerDetails =
+serverDetailsDecoder : Decode.Decoder OSTypes.ServerDetails
+serverDetailsDecoder =
     Decode.succeed OSTypes.ServerDetails
-        |> Pipeline.required "status" (Decode.string |> Decode.andThen serverOpenstackStatusDecoder)
-        |> Pipeline.required "created" (Decode.string |> Decode.andThen iso8601StringToPosixDecodeError)
+        |> Pipeline.required "status" (Decode.string |> Decode.map parseServerOpenstackStatus |> Decode.andThen resultToDecoder)
+        |> Pipeline.required "created" (Decode.string |> Decode.andThen makeIso8601StringToPosixDecoder)
         |> Pipeline.required "OS-EXT-STS:power_state" (Decode.int |> Decode.andThen serverPowerStateDecoder)
         |> Pipeline.optionalAt [ "image", "id" ] Decode.string ""
         |> Pipeline.requiredAt [ "flavor", "id" ] Decode.string
@@ -969,74 +970,74 @@ decodeServerDetails =
         |> Pipeline.optional "fault" (serverFaultDecoder |> Decode.andThen (\f -> Decode.succeed <| Just f)) Nothing
 
 
-serverOpenstackStatusDecoder : String -> Decode.Decoder OSTypes.ServerStatus
-serverOpenstackStatusDecoder status =
+parseServerOpenstackStatus : String -> Result String OSTypes.ServerStatus
+parseServerOpenstackStatus status =
     case String.toLower status of
         "active" ->
-            Decode.succeed OSTypes.ServerActive
+            Result.Ok OSTypes.ServerActive
 
         "build" ->
-            Decode.succeed OSTypes.ServerBuild
+            Result.Ok OSTypes.ServerBuild
 
         "deleted" ->
-            Decode.succeed OSTypes.ServerDeleted
+            Result.Ok OSTypes.ServerDeleted
 
         "error" ->
-            Decode.succeed OSTypes.ServerError
+            Result.Ok OSTypes.ServerError
 
         "hard_reboot" ->
-            Decode.succeed OSTypes.ServerHardReboot
+            Result.Ok OSTypes.ServerHardReboot
 
         "migrating" ->
-            Decode.succeed OSTypes.ServerMigrating
+            Result.Ok OSTypes.ServerMigrating
 
         "password" ->
-            Decode.succeed OSTypes.ServerPassword
+            Result.Ok OSTypes.ServerPassword
 
         "paused" ->
-            Decode.succeed OSTypes.ServerPaused
+            Result.Ok OSTypes.ServerPaused
 
         "reboot" ->
-            Decode.succeed OSTypes.ServerReboot
+            Result.Ok OSTypes.ServerReboot
 
         "rebuild" ->
-            Decode.succeed OSTypes.ServerRebuild
+            Result.Ok OSTypes.ServerRebuild
 
         "rescue" ->
-            Decode.succeed OSTypes.ServerRescue
+            Result.Ok OSTypes.ServerRescue
 
         "resize" ->
-            Decode.succeed OSTypes.ServerResize
+            Result.Ok OSTypes.ServerResize
 
         "revert_resize" ->
-            Decode.succeed OSTypes.ServerRevertResize
+            Result.Ok OSTypes.ServerRevertResize
 
         "shelved" ->
-            Decode.succeed OSTypes.ServerShelved
+            Result.Ok OSTypes.ServerShelved
 
         "shelved_offloaded" ->
-            Decode.succeed OSTypes.ServerShelvedOffloaded
+            Result.Ok OSTypes.ServerShelvedOffloaded
 
         "shutoff" ->
-            Decode.succeed OSTypes.ServerShutoff
+            Result.Ok OSTypes.ServerShutoff
 
         "soft_deleted" ->
-            Decode.succeed OSTypes.ServerSoftDeleted
+            Result.Ok OSTypes.ServerSoftDeleted
 
         "stopped" ->
-            Decode.succeed OSTypes.ServerStopped
+            Result.Ok OSTypes.ServerStopped
 
         "suspended" ->
-            Decode.succeed OSTypes.ServerSuspended
+            Result.Ok OSTypes.ServerSuspended
 
         "unknown" ->
-            Decode.succeed OSTypes.ServerUnknown
+            Result.Ok OSTypes.ServerUnknown
 
         "verify_resize" ->
-            Decode.succeed OSTypes.ServerVerifyResize
+            Result.Ok OSTypes.ServerVerifyResize
 
         _ ->
-            Decode.fail "Ooooooops, unrecognised server OpenStack status"
+            Result.Err "Ooooooops, unrecognised server OpenStack status"
 
 
 serverPowerStateDecoder : Int -> Decode.Decoder OSTypes.ServerPowerState
@@ -1088,30 +1089,30 @@ serverFaultDecoder : Decode.Decoder OSTypes.ServerFault
 serverFaultDecoder =
     Decode.map3 OSTypes.ServerFault
         (Decode.field "code" Decode.int)
-        (Decode.field "created" (Decode.string |> Decode.andThen iso8601StringToPosixDecodeError))
+        (Decode.field "created" (Decode.string |> Decode.andThen makeIso8601StringToPosixDecoder))
         (Decode.field "message" Decode.string)
 
 
-decodeServerEvent : Decode.Decoder OSTypes.ServerEvent
-decodeServerEvent =
+serverEventDecoder : Decode.Decoder OSTypes.ServerEvent
+serverEventDecoder =
     Decode.map5 OSTypes.ServerEvent
         (Decode.field "action" Decode.string)
         (Decode.field "message" (Decode.nullable Decode.string))
         (Decode.field "request_id" Decode.string)
         (Decode.field "start_time" Decode.string
             |> Decode.andThen
-                iso8601StringToPosixDecodeError
+                makeIso8601StringToPosixDecoder
         )
         (Decode.field "user_id" Decode.string)
 
 
-decodeConsoleUrl : Decode.Decoder OSTypes.ConsoleUrl
-decodeConsoleUrl =
+consoleUrlDecoder : Decode.Decoder OSTypes.ConsoleUrl
+consoleUrlDecoder =
     Decode.at [ "console", "url" ] Decode.string
 
 
-decodeFlavors : Decode.Decoder (List OSTypes.Flavor)
-decodeFlavors =
+flavorsDecoder : Decode.Decoder (List OSTypes.Flavor)
+flavorsDecoder =
     Decode.field "flavors" (Decode.list flavorDecoder)
 
 
@@ -1131,8 +1132,8 @@ flavorDecoder =
         )
 
 
-decodeKeypairs : Decode.Decoder (List OSTypes.Keypair)
-decodeKeypairs =
+keypairsDecoder : Decode.Decoder (List OSTypes.Keypair)
+keypairsDecoder =
     Decode.field "keypairs" (Decode.list keypairDecoder)
 
 

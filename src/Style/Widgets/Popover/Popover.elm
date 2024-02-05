@@ -16,7 +16,7 @@ import Json.Decode as Decode
 import Set
 import Style.Helpers as SH
 import Style.Types as ST exposing (ExoPalette, PopoverPosition(..), Theme(..))
-import Style.Widgets.Popover.Types exposing (PopoverId)
+import Style.Widgets.Popover.Types exposing (NodePositionRelativeToPopover(..), PopoverId)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Widget.Style
@@ -283,33 +283,39 @@ popover context msgMapper { id, content, contentStyleAttrs, position, distanceTo
 
 toggleIfTargetIsOutside : PopoverId -> (PopoverId -> msg) -> Decode.Decoder msg
 toggleIfTargetIsOutside popoverId togglePopoverMsg =
-    Decode.field "target" (isNodeOutsidePopover popoverId)
+    let
+        nodePositionRelativeToPopoverDecoder =
+            makeNodePositionRelativeToPopover popoverId
+    in
+    Decode.field "target" nodePositionRelativeToPopoverDecoder
         |> Decode.andThen
-            (\isOutside ->
-                if isOutside then
-                    Decode.succeed (togglePopoverMsg popoverId)
+            (\nodePosition ->
+                case nodePosition of
+                    NodeOutside ->
+                        Decode.succeed (togglePopoverMsg popoverId)
 
-                else
-                    Decode.fail "inside dropdown"
+                    NodeInside ->
+                        Decode.fail "inside dropdown"
             )
 
 
-isNodeOutsidePopover : PopoverId -> Decode.Decoder Bool
-isNodeOutsidePopover popoverId =
+makeNodePositionRelativeToPopover : PopoverId -> Decode.Decoder NodePositionRelativeToPopover
+makeNodePositionRelativeToPopover popoverId =
     Decode.oneOf
         [ Decode.field "id" Decode.string
+            |> Decode.map (\id -> popoverId == id)
             |> Decode.andThen
-                (\id ->
-                    if popoverId == id then
+                (\idMatch ->
+                    if idMatch then
                         -- found match by id
-                        Decode.succeed False
+                        Decode.succeed NodeInside
 
                     else
                         -- try next decoder
                         Decode.fail "check parent node"
                 )
-        , Decode.lazy (\_ -> isNodeOutsidePopover popoverId |> Decode.field "parentNode")
+        , Decode.lazy (\_ -> Decode.field "parentNode" (makeNodePositionRelativeToPopover popoverId))
 
         -- fallback if all previous decoders failed
-        , Decode.succeed True
+        , Decode.succeed NodeOutside
         ]

@@ -135,7 +135,7 @@ processSynchronousApiError model errorContext httpError =
     let
         apiErrorDecodeResult =
             Decode.decodeString
-                OSError.decodeSynchronousErrorJson
+                OSError.synchronousErrorJsonDecoder
                 httpError.body
 
         newErrorContext =

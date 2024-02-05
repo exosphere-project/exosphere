@@ -42,7 +42,7 @@ requestServerPassword project serverUuid =
         []
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/os-server-password")
         Http.emptyBody
-        (expectJsonWithErrorBody resultToMsg_ decodeServerPassword)
+        (expectJsonWithErrorBody resultToMsg_ serverPasswordDecoder)
 
 
 requestClearServerPassword : Project -> OSTypes.ServerUuid -> Cmd SharedMsg
@@ -66,6 +66,6 @@ requestClearServerPassword project serverUuid =
         )
 
 
-decodeServerPassword : Decode.Decoder OSTypes.ServerPassword
-decodeServerPassword =
+serverPasswordDecoder : Decode.Decoder OSTypes.ServerPassword
+serverPasswordDecoder =
     Decode.field "password" Decode.string

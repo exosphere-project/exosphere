@@ -1,11 +1,12 @@
 module LocalStorage.LocalStorage exposing
-    ( decodeStoredState
-    , generateStoredState
+    ( generateStoredState
     , hydrateModelFromStoredState
+    , storedStateDecoder
     )
 
 import Dict
 import Helpers.Helpers as Helpers
+import Helpers.Json exposing (resultToDecoder)
 import Helpers.RemoteDataPlusPlus as RDPP
 import Json.Decode as Decode
 import Json.Encode as Encode
@@ -291,34 +292,34 @@ encodeStyleMode { theme } =
 -- Decoders
 
 
-decodeStoredState : Decode.Decoder StoredState
-decodeStoredState =
+storedStateDecoder : Decode.Decoder StoredState
+storedStateDecoder =
     let
         projects =
             Decode.oneOf
-                [ Decode.at [ "0", "providers" ] (Decode.list storedProjectDecode1)
-                , Decode.at [ "1", "projects" ] (Decode.list storedProjectDecode1)
+                [ Decode.at [ "0", "providers" ] (Decode.list storedProjectDecoder1)
+                , Decode.at [ "1", "projects" ] (Decode.list storedProjectDecoder1)
 
                 -- Added ApplicationCredential
-                , Decode.at [ "2", "projects" ] (Decode.list storedProjectDecode2)
+                , Decode.at [ "2", "projects" ] (Decode.list storedProjectDecoder2)
 
                 -- Added Endpoints
-                , Decode.at [ "3", "projects" ] (Decode.list storedProjectDecode3)
+                , Decode.at [ "3", "projects" ] (Decode.list storedProjectDecoder3)
 
                 -- Added client UUID
-                , Decode.at [ "4", "projects" ] (Decode.list storedProjectDecode3)
+                , Decode.at [ "4", "projects" ] (Decode.list storedProjectDecoder3)
 
                 -- Added StyleMode
-                , Decode.at [ "5", "projects" ] (Decode.list storedProjectDecode3)
+                , Decode.at [ "5", "projects" ] (Decode.list storedProjectDecoder3)
 
                 -- Added ExperimentalFeaturesEnabled
-                , Decode.at [ "6", "projects" ] (Decode.list storedProjectDecode3)
+                , Decode.at [ "6", "projects" ] (Decode.list storedProjectDecoder3)
 
                 -- Added project description field
-                , Decode.at [ "7", "projects" ] (Decode.list storedProjectDecode4)
+                , Decode.at [ "7", "projects" ] (Decode.list storedProjectDecoder4)
 
                 -- Added region
-                , Decode.at [ "8", "projects" ] (Decode.list storedProjectDecode)
+                , Decode.at [ "8", "projects" ] (Decode.list storedProjectDecoder)
                 ]
 
         clientUuid =
@@ -352,7 +353,8 @@ decodeStoredState =
                     , Decode.at [ "7", "styleMode" ] Decode.string
                     , Decode.at [ "8", "styleMode" ] Decode.string
                     ]
-                    |> Decode.andThen decodeStyleMode
+                    |> Decode.map parseStyleMode
+                    |> Decode.andThen resultToDecoder
                 )
 
         experimentalFeaturesEnabled =
@@ -367,8 +369,8 @@ decodeStoredState =
     Decode.map4 StoredState projects clientUuid styleMode experimentalFeaturesEnabled
 
 
-storedProjectDecode1 : Decode.Decoder StoredProject
-storedProjectDecode1 =
+storedProjectDecoder1 : Decode.Decoder StoredProject
+storedProjectDecoder1 =
     Decode.fail "Stored projects with a hard-coded password are no longer supported."
 
 
@@ -388,11 +390,11 @@ storedProject2ToStoredProject sp =
             Decode.fail ("Could not decode endpoints from service catalog because: " ++ e)
 
 
-storedProjectDecode2 : Decode.Decoder StoredProject
-storedProjectDecode2 =
+storedProjectDecoder2 : Decode.Decoder StoredProject
+storedProjectDecoder2 =
     Decode.map2 StoredProject2
-        (Decode.field "secret" decodeProjectSecret)
-        (Decode.field "auth" decodeStoredAuthTokenDetails)
+        (Decode.field "secret" secretProjectSecretDecoder)
+        (Decode.field "auth" storedAuthTokenDetailsDecoder)
         |> Decode.andThen storedProject2ToStoredProject
 
 
@@ -407,17 +409,17 @@ storedProject3ToStoredProject sp =
             Nothing
 
 
-storedProjectDecode3 : Decode.Decoder StoredProject
-storedProjectDecode3 =
+storedProjectDecoder3 : Decode.Decoder StoredProject
+storedProjectDecoder3 =
     Decode.map3 StoredProject3
-        (Decode.field "secret" decodeProjectSecret)
-        (Decode.field "auth" decodeStoredAuthTokenDetails)
-        (Decode.field "endpoints" decodeEndpoints)
+        (Decode.field "secret" secretProjectSecretDecoder)
+        (Decode.field "auth" storedAuthTokenDetailsDecoder)
+        (Decode.field "endpoints" endpointsDecoder)
         |> Decode.andThen storedProject3ToStoredProject
 
 
-decodeProjectSecret : Decode.Decoder Types.Project.ProjectSecret
-decodeProjectSecret =
+secretProjectSecretDecoder : Decode.Decoder Types.Project.ProjectSecret
+secretProjectSecretDecoder =
     let
         -- https://thoughtbot.com/blog/5-common-json-decoders#5---conditional-decoding-based-on-a-field
         projectSecretFromType : String -> Decode.Decoder Types.Project.ProjectSecret
@@ -439,12 +441,12 @@ decodeProjectSecret =
     Decode.field "secretType" Decode.string |> Decode.andThen projectSecretFromType
 
 
-storedProjectDecode4 : Decode.Decoder StoredProject
-storedProjectDecode4 =
+storedProjectDecoder4 : Decode.Decoder StoredProject
+storedProjectDecoder4 =
     Decode.map4 StoredProject4
-        (Decode.field "secret" decodeProjectSecret)
-        (Decode.field "auth" decodeStoredAuthTokenDetails)
-        (Decode.field "endpoints" decodeEndpoints)
+        (Decode.field "secret" secretProjectSecretDecoder)
+        (Decode.field "auth" storedAuthTokenDetailsDecoder)
+        (Decode.field "endpoints" endpointsDecoder)
         (Decode.field "description" (Decode.nullable Decode.string))
         |> Decode.andThen storedProject4ToStoredProject
 
@@ -460,40 +462,40 @@ storedProject4ToStoredProject sp =
             sp.description
 
 
-storedProjectDecode : Decode.Decoder StoredProject
-storedProjectDecode =
+storedProjectDecoder : Decode.Decoder StoredProject
+storedProjectDecoder =
     Decode.map5 StoredProject
-        (Decode.field "secret" decodeProjectSecret)
-        (Decode.field "auth" decodeStoredAuthTokenDetails)
-        (Decode.field "region" decodeRegion)
-        (Decode.field "endpoints" decodeEndpoints)
+        (Decode.field "secret" secretProjectSecretDecoder)
+        (Decode.field "auth" storedAuthTokenDetailsDecoder)
+        (Decode.field "region" regionDecoder)
+        (Decode.field "endpoints" endpointsDecoder)
         (Decode.field "description" (Decode.nullable Decode.string))
 
 
-decodeStoredAuthTokenDetails : Decode.Decoder OSTypes.ScopedAuthToken
-decodeStoredAuthTokenDetails =
+storedAuthTokenDetailsDecoder : Decode.Decoder OSTypes.ScopedAuthToken
+storedAuthTokenDetailsDecoder =
     Decode.map7 OSTypes.ScopedAuthToken
         (Decode.field "catalog" (Decode.list openstackStoredServiceDecoder))
-        (Decode.field "project" decodeNameAndId)
-        (Decode.field "projectDomain" decodeNameAndId)
-        (Decode.field "user" decodeNameAndId)
-        (Decode.field "userDomain" decodeNameAndId)
+        (Decode.field "project" nameAndIdDecoder)
+        (Decode.field "projectDomain" nameAndIdDecoder)
+        (Decode.field "user" nameAndIdDecoder)
+        (Decode.field "userDomain" nameAndIdDecoder)
         (Decode.field "expiresAt" Decode.int
             |> Decode.map Time.millisToPosix
         )
         (Decode.field "tokenValue" Decode.string)
 
 
-decodeRegion : Decode.Decoder (Maybe OSTypes.Region)
-decodeRegion =
+regionDecoder : Decode.Decoder (Maybe OSTypes.Region)
+regionDecoder =
     Decode.nullable <|
         Decode.map2 OSTypes.Region
             (Decode.field "id" Decode.string)
             (Decode.field "description" Decode.string)
 
 
-decodeEndpoints : Decode.Decoder Types.Project.Endpoints
-decodeEndpoints =
+endpointsDecoder : Decode.Decoder Types.Project.Endpoints
+endpointsDecoder =
     Decode.map8 Types.Project.Endpoints
         (Decode.field "cinder" Decode.string)
         (Decode.field "glance" Decode.string)
@@ -520,8 +522,8 @@ decodeEndpoints =
         )
 
 
-decodeNameAndId : Decode.Decoder OSTypes.NameAndUuid
-decodeNameAndId =
+nameAndIdDecoder : Decode.Decoder OSTypes.NameAndUuid
+nameAndIdDecoder =
     Decode.map2 OSTypes.NameAndUuid
         (Decode.field "name" Decode.string)
         (Decode.field "uuid" Decode.string)
@@ -539,7 +541,8 @@ openstackStoredEndpointDecoder : Decode.Decoder OSTypes.Endpoint
 openstackStoredEndpointDecoder =
     Decode.map3 OSTypes.Endpoint
         (Decode.field "interface" Decode.string
-            |> Decode.andThen openstackStoredEndpointInterfaceDecoder
+            |> Decode.map parseOpenstackStoredEndpointInterface
+            |> Decode.andThen resultToDecoder
         )
         (Decode.field "url" Decode.string)
         -- Older stored projects had no region ID for endpoints, so this defaults to a placeholder value.
@@ -551,42 +554,42 @@ openstackStoredEndpointDecoder =
         )
 
 
-openstackStoredEndpointInterfaceDecoder : String -> Decode.Decoder OSTypes.EndpointInterface
-openstackStoredEndpointInterfaceDecoder interface =
+parseOpenstackStoredEndpointInterface : String -> Result String OSTypes.EndpointInterface
+parseOpenstackStoredEndpointInterface interface =
     case interface of
         "public" ->
-            Decode.succeed OSTypes.Public
+            Result.Ok OSTypes.Public
 
         "admin" ->
-            Decode.succeed OSTypes.Admin
+            Result.Ok OSTypes.Admin
 
         "internal" ->
-            Decode.succeed OSTypes.Internal
+            Result.Ok OSTypes.Internal
 
         _ ->
-            Decode.fail "unrecognized interface type"
+            Result.Err "unrecognized interface type"
 
 
-decodeStyleMode : String -> Decode.Decoder ST.StyleMode
-decodeStyleMode styleModeStr =
+parseStyleMode : String -> Result String ST.StyleMode
+parseStyleMode styleModeStr =
     case styleModeStr of
         "darkMode" ->
-            Decode.succeed <|
+            Result.Ok
                 { theme = ST.Override ST.Dark
                 , systemPreference = Nothing
                 }
 
         "lightMode" ->
-            Decode.succeed <|
+            Result.Ok
                 { theme = ST.Override ST.Light
                 , systemPreference = Nothing
                 }
 
         "system" ->
-            Decode.succeed <|
+            Result.Ok
                 { theme = ST.System
                 , systemPreference = Nothing
                 }
 
         _ ->
-            Decode.fail "unrecognized style mode"
+            Result.Err "unrecognized style mode"
