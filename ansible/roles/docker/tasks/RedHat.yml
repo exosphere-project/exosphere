@@ -17,5 +17,16 @@
       - 'docker-ce'
       - 'docker-ce-cli'
       - 'containerd.io'
-      - 'docker-compose-plugin'
     state: 'present'
+
+- name: 'docker-compose downloaded'
+  get_url:
+    url: 'https://github.com/docker/compose/releases/download/1.26.2/docker-compose-Linux-x86_64'
+    dest: '/usr/local/bin/docker-compose'
+    mode: 'a+x'
+
+- name: 'docker-compose symlinked'
+  file:
+    dest: '/usr/bin/docker-compose'
+    src: '/usr/local/bin/docker-compose'
+    state: link
