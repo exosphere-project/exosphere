@@ -1311,11 +1311,6 @@ processProjectSpecificMsg outerModel project msg =
         RequestImageVisibilityChange imageUuid visibility ->
             ( outerModel, Rest.Glance.requestChangeVisibility project imageUuid visibility ) |> mapToOuterMsg
 
-        RequestServers ->
-            ApiModelHelpers.requestServers (GetterSetters.projectIdentifier project) sharedModel
-                |> mapToOuterMsg
-                |> mapToOuterModel outerModel
-
         ReceiveDnsRecordSets sets ->
             Rest.Designate.receiveRecordSets sharedModel project sets
                 |> mapToOuterMsg
@@ -1602,23 +1597,6 @@ processProjectSpecificMsg outerModel project msg =
             ( newOuterModel, newCmd )
                 |> pipelineCmdOuterModelMsg
                     (updateUnderlying (ServerCreateMsg <| Page.ServerCreate.GotFlavorList))
-
-        RequestKeypairs ->
-            let
-                newKeypairs =
-                    RDPP.setLoading project.keypairs
-
-                newProject =
-                    { project | keypairs = newKeypairs }
-
-                newSharedModel =
-                    GetterSetters.modelUpdateProject sharedModel newProject
-            in
-            ( newSharedModel
-            , Rest.Nova.requestKeypairs newProject
-            )
-                |> mapToOuterMsg
-                |> mapToOuterModel outerModel
 
         ReceiveKeypairs errorContext result ->
             case result of
@@ -2355,11 +2333,6 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
             outerModel.sharedModel
     in
     case serverMsgConstructor of
-        RequestServer ->
-            ApiModelHelpers.requestServer (GetterSetters.projectIdentifier project) server.osProps.uuid sharedModel
-                |> mapToOuterMsg
-                |> mapToOuterModel outerModel
-
         RequestDeleteServer retainFloatingIps ->
             let
                 ( newProject, cmd ) =
