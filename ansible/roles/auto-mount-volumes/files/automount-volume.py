@@ -1,23 +1,34 @@
 #!/usr/bin/env python3
-import urllib.request
-import json
-import sys
-import subprocess
 import argparse
+import json
+import logging
 import pathlib
-import typing
-import time
 import re
+import subprocess
+import time
+import typing as t
+import urllib.request
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 MOUNT_PATH = pathlib.Path("/media/volume")
+
+
+class FSTab(t.NamedTuple):
+    fs_spec: str
+    fs_file: str
+    fs_vfstype: str
+    fs_mntops: str
+    fs_freq: str
+    fs_passno: str
 
 
 def sanitize(label: str) -> str:
     return re.sub(r"\W+", "-", label)
 
 
-def udevadm_info(device: pathlib.Path) -> dict[str, str]:
+def udevadm_info(device: pathlib.Path) -> t.Dict[str, str]:
     return dict(
         [
             val.split("=", maxsplit=1)
@@ -30,7 +41,7 @@ def udevadm_info(device: pathlib.Path) -> dict[str, str]:
     )
 
 
-def get_disk_uuid(device: pathlib.Path) -> typing.Optional[str]:
+def get_disk_uuid(device: pathlib.Path) -> t.Optional[str]:
     device_info = udevadm_info(device)
     return device_info.get("ID_SERIAL_SHORT")
 
@@ -65,16 +76,16 @@ def get_volume_name(uuid, *, retries=0, default=None):
     return default
 
 
-def get_mounts(device: pathlib.Path):
+def get_mounts(device: t.Optional[pathlib.Path] = None) -> t.Iterable[FSTab]:
     with open("/proc/mounts", "r", encoding="utf-8") as f:
         for line in f:
             mount = line.strip().split()
-            if mount[0] == str(device):
-                yield mount
+            if device is None or mount[0] == str(device):
+                yield FSTab(*mount)
 
 
 def log_exec(cmd, *args, _ignore_errors=False, **kwargs):
-    print("Calling", cmd, "(", *args, kwargs, ")")
+    logger.info(f"Calling {cmd} ({args}, {kwargs})")
     try:
         return subprocess.check_output(cmd, *args, **kwargs)
     except subprocess.CalledProcessError:
@@ -83,7 +94,7 @@ def log_exec(cmd, *args, _ignore_errors=False, **kwargs):
 
 
 def do_mount(device: pathlib.Path):
-    print(f"do_mount({device=})", file=sys.stderr)
+    logger.info(f"do_mount({device})")
     disk_info = udevadm_info(device)
 
     uuid = disk_info.get("ID_SERIAL_SHORT")
@@ -91,7 +102,7 @@ def do_mount(device: pathlib.Path):
     mountpoint: pathlib.Path = MOUNT_PATH / sanitize(volume_name)
 
     if disk_info.get("ID_FS_USAGE", None) != "filesystem":
-        print(f"formatting {device} to ext4")
+        logger.info(f"formatting {device} to ext4")
         # Options borrowed from https://github.com/systemd/systemd/blob/0e2f18eedd/src/shared/mkfs-util.c#L418-L426
         log_exec(
             (
@@ -113,10 +124,14 @@ def do_mount(device: pathlib.Path):
         )
 
     elif disk_info.get("ID_FS_LABEL", "") != volume_name:
-        print("Fixing volume label")
+        logger.info("Fixing volume label")
         log_exec(("e2label", str(device), volume_name))
 
-    print(f"mounting {device} to /media/volumes/{volume_name}")
+    current_mounts = {m.fs_file: m for m in get_mounts()}
+    if str(mountpoint) in current_mounts:
+        mountpoint = mountpoint.with_name(mountpoint.name + "-" + uuid[-4:])
+
+    logger.info(f"mounting {device} to /media/volumes/{volume_name}")
     mountpoint.mkdir(mode=0o755, parents=True, exist_ok=True)
     log_exec(
         (
@@ -132,7 +147,7 @@ def do_mount(device: pathlib.Path):
 
 
 def do_unmount(device: pathlib.Path):
-    print(f"do_unmount({device=})", file=sys.stderr)
+    logger.info(f"do_unmount({device})")
 
     for _, mountpoint, *_ in get_mounts(device):
         log_exec(("/usr/bin/env", "systemd-mount", "--unmount", mountpoint))
@@ -142,7 +157,7 @@ def do_unmount(device: pathlib.Path):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    subparsers = parser.add_subparsers(required=True)
+    subparsers = parser.add_subparsers()
     mount_parser = subparsers.add_parser("mount")
     unmount_parser = subparsers.add_parser("unmount")
 
