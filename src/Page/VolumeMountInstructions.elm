@@ -80,7 +80,7 @@ view context project model =
                                     , " manually.)"
                                     ]
                         in
-                        Element.column [ Element.spacing spacer.px12 ] (VH.renderMarkdown context markdown)
+                        Element.column [ Element.spacing spacer.px12 ] (VH.renderMarkdown context.palette markdown)
 
                     Nothing ->
                         Element.text <|

@@ -90,7 +90,7 @@ viewSupportInfo context sharedModel =
     case sharedModel.style.supportInfoMarkdown of
         Just markdown ->
             Element.column [] <|
-                VH.renderMarkdown context markdown
+                VH.renderMarkdown context.palette markdown
 
         Nothing ->
             Element.none

@@ -151,7 +151,7 @@ view context project instanceTypes =
                           <|
                             Style.Widgets.Text.strong instanceType.friendlyName
                         , Element.paragraph [ Element.width Element.fill ] <|
-                            VH.renderMarkdown context instanceType.description
+                            VH.renderMarkdown context.palette instanceType.description
                         ]
                     , Element.column
                         [ Element.padding spacer.px12

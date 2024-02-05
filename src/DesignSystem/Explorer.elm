@@ -8,6 +8,7 @@ import DesignSystem.Stories.ColorPalette as ColorPalette
 import DesignSystem.Stories.CopyableText as CopyableTextStories
 import DesignSystem.Stories.DataList
 import DesignSystem.Stories.Link as LinkStories
+import DesignSystem.Stories.Markdown as Markdown
 import DesignSystem.Stories.Space as SpaceStories
 import DesignSystem.Stories.Text as TextStories
 import DesignSystem.Stories.Toast as ToastStories
@@ -557,6 +558,7 @@ To display a read-only label which clearly shows the current status of a resourc
             |> category "Molecules"
                 [ --TODO: Add `filterChipView` (inside DataList) since `chip` is not in use.
                   CopyableTextStories.stories toHtml (\_ -> NoOp)
+                , Markdown.stories toHtml
                 , storiesOf
                     "Meter"
                     [ ( "default", \m -> toHtml (palettize m) <| meter (palettize m) "Space used" "6 of 10 GB" 6 10, { note = """

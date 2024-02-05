@@ -850,8 +850,8 @@ getShareUiStatusBadgeState status =
             StatusBadge.Error
 
 
-renderMarkdown : View.Types.Context -> String -> List (Element.Element msg)
-renderMarkdown context markdown =
+renderMarkdown : ExoPalette -> String -> List (Element.Element msg)
+renderMarkdown palette markdown =
     let
         deadEndsToString deadEnds =
             deadEnds
@@ -863,7 +863,7 @@ renderMarkdown context markdown =
                 |> Markdown.Parser.parse
                 |> Result.mapError deadEndsToString
                 |> Result.andThen
-                    (\ast -> Markdown.Renderer.render (elmUiRenderer context) ast)
+                    (\ast -> Markdown.Renderer.render (elmUiRenderer palette) ast)
     in
     case result of
         Ok elements ->
@@ -875,10 +875,23 @@ renderMarkdown context markdown =
             ]
 
 
-elmUiRenderer : View.Types.Context -> Markdown.Renderer.Renderer (Element.Element msg)
-elmUiRenderer context =
+elmUiRenderer : ExoPalette -> Markdown.Renderer.Renderer (Element.Element msg)
+elmUiRenderer palette =
+    let
+        codeAttrs =
+            [ Text.fontFamily Text.Mono
+            , Border.rounded spacer.px4
+            , Border.color (SH.toElementColor palette.muted.border)
+            , Background.color (SH.toElementColor palette.muted.background)
+            , Font.color (SH.toElementColor palette.muted.textOnColoredBG)
+            ]
+
+        codeRenderer =
+            Text.text Text.Body
+                (Element.paddingXY spacer.px4 spacer.px4 :: codeAttrs)
+    in
     -- Heavily borrowed and modified from https://ellie-app.com/bQLgjtbgdkZa1
-    { heading = heading context.palette
+    { heading = heading palette
     , paragraph =
         Element.paragraph
             []
@@ -888,23 +901,14 @@ elmUiRenderer context =
     , emphasis = \content -> Element.row [ Font.italic ] content
     , strikethrough = \content -> Element.row [ Font.strike ] content
     , codeSpan =
-        \content ->
-            Element.el
-                [ Element.paddingXY 3 1
-                , Border.rounded 4
-                , Border.color (SH.toElementColor context.palette.muted.border)
-                , Background.color (SH.toElementColor context.palette.muted.background)
-                , Font.color (SH.toElementColor context.palette.muted.textOnColoredBG)
-                ]
-            <|
-                Text.mono content
+        codeRenderer
     , link =
         \{ destination } body ->
-            Element.newTabLink (Link.linkStyle context.palette)
+            Element.newTabLink (Link.linkStyle palette)
                 { url = destination
                 , label =
                     Element.paragraph
-                        [ context.palette.primary |> SH.toElementColor |> Font.color
+                        [ palette.primary |> SH.toElementColor |> Font.color
                         , Element.pointer
                         ]
                         body
@@ -923,8 +927,8 @@ elmUiRenderer context =
             Element.column
                 [ Border.widthEach { top = 0, right = 0, bottom = 0, left = 10 }
                 , Element.padding spacer.px12
-                , Border.color (SH.toElementColor context.palette.neutral.border)
-                , Background.color (SH.toElementColor context.palette.neutral.background.frontLayer)
+                , Border.color (SH.toElementColor palette.neutral.border)
+                , Background.color (SH.toElementColor palette.neutral.background.frontLayer)
                 ]
                 children
     , unorderedList =
@@ -964,9 +968,10 @@ elmUiRenderer context =
                         )
                 )
     , codeBlock =
-        -- TODO implement this (show fixed-width font) once we need it
         \{ body } ->
-            Element.text body
+            Element.row
+                (codeAttrs ++ [ Element.paddingXY spacer.px8 spacer.px8, Element.width Element.fill ])
+                [ codeRenderer body ]
     , html = Markdown.Html.oneOf []
     , table = Element.column []
     , tableHeader = Element.column []
