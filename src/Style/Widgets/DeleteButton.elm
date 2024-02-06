@@ -64,7 +64,7 @@ deletePopconfirmContent palette { confirmation, buttonText, onConfirm, onCancel 
     Element.column
         [ Element.spacing spacer.px16, Element.padding spacer.px4, Element.width Element.fill ]
         [ Element.row [ Element.spacing spacer.px8 ]
-            [ sizedFeatherIcon 20 Icons.alertCircle
+            [ sizedFeatherIcon 20 Icons.alertTriangle
             , confirmation
             ]
         , Element.row [ Element.spacing spacer.px12, Element.alignRight ]
