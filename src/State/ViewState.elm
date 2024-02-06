@@ -181,7 +181,7 @@ routeToViewStateModelCmd sharedModel route =
         Route.MessageLog showDebugMsgs ->
             ( NonProjectView <| MessageLog <| Page.MessageLog.init (Just showDebugMsgs)
             , sharedModel
-            , Cmd.none
+            , Ports.instantiateClipboardJs ()
             )
 
         Route.PageNotFound ->

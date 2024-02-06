@@ -29,6 +29,7 @@ import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.Alert as Alert
 import Style.Widgets.Button as Button
+import Style.Widgets.CopyableText exposing (copyableTextAccessory)
 import Style.Widgets.Icon exposing (featherIcon)
 import Style.Widgets.Link as Link
 import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
@@ -36,7 +37,7 @@ import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Style.Widgets.Select
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Tag as Tag
-import Style.Widgets.Text as Text
+import Style.Widgets.Text as Text exposing (TextVariant(..))
 import Style.Widgets.ToggleTip
 import Style.Widgets.Validation exposing (invalidMessage)
 import Time
@@ -1837,6 +1838,9 @@ userDataInput context model =
         receiveUserDataTemplate : String -> Msg
         receiveUserDataTemplate =
             GotUserDataTemplate
+
+        copyable =
+            copyableTextAccessory context.palette model.userDataTemplate
     in
     Element.column
         [ Element.spacing spacer.px12 ]
@@ -1844,32 +1848,38 @@ userDataInput context model =
             (Helpers.String.toTitleCase context.localization.cloudInitData)
         , cloudConfigExplainer
         , cloudConfigWarning
-        , Input.multiline
-            (VH.inputItemAttributes context.palette
-                ++ [ Element.width Element.fill
-                   , Element.height (Element.px 500)
-                   , Element.spacing spacer.px4
-                   , Font.family [ Font.monospace ]
-                   ]
-            )
-            { onChange = receiveUserDataTemplate
-            , text = model.userDataTemplate
-            , placeholder =
-                Just
-                    (Input.placeholder []
-                        (Element.text <|
-                            String.join
-                                " "
-                                [ "#!/bin/bash\n\n# Your"
-                                , context.localization.cloudInitData
-                                , "here"
-                                ]
+        , Element.row
+            [ Element.spacing spacer.px8 ]
+            [ Input.multiline
+                (VH.inputItemAttributes context.palette
+                    ++ [ Element.width Element.fill
+                       , Element.height (Element.px 500)
+                       , Element.spacing spacer.px4
+                       , Text.fontFamily Text.Mono
+                       ]
+                    ++ Text.typographyAttrs Tiny
+                    ++ [ copyable.id ]
+                )
+                { onChange = receiveUserDataTemplate
+                , text = model.userDataTemplate
+                , placeholder =
+                    Just
+                        (Input.placeholder []
+                            (Element.text <|
+                                String.join
+                                    " "
+                                    [ "#!/bin/bash\n\n# Your"
+                                    , context.localization.cloudInitData
+                                    , "here"
+                                    ]
+                            )
                         )
-                    )
-            , label =
-                Input.labelHidden <| Helpers.String.toTitleCase context.localization.cloudInitData
-            , spellcheck = False
-            }
+                , label =
+                    Input.labelHidden <| Helpers.String.toTitleCase context.localization.cloudInitData
+                , spellcheck = False
+                }
+            , copyable.accessory
+            ]
         ]
 
 
