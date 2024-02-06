@@ -17,6 +17,7 @@ import Maybe
 import OpenStack.ServerPassword as OSServerPassword
 import OpenStack.ServerTags as OSServerTags
 import OpenStack.ServerVolumes as OSSvrVols
+import OpenStack.Shares as OSShares
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes as OSVolumes
 import Orchestration.GoalServer as GoalServer
@@ -1450,9 +1451,14 @@ processProjectSpecificMsg outerModel project msg =
                     ( outerModel, Rest.Neutron.requestCreateFloatingIp project net Nothing maybeIp )
                         |> mapToOuterMsg
 
-        RequestDeleteShare _ ->
-            -- TODO: Delete a share.
-            ( outerModel, Cmd.none )
+        RequestDeleteShare shareUuid ->
+            case project.endpoints.manila of
+                Just manilaUrl ->
+                    ( outerModel, OSShares.requestDeleteShare project manilaUrl shareUuid )
+                        |> mapToOuterMsg
+
+                Nothing ->
+                    ( outerModel, Cmd.none )
 
         RequestDeleteFloatingIp errorContext floatingIpAddress ->
             ( outerModel, Rest.Neutron.requestDeleteFloatingIp project errorContext floatingIpAddress )
@@ -2043,6 +2049,15 @@ processProjectSpecificMsg outerModel project msg =
             ( newSharedModel, Cmd.none )
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
+
+        ReceiveDeleteShare ->
+            case project.endpoints.manila of
+                Just manilaUrl ->
+                    ( outerModel, OSShares.requestShares project manilaUrl )
+                        |> mapToOuterMsg
+
+                Nothing ->
+                    ( outerModel, Cmd.none )
 
         ReceiveCreateVolume ->
             {- Should we add new volume to model now? -}
