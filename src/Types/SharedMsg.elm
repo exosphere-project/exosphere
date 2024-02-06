@@ -59,6 +59,7 @@ type ProjectSpecificMsgConstructor
     | RequestServers
     | RequestCreateServer HelperTypes.CreateServerPageModel OSTypes.NetworkUuid OSTypes.FlavorId
     | RequestDeleteServers (List OSTypes.ServerUuid)
+    | RequestDeleteShare OSTypes.ShareUuid
     | RequestCreateVolume OSTypes.VolumeName OSTypes.VolumeSize
     | RequestDeleteVolume OSTypes.VolumeUuid
     | RequestDeleteVolumeSnapshot HelperTypes.Uuid

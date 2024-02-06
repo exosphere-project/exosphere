@@ -493,7 +493,7 @@ updateUnderlying outerMsg outerModel =
                         ( ShareListMsg pageMsg, ShareList pageModel ) ->
                             let
                                 ( newSharedModel, cmd, sharedMsg ) =
-                                    Page.ShareList.update pageMsg pageModel
+                                    Page.ShareList.update pageMsg project pageModel
                             in
                             ( { outerModel
                                 | viewState =
@@ -1449,6 +1449,10 @@ processProjectSpecificMsg outerModel project msg =
                 Just net ->
                     ( outerModel, Rest.Neutron.requestCreateFloatingIp project net Nothing maybeIp )
                         |> mapToOuterMsg
+
+        RequestDeleteShare _ ->
+            -- TODO: Delete a share.
+            ( outerModel, Cmd.none )
 
         RequestDeleteFloatingIp errorContext floatingIpAddress ->
             ( outerModel, Rest.Neutron.requestDeleteFloatingIp project errorContext floatingIpAddress )
