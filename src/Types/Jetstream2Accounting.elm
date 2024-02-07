@@ -100,26 +100,28 @@ shownAllocationForResource currentTime allocations resource =
                 |> List.filter (\a -> a.status == Active)
                 |> List.filter (allocationIsCurrent currentTime)
                 |> List.head
-
-        latestEndingAllocation =
-            allocationsForResource
-                |> List.sortBy (\a -> Time.posixToMillis a.endDate)
-                |> List.reverse
-                |> List.head
-
-        firstAllocation =
-            allocationsForResource |> List.head
     in
     case currentActiveAllocation of
         Just a ->
             Just a
 
         Nothing ->
+            let
+                latestEndingAllocation =
+                    allocationsForResource
+                        |> List.sortBy (\a -> Time.posixToMillis a.endDate)
+                        |> List.reverse
+                        |> List.head
+            in
             case latestEndingAllocation of
                 Just a ->
                     Just a
 
                 Nothing ->
+                    let
+                        firstAllocation =
+                            allocationsForResource |> List.head
+                    in
                     firstAllocation
 
 

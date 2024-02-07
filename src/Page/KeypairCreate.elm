@@ -76,18 +76,20 @@ view context project currentTime model =
             else
                 Nothing
 
-        keyTypeGuess =
-            Helpers.SshKeyTypeGuesser.guessKeyType model.publicKey
-
         invalidValueReason =
             if String.isEmpty model.publicKey then
                 Just "Public key is required"
 
-            else if keyTypeGuess == Helpers.SshKeyTypeGuesser.PrivateKey then
-                Just "Private key detected! Enter a public key instead. Public keys are usually found in a .pub file"
-
             else
-                Nothing
+                let
+                    keyTypeGuess =
+                        Helpers.SshKeyTypeGuesser.guessKeyType model.publicKey
+                in
+                if keyTypeGuess == Helpers.SshKeyTypeGuesser.PrivateKey then
+                    Just "Private key detected! Enter a public key instead. Public keys are usually found in a .pub file"
+
+                else
+                    Nothing
     in
     Element.column
         VH.formContainer

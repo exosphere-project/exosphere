@@ -211,71 +211,71 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
             , sentryConfig = flags.sentryConfig
             }
 
-        -- This only gets used if we do not find a client UUID in stored state
-        newClientUuid : UUID.UUID
-        newClientUuid =
-            let
-                seeds =
-                    UUID.Seeds
-                        (Random.initialSeed flags.randomSeed0)
-                        (Random.initialSeed flags.randomSeed1)
-                        (Random.initialSeed flags.randomSeed2)
-                        (Random.initialSeed flags.randomSeed3)
-            in
-            UUID.step seeds |> Tuple.first
-
-        hydratedModel : SharedModel
-        hydratedModel =
-            LocalStorage.hydrateModelFromStoredState (emptyModel flags.showDebugMsgs) newClientUuid storedState
-
-        -- If any projects are password-authenticated, get Application Credentials for them so we can forget the passwords
-        projectsNeedingAppCredentials : List Project
-        projectsNeedingAppCredentials =
-            let
-                projectNeedsAppCredential p =
-                    case p.secret of
-                        ApplicationCredential _ ->
-                            False
-
-                        _ ->
-                            True
-            in
-            List.filter projectNeedsAppCredential hydratedModel.projects
-
-        refreshAuthTokenCmds =
-            hydratedModel.projects
-                |> List.map (State.Auth.requestAuthToken hydratedModel)
-                |> List.filterMap
-                    (\result ->
-                        case result of
-                            Err _ ->
-                                Nothing
-
-                            Ok cmd ->
-                                Just cmd
-                    )
-                |> Cmd.batch
-
-        setFaviconCmd =
-            flags.favicon
-                |> Maybe.map Ports.setFavicon
-                |> Maybe.withDefault Cmd.none
-
-        otherCmds =
-            [ refreshAuthTokenCmds
-            , List.map
-                (Rest.Keystone.requestAppCredential
-                    hydratedModel.clientUuid
-                    hydratedModel.clientCurrentTime
-                )
-                projectsNeedingAppCredentials
-                |> Cmd.batch
-            , setFaviconCmd
-            ]
-                |> Cmd.batch
-
         ( requestResourcesModel, requestResourcesCmd ) =
             let
+                setFaviconCmd =
+                    flags.favicon
+                        |> Maybe.map Ports.setFavicon
+                        |> Maybe.withDefault Cmd.none
+
+                -- This only gets used if we do not find a client UUID in stored state
+                newClientUuid : UUID.UUID
+                newClientUuid =
+                    let
+                        seeds =
+                            UUID.Seeds
+                                (Random.initialSeed flags.randomSeed0)
+                                (Random.initialSeed flags.randomSeed1)
+                                (Random.initialSeed flags.randomSeed2)
+                                (Random.initialSeed flags.randomSeed3)
+                    in
+                    UUID.step seeds |> Tuple.first
+
+                hydratedModel : SharedModel
+                hydratedModel =
+                    LocalStorage.hydrateModelFromStoredState (emptyModel flags.showDebugMsgs) newClientUuid storedState
+
+                refreshAuthTokenCmds =
+                    hydratedModel.projects
+                        |> List.map (State.Auth.requestAuthToken hydratedModel)
+                        |> List.filterMap
+                            (\result ->
+                                case result of
+                                    Err _ ->
+                                        Nothing
+
+                                    Ok cmd ->
+                                        Just cmd
+                            )
+                        |> Cmd.batch
+
+                -- If any projects are password-authenticated, get Application Credentials for them so we can forget the passwords
+                projectsNeedingAppCredentials : List Project
+                projectsNeedingAppCredentials =
+                    let
+                        projectNeedsAppCredential p =
+                            case p.secret of
+                                ApplicationCredential _ ->
+                                    False
+
+                                _ ->
+                                    True
+                    in
+                    List.filter projectNeedsAppCredential hydratedModel.projects
+
+                otherCmds =
+                    [ refreshAuthTokenCmds
+                    , List.map
+                        (Rest.Keystone.requestAppCredential
+                            hydratedModel.clientUuid
+                            hydratedModel.clientCurrentTime
+                        )
+                        projectsNeedingAppCredentials
+                        |> Cmd.batch
+                    , setFaviconCmd
+                    ]
+                        |> Cmd.batch
+
                 applyRequestsToProject : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd SharedMsg )
                 applyRequestsToProject projectId model =
                     ( model, otherCmds )

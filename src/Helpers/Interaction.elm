@@ -29,14 +29,6 @@ interactionStatus project server interaction context currentTime tlsReverseProxy
                 |> List.map .address
                 |> List.head
 
-        customWorkflowInteraction : ITypes.InteractionStatus
-        customWorkflowInteraction =
-            if context.experimentalFeaturesEnabled then
-                customWorkflowInteractionExperimental
-
-            else
-                ITypes.Hidden
-
         customWorkflowInteractionExperimental : ITypes.InteractionStatus
         customWorkflowInteractionExperimental =
             case server.exoProps.serverOrigin of
@@ -158,9 +150,6 @@ interactionStatus project server interaction context currentTime tlsReverseProxy
         guac : GuacType -> ITypes.InteractionStatus
         guac guacType =
             let
-                guacUpstreamPort =
-                    49528
-
                 fortyMinMillis =
                     1000 * 60 * 40
 
@@ -190,17 +179,6 @@ interactionStatus project server interaction context currentTime tlsReverseProxy
                                 eventTime > (Time.posixToMillis currentTime - fortyMinMillis)
                             )
                         |> Maybe.withDefault newServer
-
-                connectionStringBase64 =
-                    -- Per https://sourceforge.net/p/guacamole/discussion/1110834/thread/fb609070/
-                    case guacType of
-                        Terminal ->
-                            -- printf 'shell\0c\0default' | base64
-                            "c2hlbGwAYwBkZWZhdWx0"
-
-                        Desktop ->
-                            -- printf 'desktop\0c\0default' | base64
-                            "ZGVza3RvcABjAGRlZmF1bHQ="
             in
             case server.exoProps.serverOrigin of
                 ServerNotFromExo ->
@@ -248,6 +226,21 @@ interactionStatus project server interaction context currentTime tlsReverseProxy
                                     RDPP.DoHave token _ ->
                                         case ( tlsReverseProxyHostname, maybeFloatingIpAddress ) of
                                             ( Just proxyHostname, Just floatingIp ) ->
+                                                let
+                                                    guacUpstreamPort =
+                                                        49528
+
+                                                    connectionStringBase64 =
+                                                        -- Per https://sourceforge.net/p/guacamole/discussion/1110834/thread/fb609070/
+                                                        case guacType of
+                                                            Terminal ->
+                                                                -- printf 'shell\0c\0default' | base64
+                                                                "c2hlbGwAYwBkZWZhdWx0"
+
+                                                            Desktop ->
+                                                                -- printf 'desktop\0c\0default' | base64
+                                                                "ZGVza3RvcABjAGRlZmF1bHQ="
+                                                in
                                                 ITypes.Ready <|
                                                     UrlHelpers.buildProxyUrl
                                                         proxyHostname
@@ -360,6 +353,15 @@ interactionStatus project server interaction context currentTime tlsReverseProxy
                             ITypes.Error ("Exosphere requested a console URL and got the following error: " ++ Helpers.httpErrorToString err.error)
 
                 ITypes.CustomWorkflow ->
+                    let
+                        customWorkflowInteraction : ITypes.InteractionStatus
+                        customWorkflowInteraction =
+                            if context.experimentalFeaturesEnabled then
+                                customWorkflowInteractionExperimental
+
+                            else
+                                ITypes.Hidden
+                    in
                     customWorkflowInteraction
     in
     case server.osProps.details.openstackStatus of

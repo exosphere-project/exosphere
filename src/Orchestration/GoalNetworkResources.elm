@@ -25,15 +25,16 @@ goalPollNetworkResources time project =
 stepPollFloatingIps : Time.Posix -> Project -> ( Project, Cmd SharedMsg )
 stepPollFloatingIps time project =
     let
-        requestStuff =
-            ( GetterSetters.projectSetFloatingIpsLoading project
-            , Rest.Neutron.requestFloatingIps project
-            )
-
         pollIntervalMs =
             120000
     in
     if pollRDPP project.floatingIps time pollIntervalMs then
+        let
+            requestStuff =
+                ( GetterSetters.projectSetFloatingIpsLoading project
+                , Rest.Neutron.requestFloatingIps project
+                )
+        in
         requestStuff
 
     else
@@ -43,15 +44,16 @@ stepPollFloatingIps time project =
 stepPollPorts : Time.Posix -> Project -> ( Project, Cmd SharedMsg )
 stepPollPorts time project =
     let
-        requestStuff =
-            ( GetterSetters.projectSetPortsLoading project
-            , Rest.Neutron.requestPorts project
-            )
-
         pollIntervalMs =
             120000
     in
     if pollRDPP project.ports time pollIntervalMs then
+        let
+            requestStuff =
+                ( GetterSetters.projectSetPortsLoading project
+                , Rest.Neutron.requestPorts project
+                )
+        in
         requestStuff
 
     else

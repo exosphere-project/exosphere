@@ -242,14 +242,15 @@ imageView model context project imageRecord =
                         }
                         ST.PositionBottomRight
                         deleteBtn
-
-                deletionAttempted =
-                    Set.member imageRecord.id model.deletionsAttempted
-
-                deletionPending =
-                    imageRecord.image.status == OSTypes.ImagePendingDelete
             in
             if model.showDeleteButtons && projectOwnsImage project imageRecord.image then
+                let
+                    deletionAttempted =
+                        Set.member imageRecord.id model.deletionsAttempted
+
+                    deletionPending =
+                        imageRecord.image.status == OSTypes.ImagePendingDelete
+                in
                 if deletionAttempted || deletionPending then
                     -- FIXME: Constraint progressIndicator svg's height to 36 px also
                     Element.el [ Element.height <| Element.px 36 ]
@@ -272,19 +273,20 @@ imageView model context project imageRecord =
                                     context.localization.virtualComputer
                         , onPress = onPress
                         }
-
-                serverCreationRoute =
-                    Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
-                        Route.ServerCreate
-                            imageRecord.image.uuid
-                            imageRecord.image.name
-                            Nothing
-                            (GetterSetters.getUserAppProxyFromContext project context
-                                |> Maybe.map (\_ -> True)
-                            )
             in
             case imageRecord.image.status of
                 OSTypes.ImageActive ->
+                    let
+                        serverCreationRoute =
+                            Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
+                                Route.ServerCreate
+                                    imageRecord.image.uuid
+                                    imageRecord.image.name
+                                    Nothing
+                                    (GetterSetters.getUserAppProxyFromContext project context
+                                        |> Maybe.map (\_ -> True)
+                                    )
+                    in
                     Element.link []
                         { url = Route.toUrl context.urlPathPrefix serverCreationRoute
                         , label = textBtn (Just NoOp)
@@ -342,34 +344,34 @@ imageView model context project imageRecord =
             else
                 Element.none
 
-        ownerText =
-            if imageRecord.owned then
-                Just <|
-                    Element.row []
-                        [ Element.el [ Font.color (SH.toElementColor context.palette.neutral.text.default) ]
-                            (Element.text "belongs")
-                        , Element.text <|
-                            " to this "
-                                ++ context.localization.unitOfTenancy
-                        ]
-
-            else
-                Nothing
-
-        imageTags =
-            if List.isEmpty imageRecord.image.tags then
-                Nothing
-
-            else
-                Just <|
-                    Element.row
-                        [ Element.spacing spacer.px8
-                        , Element.paddingEach { left = spacer.px8, top = 0, right = 0, bottom = 0 }
-                        ]
-                        (List.map (Tag.tag context.palette) imageRecord.image.tags)
-
         imageAttributesView =
             let
+                ownerText =
+                    if imageRecord.owned then
+                        Just <|
+                            Element.row []
+                                [ Element.el [ Font.color (SH.toElementColor context.palette.neutral.text.default) ]
+                                    (Element.text "belongs")
+                                , Element.text <|
+                                    " to this "
+                                        ++ context.localization.unitOfTenancy
+                                ]
+
+                    else
+                        Nothing
+
+                imageTags =
+                    if List.isEmpty imageRecord.image.tags then
+                        Nothing
+
+                    else
+                        Just <|
+                            Element.row
+                                [ Element.spacing spacer.px8
+                                , Element.paddingEach { left = spacer.px8, top = 0, right = 0, bottom = 0 }
+                                ]
+                                (List.map (Tag.tag context.palette) imageRecord.image.tags)
+
                 attributesAlwaysShown =
                     [ if imageRecord.image.status == OSTypes.ImageQueued then
                         Element.text "Building..."

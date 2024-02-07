@@ -471,15 +471,16 @@ getUserAppProxyFromCloudSpecificConfig project cloudSpecificConfig =
                         |> List.filter (\configItem -> configItem.regionId == maybeRegionId)
                         |> List.head
                         |> Maybe.map .hostname
-
-                defaultUapIfNoRegionMatch =
-                    hostnameFromMaybeRegionId Nothing
             in
             case hostnameFromMaybeRegionId (Maybe.map .id project.region) of
                 Just hostname ->
                     Just hostname
 
                 Nothing ->
+                    let
+                        defaultUapIfNoRegionMatch =
+                            hostnameFromMaybeRegionId Nothing
+                    in
                     defaultUapIfNoRegionMatch
     in
     cloudSpecificConfig.userAppProxy
