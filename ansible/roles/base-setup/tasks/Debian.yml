@@ -6,6 +6,8 @@
       - 'haveged'
       - 'gnupg'
       - 'python3-venv'
+      - 'cron'
+      - 'zip'
     state: 'present'
   # This stuff waits for APT/dpkg lock if unattended upgrades are running
   register: 'apt_status'
