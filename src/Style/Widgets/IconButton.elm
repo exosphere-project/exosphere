@@ -1,4 +1,4 @@
-module Style.Widgets.IconButton exposing (FlowOrder(..), goToButton, iconButton)
+module Style.Widgets.IconButton exposing (FlowOrder(..), goToButton, iconButton, notes)
 
 import Element exposing (Element)
 import Element.Border as Border
@@ -8,7 +8,18 @@ import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
 import Style.Widgets.Icon exposing (Icon, iconEl, sizedFeatherIcon)
 import Style.Widgets.Spacer exposing (spacer)
-import View.Types
+
+
+notes : String
+notes =
+    {- @nonlocalized -}
+    """
+## Usage
+
+Icon Buttons are commonly used to show hints with actions, such as a warning icon when deleting an instance
+
+At the moment, the icon uses `palette.menu.textOrIcon` for color, if needed that can be moved into the configuration
+"""
 
 
 type FlowOrder
@@ -29,14 +40,14 @@ goToButton palette onPress =
         }
 
 
-iconButton : View.Types.Context -> List (Element.Attribute msg) -> { icon : Icon, iconPlacement : FlowOrder, label : String, onClick : Maybe msg } -> Element.Element msg
-iconButton context attributes { icon, iconPlacement, label, onClick } =
+iconButton : ExoPalette -> List (Element.Attribute msg) -> { icon : Icon, iconPlacement : FlowOrder, label : String, onClick : Maybe msg } -> Element.Element msg
+iconButton palette attributes { icon, iconPlacement, label, onClick } =
     let
         labelUI =
             Element.text label
 
         iconUI =
-            iconEl [] icon 20 context.palette.menu.textOrIcon
+            iconEl [] icon 20 palette.menu.textOrIcon
     in
     Input.button attributes
         { onPress = onClick

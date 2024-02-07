@@ -16,5 +16,5 @@ navButton context attributes { icon, label, route } =
             :: attributes
         )
         { url = Route.toUrl context.urlPathPrefix route
-        , label = iconButton context [] { icon = icon, iconPlacement = Before, label = label, onClick = Nothing }
+        , label = iconButton context.palette [] { icon = icon, iconPlacement = Before, label = label, onClick = Nothing }
         }

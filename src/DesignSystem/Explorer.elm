@@ -3,10 +3,12 @@ port module DesignSystem.Explorer exposing (main)
 import Browser.Events
 import Color
 import DesignSystem.Helpers exposing (Plugins, palettize, toHtml)
+import DesignSystem.Stories.Alert as AlertStories
 import DesignSystem.Stories.Card as CardStories
 import DesignSystem.Stories.ColorPalette as ColorPalette
 import DesignSystem.Stories.CopyableText as CopyableTextStories
 import DesignSystem.Stories.DataList
+import DesignSystem.Stories.IconButton as IconButtonStories
 import DesignSystem.Stories.Link as LinkStories
 import DesignSystem.Stories.Markdown as Markdown
 import DesignSystem.Stories.Space as SpaceStories
@@ -518,6 +520,7 @@ Exosphere uses buttons from [elm-ui-widgets](https://package.elm-lang.org/packag
                         , { name = "danger secondary", widget = Button.button Button.DangerSecondary, text = "Delete All", onPress = Just NoOp }
                         ]
                     )
+                , IconButtonStories.stories toHtml
                 , storiesOf
                     "Tag"
                     [ ( "default", \m -> toHtml (palettize m) <| tag (palettize m) "Experimental", { note = """
@@ -556,8 +559,10 @@ To display a read-only label which clearly shows the current status of a resourc
                     )
                 ]
             |> category "Molecules"
-                [ --TODO: Add `filterChipView` (inside DataList) since `chip` is not in use.
-                  CopyableTextStories.stories toHtml (\_ -> NoOp)
+                [ AlertStories.stories toHtml
+
+                --TODO: Add `filterChipView` (inside DataList) since `chip` is not in use.
+                , CopyableTextStories.stories toHtml (\_ -> NoOp)
                 , Markdown.stories toHtml
                 , storiesOf
                     "Meter"

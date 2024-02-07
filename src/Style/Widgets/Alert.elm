@@ -1,4 +1,4 @@
-module Style.Widgets.Alert exposing (AlertState(..), alert)
+module Style.Widgets.Alert exposing (AlertState(..), alert, notes)
 
 import Element
 import Element.Background as Background
@@ -13,8 +13,20 @@ import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 
 
+notes : String
+notes =
+    """
+## Usage
+
+Alert widgets show notifications in a consistent way
+
+They are often used to show issues during form validation or to notify of status changes
+"""
+
+
 type AlertState
     = Info
+    | Success
     | Warning
     | Danger
 
@@ -35,6 +47,9 @@ alert styleAttrs palette { state, showIcon, showContainer, content } =
             case state of
                 Info ->
                     ( palette.info, Icons.alertCircle )
+
+                Success ->
+                    ( palette.success, Icons.check )
 
                 Warning ->
                     ( palette.warning, Icons.alertTriangle )
