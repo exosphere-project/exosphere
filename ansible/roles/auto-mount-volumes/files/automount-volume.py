@@ -131,7 +131,7 @@ def do_mount(device: pathlib.Path):
     if str(mountpoint) in current_mounts:
         mountpoint = mountpoint.with_name(mountpoint.name + "-" + uuid[-4:])
 
-    logger.info(f"mounting {device} to /media/volumes/{volume_name}")
+    logger.info(f"mounting {device} to {mountpoint}")
     mountpoint.mkdir(mode=0o755, parents=True, exist_ok=True)
     log_exec(
         (
