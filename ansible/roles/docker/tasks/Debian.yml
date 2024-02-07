@@ -1,8 +1,21 @@
 ---
 
-- name: 'Docker and docker-compose installed'
-  apt:
+- name: 'Docker CE GPG key added'
+  get_url:
+    url: 'https://download.docker.com/linux/debian/gpg'
+    dest: '/etc/apt/keyrings/docker.asc'
+
+- name: 'Docker CE repository added'
+  apt_repository:
+    repo: 'deb [arch={{ "arm64" if ansible_architecture == "aarch64" else "amd64" }} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian {{ ansible_distribution_release }} stable'
+    state: 'present'
+    update_cache: 'true'
+
+- name: 'Docker packages installed'
+  yum:
     name:
-      - 'docker.io'
-      - 'docker-compose'
+      - 'docker-ce'
+      - 'docker-ce-cli'
+      - 'containerd.io'
+      - 'docker-compose-plugin'
     state: 'present'
