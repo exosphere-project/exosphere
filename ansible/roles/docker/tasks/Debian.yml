@@ -5,9 +5,13 @@
     url: 'https://download.docker.com/linux/debian/gpg'
     dest: '/etc/apt/keyrings/docker.asc'
 
+- name: 'DEB architecture abbreviation found and saved in register'
+  command: 'dpkg --print-architecture'
+  register: 'deb_arch'
+
 - name: 'Docker CE repository added'
   apt_repository:
-    repo: 'deb [arch={{ "arm64" if ansible_architecture == "aarch64" else "amd64" }} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian {{ ansible_distribution_release }} stable'
+    repo: 'deb [arch={{ deb_arch }} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian {{ ansible_distribution_release }} stable'
     state: 'present'
     update_cache: 'true'
 
