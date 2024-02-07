@@ -12,7 +12,7 @@
     update_cache: 'true'
 
 - name: 'Docker packages installed'
-  yum:
+  apt:
     name:
       - 'docker-ce'
       - 'docker-ce-cli'
