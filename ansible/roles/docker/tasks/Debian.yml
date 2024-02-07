@@ -1,5 +1,13 @@
 ---
 
+- name: '/etc/apt/keyrings directory created'
+  file:
+    path: '/etc/apt/keyrings'
+    state: 'directory'
+    owner: 'root'
+    group: 'root'
+    mode: '0644'
+
 - name: 'Docker CE GPG key added'
   get_url:
     url: 'https://download.docker.com/linux/debian/gpg'
