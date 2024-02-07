@@ -15,14 +15,11 @@ goalPollNetworkResources time project =
             [ stepPollFloatingIps time
             , stepPollPorts time
             ]
-
-        ( newProject, newCmds ) =
-            List.foldl
-                applyProjectStep
-                ( project, Cmd.none )
-                steps
     in
-    ( newProject, newCmds )
+    List.foldl
+        applyProjectStep
+        ( project, Cmd.none )
+        steps
 
 
 stepPollFloatingIps : Time.Posix -> Project -> ( Project, Cmd SharedMsg )

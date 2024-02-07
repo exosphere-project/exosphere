@@ -23,14 +23,11 @@ goalPollProject time project =
 
             -- add stepVolumePoll here
             ]
-
-        ( newProject, newCmds ) =
-            List.foldl
-                applyProjectStep
-                ( project, Cmd.none )
-                steps
     in
-    ( newProject, newCmds )
+    List.foldl
+        applyProjectStep
+        ( project, Cmd.none )
+        steps
 
 
 stepSnapshotPoll : Time.Posix -> Project -> ( Project, Cmd SharedMsg )

@@ -2673,11 +2673,8 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
 
                         newProject =
                             GetterSetters.projectUpdateServer project newServer
-
-                        newSharedModel =
-                            GetterSetters.modelUpdateProject sharedModel newProject
                     in
-                    newSharedModel
+                    GetterSetters.modelUpdateProject sharedModel newProject
             in
             case server.exoProps.serverOrigin of
                 ServerFromExo exoOriginProps ->

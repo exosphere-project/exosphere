@@ -999,41 +999,38 @@ serverPassphrase context model server =
                     , onPress = Just onPressMsg
                     }
                 ]
+    in
+    case GetterSetters.getServerExouserPassphrase server.osProps.details of
+        Just passphrase ->
+            passphraseShower passphrase
 
-        passphraseHint =
-            case GetterSetters.getServerExouserPassphrase server.osProps.details of
-                Just passphrase ->
-                    passphraseShower passphrase
+        Nothing ->
+            -- TODO factor out this logic used to determine whether to display the charts as well
+            case server.exoProps.serverOrigin of
+                ServerFromExo originProps ->
+                    case originProps.exoSetupStatus.data of
+                        RDPP.DoHave ( ExoSetupWaiting, _ ) _ ->
+                            Element.text "Not available yet, check in a few minutes."
 
-                Nothing ->
-                    -- TODO factor out this logic used to determine whether to display the charts as well
-                    case server.exoProps.serverOrigin of
-                        ServerFromExo originProps ->
-                            case originProps.exoSetupStatus.data of
-                                RDPP.DoHave ( ExoSetupWaiting, _ ) _ ->
-                                    Element.text "Not available yet, check in a few minutes."
-
-                                RDPP.DoHave ( ExoSetupRunning, _ ) _ ->
-                                    Element.text "Not available yet, check in a few minutes."
-
-                                _ ->
-                                    Element.text "Not available"
+                        RDPP.DoHave ( ExoSetupRunning, _ ) _ ->
+                            Element.text "Not available yet, check in a few minutes."
 
                         _ ->
-                            Element.el
-                                [ context.palette.neutral.text.subdued
-                                    |> SH.toElementColor
-                                    |> Font.color
+                            Element.text "Not available"
+
+                _ ->
+                    Element.el
+                        [ context.palette.neutral.text.subdued
+                            |> SH.toElementColor
+                            |> Font.color
+                        ]
+                        (Element.text <|
+                            String.concat
+                                [ "Not available because "
+                                , context.localization.virtualComputer
+                                , " was not created by Exosphere"
                                 ]
-                                (Element.text <|
-                                    String.concat
-                                        [ "Not available because "
-                                        , context.localization.virtualComputer
-                                        , " was not created by Exosphere"
-                                        ]
-                                )
-    in
-    passphraseHint
+                        )
 
 
 serverActionsDropdown : View.Types.Context -> Project -> Model -> Server -> Element.Element Msg
@@ -1440,64 +1437,61 @@ resourceUsageCharts context currentTimeAndZone server maybeServerResourceQtys =
                     maybeServerResourceQtys
                     timeSeries
                 ]
-
-        charts =
-            case server.exoProps.serverOrigin of
-                ServerNotFromExo ->
-                    Element.text <|
-                        String.join " "
-                            [ "Charts not available because"
-                            , context.localization.virtualComputer
-                            , "was not created by Exosphere."
-                            ]
-
-                ServerFromExo exoOriginProps ->
-                    case exoOriginProps.resourceUsage.data of
-                        RDPP.DoHave history _ ->
-                            if Dict.isEmpty history.timeSeries then
-                                case exoOriginProps.exoSetupStatus.data of
-                                    RDPP.DoHave ( ExoSetupError, _ ) _ ->
-                                        Element.none
-
-                                    RDPP.DoHave ( ExoSetupTimeout, _ ) _ ->
-                                        Element.none
-
-                                    RDPP.DoHave ( ExoSetupWaiting, _ ) _ ->
-                                        Element.none
-
-                                    _ ->
-                                        if Helpers.serverLessThanThisOld server (Tuple.first currentTimeAndZone) thirtyMinMillis then
-                                            Element.text <|
-                                                String.join " "
-                                                    [ "No chart data yet. This"
-                                                    , context.localization.virtualComputer
-                                                    , "is new and may take a few minutes to start reporting data."
-                                                    ]
-
-                                        else
-                                            Element.text "No chart data to show."
-
-                            else
-                                charts_ history.timeSeries
-
-                        _ ->
-                            if exoOriginProps.exoServerVersion < 2 then
-                                Element.text <|
-                                    String.join " "
-                                        [ "Charts not available because"
-                                        , context.localization.virtualComputer
-                                        , "was not created using a new enough build of Exosphere."
-                                        ]
-
-                            else
-                                Element.text <|
-                                    String.join " "
-                                        [ "Could not access the"
-                                        , context.localization.virtualComputer
-                                        , "console log, charts not available."
-                                        ]
     in
-    charts
+    case server.exoProps.serverOrigin of
+        ServerNotFromExo ->
+            Element.text <|
+                String.join " "
+                    [ "Charts not available because"
+                    , context.localization.virtualComputer
+                    , "was not created by Exosphere."
+                    ]
+
+        ServerFromExo exoOriginProps ->
+            case exoOriginProps.resourceUsage.data of
+                RDPP.DoHave history _ ->
+                    if Dict.isEmpty history.timeSeries then
+                        case exoOriginProps.exoSetupStatus.data of
+                            RDPP.DoHave ( ExoSetupError, _ ) _ ->
+                                Element.none
+
+                            RDPP.DoHave ( ExoSetupTimeout, _ ) _ ->
+                                Element.none
+
+                            RDPP.DoHave ( ExoSetupWaiting, _ ) _ ->
+                                Element.none
+
+                            _ ->
+                                if Helpers.serverLessThanThisOld server (Tuple.first currentTimeAndZone) thirtyMinMillis then
+                                    Element.text <|
+                                        String.join " "
+                                            [ "No chart data yet. This"
+                                            , context.localization.virtualComputer
+                                            , "is new and may take a few minutes to start reporting data."
+                                            ]
+
+                                else
+                                    Element.text "No chart data to show."
+
+                    else
+                        charts_ history.timeSeries
+
+                _ ->
+                    if exoOriginProps.exoServerVersion < 2 then
+                        Element.text <|
+                            String.join " "
+                                [ "Charts not available because"
+                                , context.localization.virtualComputer
+                                , "was not created using a new enough build of Exosphere."
+                                ]
+
+                    else
+                        Element.text <|
+                            String.join " "
+                                [ "Could not access the"
+                                , context.localization.virtualComputer
+                                , "console log, charts not available."
+                                ]
 
 
 renderIpAddresses : View.Types.Context -> Project -> Server -> Model -> Element.Element Msg

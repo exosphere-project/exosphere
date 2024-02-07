@@ -691,12 +691,9 @@ parseConsoleLogForWorkflowToken consoleLog =
                 |> List.map stripTimeSinceBootFromLogLine
                 |> List.filterMap
                     (\l -> Decode.decodeString workflowTokenDecoder l |> Result.toMaybe)
-
-        maybeLastToken =
-            List.reverse decodedData
-                |> List.head
     in
-    maybeLastToken
+    List.reverse decodedData
+        |> List.head
 
 
 workflowTokenDecoder : Decode.Decoder CustomWorkflowAuthToken

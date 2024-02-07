@@ -35,14 +35,11 @@ orchProject exoClientUuid time maybeCloudSpecificConfig project =
             , goalPollNetworkResources time
             , goalPollProject time
             ]
-
-        ( newProject, newCmds ) =
-            List.foldl
-                applyProjectStep
-                ( project, Cmd.none )
-                goals
     in
-    ( newProject, newCmds )
+    List.foldl
+        applyProjectStep
+        ( project, Cmd.none )
+        goals
 
 
 goalDummy : UUID.UUID -> Time.Posix -> Project -> ( Project, Cmd SharedMsg )
