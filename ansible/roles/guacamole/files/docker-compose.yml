@@ -8,6 +8,7 @@ services:
   exo-guac-guacd:
     image: 'guacamole/guacd-dev@sha256:67b192929a69179db6729060b5be47e1d9e2fe51c010aa16979db17b19da18f2'
     restart: 'always'
+    hostname: 'guacd'
     networks:
       exo-guac-net:
   exo-guac-guacamole:
