@@ -29,157 +29,8 @@ interactionStatus project server interaction context currentTime tlsReverseProxy
                 |> List.map .address
                 |> List.head
 
-        customWorkflowInteractionExperimental : ITypes.InteractionStatus
-        customWorkflowInteractionExperimental =
-            case server.exoProps.serverOrigin of
-                ServerNotFromExo ->
-                    ITypes.Unavailable <|
-                        String.join
-                            " "
-                            [ context.localization.virtualComputer
-                                |> Helpers.String.toTitleCase
-                            , "not launched from Exosphere"
-                            ]
-
-                ServerFromExo exoOriginProps ->
-                    case exoOriginProps.customWorkflowStatus of
-                        NotLaunchedWithCustomWorkflow ->
-                            -- Either exoOriginProps.exoServerVersion < 3, or instance was deployed without a workflow
-                            ITypes.Hidden
-
-                        LaunchedWithCustomWorkflow customWorkflow ->
-                            case customWorkflow.authToken.data of
-                                RDPP.DoHave token _ ->
-                                    case ( tlsReverseProxyHostname, maybeFloatingIpAddress ) of
-                                        ( Just proxyHostname, Just floatingIp ) ->
-                                            ITypes.Ready <|
-                                                UrlHelpers.buildProxyUrl
-                                                    proxyHostname
-                                                    floatingIp
-                                                    8888
-                                                    (customWorkflow.source.path ++ "/?token=" ++ token)
-                                                    False
-
-                                        ( Nothing, _ ) ->
-                                            ITypes.Unavailable "Cannot find TLS-terminating reverse proxy server"
-
-                                        ( _, Nothing ) ->
-                                            ITypes.Unavailable <|
-                                                String.join " "
-                                                    [ context.localization.virtualComputer
-                                                        |> Helpers.String.toTitleCase
-                                                    , "does not have a"
-                                                    , context.localization.floatingIpAddress
-                                                    ]
-
-                                RDPP.DontHave ->
-                                    let
-                                        fortyMinMillis =
-                                            1000 * 60 * 40
-
-                                        newServer =
-                                            Helpers.serverLessThanThisOld server currentTime fortyMinMillis
-
-                                        recentServerEvent =
-                                            server.events
-                                                |> RDPP.withDefault []
-                                                -- Ignore server events which don't cause a power cycle
-                                                |> List.filter
-                                                    (\event ->
-                                                        [ "lock", "unlock", {- @nonlocalized -} "image" ]
-                                                            |> List.map (\action -> action == event.action)
-                                                            |> List.any identity
-                                                            |> not
-                                                    )
-                                                -- Look for the most recent server event
-                                                |> List.map .startTime
-                                                |> List.map Time.posixToMillis
-                                                |> List.sort
-                                                |> List.reverse
-                                                |> List.head
-                                                -- See if most recent event is recent enough
-                                                |> Maybe.map
-                                                    (\eventTime ->
-                                                        eventTime > (Time.posixToMillis currentTime - fortyMinMillis)
-                                                    )
-                                                |> Maybe.withDefault newServer
-                                    in
-                                    if recentServerEvent then
-                                        ITypes.Unavailable <|
-                                            String.join " "
-                                                [ context.localization.virtualComputer
-                                                    |> Helpers.String.toTitleCase
-                                                , "is still booting or the workflow is still deploying, check back in a few minutes"
-                                                ]
-
-                                    else
-                                        case ( tlsReverseProxyHostname, maybeFloatingIpAddress ) of
-                                            ( Nothing, _ ) ->
-                                                ITypes.Error "Cannot find TLS-terminating reverse proxy server"
-
-                                            ( _, Nothing ) ->
-                                                ITypes.Error <|
-                                                    String.join " "
-                                                        [ context.localization.virtualComputer
-                                                            |> Helpers.String.toTitleCase
-                                                        , "does not have a"
-                                                        , context.localization.floatingIpAddress
-                                                        ]
-
-                                            ( Just _, Just _ ) ->
-                                                case customWorkflow.authToken.refreshStatus of
-                                                    RDPP.Loading ->
-                                                        ITypes.Loading
-
-                                                    RDPP.NotLoading maybeErrorTuple ->
-                                                        -- If deployment is complete but we can't get a token, show error to user
-                                                        case maybeErrorTuple of
-                                                            Nothing ->
-                                                                -- This is a slight misrepresentation; we haven't requested
-                                                                -- a token yet but orchestration code will make request soon
-                                                                ITypes.Loading
-
-                                                            Just ( httpErrorWithBody, _ ) ->
-                                                                ITypes.Error
-                                                                    ("Exosphere tried to get the console log for the "
-                                                                        ++ Helpers.String.toTitleCase context.localization.virtualComputer
-                                                                        ++ " and received this error: "
-                                                                        ++ Helpers.httpErrorWithBodyToString httpErrorWithBody
-                                                                    )
-
         guac : GuacType -> ITypes.InteractionStatus
         guac guacType =
-            let
-                fortyMinMillis =
-                    1000 * 60 * 40
-
-                newServer =
-                    Helpers.serverLessThanThisOld server currentTime fortyMinMillis
-
-                recentServerEvent =
-                    server.events
-                        |> RDPP.withDefault []
-                        -- Ignore server events which don't cause a power cycle
-                        |> List.filter
-                            (\event ->
-                                [ "lock", "unlock", {- @nonlocalized -} "image" ]
-                                    |> List.map (\action -> action == event.action)
-                                    |> List.any identity
-                                    |> not
-                            )
-                        -- Look for the most recent server event
-                        |> List.map .startTime
-                        |> List.map Time.posixToMillis
-                        |> List.sort
-                        |> List.reverse
-                        |> List.head
-                        -- See if most recent event is recent enough
-                        |> Maybe.map
-                            (\eventTime ->
-                                eventTime > (Time.posixToMillis currentTime - fortyMinMillis)
-                            )
-                        |> Maybe.withDefault newServer
-            in
             case server.exoProps.serverOrigin of
                 ServerNotFromExo ->
                     ITypes.Unavailable <|
@@ -262,6 +113,37 @@ interactionStatus project server interaction context currentTime tlsReverseProxy
                                                         ]
 
                                     RDPP.DontHave ->
+                                        let
+                                            fortyMinMillis =
+                                                1000 * 60 * 40
+
+                                            newServer =
+                                                Helpers.serverLessThanThisOld server currentTime fortyMinMillis
+
+                                            recentServerEvent =
+                                                server.events
+                                                    |> RDPP.withDefault []
+                                                    -- Ignore server events which don't cause a power cycle
+                                                    |> List.filter
+                                                        (\event ->
+                                                            [ "lock", "unlock", {- @nonlocalized -} "image" ]
+                                                                |> List.map (\action -> action == event.action)
+                                                                |> List.any identity
+                                                                |> not
+                                                        )
+                                                    -- Look for the most recent server event
+                                                    |> List.map .startTime
+                                                    |> List.map Time.posixToMillis
+                                                    |> List.sort
+                                                    |> List.reverse
+                                                    |> List.head
+                                                    -- See if most recent event is recent enough
+                                                    |> Maybe.map
+                                                        (\eventTime ->
+                                                            eventTime > (Time.posixToMillis currentTime - fortyMinMillis)
+                                                        )
+                                                    |> Maybe.withDefault newServer
+                                        in
                                         if recentServerEvent then
                                             ITypes.Unavailable <|
                                                 String.join " "
@@ -353,16 +235,125 @@ interactionStatus project server interaction context currentTime tlsReverseProxy
                             ITypes.Error ("Exosphere requested a console URL and got the following error: " ++ Helpers.httpErrorToString err.error)
 
                 ITypes.CustomWorkflow ->
-                    let
-                        customWorkflowInteraction : ITypes.InteractionStatus
-                        customWorkflowInteraction =
-                            if context.experimentalFeaturesEnabled then
-                                customWorkflowInteractionExperimental
+                    if context.experimentalFeaturesEnabled then
+                        case server.exoProps.serverOrigin of
+                            ServerNotFromExo ->
+                                ITypes.Unavailable <|
+                                    String.join
+                                        " "
+                                        [ context.localization.virtualComputer
+                                            |> Helpers.String.toTitleCase
+                                        , "not launched from Exosphere"
+                                        ]
 
-                            else
-                                ITypes.Hidden
-                    in
-                    customWorkflowInteraction
+                            ServerFromExo exoOriginProps ->
+                                case exoOriginProps.customWorkflowStatus of
+                                    NotLaunchedWithCustomWorkflow ->
+                                        -- Either exoOriginProps.exoServerVersion < 3, or instance was deployed without a workflow
+                                        ITypes.Hidden
+
+                                    LaunchedWithCustomWorkflow customWorkflow ->
+                                        case customWorkflow.authToken.data of
+                                            RDPP.DoHave token _ ->
+                                                case ( tlsReverseProxyHostname, maybeFloatingIpAddress ) of
+                                                    ( Just proxyHostname, Just floatingIp ) ->
+                                                        ITypes.Ready <|
+                                                            UrlHelpers.buildProxyUrl
+                                                                proxyHostname
+                                                                floatingIp
+                                                                8888
+                                                                (customWorkflow.source.path ++ "/?token=" ++ token)
+                                                                False
+
+                                                    ( Nothing, _ ) ->
+                                                        ITypes.Unavailable "Cannot find TLS-terminating reverse proxy server"
+
+                                                    ( _, Nothing ) ->
+                                                        ITypes.Unavailable <|
+                                                            String.join " "
+                                                                [ context.localization.virtualComputer
+                                                                    |> Helpers.String.toTitleCase
+                                                                , "does not have a"
+                                                                , context.localization.floatingIpAddress
+                                                                ]
+
+                                            RDPP.DontHave ->
+                                                let
+                                                    fortyMinMillis =
+                                                        1000 * 60 * 40
+
+                                                    newServer =
+                                                        Helpers.serverLessThanThisOld server currentTime fortyMinMillis
+
+                                                    recentServerEvent =
+                                                        server.events
+                                                            |> RDPP.withDefault []
+                                                            -- Ignore server events which don't cause a power cycle
+                                                            |> List.filter
+                                                                (\event ->
+                                                                    [ "lock", "unlock", {- @nonlocalized -} "image" ]
+                                                                        |> List.map (\action -> action == event.action)
+                                                                        |> List.any identity
+                                                                        |> not
+                                                                )
+                                                            -- Look for the most recent server event
+                                                            |> List.map .startTime
+                                                            |> List.map Time.posixToMillis
+                                                            |> List.sort
+                                                            |> List.reverse
+                                                            |> List.head
+                                                            -- See if most recent event is recent enough
+                                                            |> Maybe.map
+                                                                (\eventTime ->
+                                                                    eventTime > (Time.posixToMillis currentTime - fortyMinMillis)
+                                                                )
+                                                            |> Maybe.withDefault newServer
+                                                in
+                                                if recentServerEvent then
+                                                    ITypes.Unavailable <|
+                                                        String.join " "
+                                                            [ context.localization.virtualComputer
+                                                                |> Helpers.String.toTitleCase
+                                                            , "is still booting or the workflow is still deploying, check back in a few minutes"
+                                                            ]
+
+                                                else
+                                                    case ( tlsReverseProxyHostname, maybeFloatingIpAddress ) of
+                                                        ( Nothing, _ ) ->
+                                                            ITypes.Error "Cannot find TLS-terminating reverse proxy server"
+
+                                                        ( _, Nothing ) ->
+                                                            ITypes.Error <|
+                                                                String.join " "
+                                                                    [ context.localization.virtualComputer
+                                                                        |> Helpers.String.toTitleCase
+                                                                    , "does not have a"
+                                                                    , context.localization.floatingIpAddress
+                                                                    ]
+
+                                                        ( Just _, Just _ ) ->
+                                                            case customWorkflow.authToken.refreshStatus of
+                                                                RDPP.Loading ->
+                                                                    ITypes.Loading
+
+                                                                RDPP.NotLoading maybeErrorTuple ->
+                                                                    -- If deployment is complete but we can't get a token, show error to user
+                                                                    case maybeErrorTuple of
+                                                                        Nothing ->
+                                                                            -- This is a slight misrepresentation; we haven't requested
+                                                                            -- a token yet but orchestration code will make request soon
+                                                                            ITypes.Loading
+
+                                                                        Just ( httpErrorWithBody, _ ) ->
+                                                                            ITypes.Error
+                                                                                ("Exosphere tried to get the console log for the "
+                                                                                    ++ Helpers.String.toTitleCase context.localization.virtualComputer
+                                                                                    ++ " and received this error: "
+                                                                                    ++ Helpers.httpErrorWithBodyToString httpErrorWithBody
+                                                                                )
+
+                    else
+                        ITypes.Hidden
     in
     case server.osProps.details.openstackStatus of
         OSTypes.ServerBuild ->

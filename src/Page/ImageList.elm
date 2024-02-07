@@ -219,29 +219,6 @@ imageView model context project imageRecord =
                         False
                         deleteBtnText
                         deleteBtnOnPress
-
-                deletePopconfirmId =
-                    Helpers.String.hyphenate
-                        [ "ImageListDeletePopconfirm"
-                        , project.auth.project.uuid
-                        , imageRecord.id
-                        ]
-
-                deleteBtnWithPopconfirm =
-                    deletePopconfirm context
-                        (\deletePopconfirmId_ -> SharedMsg <| SharedMsg.TogglePopover deletePopconfirmId_)
-                        deletePopconfirmId
-                        { confirmation =
-                            Element.text <|
-                                "Are you sure you want to delete this "
-                                    ++ context.localization.staticRepresentationOfBlockDeviceContents
-                                    ++ "?"
-                        , buttonText = Nothing
-                        , onConfirm = Just <| GotDeleteConfirm imageRecord.id
-                        , onCancel = Just NoOp
-                        }
-                        ST.PositionBottomRight
-                        deleteBtn
             in
             if model.showDeleteButtons && projectOwnsImage project imageRecord.image then
                 let
@@ -257,7 +234,28 @@ imageView model context project imageRecord =
                         (Widget.circularProgressIndicator (SH.materialStyle context.palette).progressIndicator Nothing)
 
                 else
-                    deleteBtnWithPopconfirm
+                    let
+                        deletePopconfirmId =
+                            Helpers.String.hyphenate
+                                [ "ImageListDeletePopconfirm"
+                                , project.auth.project.uuid
+                                , imageRecord.id
+                                ]
+                    in
+                    deletePopconfirm context
+                        (\deletePopconfirmId_ -> SharedMsg <| SharedMsg.TogglePopover deletePopconfirmId_)
+                        deletePopconfirmId
+                        { confirmation =
+                            Element.text <|
+                                "Are you sure you want to delete this "
+                                    ++ context.localization.staticRepresentationOfBlockDeviceContents
+                                    ++ "?"
+                        , buttonText = Nothing
+                        , onConfirm = Just <| GotDeleteConfirm imageRecord.id
+                        , onCancel = Just NoOp
+                        }
+                        ST.PositionBottomRight
+                        deleteBtn
 
             else
                 Element.none
@@ -313,29 +311,6 @@ imageView model context project imageRecord =
                     Element.none
                 ]
 
-        size =
-            case imageRecord.image.size of
-                Just s ->
-                    let
-                        { locale } =
-                            context
-
-                        ( count, units ) =
-                            humanNumber { locale | decimals = Exact 2 } Bytes s
-                    in
-                    count ++ " " ++ units
-
-                Nothing ->
-                    "unknown size"
-
-        imageType =
-            case imageRecord.image.imageType of
-                Just imageTypeName ->
-                    imageTypeName
-
-                Nothing ->
-                    context.localization.staticRepresentationOfBlockDeviceContents
-
         featuredIcon =
             if imageRecord.featured then
                 featherIcon [ Element.htmlAttribute <| HtmlA.title "Featured" ]
@@ -372,6 +347,14 @@ imageView model context project imageRecord =
                                 ]
                                 (List.map (Tag.tag context.palette) imageRecord.image.tags)
 
+                imageType =
+                    case imageRecord.image.imageType of
+                        Just imageTypeName ->
+                            imageTypeName
+
+                        Nothing ->
+                            context.localization.staticRepresentationOfBlockDeviceContents
+
                 attributesAlwaysShown =
                     [ if imageRecord.image.status == OSTypes.ImageQueued then
                         Element.text "Building..."
@@ -382,7 +365,20 @@ imageView model context project imageRecord =
                                 ]
 
                       else
-                        Element.text size
+                        Element.text <|
+                            case imageRecord.image.size of
+                                Just s ->
+                                    let
+                                        { locale } =
+                                            context
+
+                                        ( count, units ) =
+                                            humanNumber { locale | decimals = Exact 2 } Bytes s
+                                    in
+                                    count ++ " " ++ units
+
+                                Nothing ->
+                                    "unknown size"
                     , Element.row []
                         [ Element.el [ Font.color (SH.toElementColor context.palette.neutral.text.default) ]
                             (Element.text <| String.toLower <| OSTypes.imageVisibilityToString imageRecord.image.visibility)

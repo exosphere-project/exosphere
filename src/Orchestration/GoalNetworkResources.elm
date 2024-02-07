@@ -29,13 +29,9 @@ stepPollFloatingIps time project =
             120000
     in
     if pollRDPP project.floatingIps time pollIntervalMs then
-        let
-            requestStuff =
-                ( GetterSetters.projectSetFloatingIpsLoading project
-                , Rest.Neutron.requestFloatingIps project
-                )
-        in
-        requestStuff
+        ( GetterSetters.projectSetFloatingIpsLoading project
+        , Rest.Neutron.requestFloatingIps project
+        )
 
     else
         ( project, Cmd.none )
@@ -48,13 +44,9 @@ stepPollPorts time project =
             120000
     in
     if pollRDPP project.ports time pollIntervalMs then
-        let
-            requestStuff =
-                ( GetterSetters.projectSetPortsLoading project
-                , Rest.Neutron.requestPorts project
-                )
-        in
-        requestStuff
+        ( GetterSetters.projectSetPortsLoading project
+        , Rest.Neutron.requestPorts project
+        )
 
     else
         ( project, Cmd.none )

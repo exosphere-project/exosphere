@@ -316,80 +316,77 @@ stepServerPollConsoleLog time project server =
 
         ServerFromExo exoOriginProps ->
             let
-                thirtyMinMillis =
-                    1000 * 60 * 30
-
-                -- For return type of next functions, the outer maybe determines whether to poll at all. The inner maybe
-                -- determines whether we poll the whole log (Nothing) or just a set number of lines (Just Int).
-                doPollLinesExoSetupStatus : Maybe (Maybe Int)
-                doPollLinesExoSetupStatus =
-                    let
-                        thirtySecMillis =
-                            30000
-
-                        pollInterval =
-                            -- Poll more frequently if ExoSetupStatus is in a non-terminal state
-                            case exoOriginProps.exoSetupStatus.data of
-                                RDPP.DontHave ->
-                                    thirtySecMillis
-
-                                RDPP.DoHave statusTuple _ ->
-                                    if
-                                        List.member (Tuple.first statusTuple)
-                                            [ ExoSetupUnknown, ExoSetupWaiting, ExoSetupRunning ]
-                                    then
-                                        thirtySecMillis
-
-                                    else
-                                        thirtyMinMillis
-                    in
-                    if
-                        serverIsActiveEnough server
-                            && (exoOriginProps.exoServerVersion >= 4)
-                            && RDPP.isPollableWithInterval exoOriginProps.exoSetupStatus time pollInterval
-                    then
-                        Just Nothing
-
-                    else
-                        Nothing
-
-                doPollLinesResourceUsage : Maybe (Maybe Int)
-                doPollLinesResourceUsage =
-                    let
-                        oneMinMillis =
-                            60000
-
-                        linesToPoll : Maybe Int
-                        linesToPoll =
-                            case exoOriginProps.resourceUsage.data of
-                                RDPP.DontHave ->
-                                    -- Get all the log if we don't have it at all yet
-                                    Nothing
-
-                                RDPP.DoHave data _ ->
-                                    if Helpers.serverLessThanThisOld server time thirtyMinMillis || (data.pollingStrikes > 0) then
-                                        -- Get all the log if server is new or there were polling failures
-                                        Nothing
-
-                                    else
-                                        -- Only get recent logs
-                                        Just 10
-                    in
-                    if
-                        serverIsActiveEnough server
-                            && (exoOriginProps.exoServerVersion >= 2)
-                            && RDPP.isPollableWithInterval exoOriginProps.resourceUsage time oneMinMillis
-                    then
-                        Just linesToPoll
-
-                    else
-                        Nothing
-
                 doPollLinesCombined : Maybe (Maybe Int)
                 doPollLinesCombined =
                     -- Poll the maximum amount of whatever log is needed between resource usage graphs and setup status
                     -- This factoring could be nicer
                     let
+                        thirtyMinMillis =
+                            1000 * 60 * 30
+
+                        -- For return type of next functions, the outer maybe determines whether to poll at all. The inner maybe
+                        -- determines whether we poll the whole log (Nothing) or just a set number of lines (Just Int).
+                        doPollLinesExoSetupStatus : Maybe (Maybe Int)
+                        doPollLinesExoSetupStatus =
+                            let
+                                thirtySecMillis =
+                                    30000
+
+                                pollInterval =
+                                    -- Poll more frequently if ExoSetupStatus is in a non-terminal state
+                                    case exoOriginProps.exoSetupStatus.data of
+                                        RDPP.DontHave ->
+                                            thirtySecMillis
+
+                                        RDPP.DoHave statusTuple _ ->
+                                            if
+                                                List.member (Tuple.first statusTuple)
+                                                    [ ExoSetupUnknown, ExoSetupWaiting, ExoSetupRunning ]
+                                            then
+                                                thirtySecMillis
+
+                                            else
+                                                thirtyMinMillis
+                            in
+                            if
+                                serverIsActiveEnough server
+                                    && (exoOriginProps.exoServerVersion >= 4)
+                                    && RDPP.isPollableWithInterval exoOriginProps.exoSetupStatus time pollInterval
+                            then
+                                Just Nothing
+
+                            else
+                                Nothing
+
+                        doPollLinesResourceUsage : Maybe (Maybe Int)
+                        doPollLinesResourceUsage =
+                            let
+                                oneMinMillis =
+                                    60000
+                            in
+                            if
+                                serverIsActiveEnough server
+                                    && (exoOriginProps.exoServerVersion >= 2)
+                                    && RDPP.isPollableWithInterval exoOriginProps.resourceUsage time oneMinMillis
+                            then
+                                Just <|
+                                    case exoOriginProps.resourceUsage.data of
+                                        RDPP.DontHave ->
+                                            -- Get all the log if we don't have it at all yet
+                                            Nothing
+
+                                        RDPP.DoHave data _ ->
+                                            if Helpers.serverLessThanThisOld server time thirtyMinMillis || (data.pollingStrikes > 0) then
+                                                -- Get all the log if server is new or there were polling failures
+                                                Nothing
+
+                                            else
+                                                -- Only get recent logs
+                                                Just 10
+
+                            else
+                                Nothing
+
                         pollEntireLog =
                             [ doPollLinesResourceUsage, doPollLinesExoSetupStatus ]
                                 |> List.filterMap identity
@@ -414,12 +411,7 @@ stepServerPollConsoleLog time project server =
                                     |> List.filterMap identity
                                     |> List.maximum
                         in
-                        case pollExplicitNumLines of
-                            Just l ->
-                                Just (Just l)
-
-                            Nothing ->
-                                Nothing
+                        pollExplicitNumLines |> Maybe.map Just
             in
             case doPollLinesCombined of
                 Nothing ->

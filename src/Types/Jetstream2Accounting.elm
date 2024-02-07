@@ -118,11 +118,7 @@ shownAllocationForResource currentTime allocations resource =
                     Just a
 
                 Nothing ->
-                    let
-                        firstAllocation =
-                            allocationsForResource |> List.head
-                    in
-                    firstAllocation
+                    allocationsForResource |> List.head
 
 
 allocationIsCurrent : Time.Posix -> Allocation -> Bool

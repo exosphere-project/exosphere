@@ -190,9 +190,6 @@ volumeView :
     -> Element.Element Msg
 volumeView context project currentTime volumeRecord =
     let
-        neutralColor =
-            SH.toElementColor context.palette.neutral.text.default
-
         volumeLink =
             Element.link []
                 { url =
@@ -340,6 +337,9 @@ volumeView context project currentTime volumeRecord =
 
                 snapshots ->
                     let
+                        neutralColor =
+                            SH.toElementColor context.palette.neutral.text.default
+
                         renderCreationTime : VS.VolumeSnapshot -> Element.Element msg
                         renderCreationTime { createdAt } =
                             Element.row []
