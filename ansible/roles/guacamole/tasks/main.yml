@@ -38,7 +38,7 @@
     dest: '/opt/guacamole/docker-compose.yml'
 
 - name: 'containers started'
-  command: 'docker-compose up -d --force-recreate'
+  command: 'docker compose up -d --force-recreate'
   args:
     chdir: '/opt/guacamole'
 

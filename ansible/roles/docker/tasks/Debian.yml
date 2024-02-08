@@ -1,8 +1,35 @@
 ---
 
-- name: 'Docker and docker-compose installed'
+- name: '/etc/apt/keyrings directory created'
+  file:
+    path: '/etc/apt/keyrings'
+    state: 'directory'
+    owner: 'root'
+    group: 'root'
+    mode: '0755'
+
+- name: 'Docker CE GPG key added'
+  get_url:
+    url: 'https://download.docker.com/linux/debian/gpg'
+    dest: '/etc/apt/keyrings/docker.asc'
+    mode: '0644'
+
+- name: 'DEB architecture abbreviation found and saved in register'
+  command: 'dpkg --print-architecture'
+  register: 'deb_arch'
+
+- name: 'Docker CE repository added'
+  apt_repository:
+    repo: 'deb [arch={{ deb_arch.stdout }} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian {{ ansible_distribution_release }} stable'
+    state: 'present'
+    filename: 'docker'
+    update_cache: 'true'
+
+- name: 'Docker packages installed'
   apt:
     name:
-      - 'docker.io'
-      - 'docker-compose'
+      - 'docker-ce'
+      - 'docker-ce-cli'
+      - 'containerd.io'
+      - 'docker-compose-plugin'
     state: 'present'
