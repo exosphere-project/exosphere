@@ -9,6 +9,7 @@ import Style.Widgets.Button as Button
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Types.Project exposing (Project)
+import Types.Server exposing (ExoFeature(..))
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
@@ -36,6 +37,26 @@ update msg _ model =
 
 view : View.Types.Context -> Project -> Model -> Element.Element Msg
 view context project model =
+    let
+        volumeName =
+            GetterSetters.volumeLookup project model.attachmentUuid
+                |> Maybe.andThen .name
+
+        maybeServer =
+            GetterSetters.serverLookup project model.serverUuid
+
+        maybeMountpoint =
+            case maybeServer of
+                Just server ->
+                    if GetterSetters.serverSupportsFeature NamedMountpoints server then
+                        volumeName |> Maybe.andThen GetterSetters.volNameToMountpoint
+
+                    else
+                        GetterSetters.volDeviceToMountpoint model.device
+
+                Nothing ->
+                    GetterSetters.volDeviceToMountpoint model.device
+    in
     Element.column VH.contentContainer
         [ Text.heading context.palette
             []
@@ -48,15 +69,27 @@ view context project model =
                 ]
             )
         , Element.column [ Element.spacing spacer.px16 ]
-            [ Element.text ("Device: " ++ model.device)
-            , case GetterSetters.volDeviceToMountpoint model.device of
+            [ case volumeName of
+                Just name ->
+                    Element.text
+                        (String.concat
+                            [ Helpers.String.toTitleCase context.localization.blockDevice
+                            , ": "
+                            , name
+                            ]
+                        )
+
+                Nothing ->
+                    Element.none
+            , Element.text ("Device: " ++ model.device)
+            , case maybeMountpoint of
                 Just mountpoint ->
                     Element.text ("Mount point: " ++ mountpoint)
 
                 Nothing ->
                     Element.none
             , Element.paragraph []
-                [ case GetterSetters.volDeviceToMountpoint model.device of
+                [ case maybeMountpoint of
                     Just mountpoint ->
                         let
                             markdown =
@@ -65,11 +98,9 @@ view context project model =
                                     , context.localization.virtualComputer
                                     , " will mount your "
                                     , context.localization.blockDevice
-                                    , " when you access "
+                                    , " to "
                                     , mountpoint
-                                    , " on the "
-                                    , context.localization.virtualComputer
-                                    , " filesystem.\n\nFor example, type `cd "
+                                    , ".\n\nFor example, type `cd "
                                     , mountpoint
                                     , "` in a "
                                     , context.localization.commandDrivenTextInterface

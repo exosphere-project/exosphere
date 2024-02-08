@@ -1,5 +1,6 @@
 module Types.Server exposing
-    ( ExoServerProps
+    ( ExoFeature(..)
+    , ExoServerProps
     , ExoServerVersion
     , ExoSetupStatus(..)
     , NewServerNetworkOptions(..)
@@ -10,6 +11,7 @@ module Types.Server exposing
     , ServerUiStatus(..)
     , currentExoServerVersion
     , exoSetupStatusToString
+    , exoVersionSupportsFeature
     )
 
 import Helpers.RemoteDataPlusPlus as RDPP
@@ -64,7 +66,18 @@ type alias ExoServerVersion =
 
 currentExoServerVersion : ExoServerVersion
 currentExoServerVersion =
-    4
+    5
+
+
+type ExoFeature
+    = NamedMountpoints
+
+
+exoVersionSupportsFeature : ExoFeature -> ExoServerVersion -> Bool
+exoVersionSupportsFeature feature version =
+    case feature of
+        NamedMountpoints ->
+            version >= 5
 
 
 type ServerUiStatus

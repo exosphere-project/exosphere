@@ -16,6 +16,7 @@ import Style.Widgets.DeleteButton exposing (deleteIconButton)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Types.Project exposing (Project)
+import Types.Server exposing (ExoFeature(..))
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
@@ -169,13 +170,16 @@ volumeDetail context project model =
             )
 
 
-renderAttachment : View.Types.Context -> Project -> OSTypes.VolumeAttachment -> Element.Element Msg
-renderAttachment context project attachment =
+renderAttachment : View.Types.Context -> Project -> OSTypes.Volume -> OSTypes.VolumeAttachment -> Element.Element Msg
+renderAttachment context project volume attachment =
     let
-        serverName serverUuid =
-            case GetterSetters.serverLookup project serverUuid of
-                Just server ->
-                    VH.resourceName (Just server.osProps.name) server.osProps.uuid
+        maybeServer =
+            GetterSetters.serverLookup project attachment.serverUuid
+
+        serverName =
+            case maybeServer of
+                Just { osProps } ->
+                    VH.resourceName (Just osProps.name) osProps.uuid
 
                 Nothing ->
                     String.join " "
@@ -193,10 +197,23 @@ renderAttachment context project attachment =
                         Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
                             Route.ServerDetail attachment.serverUuid
                 , label =
-                    Element.el [ Font.color (SH.toElementColor context.palette.primary) ] <| Element.text (serverName attachment.serverUuid)
+                    Element.el [ Font.color (SH.toElementColor context.palette.primary) ] <| Element.text serverName
                 }
         , VH.compactKVRow "Device:" <| Element.text <| attachment.device
-        , VH.compactKVRow "Mount point*:" <| (GetterSetters.volDeviceToMountpoint attachment.device |> Maybe.withDefault "" |> Element.text)
+        , VH.compactKVRow "Mount point*:" <|
+            case maybeServer of
+                Just server ->
+                    (if GetterSetters.serverSupportsFeature NamedMountpoints server then
+                        volume.name |> Maybe.andThen GetterSetters.volNameToMountpoint
+
+                     else
+                        GetterSetters.volDeviceToMountpoint attachment.device
+                    )
+                        |> Maybe.withDefault ""
+                        |> Element.text
+
+                Nothing ->
+                    Element.text ""
         , Element.el [ Text.fontSize Text.Tiny ] <|
             Element.text <|
                 String.join " "
@@ -226,7 +243,8 @@ renderAttachments context project volume =
                                 Element.none
                                 "Attached to"
                             , Element.row [ Element.paddingXY 0 spacer.px16 ]
-                                [ Element.row [ Element.spacing spacer.px12 ] <| List.map (renderAttachment context project) volume.attachments
+                                [ Element.row [ Element.spacing spacer.px12 ] <|
+                                    List.map (renderAttachment context project volume) volume.attachments
                                 ]
                             ]
                         ]

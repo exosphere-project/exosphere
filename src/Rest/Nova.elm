@@ -9,6 +9,7 @@ module Rest.Nova exposing
     , requestCreateServerImage
     , requestDeleteKeypair
     , requestDeleteServer
+    , requestDeleteServerMetadata
     , requestFlavors
     , requestKeypairs
     , requestServer

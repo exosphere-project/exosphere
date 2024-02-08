@@ -10,6 +10,7 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.ServerResourceUsage
 import Helpers.String exposing (pluralize, toTitleCase)
 import Http
+import Json.Encode
 import List.Extra
 import LocalStorage.LocalStorage as LocalStorage
 import Maybe
@@ -1393,14 +1394,28 @@ processProjectSpecificMsg outerModel project msg =
                 maybeVolume =
                     OSVolumes.volumeLookup project volumeUuid
 
-                maybeServerUuid =
+                maybeServer =
                     maybeVolume
                         |> Maybe.map (GetterSetters.getServersWithVolAttached project)
                         |> Maybe.andThen List.head
+                        |> Maybe.andThen (GetterSetters.serverLookup project)
             in
-            case maybeServerUuid of
-                Just serverUuid ->
-                    ( outerModel, OSSvrVols.requestDetachVolume project serverUuid volumeUuid )
+            case maybeServer of
+                Just server ->
+                    let
+                        serverHasVolumeMetadata =
+                            List.any (\{ key } -> key == "exoVolumes::" ++ volumeUuid) server.osProps.details.metadata
+                    in
+                    ( outerModel
+                    , Cmd.batch
+                        [ OSSvrVols.requestDetachVolume project server.osProps.uuid volumeUuid
+                        , if serverHasVolumeMetadata then
+                            Rest.Nova.requestDeleteServerMetadata project server.osProps.uuid ("exoVolumes::" ++ volumeUuid)
+
+                          else
+                            Cmd.none
+                        ]
+                    )
                         |> mapToOuterMsg
 
                 Nothing ->
@@ -2370,7 +2385,30 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                 |> mapToOuterModel outerModel
 
         RequestAttachVolume volumeUuid ->
-            ( outerModel, OSSvrVols.requestAttachVolume project server.osProps.uuid volumeUuid )
+            let
+                volumeName =
+                    GetterSetters.volumeLookup project volumeUuid
+                        |> Maybe.andThen .name
+
+                volumeMetadata =
+                    { key = "exoVolumes::" ++ volumeUuid
+                    , value =
+                        Json.Encode.encode 0 <|
+                            Json.Encode.object
+                                [ ( "name"
+                                  , volumeName
+                                        |> Maybe.map Json.Encode.string
+                                        |> Maybe.withDefault Json.Encode.null
+                                  )
+                                ]
+                    }
+            in
+            ( outerModel
+            , Cmd.batch
+                [ OSSvrVols.requestAttachVolume project server.osProps.uuid volumeUuid
+                , Rest.Nova.requestSetServerMetadata project server.osProps.uuid volumeMetadata
+                ]
+            )
                 |> mapToOuterMsg
 
         RequestCreateServerImage imageName ->
