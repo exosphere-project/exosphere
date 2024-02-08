@@ -22,7 +22,6 @@ import NoImportingEverything
 import NoMissingTypeAnnotation
 import NoMissingTypeExpose
 import NoSimpleLetBody
-import NoUnnecessaryTrailingUnderscore
 import NoUnused.CustomTypeConstructorArgs
 import NoUnused.Dependencies
 import NoUnused.Parameters
@@ -81,6 +80,5 @@ config =
     , NoUnused.Parameters.rule
     , NoUnused.CustomTypeConstructorArgs.rule
     , NoUnused.Variables.rule
-    , NoUnnecessaryTrailingUnderscore.rule
     , Simplify.rule Simplify.defaults
     ]
