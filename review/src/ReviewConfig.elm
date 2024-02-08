@@ -27,8 +27,8 @@ import NoUnused.CustomTypeConstructorArgs
 import NoUnused.Dependencies
 import NoUnused.Parameters
 import NoUnused.Variables
-import Simplify
 import Review.Rule as Rule exposing (Rule)
+import Simplify
 
 
 inPaths : List String -> String -> Bool
