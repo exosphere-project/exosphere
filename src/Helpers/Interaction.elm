@@ -16,7 +16,7 @@ import Types.Guacamole as GuacTypes
 import Types.HelperTypes exposing (UserAppProxyHostname)
 import Types.Interaction as ITypes
 import Types.Project exposing (Project)
-import Types.Server exposing (Server, ServerOrigin(..))
+import Types.Server exposing (Server, ServerFromExoProps, ServerOrigin(..))
 import Types.Workflow exposing (ServerCustomWorkflowStatus(..))
 import View.Types
 
@@ -24,6 +24,7 @@ import View.Types
 interactionStatus : Project -> Server -> ITypes.Interaction -> View.Types.Context -> Time.Posix -> Maybe UserAppProxyHostname -> ITypes.InteractionStatus
 interactionStatus project server interaction context currentTime tlsReverseProxyHostname =
     let
+        maybeFloatingIpAddress : Maybe OSTypes.IpAddressValue
         maybeFloatingIpAddress =
             GetterSetters.getServerFloatingIps project server.osProps.uuid
                 |> List.map .address
@@ -42,161 +43,14 @@ interactionStatus project server interaction context currentTime tlsReverseProxy
                             ]
 
                 ServerFromExo exoOriginProps ->
-                    case exoOriginProps.guacamoleStatus of
-                        GuacTypes.NotLaunchedWithGuacamole ->
-                            if exoOriginProps.exoServerVersion < 3 then
-                                ITypes.Unavailable <|
-                                    String.join " "
-                                        [ context.localization.virtualComputer
-                                            |> Helpers.String.toTitleCase
-                                        , "was created with an older version of Exosphere"
-                                        ]
-
-                            else
-                                ITypes.Unavailable <|
-                                    String.join " "
-                                        [ context.localization.virtualComputer
-                                            |> Helpers.String.toTitleCase
-                                        , "was deployed with Guacamole support de-selected"
-                                        ]
-
-                        GuacTypes.LaunchedWithGuacamole guacProps ->
-                            if not guacProps.vncSupported && (guacType == Desktop) then
-                                ITypes.Unavailable <|
-                                    String.join " "
-                                        [ context.localization.graphicalDesktopEnvironment
-                                            |> Helpers.String.toTitleCase
-                                        , "was not enabled when"
-                                        , context.localization.virtualComputer
-                                            |> Helpers.String.toTitleCase
-                                        , "was deployed"
-                                        ]
-
-                            else
-                                case guacProps.authToken.data of
-                                    RDPP.DoHave token _ ->
-                                        case ( tlsReverseProxyHostname, maybeFloatingIpAddress ) of
-                                            ( Just proxyHostname, Just floatingIp ) ->
-                                                let
-                                                    guacUpstreamPort =
-                                                        49528
-
-                                                    connectionStringBase64 =
-                                                        -- Per https://sourceforge.net/p/guacamole/discussion/1110834/thread/fb609070/
-                                                        case guacType of
-                                                            Terminal ->
-                                                                -- printf 'shell\0c\0default' | base64
-                                                                "c2hlbGwAYwBkZWZhdWx0"
-
-                                                            Desktop ->
-                                                                -- printf 'desktop\0c\0default' | base64
-                                                                "ZGVza3RvcABjAGRlZmF1bHQ="
-                                                in
-                                                ITypes.Ready <|
-                                                    UrlHelpers.buildProxyUrl
-                                                        proxyHostname
-                                                        floatingIp
-                                                        guacUpstreamPort
-                                                        ("/guacamole/#/client/" ++ connectionStringBase64 ++ "?token=" ++ token)
-                                                        False
-
-                                            ( Nothing, _ ) ->
-                                                ITypes.Unavailable "Cannot find TLS-terminating reverse proxy server"
-
-                                            ( _, Nothing ) ->
-                                                ITypes.Unavailable <|
-                                                    String.join " "
-                                                        [ context.localization.virtualComputer
-                                                            |> Helpers.String.toTitleCase
-                                                        , "does not have a"
-                                                        , context.localization.floatingIpAddress
-                                                        ]
-
-                                    RDPP.DontHave ->
-                                        let
-                                            fortyMinMillis =
-                                                1000 * 60 * 40
-
-                                            newServer =
-                                                Helpers.serverLessThanThisOld server currentTime fortyMinMillis
-
-                                            recentServerEvent =
-                                                server.events
-                                                    |> RDPP.withDefault []
-                                                    -- Ignore server events which don't cause a power cycle
-                                                    |> List.filter
-                                                        (\event ->
-                                                            [ "lock", "unlock", {- @nonlocalized -} "image" ]
-                                                                |> List.map (\action -> action == event.action)
-                                                                |> List.any identity
-                                                                |> not
-                                                        )
-                                                    -- Look for the most recent server event
-                                                    |> List.map .startTime
-                                                    |> List.map Time.posixToMillis
-                                                    |> List.sort
-                                                    |> List.reverse
-                                                    |> List.head
-                                                    -- See if most recent event is recent enough
-                                                    |> Maybe.map
-                                                        (\eventTime ->
-                                                            eventTime > (Time.posixToMillis currentTime - fortyMinMillis)
-                                                        )
-                                                    |> Maybe.withDefault newServer
-                                        in
-                                        if recentServerEvent then
-                                            ITypes.Unavailable <|
-                                                String.join " "
-                                                    [ context.localization.virtualComputer
-                                                        |> Helpers.String.toTitleCase
-                                                    , "is still booting or Guacamole is still deploying, check back in a few minutes"
-                                                    ]
-
-                                        else
-                                            case
-                                                ( tlsReverseProxyHostname
-                                                , maybeFloatingIpAddress
-                                                , GetterSetters.getServerExouserPassphrase server.osProps.details
-                                                )
-                                            of
-                                                ( Nothing, _, _ ) ->
-                                                    ITypes.Error "Cannot find TLS-terminating reverse proxy server"
-
-                                                ( _, Nothing, _ ) ->
-                                                    ITypes.Error <|
-                                                        String.join " "
-                                                            [ context.localization.virtualComputer
-                                                                |> Helpers.String.toTitleCase
-                                                            , "does not have a"
-                                                            , context.localization.floatingIpAddress
-                                                            ]
-
-                                                ( _, _, Nothing ) ->
-                                                    ITypes.Error <|
-                                                        String.join " "
-                                                            [ "Cannot find"
-                                                            , context.localization.virtualComputer
-                                                            , "passphrase to authenticate"
-                                                            ]
-
-                                                ( Just _, Just _, Just _ ) ->
-                                                    case guacProps.authToken.refreshStatus of
-                                                        RDPP.Loading ->
-                                                            ITypes.Loading
-
-                                                        RDPP.NotLoading maybeErrorTuple ->
-                                                            -- If deployment is complete but we can't get a token, show error to user
-                                                            case maybeErrorTuple of
-                                                                Nothing ->
-                                                                    -- This is a slight misrepresentation; we haven't requested
-                                                                    -- a token yet but orchestration code will make request soon
-                                                                    ITypes.Loading
-
-                                                                Just ( httpError, _ ) ->
-                                                                    ITypes.Error
-                                                                        ("Exosphere tried to authenticate to the Guacamole API, and received this error: "
-                                                                            ++ Helpers.httpErrorToString httpError
-                                                                        )
+                    serverFromExoGuacStatus
+                        server
+                        context
+                        currentTime
+                        tlsReverseProxyHostname
+                        maybeFloatingIpAddress
+                        exoOriginProps
+                        guacType
 
         showInteraction =
             case interaction of
@@ -247,110 +101,7 @@ interactionStatus project server interaction context currentTime tlsReverseProxy
                                         ]
 
                             ServerFromExo exoOriginProps ->
-                                case exoOriginProps.customWorkflowStatus of
-                                    NotLaunchedWithCustomWorkflow ->
-                                        -- Either exoOriginProps.exoServerVersion < 3, or instance was deployed without a workflow
-                                        ITypes.Hidden
-
-                                    LaunchedWithCustomWorkflow customWorkflow ->
-                                        case customWorkflow.authToken.data of
-                                            RDPP.DoHave token _ ->
-                                                case ( tlsReverseProxyHostname, maybeFloatingIpAddress ) of
-                                                    ( Just proxyHostname, Just floatingIp ) ->
-                                                        ITypes.Ready <|
-                                                            UrlHelpers.buildProxyUrl
-                                                                proxyHostname
-                                                                floatingIp
-                                                                8888
-                                                                (customWorkflow.source.path ++ "/?token=" ++ token)
-                                                                False
-
-                                                    ( Nothing, _ ) ->
-                                                        ITypes.Unavailable "Cannot find TLS-terminating reverse proxy server"
-
-                                                    ( _, Nothing ) ->
-                                                        ITypes.Unavailable <|
-                                                            String.join " "
-                                                                [ context.localization.virtualComputer
-                                                                    |> Helpers.String.toTitleCase
-                                                                , "does not have a"
-                                                                , context.localization.floatingIpAddress
-                                                                ]
-
-                                            RDPP.DontHave ->
-                                                let
-                                                    fortyMinMillis =
-                                                        1000 * 60 * 40
-
-                                                    newServer =
-                                                        Helpers.serverLessThanThisOld server currentTime fortyMinMillis
-
-                                                    recentServerEvent =
-                                                        server.events
-                                                            |> RDPP.withDefault []
-                                                            -- Ignore server events which don't cause a power cycle
-                                                            |> List.filter
-                                                                (\event ->
-                                                                    [ "lock", "unlock", {- @nonlocalized -} "image" ]
-                                                                        |> List.map (\action -> action == event.action)
-                                                                        |> List.any identity
-                                                                        |> not
-                                                                )
-                                                            -- Look for the most recent server event
-                                                            |> List.map .startTime
-                                                            |> List.map Time.posixToMillis
-                                                            |> List.sort
-                                                            |> List.reverse
-                                                            |> List.head
-                                                            -- See if most recent event is recent enough
-                                                            |> Maybe.map
-                                                                (\eventTime ->
-                                                                    eventTime > (Time.posixToMillis currentTime - fortyMinMillis)
-                                                                )
-                                                            |> Maybe.withDefault newServer
-                                                in
-                                                if recentServerEvent then
-                                                    ITypes.Unavailable <|
-                                                        String.join " "
-                                                            [ context.localization.virtualComputer
-                                                                |> Helpers.String.toTitleCase
-                                                            , "is still booting or the workflow is still deploying, check back in a few minutes"
-                                                            ]
-
-                                                else
-                                                    case ( tlsReverseProxyHostname, maybeFloatingIpAddress ) of
-                                                        ( Nothing, _ ) ->
-                                                            ITypes.Error "Cannot find TLS-terminating reverse proxy server"
-
-                                                        ( _, Nothing ) ->
-                                                            ITypes.Error <|
-                                                                String.join " "
-                                                                    [ context.localization.virtualComputer
-                                                                        |> Helpers.String.toTitleCase
-                                                                    , "does not have a"
-                                                                    , context.localization.floatingIpAddress
-                                                                    ]
-
-                                                        ( Just _, Just _ ) ->
-                                                            case customWorkflow.authToken.refreshStatus of
-                                                                RDPP.Loading ->
-                                                                    ITypes.Loading
-
-                                                                RDPP.NotLoading maybeErrorTuple ->
-                                                                    -- If deployment is complete but we can't get a token, show error to user
-                                                                    case maybeErrorTuple of
-                                                                        Nothing ->
-                                                                            -- This is a slight misrepresentation; we haven't requested
-                                                                            -- a token yet but orchestration code will make request soon
-                                                                            ITypes.Loading
-
-                                                                        Just ( httpErrorWithBody, _ ) ->
-                                                                            ITypes.Error
-                                                                                ("Exosphere tried to get the console log for the "
-                                                                                    ++ Helpers.String.toTitleCase context.localization.virtualComputer
-                                                                                    ++ " and received this error: "
-                                                                                    ++ Helpers.httpErrorWithBodyToString httpErrorWithBody
-                                                                                )
+                                serverFromExoInteractionStatus server context currentTime tlsReverseProxyHostname exoOriginProps maybeFloatingIpAddress
 
                     else
                         ITypes.Hidden
@@ -463,6 +214,288 @@ interactionDetails interaction context =
                 )
                 (\_ _ -> Icon.sizedFeatherIcon 18 Icons.codesandbox)
                 ITypes.UrlInteraction
+
+
+serverFromExoInteractionStatus :
+    Server
+    -> View.Types.Context
+    -> Time.Posix
+    -> Maybe UserAppProxyHostname
+    -> ServerFromExoProps
+    -> Maybe OSTypes.IpAddressValue
+    -> ITypes.InteractionStatus
+serverFromExoInteractionStatus server context currentTime tlsReverseProxyHostname exoOriginProps maybeFloatingIpAddress =
+    case exoOriginProps.customWorkflowStatus of
+        NotLaunchedWithCustomWorkflow ->
+            -- Either exoOriginProps.exoServerVersion < 3, or instance was deployed without a workflow
+            ITypes.Hidden
+
+        LaunchedWithCustomWorkflow customWorkflow ->
+            case customWorkflow.authToken.data of
+                RDPP.DoHave token _ ->
+                    case ( tlsReverseProxyHostname, maybeFloatingIpAddress ) of
+                        ( Just proxyHostname, Just floatingIp ) ->
+                            ITypes.Ready <|
+                                UrlHelpers.buildProxyUrl
+                                    proxyHostname
+                                    floatingIp
+                                    8888
+                                    (customWorkflow.source.path ++ "/?token=" ++ token)
+                                    False
+
+                        ( Nothing, _ ) ->
+                            ITypes.Unavailable "Cannot find TLS-terminating reverse proxy server"
+
+                        ( _, Nothing ) ->
+                            ITypes.Unavailable <|
+                                String.join " "
+                                    [ context.localization.virtualComputer
+                                        |> Helpers.String.toTitleCase
+                                    , "does not have a"
+                                    , context.localization.floatingIpAddress
+                                    ]
+
+                RDPP.DontHave ->
+                    let
+                        fortyMinMillis =
+                            1000 * 60 * 40
+
+                        newServer =
+                            Helpers.serverLessThanThisOld server currentTime fortyMinMillis
+
+                        recentServerEvent =
+                            server.events
+                                |> RDPP.withDefault []
+                                -- Ignore server events which don't cause a power cycle
+                                |> List.filter
+                                    (\event ->
+                                        [ "lock", "unlock", {- @nonlocalized -} "image" ]
+                                            |> List.map (\action -> action == event.action)
+                                            |> List.any identity
+                                            |> not
+                                    )
+                                -- Look for the most recent server event
+                                |> List.map .startTime
+                                |> List.map Time.posixToMillis
+                                |> List.sort
+                                |> List.reverse
+                                |> List.head
+                                -- See if most recent event is recent enough
+                                |> Maybe.map
+                                    (\eventTime ->
+                                        eventTime > (Time.posixToMillis currentTime - fortyMinMillis)
+                                    )
+                                |> Maybe.withDefault newServer
+                    in
+                    if recentServerEvent then
+                        ITypes.Unavailable <|
+                            String.join " "
+                                [ context.localization.virtualComputer
+                                    |> Helpers.String.toTitleCase
+                                , "is still booting or the workflow is still deploying, check back in a few minutes"
+                                ]
+
+                    else
+                        case ( tlsReverseProxyHostname, maybeFloatingIpAddress ) of
+                            ( Nothing, _ ) ->
+                                ITypes.Error "Cannot find TLS-terminating reverse proxy server"
+
+                            ( _, Nothing ) ->
+                                ITypes.Error <|
+                                    String.join " "
+                                        [ context.localization.virtualComputer
+                                            |> Helpers.String.toTitleCase
+                                        , "does not have a"
+                                        , context.localization.floatingIpAddress
+                                        ]
+
+                            ( Just _, Just _ ) ->
+                                case customWorkflow.authToken.refreshStatus of
+                                    RDPP.Loading ->
+                                        ITypes.Loading
+
+                                    RDPP.NotLoading maybeErrorTuple ->
+                                        -- If deployment is complete but we can't get a token, show error to user
+                                        case maybeErrorTuple of
+                                            Nothing ->
+                                                -- This is a slight misrepresentation; we haven't requested
+                                                -- a token yet but orchestration code will make request soon
+                                                ITypes.Loading
+
+                                            Just ( httpErrorWithBody, _ ) ->
+                                                ITypes.Error
+                                                    ("Exosphere tried to get the console log for the "
+                                                        ++ Helpers.String.toTitleCase context.localization.virtualComputer
+                                                        ++ " and received this error: "
+                                                        ++ Helpers.httpErrorWithBodyToString httpErrorWithBody
+                                                    )
+
+
+serverFromExoGuacStatus :
+    Server
+    -> View.Types.Context
+    -> Time.Posix
+    -> Maybe UserAppProxyHostname
+    -> Maybe OSTypes.IpAddressValue
+    -> ServerFromExoProps
+    -> GuacType
+    -> ITypes.InteractionStatus
+serverFromExoGuacStatus server context currentTime tlsReverseProxyHostname maybeFloatingIpAddress exoOriginProps guacType =
+    case exoOriginProps.guacamoleStatus of
+        GuacTypes.NotLaunchedWithGuacamole ->
+            if exoOriginProps.exoServerVersion < 3 then
+                ITypes.Unavailable <|
+                    String.join " "
+                        [ context.localization.virtualComputer
+                            |> Helpers.String.toTitleCase
+                        , "was created with an older version of Exosphere"
+                        ]
+
+            else
+                ITypes.Unavailable <|
+                    String.join " "
+                        [ context.localization.virtualComputer
+                            |> Helpers.String.toTitleCase
+                        , "was deployed with Guacamole support de-selected"
+                        ]
+
+        GuacTypes.LaunchedWithGuacamole guacProps ->
+            if not guacProps.vncSupported && (guacType == Desktop) then
+                ITypes.Unavailable <|
+                    String.join " "
+                        [ context.localization.graphicalDesktopEnvironment
+                            |> Helpers.String.toTitleCase
+                        , "was not enabled when"
+                        , context.localization.virtualComputer
+                            |> Helpers.String.toTitleCase
+                        , "was deployed"
+                        ]
+
+            else
+                case guacProps.authToken.data of
+                    RDPP.DoHave token _ ->
+                        case ( tlsReverseProxyHostname, maybeFloatingIpAddress ) of
+                            ( Just proxyHostname, Just floatingIp ) ->
+                                let
+                                    guacUpstreamPort =
+                                        49528
+
+                                    connectionStringBase64 =
+                                        -- Per https://sourceforge.net/p/guacamole/discussion/1110834/thread/fb609070/
+                                        case guacType of
+                                            Terminal ->
+                                                -- printf 'shell\0c\0default' | base64
+                                                "c2hlbGwAYwBkZWZhdWx0"
+
+                                            Desktop ->
+                                                -- printf 'desktop\0c\0default' | base64
+                                                "ZGVza3RvcABjAGRlZmF1bHQ="
+                                in
+                                ITypes.Ready <|
+                                    UrlHelpers.buildProxyUrl
+                                        proxyHostname
+                                        floatingIp
+                                        guacUpstreamPort
+                                        ("/guacamole/#/client/" ++ connectionStringBase64 ++ "?token=" ++ token)
+                                        False
+
+                            ( Nothing, _ ) ->
+                                ITypes.Unavailable "Cannot find TLS-terminating reverse proxy server"
+
+                            ( _, Nothing ) ->
+                                ITypes.Unavailable <|
+                                    String.join " "
+                                        [ context.localization.virtualComputer
+                                            |> Helpers.String.toTitleCase
+                                        , "does not have a"
+                                        , context.localization.floatingIpAddress
+                                        ]
+
+                    RDPP.DontHave ->
+                        let
+                            fortyMinMillis =
+                                1000 * 60 * 40
+
+                            newServer =
+                                Helpers.serverLessThanThisOld server currentTime fortyMinMillis
+
+                            recentServerEvent =
+                                server.events
+                                    |> RDPP.withDefault []
+                                    -- Ignore server events which don't cause a power cycle
+                                    |> List.filter
+                                        (\event ->
+                                            [ "lock", "unlock", {- @nonlocalized -} "image" ]
+                                                |> List.map (\action -> action == event.action)
+                                                |> List.any identity
+                                                |> not
+                                        )
+                                    -- Look for the most recent server event
+                                    |> List.map .startTime
+                                    |> List.map Time.posixToMillis
+                                    |> List.sort
+                                    |> List.reverse
+                                    |> List.head
+                                    -- See if most recent event is recent enough
+                                    |> Maybe.map
+                                        (\eventTime ->
+                                            eventTime > (Time.posixToMillis currentTime - fortyMinMillis)
+                                        )
+                                    |> Maybe.withDefault newServer
+                        in
+                        if recentServerEvent then
+                            ITypes.Unavailable <|
+                                String.join " "
+                                    [ context.localization.virtualComputer
+                                        |> Helpers.String.toTitleCase
+                                    , "is still booting or Guacamole is still deploying, check back in a few minutes"
+                                    ]
+
+                        else
+                            case
+                                ( tlsReverseProxyHostname
+                                , maybeFloatingIpAddress
+                                , GetterSetters.getServerExouserPassphrase server.osProps.details
+                                )
+                            of
+                                ( Nothing, _, _ ) ->
+                                    ITypes.Error "Cannot find TLS-terminating reverse proxy server"
+
+                                ( _, Nothing, _ ) ->
+                                    ITypes.Error <|
+                                        String.join " "
+                                            [ context.localization.virtualComputer
+                                                |> Helpers.String.toTitleCase
+                                            , "does not have a"
+                                            , context.localization.floatingIpAddress
+                                            ]
+
+                                ( _, _, Nothing ) ->
+                                    ITypes.Error <|
+                                        String.join " "
+                                            [ "Cannot find"
+                                            , context.localization.virtualComputer
+                                            , "passphrase to authenticate"
+                                            ]
+
+                                ( Just _, Just _, Just _ ) ->
+                                    case guacProps.authToken.refreshStatus of
+                                        RDPP.Loading ->
+                                            ITypes.Loading
+
+                                        RDPP.NotLoading maybeErrorTuple ->
+                                            -- If deployment is complete but we can't get a token, show error to user
+                                            case maybeErrorTuple of
+                                                Nothing ->
+                                                    -- This is a slight misrepresentation; we haven't requested
+                                                    -- a token yet but orchestration code will make request soon
+                                                    ITypes.Loading
+
+                                                Just ( httpError, _ ) ->
+                                                    ITypes.Error
+                                                        ("Exosphere tried to authenticate to the Guacamole API, and received this error: "
+                                                            ++ Helpers.httpErrorToString httpError
+                                                        )
 
 
 type GuacType
