@@ -9,42 +9,54 @@ import FeatherIcons
 import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (Unit(..), humanNumber)
 import Helpers.GetterSetters as GetterSetters
+import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import Helpers.Time
-import OpenStack.Types as OSTypes exposing (AccessRule, ExportLocation, Share, accessRuleAccessLevelToString, accessRuleAccessTypeToString, accessRuleStateToString)
+import OpenStack.Types as OSTypes exposing (AccessRule, AccessRuleState(..), ExportLocation, Share, accessRuleAccessLevelToString, accessRuleAccessTypeToString, accessRuleStateToString)
 import Style.Helpers as SH
 import Style.Types as ST exposing (ExoPalette)
 import Style.Widgets.Card
 import Style.Widgets.CopyableText exposing (copyableText, copyableTextAccessory)
 import Style.Widgets.Popover.Types exposing (PopoverId)
+import Style.Widgets.Select as Select
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
 import Time
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg
+import Url
 import View.Helpers as VH
 import View.Types
 
 
 type alias Model =
     { shareUuid : OSTypes.ShareUuid
+    , selectedAccessKey : Maybe OSTypes.AccessRuleUuid
     }
 
 
 type Msg
-    = SharedMsg SharedMsg.SharedMsg
+    = SelectAccessKey (Maybe OSTypes.AccessRuleUuid)
+    | SharedMsg SharedMsg.SharedMsg
 
 
 init : OSTypes.ShareUuid -> Model
 init shareUuid =
     { shareUuid = shareUuid
+    , selectedAccessKey = Nothing
     }
 
 
 update : Msg -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
 update msg model =
     case msg of
+        SelectAccessKey accessKeyUuid ->
+            ( { model | selectedAccessKey = accessKeyUuid }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
+
         SharedMsg sharedMsg ->
             ( model, Cmd.none, sharedMsg )
 
@@ -63,7 +75,7 @@ view context project currentTimeAndZone model =
             {- Attempt to look up a given share uuid; if a share is found, call render. -}
             case GetterSetters.shareLookup project model.shareUuid of
                 Just share ->
-                    render context project currentTimeAndZone share
+                    render context project currentTimeAndZone model share
 
                 Nothing ->
                     Element.text <|
@@ -152,8 +164,8 @@ header text =
 scrollableCell : List (Element.Attribute msg) -> Element.Element msg -> Element.Element msg
 scrollableCell attrs msg =
     Element.el
-        (Element.scrollbarX
-            :: attrs
+        ([ Element.scrollbarX, Element.clipY ]
+            ++ attrs
         )
         (Element.el
             [ -- HACK: A width needs to be set so that the cell expands responsively while having a horizontal scrollbar to contain overflow.
@@ -223,6 +235,126 @@ accessRulesTable palette accessRules =
                 }
 
 
+renderMountScript : View.Types.Context -> Model -> Share -> ( List ExportLocation, List AccessRule ) -> Element.Element Msg
+renderMountScript context model share ( exportLocations, accessRules ) =
+    case List.head exportLocations of
+        Nothing ->
+            Element.paragraph []
+                [ Element.text <|
+                    "Contact your administrator to request an export location added to your "
+                        ++ context.localization.share
+                ]
+
+        Just exportLocation ->
+            let
+                singleAccessRule =
+                    List.length accessRules == 1
+
+                maybeAccessRule =
+                    --   If theres only a single access rule, no need to make the user select one
+                    if singleAccessRule then
+                        List.head accessRules
+
+                    else
+                        model.selectedAccessKey
+                            |> Maybe.andThen
+                                (\uuid ->
+                                    List.filter (\r -> r.uuid == uuid) accessRules
+                                        |> List.head
+                                )
+
+                mountScriptElement =
+                    case maybeAccessRule of
+                        Just accessRule ->
+                            let
+                                { baseUrl, urlPathPrefix } =
+                                    context
+
+                                scriptUrl =
+                                    Url.toString
+                                        { baseUrl
+                                            | path =
+                                                String.join "/"
+                                                    [ urlPathPrefix
+                                                        |> Maybe.map (\prefix -> "/" ++ prefix)
+                                                        |> Maybe.withDefault ""
+                                                    , "assets"
+                                                    , "scripts"
+                                                    , "mount-ceph.py"
+                                                    ]
+                                        }
+
+                                mountScript =
+                                    String.join "\\\n"
+                                        [ "curl " ++ scriptUrl ++ " | sudo python3 -"
+                                        , "--access-rule-name=\"" ++ accessRule.accessTo ++ "\""
+                                        , "--access-rule-key=\"" ++ (accessRule.accessKey |> Maybe.withDefault "nokey") ++ "\""
+                                        , "--share-path=\"" ++ exportLocation.path ++ "\""
+                                        , "--share-name=\"" ++ (share.name |> Maybe.withDefault context.localization.share) ++ "\""
+                                        ]
+
+                                copyable =
+                                    copyableTextAccessory context.palette mountScript
+                            in
+                            [ Element.paragraph []
+                                [ Element.text <|
+                                    "Run the following command on your "
+                                        ++ context.localization.virtualComputer
+                                        ++ " to mount this "
+                                        ++ context.localization.share
+                                ]
+                            , Element.el
+                                [ Element.inFront <| Element.el [ Element.alignRight ] copyable.accessory
+                                , copyable.id
+                                , Element.width Element.fill
+                                ]
+                              <|
+                                Element.textColumn
+                                    [ Text.fontFamily Text.Mono
+                                    , Element.width Element.fill
+                                    ]
+                                    (String.split "\n" mountScript
+                                        |> List.map (\l -> Element.paragraph [] [ Element.text l ])
+                                    )
+                            ]
+
+                        Nothing ->
+                            [ Element.none ]
+            in
+            Element.column [ Element.spacing spacer.px12, Element.width Element.fill ] <|
+                List.concat
+                    [ if singleAccessRule then
+                        []
+
+                      else
+                        [ Select.select []
+                            context.palette
+                            { onChange = SelectAccessKey
+                            , selected = model.selectedAccessKey
+                            , label = "Select an Access Rule"
+                            , options =
+                                accessRules
+                                    |> List.filterMap
+                                        (\accessRule ->
+                                            case accessRule.state of
+                                                Active ->
+                                                    Just
+                                                        ( accessRule.uuid
+                                                        , accessRule.accessTo
+                                                            ++ " ("
+                                                            ++ accessRuleAccessLevelToString accessRule.accessLevel
+                                                            ++ ")"
+                                                        )
+
+                                                _ ->
+                                                    Nothing
+                                        )
+                            }
+                        ]
+                    , mountScriptElement
+                    ]
+
+
 exportLocationsTable : ExoPalette -> List ExportLocation -> Element.Element Msg
 exportLocationsTable palette exportLocations =
     case List.length exportLocations of
@@ -253,8 +385,8 @@ exportLocationsTable palette exportLocations =
                 }
 
 
-render : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> Share -> Element.Element Msg
-render context project ( currentTime, _ ) share =
+render : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> Model -> Share -> Element.Element Msg
+render context project ( currentTime, _ ) model share =
     let
         whenCreated =
             let
@@ -358,6 +490,17 @@ render context project ( currentTime, _ ) share =
 
                 Nothing ->
                     Element.none
+
+        mountScript =
+            case ( Dict.get share.uuid project.shareExportLocations, Dict.get share.uuid project.shareAccessRules ) of
+                ( Just loadingExportLocations, Just loadingAccessRules ) ->
+                    VH.renderRDPP context
+                        (RDPP.map2 Tuple.pair loadingExportLocations loadingAccessRules)
+                        (context.localization.exportLocation |> Helpers.String.pluralize)
+                        (renderMountScript context model share)
+
+                _ ->
+                    Element.none
     in
     Element.column [ Element.spacing spacer.px24, Element.width Element.fill ]
         [ Element.row (Text.headingStyleAttrs context.palette)
@@ -419,4 +562,17 @@ render context project ( currentTime, _ ) share =
             ]
             [ accessRules
             ]
+        , tile
+            [ FeatherIcons.folder
+                |> FeatherIcons.toHtml []
+                |> Element.html
+                |> Element.el []
+            , Text.text Text.Large
+                []
+                ("Mount your "
+                    ++ context.localization.share
+                    |> Helpers.String.toTitleCase
+                )
+            ]
+            [ mountScript ]
         ]
