@@ -235,6 +235,37 @@ accessRulesTable palette accessRules =
                 }
 
 
+copyableScript : ExoPalette -> String -> Element.Element msg
+copyableScript palette script =
+    let
+        copyableAccessory =
+            copyableTextAccessory palette script
+    in
+    Element.el
+        [ Element.inFront <|
+            Element.el
+                [ Element.alignRight
+                , Element.moveLeft <| toFloat spacer.px4
+                , Element.moveDown <| toFloat spacer.px4
+                ]
+                copyableAccessory.accessory
+        , copyableAccessory.id
+        , Element.width Element.fill
+        , Border.solid
+        , Border.width 1
+        , Border.color <| SH.toElementColor palette.muted.border
+        , Element.padding spacer.px4
+        ]
+    <|
+        Element.textColumn
+            [ Text.fontFamily Text.Mono
+            , Element.width Element.fill
+            ]
+            (String.split "\n" script
+                |> List.map (\l -> Element.paragraph [] [ Element.text l ])
+            )
+
+
 renderMountScript : View.Types.Context -> Model -> Share -> ( List ExportLocation, List AccessRule ) -> Element.Element Msg
 renderMountScript context model share ( exportLocations, accessRules ) =
     case List.head exportLocations of
@@ -285,16 +316,20 @@ renderMountScript context model share ( exportLocations, accessRules ) =
                                         }
 
                                 mountScript =
-                                    String.join "\\\n"
-                                        [ "curl " ++ scriptUrl ++ " | sudo python3 -"
+                                    String.join " \\\n     "
+                                        [ "curl " ++ scriptUrl ++ " | sudo python3 - mount"
                                         , "--access-rule-name=\"" ++ accessRule.accessTo ++ "\""
                                         , "--access-rule-key=\"" ++ (accessRule.accessKey |> Maybe.withDefault "nokey") ++ "\""
                                         , "--share-path=\"" ++ exportLocation.path ++ "\""
                                         , "--share-name=\"" ++ (share.name |> Maybe.withDefault context.localization.share) ++ "\""
                                         ]
 
-                                copyable =
-                                    copyableTextAccessory context.palette mountScript
+                                unmountScript =
+                                    String.join " \\\n     "
+                                        [ "curl " ++ scriptUrl ++ " | sudo python3 - unmount"
+                                        , "--access-rule-name=\"" ++ accessRule.accessTo ++ "\""
+                                        , "--share-name=\"" ++ (share.name |> Maybe.withDefault context.localization.share) ++ "\""
+                                        ]
                             in
                             [ Element.paragraph []
                                 [ Element.text <|
@@ -303,19 +338,14 @@ renderMountScript context model share ( exportLocations, accessRules ) =
                                         ++ " to mount this "
                                         ++ context.localization.share
                                 ]
-                            , Element.el
-                                [ Element.inFront <| Element.el [ Element.alignRight ] copyable.accessory
-                                , copyable.id
-                                , Element.width Element.fill
+                            , copyableScript context.palette mountScript
+                            , Element.paragraph []
+                                [ Element.text <|
+                                    "To unmount this "
+                                        ++ context.localization.share
+                                        ++ ", this command may be used"
                                 ]
-                              <|
-                                Element.textColumn
-                                    [ Text.fontFamily Text.Mono
-                                    , Element.width Element.fill
-                                    ]
-                                    (String.split "\n" mountScript
-                                        |> List.map (\l -> Element.paragraph [] [ Element.text l ])
-                                    )
+                            , copyableScript context.palette unmountScript
                             ]
 
                         Nothing ->
