@@ -327,7 +327,6 @@ renderMountScript context model share ( exportLocations, accessRules ) =
                                 unmountScript =
                                     String.join " \\\n     "
                                         [ "curl " ++ scriptUrl ++ " | sudo python3 - unmount"
-                                        , "--access-rule-name=\"" ++ accessRule.accessTo ++ "\""
                                         , "--share-name=\"" ++ (share.name |> Maybe.withDefault context.localization.share) ++ "\""
                                         ]
                             in

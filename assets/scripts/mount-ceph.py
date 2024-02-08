@@ -28,11 +28,6 @@ def systemd_escape_path(val: str) -> str:
     ).strip()
 
 
-KEYRING_TEMPLATE = """
-[client.{access_rule_name}]
-  key = {access_rule_key}
-"""
-
 DEFAULT_MOUNT_OPTIONS = ["noatime", "rw", "_netdev", "auto", "nofail"]
 MOUNT_TEMPLATE = """
 [Unit]
@@ -73,20 +68,14 @@ def do_mount(
     access_rule_key: t.Optional[str] = None,
 ):
     mount_point = MOUNT_PATH / share_name
+    mount_options = list(DEFAULT_MOUNT_OPTIONS)
     escaped_name = systemd_escape_path(str(mount_point))
 
-    if access_rule_name and access_rule_key:
-        keyring_path = CEPH_CONFIG_PATH / f"ceph.client.{access_rule_name}.keyring"
-        keyring_path.write_text(
-            KEYRING_TEMPLATE.format(
-                access_rule_name=access_rule_name,
-                access_rule_key=access_rule_key,
-            )
-        )
-
-    mount_options = list(DEFAULT_MOUNT_OPTIONS)
     if access_rule_name:
         mount_options.append(f"name={access_rule_name}")
+
+    if access_rule_key:
+        mount_options.append(f"secret={access_rule_key}")
 
     systemd_mount_path = (SYSTEMD_PATH / escaped_name).with_suffix(".mount")
     systemd_service_path = (SYSTEMD_PATH / escaped_name).with_suffix(".service")
@@ -120,16 +109,9 @@ def do_mount(
     )
 
 
-def do_unmount(
-    share_name: str,
-    access_rule_name: t.Optional[str] = None,
-):
+def do_unmount(share_name: str):
     mount_point = MOUNT_PATH / share_name
     escaped_name = systemd_escape_path(str(mount_point))
-
-    if access_rule_name:
-        keyring_path = CEPH_CONFIG_PATH / f"ceph.client.{access_rule_name}.keyring"
-        keyring_path.unlink(missing_ok=True)
 
     systemd_mount_path = (SYSTEMD_PATH / escaped_name).with_suffix(".mount")
     systemd_service_path = (SYSTEMD_PATH / escaped_name).with_suffix(".service")
@@ -172,7 +154,6 @@ unmount_parser = subparsers.add_parser(
     "unmount",
     help="Tool for unmounting and cleaning up ceph keyrings and mounts",
 )
-unmount_parser.add_argument("--access-rule-name")
 unmount_parser.add_argument("--share-name", required=True)
 unmount_parser.set_defaults(action=do_unmount)
 
