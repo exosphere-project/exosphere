@@ -38,7 +38,7 @@ Exosphere sets these variables when running the instance setup code on a new ins
 
 # Additional Scripts
 
-Exosphere deploys additional scripts in `assets/scripts/` for easy use on instances. The only script currently deployed this way is [mount-ceph.py](../assets/scripts/mount-ceph.py) and all examples below will reference that script.
+Exosphere deploys additional scripts in `assets/scripts/` for easy use on instances. The only script currently deployed this way is `mount-ceph.py` and all examples below will reference that script.
 
 As users are instructed to run these scripts using `curl https://[exosphere_domain]/assets/scripts/mount-ceph.py | python3 -`, these commands will not work correctly when developing on `localhost`. The suggested way to test modifications to these scripts is: 
 
