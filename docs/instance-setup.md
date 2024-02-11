@@ -29,7 +29,9 @@ For now, we are using only [built-in Ansible modules](https://docs.ansible.com/a
 
 Exosphere sets these variables when running the instance setup code on a new instance.
 
-| variable     | type    | required | description                                                             |
-|--------------|---------|----------|-------------------------------------------------------------------------|
-| guac_enabled | boolean | no       | deploys Apache Guacamole to serve terminal (and optionally desktop)     |
-| gui_enabled  | boolean | no       | deploys VNC server, configures Guacamole to serve graphical desktop     |
+| variable                   | type    | required | description                                                                            |
+|----------------------------|---------|----------|----------------------------------------------------------------------------------------|
+| guac_enabled               | boolean | no       | deploys Apache Guacamole to serve terminal (and optionally desktop)                    |
+| gui_enabled                | boolean | no       | deploys VNC server, configures Guacamole to serve graphical desktop                    |
+| workflow_source_repository | string  | no       | source git repository to use for deploying a [Binder](https://mybinder.org/) container |
+| workflow_repo_version      | string  | no       | git reference (branch, tag, commit) for the above binder repository                    |
