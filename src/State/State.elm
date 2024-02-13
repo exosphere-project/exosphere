@@ -1454,7 +1454,22 @@ processProjectSpecificMsg outerModel project msg =
         RequestDeleteShare shareUuid ->
             case project.endpoints.manila of
                 Just manilaUrl ->
-                    ( outerModel, OSShares.requestDeleteShare project manilaUrl shareUuid )
+                    let
+                        newProject =
+                            { project
+                                | shares =
+                                    let
+                                        newShares =
+                                            project.shares
+                                                |> RDPP.withDefault []
+                                                |> List.filter (\s -> s.uuid /= shareUuid)
+                                    in
+                                    RDPP.RemoteDataPlusPlus
+                                        (RDPP.DoHave newShares sharedModel.clientCurrentTime)
+                                        (RDPP.NotLoading Nothing)
+                            }
+                    in
+                    ( { outerModel | sharedModel = GetterSetters.modelUpdateProject sharedModel newProject }, OSShares.requestDeleteShare project manilaUrl shareUuid )
                         |> mapToOuterMsg
 
                 Nothing ->
@@ -2051,13 +2066,8 @@ processProjectSpecificMsg outerModel project msg =
                 |> mapToOuterModel outerModel
 
         ReceiveDeleteShare ->
-            case project.endpoints.manila of
-                Just manilaUrl ->
-                    ( outerModel, OSShares.requestShares project manilaUrl )
-                        |> mapToOuterMsg
-
-                Nothing ->
-                    ( outerModel, Cmd.none )
+            -- TODO: If we are on the share detail page, we should navigate to the shares list.
+            ( outerModel, Cmd.none )
 
         ReceiveCreateVolume ->
             {- Should we add new volume to model now? -}
