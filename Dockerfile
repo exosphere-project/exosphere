@@ -15,23 +15,9 @@ RUN apt-get update && \
 
 # Install and cache dependencies
 COPY package*.json ./
-COPY elm.json ./
 COPY elm-tooling.json ./
-COPY elm-git.json ./
 RUN npm install \
     && npm install --no-save elm-live
-
-# Add remainder of files
-COPY index.html .
-COPY service-worker.js .
-COPY environment-configs/docker-config.js ./config.js
-COPY ports.js .
-COPY cloud_configs.js .
-COPY exosphere.webmanifest .
-COPY src ./src
-COPY assets ./assets
-COPY fonts ./fonts
-RUN npx elm make src/Exosphere.elm --output elm-web.js
 
 EXPOSE 8000
 
