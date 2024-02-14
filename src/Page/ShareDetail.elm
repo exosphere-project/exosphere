@@ -346,7 +346,7 @@ mountScriptElements context share exportLocation accessRule =
                                 |> Maybe.withDefault ""
                             , "assets"
                             , "scripts"
-                            , "mount-ceph.py"
+                            , "mount_ceph.py"
                             ]
                 }
 

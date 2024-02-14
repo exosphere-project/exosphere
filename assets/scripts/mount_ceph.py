@@ -11,20 +11,12 @@ import typing as t
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(sys.argv[0])
 
+#
+# Constants and templates
+#
+
 SYSTEMD_PATH = pathlib.Path("/etc/systemd/system/")
 MOUNT_PATH = pathlib.Path("/media/share/")
-
-
-def systemd_escape_path(val: str) -> str:
-    return subprocess.check_output(
-        [
-            "systemd-escape",
-            "--path",
-            val,
-        ],
-        text=True,
-    ).strip()
-
 
 DEFAULT_MOUNT_OPTIONS = ["noatime", "rw", "_netdev", "auto", "nofail"]
 MOUNT_TEMPLATE = """
@@ -57,6 +49,109 @@ RequiredBy={mount_name}
 Type=OneShot
 ExecStart=/usr/bin/env chown exouser:exouser "/media/share/{share_name}"
 """
+
+#
+# Helper types and functions
+#
+
+
+def systemd_escape_path(val: str) -> str:
+    r"""
+    Uses systemd-escape to escape path names as systemd mount file names
+
+    Example:
+        systemd_escape_path("/media/share/test-share") == "media-share-test\x2dshare"
+    """
+
+    return subprocess.check_output(
+        [
+            "systemd-escape",
+            "--path",
+            val,
+        ],
+        text=True,
+    ).strip()
+
+
+class OpenFile(t.NamedTuple):
+    """Represents an open file as determined by lsof"""
+
+    pid: int
+    command: str
+    fd: t.Optional[str]
+    name: t.Optional[str]
+
+
+def split_iterable(
+    predicate: t.Callable[[t.T], bool],
+    iterable: t.Iterable[t.T],
+    *,
+    before_predicate: bool = True,
+) -> t.Iterable[t.List[t.T]]:
+    """
+    Split an iterable into chunks, separating on a predicate
+
+    Empty chunks (e.g, where the first element matches the predicate) are not yielded
+    """
+
+    chunk = []
+    for element in iterable:
+        if predicate(element):
+            if not before_predicate:
+                chunk.append(element)
+
+            if chunk:
+                yield chunk
+                chunk.clear()
+
+            if before_predicate:
+                chunk.append(element)
+
+        else:
+            chunk.append(element)
+
+    if chunk:
+        yield chunk
+
+
+def iter_open_files(path: pathlib.Path) -> t.Iterable[OpenFile]:
+    """
+    Parses the output of `lsof -F pfcn` to find any open files within a path
+
+    `-F` is "Output for processing by other programs"
+    `pfcn` selects the pid, command, fd, and filename for output
+
+    lsof outputs the following for each open file
+        p[pid]
+        c[command]
+        f[fd]
+        n[file_path]
+
+    Note: f/n may not be included in some cases
+    """
+
+    lsof = subprocess.run(
+        ("lsof", "-F", "pcfn", str(path)),
+        capture_output=True,
+        check=False,
+    )
+
+    output_lines = lsof.stdout.decode().splitlines()
+
+    for open_file_lines in split_iterable(lambda x: x.startswith("p"), output_lines):
+        open_file_data = {l[0]: l[1:] for l in open_file_lines}
+
+        yield OpenFile(
+            pid=int(open_file_data.get("p", "-1")),
+            command=open_file_data.get("c", "[unknown]"),
+            fd=open_file_data.get("f", None),
+            name=open_file_data.get("n", None),
+        )
+
+
+#
+# Command functions
+#
 
 
 def do_mount(
@@ -147,10 +242,21 @@ def do_unmount(share_name: str):
             )
 
         except subprocess.CalledProcessError as e:
+            open_files = list(iter_open_files(mount_point))
+            max_file_name_length = max(len(f.name) for f in open_files)
+
             logger.error(
-                "Failed to stop mount:\n%s",
+                "Failed to stop mount:\n%s\n\nOpen files:\n%s",
                 textwrap.indent((e.stderr or e.stdout).decode(), "  "),
+                textwrap.indent(
+                    "\n".join(
+                        f"{f.name.ljust(max_file_name_length)}  (Open in {f.pid}: {f.command})"
+                        for f in iter_open_files(mount_point)
+                    ),
+                    "  ",
+                ),
             )
+
             sys.exit(1)
 
         else:
