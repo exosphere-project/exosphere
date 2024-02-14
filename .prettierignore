@@ -21,6 +21,7 @@ styleguide.html
 .idea
 .DS_Store
 public/
+review/suppressed/
 
 # Ignore cached data on gitlab-ci
 home/

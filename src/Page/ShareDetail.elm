@@ -34,7 +34,6 @@ type alias Model =
 
 type Msg
     = SharedMsg SharedMsg.SharedMsg
-    | NoOp
 
 
 init : OSTypes.ShareUuid -> Model
@@ -48,9 +47,6 @@ update msg model =
     case msg of
         SharedMsg sharedMsg ->
             ( model, Cmd.none, sharedMsg )
-
-        NoOp ->
-            ( model, Cmd.none, SharedMsg.NoOp )
 
 
 popoverMsgMapper : PopoverId -> Msg

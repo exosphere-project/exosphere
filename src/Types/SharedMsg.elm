@@ -56,14 +56,12 @@ type ProjectSpecificMsgConstructor
     | PrepareCredentialedRequest (Maybe HelperTypes.Url -> OSTypes.AuthTokenString -> Cmd SharedMsg) Time.Posix
     | RemoveProject
     | ServerMsg OSTypes.ServerUuid ServerSpecificMsgConstructor
-    | RequestServers
     | RequestCreateServer HelperTypes.CreateServerPageModel OSTypes.NetworkUuid OSTypes.FlavorId
     | RequestDeleteServers (List OSTypes.ServerUuid)
     | RequestCreateVolume OSTypes.VolumeName OSTypes.VolumeSize
     | RequestDeleteVolume OSTypes.VolumeUuid
     | RequestDeleteVolumeSnapshot HelperTypes.Uuid
     | RequestDetachVolume OSTypes.VolumeUuid
-    | RequestKeypairs
     | RequestCreateKeypair OSTypes.KeypairName OSTypes.PublicKey
     | RequestDeleteKeypair OSTypes.KeypairIdentifier
     | RequestCreateProjectFloatingIp (Maybe OSTypes.IpAddressValue)
@@ -113,8 +111,7 @@ type ProjectSpecificMsgConstructor
 
 
 type ServerSpecificMsgConstructor
-    = RequestServer
-    | RequestDeleteServer Bool
+    = RequestDeleteServer Bool
     | RequestSetServerName String
     | RequestAttachVolume OSTypes.VolumeUuid
     | RequestCreateServerImage String

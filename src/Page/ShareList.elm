@@ -31,8 +31,7 @@ type alias Model =
 
 
 type Msg
-    = NoOp
-    | DataListMsg DataList.Msg
+    = DataListMsg DataList.Msg
     | SharedMsg SharedMsg.SharedMsg
 
 
@@ -44,9 +43,6 @@ init showHeading =
 update : Msg -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
 update msg model =
     case msg of
-        NoOp ->
-            ( model, Cmd.none, SharedMsg.NoOp )
-
         SharedMsg sharedMsg ->
             ( model, Cmd.none, sharedMsg )
 
