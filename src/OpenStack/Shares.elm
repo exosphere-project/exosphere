@@ -166,7 +166,7 @@ requestDeleteShare project url shareUuid =
         resultToMsg_ =
             resultToMsgErrorBody
                 errorContext
-                (\_ -> ProjectMsg (GetterSetters.projectIdentifier project) ReceiveDeleteShare)
+                (\_ -> ProjectMsg (GetterSetters.projectIdentifier project) (ReceiveDeleteShare shareUuid))
     in
     openstackCredentialedRequest
         (GetterSetters.projectIdentifier project)
