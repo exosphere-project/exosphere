@@ -14,8 +14,11 @@ import Helpers.Time
 import OpenStack.Types as OSTypes exposing (AccessRule, ExportLocation, Share, accessRuleAccessLevelToString, accessRuleAccessTypeToString, accessRuleStateToString)
 import Style.Helpers as SH
 import Style.Types as ST exposing (ExoPalette)
+import Style.Widgets.Button as Button
 import Style.Widgets.Card
 import Style.Widgets.CopyableText exposing (copyableText, copyableTextAccessory)
+import Style.Widgets.Icon as Icon
+import Style.Widgets.Popover.Popover exposing (popover)
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
@@ -25,26 +28,33 @@ import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
+import Widget
 
 
 type alias Model =
     { shareUuid : OSTypes.ShareUuid
+    , deletePendingConfirmation : Maybe OSTypes.ShareUuid
     }
 
 
 type Msg
-    = SharedMsg SharedMsg.SharedMsg
+    = GotDeleteNeedsConfirm (Maybe OSTypes.ShareUuid)
+    | SharedMsg SharedMsg.SharedMsg
 
 
 init : OSTypes.ShareUuid -> Model
 init shareUuid =
     { shareUuid = shareUuid
+    , deletePendingConfirmation = Nothing
     }
 
 
 update : Msg -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
 update msg model =
     case msg of
+        GotDeleteNeedsConfirm shareUuid ->
+            ( { model | deletePendingConfirmation = shareUuid }, Cmd.none, SharedMsg.NoOp )
+
         SharedMsg sharedMsg ->
             ( model, Cmd.none, sharedMsg )
 
@@ -63,7 +73,7 @@ view context project currentTimeAndZone model =
             {- Attempt to look up a given share uuid; if a share is found, call render. -}
             case GetterSetters.shareLookup project model.shareUuid of
                 Just share ->
-                    render context project currentTimeAndZone share
+                    render context project currentTimeAndZone model share
 
                 Nothing ->
                     Element.text <|
@@ -142,6 +152,121 @@ shareStatus context share =
     Element.row [ Element.spacing spacer.px16 ]
         [ statusBadge
         ]
+
+
+renderConfirmation : View.Types.Context -> Maybe Msg -> Maybe Msg -> String -> List (Element.Attribute Msg) -> Element.Element Msg
+renderConfirmation context actionMsg cancelMsg title closeActionsAttributes =
+    Element.row
+        [ Element.spacing spacer.px12, Element.width (Element.fill |> Element.minimum 280) ]
+        [ Element.text title
+        , Element.el
+            (Element.alignRight :: closeActionsAttributes)
+          <|
+            Button.button
+                Button.Danger
+                context.palette
+                { text = "Yes"
+                , onPress = actionMsg
+                }
+        , Element.el
+            [ Element.alignRight ]
+          <|
+            Button.button
+                Button.Secondary
+                context.palette
+                { text = "No"
+                , onPress = cancelMsg
+                }
+        ]
+
+
+renderDeleteAction : View.Types.Context -> Model -> Maybe Msg -> Maybe (Element.Attribute Msg) -> Element.Element Msg
+renderDeleteAction context model actionMsg closeActionsDropdown =
+    let
+        additionalBtnAttribs =
+            case closeActionsDropdown of
+                Just closeActionsDropdown_ ->
+                    [ closeActionsDropdown_ ]
+
+                Nothing ->
+                    []
+    in
+    case model.deletePendingConfirmation of
+        Just _ ->
+            renderConfirmation
+                context
+                actionMsg
+                (Just <|
+                    GotDeleteNeedsConfirm Nothing
+                )
+                "Are you sure?"
+                additionalBtnAttribs
+
+        Nothing ->
+            Element.row
+                [ Element.spacing spacer.px12, Element.width (Element.fill |> Element.minimum 280) ]
+                [ Element.text ("Destroy " ++ context.localization.share ++ "?")
+                , Element.el
+                    [ Element.alignRight ]
+                  <|
+                    Button.button
+                        Button.Danger
+                        context.palette
+                        { text = "Delete"
+                        , onPress = Just <| GotDeleteNeedsConfirm <| Just model.shareUuid
+                        }
+                ]
+
+
+shareActionsDropdown : View.Types.Context -> Project -> Model -> Share -> Element.Element Msg
+shareActionsDropdown context project model share =
+    let
+        dropdownId =
+            [ "shareActionsDropdown", project.auth.project.uuid, share.uuid ]
+                |> List.intersperse "-"
+                |> String.concat
+
+        dropdownContent closeDropdown =
+            Element.column [ Element.spacing spacer.px8 ] <|
+                [ renderDeleteAction context
+                    model
+                    (Just <|
+                        SharedMsg <|
+                            (SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
+                                SharedMsg.RequestDeleteShare share.uuid
+                            )
+                    )
+                    (Just closeDropdown)
+                ]
+
+        dropdownTarget toggleDropdownMsg dropdownIsShown =
+            Widget.iconButton
+                (SH.materialStyle context.palette).button
+                { text = "Actions"
+                , icon =
+                    Element.row
+                        [ Element.spacing spacer.px4 ]
+                        [ Element.text "Actions"
+                        , Icon.sizedFeatherIcon 18 <|
+                            if dropdownIsShown then
+                                FeatherIcons.chevronUp
+
+                            else
+                                FeatherIcons.chevronDown
+                        ]
+                , onPress = Just toggleDropdownMsg
+                }
+    in
+    popover context
+        popoverMsgMapper
+        { id = dropdownId
+        , content = dropdownContent
+        , contentStyleAttrs = [ Element.padding spacer.px24 ]
+        , position = ST.PositionBottomRight
+        , distanceToTarget = Nothing
+        , target = dropdownTarget
+        , targetStyleAttrs = []
+        }
 
 
 header : String -> Element.Element msg
@@ -253,8 +378,8 @@ exportLocationsTable palette exportLocations =
                 }
 
 
-render : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> Share -> Element.Element Msg
-render context project ( currentTime, _ ) share =
+render : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> Model -> Share -> Element.Element Msg
+render context project ( currentTime, _ ) model share =
     let
         whenCreated =
             let
@@ -369,7 +494,9 @@ render context project ( currentTime, _ ) share =
                 )
             , shareNameView share
             , Element.row [ Element.alignRight, Text.fontSize Text.Body, Font.regular, Element.spacing spacer.px16 ]
-                [ shareStatus context share ]
+                [ shareStatus context share
+                , shareActionsDropdown context project model share
+                ]
             ]
         , tile
             [ FeatherIcons.database |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
