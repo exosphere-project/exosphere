@@ -1,20 +1,18 @@
 #!/usr/bin/env python3
 
+import textwrap
 import argparse
-import typing as t
-import subprocess
-import pathlib
 import logging
+import pathlib
+import subprocess
+import sys
+import typing as t
 
+logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+logger = logging.getLogger(sys.argv[0])
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-
-CEPH_CONFIG_PATH = pathlib.Path("/etc/ceph/")
 SYSTEMD_PATH = pathlib.Path("/etc/systemd/system/")
 MOUNT_PATH = pathlib.Path("/media/share/")
-FSTAB_PATH = pathlib.Path("/etc/fstab")
 
 
 def systemd_escape_path(val: str) -> str:
@@ -80,33 +78,46 @@ def do_mount(
     systemd_mount_path = (SYSTEMD_PATH / escaped_name).with_suffix(".mount")
     systemd_service_path = (SYSTEMD_PATH / escaped_name).with_suffix(".service")
 
-    systemd_mount_path.write_text(
-        MOUNT_TEMPLATE.format(
-            share_path=share_path,
-            share_name=share_name,
-            access_rule_name=access_rule_name,
-            service_name=systemd_service_path.name,
-            options=",".join(mount_options),
-        )
+    systemd_mount = MOUNT_TEMPLATE.format(
+        share_path=share_path,
+        share_name=share_name,
+        access_rule_name=access_rule_name,
+        service_name=systemd_service_path.name,
+        options=",".join(mount_options),
+    )
+    systemd_service = SERVICE_TEMPLATE.format(
+        share_name=share_name,
+        mount_name=systemd_mount_path.name,
     )
 
-    systemd_service_path.write_text(
-        SERVICE_TEMPLATE.format(
-            share_name=share_name,
-            mount_name=systemd_mount_path.name,
-        )
-    )
+    logger.info("Creating %s", systemd_mount_path, extra={"content": systemd_mount})
+    systemd_mount_path.write_text(systemd_mount)
+
+    logger.info("Creating %s", systemd_service_path, extra={"content": systemd_service})
+    systemd_service_path.write_text(systemd_service)
 
     # Enable and start
-    subprocess.check_call(
-        (
-            "systemctl",
-            "enable",
-            "--now",
-            systemd_mount_path.name,
-            systemd_service_path.name,
+    try:
+        subprocess.run(
+            (
+                "systemctl",
+                "enable",
+                "--now",
+                systemd_mount_path.name,
+                systemd_service_path.name,
+            ),
+            check=True,
+            capture_output=True,
         )
-    )
+
+    except subprocess.CalledProcessError as e:
+        logger.error(
+            "Failed to start mount scripts:\n%s",
+            textwrap.indent((e.stderr or e.stdout).decode(), "  "),
+        )
+
+    else:
+        print(f"Successfully mounted at {mount_point}")
 
 
 def do_unmount(share_name: str):
@@ -116,24 +127,49 @@ def do_unmount(share_name: str):
     systemd_mount_path = (SYSTEMD_PATH / escaped_name).with_suffix(".mount")
     systemd_service_path = (SYSTEMD_PATH / escaped_name).with_suffix(".service")
 
-    subprocess.check_call(
-        (
-            "systemctl",
-            "disable",
-            "--now",
-            systemd_mount_path.name,
-            systemd_service_path.name,
-        )
-    )
-    systemd_mount_path.unlink()
-    systemd_service_path.unlink()
+    if systemd_mount_path.exists() or systemd_service_path.exists():
+        try:
+            logger.debug(
+                "Disabling services %s and %s",
+                systemd_mount_path.name,
+                systemd_service_path.name,
+            )
+            subprocess.run(
+                (
+                    "systemctl",
+                    "disable",
+                    "--now",
+                    systemd_mount_path.name,
+                    systemd_service_path.name,
+                ),
+                check=True,
+                capture_output=True,
+            )
 
-    subprocess.check_call(
-        (
-            "systemctl",
-            "daemon-reload",
-        )
-    )
+        except subprocess.CalledProcessError as e:
+            logger.error(
+                "Failed to stop mount:\n%s",
+                textwrap.indent((e.stderr or e.stdout).decode(), "  "),
+            )
+            sys.exit(1)
+
+        else:
+            logger.debug(
+                "Deleting %s and %s",
+                systemd_mount_path.name,
+                systemd_service_path.name,
+            )
+            systemd_mount_path.unlink(missing_ok=True)
+            systemd_service_path.unlink(missing_ok=True)
+
+            subprocess.run(
+                (
+                    "systemctl",
+                    "daemon-reload",
+                ),
+                check=False,
+                capture_output=True,
+            )
 
 
 parser = argparse.ArgumentParser()

@@ -12,6 +12,8 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import Helpers.Time
+import Html
+import Html.Attributes
 import OpenStack.Types as OSTypes exposing (AccessRule, AccessRuleState(..), AccessRuleUuid, ExportLocation, Share, accessRuleAccessLevelToString, accessRuleAccessTypeToString, accessRuleStateToString)
 import Style.Helpers as SH
 import Style.Types as ST exposing (ExoPalette)
@@ -255,15 +257,16 @@ copyableScript palette script =
         , Border.width 1
         , Border.color <| SH.toElementColor palette.muted.border
         , Element.padding spacer.px4
+        , Text.fontFamily Text.Mono
         ]
     <|
-        Element.textColumn
-            [ Text.fontFamily Text.Mono
-            , Element.width Element.fill
-            ]
-            (String.split "\n" script
-                |> List.map (\l -> Element.paragraph [] [ Element.text l ])
-            )
+        Element.html <|
+            Html.pre
+                [ Html.Attributes.style "margin" "0"
+                , Html.Attributes.style "white-space" "pre-wrap"
+                , Html.Attributes.style "word-wrap" "break-word"
+                ]
+                [ Html.text script ]
 
 
 renderMountTileContents : View.Types.Context -> Model -> Share -> ( List ExportLocation, List AccessRule ) -> Element.Element Msg
@@ -347,28 +350,38 @@ mountScriptElements context share exportLocation accessRule =
                             ]
                 }
 
+        shareName =
+            share.name |> Maybe.withDefault context.localization.share |> GetterSetters.sanitizeMountpoint
+
+        mountPoint =
+            "/media/share/" ++ shareName
+
         mountScript =
-            String.join " \\\n     "
+            String.join " \\\n  "
                 [ "curl " ++ scriptUrl ++ " | sudo python3 - mount"
                 , "--access-rule-name=\"" ++ accessRule.accessTo ++ "\""
                 , "--access-rule-key=\"" ++ (accessRule.accessKey |> Maybe.withDefault "nokey") ++ "\""
                 , "--share-path=\"" ++ exportLocation.path ++ "\""
-                , "--share-name=\"" ++ (share.name |> Maybe.withDefault context.localization.share) ++ "\""
+                , "--share-name=\"" ++ shareName ++ "\""
                 ]
 
         unmountScript =
-            String.join " \\\n     "
+            String.join " \\\n  "
                 [ "curl " ++ scriptUrl ++ " | sudo python3 - unmount"
-                , "--share-name=\"" ++ (share.name |> Maybe.withDefault context.localization.share) ++ "\""
+                , "--share-name=\"" ++ shareName ++ "\""
                 ]
     in
-    [ Element.paragraph []
-        [ Element.text <|
-            "Run the following command on your "
-                ++ context.localization.virtualComputer
-                ++ " to mount this "
-                ++ context.localization.share
-        ]
+    [ Element.paragraph [] <|
+        VH.renderMarkdown context.palette
+            (String.join " "
+                [ "Run the following command on your"
+                , context.localization.virtualComputer
+                , "to mount this"
+                , context.localization.share
+                , "at"
+                , "`" ++ mountPoint ++ "`"
+                ]
+            )
     , copyableScript context.palette mountScript
     , Element.paragraph []
         [ Element.text <|

@@ -58,7 +58,7 @@ module Helpers.GetterSetters exposing
     , volNameToMountpoint
     , volumeDeviceRawName
     , volumeIsAttachedToServer
-    , volumeLookup
+    , volumeLookup, sanitizeMountpoint
     )
 
 import Dict
