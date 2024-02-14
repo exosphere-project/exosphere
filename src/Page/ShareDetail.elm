@@ -12,7 +12,7 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import Helpers.Time
-import OpenStack.Types as OSTypes exposing (AccessRule, AccessRuleState(..), ExportLocation, Share, accessRuleAccessLevelToString, accessRuleAccessTypeToString, accessRuleStateToString)
+import OpenStack.Types as OSTypes exposing (AccessRule, AccessRuleState(..), AccessRuleUuid, ExportLocation, Share, accessRuleAccessLevelToString, accessRuleAccessTypeToString, accessRuleStateToString)
 import Style.Helpers as SH
 import Style.Types as ST exposing (ExoPalette)
 import Style.Widgets.Card
@@ -266,122 +266,148 @@ copyableScript palette script =
             )
 
 
-renderMountScript : View.Types.Context -> Model -> Share -> ( List ExportLocation, List AccessRule ) -> Element.Element Msg
-renderMountScript context model share ( exportLocations, accessRules ) =
+renderMountTileContents : View.Types.Context -> Model -> Share -> ( List ExportLocation, List AccessRule ) -> Element.Element Msg
+renderMountTileContents context model share ( exportLocations, accessRules ) =
     case List.head exportLocations of
         Nothing ->
-            Element.paragraph []
-                [ Element.text <|
-                    "Contact your administrator to request an export location added to your "
-                        ++ context.localization.share
-                ]
+            noExportLocationNotice context
 
         Just exportLocation ->
-            let
-                singleAccessRule =
-                    List.length accessRules == 1
+            renderMountTileContents_ context model share ( exportLocation, accessRules )
 
-                maybeAccessRule =
-                    --   If theres only a single access rule, no need to make the user select one
-                    if singleAccessRule then
-                        List.head accessRules
 
-                    else
-                        model.selectedAccessKey
-                            |> Maybe.andThen
-                                (\uuid ->
-                                    List.filter (\r -> r.uuid == uuid) accessRules
-                                        |> List.head
-                                )
+noExportLocationNotice : View.Types.Context -> Element.Element msg
+noExportLocationNotice context =
+    Element.paragraph []
+        [ Element.text <|
+            "Contact your administrator to request an export location added to your "
+                ++ context.localization.share
+        ]
 
-                mountScriptElement =
-                    case maybeAccessRule of
-                        Just accessRule ->
-                            let
-                                { baseUrl, urlPathPrefix } =
-                                    context
 
-                                scriptUrl =
-                                    Url.toString
-                                        { baseUrl
-                                            | path =
-                                                String.join "/"
-                                                    [ urlPathPrefix
-                                                        |> Maybe.map (\prefix -> "/" ++ prefix)
-                                                        |> Maybe.withDefault ""
-                                                    , "assets"
-                                                    , "scripts"
-                                                    , "mount-ceph.py"
-                                                    ]
-                                        }
+renderMountTileContents_ : View.Types.Context -> Model -> Share -> ( ExportLocation, List AccessRule ) -> Element.Element Msg
+renderMountTileContents_ context model share ( exportLocation, accessRules ) =
+    let
+        getUserSelectedAccessRule : List AccessRule -> Maybe AccessRule
+        getUserSelectedAccessRule rules =
+            model.selectedAccessKey
+                |> Maybe.andThen
+                    (\uuid ->
+                        List.filter (\r -> r.uuid == uuid) rules
+                            |> List.head
+                    )
 
-                                mountScript =
-                                    String.join " \\\n     "
-                                        [ "curl " ++ scriptUrl ++ " | sudo python3 - mount"
-                                        , "--access-rule-name=\"" ++ accessRule.accessTo ++ "\""
-                                        , "--access-rule-key=\"" ++ (accessRule.accessKey |> Maybe.withDefault "nokey") ++ "\""
-                                        , "--share-path=\"" ++ exportLocation.path ++ "\""
-                                        , "--share-name=\"" ++ (share.name |> Maybe.withDefault context.localization.share) ++ "\""
-                                        ]
+        ( ruleSelector, accessRule ) =
+            case accessRules of
+                [] ->
+                    -- This won't be very helpful, maybe later we should provide a notice (like we do with export locations)
+                    ( Element.none, Nothing )
 
-                                unmountScript =
-                                    String.join " \\\n     "
-                                        [ "curl " ++ scriptUrl ++ " | sudo python3 - unmount"
-                                        , "--share-name=\"" ++ (share.name |> Maybe.withDefault context.localization.share) ++ "\""
-                                        ]
-                            in
-                            [ Element.paragraph []
-                                [ Element.text <|
-                                    "Run the following command on your "
-                                        ++ context.localization.virtualComputer
-                                        ++ " to mount this "
-                                        ++ context.localization.share
-                                ]
-                            , copyableScript context.palette mountScript
-                            , Element.paragraph []
-                                [ Element.text <|
-                                    "To unmount this "
-                                        ++ context.localization.share
-                                        ++ ", this command may be used"
-                                ]
-                            , copyableScript context.palette unmountScript
+                singleRule :: [] ->
+                    -- If there is only a single access rule, no need to make the user select one
+                    ( Element.none, Just singleRule )
+
+                multipleRules ->
+                    ( accessRuleSelector context model accessRules
+                    , getUserSelectedAccessRule multipleRules
+                    )
+
+        mountScriptElements_ =
+            case accessRule of
+                Just rule ->
+                    mountScriptElements context share exportLocation rule
+
+                Nothing ->
+                    []
+    in
+    Element.column [ Element.spacing spacer.px12, Element.width Element.fill ] <|
+        List.concat
+            [ [ ruleSelector ]
+            , mountScriptElements_
+            ]
+
+
+mountScriptElements : View.Types.Context -> Share -> ExportLocation -> AccessRule -> List (Element.Element msg)
+mountScriptElements context share exportLocation accessRule =
+    let
+        { baseUrl, urlPathPrefix } =
+            context
+
+        scriptUrl =
+            Url.toString
+                { baseUrl
+                    | path =
+                        String.join "/"
+                            [ urlPathPrefix
+                                |> Maybe.map (\prefix -> "/" ++ prefix)
+                                |> Maybe.withDefault ""
+                            , "assets"
+                            , "scripts"
+                            , "mount-ceph.py"
                             ]
+                }
 
-                        Nothing ->
-                            [ Element.none ]
-            in
-            Element.column [ Element.spacing spacer.px12, Element.width Element.fill ] <|
-                List.concat
-                    [ if singleAccessRule then
-                        []
+        mountScript =
+            String.join " \\\n     "
+                [ "curl " ++ scriptUrl ++ " | sudo python3 - mount"
+                , "--access-rule-name=\"" ++ accessRule.accessTo ++ "\""
+                , "--access-rule-key=\"" ++ (accessRule.accessKey |> Maybe.withDefault "nokey") ++ "\""
+                , "--share-path=\"" ++ exportLocation.path ++ "\""
+                , "--share-name=\"" ++ (share.name |> Maybe.withDefault context.localization.share) ++ "\""
+                ]
 
-                      else
-                        [ Select.select []
-                            context.palette
-                            { onChange = SelectAccessKey
-                            , selected = model.selectedAccessKey
-                            , label = "Select an Access Rule"
-                            , options =
-                                accessRules
-                                    |> List.filterMap
-                                        (\accessRule ->
-                                            case accessRule.state of
-                                                Active ->
-                                                    Just
-                                                        ( accessRule.uuid
-                                                        , accessRule.accessTo
-                                                            ++ " ("
-                                                            ++ accessRuleAccessLevelToString accessRule.accessLevel
-                                                            ++ ")"
-                                                        )
+        unmountScript =
+            String.join " \\\n     "
+                [ "curl " ++ scriptUrl ++ " | sudo python3 - unmount"
+                , "--share-name=\"" ++ (share.name |> Maybe.withDefault context.localization.share) ++ "\""
+                ]
+    in
+    [ Element.paragraph []
+        [ Element.text <|
+            "Run the following command on your "
+                ++ context.localization.virtualComputer
+                ++ " to mount this "
+                ++ context.localization.share
+        ]
+    , copyableScript context.palette mountScript
+    , Element.paragraph []
+        [ Element.text <|
+            "To unmount this "
+                ++ context.localization.share
+                ++ ", this command may be used"
+        ]
+    , copyableScript context.palette unmountScript
+    ]
 
-                                                _ ->
-                                                    Nothing
-                                        )
-                            }
-                        ]
-                    , mountScriptElement
-                    ]
+
+accessRuleSelector : View.Types.Context -> Model -> List AccessRule -> Element.Element Msg
+accessRuleSelector context model accessRules =
+    let
+        getOption : AccessRule -> Maybe ( AccessRuleUuid, String )
+        getOption accessRule =
+            case accessRule.state of
+                Active ->
+                    Just
+                        ( accessRule.uuid
+                        , accessRule.accessTo
+                            ++ " ("
+                            ++ accessRuleAccessLevelToString accessRule.accessLevel
+                            ++ ")"
+                        )
+
+                _ ->
+                    Nothing
+
+        options =
+            List.filterMap getOption accessRules
+    in
+    Select.select []
+        context.palette
+        { onChange = SelectAccessKey
+        , selected = model.selectedAccessKey
+        , label = "Select an Access Rule"
+        , options = options
+        }
 
 
 exportLocationsTable : ExoPalette -> List ExportLocation -> Element.Element Msg
@@ -500,9 +526,9 @@ render context project ( currentTime, _ ) model share =
 
         accessRules =
             case Dict.get share.uuid project.shareAccessRules of
-                Just loadingAccessRules ->
+                Just accessRulesRDPP ->
                     VH.renderRDPP context
-                        loadingAccessRules
+                        accessRulesRDPP
                         (context.localization.accessRule |> Helpers.String.pluralize)
                         (accessRulesTable context.palette)
 
@@ -511,22 +537,22 @@ render context project ( currentTime, _ ) model share =
 
         exportLocations =
             case Dict.get share.uuid project.shareExportLocations of
-                Just loadingExportLocations ->
+                Just exportLocationsRDPP ->
                     VH.renderRDPP context
-                        loadingExportLocations
+                        exportLocationsRDPP
                         (context.localization.exportLocation |> Helpers.String.pluralize)
                         (exportLocationsTable context.palette)
 
                 Nothing ->
                     Element.none
 
-        mountScript =
+        mountTileContents =
             case ( Dict.get share.uuid project.shareExportLocations, Dict.get share.uuid project.shareAccessRules ) of
-                ( Just loadingExportLocations, Just loadingAccessRules ) ->
+                ( Just exportLocationsRDPP, Just accessRulesRDPP ) ->
                     VH.renderRDPP context
-                        (RDPP.map2 Tuple.pair loadingExportLocations loadingAccessRules)
+                        (RDPP.map2 Tuple.pair exportLocationsRDPP accessRulesRDPP)
                         (context.localization.exportLocation |> Helpers.String.pluralize)
-                        (renderMountScript context model share)
+                        (renderMountTileContents context model share)
 
                 _ ->
                     Element.none
@@ -603,5 +629,5 @@ render context project ( currentTime, _ ) model share =
                     |> Helpers.String.toTitleCase
                 )
             ]
-            [ mountScript ]
+            [ mountTileContents ]
         ]
