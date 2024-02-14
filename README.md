@@ -76,7 +76,9 @@ What can I do with Exosphere?
 
 ## Collaborate With Us
 
-Talk to us in real-time on [Matrix / Element](https://matrix.to/#/#exosphere:matrix.org). You can also [browse an archive](https://view.matrix.org/room/!qALrQaRCgWgkQcBoKG:matrix.org/) of the chat history.
+Talk to us in real-time on [Matrix / Element - #exosphere:matrix.org](https://matrix.to/#/#exosphere:matrix.org). You can also [browse an archive](https://view.matrix.org/room/!qALrQaRCgWgkQcBoKG:matrix.org/) of the chat history.
+
+There's also a developer-focused [Matrix / Element - #exosphere-dev:matrix.org](https://matrix.to/#/#exosphere-dev:matrix.org) chat with a [browsable archive](https://view.matrix.org/room/!XybqdsuDqzOURHcTIV:matrix.org/).
 
 We use GitLab to track issues and contributions. To request a new feature or report a bug, [create a new issue](https://gitlab.com/exosphere/exosphere/-/issues/new) on our GitLab project.
 
