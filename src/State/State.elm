@@ -1628,15 +1628,9 @@ processProjectSpecificMsg outerModel project msg =
                             non404
 
         ReceiveFlavors flavors ->
-            let
-                ( newOuterModel, newCmd ) =
-                    Rest.Nova.receiveFlavors sharedModel project flavors
-                        |> mapToOuterMsg
-                        |> mapToOuterModel outerModel
-            in
-            ( newOuterModel, newCmd )
-                |> pipelineCmdOuterModelMsg
-                    (updateUnderlying (ServerCreateMsg <| Page.ServerCreate.GotFlavorList))
+            Rest.Nova.receiveFlavors sharedModel project flavors
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
 
         ReceiveKeypairs errorContext result ->
             case result of

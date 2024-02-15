@@ -41,11 +41,13 @@ import Style.Widgets.Text as Text exposing (TextVariant(..))
 import Style.Widgets.ToggleTip
 import Style.Widgets.Validation exposing (invalidMessage)
 import Time
+import Types.Error exposing (HttpErrorWithBody)
 import Types.HelperTypes as HelperTypes
     exposing
         ( FloatingIpAssignmentStatus(..)
         , FloatingIpOption(..)
         , FloatingIpReuseOption(..)
+        , SelectedFlavor(..)
         )
 import Types.Project exposing (Project)
 import Types.Server exposing (NewServerNetworkOptions(..), Server)
@@ -67,7 +69,6 @@ type Msg
     | GotCount Int
     | GotCreateServerButtonPressed OSTypes.NetworkUuid OSTypes.FlavorId
     | GotFlavorId OSTypes.FlavorId
-    | GotFlavorList
     | GotVolSizeTextInput (Maybe NumericTextInput)
     | GotUserDataTemplate String
     | GotNetworks
@@ -96,7 +97,7 @@ init project imageUuid imageName restrictFlavorIds deployGuacamole =
     , imageName = imageName
     , restrictFlavorIds = restrictFlavorIds
     , count = 1
-    , flavorId = Nothing
+    , selectedFlavor = DefaultFlavorSelection
     , volSizeTextInput = Nothing
     , userDataTemplate = cloudInitUserDataTemplate
     , networkUuid = Nothing
@@ -171,6 +172,29 @@ initialKeypairName project =
         |> List.head
 
 
+getAllowedFlavors : Model -> List OSTypes.Flavor -> List OSTypes.Flavor
+getAllowedFlavors model projectFlavors =
+    let
+        allowedFlavors : List OSTypes.Flavor
+        allowedFlavors =
+            case model.restrictFlavorIds of
+                Nothing ->
+                    projectFlavors
+
+                Just restrictedFlavorIds ->
+                    List.filterMap
+                        (\flavor ->
+                            if List.member flavor.id restrictedFlavorIds then
+                                Nothing
+
+                            else
+                                Just flavor
+                        )
+                        projectFlavors
+    in
+    GetterSetters.sortedFlavors allowedFlavors
+
+
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
 update msg project model =
     case msg of
@@ -200,35 +224,13 @@ update msg project model =
             )
 
         GotFlavorId flavorId ->
-            ( enforceQuotaCompliance project { model | flavorId = Just flavorId }, Cmd.none, SharedMsg.NoOp )
-
-        GotFlavorList ->
-            let
-                allowedFlavors =
-                    case model.restrictFlavorIds of
-                        Nothing ->
-                            RDPP.withDefault [] project.flavors
-
-                        Just restrictedFlavorIds ->
-                            restrictedFlavorIds
-                                |> List.filterMap (GetterSetters.flavorLookup project)
-
-                maybeSmallestFlavor =
-                    GetterSetters.sortedFlavors allowedFlavors |> List.head
-            in
-            case maybeSmallestFlavor of
-                Just smallestFlavor ->
-                    ( enforceQuotaCompliance project
-                        { model
-                            | flavorId =
-                                Just <| Maybe.withDefault smallestFlavor.id model.flavorId
-                        }
-                    , Cmd.none
-                    , SharedMsg.NoOp
-                    )
-
+            case GetterSetters.flavorLookup project flavorId of
                 Nothing ->
+                    -- Should we indicate an error here? How?
                     ( model, Cmd.none, SharedMsg.NoOp )
+
+                Just flavor ->
+                    ( enforceQuotaCompliance project { model | selectedFlavor = WithSelectedFlavor flavor }, Cmd.none, SharedMsg.NoOp )
 
         GotVolSizeTextInput maybeVolSizeInput ->
             ( enforceQuotaCompliance project { model | volSizeTextInput = maybeVolSizeInput }, Cmd.none, SharedMsg.NoOp )
@@ -369,12 +371,37 @@ update msg project model =
             ( model, Cmd.none, SharedMsg.NoOp )
 
 
+getSelectedFlavorMaybe : Model -> RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Flavor) -> Maybe OSTypes.Flavor
+getSelectedFlavorMaybe model projectFlavors =
+    case projectFlavors.data of
+        RDPP.DontHave ->
+            Nothing
+
+        RDPP.DoHave flavors _ ->
+            case getAllowedFlavors model flavors of
+                [] ->
+                    Nothing
+
+                smallestFlavor :: _ ->
+                    Just <| getSelectedFlavor model.selectedFlavor smallestFlavor
+
+
+getSelectedFlavor : SelectedFlavor -> OSTypes.Flavor -> OSTypes.Flavor
+getSelectedFlavor flavorSelection smallestFlavor =
+    case flavorSelection of
+        WithSelectedFlavor flavor ->
+            flavor
+
+        DefaultFlavorSelection ->
+            smallestFlavor
+
+
 enforceQuotaCompliance : Project -> Model -> Model
 enforceQuotaCompliance project model =
     -- If user is trying to choose a combination of flavor, volume-backed disk size, and count
     -- that would exceed quota, reduce count to comply with quota.
     case
-        ( model.flavorId |> Maybe.andThen (GetterSetters.flavorLookup project)
+        ( getSelectedFlavorMaybe model project.flavors
         , project.computeQuota.data
         , project.volumeQuota.data
         )
@@ -476,6 +503,7 @@ view context project currentTime model =
                         [ Element.text guidanceText
                         ]
 
+        contents : OSTypes.Flavor -> OSTypes.ComputeQuota -> OSTypes.VolumeQuota -> List (Element.Element Msg)
         contents flavor computeQuota volumeQuota =
             let
                 canBeLaunched quota fl =
@@ -510,13 +538,13 @@ view context project currentTime model =
                 ( createOnPress, maybeInvalidFormFields ) =
                     case ( invalidNameReasons, invalidInputs ) of
                         ( Nothing, False ) ->
-                            case ( model.networkUuid, model.flavorId ) of
-                                ( Just netUuid, Just flavorId ) ->
-                                    ( Just <| GotCreateServerButtonPressed netUuid flavorId
+                            case model.networkUuid of
+                                Just netUuid ->
+                                    ( Just <| GotCreateServerButtonPressed netUuid flavor.id
                                     , Nothing
                                     )
 
-                                ( _, _ ) ->
+                                _ ->
                                     let
                                         invalidNetworkField =
                                             if model.networkUuid == Nothing then
@@ -525,15 +553,8 @@ view context project currentTime model =
                                             else
                                                 []
 
-                                        invalidFlavorField =
-                                            if model.flavorId == Nothing then
-                                                [ "flavor" ]
-
-                                            else
-                                                []
-
                                         invalidFormFields =
-                                            invalidNetworkField ++ invalidFlavorField
+                                            invalidNetworkField
                                     in
                                     ( Nothing, Just invalidFormFields )
 
@@ -695,7 +716,7 @@ view context project currentTime model =
                 (\flavorGroupTipId -> SharedMsg <| SharedMsg.TogglePopover flavorGroupTipId)
                 (Helpers.String.hyphenate [ "serverCreateFlavorGroupTip", project.auth.project.uuid ])
                 Nothing
-                model.flavorId
+                (Just flavor.id)
                 GotFlavorId
             , volBackedPrompt project context model volumeQuota flavor
             , countPicker context model computeQuota volumeQuota flavor
@@ -780,17 +801,62 @@ view context project currentTime model =
             , Element.spacing spacer.px32
             ]
           <|
-            case
-                ( model.flavorId |> Maybe.andThen (GetterSetters.flavorLookup project)
-                , RDPP.toMaybe project.computeQuota
-                , RDPP.toMaybe project.volumeQuota
-                )
-            of
-                ( Just flavor, Just computeQuota, Just volumeQuota ) ->
-                    contents flavor computeQuota volumeQuota
+            case ( project.flavors.data, project.flavors.refreshStatus ) of
+                ( RDPP.DontHave, RDPP.NotLoading Nothing ) ->
+                    --
+                    [ Element.text "Uninitialized" ]
 
-                _ ->
+                ( RDPP.DontHave, RDPP.Loading ) ->
                     [ loading "Loading..." ]
+
+                ( RDPP.DontHave, RDPP.NotLoading (Just _) ) ->
+                    -- Error will be shown to the user via another method
+                    []
+
+                ( RDPP.DoHave flavors _, _ ) ->
+                    let
+                        allowedFlavors =
+                            getAllowedFlavors model flavors
+                    in
+                    case allowedFlavors of
+                        [] ->
+                            case flavors of
+                                [] ->
+                                    [ Element.text <|
+                                        String.concat
+                                            [ Helpers.String.toTitleCase context.localization.unitOfTenancy
+                                            , " has no flavors assigned. You cannot create "
+                                            , Helpers.String.pluralize context.localization.virtualComputer
+                                            , " until flavors are made available. Contact your OpenStack administrator."
+                                            ]
+                                    ]
+
+                                _ ->
+                                    [ Element.text <|
+                                        String.concat
+                                            [ "You are not allowed to use any of the flavors in your "
+                                            , context.localization.unitOfTenancy
+                                            , ". You cannot create "
+                                            , Helpers.String.pluralize context.localization.virtualComputer
+                                            , " until flavors are made available. Contact your OpenStack administrator."
+                                            ]
+                                    ]
+
+                        smallestFlavor :: _ ->
+                            case
+                                ( RDPP.toMaybe project.computeQuota
+                                , RDPP.toMaybe project.volumeQuota
+                                )
+                            of
+                                ( Just computeQuota, Just volumeQuota ) ->
+                                    let
+                                        selectedFlavor =
+                                            getSelectedFlavor model.selectedFlavor smallestFlavor
+                                    in
+                                    contents selectedFlavor computeQuota volumeQuota
+
+                                _ ->
+                                    [ loading "Loading..." ]
         ]
 
 
@@ -1403,15 +1469,15 @@ desktopEnvironmentPicker context project model =
               in
               case model.volSizeTextInput of
                 Nothing ->
-                    case model.flavorId |> Maybe.andThen (GetterSetters.flavorLookup project) of
-                        Just flavor ->
+                    case model.selectedFlavor of
+                        WithSelectedFlavor flavor ->
                             if flavor.disk_root < warningMaxGB then
                                 Just <| Element.text rootDiskWarnText
 
                             else
                                 Nothing
 
-                        Nothing ->
+                        _ ->
                             Nothing
 
                 Just numericTextInput ->
@@ -1896,9 +1962,12 @@ compareDiskSize project model =
         selectedDiskSize =
             case model.volSizeTextInput of
                 Nothing ->
-                    model.flavorId
-                        |> Maybe.andThen (GetterSetters.flavorLookup project)
-                        |> Maybe.map .disk_root
+                    case model.selectedFlavor of
+                        WithSelectedFlavor flavor ->
+                            Just <| .disk_root flavor
+
+                        _ ->
+                            Nothing
 
                 Just volSize ->
                     Style.Widgets.NumericTextInput.NumericTextInput.toMaybe volSize
