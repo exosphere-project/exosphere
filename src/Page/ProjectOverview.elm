@@ -32,7 +32,6 @@ type alias Model =
 
 type Msg
     = SharedMsg SharedMsg.SharedMsg
-    | NoOp
 
 
 init : Model
@@ -45,9 +44,6 @@ update msg _ model =
     case msg of
         SharedMsg sharedMsg ->
             ( model, Cmd.none, sharedMsg )
-
-        NoOp ->
-            ( model, Cmd.none, SharedMsg.NoOp )
 
 
 view : View.Types.Context -> Project -> Time.Posix -> Model -> Element.Element Msg

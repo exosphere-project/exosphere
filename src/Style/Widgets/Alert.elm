@@ -1,4 +1,4 @@
-module Style.Widgets.Alert exposing (AlertState(..), alert)
+module Style.Widgets.Alert exposing (AlertState(..), alert, notes)
 
 import Element
 import Element.Background as Background
@@ -11,6 +11,17 @@ import Style.Types as ST
 import Style.Widgets.Icon exposing (featherIcon)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
+
+
+notes : String
+notes =
+    """
+## Usage
+
+Alert widgets show notifications in a consistent way
+
+They are often used to show issues during form validation or to notify of status changes
+"""
 
 
 type AlertState

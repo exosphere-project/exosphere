@@ -40,11 +40,11 @@ git clone https://gitlab.com/exosphere/exosphere.git
 cd exosphere
 ```
 
-Build the container and run it with a bind mount to `src/`:
+Build the container and run it, bind mounting in `src/` and all other files needed by the application.
 
 ```
 docker build -t exosphere .
-docker run --rm -v $PWD/src:/usr/src/app/src -it --name exosphere -p 127.0.0.1:8000:8000 exosphere
+./docker/start-docker-dev.sh exosphere
 ```
 
 You should see `elm-live` starting in the `docker run` output:

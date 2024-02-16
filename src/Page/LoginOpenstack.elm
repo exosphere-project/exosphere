@@ -38,7 +38,6 @@ type Msg
     | GotSelectCredsInput
     | GotProcessOpenRc
     | SharedMsg SharedMsg.SharedMsg
-    | NoOp
 
 
 init : Maybe OSTypes.OpenstackLogin -> Model
@@ -106,9 +105,6 @@ update msg _ model =
 
         SharedMsg sharedMsg ->
             ( model, Cmd.none, sharedMsg )
-
-        NoOp ->
-            ( model, Cmd.none, SharedMsg.NoOp )
 
 
 headerView : View.Types.Context -> Element.Element msg
