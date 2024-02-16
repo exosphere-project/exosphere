@@ -41,6 +41,7 @@ module Helpers.GetterSetters exposing
     , projectSetVolumesLoading
     , projectUpdateKeypair
     , projectUpdateServer
+    , sanitizeMountpoint
     , serverCreatedByCurrentUser
     , serverExoServerVersion
     , serverLookup
@@ -58,7 +59,7 @@ module Helpers.GetterSetters exposing
     , volNameToMountpoint
     , volumeDeviceRawName
     , volumeIsAttachedToServer
-    , volumeLookup, sanitizeMountpoint
+    , volumeLookup
     )
 
 import Dict
