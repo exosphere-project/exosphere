@@ -127,7 +127,7 @@ searchStringForToken range varName localStr word =
         filters =
             List.concat
                 [ if isPluralized then
-                    [ "Helpers.String.pluralized" ]
+                    [ "Helpers.String.pluralize" ]
 
                   else
                     []

@@ -85,7 +85,7 @@ s = "Clouds"
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Replace `Clouds` with (context.localization.openstackWithOwnKeystone |> Helpers.String.pluralized |> Helpers.String.toTitleCase)"
+                            { message = "Replace `Clouds` with (context.localization.openstackWithOwnKeystone |> Helpers.String.pluralize |> Helpers.String.toTitleCase)"
                             , details =
                                 [ "Clouds is a localized string, and should not be hardcoded"
                                 , "If this is intentional, tag the string with a {- @nonlocalized -} comment on the preceding line"
