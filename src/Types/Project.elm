@@ -26,7 +26,7 @@ type alias Project =
     , shares : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Share)
     , shareAccessRules : Dict OSTypes.ShareUuid (RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.AccessRule))
     , shareExportLocations : Dict OSTypes.ShareUuid (RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.ExportLocation))
-    , flavors : List OSTypes.Flavor
+    , flavors : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Flavor)
     , keypairs : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Keypair)
     , volumes : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Volume)
     , volumeSnapshots : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List VolumeSnapshot)

@@ -1,6 +1,7 @@
 module Rest.ApiModelHelpers exposing
     ( requestAutoAllocatedNetwork
     , requestComputeQuota
+    , requestFlavors
     , requestFloatingIps
     , requestImages
     , requestJetstream2Allocation
@@ -41,6 +42,19 @@ import Types.SharedMsg exposing (SharedMsg)
 
 
 {- This module assists with making API calls that also require updating the model when the API call is placed. Typically, we set the resource to "loading" status while we wait for a response from the API. -}
+
+
+requestFlavors : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd SharedMsg )
+requestFlavors projectUuid model =
+    case GetterSetters.projectLookup model projectUuid of
+        Nothing ->
+            ( model, Cmd.none )
+
+        Just project ->
+            ( { project | flavors = RDPP.setLoading project.flavors }
+                |> GetterSetters.modelUpdateProject model
+            , Rest.Nova.requestFlavors project
+            )
 
 
 requestServers : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd SharedMsg )

@@ -1100,7 +1100,7 @@ flavorPicker context project restrictFlavorIds computeQuota flavorGroupToggleTip
         allowedFlavors =
             case restrictFlavorIds of
                 Nothing ->
-                    project.flavors
+                    RDPP.withDefault [] project.flavors
 
                 Just restrictedFlavorIds ->
                     restrictedFlavorIds
@@ -1376,7 +1376,7 @@ createdAgoByFromSize context ( agoWord, agoContents ) maybeWhoCreatedTuple maybe
             Element.row [ Element.padding spacer.px8 ]
                 [ Element.el [ subduedText ] (Element.text "Burn rate ")
                 , String.concat
-                    [ Helpers.Jetstream2.calculateAllocationBurnRate flavors server
+                    [ Helpers.Jetstream2.calculateAllocationBurnRate (RDPP.withDefault [] flavors) server
                         |> Maybe.map (Helpers.Formatting.humanRatio context.locale)
                         |> Maybe.withDefault "Unknown"
                     , " SUs/hour"

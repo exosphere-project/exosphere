@@ -207,7 +207,7 @@ update msg project model =
                 allowedFlavors =
                     case model.restrictFlavorIds of
                         Nothing ->
-                            project.flavors
+                            RDPP.withDefault [] project.flavors
 
                         Just restrictedFlavorIds ->
                             restrictedFlavorIds
@@ -487,7 +487,7 @@ view context project currentTime model =
                 flavorAvailability =
                     model.restrictFlavorIds
                         |> Maybe.map (List.filterMap (GetterSetters.flavorLookup project))
-                        |> Maybe.withDefault project.flavors
+                        |> Maybe.withDefault (RDPP.withDefault [] project.flavors)
                         |> List.map (canBeLaunched computeQuota)
 
                 hasAvailableResources =
