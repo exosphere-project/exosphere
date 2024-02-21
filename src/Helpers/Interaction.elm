@@ -101,7 +101,7 @@ interactionStatus project server interaction context currentTime tlsReverseProxy
                                         ]
 
                             ServerFromExo exoOriginProps ->
-                                serverFromExoInteractionStatus server context currentTime tlsReverseProxyHostname exoOriginProps maybeFloatingIpAddress
+                                customWorkflowfinteractionStatus server context currentTime tlsReverseProxyHostname exoOriginProps maybeFloatingIpAddress
 
                     else
                         ITypes.Hidden
@@ -216,7 +216,7 @@ interactionDetails interaction context =
                 ITypes.UrlInteraction
 
 
-serverFromExoInteractionStatus :
+customWorkflowfinteractionStatus :
     Server
     -> View.Types.Context
     -> Time.Posix
@@ -224,7 +224,7 @@ serverFromExoInteractionStatus :
     -> ServerFromExoProps
     -> Maybe OSTypes.IpAddressValue
     -> ITypes.InteractionStatus
-serverFromExoInteractionStatus server context currentTime tlsReverseProxyHostname exoOriginProps maybeFloatingIpAddress =
+customWorkflowfinteractionStatus server context currentTime tlsReverseProxyHostname exoOriginProps maybeFloatingIpAddress =
     case exoOriginProps.customWorkflowStatus of
         NotLaunchedWithCustomWorkflow ->
             -- Either exoOriginProps.exoServerVersion < 3, or instance was deployed without a workflow

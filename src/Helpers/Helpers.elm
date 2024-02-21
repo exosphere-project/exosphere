@@ -298,8 +298,8 @@ ipv4AddressInRfc1918Space ipValue =
             Err "Could not parse IPv4 address, it may be IPv6?"
 
 
-getOpenRCUserDataYaml : Project -> String
-getOpenRCUserDataYaml project =
+getVirtClusterWriteFilesYaml : Project -> String
+getVirtClusterWriteFilesYaml project =
     let
         openrcFileYamlTemplate : String
         openrcFileYamlTemplate =
@@ -420,7 +420,7 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
         ( createClusterYaml, writeFilesYaml ) =
             if createCluster then
                 ( """su - rocky -c "git clone --branch rocky-linux --single-branch --depth 1 https://github.com/XSEDE/CRI_Jetstream_Cluster.git; cd CRI_Jetstream_Cluster; ./cluster_create_local.sh -d 2>&1 | tee local_create.log" """
-                , "\nwrite_files:" ++ getOpenRCUserDataYaml project
+                , "\nwrite_files:" ++ getVirtClusterWriteFilesYaml project
                 )
 
             else
