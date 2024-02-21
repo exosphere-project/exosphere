@@ -1,4 +1,4 @@
-module OpenStack.Shares exposing (requestShareAccessRules, requestShareExportLocations, requestShares)
+module OpenStack.Shares exposing (requestDeleteShare, requestShareAccessRules, requestShareExportLocations, requestShares)
 
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Time
@@ -9,6 +9,7 @@ import OpenStack.Types as OSTypes
 import Rest.Helpers
     exposing
         ( expectJsonWithErrorBody
+        , expectStringWithErrorBody
         , openstackCredentialedRequest
         , resultToMsgErrorBody
         )
@@ -151,3 +152,27 @@ exportLocationDecoder =
         |> Pipeline.required "id" Decode.string
         |> Pipeline.required "path" Decode.string
         |> Pipeline.required "preferred" Decode.bool
+
+
+requestDeleteShare : Project -> Url -> OSTypes.ShareUuid -> Cmd SharedMsg
+requestDeleteShare project url shareUuid =
+    let
+        errorContext =
+            ErrorContext
+                ("delete share " ++ shareUuid)
+                ErrorCrit
+                (Just "Perhaps you are trying to delete a share that has an action in progress? If so, please try again later.")
+
+        resultToMsg_ =
+            resultToMsgErrorBody
+                errorContext
+                (\_ -> ProjectMsg (GetterSetters.projectIdentifier project) ReceiveDeleteShare)
+    in
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Delete
+        Nothing
+        []
+        (url ++ "/shares/" ++ shareUuid)
+        Http.emptyBody
+        (expectStringWithErrorBody resultToMsg_)
