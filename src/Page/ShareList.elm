@@ -9,12 +9,15 @@ import Helpers.Formatting exposing (Unit(..), humanNumber)
 import Helpers.GetterSetters as GetterSetters
 import Helpers.ResourceList exposing (creationTimeFilterOptions, listItemColumnAttribs, onCreationTimeFilter)
 import Helpers.String
-import OpenStack.Types as OSTypes
+import OpenStack.Types as OSTypes exposing (ShareStatus(..))
 import Page.QuotaUsage
 import Route
 import Style.Helpers as SH
+import Style.Types as ST
 import Style.Widgets.DataList as DataList
+import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirmContent)
 import Style.Widgets.HumanTime exposing (relativeTimeElement)
+import Style.Widgets.Popover.Popover exposing (popover)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Time
@@ -31,8 +34,10 @@ type alias Model =
 
 
 type Msg
-    = DataListMsg DataList.Msg
+    = NoOp
+    | DataListMsg DataList.Msg
     | SharedMsg SharedMsg.SharedMsg
+    | GotDeleteConfirm OSTypes.ShareUuid
 
 
 init : Bool -> Model
@@ -40,14 +45,24 @@ init showHeading =
     Model showHeading (DataList.init <| DataList.getDefaultFilterOptions (filters (Time.millisToPosix 0)))
 
 
-update : Msg -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
-update msg model =
+update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
+update msg project model =
     case msg of
+        NoOp ->
+            ( model, Cmd.none, SharedMsg.NoOp )
+
         SharedMsg sharedMsg ->
             ( model, Cmd.none, sharedMsg )
 
         DataListMsg dataListMsg ->
             ( { model | dataListModel = DataList.update dataListMsg model.dataListModel }, Cmd.none, SharedMsg.NoOp )
+
+        GotDeleteConfirm shareUuid ->
+            ( model
+            , Cmd.none
+            , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
+                SharedMsg.RequestDeleteShare shareUuid
+            )
 
 
 view : View.Types.Context -> Project -> Time.Posix -> Model -> Element.Element Msg
@@ -122,7 +137,7 @@ shareRecords project shares =
         shares
 
 
-shareView : View.Types.Context -> Project -> Time.Posix -> ShareRecord -> Element.Element msg
+shareView : View.Types.Context -> Project -> Time.Posix -> ShareRecord -> Element.Element Msg
 shareView context project currentTime shareRecord =
     let
         { locale } =
@@ -164,21 +179,79 @@ shareView context project currentTime shareRecord =
 
         accented =
             Element.el [ Font.color accentColor ]
+
+        actions =
+            case shareRecord.share.status of
+                ShareDeleting ->
+                    Text.text Text.Body [ Font.italic ] "Deleting..."
+
+                ShareErrorDeleting ->
+                    Text.text Text.Body [ Font.italic ] ("Could not delete " ++ context.localization.share ++ ".")
+
+                ShareAvailable ->
+                    let
+                        deleteBtn togglePopconfirmMsg _ =
+                            deleteIconButton
+                                context.palette
+                                False
+                                ("Delete " ++ context.localization.share)
+                                (Just togglePopconfirmMsg)
+
+                        deletePopconfirmId =
+                            Helpers.String.hyphenate
+                                [ "shareListDeletePopconfirm"
+                                , project.auth.project.uuid
+                                , shareRecord.id
+                                ]
+                    in
+                    popover context
+                        (\deletePopconfirmId_ -> SharedMsg <| SharedMsg.TogglePopover deletePopconfirmId_)
+                        { id = deletePopconfirmId
+                        , content =
+                            \confirmEl ->
+                                Element.column [ Element.spacing spacer.px8, Element.padding spacer.px4 ] <|
+                                    [ deletePopconfirmContent
+                                        context.palette
+                                        { confirmation =
+                                            Element.text <|
+                                                "Are you sure you want to delete this "
+                                                    ++ context.localization.share
+                                                    ++ "?"
+                                        , buttonText = Nothing
+                                        , onCancel = Just NoOp
+                                        , onConfirm = Just <| GotDeleteConfirm shareRecord.id
+                                        }
+                                        confirmEl
+                                    ]
+                        , contentStyleAttrs = []
+                        , position = ST.PositionBottomRight
+                        , distanceToTarget = Nothing
+                        , target = deleteBtn
+                        , targetStyleAttrs = []
+                        }
+
+                _ ->
+                    Element.none
     in
     Element.column
         (listItemColumnAttribs context.palette)
         [ Element.row [ Element.spacing spacer.px12, Element.width Element.fill ]
-            [ shareLink
-            , Element.el [ Element.alignRight ]
-                shareSize
-            ]
-        , Element.el [ Element.spacing spacer.px8, Element.width Element.fill ] <|
-            Element.paragraph [ Element.spacing spacer.px8, Element.width Element.fill ]
-                [ Element.text "created "
-                , accented (relativeTimeElement currentTime shareRecord.share.createdAt)
-                , Element.text " by "
-                , accented (Element.text shareRecord.creator)
+            [ Element.column [ Element.spacing spacer.px12, Element.width Element.fill ]
+                [ shareLink
+                , Element.row [ Element.spacing spacer.px8, Element.width Element.fill ]
+                    [ shareSize
+                    , Element.text "·"
+                    , Element.paragraph [ Element.spacing spacer.px8 ]
+                        [ Element.text "created "
+                        , accented (relativeTimeElement currentTime shareRecord.share.createdAt)
+                        , Element.text " by "
+                        , accented (Element.text shareRecord.creator)
+                        ]
+                    ]
                 ]
+            , Element.el [ Element.alignRight, Element.alignTop ]
+                actions
+            ]
         ]
 
 
