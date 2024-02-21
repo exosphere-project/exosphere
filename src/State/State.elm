@@ -2043,9 +2043,20 @@ processProjectSpecificMsg outerModel project msg =
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
-        ReceiveDeleteShare ->
-            -- TODO: If we are on the share detail page, we should navigate to the shares list.
-            ( outerModel, Cmd.none )
+        ReceiveDeleteShare shareUuid ->
+            ( outerModel
+            , case outerModel.viewState of
+                ProjectView _ (ShareDetail pageModel) ->
+                    -- If we are on the share detail page, navigate to the shares list.
+                    if pageModel.shareUuid == shareUuid then
+                        Route.pushUrl sharedModel.viewContext (Route.ProjectRoute (GetterSetters.projectIdentifier project) Route.ShareList)
+
+                    else
+                        Cmd.none
+
+                _ ->
+                    Cmd.none
+            )
 
         ReceiveCreateVolume ->
             {- Should we add new volume to model now? -}
