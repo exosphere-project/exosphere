@@ -1611,10 +1611,6 @@ serverVolumes context project server =
 
         _ ->
             let
-                vdevice : { a | device : String } -> Element.Element msg
-                vdevice =
-                    \v -> Element.text v.device
-
                 volDetailsButton v =
                     Element.link []
                         { url =
@@ -1670,7 +1666,7 @@ serverVolumes context project server =
                           else
                             [ { header = Element.el [ Font.heavy ] <| Element.text "Device"
                               , width = Element.fill
-                              , view = vdevice
+                              , view = \v -> Element.text v.device
                               }
                             ]
                         , [ { header = Element.el [ Font.heavy ] <| Element.text "Mount point"
