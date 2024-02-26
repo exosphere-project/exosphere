@@ -34,6 +34,7 @@ import Page.ServerDetail
 import Page.ServerList
 import Page.ServerResize
 import Page.Settings
+import Page.ShareCreate
 import Page.ShareDetail
 import Page.ShareList
 import Page.VolumeAttach
@@ -355,6 +356,10 @@ projectContentView model context p viewConstructor =
             Page.ServerResize.view context p pageModel
                 |> Element.map ServerResizeMsg
 
+        ShareCreate pageModel ->
+            Page.ShareCreate.view context p model.clientCurrentTime pageModel
+                |> Element.map ShareCreateMsg
+
         ShareDetail pageModel ->
             Page.ShareDetail.view context p ( model.clientCurrentTime, model.timeZone ) pageModel
                 |> Element.map ShareDetailMsg
@@ -518,6 +523,8 @@ createProjectResourcesButton context projectId =
                     )
                     (Route.ProjectRoute projectId <| Route.FloatingIpCreate Nothing)
                     closeDropdown
+
+                -- TODO: Add create share dropdown button with experimental flag check
                 ]
 
         dropdownTarget toggleDropdownMsg dropdownIsShown =

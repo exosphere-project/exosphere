@@ -18,8 +18,9 @@ import Types.Project exposing (Project)
 
 type Resource
     = Compute String
-    | Volume String
     | Keypair String
+    | Share String
+    | Volume String
 
 
 
@@ -41,11 +42,15 @@ resourceNameAlreadyExists context project currentTime { resource, onSuggestionPr
                 Compute n ->
                     ( n, serverNameExists project, context.localization.virtualComputer )
 
-                Volume n ->
-                    ( n, volumeNameExists project, context.localization.blockDevice )
-
                 Keypair n ->
                     ( n, sshKeyNameExists project, context.localization.pkiPublicKeyForSsh )
+
+                Share n ->
+                    -- TODO: Do we mind if a share name already exists?
+                    ( n, \_ -> False, context.localization.share )
+
+                Volume n ->
+                    ( n, volumeNameExists project, context.localization.blockDevice )
 
         nameExists =
             checkNameExists name

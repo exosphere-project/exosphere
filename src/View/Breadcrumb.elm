@@ -244,6 +244,17 @@ breadcrumb_ outerModel context =
                                       }
                                     ]
 
+                                ShareCreate _ ->
+                                    [ { route = Nothing
+                                      , label =
+                                            String.join " "
+                                                [ "Create"
+                                                , context.localization.share
+                                                    |> Helpers.String.toTitleCase
+                                                ]
+                                      }
+                                    ]
+
                                 ShareDetail pageModel ->
                                     [ { route = Just <| Route.ProjectRoute projectId <| Route.ShareList
                                       , label =
