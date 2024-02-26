@@ -4,7 +4,9 @@ import Element
 import Element.Font as Font
 import Element.Input as Input
 import Helpers.GetterSetters as GetterSetters
+import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
+import OpenStack.Quotas as OSQuotas
 import OpenStack.Types as OSTypes exposing (ShareProtocol(..), defaultShareTypeNameForProtocol)
 import String exposing (trim)
 import Style.Helpers as SH
@@ -79,23 +81,25 @@ view context project currentTime model =
                 Nothing
 
         maybeQuotaAvail =
-            -- TODO: What is the share quota?
-            Nothing
+            project.shareQuota
+                |> RDPP.toMaybe
+                |> Maybe.map OSQuotas.shareQuotaAvail
 
-        ( canAttemptCreate, gbAvail ) =
+        ( canAttemptCreate, gbAvail, perShareGigabytes ) =
             case maybeQuotaAvail of
-                Just ( numVolsAvail, volGbAvail_ ) ->
-                    ( case numVolsAvail of
+                Just ( numAvail, gbAvail_, perShareGigabytes_ ) ->
+                    ( case numAvail of
                         OSTypes.Limit l ->
                             l >= 1
 
                         OSTypes.Unlimited ->
                             True
-                    , volGbAvail_
+                    , gbAvail_
+                    , perShareGigabytes_
                     )
 
                 Nothing ->
-                    ( True, OSTypes.Unlimited )
+                    ( True, OSTypes.Unlimited, OSTypes.Unlimited )
     in
     Element.column
         VH.formContainer
@@ -135,11 +139,17 @@ view context project currentTime model =
                 { labelText = "Size in GB"
                 , minVal = Just 1
                 , maxVal =
-                    case gbAvail of
-                        OSTypes.Limit limit ->
-                            Just limit
+                    case ( gbAvail, perShareGigabytes ) of
+                        ( OSTypes.Limit totalLimit, OSTypes.Limit perShareLimit ) ->
+                            Just <| min totalLimit perShareLimit
 
-                        OSTypes.Unlimited ->
+                        ( OSTypes.Limit totalLimit, OSTypes.Unlimited ) ->
+                            Just totalLimit
+
+                        ( OSTypes.Unlimited, OSTypes.Limit perShareLimit ) ->
+                            Just perShareLimit
+
+                        ( OSTypes.Unlimited, OSTypes.Unlimited ) ->
                             Nothing
                 , defaultVal = Just 2
                 }

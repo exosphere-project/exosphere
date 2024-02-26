@@ -447,8 +447,12 @@ routeToViewStateModelCmd sharedModel route =
                         Route.ShareCreate ->
                             ( projectViewProto <| ShareCreate Page.ShareCreate.init
                             , sharedModel
-                              -- TODO: Request share quota.
-                            , Cmd.none
+                            , case project.endpoints.manila of
+                                Nothing ->
+                                    Cmd.none
+
+                                Just url ->
+                                    OSQuotas.requestShareQuota project url
                             )
 
                         Route.VolumeCreate ->
