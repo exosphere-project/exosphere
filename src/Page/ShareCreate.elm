@@ -24,19 +24,21 @@ import View.Types
 
 type alias Model =
     { name : String
+    , description : String
     , sizeInput : NumericTextInput
     }
 
 
 type Msg
     = GotName String
+    | GotDescription String
     | GotSize NumericTextInput
     | GotSubmit Int
 
 
 init : Model
 init =
-    Model "" (ValidNumericTextInput 10)
+    Model "" "" (ValidNumericTextInput 10)
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg )
@@ -45,11 +47,14 @@ update msg project model =
         GotName name ->
             ( { model | name = name }, Cmd.none, NoOp )
 
+        GotDescription description ->
+            ( { model | description = description }, Cmd.none, NoOp )
+
         GotSize sizeInput ->
             ( { model | sizeInput = sizeInput }, Cmd.none, NoOp )
 
         GotSubmit validSizeGb ->
-            ( model, Cmd.none, ProjectMsg (GetterSetters.projectIdentifier project) (RequestCreateShare (trim model.name) "" validSizeGb CephFS (defaultShareTypeNameForProtocol CephFS)) )
+            ( model, Cmd.none, ProjectMsg (GetterSetters.projectIdentifier project) (RequestCreateShare (trim model.name) (trim model.description) validSizeGb CephFS (defaultShareTypeNameForProtocol CephFS)) )
 
 
 view : View.Types.Context -> Project -> Time.Posix -> Model -> Element.Element Msg
@@ -139,6 +144,18 @@ view context project currentTime model =
                 , defaultVal = Just 2
                 }
                 GotSize
+            , Input.multiline
+                (VH.inputItemAttributes context.palette
+                    ++ [ Element.height <| Element.px 200
+                       , Element.width Element.fill
+                       ]
+                )
+                { onChange = GotDescription
+                , text = model.description
+                , placeholder = Just <| Input.placeholder [] (Text.body <| "An optional description for the " ++ context.localization.share ++ ".")
+                , label = Input.labelAbove [] (Element.text "Description (optional)")
+                , spellcheck = True
+                }
             , let
                 ( onPress, quotaWarnText ) =
                     if canAttemptCreate then
