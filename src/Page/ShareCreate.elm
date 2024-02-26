@@ -3,8 +3,10 @@ module Page.ShareCreate exposing (Model, Msg(..), init, update, view)
 import Element
 import Element.Font as Font
 import Element.Input as Input
+import Helpers.GetterSetters as GetterSetters
 import Helpers.String
-import OpenStack.Types as OSTypes
+import OpenStack.Types as OSTypes exposing (ShareProtocol(..), defaultShareTypeNameForProtocol)
+import String exposing (trim)
 import Style.Helpers as SH
 import Style.Widgets.Button as Button
 import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
@@ -14,7 +16,7 @@ import Style.Widgets.Text as Text
 import Style.Widgets.Validation as Validation
 import Time
 import Types.Project exposing (Project)
-import Types.SharedMsg exposing (SharedMsg(..))
+import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import View.Forms as Forms exposing (Resource(..))
 import View.Helpers as VH
 import View.Types
@@ -38,7 +40,7 @@ init =
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg )
-update msg _ model =
+update msg project model =
     case msg of
         GotName name ->
             ( { model | name = name }, Cmd.none, NoOp )
@@ -46,9 +48,8 @@ update msg _ model =
         GotSize sizeInput ->
             ( { model | sizeInput = sizeInput }, Cmd.none, NoOp )
 
-        GotSubmit _ ->
-            -- TODO: Request create share.
-            ( model, Cmd.none, NoOp )
+        GotSubmit validSizeGb ->
+            ( model, Cmd.none, ProjectMsg (GetterSetters.projectIdentifier project) (RequestCreateShare (trim model.name) "" validSizeGb CephFS (defaultShareTypeNameForProtocol CephFS)) )
 
 
 view : View.Types.Context -> Project -> Time.Posix -> Model -> Element.Element Msg

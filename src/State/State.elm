@@ -1383,6 +1383,41 @@ processProjectSpecificMsg outerModel project msg =
             ( outerModel, Rest.Nova.requestCreateServer project createServerRequest )
                 |> mapToOuterMsg
 
+        RequestCreateShare name description size protocol shareTypeName ->
+            let
+                createShareRequest =
+                    { name = name
+                    , description = description
+                    , size = size
+                    , protocol = protocol
+                    , shareType = shareTypeName
+                    }
+            in
+            case project.endpoints.manila of
+                Just manilaUrl ->
+                    ( outerModel, OSShares.requestCreateShare project manilaUrl createShareRequest )
+                        |> mapToOuterMsg
+
+                Nothing ->
+                    State.Error.processStringError
+                        sharedModel
+                        (ErrorContext
+                            ("create a " ++ viewContext.localization.share ++ " with name " ++ createShareRequest.name)
+                            ErrorCrit
+                            (Just <|
+                                "Confirm that your "
+                                    ++ viewContext.localization.unitOfTenancy
+                                    ++ " supports "
+                                    ++ pluralize viewContext.localization.share
+                                    ++ ", perhaps check with your "
+                                    ++ viewContext.localization.openstackWithOwnKeystone
+                                    ++ " administrator."
+                            )
+                        )
+                        ("Could not determine " ++ viewContext.localization.share ++ " endpoint.")
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
         RequestCreateVolume name size ->
             let
                 createVolumeRequest =
@@ -1995,6 +2030,12 @@ processProjectSpecificMsg outerModel project msg =
                     State.Error.processSynchronousApiError newModel errorContext httpError
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
+
+        ReceiveCreateShare ->
+            -- TODO: Should we create an access rule now?
+            ( outerModel
+            , Route.pushUrl sharedModel.viewContext (Route.ProjectRoute (GetterSetters.projectIdentifier project) Route.ShareList)
+            )
 
         ReceiveShareAccessRules ( shareUuid, accessRules ) ->
             let

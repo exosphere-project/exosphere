@@ -58,6 +58,7 @@ type ProjectSpecificMsgConstructor
     | ServerMsg OSTypes.ServerUuid ServerSpecificMsgConstructor
     | RequestCreateServer HelperTypes.CreateServerPageModel OSTypes.NetworkUuid OSTypes.FlavorId
     | RequestDeleteServers (List OSTypes.ServerUuid)
+    | RequestCreateShare OSTypes.ShareName OSTypes.ShareDescription OSTypes.ShareSize OSTypes.ShareProtocol OSTypes.ShareTypeName
     | RequestDeleteShare OSTypes.ShareUuid
     | RequestCreateVolume OSTypes.VolumeName OSTypes.VolumeSize
     | RequestDeleteVolume OSTypes.VolumeUuid
@@ -90,6 +91,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveSecurityGroups ErrorContext (Result HttpErrorWithBody (List OSTypes.SecurityGroup))
     | ReceiveDnsRecordSets (List OpenStack.DnsRecordSet.DnsRecordSet)
     | ReceiveCreateExoSecurityGroup ErrorContext (Result HttpErrorWithBody OSTypes.SecurityGroup)
+    | ReceiveCreateShare
     | ReceiveShareAccessRules ( OSTypes.ShareUuid, List OSTypes.AccessRule )
     | ReceiveShareExportLocations ( OSTypes.ShareUuid, List OSTypes.ExportLocation )
     | ReceiveShares (List OSTypes.Share)

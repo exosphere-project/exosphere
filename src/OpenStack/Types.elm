@@ -14,6 +14,7 @@ module OpenStack.Types exposing
     , ComputeQuota
     , ConsoleUrl
     , CreateServerRequest
+    , CreateShareRequest
     , CreateVolumeRequest
     , CredentialsForAuthToken(..)
     , Endpoint
@@ -71,7 +72,7 @@ module OpenStack.Types exposing
     , Share
     , ShareDescription
     , ShareName
-    , ShareProtocol
+    , ShareProtocol(..)
     , ShareQuota
     , ShareSize
     , ShareStatus(..)
@@ -94,6 +95,7 @@ module OpenStack.Types exposing
     , accessRuleAccessTypeToString
     , accessRuleStateToString
     , boolToShareVisibility
+    , defaultShareTypeNameForProtocol
     , imageVisibilityToString
     , serverPowerStateToString
     , serverStatusToString
@@ -1143,6 +1145,25 @@ shareProtocolToString shareProto =
 
         UnsupportedShareProtocol str ->
             str
+
+
+defaultShareTypeNameForProtocol : ShareProtocol -> ShareTypeName
+defaultShareTypeNameForProtocol shareProto =
+    case shareProto of
+        CephFS ->
+            "cephfsnativetype"
+
+        UnsupportedShareProtocol str ->
+            str
+
+
+type alias CreateShareRequest =
+    { name : ShareName
+    , description : ShareDescription
+    , size : ShareSize
+    , protocol : ShareProtocol
+    , shareType : ShareTypeName
+    }
 
 
 stringToAccessRuleAccessLevel : String -> AccessRuleAccessLevel

@@ -1,10 +1,11 @@
-module OpenStack.Shares exposing (requestDeleteShare, requestShareAccessRules, requestShareExportLocations, requestShares)
+module OpenStack.Shares exposing (requestCreateShare, requestDeleteShare, requestShareAccessRules, requestShareExportLocations, requestShares)
 
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Time
 import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
+import Json.Encode
 import OpenStack.Types as OSTypes
 import Rest.Helpers
     exposing
@@ -17,6 +18,51 @@ import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.HelperTypes exposing (HttpRequestMethod(..), Url)
 import Types.Project exposing (Project)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
+
+
+requestCreateShare : Project -> Url -> OSTypes.CreateShareRequest -> Cmd SharedMsg
+requestCreateShare project url createShareRequest =
+    let
+        body =
+            Json.Encode.object
+                [ ( "share"
+                  , Json.Encode.object
+                        [ ( "name", Json.Encode.string createShareRequest.name )
+                        , ( "description", Json.Encode.string createShareRequest.description )
+                        , ( "size", Json.Encode.int createShareRequest.size )
+                        , ( "share_proto", Json.Encode.string <| OSTypes.shareProtocolToString createShareRequest.protocol )
+                        , ( "share_type", Json.Encode.string <| createShareRequest.shareType )
+                        ]
+                  )
+                ]
+
+        errorContext =
+            ErrorContext
+                ("create a share of size " ++ String.fromInt createShareRequest.size ++ " GB")
+                ErrorCrit
+                (Just "Confirm that your quota has sufficient capacity to create a share of this size, perhaps check with your cloud administrator.")
+
+        resultToMsg_ =
+            resultToMsgErrorBody
+                errorContext
+                (\_ ->
+                    ProjectMsg
+                        (GetterSetters.projectIdentifier project)
+                        ReceiveCreateShare
+                )
+    in
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Post
+        Nothing
+        -- `user_id` is only returned from v2.16 onwards
+        [ ( "X-OpenStack-Manila-API-Version", "2.16" ) ]
+        (url ++ "/shares")
+        (Http.jsonBody body)
+        (expectJsonWithErrorBody
+            resultToMsg_
+            (Decode.field "share" <| shareDecoder)
+        )
 
 
 requestShares : Project -> Url -> Cmd SharedMsg
