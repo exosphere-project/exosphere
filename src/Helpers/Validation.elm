@@ -2,6 +2,7 @@ module Helpers.Validation exposing
     ( resourceNameExistsMessage
     , resourceNameSuggestions
     , serverNameExists
+    , shareNameExists
     , sshKeyNameExists
     , volumeNameExists
     )
@@ -32,6 +33,23 @@ serverNameExists project serverName =
 
         _ ->
             False
+
+
+{-| Does this share name already exist on the project?
+-}
+shareNameExists : Project -> String -> Bool
+shareNameExists project shareName_ =
+    let
+        name =
+            String.trim shareName_
+    in
+    if isEmpty name then
+        False
+
+    else
+        RDPP.withDefault [] project.shares
+            |> List.map .name
+            |> List.member (Just name)
 
 
 {-| Does this volume name already exist on the project?

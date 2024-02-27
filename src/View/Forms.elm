@@ -4,7 +4,7 @@ module View.Forms exposing
     )
 
 import Element exposing (Element)
-import Helpers.Validation exposing (resourceNameExistsMessage, resourceNameSuggestions, serverNameExists, sshKeyNameExists, volumeNameExists)
+import Helpers.Validation exposing (resourceNameExistsMessage, resourceNameSuggestions, serverNameExists, shareNameExists, sshKeyNameExists, volumeNameExists)
 import Style.Types exposing (ExoPalette)
 import Style.Widgets.Validation exposing (warningAlreadyExists)
 import Time
@@ -46,8 +46,7 @@ resourceNameAlreadyExists context project currentTime { resource, onSuggestionPr
                     ( n, sshKeyNameExists project, context.localization.pkiPublicKeyForSsh )
 
                 Share n ->
-                    -- TODO: Do we mind if a share name already exists?
-                    ( n, \_ -> False, context.localization.share )
+                    ( n, shareNameExists project, context.localization.share )
 
                 Volume n ->
                     ( n, volumeNameExists project, context.localization.blockDevice )
