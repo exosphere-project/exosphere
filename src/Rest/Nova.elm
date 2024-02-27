@@ -16,6 +16,7 @@ module Rest.Nova exposing
     , requestServerEvents
     , requestServerResize
     , requestServers
+    , requestSetServerHostName
     , requestSetServerMetadata
     , requestSetServerName
     )
@@ -570,6 +571,42 @@ requestSetServerName project serverUuid newServerName =
         (expectJsonWithErrorBody
             resultToMsg
             (Decode.at [ "server", "name" ] Decode.string)
+        )
+
+
+requestSetServerHostName : Project -> OSTypes.ServerUuid -> String -> Cmd SharedMsg
+requestSetServerHostName project serverUuid newServerHostName =
+    let
+        body =
+            Encode.object
+                [ ( "server"
+                  , Encode.object
+                        [ ( "hostname"
+                          , Encode.string newServerHostName
+                          )
+                        ]
+                  )
+                ]
+
+        errorContext =
+            ErrorContext
+                ("change server with UUID " ++ serverUuid ++ " hostname to " ++ newServerHostName)
+                ErrorDebug
+                Nothing
+
+        resultToMsg result =
+            NoOp
+    in
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Put
+        (Just "compute 2.90")
+        []
+        (project.endpoints.nova ++ "/servers/" ++ serverUuid)
+        (Http.jsonBody body)
+        (expectJsonWithErrorBody
+            resultToMsg
+            (Decode.at [ "server", "OS-EXT-SRV-ATTR:hostname" ] Decode.string)
         )
 
 

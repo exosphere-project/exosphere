@@ -2492,7 +2492,12 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                         |> mapToOuterMsg
 
         RequestSetServerName newServerName ->
-            ( outerModel, Rest.Nova.requestSetServerName project server.osProps.uuid newServerName )
+            ( outerModel
+            , Cmd.batch
+                [ Rest.Nova.requestSetServerName project server.osProps.uuid newServerName
+                , Rest.Nova.requestSetServerHostName project server.osProps.uuid newServerName
+                ]
+            )
                 |> mapToOuterMsg
 
         ReceiveServerAction ->

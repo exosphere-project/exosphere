@@ -6,7 +6,8 @@ import Set
 
 
 type alias DnsRecordSet =
-    { id : OpenStack.HelperTypes.Uuid
+    { zone_id : OpenStack.HelperTypes.Uuid
+    , id : OpenStack.HelperTypes.Uuid
     , name : String
     , type_ : RecordType
     , ttl : Maybe Int
