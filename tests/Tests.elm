@@ -1,6 +1,7 @@
 module Tests exposing
     ( computeQuotasAndLimitsSuite
     , decodeSynchronousOpenStackAPIErrorSuite
+    , hostnameSuite
     , indefiniteArticlesSuite
     , manilaQuotasAndLimitsSuite
     , processOpenRcSuite
@@ -458,4 +459,38 @@ unitsSuite =
             \_ -> Expect.equal (Helpers.Formatting.humanBytes locale (99 * (1024 ^ 6))) ( "101376", "PB" )
         , test "humanBytes decimals" <|
             \_ -> Expect.equal (Helpers.Formatting.humanBytes locale 910398476) ( "868.2", "MB" )
+        ]
+
+
+{-| A port of OpenStack Nova's utils.sanitize\_hostname test suite
+-}
+hostnameSuite : Test
+hostnameSuite =
+    describe "Sanitizing hostnames should match Nova's utils.sanitize_hostname"
+        [ test "的myamazinghostname should sanitize to myamazinghostname" <|
+            \_ -> Expect.equal (Helpers.sanitizeHostname "的myamazinghostname" Nothing) "myamazinghostname"
+        , test "....test.example.com... should sanitize to test-example-com" <|
+            \_ -> Expect.equal (Helpers.sanitizeHostname "....test.example.com..." Nothing) "test-example-com"
+        , test "----my-amazing-hostname--- should sanitize to my-amazing-hostname" <|
+            \_ -> Expect.equal (Helpers.sanitizeHostname "----my-amazing-hostname---" Nothing) "my-amazing-hostname"
+        , test "(#@&$!(@*--#&91)(__=+--test-host.example!!.com-0+ should sanitize to 91----test-host-example-com-0" <|
+            \_ -> Expect.equal (Helpers.sanitizeHostname "(#@&$!(@*--#&91)(__=+--test-host.example!!.com-0+" Nothing) "91----test-host-example-com-0"
+        , test "<}\u{001F}h\u{0010}e\u{0008}l\u{0002}l\u{0005}o\u{0012}!{> should sanitize to hello" <|
+            \_ -> Expect.equal (Helpers.sanitizeHostname "<}\u{001F}h\u{0010}e\u{0008}l\u{0002}l\u{0005}o\u{0012}!{>" Nothing) "hello"
+        , test "的hello with default Server-1 should sanitize to hello" <|
+            \_ -> Expect.equal (Helpers.sanitizeHostname "的hello" (Just "Server-1")) "hello"
+        , test "的 with default Server-1 should sanitize to Server-1" <|
+            \_ -> Expect.equal (Helpers.sanitizeHostname "的" (Just "Server-1")) "Server-1"
+        , test "的 with default aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa should sanitize to aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" <|
+            \_ -> Expect.equal (Helpers.sanitizeHostname "的" (Just "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")) "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        , test "的 should sanitize to " <|
+            \_ -> Expect.equal (Helpers.sanitizeHostname "的" Nothing) ""
+        , test "---... should sanitize to " <|
+            \_ -> Expect.equal (Helpers.sanitizeHostname "---..." Nothing) ""
+        , test " a b c  should sanitize to a-b-c" <|
+            \_ -> Expect.equal (Helpers.sanitizeHostname " a b c " Nothing) "a-b-c"
+        , test "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa should sanitize to aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" <|
+            \_ -> Expect.equal (Helpers.sanitizeHostname "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" Nothing) "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        , test "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-a should sanitize to aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" <|
+            \_ -> Expect.equal (Helpers.sanitizeHostname "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-a" Nothing) "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         ]

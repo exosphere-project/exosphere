@@ -11,6 +11,7 @@ module Helpers.Helpers exposing
     , parseConsoleLogForWorkflowToken
     , pipelineCmd
     , renderUserDataTemplate
+    , sanitizeHostname
     , serverFromThisExoClient
     , serverLessThanThisOld
     , serverOrigin
@@ -106,6 +107,39 @@ naiveUuidParser =
     Parser.getChompedString <|
         Parser.succeed identity
             |. Parser.chompWhile isUuidChar
+
+
+{-| Sanitize a hostname
+
+Implementation to match <https://opendev.org/openstack/nova/src/commit/326a41b3b3e3d8ff8b2518f252615dd48930ec46/nova/utils.py#L356>
+
+-}
+sanitizeHostname : String -> Maybe String -> String
+sanitizeHostname name maybeDefault =
+    let
+        truncate_hostname =
+            String.left 63
+    in
+    name
+        |> truncate_hostname
+        -- convert spaces underscores and periods to hyphens
+        --- "this. is a test" -> "this--is-a-test"
+        |> Regex.replace (alwaysRegex "[ _\\.]") (always "-")
+        -- Remove non-latin characters
+        |> Regex.replace (alwaysRegex "[^\\w.-]+") (always "")
+        |> String.toLower
+        -- Remove leading hyphens and periods
+        |> Regex.replace (alwaysRegex "^[.-]+") (always "")
+        -- Remove trailing hyphens and peroids
+        |> Regex.replace (alwaysRegex "[.-]+$") (always "")
+        -- If the name is empty and we have a default, use that
+        |> (\s ->
+                if String.isEmpty s then
+                    Maybe.map truncate_hostname maybeDefault |> Maybe.withDefault s
+
+                else
+                    s
+           )
 
 
 serviceCatalogToEndpoints : OSTypes.ServiceCatalog -> Maybe OSTypes.RegionId -> Result String Endpoints
