@@ -188,11 +188,6 @@ decodeFloatingIpOption serverDetails =
             serverDetails.metadata
                 |> List.Extra.find (\i -> i.key == "exoFloatingIpOption")
                 |> Maybe.map .value
-
-        maybeReuseOptionStr =
-            serverDetails.metadata
-                |> List.Extra.find (\i -> i.key == "exoFloatingIpReuseOption")
-                |> Maybe.map .value
     in
     case maybeFloatingIpOptionStr of
         Nothing ->
@@ -201,6 +196,12 @@ decodeFloatingIpOption serverDetails =
         Just floatingIpOptionStr ->
             case floatingIpOptionStr of
                 "useFloatingIp" ->
+                    let
+                        maybeReuseOptionStr =
+                            serverDetails.metadata
+                                |> List.Extra.find (\i -> i.key == "exoFloatingIpReuseOption")
+                                |> Maybe.map .value
+                    in
                     case maybeReuseOptionStr of
                         Nothing ->
                             UseFloatingIp CreateNewFloatingIp Unknown
@@ -225,23 +226,24 @@ decodeFloatingIpOption serverDetails =
 getNewFloatingIpOption : Project -> OSTypes.Server -> FloatingIpOption -> FloatingIpOption
 getNewFloatingIpOption project osServer floatingIpOption =
     let
-        hasPort =
-            GetterSetters.getServerPorts project osServer.uuid
-                |> List.isEmpty
-                |> not
-
         hasFloatingIp =
             GetterSetters.getServerFloatingIps project osServer.uuid
                 |> List.isEmpty
                 |> not
-
-        isDoneBuilding =
-            osServer.details.openstackStatus /= OSTypes.ServerBuild
     in
     if hasFloatingIp then
         DoNotUseFloatingIp
 
     else
+        let
+            hasPort =
+                GetterSetters.getServerPorts project osServer.uuid
+                    |> List.isEmpty
+                    |> not
+
+            isDoneBuilding =
+                osServer.details.openstackStatus /= OSTypes.ServerBuild
+        in
         case floatingIpOption of
             Automatic ->
                 if isDoneBuilding && hasPort then
@@ -294,6 +296,51 @@ ipv4AddressInRfc1918Space ipValue =
 
         _ ->
             Err "Could not parse IPv4 address, it may be IPv6?"
+
+
+getVirtClusterWriteFilesYaml : Project -> String
+getVirtClusterWriteFilesYaml project =
+    let
+        openrcFileYamlTemplate : String
+        openrcFileYamlTemplate =
+            """
+- path: /home/rocky/openrc.sh
+  content: |
+    export OS_AUTH_TYPE=v3applicationcredential
+    export OS_AUTH_URL={os-auth-url}
+    export OS_IDENTITY_API_VERSION=3
+    export OS_REGION_NAME="{os-region}"
+    export OS_INTERFACE=public
+    export OS_APPLICATION_CREDENTIAL_ID="{os-ac-id}"
+    export OS_APPLICATION_CREDENTIAL_SECRET="{os-ac-secret}"
+  owner: rocky:rocky
+  permissions: '0400'
+  defer: true"""
+
+        regionId : String
+        regionId =
+            case project.region of
+                Nothing ->
+                    "RegionOne"
+
+                Just region ->
+                    region.id
+
+        -- TODO: If no app credential, then use username and ask for password
+        ( appCredentialUuid, appCredentialSecret ) =
+            case project.secret of
+                Types.Project.ApplicationCredential appCredential ->
+                    ( appCredential.uuid, appCredential.secret )
+
+                Types.Project.NoProjectSecret ->
+                    ( "", "" )
+    in
+    [ ( "{os-auth-url}", project.endpoints.keystone )
+    , ( "{os-region}", regionId )
+    , ( "{os-ac-id}", appCredentialUuid )
+    , ( "{os-ac-secret}", appCredentialSecret )
+    ]
+        |> List.foldl (\t -> String.replace (Tuple.first t) (Tuple.second t)) openrcFileYamlTemplate
 
 
 renderUserDataTemplate :
@@ -370,82 +417,16 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
             else
                 "false"
 
-        -- TODO: If no app credential, then use username and ask for password
-        ( appCredentialUuid, appCredentialSecret ) =
-            case project.secret of
-                Types.Project.ApplicationCredential appCredential ->
-                    ( appCredential.uuid, appCredential.secret )
-
-                Types.Project.NoProjectSecret ->
-                    ( "", "" )
-
-        createClusterYaml : String
-        createClusterYaml =
+        ( createClusterYaml, writeFilesYaml ) =
             if createCluster then
-                """su - rocky -c "git clone --branch rocky-linux --single-branch --depth 1 https://github.com/XSEDE/CRI_Jetstream_Cluster.git; cd CRI_Jetstream_Cluster; ./cluster_create_local.sh -d 2>&1 | tee local_create.log" """
+                ( """su - rocky -c "git clone --branch rocky-linux --single-branch --depth 1 https://github.com/XSEDE/CRI_Jetstream_Cluster.git; cd CRI_Jetstream_Cluster; ./cluster_create_local.sh -d 2>&1 | tee local_create.log" """
+                , "\nwrite_files:" ++ getVirtClusterWriteFilesYaml project
+                )
 
             else
-                """echo "Not creating a cluster, moving along..." """
-
-        openrcFileYamlTemplate : String
-        openrcFileYamlTemplate =
-            """
-- path: /home/rocky/openrc.sh
-  content: |
-    export OS_AUTH_TYPE=v3applicationcredential
-    export OS_AUTH_URL={os-auth-url}
-    export OS_IDENTITY_API_VERSION=3
-    export OS_REGION_NAME="{os-region}"
-    export OS_INTERFACE=public
-    export OS_APPLICATION_CREDENTIAL_ID="{os-ac-id}"
-    export OS_APPLICATION_CREDENTIAL_SECRET="{os-ac-secret}"
-  owner: rocky:rocky
-  permissions: '0400'
-  defer: true"""
-
-        includeOpenrcFile : Bool
-        includeOpenrcFile =
-            createCluster
-
-        regionId : String
-        regionId =
-            case project.region of
-                Nothing ->
-                    "RegionOne"
-
-                Just region ->
-                    region.id
-
-        openrcFileYaml : Maybe String
-        openrcFileYaml =
-            if includeOpenrcFile then
-                [ ( "{os-auth-url}", project.endpoints.keystone )
-                , ( "{os-region}", regionId )
-                , ( "{os-ac-id}", appCredentialUuid )
-                , ( "{os-ac-secret}", appCredentialSecret )
-                ]
-                    |> List.foldl (\t -> String.replace (Tuple.first t) (Tuple.second t)) openrcFileYamlTemplate
-                    |> Just
-
-            else
-                Nothing
-
-        filesToWrite =
-            [ openrcFileYaml ]
-                |> List.filterMap identity
-
-        writeFilesYaml : String
-        writeFilesYaml =
-            let
-                writeFilesHeader =
-                    """
-write_files:"""
-            in
-            if List.isEmpty filesToWrite then
-                ""
-
-            else
-                writeFilesHeader ++ String.concat filesToWrite
+                ( """echo "Not creating a cluster, moving along..." """
+                , ""
+                )
     in
     [ ( "{ssh-authorized-keys}\n", authorizedKeysYaml )
     , ( "{ansible-extra-vars}", ansibleExtraVars )
@@ -501,28 +482,6 @@ newServerMetadata exoServerVersion exoClientUuid deployGuacamole deployDesktopEn
 newServerNetworkOptions : Project -> NewServerNetworkOptions
 newServerNetworkOptions project =
     {- When creating a new server, make a reasonable choice of project network, if we can. -}
-    let
-        projectNets =
-            -- Filter on networks that are status ACTIVE, adminStateUp, and not external
-            case project.networks.data of
-                RDPP.DoHave networks _ ->
-                    networks
-                        |> List.filter (\n -> n.status == "ACTIVE")
-                        |> List.filter (\n -> n.adminStateUp)
-                        |> List.filter (\n -> n.isExternal == False)
-
-                RDPP.DontHave ->
-                    []
-
-        maybeProjectNameNet =
-            projectNets
-                |> List.Extra.find
-                    (\n ->
-                        String.contains
-                            (String.toLower project.auth.project.name)
-                            (String.toLower n.name)
-                    )
-    in
     case ( project.autoAllocatedNetworkUuid.data, project.autoAllocatedNetworkUuid.refreshStatus ) of
         -- Prefer auto-allocated network topology that we get/create
         ( RDPP.DoHave netUuid _, _ ) ->
@@ -537,6 +496,28 @@ newServerNetworkOptions project =
 
         ( RDPP.DontHave, RDPP.NotLoading (Just _) ) ->
             -- auto-allocation API call failed, so look through list of networks
+            let
+                projectNets =
+                    -- Filter on networks that are status ACTIVE, adminStateUp, and not external
+                    case project.networks.data of
+                        RDPP.DoHave networks _ ->
+                            networks
+                                |> List.filter (\n -> n.status == "ACTIVE")
+                                |> List.filter (\n -> n.adminStateUp)
+                                |> List.filter (\n -> n.isExternal == False)
+
+                        RDPP.DontHave ->
+                            []
+
+                maybeProjectNameNet =
+                    projectNets
+                        |> List.Extra.find
+                            (\n ->
+                                String.contains
+                                    (String.toLower project.auth.project.name)
+                                    (String.toLower n.name)
+                            )
+            in
             projectNets
                 |> List.Extra.find (\n -> n.name == "auto_allocated_network")
                 |> Maybe.map (.uuid >> AutoSelectedNetwork)
@@ -555,6 +536,24 @@ newServerNetworkOptions project =
                                     ManualNetworkSelection
                             )
                     )
+
+
+customWorkflowPropsDecoder : Decode.Decoder CustomWorkflowSource
+customWorkflowPropsDecoder =
+    Decode.map3
+        CustomWorkflowSource
+        (Decode.field "repo" Decode.string)
+        (Decode.field "ref" Decode.string)
+        (Decode.field "path" Decode.string)
+
+
+guacamolePropsDecoder : Decode.Decoder GuacTypes.LaunchedWithGuacProps
+guacamolePropsDecoder =
+    Decode.map3
+        GuacTypes.LaunchedWithGuacProps
+        (Decode.field "ssh" Decode.bool)
+        (Decode.field "vnc" Decode.bool)
+        (Decode.succeed RDPP.empty)
 
 
 serverOrigin : OSTypes.ServerDetails -> ServerOrigin
@@ -580,72 +579,57 @@ serverOrigin serverDetails =
 
                 ( Nothing, False ) ->
                     Nothing
-
-        ( exoSetupStatus, exoSetupTimestamp ) =
-            List.Extra.find (\i -> i.key == "exoSetup") serverDetails.metadata
-                |> Maybe.map .value
-                |> Maybe.map Helpers.ExoSetupStatus.decodeExoSetupJson
-                |> Maybe.withDefault ( ExoSetupUnknown, Nothing )
-
-        exoSetupStatusRDPP =
-            RDPP.RemoteDataPlusPlus (RDPP.DoHave ( exoSetupStatus, exoSetupTimestamp ) (Time.millisToPosix 0)) (RDPP.NotLoading Nothing)
-
-        guacamolePropsDecoder : Decode.Decoder GuacTypes.LaunchedWithGuacProps
-        guacamolePropsDecoder =
-            Decode.map3
-                GuacTypes.LaunchedWithGuacProps
-                (Decode.field "ssh" Decode.bool)
-                (Decode.field "vnc" Decode.bool)
-                (Decode.succeed RDPP.empty)
-
-        guacamoleStatus =
-            case
-                List.Extra.find (\i -> i.key == "exoGuac") serverDetails.metadata
-            of
-                Nothing ->
-                    GuacTypes.NotLaunchedWithGuacamole
-
-                Just item ->
-                    case Decode.decodeString guacamolePropsDecoder item.value of
-                        Ok launchedWithGuacProps ->
-                            GuacTypes.LaunchedWithGuacamole launchedWithGuacProps
-
-                        Err _ ->
-                            GuacTypes.NotLaunchedWithGuacamole
-
-        customWorkflowPropsDecoder : Decode.Decoder CustomWorkflowSource
-        customWorkflowPropsDecoder =
-            Decode.map3
-                CustomWorkflowSource
-                (Decode.field "repo" Decode.string)
-                (Decode.field "ref" Decode.string)
-                (Decode.field "path" Decode.string)
-
-        customWorkflowStatus =
-            case
-                List.Extra.find (\i -> i.key == "exoCustomWorkflow") serverDetails.metadata
-            of
-                Nothing ->
-                    NotLaunchedWithCustomWorkflow
-
-                Just item ->
-                    case Decode.decodeString customWorkflowPropsDecoder item.value of
-                        Ok launchedWithCustomWorkflowPropsProps ->
-                            LaunchedWithCustomWorkflow
-                                { source = launchedWithCustomWorkflowPropsProps
-                                , authToken = RDPP.empty
-                                }
-
-                        Err _ ->
-                            NotLaunchedWithCustomWorkflow
-
-        creatorName =
-            serverDetails.metadata
-                |> List.Extra.find (\i -> i.key == "exoCreatorUsername")
-                |> Maybe.map .value
     in
     case exoServerVersion of
         Just v ->
+            let
+                ( exoSetupStatus, exoSetupTimestamp ) =
+                    List.Extra.find (\i -> i.key == "exoSetup") serverDetails.metadata
+                        |> Maybe.map .value
+                        |> Maybe.map Helpers.ExoSetupStatus.decodeExoSetupJson
+                        |> Maybe.withDefault ( ExoSetupUnknown, Nothing )
+
+                exoSetupStatusRDPP =
+                    RDPP.RemoteDataPlusPlus (RDPP.DoHave ( exoSetupStatus, exoSetupTimestamp ) (Time.millisToPosix 0)) (RDPP.NotLoading Nothing)
+
+                guacamoleStatus =
+                    case
+                        List.Extra.find (\i -> i.key == "exoGuac") serverDetails.metadata
+                    of
+                        Nothing ->
+                            GuacTypes.NotLaunchedWithGuacamole
+
+                        Just item ->
+                            case Decode.decodeString guacamolePropsDecoder item.value of
+                                Ok launchedWithGuacProps ->
+                                    GuacTypes.LaunchedWithGuacamole launchedWithGuacProps
+
+                                Err _ ->
+                                    GuacTypes.NotLaunchedWithGuacamole
+
+                customWorkflowStatus =
+                    case
+                        List.Extra.find (\i -> i.key == "exoCustomWorkflow") serverDetails.metadata
+                    of
+                        Nothing ->
+                            NotLaunchedWithCustomWorkflow
+
+                        Just item ->
+                            case Decode.decodeString customWorkflowPropsDecoder item.value of
+                                Ok launchedWithCustomWorkflowPropsProps ->
+                                    LaunchedWithCustomWorkflow
+                                        { source = launchedWithCustomWorkflowPropsProps
+                                        , authToken = RDPP.empty
+                                        }
+
+                                Err _ ->
+                                    NotLaunchedWithCustomWorkflow
+
+                creatorName =
+                    serverDetails.metadata
+                        |> List.Extra.find (\i -> i.key == "exoCreatorUsername")
+                        |> Maybe.map .value
+            in
             ServerFromExo <|
                 ServerFromExoProps v exoSetupStatusRDPP RDPP.empty guacamoleStatus customWorkflowStatus creatorName
 

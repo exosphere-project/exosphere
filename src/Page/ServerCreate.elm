@@ -127,16 +127,6 @@ initialKeypairName project =
 
         keypairNameOfNewestServerCreatedByUser =
             let
-                serversCreatedByUser : List Server
-                serversCreatedByUser =
-                    project.servers
-                        |> RDPP.withDefault []
-                        |> List.filter
-                            (\s ->
-                                GetterSetters.serverCreatedByCurrentUser project s.osProps.uuid
-                                    |> Maybe.withDefault False
-                            )
-
                 newestServerCreatedByUser : Maybe Server
                 newestServerCreatedByUser =
                     let
@@ -144,7 +134,13 @@ initialKeypairName project =
                         serverSorter s =
                             s.osProps.details.created |> Time.posixToMillis
                     in
-                    serversCreatedByUser
+                    project.servers
+                        |> RDPP.withDefault []
+                        |> List.filter
+                            (\s ->
+                                GetterSetters.serverCreatedByCurrentUser project s.osProps.uuid
+                                    |> Maybe.withDefault False
+                            )
                         |> List.sortBy serverSorter
                         |> List.head
 
@@ -615,24 +611,25 @@ view context project currentTime model =
                                     invalidFormHint =
                                         case maybeInvalidFormFields of
                                             Just invalidFormFields ->
-                                                let
-                                                    invalidFormFieldsString =
-                                                        Helpers.String.itemsListToString <|
-                                                            List.map (\s -> "'" ++ s ++ "'")
-                                                                invalidFormFields
-                                                in
                                                 if List.isEmpty invalidFormFields then
                                                     genericInvalidFormHint
 
-                                                else if List.length invalidFormFields == 1 then
-                                                    "Please correct problem with "
-                                                        ++ invalidFormFieldsString
-                                                        ++ " field"
-
                                                 else
-                                                    "Please correct problems with "
-                                                        ++ invalidFormFieldsString
-                                                        ++ " fields"
+                                                    let
+                                                        invalidFormFieldsString =
+                                                            Helpers.String.itemsListToString <|
+                                                                List.map (\s -> "'" ++ s ++ "'")
+                                                                    invalidFormFields
+                                                    in
+                                                    if List.length invalidFormFields == 1 then
+                                                        "Please correct problem with "
+                                                            ++ invalidFormFieldsString
+                                                            ++ " field"
+
+                                                    else
+                                                        "Please correct problems with "
+                                                            ++ invalidFormFieldsString
+                                                            ++ " fields"
 
                                             Nothing ->
                                                 genericInvalidFormHint
@@ -800,9 +797,6 @@ view context project currentTime model =
 volBackedPrompt : Project -> View.Types.Context -> Model -> OSTypes.VolumeQuota -> OSTypes.Flavor -> Element.Element Msg
 volBackedPrompt project context model volumeQuota flavor =
     let
-        { locale } =
-            context
-
         ( volumeCountAvail, volumeSizeGbAvail ) =
             OSQuotas.volumeQuotaAvail volumeQuota
 
@@ -825,42 +819,36 @@ volBackedPrompt project context model volumeQuota flavor =
         canLaunchVolBacked =
             canLaunchVolBackedCount && canLaunchVolBackedSizeGb
 
-        flavorRootDiskSize =
-            flavor.disk_root
-
-        nonVolBackedOptionText =
-            if flavorRootDiskSize == 0 then
-                String.join " "
-                    [ "Default for selected"
-                    , context.localization.staticRepresentationOfBlockDeviceContents
-                    , "(warning, could be too small for your work)"
-                    ]
-
-            else
-                String.concat
-                    [ FormatNumber.format { locale | decimals = Exact 0 } (toFloat flavorRootDiskSize)
-                    , " GB (default for selected "
-                    , context.localization.virtualComputerHardwareConfig
-                    , ")"
-                    ]
-
         defaultVolSizeGB =
             10
+    in
+    Element.column [ Element.spacing spacer.px12 ]
+        [ Text.strong "Choose a root disk size"
+        , if canLaunchVolBacked then
+            let
+                flavorRootDiskSize =
+                    flavor.disk_root
 
-        defaultVolNumericInputParams =
-            { labelText = "Root disk size (GB)"
-            , minVal = Just 2
-            , maxVal =
-                case volumeSizeGbAvail of
-                    OSTypes.Limit l ->
-                        Just l
+                nonVolBackedOptionText =
+                    if flavorRootDiskSize == 0 then
+                        String.join " "
+                            [ "Default for selected"
+                            , context.localization.staticRepresentationOfBlockDeviceContents
+                            , "(warning, could be too small for your work)"
+                            ]
 
-                    OSTypes.Unlimited ->
-                        Nothing
-            , defaultVal = Just defaultVolSizeGB
-            }
-
-        radioInput =
+                    else
+                        let
+                            { locale } =
+                                context
+                        in
+                        String.concat
+                            [ FormatNumber.format { locale | decimals = Exact 0 } (toFloat flavorRootDiskSize)
+                            , " GB (default for selected "
+                            , context.localization.virtualComputerHardwareConfig
+                            , ")"
+                            ]
+            in
             Input.radio [ Element.spacing spacer.px4 ]
                 { label = Input.labelHidden "Root disk size"
                 , onChange =
@@ -893,11 +881,6 @@ volBackedPrompt project context model volumeQuota flavor =
                         Nothing ->
                             Just False
                 }
-    in
-    Element.column [ Element.spacing spacer.px12 ]
-        [ Text.strong "Choose a root disk size"
-        , if canLaunchVolBacked then
-            radioInput
 
           else
             Element.text <|
@@ -917,6 +900,20 @@ volBackedPrompt project context model volumeQuota flavor =
                 Element.none
 
             Just volSizeTextInput ->
+                let
+                    defaultVolNumericInputParams =
+                        { labelText = "Root disk size (GB)"
+                        , minVal = Just 2
+                        , maxVal =
+                            case volumeSizeGbAvail of
+                                OSTypes.Limit l ->
+                                    Just l
+
+                                OSTypes.Unlimited ->
+                                    Nothing
+                        , defaultVal = Just defaultVolSizeGB
+                        }
+                in
                 Element.row [ Element.spacing spacer.px8 ]
                     [ numericTextInput
                         context.palette
@@ -1113,103 +1110,6 @@ workflowInputIsValid ( repository, reference, path ) =
 customWorkflowInputExperimental : View.Types.Context -> Project -> Model -> Element.Element Msg
 customWorkflowInputExperimental context project model =
     let
-        workflowInput =
-            let
-                displayRepoInputError =
-                    model.workflowInputRepository == "" && model.workflowInputIsValid == Just False
-
-                repoInputLabel =
-                    VH.requiredLabel context.palette (Element.text "DOI or Git repository URL")
-
-                repoInputHelperText =
-                    if displayRepoInputError then
-                        invalidMessage context.palette "Required"
-
-                    else
-                        Element.none
-
-                inputValidationStatusAttributes =
-                    if displayRepoInputError then
-                        VH.invalidInputAttributes context.palette
-
-                    else
-                        []
-
-                repoInput =
-                    Element.column [ Element.width Element.fill, Element.spacing spacer.px12 ]
-                        [ Input.text
-                            (Events.onLoseFocus GotWorkflowInputLoseFocus
-                                :: (VH.inputItemAttributes context.palette
-                                        ++ inputValidationStatusAttributes
-                                   )
-                            )
-                            { text = model.workflowInputRepository
-                            , placeholder =
-                                Just
-                                    (Input.placeholder
-                                        []
-                                        (Element.text "Example, https://github.com/binder-examples/minimal-dockerfile")
-                                    )
-                            , onChange =
-                                GotWorkflowRepository
-                            , label = Input.labelAbove [] repoInputLabel
-                            }
-                        , repoInputHelperText
-                        ]
-
-                referenceInput =
-                    Input.text
-                        (VH.inputItemAttributes context.palette
-                            ++ [ Events.onLoseFocus GotWorkflowInputLoseFocus ]
-                        )
-                        { text = model.workflowInputReference
-                        , placeholder =
-                            Just
-                                (Input.placeholder
-                                    []
-                                    (Element.text "Example, HEAD")
-                                )
-                        , onChange =
-                            GotWorkflowReference
-                        , label = Input.labelAbove [] (Element.text "Git reference (branch, tag, or commit)")
-                        }
-
-                sourcePathInput =
-                    let
-                        pathInputLabel =
-                            "Path to open"
-                    in
-                    Element.column
-                        [ Element.width Element.fill
-                        , Element.spacing spacer.px12
-                        ]
-                        [ Element.text pathInputLabel
-                        , Input.text
-                            (VH.inputItemAttributes context.palette
-                                ++ [ Events.onLoseFocus GotWorkflowInputLoseFocus ]
-                            )
-                            { text = model.workflowInputPath
-                            , placeholder =
-                                Just
-                                    (Input.placeholder
-                                        []
-                                        (Element.text "Example, /rstudio")
-                                    )
-                            , onChange =
-                                GotWorkflowPath
-                            , label = Input.labelHidden pathInputLabel
-                            }
-                        ]
-            in
-            Element.column
-                [ Element.width Element.fill
-                , Element.spacing spacer.px24
-                ]
-                [ repoInput
-                , referenceInput
-                , sourcePathInput
-                ]
-
         workflowExplanationToggleTip =
             Style.Widgets.ToggleTip.toggleTip
                 context
@@ -1258,12 +1158,106 @@ customWorkflowInputExperimental context project model =
                 ]
             , selected = Just model.includeWorkflow
             }
-            :: (if not model.includeWorkflow then
-                    [ Element.none ]
+            :: (if model.includeWorkflow then
+                    let
+                        displayRepoInputError =
+                            model.workflowInputRepository == "" && model.workflowInputIsValid == Just False
+
+                        repoInputLabel =
+                            VH.requiredLabel context.palette (Element.text "DOI or Git repository URL")
+
+                        repoInputHelperText =
+                            if displayRepoInputError then
+                                invalidMessage context.palette "Required"
+
+                            else
+                                Element.none
+
+                        inputValidationStatusAttributes =
+                            if displayRepoInputError then
+                                VH.invalidInputAttributes context.palette
+
+                            else
+                                []
+
+                        repoInput =
+                            Element.column [ Element.width Element.fill, Element.spacing spacer.px12 ]
+                                [ Input.text
+                                    (Events.onLoseFocus GotWorkflowInputLoseFocus
+                                        :: (VH.inputItemAttributes context.palette
+                                                ++ inputValidationStatusAttributes
+                                           )
+                                    )
+                                    { text = model.workflowInputRepository
+                                    , placeholder =
+                                        Just
+                                            (Input.placeholder
+                                                []
+                                                (Element.text "Example, https://github.com/binder-examples/minimal-dockerfile")
+                                            )
+                                    , onChange =
+                                        GotWorkflowRepository
+                                    , label = Input.labelAbove [] repoInputLabel
+                                    }
+                                , repoInputHelperText
+                                ]
+
+                        referenceInput =
+                            Input.text
+                                (VH.inputItemAttributes context.palette
+                                    ++ [ Events.onLoseFocus GotWorkflowInputLoseFocus ]
+                                )
+                                { text = model.workflowInputReference
+                                , placeholder =
+                                    Just
+                                        (Input.placeholder
+                                            []
+                                            (Element.text "Example, HEAD")
+                                        )
+                                , onChange =
+                                    GotWorkflowReference
+                                , label = Input.labelAbove [] (Element.text "Git reference (branch, tag, or commit)")
+                                }
+
+                        sourcePathInput =
+                            let
+                                pathInputLabel =
+                                    "Path to open"
+                            in
+                            Element.column
+                                [ Element.width Element.fill
+                                , Element.spacing spacer.px12
+                                ]
+                                [ Element.text pathInputLabel
+                                , Input.text
+                                    (VH.inputItemAttributes context.palette
+                                        ++ [ Events.onLoseFocus GotWorkflowInputLoseFocus ]
+                                    )
+                                    { text = model.workflowInputPath
+                                    , placeholder =
+                                        Just
+                                            (Input.placeholder
+                                                []
+                                                (Element.text "Example, /rstudio")
+                                            )
+                                    , onChange =
+                                        GotWorkflowPath
+                                    , label = Input.labelHidden pathInputLabel
+                                    }
+                                ]
+                    in
+                    [ Element.column
+                        [ Element.width Element.fill
+                        , Element.spacing spacer.px24
+                        ]
+                        [ repoInput
+                        , referenceInput
+                        , sourcePathInput
+                        ]
+                    ]
 
                 else
-                    [ workflowInput
-                    ]
+                    [ Element.none ]
                )
         )
 
@@ -1280,22 +1274,6 @@ clusterInput context model =
 clusterInputExperimental : View.Types.Context -> Model -> Element.Element Msg
 clusterInputExperimental context model =
     let
-        warnings =
-            [ Element.text {- @nonlocalized -} "Warning: This will only work on Jetstream Cloud, and can take 30 minutes or longer to set up a cluster."
-            , Element.text <|
-                String.concat
-                    [ "This feature currently only supports "
-                    , context.localization.staticRepresentationOfBlockDeviceContents
-                        |> Helpers.String.pluralize
-                    , " based on Rocky Linux 8. If you choose "
-                    , context.localization.staticRepresentationOfBlockDeviceContents
-                        |> Helpers.String.indefiniteArticle
-                    , " "
-                    , context.localization.staticRepresentationOfBlockDeviceContents
-                    , " based on a different operating system it is unlikely to work."
-                    ]
-            ]
-
         experimentalTag =
             Tag.tag context.palette "Experimental"
     in
@@ -1321,6 +1299,23 @@ clusterInputExperimental context model =
             , selected = Just model.createCluster
             }
         , if model.createCluster then
+            let
+                warnings =
+                    [ Element.text {- @nonlocalized -} "Warning: This will only work on Jetstream Cloud, and can take 30 minutes or longer to set up a cluster."
+                    , Element.text <|
+                        String.concat
+                            [ "This feature currently only supports "
+                            , context.localization.staticRepresentationOfBlockDeviceContents
+                                |> Helpers.String.pluralize
+                            , " based on Rocky Linux 8. If you choose "
+                            , context.localization.staticRepresentationOfBlockDeviceContents
+                                |> Helpers.String.indefiniteArticle
+                            , " "
+                            , context.localization.staticRepresentationOfBlockDeviceContents
+                            , " based on a different operating system it is unlikely to work."
+                            ]
+                    ]
+            in
             Alert.alert []
                 context.palette
                 { state = Alert.Warning
@@ -1340,26 +1335,6 @@ clusterInputExperimental context model =
 desktopEnvironmentPicker : View.Types.Context -> Project -> Model -> Element.Element Msg
 desktopEnvironmentPicker context project model =
     let
-        genericMessage : String
-        genericMessage =
-            String.join " "
-                [ context.localization.graphicalDesktopEnvironment
-                    |> Helpers.String.capitalizeWord
-                , "works for"
-                , context.localization.staticRepresentationOfBlockDeviceContents
-                    |> Helpers.String.pluralize
-                , "based on Ubuntu (20.04 or newer), Rocky Linux, or AlmaLinux. If you selected a different operating system, it may not work. Also, if selected"
-                , context.localization.staticRepresentationOfBlockDeviceContents
-                , "does not have a desktop environment pre-installed,"
-                , context.localization.virtualComputer
-                , "may take a long time to deploy."
-                ]
-
-        cloudSpecificMessage : Maybe String
-        cloudSpecificMessage =
-            GetterSetters.cloudSpecificConfigLookup context.cloudSpecificConfigs project
-                |> Maybe.andThen .desktopMessage
-
         imageSpecificMessage : Maybe String
         imageSpecificMessage =
             GetterSetters.imageLookup project model.imageUuid
@@ -1377,6 +1352,12 @@ desktopEnvironmentPicker context project model =
                     Just message
 
                 Nothing ->
+                    let
+                        cloudSpecificMessage : Maybe String
+                        cloudSpecificMessage =
+                            GetterSetters.cloudSpecificConfigLookup context.cloudSpecificConfigs project
+                                |> Maybe.andThen .desktopMessage
+                    in
                     case cloudSpecificMessage of
                         Just "" ->
                             -- Empty string, cloud operator wants to hide message entirely
@@ -1386,6 +1367,22 @@ desktopEnvironmentPicker context project model =
                             Just message
 
                         Nothing ->
+                            let
+                                genericMessage : String
+                                genericMessage =
+                                    String.join " "
+                                        [ context.localization.graphicalDesktopEnvironment
+                                            |> Helpers.String.capitalizeWord
+                                        , "works for"
+                                        , context.localization.staticRepresentationOfBlockDeviceContents
+                                            |> Helpers.String.pluralize
+                                        , "based on Ubuntu (20.04 or newer), Rocky Linux, or AlmaLinux. If you selected a different operating system, it may not work. Also, if selected"
+                                        , context.localization.staticRepresentationOfBlockDeviceContents
+                                        , "does not have a desktop environment pre-installed,"
+                                        , context.localization.virtualComputer
+                                        , "may take a long time to deploy."
+                                        ]
+                            in
                             Just genericMessage
               )
                 |> Maybe.map Element.text
@@ -1543,11 +1540,11 @@ skipOperatingSystemUpdatesPicker context model =
 networkPicker : View.Types.Context -> Project -> Model -> Element.Element Msg
 networkPicker context project model =
     let
-        networkOptions =
-            Helpers.newServerNetworkOptions project
-
         guidance =
             let
+                networkOptions =
+                    Helpers.newServerNetworkOptions project
+
                 withTextColor : String -> Element.Element msg
                 withTextColor text =
                     Element.paragraph
@@ -1772,46 +1769,45 @@ keypairPicker context project model =
 userDataInput : View.Types.Context -> Model -> Element.Element Msg
 userDataInput context model =
     let
-        cloudConfigExamplesTooltip : Element.Element Msg
-        cloudConfigExamplesTooltip =
-            Style.Widgets.ToggleTip.toggleTip
-                context
-                (\toggleId -> SharedMsg (SharedMsg.TogglePopover toggleId))
-                "ServerCreate-cloud-config-examples-tooltip"
-                (Element.el
-                    [ Text.fontSize Text.Body
-                    , Element.width (Element.px 250)
-                    ]
-                    (let
-                        t =
-                            Element.text
-
-                        examples =
-                            Link.externalLink context.palette "https://cloudinit.readthedocs.io/en/latest/reference/examples.html" "examples"
-                     in
-                     Element.paragraph []
-                        [ t "Other configuration ", examples, t "." ]
-                    )
-                )
-                ST.PositionTopLeft
-
         cloudConfigExplainer : Element.Element Msg
         cloudConfigExplainer =
             let
-                t =
-                    Element.text
-
                 cloudInit =
                     Link.externalLink context.palette "https://cloudinit.readthedocs.io/en/latest/index.html" "cloud-init"
 
-                tooltip =
-                    cloudConfigExamplesTooltip
-
                 instance =
-                    t context.localization.virtualComputer
+                    Element.text context.localization.virtualComputer
+
+                cloudConfigExamplesTooltip =
+                    Style.Widgets.ToggleTip.toggleTip
+                        context
+                        (\toggleId -> SharedMsg (SharedMsg.TogglePopover toggleId))
+                        "ServerCreate-cloud-config-examples-tooltip"
+                        (Element.el
+                            [ Text.fontSize Text.Body
+                            , Element.width (Element.px 250)
+                            ]
+                            (let
+                                examples =
+                                    Link.externalLink context.palette "https://cloudinit.readthedocs.io/en/latest/reference/examples.html" "examples"
+                             in
+                             Element.paragraph []
+                                [ Element.text "Other configuration "
+                                , examples
+                                , Element.text "."
+                                ]
+                            )
+                        )
+                        ST.PositionTopLeft
             in
             Element.paragraph []
-                [ t "This ", cloudInit, tooltip, t " config describes how to provision the ", instance, t ". It's provided here to permit specific changes in rare circumstances; please modify it cautiously." ]
+                [ Element.text "This "
+                , cloudInit
+                , cloudConfigExamplesTooltip
+                , Element.text " config describes how to provision the "
+                , instance
+                , Element.text ". It's provided here to permit specific changes in rare circumstances; please modify it cautiously."
+                ]
 
         cloudConfigWarning : Element.Element Msg
         cloudConfigWarning =

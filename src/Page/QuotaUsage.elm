@@ -263,17 +263,17 @@ briefVolumeInfoItems context ( quota, _ ) =
 
 fullVolumeInfoItems : View.Types.Context -> ( OSTypes.VolumeQuota, Int ) -> Element.Element msg
 fullVolumeInfoItems context ( quota, snapshotUsage ) =
-    let
-        { locale } =
-            context
-
-        volumeUsage =
-            quota.gigabytes.inUse - snapshotUsage
-    in
     fullQuotaRow
         [ briefVolumeInfoItems context ( quota, snapshotUsage )
         , case quota.gigabytes.limit of
             OSTypes.Limit l ->
+                let
+                    { locale } =
+                        context
+
+                    volumeUsage =
+                        quota.gigabytes.inUse - snapshotUsage
+                in
                 multiMeter context.palette
                     "Storage used"
                     (usageComparison locale GibiBytes quota.gigabytes.inUse l)

@@ -78,9 +78,9 @@ warningAlreadyExists context { alreadyExists, message, suggestions, onSuggestion
                 []
 
         suggestionButtons =
-            let
-                buttons =
-                    suggestions
+            if alreadyExists then
+                [ Element.row [ Element.spacing spacer.px8 ]
+                    (suggestions
                         |> List.map
                             (\suggestion ->
                                 Button.default
@@ -89,11 +89,7 @@ warningAlreadyExists context { alreadyExists, message, suggestions, onSuggestion
                                     , onPress = Just (onSuggestionPressed suggestion)
                                     }
                             )
-            in
-            if alreadyExists then
-                [ Element.row
-                    [ Element.spacing spacer.px8 ]
-                    buttons
+                    )
                 ]
 
             else

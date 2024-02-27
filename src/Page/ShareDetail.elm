@@ -182,17 +182,17 @@ renderConfirmation context actionMsg cancelMsg title closeActionsAttributes =
 
 renderDeleteAction : View.Types.Context -> Model -> Maybe Msg -> Maybe (Element.Attribute Msg) -> Element.Element Msg
 renderDeleteAction context model actionMsg closeActionsDropdown =
-    let
-        additionalBtnAttribs =
-            case closeActionsDropdown of
-                Just closeActionsDropdown_ ->
-                    [ closeActionsDropdown_ ]
-
-                Nothing ->
-                    []
-    in
     case model.deletePendingConfirmation of
         Just _ ->
+            let
+                additionalBtnAttribs =
+                    case closeActionsDropdown of
+                        Just closeActionsDropdown_ ->
+                            [ closeActionsDropdown_ ]
+
+                        Nothing ->
+                            []
+            in
             renderConfirmation
                 context
                 actionMsg

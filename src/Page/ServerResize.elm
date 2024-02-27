@@ -80,14 +80,6 @@ view_ context project model computeQuota =
         restrictFlavorIds_ : Server -> List OSTypes.FlavorId
         restrictFlavorIds_ server =
             let
-                currentFlavorRootDiskSize =
-                    case GetterSetters.flavorLookup project server.osProps.details.flavorId of
-                        Just flavor ->
-                            flavor.disk_root
-
-                        Nothing ->
-                            0
-
                 minRootDiskSize =
                     case GetterSetters.getBootVolume (RDPP.withDefault [] project.volumes) model.serverUuid of
                         Just _ ->
@@ -95,7 +87,12 @@ view_ context project model computeQuota =
                             0
 
                         Nothing ->
-                            currentFlavorRootDiskSize
+                            case GetterSetters.flavorLookup project server.osProps.details.flavorId of
+                                Just flavor ->
+                                    flavor.disk_root
+
+                                Nothing ->
+                                    0
             in
             project.flavors
                 |> List.filter (\flavor -> flavor.disk_root >= minRootDiskSize)

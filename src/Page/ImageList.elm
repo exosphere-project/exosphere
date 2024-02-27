@@ -219,15 +219,29 @@ imageView model context project imageRecord =
                         False
                         deleteBtnText
                         deleteBtnOnPress
+            in
+            if model.showDeleteButtons && projectOwnsImage project imageRecord.image then
+                let
+                    deletionAttempted =
+                        Set.member imageRecord.id model.deletionsAttempted
 
-                deletePopconfirmId =
-                    Helpers.String.hyphenate
-                        [ "ImageListDeletePopconfirm"
-                        , project.auth.project.uuid
-                        , imageRecord.id
-                        ]
+                    deletionPending =
+                        imageRecord.image.status == OSTypes.ImagePendingDelete
+                in
+                if deletionAttempted || deletionPending then
+                    -- FIXME: Constraint progressIndicator svg's height to 36 px also
+                    Element.el [ Element.height <| Element.px 36 ]
+                        (Widget.circularProgressIndicator (SH.materialStyle context.palette).progressIndicator Nothing)
 
-                deleteBtnWithPopconfirm =
+                else
+                    let
+                        deletePopconfirmId =
+                            Helpers.String.hyphenate
+                                [ "ImageListDeletePopconfirm"
+                                , project.auth.project.uuid
+                                , imageRecord.id
+                                ]
+                    in
                     deletePopconfirm context
                         (\deletePopconfirmId_ -> SharedMsg <| SharedMsg.TogglePopover deletePopconfirmId_)
                         deletePopconfirmId
@@ -243,21 +257,6 @@ imageView model context project imageRecord =
                         ST.PositionBottomRight
                         deleteBtn
 
-                deletionAttempted =
-                    Set.member imageRecord.id model.deletionsAttempted
-
-                deletionPending =
-                    imageRecord.image.status == OSTypes.ImagePendingDelete
-            in
-            if model.showDeleteButtons && projectOwnsImage project imageRecord.image then
-                if deletionAttempted || deletionPending then
-                    -- FIXME: Constraint progressIndicator svg's height to 36 px also
-                    Element.el [ Element.height <| Element.px 36 ]
-                        (Widget.circularProgressIndicator (SH.materialStyle context.palette).progressIndicator Nothing)
-
-                else
-                    deleteBtnWithPopconfirm
-
             else
                 Element.none
 
@@ -272,19 +271,20 @@ imageView model context project imageRecord =
                                     context.localization.virtualComputer
                         , onPress = onPress
                         }
-
-                serverCreationRoute =
-                    Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
-                        Route.ServerCreate
-                            imageRecord.image.uuid
-                            imageRecord.image.name
-                            Nothing
-                            (GetterSetters.getUserAppProxyFromContext project context
-                                |> Maybe.map (\_ -> True)
-                            )
             in
             case imageRecord.image.status of
                 OSTypes.ImageActive ->
+                    let
+                        serverCreationRoute =
+                            Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
+                                Route.ServerCreate
+                                    imageRecord.image.uuid
+                                    imageRecord.image.name
+                                    Nothing
+                                    (GetterSetters.getUserAppProxyFromContext project context
+                                        |> Maybe.map (\_ -> True)
+                                    )
+                    in
                     Element.link []
                         { url = Route.toUrl context.urlPathPrefix serverCreationRoute
                         , label = textBtn (Just NoOp)
@@ -311,29 +311,6 @@ imageView model context project imageRecord =
                     Element.none
                 ]
 
-        size =
-            case imageRecord.image.size of
-                Just s ->
-                    let
-                        { locale } =
-                            context
-
-                        ( count, units ) =
-                            humanNumber { locale | decimals = Exact 2 } Bytes s
-                    in
-                    count ++ " " ++ units
-
-                Nothing ->
-                    "unknown size"
-
-        imageType =
-            case imageRecord.image.imageType of
-                Just imageTypeName ->
-                    imageTypeName
-
-                Nothing ->
-                    context.localization.staticRepresentationOfBlockDeviceContents
-
         featuredIcon =
             if imageRecord.featured then
                 featherIcon [ Element.htmlAttribute <| HtmlA.title "Featured" ]
@@ -342,34 +319,42 @@ imageView model context project imageRecord =
             else
                 Element.none
 
-        ownerText =
-            if imageRecord.owned then
-                Just <|
-                    Element.row []
-                        [ Element.el [ Font.color (SH.toElementColor context.palette.neutral.text.default) ]
-                            (Element.text "belongs")
-                        , Element.text <|
-                            " to this "
-                                ++ context.localization.unitOfTenancy
-                        ]
-
-            else
-                Nothing
-
-        imageTags =
-            if List.isEmpty imageRecord.image.tags then
-                Nothing
-
-            else
-                Just <|
-                    Element.row
-                        [ Element.spacing spacer.px8
-                        , Element.paddingEach { left = spacer.px8, top = 0, right = 0, bottom = 0 }
-                        ]
-                        (List.map (Tag.tag context.palette) imageRecord.image.tags)
-
         imageAttributesView =
             let
+                ownerText =
+                    if imageRecord.owned then
+                        Just <|
+                            Element.row []
+                                [ Element.el [ Font.color (SH.toElementColor context.palette.neutral.text.default) ]
+                                    (Element.text "belongs")
+                                , Element.text <|
+                                    " to this "
+                                        ++ context.localization.unitOfTenancy
+                                ]
+
+                    else
+                        Nothing
+
+                imageTags =
+                    if List.isEmpty imageRecord.image.tags then
+                        Nothing
+
+                    else
+                        Just <|
+                            Element.row
+                                [ Element.spacing spacer.px8
+                                , Element.paddingEach { left = spacer.px8, top = 0, right = 0, bottom = 0 }
+                                ]
+                                (List.map (Tag.tag context.palette) imageRecord.image.tags)
+
+                imageType =
+                    case imageRecord.image.imageType of
+                        Just imageTypeName ->
+                            imageTypeName
+
+                        Nothing ->
+                            context.localization.staticRepresentationOfBlockDeviceContents
+
                 attributesAlwaysShown =
                     [ if imageRecord.image.status == OSTypes.ImageQueued then
                         Element.text "Building..."
@@ -380,7 +365,20 @@ imageView model context project imageRecord =
                                 ]
 
                       else
-                        Element.text size
+                        Element.text <|
+                            case imageRecord.image.size of
+                                Just s ->
+                                    let
+                                        { locale } =
+                                            context
+
+                                        ( count, units ) =
+                                            humanNumber { locale | decimals = Exact 2 } Bytes s
+                                    in
+                                    count ++ " " ++ units
+
+                                Nothing ->
+                                    "unknown size"
                     , Element.row []
                         [ Element.el [ Font.color (SH.toElementColor context.palette.neutral.text.default) ]
                             (Element.text <| String.toLower <| OSTypes.imageVisibilityToString imageRecord.image.visibility)
