@@ -39,7 +39,7 @@ requestRecordSets project =
                 Types.HelperTypes.Get
                 Nothing
                 []
-                (designateUrl ++ "v2/recordsets")
+                (designateUrl ++ "v2/recordsets?limit=1000")
                 Http.emptyBody
                 (Rest.Helpers.expectJsonWithErrorBody
                     resultToMsg_
