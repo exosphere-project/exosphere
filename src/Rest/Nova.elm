@@ -588,13 +588,7 @@ requestSetServerHostName project serverUuid newServerHostName =
                   )
                 ]
 
-        errorContext =
-            ErrorContext
-                ("change server with UUID " ++ serverUuid ++ " hostname to " ++ newServerHostName)
-                ErrorDebug
-                Nothing
-
-        resultToMsg result =
+        resultToMsg _ =
             NoOp
     in
     openstackCredentialedRequest

@@ -1521,34 +1521,35 @@ renderIpAddresses context project server model =
                     |> List.map
                         (\ipAddress ->
                             Element.column []
-                                [ case OpenStack.DnsRecordSet.addressToRecord (project.dnsRecordSets |> RDPP.withDefault []) ipAddress.address of
-                                    Just { name } ->
-                                        VH.compactKVSubRow
-                                            (Helpers.String.toTitleCase context.localization.hostname)
+                                ((OpenStack.DnsRecordSet.lookupRecordsByAddress (RDPP.withDefault [] project.dnsRecordSets) ipAddress.address
+                                    |> List.map
+                                        (\r ->
+                                            VH.compactKVSubRow
+                                                (Helpers.String.toTitleCase context.localization.hostname)
+                                                (Element.row [ Element.spacing spacer.px16 ]
+                                                    [ copyableText context.palette [] r.name
+                                                    ]
+                                                )
+                                        )
+                                 )
+                                    ++ [ VH.compactKVSubRow
+                                            (Helpers.String.toTitleCase context.localization.floatingIpAddress)
                                             (Element.row [ Element.spacing spacer.px16 ]
-                                                [ copyableText context.palette [] name
+                                                [ copyableText context.palette [] ipAddress.address
+                                                , Widget.textButton
+                                                    (SH.materialStyle context.palette).button
+                                                    { text =
+                                                        "Unassign"
+                                                    , onPress =
+                                                        Just <|
+                                                            SharedMsg <|
+                                                                SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
+                                                                    SharedMsg.RequestUnassignFloatingIp ipAddress.uuid
+                                                    }
                                                 ]
                                             )
-
-                                    Nothing ->
-                                        Element.none
-                                , VH.compactKVSubRow
-                                    (Helpers.String.toTitleCase context.localization.floatingIpAddress)
-                                    (Element.row [ Element.spacing spacer.px16 ]
-                                        [ copyableText context.palette [] ipAddress.address
-                                        , Widget.textButton
-                                            (SH.materialStyle context.palette).button
-                                            { text =
-                                                "Unassign"
-                                            , onPress =
-                                                Just <|
-                                                    SharedMsg <|
-                                                        SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
-                                                            SharedMsg.RequestUnassignFloatingIp ipAddress.uuid
-                                            }
-                                        ]
-                                    )
-                                ]
+                                       ]
+                                )
                         )
 
         ipButton : Element.Element Msg -> String -> IpInfoLevel -> Element.Element Msg

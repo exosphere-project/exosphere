@@ -14,6 +14,7 @@ import Json.Encode
 import List.Extra
 import LocalStorage.LocalStorage as LocalStorage
 import Maybe
+import OpenStack.DnsRecordSet
 import OpenStack.ServerPassword as OSServerPassword
 import OpenStack.ServerTags as OSServerTags
 import OpenStack.ServerVolumes as OSSvrVols
@@ -1318,6 +1319,26 @@ processProjectSpecificMsg outerModel project msg =
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
+        ReceiveCreateDnsRecordSet _ (Ok data) ->
+            Rest.Designate.receiveCreateRecordSet sharedModel project data
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
+        ReceiveDeleteDnsRecordSet _ (Ok data) ->
+            Rest.Designate.receiveDeleteRecordSet sharedModel project data
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
+        ReceiveCreateDnsRecordSet context (Err e) ->
+            State.Error.processSynchronousApiError sharedModel context e
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
+        ReceiveDeleteDnsRecordSet context (Err e) ->
+            State.Error.processSynchronousApiError sharedModel context e
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
         RequestCreateServer pageModel networkUuid flavorId ->
             let
                 customWorkFlowSource =
@@ -2492,10 +2513,65 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                         |> mapToOuterMsg
 
         RequestSetServerName newServerName ->
+            let
+                context =
+                    sharedModel.viewContext
+
+                oldHostname =
+                    Helpers.sanitizeHostname server.osProps.name
+
+                newHostname =
+                    Helpers.sanitizeHostname newServerName
+
+                oldDnsRecordSets : List OpenStack.DnsRecordSet.DnsRecordSet
+                oldDnsRecordSets =
+                    -- map2 is used so we don't accidentally delete a record without creating a replacement
+                    Maybe.map2
+                        (\hostname _ ->
+                            GetterSetters.getServerFloatingIps project server.osProps.uuid
+                                -- Get the DnsRecordSets matching this address
+                                |> List.concatMap
+                                    (\{ address } ->
+                                        OpenStack.DnsRecordSet.lookupRecordsByAddress
+                                            (RDPP.withDefault [] project.dnsRecordSets)
+                                            address
+                                    )
+                                -- Only match when a record fits the "expected" name for the old server name
+                                |> List.filter (\{ name, zone_name } -> (hostname ++ "." ++ zone_name) == name)
+                        )
+                        oldHostname
+                        newHostname
+                        |> Maybe.withDefault []
+
+                newDnsRecordSetRequests : List Rest.Designate.DnsRecordSetRequest
+                newDnsRecordSetRequests =
+                    newHostname
+                        |> Maybe.map
+                            (\hostname ->
+                                oldDnsRecordSets
+                                    |> List.map
+                                        (\oldRecord ->
+                                            { zone_id = oldRecord.zone_id
+                                            , name = hostname ++ "." ++ oldRecord.zone_name
+                                            , type_ = oldRecord.type_
+                                            , records = oldRecord.records
+                                            , description = String.join " " [ "Created for", context.localization.virtualComputer, newServerName ]
+                                            , ttl = oldRecord.ttl
+                                            }
+                                        )
+                            )
+                        |> Maybe.withDefault []
+            in
             ( outerModel
             , Cmd.batch
                 [ Rest.Nova.requestSetServerName project server.osProps.uuid newServerName
                 , Rest.Nova.requestSetServerHostName project server.osProps.uuid newServerName
+                , oldDnsRecordSets
+                    |> List.map (Rest.Designate.requestDeleteRecordSet project)
+                    |> Cmd.batch
+                , newDnsRecordSetRequests
+                    |> List.map (Rest.Designate.requestCreateRecordSet project)
+                    |> Cmd.batch
                 ]
             )
                 |> mapToOuterMsg

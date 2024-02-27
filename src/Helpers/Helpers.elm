@@ -114,8 +114,8 @@ naiveUuidParser =
 Implementation to match <https://opendev.org/openstack/nova/src/commit/326a41b3b3e3d8ff8b2518f252615dd48930ec46/nova/utils.py#L356>
 
 -}
-sanitizeHostname : String -> Maybe String -> String
-sanitizeHostname name maybeDefault =
+sanitizeHostname : String -> Maybe String
+sanitizeHostname name =
     let
         truncate_hostname =
             String.left 63
@@ -135,10 +135,10 @@ sanitizeHostname name maybeDefault =
         -- If the name is empty and we have a default, use that
         |> (\s ->
                 if String.isEmpty s then
-                    Maybe.map truncate_hostname maybeDefault |> Maybe.withDefault s
+                    Nothing
 
                 else
-                    s
+                    Just s
            )
 
 

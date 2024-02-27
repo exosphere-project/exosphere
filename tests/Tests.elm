@@ -466,31 +466,35 @@ unitsSuite =
 -}
 hostnameSuite : Test
 hostnameSuite =
-    describe "Sanitizing hostnames should match Nova's utils.sanitize_hostname"
-        [ test "的myamazinghostname should sanitize to myamazinghostname" <|
-            \_ -> Expect.equal (Helpers.sanitizeHostname "的myamazinghostname" Nothing) "myamazinghostname"
-        , test "....test.example.com... should sanitize to test-example-com" <|
-            \_ -> Expect.equal (Helpers.sanitizeHostname "....test.example.com..." Nothing) "test-example-com"
-        , test "----my-amazing-hostname--- should sanitize to my-amazing-hostname" <|
-            \_ -> Expect.equal (Helpers.sanitizeHostname "----my-amazing-hostname---" Nothing) "my-amazing-hostname"
-        , test "(#@&$!(@*--#&91)(__=+--test-host.example!!.com-0+ should sanitize to 91----test-host-example-com-0" <|
-            \_ -> Expect.equal (Helpers.sanitizeHostname "(#@&$!(@*--#&91)(__=+--test-host.example!!.com-0+" Nothing) "91----test-host-example-com-0"
-        , test "<}\u{001F}h\u{0010}e\u{0008}l\u{0002}l\u{0005}o\u{0012}!{> should sanitize to hello" <|
-            \_ -> Expect.equal (Helpers.sanitizeHostname "<}\u{001F}h\u{0010}e\u{0008}l\u{0002}l\u{0005}o\u{0012}!{>" Nothing) "hello"
-        , test "的hello with default Server-1 should sanitize to hello" <|
-            \_ -> Expect.equal (Helpers.sanitizeHostname "的hello" (Just "Server-1")) "hello"
-        , test "的 with default Server-1 should sanitize to Server-1" <|
-            \_ -> Expect.equal (Helpers.sanitizeHostname "的" (Just "Server-1")) "Server-1"
-        , test "的 with default aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa should sanitize to aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" <|
-            \_ -> Expect.equal (Helpers.sanitizeHostname "的" (Just "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")) "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-        , test "的 should sanitize to " <|
-            \_ -> Expect.equal (Helpers.sanitizeHostname "的" Nothing) ""
-        , test "---... should sanitize to " <|
-            \_ -> Expect.equal (Helpers.sanitizeHostname "---..." Nothing) ""
-        , test " a b c  should sanitize to a-b-c" <|
-            \_ -> Expect.equal (Helpers.sanitizeHostname " a b c " Nothing) "a-b-c"
-        , test "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa should sanitize to aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" <|
-            \_ -> Expect.equal (Helpers.sanitizeHostname "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" Nothing) "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-        , test "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-a should sanitize to aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" <|
-            \_ -> Expect.equal (Helpers.sanitizeHostname "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-a" Nothing) "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-        ]
+    let
+        testCases : List ( String, Maybe String )
+        testCases =
+            [ ( "的myamazinghostname", Just "myamazinghostname" )
+            , ( "....test.example.com...", Just "test-example-com" )
+            , ( "----my-amazing-hostname---", Just "my-amazing-hostname" )
+            , ( " a b c ", Just "a-b-c" )
+            , ( "的hello", Just "hello" )
+            , ( "(#@&$!(@*--#&91)(__=+--test-host.example!!.com-0+"
+              , Just "91----test-host-example-com-0"
+              )
+            , ( "<}\u{001F}h\u{0010}e\u{0008}l\u{0002}l\u{0005}o\u{0012}!{>"
+              , Just "hello"
+              )
+            , ( "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              , Just "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              )
+            , ( "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-a"
+              , Just "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              )
+            , ( "的", Nothing )
+            , ( "---...", Nothing )
+            ]
+    in
+    describe "Sanitizing hostnames should match Nova's utils.sanitize_hostname" <|
+        List.map
+            (\( hostname, expect ) ->
+                test
+                    (hostname ++ " should result in " ++ Maybe.withDefault "Nothing" expect)
+                    (\_ -> Expect.equal (Helpers.sanitizeHostname hostname) expect)
+            )
+            testCases
