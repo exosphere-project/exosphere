@@ -13,6 +13,7 @@ module OpenStack.Types exposing
     , AuthTokenString
     , ComputeQuota
     , ConsoleUrl
+    , CreateAccessRuleRequest
     , CreateServerRequest
     , CreateShareRequest
     , CreateVolumeRequest
@@ -1163,6 +1164,14 @@ type alias CreateShareRequest =
     , size : ShareSize
     , protocol : ShareProtocol
     , shareType : ShareTypeName
+    }
+
+
+type alias CreateAccessRuleRequest =
+    { shareUuid : ShareUuid
+    , accessLevel : AccessRuleAccessLevel
+    , accessType : AccessRuleAccessType
+    , accessTo : AccessRuleAccessTo
     }
 
 

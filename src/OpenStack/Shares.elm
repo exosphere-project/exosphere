@@ -1,4 +1,4 @@
-module OpenStack.Shares exposing (requestCreateShare, requestDeleteShare, requestShareAccessRules, requestShareExportLocations, requestShares)
+module OpenStack.Shares exposing (requestCreateAccessRule, requestCreateShare, requestDeleteShare, requestShareAccessRules, requestShareExportLocations, requestShares)
 
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Time
@@ -62,6 +62,47 @@ requestCreateShare project url createShareRequest =
         (expectJsonWithErrorBody
             resultToMsg_
             (Decode.field "share" <| shareDecoder)
+        )
+
+
+requestCreateAccessRule : Project -> Url -> OSTypes.CreateAccessRuleRequest -> Cmd SharedMsg
+requestCreateAccessRule project url createAccessRuleRequest =
+    let
+        body =
+            Json.Encode.object
+                [ ( "allow_access"
+                  , Json.Encode.object
+                        [ ( "access_level", Json.Encode.string <| String.toLower <| OSTypes.accessRuleAccessLevelToString <| createAccessRuleRequest.accessLevel )
+                        , ( "access_type", Json.Encode.string <| String.toLower <| OSTypes.accessRuleAccessTypeToString <| createAccessRuleRequest.accessType )
+                        , ( "access_to", Json.Encode.string createAccessRuleRequest.accessTo )
+
+                        -- TODO: Add metadata key-value pairs to share access rules.
+                        ]
+                  )
+                ]
+
+        errorContext =
+            ErrorContext
+                ("create access rule for share " ++ createAccessRuleRequest.shareUuid)
+                ErrorCrit
+                (Just "Perhaps you are trying to create a share access rule with a name that already exists?")
+
+        resultToMsg_ =
+            resultToMsgErrorBody
+                errorContext
+                (\_ -> NoOp)
+    in
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Post
+        Nothing
+        -- Access rule metadata is supported from 2.45.
+        [ ( "X-OpenStack-Manila-API-Version", "2.45" ) ]
+        (url ++ "/shares/" ++ createAccessRuleRequest.shareUuid ++ "/action")
+        (Http.jsonBody body)
+        (expectJsonWithErrorBody
+            resultToMsg_
+            (Decode.field "access" <| accessRulesDecoder)
         )
 
 
