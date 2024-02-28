@@ -433,76 +433,70 @@ serverStatusBadge palette server =
 
 getServerUiStatus : Server -> ServerUiStatus
 getServerUiStatus server =
-    let
-        maybeFirstTargetStatus =
-            server.exoProps.targetOpenstackStatus
-                |> Maybe.andThen List.head
-
-        targetStatusActive =
-            maybeFirstTargetStatus == Just OSTypes.ServerActive
-    in
     if server.exoProps.deletionAttempted then
         ServerUiStatusDeleting
 
     else
+        let
+            maybeFirstTargetStatus =
+                server.exoProps.targetOpenstackStatus
+                    |> Maybe.andThen List.head
+
+            targetStatusActive =
+                maybeFirstTargetStatus == Just OSTypes.ServerActive
+        in
         case server.osProps.details.openstackStatus of
             OSTypes.ServerActive ->
-                let
-                    whenNoTargetStatus =
-                        case server.exoProps.serverOrigin of
-                            ServerFromExo serverFromExoProps ->
-                                if serverFromExoProps.exoServerVersion < 4 then
-                                    ServerUiStatusReady
-
-                                else
-                                    case serverFromExoProps.exoSetupStatus.data of
-                                        RDPP.DoHave ( status, _ ) _ ->
-                                            case status of
-                                                ExoSetupWaiting ->
-                                                    ServerUiStatusBuilding
-
-                                                ExoSetupRunning ->
-                                                    ServerUiStatusRunningSetup
-
-                                                ExoSetupComplete ->
-                                                    ServerUiStatusReady
-
-                                                ExoSetupError ->
-                                                    ServerUiStatusError
-
-                                                ExoSetupTimeout ->
-                                                    ServerUiStatusError
-
-                                                ExoSetupUnknown ->
-                                                    ServerUiStatusUnknown
-
-                                        RDPP.DontHave ->
-                                            ServerUiStatusUnknown
-
-                            ServerNotFromExo ->
-                                ServerUiStatusReady
-                in
-                case maybeFirstTargetStatus of
-                    Just OSTypes.ServerDeleted ->
+                case ( maybeFirstTargetStatus, server.exoProps.serverOrigin ) of
+                    ( Just OSTypes.ServerDeleted, _ ) ->
                         ServerUiStatusDeleting
 
-                    Just OSTypes.ServerResize ->
+                    ( Just OSTypes.ServerResize, _ ) ->
                         ServerUiStatusResizing
 
-                    Just OSTypes.ServerShelved ->
+                    ( Just OSTypes.ServerShelved, _ ) ->
                         ServerUiStatusShelving
 
-                    Just OSTypes.ServerShelvedOffloaded ->
+                    ( Just OSTypes.ServerShelvedOffloaded, _ ) ->
                         ServerUiStatusShelving
 
-                    Just OSTypes.ServerSoftDeleted ->
+                    ( Just OSTypes.ServerSoftDeleted, _ ) ->
                         ServerUiStatusDeleting
 
-                    Just OSTypes.ServerSuspended ->
+                    ( Just OSTypes.ServerSuspended, _ ) ->
                         ServerUiStatusSuspending
 
-                    _ ->
-                        whenNoTargetStatus
+                    ( _, ServerFromExo serverFromExoProps ) ->
+                        if serverFromExoProps.exoServerVersion < 4 then
+                            ServerUiStatusReady
+
+                        else
+                            case serverFromExoProps.exoSetupStatus.data of
+                                RDPP.DoHave ( status, _ ) _ ->
+                                    case status of
+                                        ExoSetupWaiting ->
+                                            ServerUiStatusBuilding
+
+                                        ExoSetupRunning ->
+                                            ServerUiStatusRunningSetup
+
+                                        ExoSetupComplete ->
+                                            ServerUiStatusReady
+
+                                        ExoSetupError ->
+                                            ServerUiStatusError
+
+                                        ExoSetupTimeout ->
+                                            ServerUiStatusError
+
+                                        ExoSetupUnknown ->
+                                            ServerUiStatusUnknown
+
+                                RDPP.DontHave ->
+                                    ServerUiStatusUnknown
+
+                    ( _, ServerNotFromExo ) ->
+                        ServerUiStatusReady
 
             OSTypes.ServerBuild ->
                 ServerUiStatusBuilding

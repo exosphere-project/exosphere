@@ -17,6 +17,7 @@ import Maybe
 import OpenStack.ServerPassword as OSServerPassword
 import OpenStack.ServerTags as OSServerTags
 import OpenStack.ServerVolumes as OSSvrVols
+import OpenStack.Shares as OSShares
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes as OSVolumes
 import Orchestration.GoalServer as GoalServer
@@ -493,7 +494,7 @@ updateUnderlying outerMsg outerModel =
                         ( ShareListMsg pageMsg, ShareList pageModel ) ->
                             let
                                 ( newSharedModel, cmd, sharedMsg ) =
-                                    Page.ShareList.update pageMsg pageModel
+                                    Page.ShareList.update pageMsg project pageModel
                             in
                             ( { outerModel
                                 | viewState =
@@ -1445,6 +1446,30 @@ processProjectSpecificMsg outerModel project msg =
                     ( outerModel, Rest.Neutron.requestCreateFloatingIp project net Nothing maybeIp )
                         |> mapToOuterMsg
 
+        RequestDeleteShare shareUuid ->
+            case project.endpoints.manila of
+                Just manilaUrl ->
+                    let
+                        newProject =
+                            { project
+                                | shares =
+                                    let
+                                        newShares =
+                                            project.shares
+                                                |> RDPP.withDefault []
+                                                |> List.filter (\s -> s.uuid /= shareUuid)
+                                    in
+                                    RDPP.RemoteDataPlusPlus
+                                        (RDPP.DoHave newShares sharedModel.clientCurrentTime)
+                                        (RDPP.NotLoading Nothing)
+                            }
+                    in
+                    ( { outerModel | sharedModel = GetterSetters.modelUpdateProject sharedModel newProject }, OSShares.requestDeleteShare project manilaUrl shareUuid )
+                        |> mapToOuterMsg
+
+                Nothing ->
+                    ( outerModel, Cmd.none )
+
         RequestDeleteFloatingIp errorContext floatingIpAddress ->
             ( outerModel, Rest.Neutron.requestDeleteFloatingIp project errorContext floatingIpAddress )
                 |> mapToOuterMsg
@@ -2018,6 +2043,21 @@ processProjectSpecificMsg outerModel project msg =
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
+        ReceiveDeleteShare shareUuid ->
+            ( outerModel
+            , case outerModel.viewState of
+                ProjectView _ (ShareDetail pageModel) ->
+                    -- If we are on the share detail page, navigate to the shares list.
+                    if pageModel.shareUuid == shareUuid then
+                        Route.pushUrl sharedModel.viewContext (Route.ProjectRoute (GetterSetters.projectIdentifier project) Route.ShareList)
+
+                    else
+                        Cmd.none
+
+                _ ->
+                    Cmd.none
+            )
+
         ReceiveCreateVolume ->
             {- Should we add new volume to model now? -}
             ( outerModel
@@ -2552,9 +2592,6 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
 
             else
                 let
-                    tag =
-                        "exoPw:" ++ passphrase
-
                     cmd =
                         case server.exoProps.serverOrigin of
                             ServerNotFromExo ->
@@ -2562,6 +2599,10 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
 
                             ServerFromExo serverFromExoProps ->
                                 if serverFromExoProps.exoServerVersion >= 1 then
+                                    let
+                                        tag =
+                                            "exoPw:" ++ passphrase
+                                    in
                                     Cmd.batch
                                         [ OSServerTags.requestCreateServerTag project server.osProps.uuid tag
                                         , OSServerPassword.requestClearServerPassword project server.osProps.uuid

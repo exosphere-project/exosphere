@@ -58,6 +58,7 @@ type ProjectSpecificMsgConstructor
     | ServerMsg OSTypes.ServerUuid ServerSpecificMsgConstructor
     | RequestCreateServer HelperTypes.CreateServerPageModel OSTypes.NetworkUuid OSTypes.FlavorId
     | RequestDeleteServers (List OSTypes.ServerUuid)
+    | RequestDeleteShare OSTypes.ShareUuid
     | RequestCreateVolume OSTypes.VolumeName OSTypes.VolumeSize
     | RequestDeleteVolume OSTypes.VolumeUuid
     | RequestDeleteVolumeSnapshot HelperTypes.Uuid
@@ -92,6 +93,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveShareAccessRules ( OSTypes.ShareUuid, List OSTypes.AccessRule )
     | ReceiveShareExportLocations ( OSTypes.ShareUuid, List OSTypes.ExportLocation )
     | ReceiveShares (List OSTypes.Share)
+    | ReceiveDeleteShare OSTypes.ShareUuid
     | ReceiveShareQuota ErrorContext (Result HttpErrorWithBody OSTypes.ShareQuota)
     | ReceiveCreateVolume
     | ReceiveVolumes ErrorContext (Result HttpErrorWithBody (List OSTypes.Volume))

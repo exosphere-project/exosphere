@@ -138,22 +138,6 @@ appView windowSize outerModel context =
                                 viewConstructor
                             )
 
-        headerContainerAttrs =
-            [ Background.color <|
-                SH.toElementColor context.palette.neutral.background.frontLayer
-            , Border.widthXY 0 1
-            , Border.color <|
-                SH.toElementColor context.palette.neutral.border
-            , Element.width Element.fill
-            , Element.paddingEach
-                { top = spacer.px12
-                , right = spacer.px24
-                , bottom = spacer.px16
-                , left = spacer.px24
-                }
-            , Element.spacing spacer.px12
-            ]
-
         contentContainerAttrs =
             [ Element.padding spacer.px24
             , Element.width Element.fill
@@ -169,6 +153,23 @@ appView windowSize outerModel context =
                 ]
                 [ case header of
                     Just header_ ->
+                        let
+                            headerContainerAttrs =
+                                [ Background.color <|
+                                    SH.toElementColor context.palette.neutral.background.frontLayer
+                                , Border.widthXY 0 1
+                                , Border.color <|
+                                    SH.toElementColor context.palette.neutral.border
+                                , Element.width Element.fill
+                                , Element.paddingEach
+                                    { top = spacer.px12
+                                    , right = spacer.px24
+                                    , bottom = spacer.px16
+                                    , left = spacer.px24
+                                    }
+                                , Element.spacing spacer.px12
+                                ]
+                        in
                         Element.column
                             headerContainerAttrs
                             [ View.Breadcrumb.breadcrumb outerModel context

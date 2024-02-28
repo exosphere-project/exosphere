@@ -83,16 +83,16 @@ update msg project model =
 
 view : View.Types.Context -> Project -> Model -> Element.Element Msg
 view context project model =
-    let
-        volumeName =
-            case GetterSetters.volumeLookup project model.volumeUuid of
-                Nothing ->
-                    model.volumeUuid
-
-                Just volume ->
-                    VH.resourceName volume.name volume.uuid
-    in
     if model.showHeading then
+        let
+            volumeName =
+                case GetterSetters.volumeLookup project model.volumeUuid of
+                    Nothing ->
+                        model.volumeUuid
+
+                    Just volume ->
+                        VH.resourceName volume.name volume.uuid
+        in
         Element.column
             (VH.contentContainer ++ [ Element.spacing spacer.px16 ])
             [ Text.heading context.palette

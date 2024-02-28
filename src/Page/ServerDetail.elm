@@ -291,27 +291,16 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                         |> Maybe.map .name
                         |> (\maybeName -> VH.resourceName maybeName details.imageUuid)
                         |> Just
-
-                maybeVolBackedImageName =
-                    let
-                        vols =
-                            RDPP.withDefault [] project.volumes
-                    in
-                    GetterSetters.getBootVolume vols server.osProps.uuid
-                        |> Maybe.andThen .imageMetadata
-                        |> Maybe.map (\data -> VH.resourceName (Just data.name) data.uuid)
             in
             case maybeImageName of
                 Just name ->
                     name
 
                 Nothing ->
-                    case maybeVolBackedImageName of
-                        Just name_ ->
-                            name_
-
-                        Nothing ->
-                            "N/A"
+                    GetterSetters.getBootVolume (RDPP.withDefault [] project.volumes) server.osProps.uuid
+                        |> Maybe.andThen .imageMetadata
+                        |> Maybe.map (\data -> VH.resourceName (Just data.name) data.uuid)
+                        |> Maybe.withDefault "N/A"
 
         tile : List (Element.Element Msg) -> List (Element.Element Msg) -> Element.Element Msg
         tile headerContents contents =
@@ -495,13 +484,164 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
         ]
 
 
+serverNameEditView : View.Types.Context -> Project -> Time.Posix -> Model -> Server -> Element.Element Msg
+serverNameEditView context project currentTime model server =
+    let
+        serverNamePendingConfirmation =
+            model.serverNamePendingConfirmation
+                |> Maybe.withDefault ""
+
+        invalidNameReasons =
+            serverNameValidator
+                (Just context.localization.virtualComputer)
+                serverNamePendingConfirmation
+
+        renderInvalidNameReasons =
+            case invalidNameReasons of
+                Just reasons ->
+                    List.map Element.text reasons
+                        |> List.map List.singleton
+                        |> List.map (Element.paragraph [])
+                        |> Element.column
+                            (popoverStyleDefaults context.palette
+                                ++ [ Font.color (SH.toElementColor context.palette.danger.textOnNeutralBG)
+                                   , Text.fontSize Text.Small
+                                   , Element.alignRight
+                                   , Element.moveDown 6
+                                   , Element.spacing spacer.px12
+                                   , Element.padding spacer.px16
+                                   ]
+                            )
+
+                Nothing ->
+                    Element.none
+
+        renderServerNameExists =
+            if
+                Validation.serverNameExists project serverNamePendingConfirmation
+                    -- the server's own name currently exists, of course:
+                    && server.osProps.name
+                    /= Maybe.withDefault "" model.serverNamePendingConfirmation
+            then
+                let
+                    message =
+                        Element.row []
+                            [ Element.paragraph
+                                [ Element.width (Element.fill |> Element.minimum 300)
+                                , Element.spacing spacer.px8
+                                , Font.regular
+                                , Font.color <| SH.toElementColor <| context.palette.warning.textOnNeutralBG
+                                ]
+                                [ Element.text <|
+                                    Validation.resourceNameExistsMessage context.localization.virtualComputer context.localization.unitOfTenancy
+                                ]
+                            ]
+
+                    suggestedNames =
+                        Validation.resourceNameSuggestions currentTime project serverNamePendingConfirmation
+                            |> List.filter (\n -> not (Validation.serverNameExists project n))
+
+                    content =
+                        Element.column []
+                            (message
+                                :: List.map
+                                    (\name ->
+                                        Element.row [ Element.paddingEach { edges | top = spacer.px12 } ]
+                                            [ Style.Widgets.Button.default
+                                                context.palette
+                                                { text = name
+                                                , onPress = Just <| GotServerNamePendingConfirmation (Just name)
+                                                }
+                                            ]
+                                    )
+                                    suggestedNames
+                            )
+                in
+                Style.Widgets.ToggleTip.warningToggleTip
+                    context
+                    (\serverRenameAlreadyExistsToggleTipId -> SharedMsg <| SharedMsg.TogglePopover serverRenameAlreadyExistsToggleTipId)
+                    "serverRenameAlreadyExistsToggleTip"
+                    content
+                    ST.PositionRightTop
+
+            else
+                Element.none
+
+        rowStyle =
+            { containerRow =
+                [ Element.spacing spacer.px8
+                , Element.width Element.fill
+                ]
+            , element = []
+            , ifFirst = [ Element.width <| Element.minimum 200 <| Element.fill ]
+            , ifLast = []
+            , otherwise = []
+            }
+
+        saveOnPress =
+            case ( invalidNameReasons, model.serverNamePendingConfirmation ) of
+                ( Nothing, Just validName ) ->
+                    Just <|
+                        GotSetServerName validName
+
+                ( _, _ ) ->
+                    Nothing
+    in
+    Widget.row
+        rowStyle
+        [ Element.el
+            [ Element.below renderInvalidNameReasons
+            ]
+            (Input.text
+                (VH.inputItemAttributes context.palette
+                    ++ [ Element.width <| Element.minimum 300 Element.fill ]
+                )
+                { text = model.serverNamePendingConfirmation |> Maybe.withDefault ""
+                , placeholder =
+                    Just
+                        (Input.placeholder
+                            []
+                            (Element.text <|
+                                String.join " "
+                                    [ "My"
+                                    , context.localization.virtualComputer
+                                        |> Helpers.String.toTitleCase
+                                    ]
+                            )
+                        )
+                , onChange = \name -> GotServerNamePendingConfirmation <| Just name
+                , label = Input.labelHidden "Name"
+                }
+            )
+        , Widget.iconButton
+            (SH.materialStyle context.palette).button
+            { text = "Save"
+            , icon = Icon.sizedFeatherIcon 16 Icons.save
+            , onPress =
+                saveOnPress
+            }
+        , Widget.iconButton
+            (SH.materialStyle context.palette).button
+            { text = "Cancel"
+            , icon = Icon.sizedFeatherIcon 16 Icons.xCircle
+            , onPress =
+                Just <| GotServerNamePendingConfirmation Nothing
+            }
+        , renderServerNameExists
+        ]
+
+
 serverNameView : View.Types.Context -> Project -> Time.Posix -> Model -> Server -> Element.Element Msg
 serverNameView context project currentTime model server =
-    let
-        name_ =
-            VH.resourceName (Just server.osProps.name) server.osProps.uuid
+    case model.serverNamePendingConfirmation of
+        Just _ ->
+            serverNameEditView context project currentTime model server
 
-        serverNameViewPlain =
+        Nothing ->
+            let
+                name_ =
+                    VH.resourceName (Just server.osProps.name) server.osProps.uuid
+            in
             Element.row
                 [ Element.spacing spacer.px8 ]
                 [ Text.text Text.ExtraLarge [] name_
@@ -513,158 +653,6 @@ serverNameView context project currentTime model server =
                         Just <| GotServerNamePendingConfirmation (Just name_)
                     }
                 ]
-
-        serverNameViewEdit =
-            let
-                serverNamePendingConfirmation =
-                    model.serverNamePendingConfirmation
-                        |> Maybe.withDefault ""
-
-                invalidNameReasons =
-                    serverNameValidator
-                        (Just context.localization.virtualComputer)
-                        serverNamePendingConfirmation
-
-                renderInvalidNameReasons =
-                    case invalidNameReasons of
-                        Just reasons ->
-                            List.map Element.text reasons
-                                |> List.map List.singleton
-                                |> List.map (Element.paragraph [])
-                                |> Element.column
-                                    (popoverStyleDefaults context.palette
-                                        ++ [ Font.color (SH.toElementColor context.palette.danger.textOnNeutralBG)
-                                           , Text.fontSize Text.Small
-                                           , Element.alignRight
-                                           , Element.moveDown 6
-                                           , Element.spacing spacer.px12
-                                           , Element.padding spacer.px16
-                                           ]
-                                    )
-
-                        Nothing ->
-                            Element.none
-
-                renderServerNameExists =
-                    if
-                        Validation.serverNameExists project serverNamePendingConfirmation
-                            -- the server's own name currently exists, of course:
-                            && server.osProps.name
-                            /= Maybe.withDefault "" model.serverNamePendingConfirmation
-                    then
-                        let
-                            message =
-                                Element.row []
-                                    [ Element.paragraph
-                                        [ Element.width (Element.fill |> Element.minimum 300)
-                                        , Element.spacing spacer.px8
-                                        , Font.regular
-                                        , Font.color <| SH.toElementColor <| context.palette.warning.textOnNeutralBG
-                                        ]
-                                        [ Element.text <|
-                                            Validation.resourceNameExistsMessage context.localization.virtualComputer context.localization.unitOfTenancy
-                                        ]
-                                    ]
-
-                            suggestedNames =
-                                Validation.resourceNameSuggestions currentTime project serverNamePendingConfirmation
-                                    |> List.filter (\n -> not (Validation.serverNameExists project n))
-
-                            content =
-                                Element.column []
-                                    (message
-                                        :: List.map
-                                            (\name ->
-                                                Element.row [ Element.paddingEach { edges | top = spacer.px12 } ]
-                                                    [ Style.Widgets.Button.default
-                                                        context.palette
-                                                        { text = name
-                                                        , onPress = Just <| GotServerNamePendingConfirmation (Just name)
-                                                        }
-                                                    ]
-                                            )
-                                            suggestedNames
-                                    )
-                        in
-                        Style.Widgets.ToggleTip.warningToggleTip
-                            context
-                            (\serverRenameAlreadyExistsToggleTipId -> SharedMsg <| SharedMsg.TogglePopover serverRenameAlreadyExistsToggleTipId)
-                            "serverRenameAlreadyExistsToggleTip"
-                            content
-                            ST.PositionRightTop
-
-                    else
-                        Element.none
-
-                rowStyle =
-                    { containerRow =
-                        [ Element.spacing spacer.px8
-                        , Element.width Element.fill
-                        ]
-                    , element = []
-                    , ifFirst = [ Element.width <| Element.minimum 200 <| Element.fill ]
-                    , ifLast = []
-                    , otherwise = []
-                    }
-
-                saveOnPress =
-                    case ( invalidNameReasons, model.serverNamePendingConfirmation ) of
-                        ( Nothing, Just validName ) ->
-                            Just <|
-                                GotSetServerName validName
-
-                        ( _, _ ) ->
-                            Nothing
-            in
-            Widget.row
-                rowStyle
-                [ Element.el
-                    [ Element.below renderInvalidNameReasons
-                    ]
-                    (Input.text
-                        (VH.inputItemAttributes context.palette
-                            ++ [ Element.width <| Element.minimum 300 Element.fill ]
-                        )
-                        { text = model.serverNamePendingConfirmation |> Maybe.withDefault ""
-                        , placeholder =
-                            Just
-                                (Input.placeholder
-                                    []
-                                    (Element.text <|
-                                        String.join " "
-                                            [ "My"
-                                            , context.localization.virtualComputer
-                                                |> Helpers.String.toTitleCase
-                                            ]
-                                    )
-                                )
-                        , onChange = \name -> GotServerNamePendingConfirmation <| Just name
-                        , label = Input.labelHidden "Name"
-                        }
-                    )
-                , Widget.iconButton
-                    (SH.materialStyle context.palette).button
-                    { text = "Save"
-                    , icon = Icon.sizedFeatherIcon 16 Icons.save
-                    , onPress =
-                        saveOnPress
-                    }
-                , Widget.iconButton
-                    (SH.materialStyle context.palette).button
-                    { text = "Cancel"
-                    , icon = Icon.sizedFeatherIcon 16 Icons.xCircle
-                    , onPress =
-                        Just <| GotServerNamePendingConfirmation Nothing
-                    }
-                , renderServerNameExists
-                ]
-    in
-    case model.serverNamePendingConfirmation of
-        Just _ ->
-            serverNameViewEdit
-
-        Nothing ->
-            serverNameViewPlain
 
 
 passphraseVulnWarning : View.Types.Context -> Server -> Element.Element Msg
@@ -815,15 +803,19 @@ interactions context project server currentTime tlsReverseProxyHostname =
                         context
                         currentTime
                         tlsReverseProxyHostname
+            in
+            case interactionStatus of
+                ITypes.Hidden ->
+                    Element.none
 
-                ( statusWord, statusColor ) =
-                    IHelpers.interactionStatusWordColor context.palette interactionStatus
-
-                interactionDetails =
-                    IHelpers.interactionDetails interaction context
-
-                interactionToggleTip =
+                _ ->
                     let
+                        interactionDetails =
+                            IHelpers.interactionDetails interaction context
+
+                        ( statusWord, statusColor ) =
+                            IHelpers.interactionStatusWordColor context.palette interactionStatus
+
                         status =
                             Element.row []
                                 [ Text.strong "Status: "
@@ -873,18 +865,6 @@ interactions context project server currentTime tlsReverseProxyHostname =
                                 , interactionDetails.name
                                 ]
                     in
-                    Style.Widgets.ToggleTip.toggleTip
-                        context
-                        popoverMsgMapper
-                        toggleTipId
-                        contents
-                        ST.PositionRightBottom
-            in
-            case interactionStatus of
-                ITypes.Hidden ->
-                    Element.none
-
-                _ ->
                     Element.row
                         [ Element.spacing spacer.px12 ]
                         [ Icon.roundRect statusColor 14
@@ -948,7 +928,12 @@ interactions context project server currentTime tlsReverseProxyHostname =
                                         _ ->
                                             Element.none
                                     ]
-                        , interactionToggleTip
+                        , Style.Widgets.ToggleTip.toggleTip
+                            context
+                            popoverMsgMapper
+                            toggleTipId
+                            contents
+                            ST.PositionRightBottom
                         ]
     in
     [ ITypes.GuacTerminal
@@ -1032,11 +1017,6 @@ serverPassphrase context model server =
 serverActionsDropdown : View.Types.Context -> Project -> Model -> Server -> Element.Element Msg
 serverActionsDropdown context project model server =
     let
-        dropdownId =
-            [ "serverActionsDropdown", project.auth.project.uuid, server.osProps.uuid ]
-                |> List.intersperse "-"
-                |> String.concat
-
         dropdownContent closeDropdown =
             let
                 disallowedActions =
@@ -1076,6 +1056,12 @@ serverActionsDropdown context project model server =
     in
     case server.exoProps.targetOpenstackStatus of
         Nothing ->
+            let
+                dropdownId =
+                    [ "serverActionsDropdown", project.auth.project.uuid, server.osProps.uuid ]
+                        |> List.intersperse "-"
+                        |> String.concat
+            in
             popover context
                 popoverMsgMapper
                 { id = dropdownId
@@ -1416,9 +1402,6 @@ resourceUsageCharts context currentTimeAndZone server maybeServerResourceQtys =
         chartsWidth =
             max 1075 containerWidth
 
-        thirtyMinMillis =
-            1000 * 60 * 30
-
         charts_ : Types.ServerResourceUsage.TimeSeries -> Element.Element Msg
         charts_ timeSeries =
             Element.column
@@ -1458,6 +1441,10 @@ resourceUsageCharts context currentTimeAndZone server maybeServerResourceQtys =
                                 Element.none
 
                             _ ->
+                                let
+                                    thirtyMinMillis =
+                                        1000 * 60 * 30
+                                in
                                 if Helpers.serverLessThanThisOld server (Tuple.first currentTimeAndZone) thirtyMinMillis then
                                     Element.text <|
                                         String.join " "
@@ -1493,15 +1480,6 @@ resourceUsageCharts context currentTimeAndZone server maybeServerResourceQtys =
 renderIpAddresses : View.Types.Context -> Project -> Server -> Model -> Element.Element Msg
 renderIpAddresses context project server model =
     let
-        fixedIpAddressRows =
-            GetterSetters.getServerFixedIps project server.osProps.uuid
-                |> List.map
-                    (\ipAddress ->
-                        VH.compactKVSubRow
-                            (Helpers.String.toTitleCase context.localization.nonFloatingIpAddress)
-                            (Element.text ipAddress)
-                    )
-
         floatingIpAddressRows =
             if List.isEmpty (GetterSetters.getServerFloatingIps project server.osProps.uuid) then
                 if server.exoProps.floatingIpCreationOption == DoNotUseFloatingIp then
@@ -1594,6 +1572,15 @@ renderIpAddresses context project server model =
             let
                 icon =
                     Icon.sizedFeatherIcon 12 Icons.chevronDown
+
+                fixedIpAddressRows =
+                    GetterSetters.getServerFixedIps project server.osProps.uuid
+                        |> List.map
+                            (\ipAddress ->
+                                VH.compactKVSubRow
+                                    (Helpers.String.toTitleCase context.localization.nonFloatingIpAddress)
+                                    (Element.text ipAddress)
+                            )
             in
             Element.column
                 [ Element.spacing spacer.px8 ]
@@ -1624,10 +1611,6 @@ serverVolumes context project server =
 
         _ ->
             let
-                vdevice : { a | device : String } -> Element.Element msg
-                vdevice =
-                    \v -> Element.text v.device
-
                 volDetailsButton v =
                     Element.link []
                         { url =
@@ -1683,7 +1666,7 @@ serverVolumes context project server =
                           else
                             [ { header = Element.el [ Font.heavy ] <| Element.text "Device"
                               , width = Element.fill
-                              , view = vdevice
+                              , view = \v -> Element.text v.device
                               }
                             ]
                         , [ { header = Element.el [ Font.heavy ] <| Element.text "Mount point"

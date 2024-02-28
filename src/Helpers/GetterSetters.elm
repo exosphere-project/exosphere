@@ -310,18 +310,15 @@ getServerExouserPassphrase serverDetails =
             serverDetails.tags
                 |> List.Extra.find (\t -> String.startsWith "exoPw:" t)
                 |> Maybe.map (String.dropLeft 6)
-
-        oldLocation =
-            serverDetails.metadata
-                |> List.Extra.find (\i -> i.key == "exouserPassword")
-                |> Maybe.map .value
     in
     case newLocation of
         Just passphrase ->
             Just passphrase
 
         Nothing ->
-            oldLocation
+            serverDetails.metadata
+                |> List.Extra.find (\i -> i.key == "exouserPassword")
+                |> Maybe.map .value
 
 
 sortedFlavors : List OSTypes.Flavor -> List OSTypes.Flavor
@@ -472,16 +469,13 @@ getUserAppProxyFromCloudSpecificConfig project cloudSpecificConfig =
                         |> List.filter (\configItem -> configItem.regionId == maybeRegionId)
                         |> List.head
                         |> Maybe.map .hostname
-
-                defaultUapIfNoRegionMatch =
-                    hostnameFromMaybeRegionId Nothing
             in
             case hostnameFromMaybeRegionId (Maybe.map .id project.region) of
                 Just hostname ->
                     Just hostname
 
                 Nothing ->
-                    defaultUapIfNoRegionMatch
+                    hostnameFromMaybeRegionId Nothing
     in
     cloudSpecificConfig.userAppProxy
         |> Maybe.andThen getUapHostname

@@ -182,19 +182,19 @@ update msg model =
         ClearFilter filterId ->
             case selectedFilterOptionValue filterId model of
                 Just filterOptionValue ->
-                    let
-                        clearedFilterOpts =
-                            case filterOptionValue of
-                                MultiselectOption _ ->
-                                    MultiselectOption Set.empty
-
-                                UniselectOption _ ->
-                                    UniselectOption UniselectNoChoice
-                    in
                     { model
                         | selectedFilters =
                             case model.selectedFilters of
                                 SelectedFilterOptions selectedFiltOptsDict ->
+                                    let
+                                        clearedFilterOpts =
+                                            case filterOptionValue of
+                                                MultiselectOption _ ->
+                                                    MultiselectOption Set.empty
+
+                                                UniselectOption _ ->
+                                                    UniselectOption UniselectNoChoice
+                                    in
                                     SelectedFilterOptions <|
                                         Dict.insert filterId
                                             clearedFilterOpts
@@ -307,9 +307,6 @@ view resourceName model toMsg context styleAttrs listItemView data bulkActions s
             else
                 defaultRowStyle
 
-        showRowCheckbox =
-            not (List.isEmpty bulkActions)
-
         keepARecord : Filter record -> DataRecord record -> Bool
         keepARecord filter dataRecord =
             case selectedFilterOptionValue filter.id model of
@@ -395,6 +392,10 @@ view resourceName model toMsg context styleAttrs listItemView data bulkActions s
                 ]
 
             else
+                let
+                    showRowCheckbox =
+                        not (List.isEmpty bulkActions)
+                in
                 List.indexedMap
                     (rowView model toMsg context.palette rowStyle listItemView showRowCheckbox)
                     filteredData
@@ -482,89 +483,6 @@ toolbarView :
     -> Element.Element msg
 toolbarView resourceName model toMsg context rowStyle data bulkActions selectionFilters searchFilter =
     let
-        selectableRecords =
-            List.filter (\record -> record.selectable) data.filtered
-
-        numberOfRecords =
-            List.length data.complete |> String.fromInt
-
-        numberOfFilteredRecords =
-            List.length data.filtered |> String.fromInt
-
-        displayedResourceWord =
-            if List.length data.filtered > 1 then
-                Helpers.String.pluralize resourceName
-
-            else
-                resourceName
-
-        numberOfRecordsDisplay =
-            if numberOfRecords == numberOfFilteredRecords then
-                Element.el [ Text.fontSize Text.Small, Font.color <| SH.toElementColor context.palette.neutral.text.subdued ]
-                    (Element.text <| displayedResourceWord ++ ": " ++ numberOfRecords)
-
-            else
-                Element.el [ Text.fontSize Text.Small, Font.color <| SH.toElementColor context.palette.neutral.text.subdued ]
-                    (Element.text <| numberOfFilteredRecords ++ " " ++ displayedResourceWord ++ " filtered from " ++ numberOfRecords ++ " total")
-
-        selectedRowIds =
-            -- Remove those records' Ids that were deleted after being selected
-            -- (This is because there seems no direct way to update the model
-            -- as the data passed to the view changes)
-            Set.filter
-                (\selectedRowId -> Set.member selectedRowId (idsSet selectableRecords))
-                model.selectedRowIds
-
-        areAllRowsSelected =
-            if List.isEmpty selectableRecords then
-                False
-
-            else
-                selectedRowIds == idsSet selectableRecords
-
-        selectAllCheckbox =
-            if List.isEmpty bulkActions then
-                -- don't show select all checkbox if no bulkActions are passed
-                Element.none
-
-            else
-                Input.checkbox
-                    [ Element.width Element.shrink
-                    , Element.alignTop
-                    , Element.paddingEach
-                        { top = spacer.px8, left = 0, right = 0, bottom = 0 }
-                    ]
-                    { checked = areAllRowsSelected
-                    , onChange =
-                        \isChecked ->
-                            if isChecked then
-                                ChangeAllRowsSelection <| idsSet selectableRecords
-
-                            else
-                                ChangeAllRowsSelection Set.empty
-                    , icon = Input.defaultCheckbox
-                    , label =
-                        Input.labelHidden "Select all rows"
-                    }
-                    |> Element.map toMsg
-
-        bulkActionsView =
-            -- show only when bulkActions are passed and at least 1 row is selected
-            if List.isEmpty bulkActions || Set.isEmpty selectedRowIds then
-                Element.none
-
-            else
-                Element.el [ Element.alignTop ] <|
-                    Element.row [ Element.spacing spacer.px16 ]
-                        (Element.text
-                            ("Apply action to "
-                                ++ String.fromInt (Set.size selectedRowIds)
-                                ++ " row(s):"
-                            )
-                            :: List.map (\bulkAction -> bulkAction selectedRowIds)
-                                bulkActions
-                        )
-
         ( selectionFiltersView, selectionFiltersAreActive ) =
             case selectionFilters of
                 Just selectionFilters_ ->
@@ -617,6 +535,91 @@ toolbarView resourceName model toMsg context rowStyle data bulkActions selection
         Element.none
 
     else
+        let
+            selectableRecords =
+                List.filter (\record -> record.selectable) data.filtered
+
+            numberOfRecords =
+                List.length data.complete |> String.fromInt
+
+            numberOfFilteredRecords =
+                List.length data.filtered |> String.fromInt
+
+            displayedResourceWord =
+                if List.length data.filtered > 1 then
+                    Helpers.String.pluralize resourceName
+
+                else
+                    resourceName
+
+            numberOfRecordsDisplay =
+                if numberOfRecords == numberOfFilteredRecords then
+                    Element.el [ Text.fontSize Text.Small, Font.color <| SH.toElementColor context.palette.neutral.text.subdued ]
+                        (Element.text <| displayedResourceWord ++ ": " ++ numberOfRecords)
+
+                else
+                    Element.el [ Text.fontSize Text.Small, Font.color <| SH.toElementColor context.palette.neutral.text.subdued ]
+                        (Element.text <| numberOfFilteredRecords ++ " " ++ displayedResourceWord ++ " filtered from " ++ numberOfRecords ++ " total")
+
+            selectedRowIds =
+                -- Remove those records' Ids that were deleted after being selected
+                -- (This is because there seems no direct way to update the model
+                -- as the data passed to the view changes)
+                Set.filter
+                    (\selectedRowId -> Set.member selectedRowId (idsSet selectableRecords))
+                    model.selectedRowIds
+
+            selectAllCheckbox =
+                if List.isEmpty bulkActions then
+                    -- don't show select all checkbox if no bulkActions are passed
+                    Element.none
+
+                else
+                    let
+                        areAllRowsSelected =
+                            if List.isEmpty selectableRecords then
+                                False
+
+                            else
+                                selectedRowIds == idsSet selectableRecords
+                    in
+                    Input.checkbox
+                        [ Element.width Element.shrink
+                        , Element.alignTop
+                        , Element.paddingEach
+                            { top = spacer.px8, left = 0, right = 0, bottom = 0 }
+                        ]
+                        { checked = areAllRowsSelected
+                        , onChange =
+                            \isChecked ->
+                                if isChecked then
+                                    ChangeAllRowsSelection <| idsSet selectableRecords
+
+                                else
+                                    ChangeAllRowsSelection Set.empty
+                        , icon = Input.defaultCheckbox
+                        , label =
+                            Input.labelHidden "Select all rows"
+                        }
+                        |> Element.map toMsg
+
+            bulkActionsView =
+                -- show only when bulkActions are passed and at least 1 row is selected
+                if List.isEmpty bulkActions || Set.isEmpty selectedRowIds then
+                    Element.none
+
+                else
+                    Element.el [ Element.alignTop ] <|
+                        Element.row [ Element.spacing spacer.px16 ]
+                            (Element.text
+                                ("Apply action to "
+                                    ++ String.fromInt (Set.size selectedRowIds)
+                                    ++ " row(s):"
+                                )
+                                :: List.map (\bulkAction -> bulkAction selectedRowIds)
+                                    bulkActions
+                            )
+        in
         Element.column
             (rowStyle ++ [ Element.spacing spacer.px16 ])
             [ searchFilterView
@@ -639,254 +642,255 @@ filtersView :
     -> List (DataRecord record)
     -> Element.Element msg
 filtersView model toMsg context { filters, dropdownMsgMapper } data =
-    let
-        filtOptCheckbox : Filter record -> MultiselectOptionIdentifier -> FilterOptionValue -> Element.Element msg
-        filtOptCheckbox filter optionValues filterOptionValue =
-            let
-                checked =
-                    Set.member filterOptionValue optionValues
-            in
-            Input.checkbox [ Element.width Element.shrink ]
-                { checked = checked
-                , onChange = ChangeFiltOptCheckboxSelection filter.id filterOptionValue
-                , icon = Input.defaultCheckbox
-                , label =
-                    Input.labelRight []
-                        (getFilterOptionText filter data filterOptionValue
-                            |> Element.text
-                        )
-                }
-                |> Element.map toMsg
-
-        filtOptsRadioSelector : Filter record -> UniselectOptionIdentifier -> Element.Element msg
-        filtOptsRadioSelector filter uniselectOptValue =
-            Input.radioRow [ Element.spacing spacer.px16 ]
-                { onChange = ChangeFiltOptRadioSelection filter.id
-                , selected = Just uniselectOptValue
-                , label =
-                    Input.labelLeft
-                        [ Element.paddingEach
-                            { left = 0, right = spacer.px16, top = 0, bottom = 0 }
-                        ]
-                        (Element.text <| filter.label ++ ":")
-                , options =
-                    List.map
-                        (\filterOptionValue ->
-                            Input.option (UniselectHasChoice filterOptionValue)
-                                (getFilterOptionText filter data filterOptionValue
-                                    |> Element.text
-                                )
-                        )
-                        (filter.filterOptions data |> Dict.keys)
-                        -- TODO: Let consumer control it. With custom type,
-                        -- ensure that they pass text for UniselectNoChoice
-                        ++ [ Input.option UniselectNoChoice (Element.text "No choice") ]
-                }
-                |> Element.map toMsg
-
-        filtersDropdownId =
-            -- an ugly workaround to generate a unique id for filtersDropdown
-            -- (until we make popover widget capable of generating unique ids internallly)
-            "dataListfiltersDropdown-"
-                ++ (List.foldl
-                        (\filter allFilterOptionTexts ->
-                            allFilterOptionTexts ++ (Dict.values <| filter.filterOptions data)
-                        )
-                        []
-                        filters
-                        |> String.concat
-                        |> Murmur3.hashString 4321
-                        |> String.fromInt
-                   )
-
-        filtersDropdown closeDropdown =
-            Element.column
-                [ Element.spacingXY 0 spacer.px24
-                ]
-                (Element.row [ Element.width Element.fill ]
-                    [ Element.el [ Text.fontSize Text.Body ]
-                        (Element.text "Apply Filters")
-                    , Element.el [ Element.alignRight, closeDropdown ]
-                        (Widget.iconButton
-                            (SH.materialStyle context.palette).iconButton
-                            { icon = Icon.sizedFeatherIcon 16 Icons.x
-                            , text = "Close"
-                            , onPress = Just NoOp
-                            }
-                            |> Element.map toMsg
-                        )
-                    ]
-                    :: List.map
-                        (\filter ->
-                            if Dict.isEmpty <| filter.filterOptions data then
-                                Element.none
-
-                            else
-                                case
-                                    ( filter.filterTypeAndDefaultValue
-                                    , selectedFilterOptionValue filter.id model
-                                    )
-                                of
-                                    ( MultiselectOption _, Just (MultiselectOption selectedOptionValues) ) ->
-                                        Element.row [ Element.spacing spacer.px16 ]
-                                            (Element.text (filter.label ++ ":")
-                                                :: List.map
-                                                    (filtOptCheckbox filter selectedOptionValues)
-                                                    (filter.filterOptions data |> Dict.keys)
-                                            )
-
-                                    ( UniselectOption _, Just (UniselectOption selectedOptionValue) ) ->
-                                        filtOptsRadioSelector filter selectedOptionValue
-
-                                    _ ->
-                                        Element.none
-                        )
-                        filters
-                )
-
-        addFilterBtn toggleDropdownMsg =
-            let
-                buttonStyleDefaults =
-                    (SH.materialStyle context.palette).button
-
-                buttonStyle =
-                    { buttonStyleDefaults
-                        | container =
-                            buttonStyleDefaults.container
-                                ++ [ Element.padding spacer.px4
-                                   , Element.height Element.shrink
-                                   ]
-                        , labelRow =
-                            buttonStyleDefaults.labelRow
-                                ++ [ Element.padding 0
-                                   , Element.spacing 0
-                                   , Element.width Element.shrink
-                                   ]
-                    }
-            in
-            Element.el
-                []
-                (Widget.iconButton
-                    buttonStyle
-                    { icon = Icon.sizedFeatherIcon 20 Icons.plus
-                    , text = "Add Filters"
-                    , onPress = Just toggleDropdownMsg
-                    }
-                )
-
-        filterChipView : Filter record -> List (Element.Element Msg) -> Element.Element msg
-        filterChipView filter selectedOptContent =
-            chip context.palette
-                []
-                (Element.row []
-                    (Element.el
-                        [ Font.color <|
-                            SH.toElementColor context.palette.neutral.text.subdued
-                        ]
-                        (Element.text filter.chipPrefix)
-                        :: selectedOptContent
-                    )
-                )
-                (Just <| ClearFilter filter.id)
-                |> Element.map toMsg
-
-        selectedFiltersChips : List (Element.Element msg)
-        selectedFiltersChips =
-            List.map
-                (\filter ->
-                    case selectedFilterOptionValue filter.id model of
-                        Just (MultiselectOption selectedOptVals) ->
-                            if Set.isEmpty selectedOptVals then
-                                Element.none
-
-                            else
-                                filterChipView filter
-                                    (Set.toList selectedOptVals
-                                        |> List.map
-                                            (\selectedOptVal ->
-                                                getFilterOptionText filter
-                                                    data
-                                                    selectedOptVal
-                                                    |> Element.text
-                                            )
-                                        |> List.intersperse
-                                            (Element.el
-                                                [ Font.color <|
-                                                    SH.toElementColor context.palette.neutral.text.subdued
-                                                ]
-                                                (Element.text " or ")
-                                            )
-                                    )
-
-                        Just (UniselectOption uniselectOptVal) ->
-                            case uniselectOptVal of
-                                UniselectNoChoice ->
-                                    Element.none
-
-                                UniselectHasChoice selectedOptVal ->
-                                    filterChipView filter
-                                        [ getFilterOptionText filter data selectedOptVal
-                                            |> Element.text
-                                        ]
-
-                        Nothing ->
-                            Element.none
-                )
-                filters
-
-        clearAllBtn =
-            let
-                textBtnStyleDefaults =
-                    (SH.materialStyle context.palette).textButton
-
-                textBtnStyle =
-                    { textBtnStyleDefaults
-                        | container =
-                            textBtnStyleDefaults.container
-                                ++ [ Font.medium
-                                   , Element.height Element.shrink
-                                   ]
-                    }
-
-                isAnyOptSelected selectedOpts =
-                    case selectedOpts of
-                        MultiselectOption multiselectOptValues ->
-                            not (Set.isEmpty multiselectOptValues)
-
-                        UniselectOption uniselectOptValue ->
-                            case uniselectOptValue of
-                                UniselectNoChoice ->
-                                    False
-
-                                UniselectHasChoice _ ->
-                                    True
-
-                isAnyFilterApplied =
-                    case model.selectedFilters of
-                        SelectedFilterOptions selectedFiltOptsDict ->
-                            Dict.foldl
-                                (\_ selectedOpts anyOptSelected ->
-                                    isAnyOptSelected selectedOpts
-                                        || anyOptSelected
-                                )
-                                False
-                                selectedFiltOptsDict
-            in
-            if isAnyFilterApplied || not (String.isEmpty model.searchText) then
-                Widget.textButton
-                    textBtnStyle
-                    { text = "Clear filters"
-                    , onPress = Just <| ClearAllFilters
-                    }
-                    |> Element.map toMsg
-
-            else
-                Element.none
-    in
     if List.isEmpty filters then
         Element.none
 
     else
+        let
+            filtOptCheckbox : Filter record -> MultiselectOptionIdentifier -> FilterOptionValue -> Element.Element msg
+            filtOptCheckbox filter optionValues filterOptionValue =
+                let
+                    checked =
+                        Set.member filterOptionValue optionValues
+                in
+                Input.checkbox [ Element.width Element.shrink ]
+                    { checked = checked
+                    , onChange = ChangeFiltOptCheckboxSelection filter.id filterOptionValue
+                    , icon = Input.defaultCheckbox
+                    , label =
+                        Input.labelRight []
+                            (getFilterOptionText filter data filterOptionValue
+                                |> Element.text
+                            )
+                    }
+                    |> Element.map toMsg
+
+            filtOptsRadioSelector : Filter record -> UniselectOptionIdentifier -> Element.Element msg
+            filtOptsRadioSelector filter uniselectOptValue =
+                Input.radioRow [ Element.spacing spacer.px16 ]
+                    { onChange = ChangeFiltOptRadioSelection filter.id
+                    , selected = Just uniselectOptValue
+                    , label =
+                        Input.labelLeft
+                            [ Element.paddingEach
+                                { left = 0, right = spacer.px16, top = 0, bottom = 0 }
+                            ]
+                            (Element.text <| filter.label ++ ":")
+                    , options =
+                        List.map
+                            (\filterOptionValue ->
+                                Input.option (UniselectHasChoice filterOptionValue)
+                                    (getFilterOptionText filter data filterOptionValue
+                                        |> Element.text
+                                    )
+                            )
+                            (filter.filterOptions data |> Dict.keys)
+                            -- TODO: Let consumer control it. With custom type,
+                            -- ensure that they pass text for UniselectNoChoice
+                            ++ [ Input.option UniselectNoChoice (Element.text "No choice") ]
+                    }
+                    |> Element.map toMsg
+
+            filtersDropdownId =
+                -- an ugly workaround to generate a unique id for filtersDropdown
+                -- (until we make popover widget capable of generating unique ids internallly)
+                "dataListfiltersDropdown-"
+                    ++ (List.foldl
+                            (\filter allFilterOptionTexts ->
+                                allFilterOptionTexts ++ (Dict.values <| filter.filterOptions data)
+                            )
+                            []
+                            filters
+                            |> String.concat
+                            |> Murmur3.hashString 4321
+                            |> String.fromInt
+                       )
+
+            filtersDropdown closeDropdown =
+                Element.column
+                    [ Element.spacingXY 0 spacer.px24
+                    ]
+                    (Element.row [ Element.width Element.fill ]
+                        [ Element.el [ Text.fontSize Text.Body ]
+                            (Element.text "Apply Filters")
+                        , Element.el [ Element.alignRight, closeDropdown ]
+                            (Widget.iconButton
+                                (SH.materialStyle context.palette).iconButton
+                                { icon = Icon.sizedFeatherIcon 16 Icons.x
+                                , text = "Close"
+                                , onPress = Just NoOp
+                                }
+                                |> Element.map toMsg
+                            )
+                        ]
+                        :: List.map
+                            (\filter ->
+                                if Dict.isEmpty <| filter.filterOptions data then
+                                    Element.none
+
+                                else
+                                    case
+                                        ( filter.filterTypeAndDefaultValue
+                                        , selectedFilterOptionValue filter.id model
+                                        )
+                                    of
+                                        ( MultiselectOption _, Just (MultiselectOption selectedOptionValues) ) ->
+                                            Element.row [ Element.spacing spacer.px16 ]
+                                                (Element.text (filter.label ++ ":")
+                                                    :: List.map
+                                                        (filtOptCheckbox filter selectedOptionValues)
+                                                        (filter.filterOptions data |> Dict.keys)
+                                                )
+
+                                        ( UniselectOption _, Just (UniselectOption selectedOptionValue) ) ->
+                                            filtOptsRadioSelector filter selectedOptionValue
+
+                                        _ ->
+                                            Element.none
+                            )
+                            filters
+                    )
+
+            addFilterBtn toggleDropdownMsg =
+                let
+                    buttonStyleDefaults =
+                        (SH.materialStyle context.palette).button
+
+                    buttonStyle =
+                        { buttonStyleDefaults
+                            | container =
+                                buttonStyleDefaults.container
+                                    ++ [ Element.padding spacer.px4
+                                       , Element.height Element.shrink
+                                       ]
+                            , labelRow =
+                                buttonStyleDefaults.labelRow
+                                    ++ [ Element.padding 0
+                                       , Element.spacing 0
+                                       , Element.width Element.shrink
+                                       ]
+                        }
+                in
+                Element.el
+                    []
+                    (Widget.iconButton
+                        buttonStyle
+                        { icon = Icon.sizedFeatherIcon 20 Icons.plus
+                        , text = "Add Filters"
+                        , onPress = Just toggleDropdownMsg
+                        }
+                    )
+
+            filterChipView : Filter record -> List (Element.Element Msg) -> Element.Element msg
+            filterChipView filter selectedOptContent =
+                chip context.palette
+                    []
+                    (Element.row []
+                        (Element.el
+                            [ Font.color <|
+                                SH.toElementColor context.palette.neutral.text.subdued
+                            ]
+                            (Element.text filter.chipPrefix)
+                            :: selectedOptContent
+                        )
+                    )
+                    (Just <| ClearFilter filter.id)
+                    |> Element.map toMsg
+
+            selectedFiltersChips : List (Element.Element msg)
+            selectedFiltersChips =
+                List.map
+                    (\filter ->
+                        case selectedFilterOptionValue filter.id model of
+                            Just (MultiselectOption selectedOptVals) ->
+                                if Set.isEmpty selectedOptVals then
+                                    Element.none
+
+                                else
+                                    filterChipView filter
+                                        (Set.toList selectedOptVals
+                                            |> List.map
+                                                (\selectedOptVal ->
+                                                    getFilterOptionText filter
+                                                        data
+                                                        selectedOptVal
+                                                        |> Element.text
+                                                )
+                                            |> List.intersperse
+                                                (Element.el
+                                                    [ Font.color <|
+                                                        SH.toElementColor context.palette.neutral.text.subdued
+                                                    ]
+                                                    (Element.text " or ")
+                                                )
+                                        )
+
+                            Just (UniselectOption uniselectOptVal) ->
+                                case uniselectOptVal of
+                                    UniselectNoChoice ->
+                                        Element.none
+
+                                    UniselectHasChoice selectedOptVal ->
+                                        filterChipView filter
+                                            [ getFilterOptionText filter data selectedOptVal
+                                                |> Element.text
+                                            ]
+
+                            Nothing ->
+                                Element.none
+                    )
+                    filters
+
+            clearAllBtn =
+                let
+                    isAnyOptSelected selectedOpts =
+                        case selectedOpts of
+                            MultiselectOption multiselectOptValues ->
+                                not (Set.isEmpty multiselectOptValues)
+
+                            UniselectOption uniselectOptValue ->
+                                case uniselectOptValue of
+                                    UniselectNoChoice ->
+                                        False
+
+                                    UniselectHasChoice _ ->
+                                        True
+
+                    isAnyFilterApplied =
+                        case model.selectedFilters of
+                            SelectedFilterOptions selectedFiltOptsDict ->
+                                Dict.foldl
+                                    (\_ selectedOpts anyOptSelected ->
+                                        isAnyOptSelected selectedOpts
+                                            || anyOptSelected
+                                    )
+                                    False
+                                    selectedFiltOptsDict
+                in
+                if isAnyFilterApplied || not (String.isEmpty model.searchText) then
+                    let
+                        textBtnStyleDefaults =
+                            (SH.materialStyle context.palette).textButton
+
+                        textBtnStyle =
+                            { textBtnStyleDefaults
+                                | container =
+                                    textBtnStyleDefaults.container
+                                        ++ [ Font.medium
+                                           , Element.height Element.shrink
+                                           ]
+                            }
+                    in
+                    Widget.textButton
+                        textBtnStyle
+                        { text = "Clear filters"
+                        , onPress = Just <| ClearAllFilters
+                        }
+                        |> Element.map toMsg
+
+                else
+                    Element.none
+        in
         popover context
             dropdownMsgMapper
             { id = filtersDropdownId

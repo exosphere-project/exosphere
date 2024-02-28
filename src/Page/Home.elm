@@ -64,18 +64,6 @@ uniqueKeystoneHostnames sharedModel =
 
 headerView : View.Types.Context -> SharedModel -> Element.Element Msg
 headerView context sharedModel =
-    let
-        removeAllText =
-            String.join " "
-                [ "Remove All"
-                , Helpers.String.toTitleCase
-                    context.localization.unitOfTenancy
-                    |> Helpers.String.pluralize
-                ]
-
-        removePopconfirmId =
-            "RemoveAllProjects"
-    in
     Element.row [ Element.width Element.fill, Element.spacing spacer.px24 ]
         [ Text.heading context.palette
             VH.headerHeadingAttributes
@@ -85,6 +73,18 @@ headerView context sharedModel =
             Element.none
 
           else
+            let
+                removeAllText =
+                    String.join " "
+                        [ "Remove All"
+                        , Helpers.String.toTitleCase
+                            context.localization.unitOfTenancy
+                            |> Helpers.String.pluralize
+                        ]
+
+                removePopconfirmId =
+                    "RemoveAllProjects"
+            in
             Style.Widgets.DeleteButton.deletePopconfirm context
                 TogglePopover
                 removePopconfirmId
