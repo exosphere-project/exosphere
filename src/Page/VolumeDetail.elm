@@ -337,9 +337,9 @@ volumeActionButtons context project model volume =
                                     [ Element.text <|
                                         "Detaching a "
                                             ++ context.localization.blockDevice
-                                            ++ " while it is in use may cause data loss"
+                                            ++ " while it is in use may cause data loss."
                                     , Element.text
-                                        "Make sure to close any open files before detaching"
+                                        "Make sure to close any open files before detaching."
                                     ]
                             , buttonText = Just "Detach"
                             , onConfirm = Just detachMsg
