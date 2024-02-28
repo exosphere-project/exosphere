@@ -234,13 +234,18 @@ filters now =
         createdAfter : String -> { a | creationTime : Time.Posix } -> Bool
         createdAfter startAsMsString { creationTime } =
             let
-                createdAt =
-                    Time.posixToMillis creationTime
-
                 startAt =
                     String.toInt startAsMsString
             in
-            Maybe.map (\start -> createdAt >= start) startAt
+            Maybe.map
+                (\start ->
+                    let
+                        createdAt =
+                            Time.posixToMillis creationTime
+                    in
+                    createdAt >= start
+                )
+                startAt
                 |> Maybe.withDefault True
     in
     [ { id = "creator"

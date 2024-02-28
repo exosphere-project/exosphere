@@ -97,9 +97,6 @@ view context project model =
             let
                 -- Warn the user when their project has at least this many unassigned floating IPs.
                 -- Perhaps in the future this behavior becomes configurable at runtime.
-                ipScarcityWarningThreshold =
-                    2
-
                 ipsSorted =
                     List.sortBy (.address >> ipToInt) ips
 
@@ -129,9 +126,6 @@ view context project model =
 
                         Nothing ->
                             False
-
-                ( _, ipsNotAssignedToResources ) =
-                    List.partition ipAssignedToAResource ipsSorted
             in
             if List.isEmpty ipsSorted then
                 Element.column
@@ -151,6 +145,13 @@ view context project model =
                     ]
 
             else
+                let
+                    ipScarcityWarningThreshold =
+                        2
+
+                    ( _, ipsNotAssignedToResources ) =
+                        List.partition ipAssignedToAResource ipsSorted
+                in
                 Element.column
                     [ Element.spacing spacer.px24, Element.width Element.fill ]
                     [ if List.length ipsNotAssignedToResources >= ipScarcityWarningThreshold then

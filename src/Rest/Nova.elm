@@ -836,12 +836,12 @@ receiveServer_ project osServer =
             -- The exoCreateFloatingIp metadata property is only used temporarily so that Exosphere knows the user's
             -- choice of whether to create a floating IP address with a new server. Once it is stored in the model,
             -- we can delete the metadata property.
-            let
-                metadataKey =
-                    "exoCreateFloatingIp"
-            in
             case newServer.exoProps.serverOrigin of
                 ServerFromExo _ ->
+                    let
+                        metadataKey =
+                            "exoCreateFloatingIp"
+                    in
                     if
                         List.member metadataKey (List.map .key newServer.osProps.details.metadata)
                             && newServer.osProps.details.openstackStatus

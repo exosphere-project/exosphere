@@ -249,15 +249,16 @@ popover context msgMapper { id, content, contentStyleAttrs, position, distanceTo
     let
         popoverIsShown =
             Set.member id context.showPopovers
-
-        -- close popover when an action happens in the content
-        closePopover =
-            Element.htmlAttribute <|
-                Html.Events.onClick (msgMapper id)
     in
     Element.el
         ((Element.htmlAttribute <| Html.Attributes.id id)
             :: (if popoverIsShown then
+                    let
+                        -- close popover when an action happens in the content
+                        closePopover =
+                            Element.htmlAttribute <|
+                                Html.Events.onClick (msgMapper id)
+                    in
                     popoverAttribs
                         (Element.el
                             (popoverStyleDefaults context.palette

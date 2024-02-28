@@ -2649,9 +2649,6 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
 
             else
                 let
-                    tag =
-                        "exoPw:" ++ passphrase
-
                     cmd =
                         case server.exoProps.serverOrigin of
                             ServerNotFromExo ->
@@ -2659,6 +2656,10 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
 
                             ServerFromExo serverFromExoProps ->
                                 if serverFromExoProps.exoServerVersion >= 1 then
+                                    let
+                                        tag =
+                                            "exoPw:" ++ passphrase
+                                    in
                                     Cmd.batch
                                         [ OSServerTags.requestCreateServerTag project server.osProps.uuid tag
                                         , OSServerPassword.requestClearServerPassword project server.osProps.uuid

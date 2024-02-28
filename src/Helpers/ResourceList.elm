@@ -27,13 +27,13 @@ creationTimeFilterOptions =
 
 onCreationTimeFilter : FilterOptionValue -> Time.Posix -> Time.Posix -> Bool
 onCreationTimeFilter optionValue resourceCreationTime currentTime =
-    let
-        timeElapsedSinceCreation =
-            Time.posixToMillis currentTime
-                - Time.posixToMillis resourceCreationTime
-    in
     case String.toInt optionValue of
         Just optionInTimePeriod ->
+            let
+                timeElapsedSinceCreation =
+                    Time.posixToMillis currentTime
+                        - Time.posixToMillis resourceCreationTime
+            in
             timeElapsedSinceCreation <= optionInTimePeriod
 
         Nothing ->
