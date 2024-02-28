@@ -2514,9 +2514,6 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
 
         RequestSetServerName newServerName ->
             let
-                context =
-                    sharedModel.viewContext
-
                 oldHostname =
                     Helpers.sanitizeHostname server.osProps.name
 
@@ -2555,7 +2552,12 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                                             , name = hostname ++ "." ++ oldRecord.zone_name
                                             , type_ = oldRecord.type_
                                             , records = oldRecord.records
-                                            , description = String.join " " [ "Created for", context.localization.virtualComputer, newServerName ]
+                                            , description =
+                                                String.join " "
+                                                    [ "Created for"
+                                                    , sharedModel.viewContext.localization.virtualComputer
+                                                    , newServerName
+                                                    ]
                                             , ttl = oldRecord.ttl
                                             }
                                         )
