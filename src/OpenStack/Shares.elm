@@ -72,7 +72,7 @@ requestCreateAccessRule project url createAccessRuleRequest =
             Json.Encode.object
                 [ ( "allow_access"
                   , Json.Encode.object
-                        [ ( "access_level", Json.Encode.string <| String.toLower <| OSTypes.accessRuleAccessLevelToString <| createAccessRuleRequest.accessLevel )
+                        [ ( "access_level", Json.Encode.string <| OSTypes.accessRuleAccessLevelToApiString <| createAccessRuleRequest.accessLevel )
                         , ( "access_type", Json.Encode.string <| String.toLower <| OSTypes.accessRuleAccessTypeToString <| createAccessRuleRequest.accessType )
                         , ( "access_to", Json.Encode.string createAccessRuleRequest.accessTo )
 

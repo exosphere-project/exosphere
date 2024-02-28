@@ -1,9 +1,9 @@
 module OpenStack.Types exposing
     ( AccessRule
     , AccessRuleAccessKey
-    , AccessRuleAccessLevel
+    , AccessRuleAccessLevel(..)
     , AccessRuleAccessTo
-    , AccessRuleAccessType
+    , AccessRuleAccessType(..)
     , AccessRuleState
     , AccessRuleUuid
     , ApplicationCredential
@@ -92,7 +92,8 @@ module OpenStack.Types exposing
     , VolumeSize
     , VolumeStatus(..)
     , VolumeUuid
-    , accessRuleAccessLevelToString
+    , accessRuleAccessLevelToApiString
+    , accessRuleAccessLevelToHumanString
     , accessRuleAccessTypeToString
     , accessRuleStateToString
     , boolToShareVisibility
@@ -1188,14 +1189,27 @@ stringToAccessRuleAccessLevel str =
             UnsupportedAccessLevel str
 
 
-accessRuleAccessLevelToString : AccessRuleAccessLevel -> String
-accessRuleAccessLevelToString accessLevel =
+accessRuleAccessLevelToHumanString : AccessRuleAccessLevel -> String
+accessRuleAccessLevelToHumanString accessLevel =
     case accessLevel of
         RO ->
             "read-only"
 
         RW ->
             "read-write"
+
+        UnsupportedAccessLevel str ->
+            str
+
+
+accessRuleAccessLevelToApiString : AccessRuleAccessLevel -> String
+accessRuleAccessLevelToApiString accessLevel =
+    case accessLevel of
+        RO ->
+            "ro"
+
+        RW ->
+            "rw"
 
         UnsupportedAccessLevel str ->
             str
