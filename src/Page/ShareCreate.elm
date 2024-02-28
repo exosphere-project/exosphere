@@ -126,9 +126,9 @@ view context project currentTime model =
                     ++ Forms.resourceNameAlreadyExists context project currentTime { resource = Share model.name, onSuggestionPressed = \suggestion -> GotName suggestion }
                     ++ [ Element.text <|
                             String.join " "
-                                [ "(Suggestion: choose a good name that describes what the"
-                                , context.localization.share
-                                , "will store.)"
+                                [ "(Note:"
+                                , Helpers.String.toTitleCase <| Helpers.String.pluralize context.localization.share
+                                , "require a globally unique name.)"
                                 ]
                        ]
                 )
