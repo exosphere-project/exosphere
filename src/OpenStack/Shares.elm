@@ -45,10 +45,10 @@ requestCreateShare project url createShareRequest =
         resultToMsg_ =
             resultToMsgErrorBody
                 errorContext
-                (\_ ->
+                (\share ->
                     ProjectMsg
                         (GetterSetters.projectIdentifier project)
-                        ReceiveCreateShare
+                        (ReceiveCreateShare share)
                 )
     in
     openstackCredentialedRequest

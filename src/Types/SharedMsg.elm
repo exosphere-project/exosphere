@@ -91,7 +91,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveSecurityGroups ErrorContext (Result HttpErrorWithBody (List OSTypes.SecurityGroup))
     | ReceiveDnsRecordSets (List OpenStack.DnsRecordSet.DnsRecordSet)
     | ReceiveCreateExoSecurityGroup ErrorContext (Result HttpErrorWithBody OSTypes.SecurityGroup)
-    | ReceiveCreateShare
+    | ReceiveCreateShare OSTypes.Share
     | ReceiveShareAccessRules ( OSTypes.ShareUuid, List OSTypes.AccessRule )
     | ReceiveShareExportLocations ( OSTypes.ShareUuid, List OSTypes.ExportLocation )
     | ReceiveShares (List OSTypes.Share)

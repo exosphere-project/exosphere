@@ -2031,11 +2031,32 @@ processProjectSpecificMsg outerModel project msg =
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
-        ReceiveCreateShare ->
-            -- TODO: Should we create an access rule now?
+        ReceiveCreateShare share ->
             ( outerModel
-            , Route.pushUrl sharedModel.viewContext (Route.ProjectRoute (GetterSetters.projectIdentifier project) Route.ShareList)
+            , Cmd.batch
+                [ Route.pushUrl sharedModel.viewContext (Route.ProjectRoute (GetterSetters.projectIdentifier project) Route.ShareList)
+
+                -- Create a default access rule for our new share.
+                , case project.endpoints.manila of
+                    Just manilaUrl ->
+                        let
+                            defaultAccessLevel =
+                                OSTypes.RW
+                        in
+                        OSShares.requestCreateAccessRule
+                            project
+                            manilaUrl
+                            { shareUuid = share.uuid
+                            , accessLevel = defaultAccessLevel
+                            , accessType = OSTypes.CephX
+                            , accessTo = String.join "-" [ Maybe.withDefault share.uuid share.name, OSTypes.accessRuleAccessLevelToApiString defaultAccessLevel ]
+                            }
+
+                    Nothing ->
+                        Cmd.none
+                ]
             )
+                |> mapToOuterMsg
 
         ReceiveShareAccessRules ( shareUuid, accessRules ) ->
             let
