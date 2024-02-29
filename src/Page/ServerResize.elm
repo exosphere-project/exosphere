@@ -95,6 +95,7 @@ view_ context project model computeQuota =
                                     0
             in
             project.flavors
+                |> RDPP.withDefault []
                 |> List.filter (\flavor -> flavor.disk_root >= minRootDiskSize)
                 |> List.map .id
 

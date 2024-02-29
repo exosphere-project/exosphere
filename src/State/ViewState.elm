@@ -275,9 +275,11 @@ routeToViewStateModelCmd sharedModel route =
                         Route.InstanceSourcePicker ->
                             let
                                 ( newSharedModel, newCmd ) =
-                                    ( sharedModel, Rest.Nova.requestFlavors project )
+                                    ( sharedModel, Cmd.none )
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestImages (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestFlavors (GetterSetters.projectIdentifier project))
                             in
                             ( projectViewProto <| InstanceSourcePicker <| Page.InstanceSourcePicker.init
                             , newSharedModel
@@ -308,16 +310,15 @@ routeToViewStateModelCmd sharedModel route =
 
                         Route.ServerCreate imageId imageName maybeRestrictFlavorIds maybeDeployGuac ->
                             let
+                                cmd : Cmd SharedMsg
                                 cmd =
-                                    Cmd.batch
-                                        [ Rest.Nova.requestFlavors project
-                                        , Rest.Nova.requestKeypairs project
-                                        ]
+                                    Rest.Nova.requestKeypairs project
 
                                 ( newSharedModel, newCmd ) =
                                     ( sharedModel, cmd )
                                         |> Helpers.pipelineCmd (ApiModelHelpers.requestAutoAllocatedNetwork (GetterSetters.projectIdentifier project))
                                         |> Helpers.pipelineCmd (ApiModelHelpers.requestComputeQuota (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd (ApiModelHelpers.requestFlavors (GetterSetters.projectIdentifier project))
                                         |> Helpers.pipelineCmd (ApiModelHelpers.requestVolumeQuota (GetterSetters.projectIdentifier project))
                                         |> Helpers.pipelineCmd (ApiModelHelpers.requestNetworkQuota (GetterSetters.projectIdentifier project))
                             in
@@ -348,8 +349,7 @@ routeToViewStateModelCmd sharedModel route =
 
                                 cmd =
                                     Cmd.batch
-                                        [ Rest.Nova.requestFlavors project
-                                        , OSVolumes.requestVolumes project
+                                        [ OSVolumes.requestVolumes project
                                         , Ports.instantiateClipboardJs ()
                                         ]
 
@@ -362,6 +362,8 @@ routeToViewStateModelCmd sharedModel route =
                                         |> Helpers.pipelineCmd (ApiModelHelpers.requestServerImageIfNotFound project serverId)
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestRecordSets (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestFlavors (GetterSetters.projectIdentifier project))
                             in
                             ( projectViewProto <| ServerDetail (Page.ServerDetail.init serverId)
                             , newNewSharedModel
@@ -371,28 +373,33 @@ routeToViewStateModelCmd sharedModel route =
                         Route.ServerList ->
                             let
                                 ( newSharedModel, cmd ) =
-                                    ApiModelHelpers.requestServers
-                                        (GetterSetters.projectIdentifier project)
-                                        sharedModel
+                                    ( sharedModel, Cmd.none )
                                         |> Helpers.pipelineCmd
-                                            (ApiModelHelpers.requestFloatingIps
-                                                (GetterSetters.projectIdentifier project)
-                                            )
+                                            (ApiModelHelpers.requestServers (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestFloatingIps (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestFlavors (GetterSetters.projectIdentifier project))
                             in
                             ( projectViewProto <| ServerList <| Page.ServerList.init project True
                             , newSharedModel
                             , Cmd.batch
                                 [ cmd
                                 , OSQuotas.requestComputeQuota project
-                                , Rest.Nova.requestFlavors project
                                 ]
                             )
 
                         Route.ServerResize serverId ->
+                            let
+                                ( newSharedModel, cmd ) =
+                                    ( sharedModel, Cmd.none )
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestFlavors (GetterSetters.projectIdentifier project))
+                            in
                             ( projectViewProto <| ServerResize (Page.ServerResize.init serverId)
-                            , sharedModel
+                            , newSharedModel
                             , Cmd.batch
-                                [ Rest.Nova.requestFlavors project
+                                [ cmd
                                 , OSQuotas.requestComputeQuota project
                                 ]
                             )

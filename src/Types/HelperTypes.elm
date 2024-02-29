@@ -20,6 +20,7 @@ module Types.HelperTypes exposing
     , OpenIdConnectLoginConfig
     , Passphrase
     , ProjectIdentifier
+    , SelectedFlavor(..)
     , SentryConfig
     , ServerActionName
     , ServerResourceQtys
@@ -280,13 +281,18 @@ type SupportableItemType
     | SupportableVolume
 
 
+type SelectedFlavor
+    = DefaultFlavorSelection
+    | WithSelectedFlavor OSTypes.Flavor
+
+
 type alias CreateServerPageModel =
     { serverName : String
     , imageUuid : OSTypes.ImageUuid
     , imageName : String
     , restrictFlavorIds : Maybe (List OSTypes.FlavorId)
     , count : Int
-    , flavorId : Maybe OSTypes.FlavorId
+    , selectedFlavor : SelectedFlavor
     , volSizeTextInput : Maybe NumericTextInput
     , userDataTemplate : String
     , networkUuid : Maybe OSTypes.NetworkUuid

@@ -155,6 +155,7 @@ projectIdentifier project =
 flavorLookup : Project -> OSTypes.FlavorId -> Maybe OSTypes.Flavor
 flavorLookup project flavorId =
     project.flavors
+        |> RDPP.withDefault []
         |> List.Extra.find (\f -> f.id == flavorId)
 
 
