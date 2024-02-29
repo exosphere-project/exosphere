@@ -116,7 +116,7 @@ var cloud_configs = {
           matchOn: "r3..*",
           title: "Large-memory",
           description: "These have lots of RAM.",
-          disallowedActions: [],
+          disallowedActions: ["Suspend"],
         },
         {
           matchOn: "g3..*",
