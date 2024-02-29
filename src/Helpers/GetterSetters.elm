@@ -41,6 +41,7 @@ module Helpers.GetterSetters exposing
     , projectSetVolumesLoading
     , projectUpdateKeypair
     , projectUpdateServer
+    , sanitizeMountpoint
     , serverCreatedByCurrentUser
     , serverExoServerVersion
     , serverLookup

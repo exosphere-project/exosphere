@@ -4,7 +4,7 @@ module OpenStack.Types exposing
     , AccessRuleAccessLevel
     , AccessRuleAccessTo
     , AccessRuleAccessType
-    , AccessRuleState
+    , AccessRuleState(..)
     , AccessRuleUuid
     , ApplicationCredential
     , ApplicationCredentialSecret

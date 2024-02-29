@@ -173,6 +173,13 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
                 Nothing ->
                     []
 
+        baseUrl =
+            let
+                url =
+                    Tuple.first urlKey
+            in
+            { url | path = "", query = Nothing, fragment = Nothing }
+
         emptyModel : Bool -> UUID.UUID -> SharedModel
         emptyModel showDebugMsgs uuid =
             { logMessages = logMessages
@@ -204,6 +211,7 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
                 , localization = Maybe.withDefault Defaults.localization flags.localization
                 , navigationKey = Tuple.second urlKey
                 , palette = toExoPalette style
+                , baseUrl = baseUrl
                 , urlPathPrefix = flags.urlPathPrefix
                 , windowSize = { width = flags.width, height = flags.height }
                 , showPopovers = Set.empty

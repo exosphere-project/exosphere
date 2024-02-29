@@ -35,3 +35,15 @@ Exosphere sets these variables when running the instance setup code on a new ins
 | gui_enabled                | boolean | no       | deploys VNC server, configures Guacamole to serve graphical desktop                    |
 | workflow_source_repository | string  | no       | source git repository to use for deploying a [Binder](https://mybinder.org/) container |
 | workflow_repo_version      | string  | no       | git reference (branch, tag, commit) for the above binder repository                    |
+
+# Additional Scripts
+
+Exosphere deploys additional scripts in `assets/scripts/` for easy use on instances. The only script currently deployed this way is `mount-ceph.py` and all examples below will reference that script.
+
+As users are instructed to run these scripts using `curl https://[exosphere_domain]/assets/scripts/mount-ceph.py | sudo python3 -`, these commands will not work correctly when developing on `localhost`. The suggested way to test modifications to these scripts is: 
+
+1. Download or copy the current script code to an instance
+2. Run locally with `sudo python3 mount-ceph.py` instead of `curl ... | sudo python3 -`
+3. Make changes as needed. Either:
+    * Edit `assets/scripts/mount-ceph.py` copying to your instance as needed to test changes
+    * Edit the script locally on the instance, updating `assets/scripts/mount-ceph.py` when finished
