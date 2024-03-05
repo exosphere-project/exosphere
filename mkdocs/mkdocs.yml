@@ -32,15 +32,19 @@ nav:
       - 'docs/desktop-message.md'
       - 'docs/federated-login.md'
   - For Exosphere Contributors:
+      - 'docs/contributor-quick-start.md'
       - 'contributing.md'
       - 'docs/contributor-skills.md'
       - 'docs/code-tour.md'
       - 'docs/style.md'
+      - 'docs/quality-checklist.md'
       - 'docs/adr/README.md'
       - 'Exosphere Tests': 'tests/README.md'
       - 'Browser Integration Tests': 'integration-tests/README.md'
       - 'docs/mkdocs-site.md'
       - 'docs/code-of-conduct.md'
+  - For Exosphere Project Maintainers:
+      - 'docs/issue-triage.md'
       - 'docs/governance.md'
       - 'docs/sustainability-goals.md'
   - Legal Docs:
