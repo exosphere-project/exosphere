@@ -43,6 +43,7 @@ import Page.ServerDetail
 import Page.ServerList
 import Page.ServerResize
 import Page.Settings
+import Page.ShareCreate
 import Page.ShareDetail
 import Page.ShareList
 import Page.VolumeAttach
@@ -472,6 +473,21 @@ updateUnderlying outerMsg outerModel =
                                         ServerResize newSharedModel
                               }
                             , Cmd.map ServerResizeMsg cmd
+                            )
+                                |> pipelineCmdOuterModelMsg
+                                    (processSharedMsg sharedMsg)
+
+                        ( ShareCreateMsg pageMsg, ShareCreate pageModel ) ->
+                            let
+                                ( newSharedModel, cmd, sharedMsg ) =
+                                    Page.ShareCreate.update pageMsg project pageModel
+                            in
+                            ( { outerModel
+                                | viewState =
+                                    ProjectView projectId <|
+                                        ShareCreate newSharedModel
+                              }
+                            , Cmd.map ShareCreateMsg cmd
                             )
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
@@ -1367,6 +1383,41 @@ processProjectSpecificMsg outerModel project msg =
             ( outerModel, Rest.Nova.requestCreateServer project createServerRequest )
                 |> mapToOuterMsg
 
+        RequestCreateShare name description size protocol shareTypeName ->
+            let
+                createShareRequest =
+                    { name = name
+                    , description = description
+                    , size = size
+                    , protocol = protocol
+                    , shareType = shareTypeName
+                    }
+            in
+            case project.endpoints.manila of
+                Just manilaUrl ->
+                    ( outerModel, OSShares.requestCreateShare project manilaUrl createShareRequest )
+                        |> mapToOuterMsg
+
+                Nothing ->
+                    State.Error.processStringError
+                        sharedModel
+                        (ErrorContext
+                            ("create a " ++ viewContext.localization.share ++ " with name " ++ createShareRequest.name)
+                            ErrorCrit
+                            (Just <|
+                                "Confirm that your "
+                                    ++ viewContext.localization.unitOfTenancy
+                                    ++ " supports "
+                                    ++ pluralize viewContext.localization.share
+                                    ++ ", perhaps check with your "
+                                    ++ viewContext.localization.openstackWithOwnKeystone
+                                    ++ " administrator."
+                            )
+                        )
+                        ("Could not determine " ++ viewContext.localization.share ++ " endpoint.")
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
         RequestCreateVolume name size ->
             let
                 createVolumeRequest =
@@ -1973,6 +2024,33 @@ processProjectSpecificMsg outerModel project msg =
                     State.Error.processSynchronousApiError newModel errorContext httpError
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
+
+        ReceiveCreateShare share ->
+            ( outerModel
+            , Cmd.batch
+                [ Route.pushUrl sharedModel.viewContext (Route.ProjectRoute (GetterSetters.projectIdentifier project) Route.ShareList)
+
+                -- Create a default access rule for our new share.
+                , case project.endpoints.manila of
+                    Just manilaUrl ->
+                        let
+                            defaultAccessLevel =
+                                OSTypes.RW
+                        in
+                        OSShares.requestCreateAccessRule
+                            project
+                            manilaUrl
+                            { shareUuid = share.uuid
+                            , accessLevel = defaultAccessLevel
+                            , accessType = OSTypes.CephX
+                            , accessTo = String.join "-" [ Maybe.withDefault share.uuid share.name, OSTypes.accessRuleAccessLevelToApiString defaultAccessLevel ]
+                            }
+
+                    Nothing ->
+                        Cmd.none
+                ]
+            )
+                |> mapToOuterMsg
 
         ReceiveShareAccessRules ( shareUuid, accessRules ) ->
             let

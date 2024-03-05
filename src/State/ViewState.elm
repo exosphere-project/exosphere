@@ -30,6 +30,7 @@ import Page.ServerDetail
 import Page.ServerList
 import Page.ServerResize
 import Page.Settings
+import Page.ShareCreate
 import Page.ShareDetail
 import Page.ShareList
 import Page.VolumeAttach
@@ -448,6 +449,17 @@ routeToViewStateModelCmd sharedModel route =
                                 VolumeAttach (Page.VolumeAttach.init maybeServerUuid maybeVolumeUuid)
                             , newSharedModel
                             , newCmd
+                            )
+
+                        Route.ShareCreate ->
+                            ( projectViewProto <| ShareCreate Page.ShareCreate.init
+                            , sharedModel
+                            , case project.endpoints.manila of
+                                Nothing ->
+                                    Cmd.none
+
+                                Just url ->
+                                    OSQuotas.requestShareQuota project url
                             )
 
                         Route.VolumeCreate ->

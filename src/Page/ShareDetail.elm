@@ -14,7 +14,7 @@ import Helpers.String
 import Helpers.Time
 import Html
 import Html.Attributes
-import OpenStack.Types as OSTypes exposing (AccessRule, AccessRuleState(..), AccessRuleUuid, ExportLocation, Share, accessRuleAccessLevelToString, accessRuleAccessTypeToString, accessRuleStateToString)
+import OpenStack.Types as OSTypes exposing (AccessRule, AccessRuleState(..), AccessRuleUuid, ExportLocation, Share, accessRuleAccessLevelToHumanString, accessRuleAccessTypeToString, accessRuleStateToString)
 import Style.Helpers as SH
 import Style.Types as ST exposing (ExoPalette)
 import Style.Widgets.Button as Button
@@ -330,7 +330,7 @@ accessRulesTable palette accessRules =
                       , width = Element.shrink
                       , view =
                             \item ->
-                                Text.body <| accessRuleAccessLevelToString <| item.accessLevel
+                                Text.body <| accessRuleAccessLevelToHumanString <| item.accessLevel
                       }
                     , { header = header "Access To"
                       , width = Element.fill
@@ -529,7 +529,7 @@ accessRuleSelector context model accessRules =
                         ( accessRule.uuid
                         , accessRule.accessTo
                             ++ " ("
-                            ++ accessRuleAccessLevelToString accessRule.accessLevel
+                            ++ accessRuleAccessLevelToHumanString accessRule.accessLevel
                             ++ ")"
                         )
 

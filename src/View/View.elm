@@ -34,6 +34,7 @@ import Page.ServerDetail
 import Page.ServerList
 import Page.ServerResize
 import Page.Settings
+import Page.ShareCreate
 import Page.ShareDetail
 import Page.ShareList
 import Page.VolumeAttach
@@ -52,7 +53,7 @@ import Style.Widgets.Text as Text exposing (FontFamily(..), TextVariant(..))
 import Style.Widgets.Toast as Toast
 import Toasty
 import Types.Error exposing (AppError)
-import Types.HelperTypes exposing (ProjectIdentifier, WindowSize)
+import Types.HelperTypes exposing (WindowSize)
 import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project)
@@ -356,6 +357,10 @@ projectContentView model context p viewConstructor =
             Page.ServerResize.view context p pageModel
                 |> Element.map ServerResizeMsg
 
+        ShareCreate pageModel ->
+            Page.ShareCreate.view context p model.clientCurrentTime pageModel
+                |> Element.map ShareCreateMsg
+
         ShareDetail pageModel ->
             Page.ShareDetail.view context p ( model.clientCurrentTime, model.timeZone ) pageModel
                 |> Element.map ShareDetailMsg
@@ -459,13 +464,16 @@ projectHeaderView context p =
                 [ Element.alignRight ]
         , Element.el
             [ Element.alignRight ]
-            (createProjectResourcesButton context (GetterSetters.projectIdentifier p))
+            (createProjectResourcesButton context p)
         ]
 
 
-createProjectResourcesButton : View.Types.Context -> ProjectIdentifier -> Element.Element OuterMsg
-createProjectResourcesButton context projectId =
+createProjectResourcesButton : View.Types.Context -> Project -> Element.Element OuterMsg
+createProjectResourcesButton context project =
     let
+        projectId =
+            GetterSetters.projectIdentifier project
+
         renderButton : Element.Element Never -> String -> Route.Route -> Element.Attribute OuterMsg -> Element.Element OuterMsg
         renderButton icon text route closeDropdown =
             Element.link
@@ -502,6 +510,18 @@ createProjectResourcesButton context projectId =
                     )
                     (Route.ProjectRoute projectId <| Route.VolumeCreate)
                     closeDropdown
+                , case ( context.experimentalFeaturesEnabled, project.endpoints.manila ) of
+                    ( True, Just _ ) ->
+                        renderButton
+                            (sizedFeatherIcon 18 Icons.share2)
+                            (context.localization.share
+                                |> Helpers.String.toTitleCase
+                            )
+                            (Route.ProjectRoute projectId <| Route.ShareCreate)
+                            closeDropdown
+
+                    _ ->
+                        Element.none
                 , renderButton
                     (sizedFeatherIcon 18 Icons.key)
                     (context.localization.pkiPublicKeyForSsh

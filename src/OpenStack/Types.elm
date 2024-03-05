@@ -1,9 +1,9 @@
 module OpenStack.Types exposing
     ( AccessRule
     , AccessRuleAccessKey
-    , AccessRuleAccessLevel
+    , AccessRuleAccessLevel(..)
     , AccessRuleAccessTo
-    , AccessRuleAccessType
+    , AccessRuleAccessType(..)
     , AccessRuleState(..)
     , AccessRuleUuid
     , ApplicationCredential
@@ -13,7 +13,9 @@ module OpenStack.Types exposing
     , AuthTokenString
     , ComputeQuota
     , ConsoleUrl
+    , CreateAccessRuleRequest
     , CreateServerRequest
+    , CreateShareRequest
     , CreateVolumeRequest
     , CredentialsForAuthToken(..)
     , Endpoint
@@ -71,7 +73,7 @@ module OpenStack.Types exposing
     , Share
     , ShareDescription
     , ShareName
-    , ShareProtocol
+    , ShareProtocol(..)
     , ShareQuota
     , ShareSize
     , ShareStatus(..)
@@ -90,10 +92,12 @@ module OpenStack.Types exposing
     , VolumeSize
     , VolumeStatus(..)
     , VolumeUuid
-    , accessRuleAccessLevelToString
+    , accessRuleAccessLevelToApiString
+    , accessRuleAccessLevelToHumanString
     , accessRuleAccessTypeToString
     , accessRuleStateToString
     , boolToShareVisibility
+    , defaultShareTypeNameForProtocol
     , imageVisibilityToString
     , serverPowerStateToString
     , serverStatusToString
@@ -1145,6 +1149,33 @@ shareProtocolToString shareProto =
             str
 
 
+defaultShareTypeNameForProtocol : ShareProtocol -> ShareTypeName
+defaultShareTypeNameForProtocol shareProto =
+    case shareProto of
+        CephFS ->
+            "cephfsnativetype"
+
+        UnsupportedShareProtocol str ->
+            str
+
+
+type alias CreateShareRequest =
+    { name : ShareName
+    , description : ShareDescription
+    , size : ShareSize
+    , protocol : ShareProtocol
+    , shareType : ShareTypeName
+    }
+
+
+type alias CreateAccessRuleRequest =
+    { shareUuid : ShareUuid
+    , accessLevel : AccessRuleAccessLevel
+    , accessType : AccessRuleAccessType
+    , accessTo : AccessRuleAccessTo
+    }
+
+
 stringToAccessRuleAccessLevel : String -> AccessRuleAccessLevel
 stringToAccessRuleAccessLevel str =
     case String.toLower str of
@@ -1158,14 +1189,27 @@ stringToAccessRuleAccessLevel str =
             UnsupportedAccessLevel str
 
 
-accessRuleAccessLevelToString : AccessRuleAccessLevel -> String
-accessRuleAccessLevelToString accessLevel =
+accessRuleAccessLevelToHumanString : AccessRuleAccessLevel -> String
+accessRuleAccessLevelToHumanString accessLevel =
     case accessLevel of
         RO ->
             "read-only"
 
         RW ->
             "read-write"
+
+        UnsupportedAccessLevel str ->
+            str
+
+
+accessRuleAccessLevelToApiString : AccessRuleAccessLevel -> String
+accessRuleAccessLevelToApiString accessLevel =
+    case accessLevel of
+        RO ->
+            "ro"
+
+        RW ->
+            "rw"
 
         UnsupportedAccessLevel str ->
             str

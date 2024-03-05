@@ -204,6 +204,13 @@ pageTitle outerModel =
                         , serverName maybeProject pageModel.serverUuid
                         ]
 
+                ShareCreate _ ->
+                    String.join " "
+                        [ "Create"
+                        , localization.share
+                            |> Helpers.String.toTitleCase
+                        ]
+
                 ShareDetail pageModel ->
                     String.join " "
                         [ localization.share

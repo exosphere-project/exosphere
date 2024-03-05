@@ -6,6 +6,7 @@ module OpenStack.Quotas exposing
     , requestNetworkQuota
     , requestShareQuota
     , requestVolumeQuota
+    , shareQuotaAvail
     , shareQuotaDecoder
     , volumeQuotaAvail
     , volumeQuotaDecoder
@@ -194,6 +195,30 @@ shareQuotaDecoder =
             |> hardcoded Nothing
             |> hardcoded Nothing
         )
+
+
+{-| Returns tuple showing # shares, # total gigabytes & # gigabytes per share that are available given quota and usage.
+
+Nothing implies no limit.
+
+-}
+shareQuotaAvail : OSTypes.ShareQuota -> ( OSTypes.QuotaItemLimit, OSTypes.QuotaItemLimit, OSTypes.QuotaItemLimit )
+shareQuotaAvail shareQuota =
+    ( shareQuota.shares.limit
+        |> quotaItemLimitMap
+            (\l -> l - shareQuota.shares.inUse)
+    , shareQuota.gigabytes.limit
+        |> quotaItemLimitMap
+            (\l -> l - shareQuota.gigabytes.inUse)
+    , case shareQuota.perShareGigabytes of
+        Just perShareGigabytes ->
+            perShareGigabytes.limit
+                |> quotaItemLimitMap
+                    (\l -> l)
+
+        Nothing ->
+            OSTypes.Unlimited
+    )
 
 
 
