@@ -42,9 +42,10 @@ nav:
       - 'Browser Integration Tests': 'integration-tests/README.md'
       - 'docs/mkdocs-site.md'
       - 'docs/code-of-conduct.md'
-      - 'docs/governance.md'
-      - 'docs/issue-triage.md'
       - 'docs/quality-checklist.md'
+  - For Exosphere Project Maintainers:
+      - 'docs/issue-triage.md'
+      - 'docs/governance.md'
       - 'docs/sustainability-goals.md'
   - Legal Docs:
       - 'Exosphere License': 'LICENSE'

@@ -69,9 +69,12 @@ What can I do with Exosphere?
 - [Browser Integration Tests](integration-tests/README.md)
 - [MkDocs Site](docs/mkdocs-site.md)
 - [Code of Conduct](docs/code-of-conduct.md)
-- [Exosphere Governance](docs/governance.md)
-- [Issue Triage Process](docs/issue-triage.md)
 - [Merge Request Quality Checklist](docs/quality-checklist.md)
+
+### For Exosphere Project Maintainers
+
+- [Issue Triage Process](docs/issue-triage.md)
+- [Exosphere Governance](docs/governance.md)
 - [Sustainability Goals](docs/sustainability-goals.md)
 
 ### Legal Docs
