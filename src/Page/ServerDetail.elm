@@ -1520,14 +1520,34 @@ renderIpAddresses context project server model =
                 GetterSetters.getServerFloatingIps project server.osProps.uuid
                     |> List.map
                         (\ipAddress ->
-                            Element.column []
-                                ((OpenStack.DnsRecordSet.lookupRecordsByAddress (RDPP.withDefault [] project.dnsRecordSets) ipAddress.address
-                                    |> List.map
-                                        (\r ->
+                            let
+                                records =
+                                    OpenStack.DnsRecordSet.lookupRecordsByAddress (RDPP.withDefault [] project.dnsRecordSets) ipAddress.address
+                            in
+                            Element.column [ Element.spacing spacer.px12 ]
+                                ((records
+                                    |> List.indexedMap
+                                        (\i r ->
                                             VH.compactKVSubRow
-                                                (Helpers.String.toTitleCase context.localization.hostname)
+                                                (if i == 0 then
+                                                    if List.length records > 1 then
+                                                        context.localization.hostname |> Helpers.String.pluralize |> Helpers.String.toTitleCase
+
+                                                    else
+                                                        context.localization.hostname |> Helpers.String.toTitleCase
+
+                                                 else
+                                                    ""
+                                                )
                                                 (Element.row [ Element.spacing spacer.px16 ]
-                                                    [ copyableText context.palette [] r.name
+                                                    [ copyableText context.palette
+                                                        []
+                                                        (if String.endsWith "." r.name then
+                                                            String.dropRight 1 r.name
+
+                                                         else
+                                                            r.name
+                                                        )
                                                     ]
                                                 )
                                         )
