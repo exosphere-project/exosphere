@@ -64,12 +64,12 @@ What can I do with Exosphere?
 - [Contributor Skills](docs/contributor-skills.md)
 - [Tour of Exosphere Codebase](docs/code-tour.md)
 - [UI, Layout, Style & Design System](docs/style.md)
+- [Merge Request Quality Checklist](docs/quality-checklist.md)
 - [Architecture Decision Records](docs/adr/README.md)
 - [Exosphere Tests](tests/README.md)
 - [Browser Integration Tests](integration-tests/README.md)
 - [MkDocs Site](docs/mkdocs-site.md)
 - [Code of Conduct](docs/code-of-conduct.md)
-- [Merge Request Quality Checklist](docs/quality-checklist.md)
 
 ### For Exosphere Project Maintainers
 
