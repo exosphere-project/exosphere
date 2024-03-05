@@ -143,5 +143,20 @@ var cloud_configs = {
       flavorGroups: [],
       desktopMessage: null,
     },
+    {
+      keystoneHostname: "rci.uits.iu.edu",
+      friendlyName: "Rescloud",
+      userAppProxy: [
+        {
+          region: "RegionOne",
+          hostname: "proxy-rescloud.exosphere.app",
+        },
+      ],
+      imageExcludeFilter: null,
+      featuredImageNamePrefix: null,
+      instanceTypes: [],
+      flavorGroups: [],
+      desktopMessage: null,
+    },
   ],
 };
