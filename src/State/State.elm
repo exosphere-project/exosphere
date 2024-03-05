@@ -2514,6 +2514,11 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
 
         RequestSetServerName newServerName ->
             let
+                recordSetWithNameExists name =
+                    project.dnsRecordSets
+                        |> RDPP.withDefault []
+                        |> List.any (\r -> r.name == name)
+
                 oldHostname =
                     Helpers.sanitizeHostname server.osProps.name
 
@@ -2525,14 +2530,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                     -- map2 is used so we don't accidentally delete a record without creating a replacement
                     Maybe.map2
                         (\hostname _ ->
-                            GetterSetters.getServerFloatingIps project server.osProps.uuid
-                                -- Get the DnsRecordSets matching this address
-                                |> List.concatMap
-                                    (\{ address } ->
-                                        OpenStack.DnsRecordSet.lookupRecordsByAddress
-                                            (RDPP.withDefault [] project.dnsRecordSets)
-                                            address
-                                    )
+                            GetterSetters.getServerDnsRecordSets project server.osProps.uuid
                                 -- Only match when a record fits the "expected" name for the old server name
                                 |> List.filter (\{ name, zone_name } -> (hostname ++ "." ++ zone_name) == name)
                         )
@@ -2563,6 +2561,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                                         )
                             )
                         |> Maybe.withDefault []
+                        |> List.filter (\req -> not (recordSetWithNameExists req.name))
             in
             ( outerModel
             , Cmd.batch
