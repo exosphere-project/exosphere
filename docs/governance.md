@@ -37,7 +37,7 @@ To become a Maintainer you need to demonstrate the following:
   - participate in discussions, contributions, code and documentation reviews for 6 months or more,
   - perform reviews for at least 10 non-trivial pull requests,
   - contribute at least 10 non-trivial pull requests and have them merged,
-- ability to write code and/or documentation conformant with the [MR Quality Checklist](../contributing.md#mr-quality-checklist),
+- ability to write code and/or documentation conformant with the [MR Quality Checklist](quality-checklist.md),
 - ability to collaborate with the team,
 - understanding of how the team works (policies, processes for testing and code review, etc),
 - understanding of the project's code base and coding and documentation style.

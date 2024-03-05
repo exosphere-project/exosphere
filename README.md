@@ -68,6 +68,7 @@ What can I do with Exosphere?
 - [MkDocs Site](docs/mkdocs-site.md)
 - [Code of Conduct](docs/code-of-conduct.md)
 - [Issue Triage Process](docs/issue-triage.md)
+- [Merge Request Quality Checklist](docs/quality-checklist.md)
 
 ### Legal Docs
 

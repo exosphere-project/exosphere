@@ -43,6 +43,7 @@ nav:
       - 'docs/code-of-conduct.md'
       - 'docs/governance.md'
       - 'docs/issue-triage.md'
+      - 'docs/quality-checklist.md'
       - 'docs/sustainability-goals.md'
   - Legal Docs:
       - 'Exosphere License': 'LICENSE'
