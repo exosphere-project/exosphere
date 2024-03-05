@@ -61,6 +61,7 @@ What can I do with Exosphere?
 
 - [Quick Start for New Contributors](docs/contributor-quick-start.md)
 - [Contributing to Exosphere](contributing.md)
+- [Contributor Skills](docs/contributor-skills.md)
 - [Tour of Exosphere Codebase](docs/code-tour.md)
 - [UI, Layout, Style & Design System](docs/style.md)
 - [Architecture Decision Records](docs/adr/README.md)
@@ -68,8 +69,10 @@ What can I do with Exosphere?
 - [Browser Integration Tests](integration-tests/README.md)
 - [MkDocs Site](docs/mkdocs-site.md)
 - [Code of Conduct](docs/code-of-conduct.md)
+- [Exosphere Governance](docs/governance.md)
 - [Issue Triage Process](docs/issue-triage.md)
 - [Merge Request Quality Checklist](docs/quality-checklist.md)
+- [Sustainability Goals](docs/sustainability-goals.md)
 
 ### Legal Docs
 
