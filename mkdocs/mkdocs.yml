@@ -32,6 +32,7 @@ nav:
       - 'docs/desktop-message.md'
       - 'docs/federated-login.md'
   - For Exosphere Contributors:
+      - 'docs/contributor-quick-start.md'
       - 'contributing.md'
       - 'docs/contributor-skills.md'
       - 'docs/code-tour.md'

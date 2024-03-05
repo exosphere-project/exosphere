@@ -59,7 +59,8 @@ What can I do with Exosphere?
 
 ### For Exosphere Contributors
 
-- [Contributing to Exosphere](contributing.md) **(new contributors start here)**
+- [Quick Start for New Contributors](docs/contributor-quick-start.md)
+- [Contributing to Exosphere](contributing.md)
 - [Tour of Exosphere Codebase](docs/code-tour.md)
 - [UI, Layout, Style & Design System](docs/style.md)
 - [Architecture Decision Records](docs/adr/README.md)
