@@ -568,15 +568,9 @@ serverNameEditView context project currentTime model server =
                 Element.none
 
         rowStyle =
-            { containerRow =
-                [ Element.spacing spacer.px8
-                , Element.width Element.fill
-                ]
-            , element = []
-            , ifFirst = [ Element.width <| Element.minimum 200 <| Element.fill ]
-            , ifLast = []
-            , otherwise = []
-            }
+            [ Element.spacing spacer.px8
+            , Element.width Element.fill
+            ]
 
         saveOnPress =
             case ( invalidNameReasons, model.serverNamePendingConfirmation ) of
@@ -587,8 +581,7 @@ serverNameEditView context project currentTime model server =
                 ( _, _ ) ->
                     Nothing
     in
-    Widget.row
-        rowStyle
+    Element.row rowStyle
         [ Element.el
             [ Element.below renderInvalidNameReasons
             ]
