@@ -67,6 +67,7 @@ What can I do with Exosphere?
 - [Browser Integration Tests](integration-tests/README.md)
 - [MkDocs Site](docs/mkdocs-site.md)
 - [Code of Conduct](docs/code-of-conduct.md)
+- [Issue Triage Process](docs/issue-triage.md)
 
 ### Legal Docs
 
