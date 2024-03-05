@@ -901,7 +901,12 @@ receiveFlavors : SharedModel -> Project -> List OSTypes.Flavor -> ( SharedModel,
 receiveFlavors model project flavors =
     let
         newProject =
-            { project | flavors = flavors }
+            { project
+                | flavors =
+                    RDPP.RemoteDataPlusPlus
+                        (RDPP.DoHave flavors model.clientCurrentTime)
+                        (RDPP.NotLoading Nothing)
+            }
 
         newModel =
             GetterSetters.modelUpdateProject model newProject

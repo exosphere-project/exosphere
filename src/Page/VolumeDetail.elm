@@ -9,10 +9,11 @@ import OpenStack.Volumes
 import Route
 import Set
 import Style.Helpers as SH
+import Style.Types as ST
 import Style.Widgets.Button as Button
 import Style.Widgets.Card
 import Style.Widgets.CopyableText exposing (copyableText)
-import Style.Widgets.DeleteButton exposing (deleteIconButton)
+import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Types.Project exposing (Project)
@@ -311,15 +312,41 @@ volumeActionButtons context project model volume =
                             }
 
                     else
-                        Button.default
-                            context.palette
-                            { text = "Detach"
-                            , onPress =
-                                Just <|
-                                    SharedMsg <|
-                                        SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
-                                            SharedMsg.RequestDetachVolume model.volumeUuid
+                        let
+                            detachMsg =
+                                SharedMsg <|
+                                    SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
+                                        SharedMsg.RequestDetachVolume model.volumeUuid
+
+                            detachButton : msg -> Bool -> Element.Element msg
+                            detachButton togglePopconfirm _ =
+                                Button.default
+                                    context.palette
+                                    { text = "Detach"
+                                    , onPress = Just togglePopconfirm
+                                    }
+
+                            detachPopconfirmId =
+                                Helpers.String.hyphenate [ "volumeDetailDetachPopconfirm", project.auth.project.uuid, volume.uuid ]
+                        in
+                        deletePopconfirm context
+                            (SharedMsg << SharedMsg.TogglePopover)
+                            detachPopconfirmId
+                            { confirmation =
+                                Element.column [ Element.spacing spacer.px8 ]
+                                    [ Element.text <|
+                                        "Detaching a "
+                                            ++ context.localization.blockDevice
+                                            ++ " while it is in use may cause data loss."
+                                    , Element.text
+                                        "Make sure to close any open files before detaching."
+                                    ]
+                            , buttonText = Just "Detach"
+                            , onConfirm = Just detachMsg
+                            , onCancel = Just NoOp
                             }
+                            ST.PositionBottom
+                            detachButton
 
                 _ ->
                     Element.none
