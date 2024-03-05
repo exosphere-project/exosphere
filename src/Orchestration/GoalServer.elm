@@ -233,13 +233,9 @@ stepServerRequestHostname time project server =
             && (-- If any server ip is without hostname then request records
                 GetterSetters.getServerFloatingIps project server.osProps.uuid
                     |> List.any
-                        (\ipAddress ->
-                            case OpenStack.DnsRecordSet.addressToRecord (project.dnsRecordSets |> RDPP.withDefault []) ipAddress.address of
-                                Just _ ->
-                                    False
-
-                                Nothing ->
-                                    True
+                        (\{ address } ->
+                            List.isEmpty <|
+                                OpenStack.DnsRecordSet.lookupRecordsByAddress (project.dnsRecordSets |> RDPP.withDefault []) address
                         )
                )
     then

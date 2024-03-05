@@ -108,7 +108,13 @@ requestCreateRecordSet project request =
 
                 errorContext =
                     Types.Error.ErrorContext
-                        ("create a dns record " ++ request.name ++ " " ++ OpenStack.DnsRecordSet.recordTypeToString request.type_ ++ " " ++ (String.join ", " <| Set.toList request.records))
+                        (String.join " "
+                            [ "Create a DNS record"
+                            , request.name
+                            , OpenStack.DnsRecordSet.recordTypeToString request.type_
+                            , String.join ", " <| Set.toList request.records
+                            ]
+                        )
                         Types.Error.ErrorCrit
                         Nothing
 
@@ -134,6 +140,7 @@ receiveCreateRecordSet model project recordSet =
     let
         newDnsRecordSets =
             project.dnsRecordSets
+                |> RDPP.map (List.filter (\e -> e.id /= recordSet.id))
                 |> RDPP.map ((::) recordSet)
     in
     ( Helpers.GetterSetters.modelUpdateProject model
@@ -154,7 +161,7 @@ requestDeleteRecordSet project { zone_id, id } =
             let
                 errorContext =
                     Types.Error.ErrorContext
-                        ("deleting dns record " ++ id ++ " in zone " ++ zone_id)
+                        ("Delete DNS record " ++ id ++ " in zone " ++ zone_id)
                         Types.Error.ErrorCrit
                         Nothing
 
@@ -180,7 +187,7 @@ receiveDeleteRecordSet model project recordSet =
     let
         newDnsRecordSets =
             project.dnsRecordSets
-                |> RDPP.map (List.filter (\{ id } -> id /= recordSet.id))
+                |> RDPP.map (List.filter (\r -> r.id /= recordSet.id))
     in
     ( Helpers.GetterSetters.modelUpdateProject model
         { project | dnsRecordSets = newDnsRecordSets }
@@ -225,7 +232,7 @@ recordSetDecoder =
                 (\value ->
                     case value of
                         Err _ ->
-                            Decode.fail "Failed to parse dns record type"
+                            Decode.fail "Failed to parse DNS record type"
 
                         Ok z ->
                             Decode.succeed z

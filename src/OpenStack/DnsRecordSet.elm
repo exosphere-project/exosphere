@@ -1,13 +1,11 @@
 module OpenStack.DnsRecordSet exposing
     ( DnsRecordSet
     , RecordType
-    , addressToRecord
     , fromStringToRecordType
     , lookupRecordsByAddress
     , recordTypeToString
     )
 
-import List.Extra
 import OpenStack.HelperTypes
 import Set
 
@@ -70,15 +68,6 @@ recordTypeToString type_ =
 
         CNAMERecord ->
             "CNAME"
-
-
-addressToRecord : List DnsRecordSet -> String -> Maybe DnsRecordSet
-addressToRecord dnsRecordSets address =
-    dnsRecordSets
-        |> List.Extra.find
-            (\{ records } ->
-                records |> Set.toList |> List.member address
-            )
 
 
 lookupRecordsByAddress : List DnsRecordSet -> String -> List DnsRecordSet
