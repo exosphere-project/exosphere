@@ -2619,6 +2619,16 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
 
         ReceiveDeleteServer ->
             let
+                recordSets : List OpenStack.DnsRecordSet.DnsRecordSet
+                recordSets =
+                    Helpers.sanitizeHostname server.osProps.name
+                        |> Maybe.map
+                            (\hostname ->
+                                GetterSetters.getServerDnsRecordSets project server.osProps.uuid
+                                    |> List.filter (\{ name, zone_name } -> hostname ++ "." ++ zone_name == name)
+                            )
+                        |> Maybe.withDefault []
+
                 newProject =
                     let
                         oldExoProps =
@@ -2636,16 +2646,22 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                     { outerModel | sharedModel = GetterSetters.modelUpdateProject sharedModel newProject }
             in
             ( newOuterModel
-            , case outerModel.viewState of
-                ProjectView projectId (ServerDetail pageModel) ->
-                    if pageModel.serverUuid == server.osProps.uuid then
-                        Route.pushUrl sharedModel.viewContext (Route.ProjectRoute projectId Route.ProjectOverview)
+            , Cmd.batch
+                [ case outerModel.viewState of
+                    ProjectView projectId (ServerDetail pageModel) ->
+                        if pageModel.serverUuid == server.osProps.uuid then
+                            Route.pushUrl sharedModel.viewContext (Route.ProjectRoute projectId Route.ProjectOverview)
 
-                    else
+                        else
+                            Cmd.none
+
+                    _ ->
                         Cmd.none
-
-                _ ->
-                    Cmd.none
+                , recordSets
+                    |> List.map (Rest.Designate.requestDeleteRecordSet project)
+                    |> Cmd.batch
+                    |> Cmd.map SharedMsg
+                ]
             )
 
         ReceiveCreateServerFloatingIp errorContext result ->
