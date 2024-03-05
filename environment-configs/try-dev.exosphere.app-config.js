@@ -1,5 +1,6 @@
 "use strict";
 
+/** @type {Exosphere.Configuration} */
 var config = {
   showDebugMsgs: false,
   cloudCorsProxyUrl: "https://try-dev.exosphere.app/proxy",
@@ -51,5 +52,6 @@ _paq.push(["enableLinkTracking"]);
   g.type = "text/javascript";
   g.async = true;
   g.src = u + "matomo.js";
+  // @ts-ignore
   s.parentNode.insertBefore(g, s);
 })();

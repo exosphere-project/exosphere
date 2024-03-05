@@ -1,0 +1,9 @@
+{
+  "files": ["config.js", "cloud_configs.js"],
+  "include": ["environment-configs/*"],
+  "compilerOptions": {
+    "types": ["./types.d.ts"],
+    "noEmit": true,
+    "checkJs": true
+  }
+}
