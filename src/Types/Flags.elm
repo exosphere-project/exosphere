@@ -1,5 +1,12 @@
 module Types.Flags exposing (ConfigurationFlags, Flags, PaletteColors, RGBTriplet, ThemePalettes, flagsDecoder)
 
+{-| Contributor Notes
+
+Flags are type-checked using Typescript.
+Changes to Flags should be reflected in `types.d.ts`
+
+-}
+
 import Json.Decode exposing (Decoder, Value, bool, int, maybe, nullable, string, succeed, value)
 import Json.Decode.Pipeline exposing (required)
 import Types.HelperTypes as HelperTypes exposing (OpenIdConnectLoginConfig)
