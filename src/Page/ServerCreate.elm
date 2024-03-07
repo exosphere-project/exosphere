@@ -955,7 +955,8 @@ volBackedPrompt project context model volumeQuota flavor =
                     , context.localization.blockDevice
                     , " "
                     , context.localization.maxResourcesPerProject
-                    , " exhausted, cannot launch a "
+                    , " exhausted, cannot launch "
+                    , Helpers.String.indefiniteArticle context.localization.blockDevice ++ " "
                     , context.localization.blockDevice
                     , "-backed "
                     , context.localization.virtualComputer
@@ -1458,9 +1459,11 @@ desktopEnvironmentPicker context project model =
 
                 rootDiskWarnText =
                     String.join " "
-                        [ "Warning: root disk may be too small for a graphical desktop environment. Please select a"
+                        [ "Warning: root disk may be too small for a graphical desktop environment. Please select"
+                        , Helpers.String.indefiniteArticle context.localization.virtualComputerHardwareConfig
                         , context.localization.virtualComputerHardwareConfig
-                        , "with a"
+                        , "with"
+                        , Helpers.String.indefiniteArticle <| String.fromInt warningMaxGB
                         , String.fromInt warningMaxGB
                         , "GB or larger root disk, or select a volume-backed root disk at least"
                         , String.fromInt warningMaxGB
@@ -1668,7 +1671,8 @@ floatingIpPicker context project model =
                     , Input.option (UseFloatingIp CreateNewFloatingIp Unknown)
                         (Element.text <|
                             String.join " "
-                                [ "Assign a"
+                                [ "Assign"
+                                , Helpers.String.indefiniteArticle context.localization.floatingIpAddress
                                 , context.localization.floatingIpAddress
                                 , "to this"
                                 , context.localization.virtualComputer
@@ -1677,7 +1681,8 @@ floatingIpPicker context project model =
                     , Input.option DoNotUseFloatingIp
                         (Element.text <|
                             String.join " "
-                                [ "Do not create or assign a"
+                                [ "Do not create or assign"
+                                , Helpers.String.indefiniteArticle context.localization.floatingIpAddress
                                 , context.localization.floatingIpAddress
                                 ]
                         )
@@ -1687,7 +1692,8 @@ floatingIpPicker context project model =
                 { label =
                     Input.labelHidden <|
                         String.join " "
-                            [ "Choose a"
+                            [ "Choose"
+                            , Helpers.String.indefiniteArticle context.localization.floatingIpAddress
                             , context.localization.floatingIpAddress
                             , "option"
                             ]

@@ -405,7 +405,7 @@ projectHeaderView context p =
                 , context.localization.unitOfTenancy
                 , p.auth.project.uuid
                 , Maybe.withDefault
-                    ("without a " ++ context.localization.openstackSharingKeystoneWithAnother)
+                    ("without " ++ Helpers.String.indefiniteArticle context.localization.openstackSharingKeystoneWithAnother ++ " " ++ context.localization.openstackSharingKeystoneWithAnother)
                     (Maybe.map (\region -> "in " ++ context.localization.openstackSharingKeystoneWithAnother ++ " " ++ region.id) p.region)
                 ]
     in

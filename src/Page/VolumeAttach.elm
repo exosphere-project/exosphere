@@ -103,7 +103,8 @@ view context project model =
             Element.none
             (String.join
                 " "
-                [ "Attach a"
+                [ "Attach"
+                , Helpers.String.indefiniteArticle context.localization.blockDevice
                 , context.localization.blockDevice
                     |> Helpers.String.toTitleCase
                 ]
@@ -127,7 +128,7 @@ view context project model =
                 []
                 context.palette
                 -- TODO if no volumes in list, suggest user create a volume and provide link to that view
-                { label = "Select a " ++ context.localization.blockDevice
+                { label = "Select " ++ Helpers.String.indefiniteArticle context.localization.blockDevice ++ " " ++ context.localization.blockDevice
                 , onChange = GotVolumeUuid
                 , options = volumeChoices
                 , selected = model.maybeVolumeUuid

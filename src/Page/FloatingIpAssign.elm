@@ -116,13 +116,13 @@ view context project model =
             , if List.isEmpty ipChoices then
                 Element.column [ Element.spacing spacer.px12 ]
                     [ Element.text <|
-                        String.concat
-                            [ "You don't have any "
+                        String.join " "
+                            [ "You don't have any"
                             , context.localization.floatingIpAddress
                                 |> Helpers.String.pluralize
-                            , " that aren't already assigned to a "
-                            , context.localization.virtualComputer
-                            , "."
+                            , "that aren't already assigned to"
+                            , Helpers.String.indefiniteArticle context.localization.virtualComputer
+                            , context.localization.virtualComputer ++ "."
                             ]
                     , Element.link []
                         { url =
@@ -134,7 +134,7 @@ view context project model =
                                 (SH.materialStyle context.palette).button
                                 { text =
                                     String.join " "
-                                        [ "Create a", context.localization.floatingIpAddress ]
+                                        [ "Create", Helpers.String.indefiniteArticle context.localization.floatingIpAddress, context.localization.floatingIpAddress ]
                                 , onPress = Just NoOp
                                 }
                         }

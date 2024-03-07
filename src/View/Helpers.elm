@@ -1228,7 +1228,8 @@ flavorPicker context project restrictFlavorIds computeQuota flavorGroupToggleTip
                 [ hint context <|
                     String.join
                         " "
-                        [ "Please pick a"
+                        [ "Please pick"
+                        , Helpers.String.indefiniteArticle context.localization.virtualComputerHardwareConfig
                         , context.localization.virtualComputerHardwareConfig
                         ]
                 ]

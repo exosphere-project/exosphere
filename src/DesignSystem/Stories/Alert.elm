@@ -2,6 +2,7 @@ module DesignSystem.Stories.Alert exposing (stories)
 
 import DesignSystem.Helpers exposing (Plugins, Renderer, ThemeModel, palettize)
 import Element
+import Helpers.String
 import Style.Widgets.Alert exposing (AlertState(..), alert, notes)
 import Style.Widgets.Spacer exposing (spacer)
 import UIExplorer exposing (storiesOf)
@@ -34,22 +35,23 @@ stories renderer =
                                             , showIcon = showIcon
                                             , content =
                                                 Element.text <|
-                                                    ("This is a "
-                                                        ++ name
-                                                        ++ " alert"
-                                                        ++ (if showContainer && showIcon then
-                                                                " with a container and an icon"
+                                                    String.join " "
+                                                        [ "This is"
+                                                        , Helpers.String.indefiniteArticle name
+                                                        , name
+                                                        , "alert"
+                                                        , if showContainer && showIcon then
+                                                            "with a container and an icon"
 
-                                                            else if showContainer then
-                                                                " with a container"
+                                                          else if showContainer then
+                                                            "with a container"
 
-                                                            else if showIcon then
-                                                                " with an icon"
+                                                          else if showIcon then
+                                                            "with an icon"
 
-                                                            else
-                                                                ""
-                                                           )
-                                                    )
+                                                          else
+                                                            ""
+                                                        ]
                                             }
                                     )
                                     [ ( False, False ), ( False, True ), ( True, False ), ( True, True ) ]

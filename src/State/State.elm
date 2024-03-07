@@ -749,7 +749,7 @@ processSharedMsg sharedMsg outerModel =
                                                     ErrorCrit
                                                     (Just ("Please check with your " ++ viewContext.localization.openstackWithOwnKeystone ++ " administrator or the Exosphere developers."))
                                                 )
-                                                ("Could not find any endpoints with a " ++ viewContext.localization.openstackSharingKeystoneWithAnother ++ " ID.")
+                                                ("Could not find any endpoints with " ++ Helpers.String.indefiniteArticle viewContext.localization.openstackSharingKeystoneWithAnother ++ " " ++ viewContext.localization.openstackSharingKeystoneWithAnother ++ " ID.")
                                                 |> mapToOuterMsg
                                                 |> mapToOuterModel outerModel_
 
@@ -1402,7 +1402,7 @@ processProjectSpecificMsg outerModel project msg =
                     State.Error.processStringError
                         sharedModel
                         (ErrorContext
-                            ("create a " ++ viewContext.localization.share ++ " with name " ++ createShareRequest.name)
+                            ("create " ++ Helpers.String.indefiniteArticle viewContext.localization.share ++ " " ++ viewContext.localization.share ++ " with name " ++ createShareRequest.name)
                             ErrorCrit
                             (Just <|
                                 "Confirm that your "
@@ -1483,7 +1483,7 @@ processProjectSpecificMsg outerModel project msg =
                     State.Error.processStringError
                         sharedModel
                         (ErrorContext
-                            ("create a " ++ sharedModel.viewContext.localization.floatingIpAddress)
+                            ("create " ++ Helpers.String.indefiniteArticle viewContext.localization.floatingIpAddress ++ " " ++ sharedModel.viewContext.localization.floatingIpAddress)
                             ErrorCrit
                             Nothing
                         )
@@ -2538,7 +2538,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                     State.Error.processStringError
                         sharedModel
                         (ErrorContext
-                            ("create a " ++ sharedModel.viewContext.localization.floatingIpAddress)
+                            ("create " ++ Helpers.String.indefiniteArticle sharedModel.viewContext.localization.floatingIpAddress ++ " " ++ sharedModel.viewContext.localization.floatingIpAddress)
                             ErrorCrit
                             Nothing
                         )

@@ -67,7 +67,8 @@ interactionStatus project server interaction context currentTime tlsReverseProxy
                                 String.join " "
                                     [ context.localization.virtualComputer
                                         |> Helpers.String.toTitleCase
-                                    , "does not have a"
+                                    , "does not have"
+                                    , Helpers.String.indefiniteArticle context.localization.floatingIpAddress
                                     , context.localization.floatingIpAddress
                                     ]
 
@@ -160,14 +161,15 @@ interactionDetails interaction context =
                 (context.localization.commandDrivenTextInterface
                     |> Helpers.String.toTitleCase
                 )
-                (String.concat
-                    [ "Get a "
+                (String.join " "
+                    [ "Get"
+                    , Helpers.String.indefiniteArticle context.localization.commandDrivenTextInterface
                     , context.localization.commandDrivenTextInterface
-                    , " session to your "
-                    , context.localization.virtualComputer
-                    , ". Pro tip, press Ctrl+Alt+Shift inside the "
+                    , "session to your"
+                    , context.localization.virtualComputer ++ "."
+                    , "Pro tip, press Ctrl+Alt+Shift inside the"
                     , context.localization.commandDrivenTextInterface
-                    , " window to show a graphical file upload/download tool!"
+                    , "window to show a graphical file upload/download tool!"
                     ]
                 )
                 (\_ _ -> Icon.sizedFeatherIcon 18 Icons.terminal)
@@ -251,7 +253,8 @@ customWorkflowfinteractionStatus server context currentTime tlsReverseProxyHostn
                                 String.join " "
                                     [ context.localization.virtualComputer
                                         |> Helpers.String.toTitleCase
-                                    , "does not have a"
+                                    , "does not have"
+                                    , Helpers.String.indefiniteArticle context.localization.floatingIpAddress
                                     , context.localization.floatingIpAddress
                                     ]
 
@@ -305,7 +308,8 @@ customWorkflowfinteractionStatus server context currentTime tlsReverseProxyHostn
                                     String.join " "
                                         [ context.localization.virtualComputer
                                             |> Helpers.String.toTitleCase
-                                        , "does not have a"
+                                        , "does not have"
+                                        , Helpers.String.indefiniteArticle context.localization.floatingIpAddress
                                         , context.localization.floatingIpAddress
                                         ]
 
@@ -407,7 +411,8 @@ serverFromExoGuacStatus server context currentTime tlsReverseProxyHostname maybe
                                     String.join " "
                                         [ context.localization.virtualComputer
                                             |> Helpers.String.toTitleCase
-                                        , "does not have a"
+                                        , "does not have"
+                                        , Helpers.String.indefiniteArticle context.localization.floatingIpAddress
                                         , context.localization.floatingIpAddress
                                         ]
 
@@ -466,7 +471,8 @@ serverFromExoGuacStatus server context currentTime tlsReverseProxyHostname maybe
                                         String.join " "
                                             [ context.localization.virtualComputer
                                                 |> Helpers.String.toTitleCase
-                                            , "does not have a"
+                                            , "does not have"
+                                            , Helpers.String.indefiniteArticle context.localization.floatingIpAddress
                                             , context.localization.floatingIpAddress
                                             ]
 
