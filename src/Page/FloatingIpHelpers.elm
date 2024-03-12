@@ -59,7 +59,8 @@ serverPicker context project currentServerUuid toMsg =
                         [ "You don't have any"
                         , context.localization.virtualComputer
                             |> Helpers.String.pluralize
-                        , "that don't already have a"
+                        , "that don't already have"
+                        , Helpers.String.indefiniteArticle context.localization.floatingIpAddress
                         , context.localization.floatingIpAddress
                         , "assigned."
                         ]

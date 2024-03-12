@@ -265,14 +265,15 @@ volumeActionButtons context project model volume =
         volDetachDeleteWarning =
             if GetterSetters.isBootVolume Nothing volume then
                 Element.text <|
-                    String.concat
-                        [ "This "
+                    String.join " "
+                        [ "This"
                         , context.localization.blockDevice
-                        , " backs a "
+                        , "backs"
+                        , Helpers.String.indefiniteArticle context.localization.virtualComputer
+                        , context.localization.virtualComputer ++ ";"
+                        , "it cannot be detached or deleted until the"
                         , context.localization.virtualComputer
-                        , "; it cannot be detached or deleted until the "
-                        , context.localization.virtualComputer
-                        , " is deleted."
+                        , "is deleted."
                         ]
 
             else if volume.status == OSTypes.InUse then
@@ -335,7 +336,9 @@ volumeActionButtons context project model volume =
                             { confirmation =
                                 Element.column [ Element.spacing spacer.px8 ]
                                     [ Element.text <|
-                                        "Detaching a "
+                                        "Detaching "
+                                            ++ Helpers.String.indefiniteArticle context.localization.blockDevice
+                                            ++ " "
                                             ++ context.localization.blockDevice
                                             ++ " while it is in use may cause data loss."
                                     , Element.text

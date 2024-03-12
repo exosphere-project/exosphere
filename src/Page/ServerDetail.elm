@@ -1493,7 +1493,7 @@ renderIpAddresses context project server model =
                                 (SH.materialStyle context.palette).button
                                 { text =
                                     String.join " "
-                                        [ "Assign a", context.localization.floatingIpAddress ]
+                                        [ "Assign", Helpers.String.indefiniteArticle context.localization.floatingIpAddress, context.localization.floatingIpAddress ]
                                 , onPress = Just NoOp
                                 }
                         }

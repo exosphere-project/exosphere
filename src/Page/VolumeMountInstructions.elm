@@ -102,7 +102,9 @@ view context project model =
                                     , mountpoint
                                     , ".\n\nFor example, type `cd "
                                     , mountpoint
-                                    , "` in a "
+                                    , "` in "
+                                    , Helpers.String.indefiniteArticle context.localization.commandDrivenTextInterface
+                                    , " "
                                     , context.localization.commandDrivenTextInterface
                                     , " on the "
                                     , context.localization.virtualComputer
