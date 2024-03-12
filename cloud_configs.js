@@ -1,5 +1,6 @@
 "use strict";
 
+/** @type {Exosphere.CloudConfigs} */
 var cloud_configs = {
   clouds: [
     {

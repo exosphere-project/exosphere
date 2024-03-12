@@ -181,6 +181,7 @@ static_analysis:
     - npx elm-format --validate src tests review/src review/tests
     - npx elm-review
     - npm run js:format
+    - npm run js:typecheck
   after_script:
     - mkdir -p home && rsync -a ~/.elm home
     - mkdir -p home && rsync -a ~/.npm home

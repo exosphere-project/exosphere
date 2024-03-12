@@ -35,3 +35,10 @@ repos:
         files: \.elm$
         pass_filenames: false
         entry: npm run elm:format
+
+      - id: typecheck
+        name: typecheck javascript
+        language: system
+        files: \.js$
+        pass_filenames: false
+        entry: npm run js:typecheck

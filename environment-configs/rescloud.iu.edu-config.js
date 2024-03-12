@@ -1,5 +1,6 @@
 "use strict";
 
+/** @type {Exosphere.Configuration} */
 var config = {
   showDebugMsgs: false,
   cloudCorsProxyUrl: "https://rescloud.iu.edu/proxy",

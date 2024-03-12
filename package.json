@@ -15,6 +15,7 @@
     "live-design-system": "npx elm-live src/DesignSystem/Explorer.elm --port 8002 --open --start-page=explorer.html -- --output=explorer.js --debug",
     "test": "npx elm-test-rs && npx elm-test-rs --project review",
     "js:format": "prettier --check .",
+    "js:typecheck": "tsc",
     "elm:format": "npx elm-format --validate src tests review/src review/tests",
     "elm:analyse": "npx elm-analyse",
     "elm:review": "npx elm-review",
@@ -38,6 +39,7 @@
     "elm-review": "^2.10.2",
     "elm-tooling": "^1.14.0",
     "prettier": "^2.8.8",
+    "typescript": "^5.3.3",
     "uglify-js": "^3.17.4"
   },
   "repository": {
