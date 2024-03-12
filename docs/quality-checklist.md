@@ -23,6 +23,7 @@ Relax the criteria in this section if this is a contributor's first or second MR
 
 - MR does not break existing functionality or behavior that users are likely to care about.
 - If the MR adds/changes/removes app flags (in `src/Types/Flags.elm`), then the following are updated accordingly:
+  + `types.d.ts`
   + `config.js`
   + all files in `environment-configs/` **(else you may break production sites!)**
   + Documented options in [config-options.md](config-options.md)

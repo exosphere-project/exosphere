@@ -27,6 +27,7 @@ In addition to [Running Exosphere For Development Work](docs/run-exosphere.md#fo
     - `elm-format` Elm code formatter
     - `elm-review` code linting tool
     - `prettier` JavaScript, JSON, and HTML formatter
+    - `typescript` Validating JavaScript configuration files
   - This will catch many common issues long before GitLab's CI pipeline does.
   - If you need to bypass this for any reason, `git commit --no-verify` will skip this validation.
 
@@ -58,6 +59,7 @@ Our continuous integration (CI) pipeline runs:
 - [elm-format](https://github.com/avh4/elm-format) (to ensure that contributions comply with the
   [Elm Style Guide](https://elm-lang.org/docs/style-guide))
 - [prettier](https://prettier.io/) (to ensure consistent javascript & html file formatting)
+- [typescript](https://www.typescriptlang.org/) (to validate javascript configuration files)
 - [elm-analyse](https://stil4m.github.io/elm-analyse/)
 - [elm-review](https://package.elm-lang.org/packages/jfmengels/elm-review/)
 - [unit tests](tests/README.md)
@@ -72,6 +74,7 @@ You can run all of these but the browser tests locally. The easiest way is to se
  npm run elm:format
  npm run elm:review
  npm run js:format
+ npm run js:typecheck
  ```
 
 ### Enabling CI On Your Fork
