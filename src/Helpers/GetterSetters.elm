@@ -6,6 +6,7 @@ module Helpers.GetterSetters exposing
     , getCatalogRegionIds
     , getExternalNetwork
     , getFloatingIpServer
+    , getServerDnsRecordSets
     , getServerExouserPassphrase
     , getServerFixedIps
     , getServerFlavorGroup
@@ -67,6 +68,7 @@ import Helpers.List exposing (multiSortBy)
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.Url as UrlHelpers
 import List.Extra
+import OpenStack.DnsRecordSet
 import OpenStack.Types as OSTypes
 import Regex
 import Time
@@ -302,6 +304,20 @@ getFloatingIpServer project ip =
     ip
         |> getFloatingIpPort project
         |> Maybe.andThen (getPortServer project)
+
+
+{-| Get a list of all DNS record sets for a given server
+-}
+getServerDnsRecordSets : Project -> OSTypes.ServerUuid -> List OpenStack.DnsRecordSet.DnsRecordSet
+getServerDnsRecordSets project uuid =
+    getServerFloatingIps project uuid
+        -- Get the DnsRecordSets matching this address
+        |> List.concatMap
+            (\{ address } ->
+                OpenStack.DnsRecordSet.lookupRecordsByAddress
+                    (RDPP.withDefault [] project.dnsRecordSets)
+                    address
+            )
 
 
 getServerExouserPassphrase : OSTypes.ServerDetails -> Maybe String

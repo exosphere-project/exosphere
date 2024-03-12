@@ -14,6 +14,7 @@ import Json.Encode
 import List.Extra
 import LocalStorage.LocalStorage as LocalStorage
 import Maybe
+import OpenStack.DnsRecordSet
 import OpenStack.ServerPassword as OSServerPassword
 import OpenStack.ServerTags as OSServerTags
 import OpenStack.ServerVolumes as OSSvrVols
@@ -1334,6 +1335,26 @@ processProjectSpecificMsg outerModel project msg =
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
+        ReceiveCreateDnsRecordSet _ (Ok data) ->
+            Rest.Designate.receiveCreateRecordSet sharedModel project data
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
+        ReceiveDeleteDnsRecordSet _ (Ok data) ->
+            Rest.Designate.receiveDeleteRecordSet sharedModel project data
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
+        ReceiveCreateDnsRecordSet context (Err e) ->
+            State.Error.processSynchronousApiError sharedModel context e
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
+        ReceiveDeleteDnsRecordSet context (Err e) ->
+            State.Error.processSynchronousApiError sharedModel context e
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
         RequestCreateServer pageModel networkUuid flavorId ->
             let
                 customWorkFlowSource =
@@ -2564,7 +2585,68 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                         |> mapToOuterMsg
 
         RequestSetServerName newServerName ->
-            ( outerModel, Rest.Nova.requestSetServerName project server.osProps.uuid newServerName )
+            let
+                recordSetWithNameExists name =
+                    project.dnsRecordSets
+                        |> RDPP.withDefault []
+                        |> List.any (\r -> r.name == name)
+
+                oldHostname =
+                    Helpers.sanitizeHostname server.osProps.name
+
+                newHostname =
+                    Helpers.sanitizeHostname newServerName
+
+                oldDnsRecordSets : List OpenStack.DnsRecordSet.DnsRecordSet
+                oldDnsRecordSets =
+                    -- map2 is used so we don't accidentally delete a record without creating a replacement
+                    Maybe.map2
+                        (\hostname _ ->
+                            GetterSetters.getServerDnsRecordSets project server.osProps.uuid
+                                -- Only match when a record fits the "expected" name for the old server name
+                                |> List.filter (\{ name, zone_name } -> (hostname ++ "." ++ zone_name) == name)
+                        )
+                        oldHostname
+                        newHostname
+                        |> Maybe.withDefault []
+
+                newDnsRecordSetRequests : List Rest.Designate.DnsRecordSetRequest
+                newDnsRecordSetRequests =
+                    newHostname
+                        |> Maybe.map
+                            (\hostname ->
+                                oldDnsRecordSets
+                                    |> List.map
+                                        (\oldRecord ->
+                                            { zone_id = oldRecord.zone_id
+                                            , name = hostname ++ "." ++ oldRecord.zone_name
+                                            , type_ = oldRecord.type_
+                                            , records = oldRecord.records
+                                            , description =
+                                                String.join " "
+                                                    [ "Created for"
+                                                    , sharedModel.viewContext.localization.virtualComputer
+                                                    , newServerName
+                                                    ]
+                                            , ttl = oldRecord.ttl
+                                            }
+                                        )
+                            )
+                        |> Maybe.withDefault []
+                        |> List.filter (\req -> not (recordSetWithNameExists req.name))
+            in
+            ( outerModel
+            , Cmd.batch
+                [ Rest.Nova.requestSetServerName project server.osProps.uuid newServerName
+                , Rest.Nova.requestSetServerHostName project server.osProps.uuid newServerName
+                , oldDnsRecordSets
+                    |> List.map (Rest.Designate.requestDeleteRecordSet project)
+                    |> Cmd.batch
+                , newDnsRecordSetRequests
+                    |> List.map (Rest.Designate.requestCreateRecordSet project)
+                    |> Cmd.batch
+                ]
+            )
                 |> mapToOuterMsg
 
         ReceiveServerAction ->
@@ -2609,6 +2691,16 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
 
         ReceiveDeleteServer ->
             let
+                recordSets : List OpenStack.DnsRecordSet.DnsRecordSet
+                recordSets =
+                    Helpers.sanitizeHostname server.osProps.name
+                        |> Maybe.map
+                            (\hostname ->
+                                GetterSetters.getServerDnsRecordSets project server.osProps.uuid
+                                    |> List.filter (\{ name, zone_name } -> hostname ++ "." ++ zone_name == name)
+                            )
+                        |> Maybe.withDefault []
+
                 newProject =
                     let
                         oldExoProps =
@@ -2626,16 +2718,22 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                     { outerModel | sharedModel = GetterSetters.modelUpdateProject sharedModel newProject }
             in
             ( newOuterModel
-            , case outerModel.viewState of
-                ProjectView projectId (ServerDetail pageModel) ->
-                    if pageModel.serverUuid == server.osProps.uuid then
-                        Route.pushUrl sharedModel.viewContext (Route.ProjectRoute projectId Route.ProjectOverview)
+            , Cmd.batch
+                [ case outerModel.viewState of
+                    ProjectView projectId (ServerDetail pageModel) ->
+                        if pageModel.serverUuid == server.osProps.uuid then
+                            Route.pushUrl sharedModel.viewContext (Route.ProjectRoute projectId Route.ProjectOverview)
 
-                    else
+                        else
+                            Cmd.none
+
+                    _ ->
                         Cmd.none
-
-                _ ->
-                    Cmd.none
+                , recordSets
+                    |> List.map (Rest.Designate.requestDeleteRecordSet project)
+                    |> Cmd.batch
+                    |> Cmd.map SharedMsg
+                ]
             )
 
         ReceiveCreateServerFloatingIp errorContext result ->

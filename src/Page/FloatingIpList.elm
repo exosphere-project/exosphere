@@ -346,9 +346,10 @@ floatingIpView context project floatingIpRecord =
             ]
         , Element.row [] [ ipAssignment ]
         , case
-            OpenStack.DnsRecordSet.addressToRecord
-                (project.dnsRecordSets |> Helpers.RemoteDataPlusPlus.withDefault [])
-                floatingIpRecord.ip.address
+            List.head <|
+                OpenStack.DnsRecordSet.lookupRecordsByAddress
+                    (project.dnsRecordSets |> Helpers.RemoteDataPlusPlus.withDefault [])
+                    floatingIpRecord.ip.address
           of
             Just { name } ->
                 Element.row []
