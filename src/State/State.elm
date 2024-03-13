@@ -2051,27 +2051,47 @@ processProjectSpecificMsg outerModel project msg =
             , Cmd.batch
                 [ Route.pushUrl sharedModel.viewContext (Route.ProjectRoute (GetterSetters.projectIdentifier project) Route.ShareList)
 
-                -- Create a default access rule for our new share.
+                -- Initialise the share access rules for the new share. We expect an empty list.
                 , case project.endpoints.manila of
-                    Just manilaUrl ->
-                        let
-                            defaultAccessLevel =
-                                OSTypes.RW
-                        in
-                        OSShares.requestCreateAccessRule
-                            project
-                            manilaUrl
-                            { shareUuid = share.uuid
-                            , accessLevel = defaultAccessLevel
-                            , accessType = OSTypes.CephX
-                            , accessTo = String.join "-" [ Maybe.withDefault share.uuid share.name, OSTypes.accessRuleAccessLevelToApiString defaultAccessLevel ]
-                            }
+                    Just url ->
+                        OSShares.requestShareAccessRules project url share.uuid
 
                     Nothing ->
                         Cmd.none
                 ]
             )
                 |> mapToOuterMsg
+
+        ReceiveCreateAccessRule ( shareUuid, accessRule ) ->
+            let
+                newProject =
+                    { project
+                        | shareAccessRules =
+                            Dict.update shareUuid
+                                (\maybeAccessRulesRDPP ->
+                                    let
+                                        newAccessRules =
+                                            maybeAccessRulesRDPP
+                                                |> Maybe.withDefault RDPP.empty
+                                                |> RDPP.withDefault []
+                                                |> List.filter (\rule -> rule.uuid /= accessRule.uuid)
+                                                |> List.append [ accessRule ]
+                                    in
+                                    Just
+                                        (RDPP.RemoteDataPlusPlus
+                                            (RDPP.DoHave newAccessRules sharedModel.clientCurrentTime)
+                                            (RDPP.NotLoading Nothing)
+                                        )
+                                )
+                                project.shareAccessRules
+                    }
+
+                newSharedModel =
+                    GetterSetters.modelUpdateProject sharedModel newProject
+            in
+            ( newSharedModel, Cmd.none )
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
 
         ReceiveShareAccessRules ( shareUuid, accessRules ) ->
             let
