@@ -4,6 +4,7 @@ import Helpers.GetterSetters
 import Orchestration.GoalNetworkResources exposing (goalPollNetworkResources)
 import Orchestration.GoalProject exposing (goalPollProject)
 import Orchestration.GoalServer exposing (goalNewServer, goalPollServers)
+import Orchestration.GoalShare exposing (goalNewShare)
 import Orchestration.Helpers exposing (applyProjectStep)
 import Time
 import Types.HelperTypes exposing (CloudSpecificConfig)
@@ -31,6 +32,7 @@ orchProject exoClientUuid time maybeCloudSpecificConfig project =
         goals =
             [ goalDummy exoClientUuid time
             , goalNewServer exoClientUuid time
+            , goalNewShare time
             , goalPollServers time maybeCloudSpecificConfig
             , goalPollNetworkResources time
             , goalPollProject time
