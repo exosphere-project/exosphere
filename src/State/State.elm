@@ -2074,6 +2074,7 @@ processProjectSpecificMsg outerModel project msg =
                                             maybeAccessRulesRDPP
                                                 |> Maybe.withDefault RDPP.empty
                                                 |> RDPP.withDefault []
+                                                |> List.filter (\rule -> rule.uuid /= accessRule.uuid)
                                                 |> List.append [ accessRule ]
                                     in
                                     Just
