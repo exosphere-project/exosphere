@@ -2051,21 +2051,10 @@ processProjectSpecificMsg outerModel project msg =
             , Cmd.batch
                 [ Route.pushUrl sharedModel.viewContext (Route.ProjectRoute (GetterSetters.projectIdentifier project) Route.ShareList)
 
-                -- Create a default access rule for our new share.
+                -- Initialise the share access rules for the new share. We expect an empty list.
                 , case project.endpoints.manila of
-                    Just manilaUrl ->
-                        let
-                            defaultAccessLevel =
-                                OSTypes.RW
-                        in
-                        OSShares.requestCreateAccessRule
-                            project
-                            manilaUrl
-                            { shareUuid = share.uuid
-                            , accessLevel = defaultAccessLevel
-                            , accessType = OSTypes.CephX
-                            , accessTo = String.join "-" [ Maybe.withDefault share.uuid share.name, OSTypes.accessRuleAccessLevelToApiString defaultAccessLevel ]
-                            }
+                    Just url ->
+                        OSShares.requestShareAccessRules project url share.uuid
 
                     Nothing ->
                         Cmd.none
