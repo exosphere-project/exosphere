@@ -90,7 +90,11 @@ requestCreateAccessRule project url createAccessRuleRequest =
         resultToMsg_ =
             resultToMsgErrorBody
                 errorContext
-                (\_ -> NoOp)
+                (\accessRule ->
+                    ProjectMsg
+                        (GetterSetters.projectIdentifier project)
+                        (ReceiveCreateAccessRule ( createAccessRuleRequest.shareUuid, accessRule ))
+                )
     in
     openstackCredentialedRequest
         (GetterSetters.projectIdentifier project)

@@ -94,6 +94,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveDeleteDnsRecordSet ErrorContext (Result HttpErrorWithBody OpenStack.DnsRecordSet.DnsRecordSet)
     | ReceiveCreateExoSecurityGroup ErrorContext (Result HttpErrorWithBody OSTypes.SecurityGroup)
     | ReceiveCreateShare OSTypes.Share
+    | ReceiveCreateAccessRule ( OSTypes.ShareUuid, OSTypes.AccessRule )
     | ReceiveShareAccessRules ( OSTypes.ShareUuid, List OSTypes.AccessRule )
     | ReceiveShareExportLocations ( OSTypes.ShareUuid, List OSTypes.ExportLocation )
     | ReceiveShares (List OSTypes.Share)

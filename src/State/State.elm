@@ -2073,6 +2073,36 @@ processProjectSpecificMsg outerModel project msg =
             )
                 |> mapToOuterMsg
 
+        ReceiveCreateAccessRule ( shareUuid, accessRule ) ->
+            let
+                newProject =
+                    { project
+                        | shareAccessRules =
+                            Dict.update shareUuid
+                                (\maybeAccessRulesRDPP ->
+                                    let
+                                        newAccessRules =
+                                            maybeAccessRulesRDPP
+                                                |> Maybe.withDefault RDPP.empty
+                                                |> RDPP.withDefault []
+                                                |> List.append [ accessRule ]
+                                    in
+                                    Just
+                                        (RDPP.RemoteDataPlusPlus
+                                            (RDPP.DoHave newAccessRules sharedModel.clientCurrentTime)
+                                            (RDPP.NotLoading Nothing)
+                                        )
+                                )
+                                project.shareAccessRules
+                    }
+
+                newSharedModel =
+                    GetterSetters.modelUpdateProject sharedModel newProject
+            in
+            ( newSharedModel, Cmd.none )
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
         ReceiveShareAccessRules ( shareUuid, accessRules ) ->
             let
                 newProject =
