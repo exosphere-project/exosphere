@@ -1,5 +1,6 @@
 module Helpers.String exposing
     ( capitalizeWord
+    , formatStringTemplate
     , hyphenate
     , indefiniteArticle
     , itemsListToString
@@ -9,6 +10,11 @@ module Helpers.String exposing
 
 import List.Extra
 import Regex
+
+
+formatStringTemplate : String -> List ( String, String ) -> String
+formatStringTemplate =
+    List.foldl (\t -> String.replace (Tuple.first t) (Tuple.second t))
 
 
 indefiniteArticle : String -> String
