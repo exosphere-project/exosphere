@@ -40,6 +40,7 @@ type Route
     | LoginOpenIdConnect
     | LoginPicker
     | MessageLog Bool
+    | OnrampCLI (Maybe HelperTypes.ProjectIdentifier) (Maybe String)
     | PageNotFound
     | ProjectRoute HelperTypes.ProjectIdentifier ProjectRouteConstructor
     | SelectProjectRegions OSTypes.KeystoneUrl OSTypes.ProjectUuid
@@ -135,6 +136,14 @@ toUrl maybePathPrefix route =
                         "false"
                     )
                 ]
+
+        OnrampCLI maybeProjectIdentifier maybeFormatString ->
+            buildUrlFunc [ "onramp" ] <|
+                List.filterMap identity
+                    [ maybeFormatString |> Maybe.map (UB.string "format")
+                    , maybeProjectIdentifier |> Maybe.map (\{ projectUuid } -> UB.string "project" projectUuid)
+                    , maybeProjectIdentifier |> Maybe.andThen .regionId |> Maybe.map (UB.string "region")
+                    ]
 
         PageNotFound ->
             buildUrlFunc
@@ -544,6 +553,15 @@ pathParsers defaultRoute_ =
     , map
         (GetSupport Nothing)
         (s "getsupport")
+    , map
+        (\maybeProjectUuid maybeRegion maybeFormat ->
+            OnrampCLI
+                (maybeProjectUuid
+                    |> Maybe.map (\projectUuid -> { projectUuid = projectUuid, regionId = maybeRegion })
+                )
+                maybeFormat
+        )
+        (s "onramp" <?> Query.string "project" <?> Query.string "region" <?> Query.string "format")
     , map
         HelpAbout
         (s "helpabout")

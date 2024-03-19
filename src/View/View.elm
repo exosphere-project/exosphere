@@ -25,6 +25,7 @@ import Page.LoginOpenIdConnect
 import Page.LoginOpenstack
 import Page.LoginPicker
 import Page.MessageLog
+import Page.OnrampCLI
 import Page.ProjectOverview
 import Page.SecurityGroupList
 import Page.SelectProjectRegions
@@ -276,6 +277,11 @@ nonProjectViews model context viewConstructor =
             ( Just <| Page.MessageLog.headerView context
             , Page.MessageLog.view context model pageModel
                 |> Element.map MessageLogMsg
+            )
+
+        OnrampCLI pageModel ->
+            ( Just <| Page.OnrampCLI.headerView context model pageModel
+            , Page.OnrampCLI.view context model pageModel
             )
 
         PageNotFound ->

@@ -21,6 +21,7 @@ import Page.KeypairList
 import Page.LoginOpenIdConnect
 import Page.LoginOpenstack
 import Page.MessageLog
+import Page.OnrampCLI
 import Page.ProjectOverview
 import Page.SecurityGroupList
 import Page.SelectProjectRegions
@@ -182,6 +183,12 @@ routeToViewStateModelCmd sharedModel route =
 
         Route.MessageLog showDebugMsgs ->
             ( NonProjectView <| MessageLog <| Page.MessageLog.init (Just showDebugMsgs)
+            , sharedModel
+            , Ports.instantiateClipboardJs ()
+            )
+
+        Route.OnrampCLI maybeProjectIdentifier maybeFormatString ->
+            ( NonProjectView <| OnrampCLI <| Page.OnrampCLI.init maybeProjectIdentifier maybeFormatString
             , sharedModel
             , Ports.instantiateClipboardJs ()
             )
