@@ -32,7 +32,7 @@ orchProject exoClientUuid time maybeCloudSpecificConfig project =
         goals =
             [ goalDummy exoClientUuid time
             , goalNewServer exoClientUuid time
-            , goalNewShare time
+            , goalNewShare exoClientUuid time
             , goalPollServers time maybeCloudSpecificConfig
             , goalPollNetworkResources time
             , goalPollProject time

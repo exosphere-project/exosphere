@@ -10,14 +10,15 @@ import Orchestration.Helpers exposing (applyProjectStep, pollRDPP)
 import Time
 import Types.Project exposing (Project)
 import Types.SharedMsg exposing (SharedMsg)
+import UUID
 
 
-goalNewShare : Time.Posix -> Project -> ( Project, Cmd SharedMsg )
-goalNewShare time project =
+goalNewShare : UUID.UUID -> Time.Posix -> Project -> ( Project, Cmd SharedMsg )
+goalNewShare exoClientUuid time project =
     let
         steps =
             [ stepPollNewShares time
-            , stepNewShareAccessRule time
+            , stepNewShareAccessRule exoClientUuid time
             ]
     in
     List.foldl
@@ -45,10 +46,12 @@ stepPollNewShares time project =
         ( project, Cmd.none )
 
 
-stepNewShareAccessRule : Time.Posix -> Project -> ( Project, Cmd SharedMsg )
-stepNewShareAccessRule time project =
+stepNewShareAccessRule : UUID.UUID -> Time.Posix -> Project -> ( Project, Cmd SharedMsg )
+stepNewShareAccessRule exoClientUuid time project =
     RDPP.withDefault [] project.shares
         |> List.filter (shareIsNew time)
+        -- Don't create a duplicate access rule from another client if they happen to load at the same time.
+        |> List.filter (shareIsFromThisExoClient exoClientUuid)
         |> List.map
             (createNewShareAccessRule project)
         |> List.foldl
@@ -112,6 +115,17 @@ shareIsNew time share =
                 - Time.posixToMillis share.createdAt
     in
     ageInMillis < oneMinuteOfMillis
+
+
+shareIsFromThisExoClient : UUID.UUID -> Share -> Bool
+shareIsFromThisExoClient exoClientUuid share =
+    -- Shares are created with `exoClientUuid` in the metadata to track the client.
+    case Dict.get "exoClientUuid" share.metadata of
+        Just shareExoClientUuid ->
+            shareExoClientUuid == UUID.toString exoClientUuid
+
+        Nothing ->
+            False
 
 
 shareHasNoAccessRules : Project -> Share -> Bool
