@@ -20,6 +20,9 @@ In many ways, we need a similar utility to that provided by virtualization guest
   Cockpit mainly exists to provide a web interface for server management. It has a websocket wire protocol, however this protocol is currently considered unstable. It is also very low level, and would require a lot of Elm and JavaScript to interface with. This code would also end up being Cockpit version dependent, and we would need to handle multiple Cockpit versions at once
 * [rpcd](https://openwrt.org/docs/techref/rpcd)
   rpcd does provide a minimal HTTP interface, essentially acting like CGI-BIN. Plugins can be implemented as shell scripts or compiled `.so` libraries. We would need to fork `rpcd`, extend the `session` plugin to support authentication methods we need, and distribute binaries for all platforms we support. As well, we would maintain our collection of shell plugins which would provide methods such as `mount_share`
+* [EnTrance](https://package.elm-lang.org/packages/ensoft/entrance/latest/)  
+  An Elm+Python project from providing remote management of devices such as Cisco routers. This does provide some portions of what would be needed, however it is heavily focused on a single centralized management server that opens SSH, NetConf, or gRPC connections to multiple servers (routers) for remote management. The design notes also state "The application designs so far are suitable for apps that require no client authentication" and while authentication features are discussed in the design notes, they are prefaced with "the functionality in this section has not been implemented at the time of writing." (and have not since been implemented).
+  Some of the Elm-side code could be useful inspiration for designing the client-side.
 * Configuration Management Utilities (Ansible, Puppet, Salt, etc)  
   These services universally run on a client-server architecture, and we would need some way of deploying and maintaining the configuration server each instance would talk to. 
 
@@ -96,7 +99,6 @@ Using JSON-RPC batched requests, we can issues a single HTTP POST to authenticat
 ]
 ```
 </details>
-
 
 <details><summary>Authorization over RPC with an existing token</summary>
 
@@ -209,6 +211,25 @@ All such notifications will start with `notify.` for clarity. Many notifications
   - Implement an HTTP / Websocket service, exposing a OpenRPC documented JSON-RPC 2.0 interface
     - [https://python-openrpc.burkard.cloud/](python-openrpc) is an easy toolkit for building the JSON-RPC router and exporting the schema
   - Extend the current `cloud-config` or `ansible` to deploy this to /opt/exosphere_guest_utils and enable the service
-- Include a WebSockets elm interface for live streaming, I suggest [kageurufu/elm-websockets](https://github.com/kageurufu/elm-websockets)
-- Implement JSON-RPC in Elm, some packages exist as a starting point, but have limitations that make them difficult to work with. [dwayne/elm-json-rpc](https://package.elm-lang.org/packages/dwayne/elm-json-rpc/latest/) is a great starting point for HTTP-only JSON-RPC, however it hides many types within private modules. Vendor the codebase to extend where we need to expose `toJson` functions for the private request types, and remove parts we don't need.
 
+## Elm Client implementation
+
+The proposed structure is split into four components
+
+1. Types
+    
+    A single module will be implemented containing record type definitions for request methods, parameters, and notifications. As Open-RPC schemas are implemented using [JSON-Schema](https://json-schema.org/) for parameters and results, there are tools available for parsing and generating elm code from json-schema types. 
+
+    Leveraging [elm-codegen](https://github.com/mdgriffith/elm-codegen) is a strong option, and code could be re-purporsed from `elm-open-api-cli` (licensed MIT, so with attribution) to initially only handle the component schemas defined in the Open-RPC specification.
+
+    The current draft implementation uses hand-written types, referencing the Open-RPC schema.
+
+2. Requests 
+
+    Individual requests can be sent over HTTP or Websockets, while requests may also be batched over HTTP. To properly support batches notifications and subscriptions we will need a generic `jsonRpcDecoder` that dispatches based on method. 
+    
+    [dwayne/elm-json-rpc](https://package.elm-lang.org/packages/dwayne/elm-json-rpc/latest/) is a great starting point for HTTP-only JSON-RPC, however it hides many types within private modules. Use this code as an example, or vendor the codebase to extend where we need to expose `toJson` functions for the private request types, and remove parts we don't need.
+     
+3. WebSockets
+    
+    Ports are needed for websockets, given native support was removed in Elm 0.19. The draft implementation uses [kageurufu/elm-websockets](https://github.com/kageurufu/elm-websockets) for a simple and user friendly API. [https://github.com/billstclair/elm-websocket-client](billstclair/elm-websocket-client) is a more full-featured but less user-friendly option. 
