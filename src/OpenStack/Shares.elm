@@ -29,6 +29,7 @@ requestCreateShare project url createShareRequest =
                   , Json.Encode.object
                         [ ( "name", Json.Encode.string createShareRequest.name )
                         , ( "description", Json.Encode.string createShareRequest.description )
+                        , ( "metadata", Json.Encode.dict (\a -> a) (\a -> Json.Encode.string a) createShareRequest.metadata )
                         , ( "size", Json.Encode.int createShareRequest.size )
                         , ( "share_proto", Json.Encode.string <| OSTypes.shareProtocolToString createShareRequest.protocol )
                         , ( "share_type", Json.Encode.string <| createShareRequest.shareType )
