@@ -18,10 +18,10 @@ Maintainers collectively manage the project's resources and contributors.
 
 The current Maintainers for Exosphere are:
 
-| Name             | GitLab username | Employer               |
-| ---------------- | --------------- | ---------------------- |
-| Chris Martin     | cmart           | Indiana University     |
-| Julian Pistorius | julianpistorius | CodeCove Solutions LLC |
+| Name             | GitLab username | Employer           |
+| ---------------- | --------------- | ------------------ |
+| Chris Martin     | cmart           | Indiana University |
+| Julian Pistorius | julianpistorius | Indiana University |
 
 This privilege is granted with some expectation of responsibility: maintainers are people who care about Exosphere and want to help it grow and improve. A maintainer is not just someone who can make changes, but someone who has demonstrated their ability to collaborate with the team, get the most knowledgeable people to review code and docs, contribute high-quality code, and follow through to fix issues (in code or tests).
 
