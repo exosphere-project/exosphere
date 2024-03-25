@@ -1,6 +1,6 @@
 # Merge Request Quality Checklist
 
-Reviewers, please ensure every MR passes this checklist before approving, including MRs from new contributors. Consult co-maintainers when making the occasional exception.
+Reviewers, please ensure every MR passes this checklist before approving, including MRs from new contributors. Consult co-reviewers when making the occasional exception.
 
 ## Administrative
 
