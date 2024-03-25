@@ -64,6 +64,7 @@ What can I do with Exosphere?
 - [Contributor Skills](docs/contributor-skills.md)
 - [Tour of Exosphere Codebase](docs/code-tour.md)
 - [UI, Layout, Style & Design System](docs/style.md)
+- [Contribution Review Policy](docs/review-policy.md)
 - [Merge Request Quality Checklist](docs/quality-checklist.md)
 - [Architecture Decision Records](docs/adr/README.md)
 - [Exosphere Tests](tests/README.md)
