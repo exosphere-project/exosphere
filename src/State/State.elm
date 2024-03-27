@@ -23,6 +23,7 @@ import OpenStack.Types as OSTypes
 import OpenStack.Volumes as OSVolumes
 import Orchestration.GoalServer as GoalServer
 import Orchestration.Orchestration as Orchestration
+import Page.Credentials
 import Page.FloatingIpAssign
 import Page.FloatingIpCreate
 import Page.FloatingIpList
@@ -296,6 +297,19 @@ updateUnderlying outerMsg outerModel =
                                         ProjectOverview newSharedModel
                               }
                             , Cmd.map ProjectOverviewMsg cmd
+                            )
+                                |> pipelineCmdOuterModelMsg
+                                    (processSharedMsg sharedMsg)
+
+                        ( CredentialsMsg pageMsg, Credentials pageModel ) ->
+                            let
+                                ( newPageModel, cmd, sharedMsg ) =
+                                    Page.Credentials.update pageMsg project pageModel
+                            in
+                            ( { outerModel
+                                | viewState = ProjectView projectId <| Credentials newPageModel
+                              }
+                            , Cmd.map CredentialsMsg cmd
                             )
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)

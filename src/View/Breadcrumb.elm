@@ -105,6 +105,12 @@ breadcrumb_ outerModel context =
                                 ProjectOverview _ ->
                                     []
 
+                                Credentials _ ->
+                                    [ { route = Nothing
+                                      , label = context.localization.credential |> Helpers.String.pluralize |> Helpers.String.toTitleCase
+                                      }
+                                    ]
+
                                 FloatingIpAssign _ ->
                                     [ { route = Nothing
                                       , label =

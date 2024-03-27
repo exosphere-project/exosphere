@@ -1,5 +1,6 @@
 module Types.OuterMsg exposing (OuterMsg(..))
 
+import Page.Credentials
 import Page.FloatingIpAssign
 import Page.FloatingIpCreate
 import Page.FloatingIpList
@@ -36,6 +37,7 @@ import Types.SharedMsg
 type OuterMsg
     = SharedMsg Types.SharedMsg.SharedMsg
     | ProjectOverviewMsg Page.ProjectOverview.Msg
+    | CredentialsMsg Page.Credentials.Msg
     | FloatingIpAssignMsg Page.FloatingIpAssign.Msg
     | FloatingIpListMsg Page.FloatingIpList.Msg
     | GetSupportMsg Page.GetSupport.Msg

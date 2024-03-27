@@ -167,6 +167,12 @@ view context project currentTime _ =
                 Route.ImageList
                 Nothing
                 (imageTileContents context project)
+            , renderTile
+                (Icon.featherIcon [] Icons.lock)
+                (context.localization.credential |> Helpers.String.pluralize |> Helpers.String.toTitleCase)
+                Route.Credentials
+                Nothing
+                (credentialTileContents context)
             ]
         ]
 
@@ -335,6 +341,21 @@ imageTileContents context project =
         VH.renderRDPP
         renderImage
         (\_ -> True)
+
+
+credentialTileContents : View.Types.Context -> Element.Element Msg
+credentialTileContents context =
+    Element.column
+        [ Element.centerX
+        , Element.spacing spacer.px8
+        ]
+        [ Element.paragraph []
+            [ Element.text <|
+                "Download "
+                    ++ Helpers.String.pluralize context.localization.credential
+                    ++ " to access OpenStack from the command line or API"
+            ]
+        ]
 
 
 tileContents :
