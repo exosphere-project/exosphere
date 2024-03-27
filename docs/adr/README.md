@@ -7,3 +7,4 @@ See: <https://adr.github.io/>
 - [ADR 3: Storing, versioning, and consuming instance provisioning code](storing-versioning-consuming-instance-provisioning-code.md)
 - [ADR 4: Using unpublished Elm dependencies](using-unpublished-elm-dependencies.md)
 - [ADR 5: Selecting a Governance Model for Exosphere](governance-model.md)
+- [ADR 6: Exosphere Guest Utilities service on instances](guest-utilities.md)
