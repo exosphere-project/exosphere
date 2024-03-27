@@ -25,4 +25,5 @@ localization =
     , securityGroup = "security group"
     , graphicalDesktopEnvironment = "graphical desktop"
     , hostname = "hostname"
+    , credential = "credential"
     }

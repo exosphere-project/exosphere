@@ -163,6 +163,7 @@ localizationDecoder =
         |> required "securityGroup" string
         |> required "graphicalDesktopEnvironment" string
         |> required "hostname" string
+        |> required "credential" string
 
 
 sentryConfigDecoder : Decoder HelperTypes.SentryConfig

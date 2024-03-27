@@ -39,6 +39,7 @@ exosphereLocalizedStrings =
     , ( "publiclyRoutableIpAddress", "public IP address" )
     , ( "graphicalDesktopEnvironment", "graphical desktop" )
     , ( "hostname", "hostname" )
+    , ( "credential", "credential" )
 
     --- Disabled, because `size` is too general a term
     -- , ( "virtualComputerHardwareConfig", "size" )
