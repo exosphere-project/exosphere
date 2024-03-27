@@ -91,6 +91,7 @@ import Types.Workflow
         , CustomWorkflowTokenRDPP
         , ServerCustomWorkflowStatus(..)
         )
+import UUID
 import Url
 import View.Helpers exposing (toExoPalette)
 
@@ -1412,6 +1413,13 @@ processProjectSpecificMsg outerModel project msg =
                     , size = size
                     , protocol = protocol
                     , shareType = shareTypeName
+                    , metadata =
+                        Dict.fromList
+                            [ -- Identify the client that created the share.
+                              ( "exoClientUuid"
+                              , UUID.toString sharedModel.clientUuid
+                              )
+                            ]
                     }
             in
             case project.endpoints.manila of

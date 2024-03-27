@@ -1165,6 +1165,7 @@ type alias CreateShareRequest =
     , size : ShareSize
     , protocol : ShareProtocol
     , shareType : ShareTypeName
+    , metadata : Dict.Dict String String
     }
 
 
