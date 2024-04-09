@@ -4,6 +4,7 @@
   "compilerOptions": {
     "types": ["./types.d.ts"],
     "noEmit": true,
-    "checkJs": true
+    "checkJs": true,
+    "allowJs": true
   }
 }
