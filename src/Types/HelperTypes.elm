@@ -112,6 +112,7 @@ type alias Localization =
     , nonFloatingIpAddress : String
     , floatingIpAddress : String
     , publiclyRoutableIpAddress : String
+    , securityGroup : String
     , graphicalDesktopEnvironment : String
     , hostname : String
     }

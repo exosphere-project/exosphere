@@ -69,6 +69,7 @@ var config = {
     nonFloatingIpAddress: "internal IP address",
     floatingIpAddress: "public IP address",
     publiclyRoutableIpAddress: "public IP address",
+    securityGroup: "security group",
     graphicalDesktopEnvironment: "web desktop",
     hostname: "hostname",
   },
