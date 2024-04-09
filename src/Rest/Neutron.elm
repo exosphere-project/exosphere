@@ -18,6 +18,7 @@ module Rest.Neutron exposing
 
 import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
+import Helpers.Time
 import Http
 import Json.Decode as Decode
 import Json.Encode as Encode
@@ -701,8 +702,10 @@ securityGroupDecoder =
 
 securityGroupValueDecoder : Decode.Decoder OSTypes.SecurityGroup
 securityGroupValueDecoder =
-    Decode.map4 OSTypes.SecurityGroup
+    Decode.map6 OSTypes.SecurityGroup
         (Decode.field "id" Decode.string)
         (Decode.field "name" Decode.string)
         (Decode.field "description" (Decode.nullable Decode.string))
         (Decode.field "security_group_rules" (Decode.list securityGroupRuleDecoder))
+        (Decode.field "created_at" (Decode.string |> Decode.andThen Helpers.Time.makeIso8601StringToPosixDecoder))
+        (Decode.field "tags" (Decode.list Decode.string))

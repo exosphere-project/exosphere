@@ -9,6 +9,7 @@ module Rest.ApiModelHelpers exposing
     , requestNetworks
     , requestPorts
     , requestRecordSets
+    , requestSecurityGroups
     , requestServer
     , requestServerEvents
     , requestServerImageIfNotFound
@@ -55,6 +56,20 @@ requestFlavors projectUuid model =
                 |> GetterSetters.modelUpdateProject model
             , Rest.Nova.requestFlavors project
             )
+
+
+requestSecurityGroups : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd SharedMsg )
+requestSecurityGroups projectUuid model =
+    case GetterSetters.projectLookup model projectUuid of
+        Just project ->
+            ( project
+                |> GetterSetters.projectSetSecurityGroupsLoading
+                |> GetterSetters.modelUpdateProject model
+            , Rest.Neutron.requestSecurityGroups project
+            )
+
+        Nothing ->
+            ( model, Cmd.none )
 
 
 requestServers : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd SharedMsg )

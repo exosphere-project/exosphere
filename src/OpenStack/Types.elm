@@ -57,6 +57,7 @@ module OpenStack.Types exposing
     , RegionId
     , ScopedAuthToken
     , SecurityGroup
+    , SecurityGroupTag
     , SecurityGroupUuid
     , Server
     , ServerDetails
@@ -799,11 +800,17 @@ type alias SecurityGroup =
     , name : String
     , description : Maybe String
     , rules : List SecurityGroupRule
+    , createdAt : Time.Posix
+    , tags : List SecurityGroupTag
     }
 
 
 type alias SecurityGroupUuid =
     HelperTypes.Uuid
+
+
+type alias SecurityGroupTag =
+    String
 
 
 type alias NetworkQuota =
