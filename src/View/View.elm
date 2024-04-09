@@ -26,6 +26,7 @@ import Page.LoginOpenstack
 import Page.LoginPicker
 import Page.MessageLog
 import Page.ProjectOverview
+import Page.SecurityGroupList
 import Page.SelectProjectRegions
 import Page.SelectProjects
 import Page.ServerCreate
@@ -336,6 +337,10 @@ projectContentView model context p viewConstructor =
         KeypairList pageModel ->
             Page.KeypairList.view context p pageModel
                 |> Element.map KeypairListMsg
+
+        SecurityGroupList pageModel ->
+            Page.SecurityGroupList.view context p model.clientCurrentTime pageModel
+                |> Element.map SecurityGroupListMsg
 
         ServerCreate pageModel ->
             Page.ServerCreate.view context p model.clientCurrentTime pageModel

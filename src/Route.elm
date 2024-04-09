@@ -56,6 +56,7 @@ type ProjectRouteConstructor
     | FloatingIpCreate (Maybe OSTypes.ServerUuid)
     | KeypairCreate
     | KeypairList
+    | SecurityGroupList
     | ServerCreate OSTypes.ImageUuid String (Maybe (List OSTypes.FlavorId)) (Maybe Bool)
     | ServerCreateImage OSTypes.ServerUuid (Maybe String)
     | ServerDetail OSTypes.ServerUuid
@@ -220,6 +221,11 @@ toUrl maybePathPrefix route =
 
                         KeypairList ->
                             ( [ "keypairs" ]
+                            , []
+                            )
+
+                        SecurityGroupList ->
+                            ( [ "securitygroups" ]
                             , []
                             )
 
@@ -589,6 +595,9 @@ projectRouteParsers =
          in
          s "servers" </> string </> s "image" <?> queryParser
         )
+    , map
+        SecurityGroupList
+        (s "securitygroups")
     , map
         ServerDetail
         (s "servers" </> string)
