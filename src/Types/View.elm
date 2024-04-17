@@ -19,7 +19,6 @@ import Page.KeypairList
 import Page.LoginOpenIdConnect
 import Page.LoginOpenstack
 import Page.MessageLog
-import Page.OnrampCLI
 import Page.ProjectOverview
 import Page.SecurityGroupList
 import Page.SelectProjectRegions
@@ -56,7 +55,6 @@ type NonProjectViewConstructor
     | Login LoginView
     | LoginPicker
     | MessageLog Page.MessageLog.Model
-    | OnrampCLI Page.OnrampCLI.Model
     | PageNotFound
     | SelectProjectRegions Page.SelectProjectRegions.Model
     | SelectProjects Page.SelectProjects.Model

@@ -4,7 +4,6 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import Helpers.Url as UrlHelpers
 import OpenStack.Types as OSTypes
-import Page.OnrampCLI
 import Types.OuterModel exposing (OuterModel)
 import Types.Project exposing (Project)
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
@@ -48,9 +47,6 @@ pageTitle outerModel =
 
                 MessageLog _ ->
                     "Message Log"
-
-                OnrampCLI pageModel ->
-                    Page.OnrampCLI.pageTitle outerModel.sharedModel pageModel
 
                 PageNotFound ->
                     "Error: page not found"

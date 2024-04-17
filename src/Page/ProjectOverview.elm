@@ -351,9 +351,14 @@ credentialTileContents context =
         ]
         [ Element.paragraph []
             [ Element.text <|
-                "Download "
-                    ++ Helpers.String.pluralize context.localization.credential
-                    ++ " to access OpenStack from the command line or API"
+                String.join " "
+                    [ "Obtain"
+                    , Helpers.String.pluralize context.localization.credential
+                    , "for"
+                    , context.localization.commandDrivenTextInterface
+                    , "or developer access to this"
+                    , context.localization.unitOfTenancy
+                    ]
             ]
         ]
 
