@@ -22,6 +22,7 @@ import Page.LoginOpenIdConnect
 import Page.LoginOpenstack
 import Page.MessageLog
 import Page.ProjectOverview
+import Page.SecurityGroupDetail
 import Page.SecurityGroupList
 import Page.SelectProjectRegions
 import Page.SelectProjects
@@ -310,6 +311,22 @@ routeToViewStateModelCmd sharedModel route =
                                 ]
                             )
 
+                        Route.SecurityGroupDetail securityGroupId ->
+                            let
+                                ( newSharedModel, cmd ) =
+                                    ( project |> GetterSetters.modelUpdateProject sharedModel
+                                    , Ports.instantiateClipboardJs ()
+                                    )
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestSecurityGroups (GetterSetters.projectIdentifier project))
+
+                                -- TODO: Request security group quotas.
+                            in
+                            ( projectViewProto <| SecurityGroupDetail (Page.SecurityGroupDetail.init securityGroupId)
+                            , newSharedModel
+                            , cmd
+                            )
+
                         Route.SecurityGroupList ->
                             let
                                 ( newNewSharedModel, newCmd ) =
@@ -548,6 +565,9 @@ viewStateToSupportableItem viewState =
             -> ( HelperTypes.SupportableItemType, Maybe HelperTypes.Uuid )
         supportableProjectItem projectIdentifier projectViewConstructor =
             case projectViewConstructor of
+                SecurityGroupDetail pageModel ->
+                    ( HelperTypes.SupportableSecurityGroup, Just pageModel.securityGroupUuid )
+
                 ServerCreate pageModel ->
                     ( HelperTypes.SupportableImage, Just pageModel.imageUuid )
 

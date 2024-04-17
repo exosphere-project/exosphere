@@ -1,4 +1,4 @@
-module View.PageTitle exposing (pageTitle, serverName, shareName, volumeName)
+module View.PageTitle exposing (pageTitle, securityGroupName, serverName, shareName, volumeName)
 
 import Helpers.GetterSetters as GetterSetters
 import Helpers.String
@@ -164,6 +164,13 @@ pageTitle outerModel =
                         , projectName
                         ]
 
+                SecurityGroupDetail pageModel ->
+                    String.join " "
+                        [ localization.securityGroup
+                            |> Helpers.String.toTitleCase
+                        , shareName maybeProject pageModel.securityGroupUuid
+                        ]
+
                 SecurityGroupList _ ->
                     String.join " "
                         [ localization.securityGroup |> Helpers.String.pluralize |> Helpers.String.toTitleCase
@@ -268,6 +275,14 @@ pageTitle outerModel =
                         , localization.blockDevice
                             |> Helpers.String.toTitleCase
                         ]
+
+
+securityGroupName : Maybe Project -> OSTypes.SecurityGroupUuid -> String
+securityGroupName maybeProject securityGroupUuid =
+    maybeProject
+        |> Maybe.andThen (\proj -> GetterSetters.securityGroupLookup proj securityGroupUuid)
+        |> Maybe.map (\securityGroup -> securityGroup.name)
+        |> Maybe.withDefault securityGroupUuid
 
 
 serverName : Maybe Project -> OSTypes.ServerUuid -> String

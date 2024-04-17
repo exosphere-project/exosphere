@@ -36,6 +36,7 @@ import Page.LoginOpenstack
 import Page.LoginPicker
 import Page.MessageLog
 import Page.ProjectOverview
+import Page.SecurityGroupDetail
 import Page.SecurityGroupList
 import Page.SelectProjectRegions
 import Page.SelectProjects
@@ -401,6 +402,21 @@ updateUnderlying outerMsg outerModel =
                                         KeypairList newSharedModel
                               }
                             , Cmd.map KeypairListMsg cmd
+                            )
+                                |> pipelineCmdOuterModelMsg
+                                    (processSharedMsg sharedMsg)
+
+                        ( SecurityGroupDetailMsg pageMsg, SecurityGroupDetail pageModel ) ->
+                            let
+                                ( newSharedModel, cmd, sharedMsg ) =
+                                    Page.SecurityGroupDetail.update pageMsg pageModel
+                            in
+                            ( { outerModel
+                                | viewState =
+                                    ProjectView projectId <|
+                                        SecurityGroupDetail newSharedModel
+                              }
+                            , Cmd.map SecurityGroupDetailMsg cmd
                             )
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)

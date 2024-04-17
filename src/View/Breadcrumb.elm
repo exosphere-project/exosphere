@@ -180,6 +180,25 @@ breadcrumb_ outerModel context =
                                       }
                                     ]
 
+                                SecurityGroupDetail pageModel ->
+                                    [ { route = Just <| Route.ProjectRoute projectId <| Route.SecurityGroupList
+                                      , label =
+                                            String.join " "
+                                                [ context.localization.securityGroup
+                                                    |> Helpers.String.pluralize
+                                                    |> Helpers.String.toTitleCase
+                                                ]
+                                      }
+                                    , { route = Nothing
+                                      , label =
+                                            String.join " "
+                                                [ context.localization.securityGroup
+                                                    |> Helpers.String.toTitleCase
+                                                , View.PageTitle.securityGroupName (GetterSetters.projectLookup outerModel.sharedModel projectId) pageModel.securityGroupUuid
+                                                ]
+                                      }
+                                    ]
+
                                 SecurityGroupList _ ->
                                     [ { route = Nothing
                                       , label =

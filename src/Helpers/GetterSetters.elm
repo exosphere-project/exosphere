@@ -44,6 +44,7 @@ module Helpers.GetterSetters exposing
     , projectUpdateKeypair
     , projectUpdateServer
     , sanitizeMountpoint
+    , securityGroupLookup
     , serverCreatedByCurrentUser
     , serverExoServerVersion
     , serverLookup
@@ -104,6 +105,12 @@ unscopedRegionLookup provider regionId =
     provider.regionsAvailable
         |> RDPP.withDefault []
         |> List.Extra.find (\region -> region.id == regionId)
+
+
+securityGroupLookup : Project -> OSTypes.SecurityGroupUuid -> Maybe OSTypes.SecurityGroup
+securityGroupLookup project securityGroupUuid =
+    RDPP.withDefault [] project.securityGroups
+        |> List.Extra.find (\s -> s.uuid == securityGroupUuid)
 
 
 serverLookup : Project -> OSTypes.ServerUuid -> Maybe Server
