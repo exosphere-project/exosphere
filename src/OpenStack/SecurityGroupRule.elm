@@ -6,14 +6,18 @@ module OpenStack.SecurityGroupRule exposing
     , SecurityGroupRuleUuid
     , SecurityGroupUuid
     , defaultExosphereRules
+    , directionToString
     , encode
+    , etherTypeToString
     , matchRule
+    , protocolToString
     , securityGroupRuleDecoder
     )
 
 import Helpers.Json exposing (resultToDecoder)
 import Json.Decode as Decode
 import Json.Encode as Encode
+import String
 
 
 type alias SecurityGroupRule =
@@ -173,78 +177,83 @@ encodePort maybePort portRangeType object =
             object
 
 
+protocolToString : SecurityGroupRuleProtocol -> String
+protocolToString protocol =
+    case protocol of
+        AnyProtocol ->
+            "Any"
+
+        ProtocolIcmp ->
+            "ICMP"
+
+        ProtcolIcmpv6 ->
+            "ICMPv6"
+
+        ProtocolTcp ->
+            "TCP"
+
+        ProtocolUdp ->
+            "UDP"
+
+        ProtocolAh ->
+            "AH"
+
+        ProtocolDccp ->
+            "DCCP"
+
+        ProtocolEgp ->
+            "EGP"
+
+        ProtocolEsp ->
+            "ESP"
+
+        ProtocolGre ->
+            "GRE"
+
+        ProtocolIgmp ->
+            "IGMP"
+
+        ProtocolIpv6Encap ->
+            "IPv6-Encap"
+
+        ProtocolIpv6Frag ->
+            "IPv6-Frag"
+
+        ProtocolIpv6Nonxt ->
+            "IPv6-Nonxt"
+
+        ProtocolIpv6Opts ->
+            "IPv6-Opts"
+
+        ProtocolIpv6Route ->
+            "IPv6-Route"
+
+        ProtocolOspf ->
+            "OSPF"
+
+        ProtocolPgm ->
+            "PGM"
+
+        ProtocolRsvp ->
+            "RSVP"
+
+        ProtocolSctp ->
+            "SCTP"
+
+        ProtocolUdpLite ->
+            "UDPLite"
+
+        ProtocolVrrp ->
+            "VRRP"
+
+
 encodeProtocol : Maybe SecurityGroupRuleProtocol -> List ( String, Encode.Value ) -> List ( String, Encode.Value )
 encodeProtocol maybeProtocol object =
     case maybeProtocol of
         Just protocol ->
             let
                 protocolString =
-                    case protocol of
-                        AnyProtocol ->
-                            "any"
-
-                        ProtocolIcmp ->
-                            "icmp"
-
-                        ProtcolIcmpv6 ->
-                            "icmpv6"
-
-                        ProtocolTcp ->
-                            "tcp"
-
-                        ProtocolUdp ->
-                            "udp"
-
-                        ProtocolAh ->
-                            "ah"
-
-                        ProtocolDccp ->
-                            "dccp"
-
-                        ProtocolEgp ->
-                            "egp"
-
-                        ProtocolEsp ->
-                            "esp"
-
-                        ProtocolGre ->
-                            "gre"
-
-                        ProtocolIgmp ->
-                            "igmp"
-
-                        ProtocolIpv6Encap ->
-                            "ipv6-encap"
-
-                        ProtocolIpv6Frag ->
-                            "ipv6-frag"
-
-                        ProtocolIpv6Nonxt ->
-                            "ipv6-nonxt"
-
-                        ProtocolIpv6Opts ->
-                            "ipv6-opts"
-
-                        ProtocolIpv6Route ->
-                            "ipv6-route"
-
-                        ProtocolOspf ->
-                            "ospf"
-
-                        ProtocolPgm ->
-                            "pgm"
-
-                        ProtocolRsvp ->
-                            "rsvp"
-
-                        ProtocolSctp ->
-                            "sctp"
-
-                        ProtocolUdpLite ->
-                            "udplite"
-
-                        ProtocolVrrp ->
-                            "vrrp"
+                    protocolToString protocol |> String.toLower
             in
             ( "protocol", Encode.string protocolString ) :: object
 
@@ -252,32 +261,34 @@ encodeProtocol maybeProtocol object =
             object
 
 
+directionToString : SecurityGroupRuleDirection -> String
+directionToString direction =
+    case direction of
+        Ingress ->
+            "ingress"
+
+        Egress ->
+            "egress"
+
+
 encodeDirection : SecurityGroupRuleDirection -> List ( String, Encode.Value ) -> List ( String, Encode.Value )
 encodeDirection direction object =
-    let
-        directionString =
-            case direction of
-                Ingress ->
-                    "ingress"
+    ( "direction", Encode.string <| directionToString direction ) :: object
 
-                Egress ->
-                    "egress"
-    in
-    ( "direction", Encode.string directionString ) :: object
+
+etherTypeToString : SecurityGroupRuleEthertype -> String
+etherTypeToString ethertype =
+    case ethertype of
+        Ipv4 ->
+            "IPv4"
+
+        Ipv6 ->
+            "IPv6"
 
 
 encodeEthertype : SecurityGroupRuleEthertype -> List ( String, Encode.Value ) -> List ( String, Encode.Value )
 encodeEthertype ethertype object =
-    let
-        ethertypeString =
-            case ethertype of
-                Ipv4 ->
-                    "IPv4"
-
-                Ipv6 ->
-                    "IPv6"
-    in
-    ( "ethertype", Encode.string ethertypeString ) :: object
+    ( "ethertype", Encode.string <| etherTypeToString ethertype ) :: object
 
 
 securityGroupRuleDecoder : Decode.Decoder SecurityGroupRule
