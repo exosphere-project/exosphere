@@ -127,6 +127,7 @@ viewSupportForm context sharedModel model =
                         Input.option (Just itemType) (Element.text itemTypeStr)
                     )
                     [ HelperTypes.SupportableServer
+                    , HelperTypes.SupportableSecurityGroup
                     , HelperTypes.SupportableShare
                     , HelperTypes.SupportableVolume
                     , HelperTypes.SupportableImage
@@ -181,6 +182,18 @@ viewSupportForm context sharedModel model =
                                             (\server ->
                                                 ( server.osProps.uuid
                                                 , VH.resourceName (Just server.osProps.name) server.osProps.uuid
+                                                )
+                                            )
+                                        |> List.sortBy Tuple.second
+
+                                HelperTypes.SupportableSecurityGroup ->
+                                    sharedModel.projects
+                                        |> List.map .securityGroups
+                                        |> List.concatMap (RDPP.withDefault [])
+                                        |> List.map
+                                            (\securityGroup ->
+                                                ( securityGroup.uuid
+                                                , VH.resourceName (Just securityGroup.name) securityGroup.uuid
                                                 )
                                             )
                                         |> List.sortBy Tuple.second
@@ -356,6 +369,9 @@ supportableItemTypeStr context supportableItemType =
 
         HelperTypes.SupportableServer ->
             context.localization.virtualComputer
+
+        HelperTypes.SupportableSecurityGroup ->
+            context.localization.securityGroup
 
         HelperTypes.SupportableShare ->
             context.localization.share
