@@ -32,6 +32,7 @@ module Helpers.GetterSetters exposing
     , projectSetJetstream2AllocationLoading
     , projectSetNetworksLoading
     , projectSetPortsLoading
+    , projectSetSecurityGroupsLoading
     , projectSetServerEventsLoading
     , projectSetServerLoading
     , projectSetServersLoading
@@ -634,6 +635,11 @@ projectDeleteServer project serverUuid =
                     { oldServersRDPP | data = RDPP.DoHave otherServers recTime }
             in
             { project | servers = newServersRDPP }
+
+
+projectSetSecurityGroupsLoading : Project -> Project
+projectSetSecurityGroupsLoading project =
+    { project | securityGroups = RDPP.setLoading project.securityGroups }
 
 
 projectSetServersLoading : Project -> Project

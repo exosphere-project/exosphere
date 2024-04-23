@@ -164,6 +164,13 @@ pageTitle outerModel =
                         , projectName
                         ]
 
+                SecurityGroupList _ ->
+                    String.join " "
+                        [ localization.securityGroup |> Helpers.String.pluralize |> Helpers.String.toTitleCase
+                        , "for"
+                        , projectName
+                        ]
+
                 ServerCreate _ ->
                     String.join " "
                         [ "Create"

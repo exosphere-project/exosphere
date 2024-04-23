@@ -180,6 +180,17 @@ breadcrumb_ outerModel context =
                                       }
                                     ]
 
+                                SecurityGroupList _ ->
+                                    [ { route = Nothing
+                                      , label =
+                                            String.join " "
+                                                [ context.localization.securityGroup
+                                                    |> Helpers.String.pluralize
+                                                    |> Helpers.String.toTitleCase
+                                                ]
+                                      }
+                                    ]
+
                                 ServerCreate _ ->
                                     [ { route = Nothing
                                       , label =
