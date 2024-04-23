@@ -28,6 +28,7 @@ Relax the criteria in this section if this is a contributor's first or second MR
   + all files in `environment-configs/` **(else you may break production sites!)**
   + Documented options in [config-options.md](config-options.md)
 - If the MR adds [localized strings](nomenclature-reference.md) (in `src/Types/Defaults.elm`) then the following are updated accordingly:
+  + `types.d.ts`
   + all files in `environment-configs/` which have `localization` specified **(else you may break production sites!)**
   + Documented options for `Example Localization JSON object` section in [config-options.md](config-options.md)
   + `exosphereLocalizedStrings` in `review/src/NoHardcodedLocalizedStrings.elm`

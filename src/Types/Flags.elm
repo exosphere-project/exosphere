@@ -160,6 +160,7 @@ localizationDecoder =
         |> required "nonFloatingIpAddress" string
         |> required "floatingIpAddress" string
         |> required "publiclyRoutableIpAddress" string
+        |> required "securityGroup" string
         |> required "graphicalDesktopEnvironment" string
         |> required "hostname" string
 

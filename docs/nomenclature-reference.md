@@ -25,6 +25,7 @@ Note for developers: some code in the Exosphere codebase (e.g. variable and func
 | shared file system export location                  | export location            | export location     | export location        | mount target               |
 | non-floating IP address                             | internal IP address        | fixed IP address    | internal IP address    | private IPv4 address       |
 | floating IP address                                 | public IP address          | floating IP address | public IP address      | Elastic IP Address         |
+| set of networking access rules for instances        | security group             | security group      | security group         | security group             |
 | text-based user interface served in a web browser   | terminal                   | N/A                 | web shell              | N/A                        |
 | graphical desktop interface served in a web browser | graphical environment      | N/A                 | web desktop            | N/A                        |
 | DNS hostname                                        | hostname                   | N/A                 | hostname               | N/A                        |

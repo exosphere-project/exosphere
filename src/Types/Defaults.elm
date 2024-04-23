@@ -22,6 +22,7 @@ localization =
     , nonFloatingIpAddress = "internal IP address"
     , floatingIpAddress = "floating IP address"
     , publiclyRoutableIpAddress = "public IP address"
+    , securityGroup = "security group"
     , graphicalDesktopEnvironment = "graphical desktop"
     , hostname = "hostname"
     }
