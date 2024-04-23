@@ -12,7 +12,8 @@ import Helpers.String
 import Helpers.Time
 import List exposing (sortBy)
 import OpenStack.SecurityGroupRule exposing (SecurityGroupRule, SecurityGroupRuleProtocol(..), directionToString, etherTypeToString, portRangeToString, protocolToString)
-import OpenStack.Types as OSTypes exposing (SecurityGroup)
+import OpenStack.Types as OSTypes exposing (SecurityGroup, SecurityGroupUuid)
+import Route
 import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.Card
@@ -22,6 +23,7 @@ import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
 import Time
+import Types.HelperTypes exposing (ProjectIdentifier)
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
@@ -141,8 +143,8 @@ scrollableCell attrs msg =
         )
 
 
-rulesTable : List SecurityGroupRule -> Element.Element Msg
-rulesTable rules =
+rulesTable : View.Types.Context -> ProjectIdentifier -> { rules : List SecurityGroupRule, securityGroupForUuid : SecurityGroupUuid -> Maybe SecurityGroup } -> Element.Element Msg
+rulesTable context projectId { rules, securityGroupForUuid } =
     case List.length rules of
         0 ->
             Element.text "(none)"
@@ -191,20 +193,41 @@ rulesTable rules =
                       , width = Element.shrink
                       , view =
                             \item ->
-                                let
-                                    remote =
-                                        case ( item.remoteIpPrefix, item.remoteGroupUuid ) of
-                                            -- Either IP prefix or remote security group.
-                                            ( Just ipPrefix, _ ) ->
-                                                ipPrefix
+                                case ( item.remoteIpPrefix, item.remoteGroupUuid ) of
+                                    -- Either IP prefix or remote security group.
+                                    ( Just ipPrefix, _ ) ->
+                                        Text.body ipPrefix
 
-                                            ( _, Just remoteGroupUuid ) ->
-                                                remoteGroupUuid
+                                    ( _, Just remoteGroupUuid ) ->
+                                        -- Look up a the remote security group locally.
+                                        case securityGroupForUuid remoteGroupUuid of
+                                            Just securityGroup ->
+                                                Element.link []
+                                                    { url =
+                                                        Route.toUrl context.urlPathPrefix
+                                                            (Route.ProjectRoute projectId <|
+                                                                Route.SecurityGroupDetail securityGroup.uuid
+                                                            )
+                                                    , label =
+                                                        Element.el
+                                                            [ Font.color (SH.toElementColor context.palette.primary) ]
+                                                            (Element.text <|
+                                                                VH.extendedResourceName
+                                                                    (Just securityGroup.name)
+                                                                    securityGroup.uuid
+                                                                    context.localization.securityGroup
+                                                            )
+                                                    }
 
-                                            ( Nothing, Nothing ) ->
-                                                "-"
-                                in
-                                Text.body remote
+                                            Nothing ->
+                                                Text.body <|
+                                                    VH.extendedResourceName
+                                                        Nothing
+                                                        remoteGroupUuid
+                                                        context.localization.securityGroup
+
+                                    ( Nothing, Nothing ) ->
+                                        Text.body "-"
                       }
                     , { header = header "Description"
                       , width = Element.fill
@@ -319,7 +342,10 @@ render context project ( currentTime, _ ) _ securityGroup =
                 )
 
         rules =
-            rulesTable securityGroup.rules
+            rulesTable
+                context
+                (GetterSetters.projectIdentifier project)
+                { rules = securityGroup.rules, securityGroupForUuid = GetterSetters.securityGroupLookup project }
     in
     Element.column [ Element.spacing spacer.px24, Element.width Element.fill ]
         [ Element.row (Text.headingStyleAttrs context.palette)
