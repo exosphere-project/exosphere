@@ -177,7 +177,8 @@ localization: {
     publiclyRoutableIpAddress: "public IP address",
     securityGroup: "security group",
     graphicalDesktopEnvironment: "graphical desktop environment",
-    hostname: "hostname"
+    hostname: "hostname",
+    credentials: "credentials"
 }
 ```
 

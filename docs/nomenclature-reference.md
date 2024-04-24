@@ -29,3 +29,4 @@ Note for developers: some code in the Exosphere codebase (e.g. variable and func
 | text-based user interface served in a web browser   | terminal                   | N/A                 | web shell              | N/A                        |
 | graphical desktop interface served in a web browser | graphical environment      | N/A                 | web desktop            | N/A                        |
 | DNS hostname                                        | hostname                   | N/A                 | hostname               | N/A                        |
+| Credentials file for command line and API usage     | credentials                | N/A                 | credentials            | N/A                        |

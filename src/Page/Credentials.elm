@@ -53,7 +53,8 @@ view context project _ =
                     ]
             ]
         , Element.paragraph [ Element.width Element.fill ]
-            [ Element.text "Choose a "
+            [ Element.text "Choose "
+            , Element.text <| Helpers.String.indefiniteArticle context.localization.credential ++ " "
             , Element.text <| Helpers.String.pluralize context.localization.credential
             , Element.text " format to download and use with "
             , openStackClient
