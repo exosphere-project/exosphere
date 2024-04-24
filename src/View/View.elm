@@ -313,7 +313,6 @@ projectContentView model context p viewConstructor =
 
         Credentials pageModel ->
             Page.Credentials.view context p pageModel
-                |> Element.map CredentialsMsg
 
         FloatingIpAssign pageModel ->
             Page.FloatingIpAssign.view context p pageModel

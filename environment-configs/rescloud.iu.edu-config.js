@@ -46,6 +46,7 @@ var config = {
     securityGroup: "security group",
     graphicalDesktopEnvironment: "web desktop",
     hostname: "hostname",
+    credential: "credential",
   },
   instanceConfigMgtRepoUrl: null,
   instanceConfigMgtRepoCheckout: null,
