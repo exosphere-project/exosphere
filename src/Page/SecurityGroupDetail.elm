@@ -11,7 +11,16 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import Helpers.Time
 import List exposing (sortBy)
-import OpenStack.SecurityGroupRule exposing (SecurityGroupRule, SecurityGroupRuleProtocol(..), directionToString, etherTypeToString, portRangeToString, protocolToString)
+import OpenStack.SecurityGroupRule
+    exposing
+        ( SecurityGroupRule
+        , SecurityGroupRuleEthertype(..)
+        , SecurityGroupRuleProtocol(..)
+        , directionToString
+        , etherTypeToString
+        , portRangeToString
+        , protocolToString
+        )
 import OpenStack.Types as OSTypes exposing (SecurityGroup, SecurityGroupUuid)
 import Route
 import Style.Helpers as SH
@@ -227,7 +236,16 @@ rulesTable context projectId { rules, securityGroupForUuid } =
                                                         context.localization.securityGroup
 
                                     ( Nothing, Nothing ) ->
-                                        Text.body "-"
+                                        -- Assume 'any' address when neither remote group nor IP prefix are specified
+                                        case item.ethertype of
+                                            Ipv4 ->
+                                                Text.body "0.0.0.0/0"
+
+                                            Ipv6 ->
+                                                Text.body "::/0"
+
+                                            _ ->
+                                                Text.body "-"
                       }
                     , { header = header "Description"
                       , width = Element.fill
