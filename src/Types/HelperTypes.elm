@@ -115,6 +115,7 @@ type alias Localization =
     , securityGroup : String
     , graphicalDesktopEnvironment : String
     , hostname : String
+    , credential : String
     }
 
 

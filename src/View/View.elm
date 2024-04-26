@@ -11,6 +11,7 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import Html
 import Html.Attributes
+import Page.Credentials
 import Page.FloatingIpAssign
 import Page.FloatingIpCreate
 import Page.FloatingIpList
@@ -309,6 +310,9 @@ projectContentView model context p viewConstructor =
         ProjectOverview pageModel ->
             Page.ProjectOverview.view context p model.clientCurrentTime pageModel
                 |> Element.map ProjectOverviewMsg
+
+        Credentials pageModel ->
+            Page.Credentials.view context p pageModel
 
         FloatingIpAssign pageModel ->
             Page.FloatingIpAssign.view context p pageModel

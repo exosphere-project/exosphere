@@ -52,6 +52,7 @@ declare namespace Exosphere {
     securityGroup: "security group" | string;
     graphicalDesktopEnvironment: "graphical desktop" | string;
     hostname: "hostname" | string;
+    credential: "credential" | string;
   };
 
   type CloudUserApplicationProxy = {

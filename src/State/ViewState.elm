@@ -9,6 +9,7 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.Quotas as OSQuotas
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes as OSVolumes
+import Page.Credentials
 import Page.FloatingIpAssign
 import Page.FloatingIpCreate
 import Page.FloatingIpList
@@ -510,6 +511,12 @@ routeToViewStateModelCmd sharedModel route =
 
                         Route.VolumeMountInstructions attachment ->
                             ( projectViewProto <| VolumeMountInstructions <| Page.VolumeMountInstructions.init attachment
+                            , sharedModel
+                            , Cmd.none
+                            )
+
+                        Route.Credentials ->
+                            ( projectViewProto <| Credentials <| Page.Credentials.init project
                             , sharedModel
                             , Cmd.none
                             )

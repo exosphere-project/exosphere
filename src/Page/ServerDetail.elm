@@ -372,7 +372,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                 ]
             , tile
                 [ Icon.featherIcon [] Icons.key
-                , Element.text "Credentials"
+                , Element.text (context.localization.credential |> Helpers.String.pluralize |> Helpers.String.toTitleCase)
                 ]
                 [ renderIpAddresses
                     context

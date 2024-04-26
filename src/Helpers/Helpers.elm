@@ -26,9 +26,11 @@ module Helpers.Helpers exposing
 -- Many functions which get and set things in the data model have been moved from here to GetterSetters.elm.
 -- Getter/setter functions that remain here are too "smart" (too much business logic) for GetterSetters.elm.
 
+import Helpers.Credentials as Credentials
 import Helpers.ExoSetupStatus
 import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
+import Helpers.String exposing (formatStringTemplate)
 import Http
 import Json.Decode as Decode
 import Json.Encode
@@ -350,31 +352,9 @@ getVirtClusterWriteFilesYaml project =
   owner: rocky:rocky
   permissions: '0400'
   defer: true"""
-
-        regionId : String
-        regionId =
-            case project.region of
-                Nothing ->
-                    "RegionOne"
-
-                Just region ->
-                    region.id
-
-        -- TODO: If no app credential, then use username and ask for password
-        ( appCredentialUuid, appCredentialSecret ) =
-            case project.secret of
-                Types.Project.ApplicationCredential appCredential ->
-                    ( appCredential.uuid, appCredential.secret )
-
-                Types.Project.NoProjectSecret ->
-                    ( "", "" )
     in
-    [ ( "{os-auth-url}", project.endpoints.keystone )
-    , ( "{os-region}", regionId )
-    , ( "{os-ac-id}", appCredentialUuid )
-    , ( "{os-ac-secret}", appCredentialSecret )
-    ]
-        |> List.foldl (\t -> String.replace (Tuple.first t) (Tuple.second t)) openrcFileYamlTemplate
+    Credentials.getOpenRcVariables project
+        |> formatStringTemplate openrcFileYamlTemplate
 
 
 renderUserDataTemplate :
@@ -470,7 +450,7 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
     , ( "{create-cluster-command}", createClusterYaml )
     , ( "{write-files}", writeFilesYaml )
     ]
-        |> List.foldl (\t -> String.replace (Tuple.first t) (Tuple.second t)) userDataTemplate
+        |> formatStringTemplate userDataTemplate
 
 
 newServerMetadata : ExoServerVersion -> UUID.UUID -> Bool -> Bool -> String -> FloatingIpOption -> Maybe CustomWorkflowSource -> List ( String, Json.Encode.Value )

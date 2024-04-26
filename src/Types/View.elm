@@ -6,6 +6,7 @@ module Types.View exposing
     )
 
 import OpenStack.Types as OSTypes
+import Page.Credentials
 import Page.FloatingIpAssign
 import Page.FloatingIpCreate
 import Page.FloatingIpList
@@ -67,6 +68,7 @@ type LoginView
 
 type ProjectViewConstructor
     = ProjectOverview Page.ProjectOverview.Model
+    | Credentials Page.Credentials.Model
     | FloatingIpAssign Page.FloatingIpAssign.Model
     | FloatingIpList Page.FloatingIpList.Model
     | ImageList Page.ImageList.Model

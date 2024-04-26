@@ -12,14 +12,12 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import Helpers.Time
-import Html
-import Html.Attributes
 import OpenStack.Types as OSTypes exposing (AccessRule, AccessRuleState(..), AccessRuleUuid, ExportLocation, Share, accessRuleAccessLevelToHumanString, accessRuleAccessTypeToString, accessRuleStateToString)
 import Style.Helpers as SH
 import Style.Types as ST exposing (ExoPalette)
 import Style.Widgets.Button as Button
 import Style.Widgets.Card
-import Style.Widgets.CopyableText exposing (copyableText, copyableTextAccessory)
+import Style.Widgets.CopyableText exposing (copyableScript, copyableText, copyableTextAccessory)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.Popover.Popover exposing (popover)
 import Style.Widgets.Popover.Types exposing (PopoverId)
@@ -360,38 +358,6 @@ accessRulesTable palette accessRules =
                       }
                     ]
                 }
-
-
-copyableScript : ExoPalette -> String -> Element.Element msg
-copyableScript palette script =
-    let
-        copyableAccessory =
-            copyableTextAccessory palette script
-    in
-    Element.el
-        [ Element.inFront <|
-            Element.el
-                [ Element.alignRight
-                , Element.moveLeft <| toFloat spacer.px4
-                , Element.moveDown <| toFloat spacer.px4
-                ]
-                copyableAccessory.accessory
-        , copyableAccessory.id
-        , Element.width Element.fill
-        , Border.solid
-        , Border.width 1
-        , Border.color <| SH.toElementColor palette.muted.border
-        , Element.padding spacer.px4
-        , Text.fontFamily Text.Mono
-        ]
-    <|
-        Element.html <|
-            Html.pre
-                [ Html.Attributes.style "margin" "0"
-                , Html.Attributes.style "white-space" "pre-wrap"
-                , Html.Attributes.style "word-wrap" "break-word"
-                ]
-                [ Html.text script ]
 
 
 renderMountTileContents : View.Types.Context -> Model -> Share -> ( List ExportLocation, List AccessRule ) -> Element.Element Msg

@@ -1,5 +1,6 @@
-module Helpers.Url exposing (buildProxyUrl, hostnameFromUrl)
+module Helpers.Url exposing (buildProxyUrl, dataUrl, hostnameFromUrl, textDataUrl)
 
+import Base64
 import OpenStack.Types as OSTypes
 import Types.HelperTypes as HelperTypes
 import Url
@@ -35,3 +36,13 @@ buildProxyUrl proxyHostname destinationIp port_ path https_upstream =
     , path
     ]
         |> String.concat
+
+
+dataUrl : String -> String -> String
+dataUrl mimetype contents =
+    "data:" ++ mimetype ++ ";base64," ++ Base64.encode contents
+
+
+textDataUrl : String -> String
+textDataUrl =
+    dataUrl "text/plain;charset=utf-8"

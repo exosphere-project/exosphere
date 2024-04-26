@@ -70,6 +70,7 @@ type ProjectRouteConstructor
     | VolumeDetail OSTypes.VolumeUuid
     | VolumeList
     | VolumeMountInstructions OSTypes.VolumeAttachment
+    | Credentials
 
 
 {-| Generates a url to the given route (including the project's path prefix if the app lives in a subdirectory).
@@ -160,6 +161,11 @@ toUrl maybePathPrefix route =
                     case projectRouteConstructor of
                         ProjectOverview ->
                             ( [ "overview" ]
+                            , []
+                            )
+
+                        Credentials ->
+                            ( [ "credentials" ]
                             , []
                             )
 
@@ -584,6 +590,9 @@ projectRouteParsers =
     , map
         ProjectOverview
         (s "overview")
+    , map
+        Credentials
+        (s "credentials")
     , map
         (\svrUuid imageName ->
             ServerCreateImage svrUuid (Just imageName)

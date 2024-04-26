@@ -104,6 +104,12 @@ pageTitle outerModel =
                         , "overview"
                         ]
 
+                Credentials _ ->
+                    String.join " "
+                        [ projectName
+                        , localization.credential |> Helpers.String.pluralize |> Helpers.String.toTitleCase
+                        ]
+
                 FloatingIpAssign _ ->
                     String.join " "
                         [ "Assign"
