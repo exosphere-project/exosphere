@@ -168,7 +168,7 @@ pageTitle outerModel =
                     String.join " "
                         [ localization.securityGroup
                             |> Helpers.String.toTitleCase
-                        , shareName maybeProject pageModel.securityGroupUuid
+                        , securityGroupName maybeProject pageModel.securityGroupUuid
                         ]
 
                 SecurityGroupList _ ->
