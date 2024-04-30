@@ -151,8 +151,8 @@ receiveCreateRecordSet model project recordSet =
 
 {-| Delete a recordset by ID
 -}
-requestDeleteRecordSet : Types.Project.Project -> OpenStack.DnsRecordSet.DnsRecordSet -> Cmd Types.SharedMsg.SharedMsg
-requestDeleteRecordSet project { zone_id, id } =
+requestDeleteRecordSet : Types.Error.ErrorLevel -> Types.Project.Project -> OpenStack.DnsRecordSet.DnsRecordSet -> Cmd Types.SharedMsg.SharedMsg
+requestDeleteRecordSet errorLevel project { zone_id, id } =
     case project.endpoints.designate of
         Nothing ->
             Cmd.none
@@ -162,7 +162,7 @@ requestDeleteRecordSet project { zone_id, id } =
                 errorContext =
                     Types.Error.ErrorContext
                         ("Delete DNS record " ++ id ++ " in zone " ++ zone_id)
-                        Types.Error.ErrorCrit
+                        errorLevel
                         Nothing
 
                 resultToMsg =
