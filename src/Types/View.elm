@@ -20,6 +20,7 @@ import Page.LoginOpenIdConnect
 import Page.LoginOpenstack
 import Page.MessageLog
 import Page.ProjectOverview
+import Page.SecurityGroupDetail
 import Page.SecurityGroupList
 import Page.SelectProjectRegions
 import Page.SelectProjects
@@ -76,6 +77,7 @@ type ProjectViewConstructor
     | FloatingIpCreate Page.FloatingIpCreate.Model
     | KeypairCreate Page.KeypairCreate.Model
     | KeypairList Page.KeypairList.Model
+    | SecurityGroupDetail Page.SecurityGroupDetail.Model
     | SecurityGroupList Page.SecurityGroupList.Model
     | ServerCreate HelperTypes.CreateServerPageModel
     | ServerCreateImage Page.ServerCreateImage.Model

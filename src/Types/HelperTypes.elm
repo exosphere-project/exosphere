@@ -278,6 +278,7 @@ type FloatingIpAssignmentStatus
 type SupportableItemType
     = SupportableProject
     | SupportableImage
+    | SupportableSecurityGroup
     | SupportableServer
     | SupportableShare
     | SupportableVolume

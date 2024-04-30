@@ -5,6 +5,7 @@ import Element.Font as Font
 import FeatherIcons
 import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (humanCount)
+import Helpers.GetterSetters as GetterSetters
 import Helpers.ResourceList exposing (creationTimeFilterOptions, listItemColumnAttribs, onCreationTimeFilter)
 import Helpers.String
 import OpenStack.Types as OSTypes
@@ -113,7 +114,7 @@ securityGroupRecords securityGroups =
 
 
 securityGroupView : View.Types.Context -> Project -> Time.Posix -> SecurityGroupRecord -> Element.Element Msg
-securityGroupView context _ currentTime securityGroupRecord =
+securityGroupView context project currentTime securityGroupRecord =
     let
         { locale } =
             context
@@ -121,8 +122,10 @@ securityGroupView context _ currentTime securityGroupRecord =
         securityGroupLink =
             Element.link []
                 { url =
-                    -- TODO: Go to security group detail page.
-                    Route.toUrl context.urlPathPrefix Route.PageNotFound
+                    Route.toUrl context.urlPathPrefix
+                        (Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
+                            Route.SecurityGroupDetail securityGroupRecord.id
+                        )
                 , label =
                     Element.el
                         (Text.typographyAttrs Text.Emphasized
