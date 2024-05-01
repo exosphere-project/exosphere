@@ -2700,7 +2700,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                 [ Rest.Nova.requestSetServerName project server.osProps.uuid newServerName
                 , Rest.Nova.requestSetServerHostName project server.osProps.uuid newServerName
                 , oldDnsRecordSets
-                    |> List.map (Rest.Designate.requestDeleteRecordSet project)
+                    |> List.map (Rest.Designate.requestDeleteRecordSet ErrorCrit project)
                     |> Cmd.batch
                 , newDnsRecordSetRequests
                     |> List.map (Rest.Designate.requestCreateRecordSet project)
@@ -2790,7 +2790,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                     _ ->
                         Cmd.none
                 , recordSets
-                    |> List.map (Rest.Designate.requestDeleteRecordSet project)
+                    |> List.map (Rest.Designate.requestDeleteRecordSet ErrorDebug project)
                     |> Cmd.batch
                     |> Cmd.map SharedMsg
                 ]
