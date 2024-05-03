@@ -126,6 +126,7 @@ type ServerSpecificMsgConstructor
     | RequestCreateServerFloatingIp (Maybe OSTypes.IpAddressValue)
     | ReceiveServerAction
     | ReceiveServerEvents ErrorContext (Result HttpErrorWithBody (List OSTypes.ServerEvent))
+    | ReceiveServerSecurityGroups ErrorContext (Result HttpErrorWithBody (List OSTypes.ServerSecurityGroup))
     | ReceiveConsoleUrl (Result HttpErrorWithBody OSTypes.ConsoleUrl)
     | ReceiveDeleteServer
     | ReceiveCreateServerFloatingIp ErrorContext (Result HttpErrorWithBody OSTypes.FloatingIp)

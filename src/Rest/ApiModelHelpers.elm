@@ -13,6 +13,7 @@ module Rest.ApiModelHelpers exposing
     , requestServer
     , requestServerEvents
     , requestServerImageIfNotFound
+    , requestServerSecurityGroups
     , requestServers
     , requestShareAccessRules
     , requestShareExportLocations
@@ -133,6 +134,20 @@ requestServerEvents projectId serverUuid model =
                 |> GetterSetters.projectSetServerEventsLoading serverUuid
                 |> GetterSetters.modelUpdateProject model
             , Rest.Nova.requestServerEvents project serverUuid
+            )
+
+        Nothing ->
+            ( model, Cmd.none )
+
+
+requestServerSecurityGroups : ProjectIdentifier -> OSTypes.ServerUuid -> SharedModel -> ( SharedModel, Cmd SharedMsg )
+requestServerSecurityGroups projectId serverUuid model =
+    case GetterSetters.projectLookup model projectId of
+        Just project ->
+            ( project
+                |> GetterSetters.projectSetServerSecurityGroupsLoading serverUuid
+                |> GetterSetters.modelUpdateProject model
+            , Rest.Nova.requestServerSecurityGroups project serverUuid
             )
 
         Nothing ->

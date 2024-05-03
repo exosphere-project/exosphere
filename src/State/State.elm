@@ -2600,7 +2600,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                     server.exoProps
 
                 newServer =
-                    Server server.osProps { oldExoProps | targetOpenstackStatus = Just [ OSTypes.ServerResize ] } server.events
+                    Server server.osProps { oldExoProps | targetOpenstackStatus = Just [ OSTypes.ServerResize ] } server.events server.securityGroups
 
                 newProject =
                     GetterSetters.projectUpdateServer project newServer
@@ -2741,6 +2741,31 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                             { errorContext | level = ErrorDebug }
                     in
                     State.Error.processSynchronousApiError sharedModel newErrorContext httpErrorWithBody
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+        ReceiveServerSecurityGroups errorContext result ->
+            case result of
+                Ok serverSecurityGroups ->
+                    let
+                        newServer =
+                            { server
+                                | securityGroups =
+                                    RDPP.RemoteDataPlusPlus
+                                        (RDPP.DoHave serverSecurityGroups sharedModel.clientCurrentTime)
+                                        (RDPP.NotLoading Nothing)
+                            }
+
+                        newProject =
+                            GetterSetters.projectUpdateServer project newServer
+                    in
+                    ( GetterSetters.modelUpdateProject sharedModel newProject
+                    , Cmd.none
+                    )
+                        |> mapToOuterModel outerModel
+
+                Err httpErrorWithBody ->
+                    State.Error.processSynchronousApiError sharedModel errorContext httpErrorWithBody
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
@@ -3048,7 +3073,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                     server.exoProps
 
                 newServer =
-                    Server server.osProps { oldExoProps | targetOpenstackStatus = targetStatuses } server.events
+                    Server server.osProps { oldExoProps | targetOpenstackStatus = targetStatuses } server.events server.securityGroups
 
                 newProject =
                     GetterSetters.projectUpdateServer project newServer

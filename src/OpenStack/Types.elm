@@ -66,6 +66,7 @@ module OpenStack.Types exposing
     , ServerLockStatus(..)
     , ServerPassword
     , ServerPowerState(..)
+    , ServerSecurityGroup
     , ServerStatus(..)
     , ServerTag
     , ServerUuid
@@ -521,16 +522,6 @@ type ServerLockStatus
     | ServerUnlocked
 
 
-
-{- Todo add to ServerDetail:
-   - Metadata
-   - Security Groups
-   - Etc
-
-   Also, make keypairName a key type, created a real date/time, etc
--}
-
-
 type alias ServerDetails =
     { openstackStatus : ServerStatus
     , created : Time.Posix
@@ -802,6 +793,19 @@ type alias SecurityGroup =
     , rules : List SecurityGroupRule
     , createdAt : Time.Posix
     , tags : List SecurityGroupTag
+    }
+
+
+{-|
+
+    Getting instance security groups returns a list of security groups with tags & created at omitted, & different fields for rules.
+
+    ref. https://docs.openstack.org/api-ref/compute/#list-security-groups-by-server
+
+-}
+type alias ServerSecurityGroup =
+    { uuid : SecurityGroupUuid
+    , name : String
     }
 
 

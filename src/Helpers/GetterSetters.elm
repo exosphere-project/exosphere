@@ -35,6 +35,7 @@ module Helpers.GetterSetters exposing
     , projectSetSecurityGroupsLoading
     , projectSetServerEventsLoading
     , projectSetServerLoading
+    , projectSetServerSecurityGroupsLoading
     , projectSetServersLoading
     , projectSetShareAccessRulesLoading
     , projectSetShareExportLocationsLoading
@@ -688,6 +689,21 @@ projectSetServerEventsLoading serverUuid project =
             let
                 newServer =
                     { server | events = RDPP.setLoading server.events }
+            in
+            projectUpdateServer project newServer
+
+
+projectSetServerSecurityGroupsLoading : OSTypes.ServerUuid -> Project -> Project
+projectSetServerSecurityGroupsLoading serverUuid project =
+    case serverLookup project serverUuid of
+        Nothing ->
+            -- We can't do anything lol
+            project
+
+        Just server ->
+            let
+                newServer =
+                    { server | securityGroups = RDPP.setLoading server.securityGroups }
             in
             projectUpdateServer project newServer
 
