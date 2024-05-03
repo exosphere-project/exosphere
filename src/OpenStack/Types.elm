@@ -590,7 +590,7 @@ type alias ServerEvent =
     , errorMessage : Maybe String
     , requestId : String
     , startTime : Time.Posix
-    , userId : String
+    , userId : Maybe String
     }
 
 
