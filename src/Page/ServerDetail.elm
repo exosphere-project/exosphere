@@ -37,7 +37,7 @@ import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
 import Time
-import Types.HelperTypes exposing (FloatingIpOption(..), ServerResourceQtys, UserAppProxyHostname)
+import Types.HelperTypes exposing (FloatingIpOption(..), ProjectIdentifier, ServerResourceQtys, UserAppProxyHostname)
 import Types.Interaction as ITypes
 import Types.Project exposing (Project)
 import Types.Server exposing (ExoFeature(..), ExoSetupStatus(..), Server, ServerOrigin(..))
@@ -400,6 +400,15 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                 ]
                 [ serverVolumes context project server
                 , Element.el [ Element.centerX ] attachButton
+                ]
+            , tile
+                [ Icon.featherIcon [] Icons.shield
+                , Element.text "Security Groups"
+                ]
+                [ renderSecurityGroups
+                    context
+                    (GetterSetters.projectIdentifier project)
+                    server
                 ]
             , tile
                 [ Icon.history (SH.toElementColor context.palette.neutral.text.default) 20
@@ -1173,6 +1182,59 @@ serverEventHistory context project server currentTime =
 
         _ ->
             Element.none
+
+
+securityGroupsTable :
+    View.Types.Context
+    -> ProjectIdentifier
+    -> List OSTypes.ServerSecurityGroup
+    -> Element.Element Msg
+securityGroupsTable context projectId securityGroups =
+    case List.length securityGroups of
+        0 ->
+            Element.text "(none)"
+
+        _ ->
+            let
+                columns : List (Element.Column { name : String, uuid : String } Msg)
+                columns =
+                    [ { header = Text.strong "Name"
+                      , width = Element.px 180
+                      , view =
+                            \securityGroup ->
+                                Element.link []
+                                    { url =
+                                        Route.toUrl context.urlPathPrefix
+                                            (Route.ProjectRoute projectId <|
+                                                Route.SecurityGroupDetail securityGroup.uuid
+                                            )
+                                    , label =
+                                        Element.el
+                                            [ Font.color (SH.toElementColor context.palette.primary) ]
+                                            (Element.text <|
+                                                VH.extendedResourceName
+                                                    (Just securityGroup.name)
+                                                    securityGroup.uuid
+                                                    context.localization.securityGroup
+                                            )
+                                    }
+                      }
+                    ]
+            in
+            Element.table
+                [ Element.spacing spacer.px16
+                ]
+                { data = List.map (\s -> { name = s.name, uuid = s.uuid }) securityGroups
+                , columns = columns
+                }
+
+
+renderSecurityGroups : View.Types.Context -> ProjectIdentifier -> Server -> Element.Element Msg
+renderSecurityGroups context projectId server =
+    VH.renderRDPP context
+        server.securityGroups
+        (context.localization.securityGroup |> Helpers.String.pluralize)
+        (securityGroupsTable context projectId)
 
 
 renderServerActionButton :
