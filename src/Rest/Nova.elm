@@ -1137,7 +1137,7 @@ serverEventDecoder =
             |> Decode.andThen
                 makeIso8601StringToPosixDecoder
         )
-        (Decode.field "user_id" Decode.string)
+        (Decode.field "user_id" (Decode.nullable Decode.string))
 
 
 consoleUrlDecoder : Decode.Decoder OSTypes.ConsoleUrl
