@@ -46,6 +46,7 @@ module Helpers.GetterSetters exposing
     , projectUpdateServer
     , sanitizeMountpoint
     , securityGroupLookup
+    , securityGroupsFromServerSecurityGroups
     , serverCreatedByCurrentUser
     , serverExoServerVersion
     , serverLookup
@@ -112,6 +113,13 @@ securityGroupLookup : Project -> OSTypes.SecurityGroupUuid -> Maybe OSTypes.Secu
 securityGroupLookup project securityGroupUuid =
     RDPP.withDefault [] project.securityGroups
         |> List.Extra.find (\s -> s.uuid == securityGroupUuid)
+
+
+securityGroupsFromServerSecurityGroups : Project -> List OSTypes.ServerSecurityGroup -> List OSTypes.SecurityGroup
+securityGroupsFromServerSecurityGroups project serverSecurityGroups =
+    serverSecurityGroups
+        |> List.map .uuid
+        |> List.filterMap (securityGroupLookup project)
 
 
 serverLookup : Project -> OSTypes.ServerUuid -> Maybe Server

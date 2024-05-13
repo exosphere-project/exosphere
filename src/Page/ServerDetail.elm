@@ -407,7 +407,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                 ]
                 [ renderSecurityGroups
                     context
-                    (GetterSetters.projectIdentifier project)
+                    project
                     server
                 ]
             , tile
@@ -1187,7 +1187,7 @@ serverEventHistory context project server currentTime =
 securityGroupsTable :
     View.Types.Context
     -> ProjectIdentifier
-    -> List OSTypes.ServerSecurityGroup
+    -> List OSTypes.SecurityGroup
     -> Element.Element Msg
 securityGroupsTable context projectId securityGroups =
     case List.length securityGroups of
@@ -1196,7 +1196,7 @@ securityGroupsTable context projectId securityGroups =
 
         _ ->
             let
-                columns : List (Element.Column { name : String, uuid : String } Msg)
+                columns : List (Element.Column { name : String, description : Maybe String, uuid : String } Msg)
                 columns =
                     [ { header = Text.strong "Name"
                       , width = Element.px 180
@@ -1219,22 +1219,44 @@ securityGroupsTable context projectId securityGroups =
                                             )
                                     }
                       }
+                    , { header = Text.strong "Description"
+                      , width = Element.fill
+                      , view =
+                            \securityGroup ->
+                                let
+                                    description =
+                                        Maybe.withDefault "-" securityGroup.description
+                                in
+                                Text.body <|
+                                    if String.isEmpty description then
+                                        "-"
+
+                                    else
+                                        description
+                      }
                     ]
             in
             Element.table
                 [ Element.spacing spacer.px16
                 ]
-                { data = List.map (\s -> { name = s.name, uuid = s.uuid }) securityGroups
+                { data = List.map (\s -> { name = s.name, description = s.description, uuid = s.uuid }) securityGroups
                 , columns = columns
                 }
 
 
-renderSecurityGroups : View.Types.Context -> ProjectIdentifier -> Server -> Element.Element Msg
-renderSecurityGroups context projectId server =
+renderSecurityGroups : View.Types.Context -> Project -> Server -> Element.Element Msg
+renderSecurityGroups context project server =
+    let
+        renderTable serverSecurityGroups =
+            securityGroupsTable
+                context
+                (GetterSetters.projectIdentifier project)
+                (GetterSetters.securityGroupsFromServerSecurityGroups project serverSecurityGroups)
+    in
     VH.renderRDPP context
         server.securityGroups
         (context.localization.securityGroup |> Helpers.String.pluralize)
-        (securityGroupsTable context projectId)
+        renderTable
 
 
 renderServerActionButton :
