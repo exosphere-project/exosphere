@@ -401,15 +401,18 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                 [ serverVolumes context project server
                 , Element.el [ Element.centerX ] attachButton
                 ]
-            , tile
-                [ Icon.featherIcon [] Icons.shield
-                , Element.text "Security Groups"
-                ]
-                [ renderSecurityGroups
-                    context
-                    project
-                    server
-                ]
+            , if context.experimentalFeaturesEnabled then
+                tile
+                    [ Icon.featherIcon [] Icons.shield
+                    , context.localization.securityGroup
+                        |> Helpers.String.pluralize
+                        |> Helpers.String.toTitleCase
+                        |> Element.text
+                    ]
+                    [ renderSecurityGroups context project server ]
+
+              else
+                Element.none
             , tile
                 [ Icon.history (SH.toElementColor context.palette.neutral.text.default) 20
                 , Element.text "Action History"
