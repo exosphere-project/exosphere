@@ -1199,7 +1199,7 @@ securityGroupsTable context projectId securityGroups =
                 columns : List (Element.Column { name : String, description : Maybe String, uuid : String } Msg)
                 columns =
                     [ { header = Text.strong "Name"
-                      , width = Element.px 180
+                      , width = Element.shrink
                       , view =
                             \securityGroup ->
                                 Element.link []
@@ -1210,8 +1210,8 @@ securityGroupsTable context projectId securityGroups =
                                             )
                                     , label =
                                         Element.el
-                                            [ Font.color (SH.toElementColor context.palette.primary) ]
-                                            (Element.text <|
+                                            [ Font.color (SH.toElementColor context.palette.primary), Element.width (Element.px 180) ]
+                                            (VH.ellipsizedText <|
                                                 VH.extendedResourceName
                                                     (Just securityGroup.name)
                                                     securityGroup.uuid
@@ -1227,12 +1227,14 @@ securityGroupsTable context projectId securityGroups =
                                     description =
                                         Maybe.withDefault "-" securityGroup.description
                                 in
-                                Text.body <|
-                                    if String.isEmpty description then
-                                        "-"
+                                Element.el [ Element.clipY ]
+                                    (Text.text Text.Body [ Element.width (Element.px 0) ] <|
+                                        if String.isEmpty description then
+                                            "-"
 
-                                    else
-                                        description
+                                        else
+                                            description
+                                    )
                       }
                     ]
             in
