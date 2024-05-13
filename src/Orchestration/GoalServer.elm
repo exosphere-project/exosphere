@@ -55,6 +55,7 @@ goalPollServers time maybeCloudSpecificConfig project =
             [ stepServerPoll time
             , stepServerPollConsoleLog time
             , stepServerPollEvents time
+            , stepServerPollSecurityGroups time
             , stepServerGuacamoleAuth time userAppProxy
             ]
     in
@@ -488,6 +489,52 @@ stepServerPollEvents time project server =
                     case maybeErrorTimeTuple of
                         Nothing ->
                             doPollEvents
+
+                        Just ( _, receivedTime ) ->
+                            pollIfIntervalExceeded receivedTime
+
+
+stepServerPollSecurityGroups : Time.Posix -> Project -> Server -> ( Project, Cmd SharedMsg )
+stepServerPollSecurityGroups time project server =
+    let
+        pollIntervalMillis =
+            -- 5 minutes
+            300000
+
+        curTimeMillis =
+            Time.posixToMillis time
+
+        pollIfIntervalExceeded : Time.Posix -> ( Project, Cmd SharedMsg )
+        pollIfIntervalExceeded receivedTime =
+            if Time.posixToMillis receivedTime + pollIntervalMillis < curTimeMillis then
+                doPollSecurityGroups
+
+            else
+                doNothing project
+
+        doPollSecurityGroups =
+            let
+                newServer =
+                    { server | securityGroups = RDPP.setLoading server.securityGroups }
+
+                newProject =
+                    GetterSetters.projectUpdateServer project newServer
+            in
+            ( newProject, Rest.Nova.requestServerSecurityGroups newProject server.osProps.uuid )
+    in
+    case server.securityGroups.refreshStatus of
+        RDPP.Loading ->
+            doNothing project
+
+        RDPP.NotLoading maybeErrorTimeTuple ->
+            case server.securityGroups.data of
+                RDPP.DoHave _ receivedTime ->
+                    pollIfIntervalExceeded receivedTime
+
+                RDPP.DontHave ->
+                    case maybeErrorTimeTuple of
+                        Nothing ->
+                            doPollSecurityGroups
 
                         Just ( _, receivedTime ) ->
                             pollIfIntervalExceeded receivedTime
