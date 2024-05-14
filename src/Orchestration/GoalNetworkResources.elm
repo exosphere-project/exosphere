@@ -14,6 +14,7 @@ goalPollNetworkResources time project =
         steps =
             [ stepPollFloatingIps time
             , stepPollPorts time
+            , stepPollSecurityGroups time
             ]
     in
     List.foldl
@@ -46,6 +47,21 @@ stepPollPorts time project =
     if pollRDPP project.ports time pollIntervalMs then
         ( GetterSetters.projectSetPortsLoading project
         , Rest.Neutron.requestPorts project
+        )
+
+    else
+        ( project, Cmd.none )
+
+
+stepPollSecurityGroups : Time.Posix -> Project -> ( Project, Cmd SharedMsg )
+stepPollSecurityGroups time project =
+    let
+        pollIntervalMs =
+            120000
+    in
+    if pollRDPP project.securityGroups time pollIntervalMs then
+        ( GetterSetters.projectSetSecurityGroupsLoading project
+        , Rest.Neutron.requestSecurityGroups project
         )
 
     else
