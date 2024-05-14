@@ -175,7 +175,7 @@ localization: {
     nonFloatingIpAddress: "internal IP address",
     floatingIpAddress: "floating IP address",
     publiclyRoutableIpAddress: "public IP address",
-    securityGroup: "security group",
+    securityGroup: "firewall ruleset",
     graphicalDesktopEnvironment: "graphical desktop environment",
     hostname: "hostname",
     credentials: "credentials"
