@@ -156,27 +156,35 @@ securityGroupView context project currentTime securityGroupRecord =
                     )
                 )
 
-        numberOfServers =
+        servers =
             GetterSetters.serversForSecurityGroup project securityGroupRecord.securityGroup.uuid
+
+        numberOfServers =
+            Maybe.withDefault [] servers
                 |> List.length
 
         unused =
             numberOfServers == 0
 
         tags =
-            if unused then
-                tag context.palette "unused"
+            case ( servers, unused ) of
+                ( Just _, True ) ->
+                    tag context.palette "unused"
 
-            else
-                Element.none
+                _ ->
+                    Element.none
 
         serverCount =
             Element.el []
                 (Element.text
                     (String.join " "
-                        [ humanCount
-                            { locale | decimals = Exact 0 }
-                            numberOfServers
+                        [ if servers == Nothing then
+                            "loading"
+
+                          else
+                            humanCount
+                                { locale | decimals = Exact 0 }
+                                numberOfServers
                         , context.localization.virtualComputer |> pluralizeCount numberOfServers
                         ]
                     )

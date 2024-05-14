@@ -123,26 +123,44 @@ securityGroupsFromServerSecurityGroups project serverSecurityGroups =
         |> List.filterMap (securityGroupLookup project)
 
 
-serversForSecurityGroup : Project -> OSTypes.SecurityGroupUuid -> List OSTypes.Server
+serversForSecurityGroup : Project -> OSTypes.SecurityGroupUuid -> Maybe (List OSTypes.Server)
 serversForSecurityGroup project securityGroupUuid =
-    project.servers
-        |> RDPP.withDefault []
-        |> List.filterMap
-            (\server ->
+    case project.servers.data of
+        RDPP.DoHave servers _ ->
+            let
+                -- It may take a moment for all the server security groups to load.
+                -- Wait until all the data is available before reporting the list.
+                ready =
+                    servers |> List.all (\server -> server.securityGroups.data /= RDPP.DontHave)
+            in
+            if ready then
                 let
-                    serverSecurityGroups =
-                        RDPP.withDefault [] server.securityGroups
+                    linked =
+                        servers
+                            |> List.filterMap
+                                (\server ->
+                                    let
+                                        serverSecurityGroups =
+                                            RDPP.withDefault [] server.securityGroups
 
-                    hasSecurityGroup sgs uuid =
-                        sgs
-                            |> List.any (\sg -> sg.uuid == uuid)
+                                        hasSecurityGroup sgs uuid =
+                                            sgs
+                                                |> List.any (\sg -> sg.uuid == uuid)
+                                    in
+                                    if hasSecurityGroup serverSecurityGroups securityGroupUuid then
+                                        Just server.osProps
+
+                                    else
+                                        Nothing
+                                )
                 in
-                if hasSecurityGroup serverSecurityGroups securityGroupUuid then
-                    Just server.osProps
+                Just linked
 
-                else
-                    Nothing
-            )
+            else
+                Nothing
+
+        RDPP.DontHave ->
+            Nothing
 
 
 serverLookup : Project -> OSTypes.ServerUuid -> Maybe Server
