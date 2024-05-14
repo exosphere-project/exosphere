@@ -4,6 +4,7 @@ import Dict
 import Element
 import Element.Font as Font
 import Helpers.ServerResourceUsage exposing (timeSeriesRecentDataPoints)
+import Helpers.String exposing (pluralizeCount)
 import LineChart
 import LineChart.Area as Area
 import LineChart.Axis as Axis
@@ -296,11 +297,7 @@ toCpuHeading context maybeServerResourceQtys haveGpuData =
                         [ "of"
                         , String.fromInt x
                         , "total"
-                        , if x == 1 then
-                            "core"
-
-                          else
-                            "cores"
+                        , "core" |> pluralizeCount x
                         ]
                 )
             |> Maybe.withDefault ""

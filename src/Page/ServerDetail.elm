@@ -241,11 +241,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                                     Just vgpuQty ->
                                         let
                                             desc =
-                                                if vgpuQty == 1 then
-                                                    "virtual GPU"
-
-                                                else
-                                                    "virtual GPUs"
+                                                "virtual GPU" |> Helpers.String.pluralizeCount vgpuQty
                                         in
                                         Element.text
                                             (String.fromInt vgpuQty ++ " " ++ desc)
