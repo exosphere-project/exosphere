@@ -52,6 +52,7 @@ module Helpers.GetterSetters exposing
     , serverLookup
     , serverPresentNotDeleting
     , serverSupportsFeature
+    , serversForSecurityGroup
     , shareLookup
     , sortedFlavors
     , transformRDPP
@@ -120,6 +121,28 @@ securityGroupsFromServerSecurityGroups project serverSecurityGroups =
     serverSecurityGroups
         |> List.map .uuid
         |> List.filterMap (securityGroupLookup project)
+
+
+serversForSecurityGroup : Project -> OSTypes.SecurityGroupUuid -> List OSTypes.Server
+serversForSecurityGroup project securityGroupUuid =
+    project.servers
+        |> RDPP.withDefault []
+        |> List.filterMap
+            (\server ->
+                let
+                    serverSecurityGroups =
+                        RDPP.withDefault [] server.securityGroups
+
+                    hasSecurityGroup sgs uuid =
+                        sgs
+                            |> List.any (\sg -> sg.uuid == uuid)
+                in
+                if hasSecurityGroup serverSecurityGroups securityGroupUuid then
+                    Just server.osProps
+
+                else
+                    Nothing
+            )
 
 
 serverLookup : Project -> OSTypes.ServerUuid -> Maybe Server

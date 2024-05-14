@@ -7,13 +7,14 @@ import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (humanCount)
 import Helpers.GetterSetters as GetterSetters
 import Helpers.ResourceList exposing (creationTimeFilterOptions, listItemColumnAttribs, onCreationTimeFilter)
-import Helpers.String
+import Helpers.String exposing (pluralizeCount)
 import OpenStack.Types as OSTypes
 import Route
 import Style.Helpers as SH
 import Style.Widgets.DataList as DataList
 import Style.Widgets.HumanTime exposing (relativeTimeElement)
 import Style.Widgets.Spacer exposing (spacer)
+import Style.Widgets.Tag exposing (tag)
 import Style.Widgets.Text as Text
 import Time
 import Types.Project exposing (Project)
@@ -144,12 +145,40 @@ securityGroupView context project currentTime securityGroupRecord =
             List.length securityGroupRecord.securityGroup.rules
 
         securityGroupRuleCount =
-            Element.el [ Element.alignRight ]
+            Element.el []
                 (Element.text
-                    (humanCount
-                        { locale | decimals = Exact 0 }
-                        numberOfRules
-                        ++ " rules"
+                    (String.join " "
+                        [ humanCount
+                            { locale | decimals = Exact 0 }
+                            numberOfRules
+                        , "rule" |> pluralizeCount numberOfRules
+                        ]
+                    )
+                )
+
+        numberOfServers =
+            GetterSetters.serversForSecurityGroup project securityGroupRecord.securityGroup.uuid
+                |> List.length
+
+        unused =
+            numberOfServers == 0
+
+        tags =
+            if unused then
+                tag context.palette "unused"
+
+            else
+                Element.none
+
+        serverCount =
+            Element.el []
+                (Element.text
+                    (String.join " "
+                        [ humanCount
+                            { locale | decimals = Exact 0 }
+                            numberOfServers
+                        , context.localization.virtualComputer |> pluralizeCount numberOfServers
+                        ]
                     )
                 )
 
@@ -167,17 +196,19 @@ securityGroupView context project currentTime securityGroupRecord =
         [ Element.row [ Element.spacing spacer.px12, Element.width Element.fill ]
             [ Element.column [ Element.spacing spacer.px12, Element.width Element.fill ]
                 [ securityGroupLink
-                , Element.row [ Element.spacing spacer.px8, Element.width Element.fill ]
+                , Element.row [ Element.spacing spacer.px8 ]
                     [ securityGroupRuleCount
                     , Element.text "·"
-                    , Element.paragraph [ Element.spacing spacer.px8 ]
+                    , Element.row [ Element.spacing spacer.px4 ]
                         [ Element.text "created "
                         , accented (relativeTimeElement currentTime securityGroupRecord.securityGroup.createdAt)
                         ]
+                    , Element.text "·"
+                    , serverCount
                     ]
                 ]
-            , Element.el [ Element.alignRight, Element.alignTop ]
-                actions
+            , Element.column [ Element.alignRight, Element.alignTop ]
+                [ tags, actions ]
             ]
         ]
 
