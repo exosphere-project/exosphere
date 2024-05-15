@@ -8,6 +8,7 @@ import FeatherIcons
 import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (humanCount)
 import Helpers.GetterSetters as GetterSetters
+import Helpers.Helpers exposing (serverCreatorName)
 import Helpers.String
 import Helpers.Time
 import List exposing (sortBy)
@@ -34,6 +35,7 @@ import Style.Widgets.ToggleTip
 import Time
 import Types.HelperTypes exposing (ProjectIdentifier)
 import Types.Project exposing (Project)
+import Types.Server exposing (Server)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
@@ -269,8 +271,8 @@ rulesTable context projectId { rules, securityGroupForUuid } =
                 }
 
 
-serversTable : View.Types.Context -> ProjectIdentifier -> { servers : Maybe (List OSTypes.Server) } -> Element.Element Msg
-serversTable context projectId { servers } =
+serversTable : View.Types.Context -> ProjectIdentifier -> { servers : Maybe (List Server), currentTime : Time.Posix } -> Element.Element Msg
+serversTable context projectId { servers, currentTime } =
     case servers of
         Nothing ->
             Element.text "Loading..."
@@ -290,22 +292,40 @@ serversTable context projectId { servers } =
                               , width = Element.shrink
                               , view =
                                     \item ->
-                                        Element.link []
+                                        Element.link [ Element.centerY ]
                                             { url =
                                                 Route.toUrl context.urlPathPrefix
                                                     (Route.ProjectRoute projectId <|
-                                                        Route.ServerDetail item.uuid
+                                                        Route.ServerDetail item.osProps.uuid
                                                     )
                                             , label =
                                                 Element.el
                                                     [ Font.color (SH.toElementColor context.palette.primary), Element.width (Element.px 220) ]
                                                     (VH.ellipsizedText <|
                                                         VH.extendedResourceName
-                                                            (Just item.name)
-                                                            item.uuid
+                                                            (Just item.osProps.name)
+                                                            item.osProps.uuid
                                                             context.localization.virtualComputer
                                                     )
                                             }
+                              }
+                            , { header = header "Created By"
+                              , width = Element.shrink
+                              , view =
+                                    \item ->
+                                        Text.text Text.Body [ Element.centerY ] (serverCreatorName item)
+                              }
+                            , { header = header "Created"
+                              , width = Element.shrink
+                              , view =
+                                    \item ->
+                                        Text.text Text.Body [ Element.centerY ] (DateFormat.Relative.relativeTime currentTime item.osProps.details.created)
+                              }
+                            , { header = header ""
+                              , width = Element.shrink
+                              , view =
+                                    \item ->
+                                        VH.serverStatusBadge context.palette item
                               }
                             ]
                         }
@@ -411,7 +431,12 @@ render context project ( currentTime, _ ) _ securityGroup =
             serversTable
                 context
                 (GetterSetters.projectIdentifier project)
-                { servers = GetterSetters.serversForSecurityGroup project securityGroup.uuid }
+                { servers =
+                    GetterSetters.serversForSecurityGroup project securityGroup.uuid
+                        -- Do a server lookup to display exosphere-enriched fields like status, creator.
+                        |> Maybe.map (\servers_ -> List.filterMap (\server -> GetterSetters.serverLookup project server.uuid) servers_)
+                , currentTime = currentTime
+                }
     in
     Element.column [ Element.spacing spacer.px24, Element.width Element.fill ]
         [ Element.row (Text.headingStyleAttrs context.palette)
