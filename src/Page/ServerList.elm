@@ -54,12 +54,12 @@ type Msg
     | NoOp
 
 
-init : Project -> Bool -> Model
-init project showHeading =
+init : View.Types.Context -> Project -> Bool -> Model
+init context project showHeading =
     Model showHeading
         (DataList.init <|
             DataList.getDefaultFilterOptions
-                (filters project.auth.user.name (Time.millisToPosix 0))
+                (filters context project project.auth.user.name (Time.millisToPosix 0))
         )
         False
 
@@ -162,7 +162,7 @@ view context project currentTime model =
                             serversList
                             [ deletionAction context project ]
                             (Just
-                                { filters = filters project.auth.user.name currentTime
+                                { filters = filters context project project.auth.user.name currentTime
                                 , dropdownMsgMapper =
                                     \dropdownId ->
                                         SharedMsg <| SharedMsg.TogglePopover dropdownId
@@ -200,6 +200,7 @@ type alias ServerRecord msg =
                 { interactionStatus : ITypes.InteractionStatus
                 , interactionDetails : ITypes.InteractionDetails msg
                 }
+        , securityGroupIds : List OSTypes.SecurityGroupUuid
         }
 
 
@@ -266,6 +267,7 @@ serverRecords context currentTime project servers =
             , creationTime = server.osProps.details.created
             , creator = creatorName server
             , interactions = interactions server
+            , securityGroupIds = server.securityGroups |> RDPP.withDefault [] |> List.map .uuid
             }
         )
         servers
@@ -561,7 +563,9 @@ deletionAction context project serverIds =
 
 
 filters :
-    String
+    View.Types.Context
+    -> Project
+    -> String
     -> Time.Posix
     ->
         List
@@ -569,14 +573,20 @@ filters :
                 { record
                     | creator : String
                     , creationTime : Time.Posix
+                    , securityGroupIds : List OSTypes.SecurityGroupUuid
                 }
             )
-filters currentUser currentTime =
+filters context project currentUser currentTime =
     let
         creatorFilterOptionValues servers =
             List.map .creator servers
                 |> Set.fromList
                 |> Set.toList
+
+        securityGroupFilterOptionValues =
+            project.securityGroups
+                |> RDPP.withDefault []
+                |> List.map (\sg -> ( sg.uuid, sg.name ))
     in
     [ { id = "creator"
       , label = "Creator"
@@ -611,5 +621,20 @@ filters currentUser currentTime =
       , onFilter =
             \optionValue server ->
                 onCreationTimeFilter optionValue server.creationTime currentTime
+      }
+    , { id = "securityGroup"
+      , label = context.localization.securityGroup |> Helpers.String.toTitleCase
+      , chipPrefix = "Member of "
+      , filterOptions =
+            \_ ->
+                securityGroupFilterOptionValues
+                    |> Dict.fromList
+      , filterTypeAndDefaultValue =
+            DataList.MultiselectOption <| Set.empty
+      , onFilter =
+            \optionValue server ->
+                server.securityGroupIds
+                    |> Set.fromList
+                    |> Set.member optionValue
       }
     ]

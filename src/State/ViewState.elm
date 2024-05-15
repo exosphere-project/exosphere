@@ -418,7 +418,7 @@ routeToViewStateModelCmd sharedModel route =
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestFlavors (GetterSetters.projectIdentifier project))
                             in
-                            ( projectViewProto <| ServerList <| Page.ServerList.init project True
+                            ( projectViewProto <| ServerList <| Page.ServerList.init newSharedModel.viewContext project True
                             , newSharedModel
                             , Cmd.batch
                                 [ cmd
