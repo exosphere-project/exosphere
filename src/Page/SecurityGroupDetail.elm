@@ -269,6 +269,48 @@ rulesTable context projectId { rules, securityGroupForUuid } =
                 }
 
 
+serversTable : View.Types.Context -> ProjectIdentifier -> { servers : Maybe (List OSTypes.Server) } -> Element.Element Msg
+serversTable context projectId { servers } =
+    case servers of
+        Nothing ->
+            Element.text "Loading..."
+
+        Just servers_ ->
+            case List.length servers_ of
+                0 ->
+                    Element.text "(none)"
+
+                _ ->
+                    Element.table
+                        [ Element.spacing spacer.px16
+                        ]
+                        { data = servers_
+                        , columns =
+                            [ { header = header "Name"
+                              , width = Element.shrink
+                              , view =
+                                    \item ->
+                                        Element.link []
+                                            { url =
+                                                Route.toUrl context.urlPathPrefix
+                                                    (Route.ProjectRoute projectId <|
+                                                        Route.ServerDetail item.uuid
+                                                    )
+                                            , label =
+                                                Element.el
+                                                    [ Font.color (SH.toElementColor context.palette.primary), Element.width (Element.px 220) ]
+                                                    (VH.ellipsizedText <|
+                                                        VH.extendedResourceName
+                                                            (Just item.name)
+                                                            item.uuid
+                                                            context.localization.virtualComputer
+                                                    )
+                                            }
+                              }
+                            ]
+                        }
+
+
 render : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> Model -> SecurityGroup -> Element.Element Msg
 render context project ( currentTime, _ ) _ securityGroup =
     let
@@ -364,6 +406,12 @@ render context project ( currentTime, _ ) _ securityGroup =
                 context
                 (GetterSetters.projectIdentifier project)
                 { rules = securityGroup.rules, securityGroupForUuid = GetterSetters.securityGroupLookup project }
+
+        servers =
+            serversTable
+                context
+                (GetterSetters.projectIdentifier project)
+                { servers = GetterSetters.serversForSecurityGroup project securityGroup.uuid }
     in
     Element.column [ Element.spacing spacer.px24, Element.width Element.fill ]
         [ Element.row (Text.headingStyleAttrs context.palette)
@@ -406,5 +454,17 @@ render context project ( currentTime, _ ) _ securityGroup =
                 |> Element.text
             ]
             [ rules
+            ]
+        , tile
+            [ FeatherIcons.server
+                |> FeatherIcons.toHtml []
+                |> Element.html
+                |> Element.el []
+            , context.localization.virtualComputer
+                |> Helpers.String.pluralize
+                |> Helpers.String.toTitleCase
+                |> Element.text
+            ]
+            [ servers
             ]
         ]
