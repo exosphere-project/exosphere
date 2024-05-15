@@ -8,7 +8,7 @@ import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons as Icons
 import Helpers.GetterSetters as GetterSetters
-import Helpers.Helpers as Helpers
+import Helpers.Helpers as Helpers exposing (serverCreatorName)
 import Helpers.Interaction as IHelpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.ResourceList exposing (creationTimeFilterOptions, listItemColumnAttribs, onCreationTimeFilter)
@@ -31,7 +31,7 @@ import Style.Widgets.Text as Text
 import Time
 import Types.Interaction as ITypes
 import Types.Project exposing (Project)
-import Types.Server exposing (Server, ServerOrigin(..), ServerUiStatus(..))
+import Types.Server exposing (Server, ServerUiStatus(..))
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
@@ -212,19 +212,6 @@ serverRecords :
     -> List (ServerRecord msg)
 serverRecords context currentTime project servers =
     let
-        creatorName server =
-            case server.exoProps.serverOrigin of
-                ServerFromExo exoOriginProps ->
-                    case exoOriginProps.exoCreatorUsername of
-                        Just creatorUsername ->
-                            creatorUsername
-
-                        Nothing ->
-                            "unknown user"
-
-                _ ->
-                    "unknown user"
-
         floatingIpAddress server =
             List.head (GetterSetters.getServerFloatingIps project server.osProps.uuid)
                 |> Maybe.map .address
@@ -265,7 +252,7 @@ serverRecords context currentTime project servers =
             , size = flavor server
             , floatingIpAddress = floatingIpAddress server
             , creationTime = server.osProps.details.created
-            , creator = creatorName server
+            , creator = serverCreatorName server
             , interactions = interactions server
             , securityGroupIds = server.securityGroups |> RDPP.withDefault [] |> List.map .uuid
             }
