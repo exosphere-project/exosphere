@@ -569,11 +569,6 @@ filters context project currentUser currentTime =
             List.map .creator servers
                 |> Set.fromList
                 |> Set.toList
-
-        securityGroupFilterOptionValues =
-            project.securityGroups
-                |> RDPP.withDefault []
-                |> List.map (\sg -> ( sg.uuid, sg.name ))
     in
     [ { id = "creator"
       , label = "Creator"
@@ -609,19 +604,31 @@ filters context project currentUser currentTime =
             \optionValue server ->
                 onCreationTimeFilter optionValue server.creationTime currentTime
       }
-    , { id = "securityGroup"
-      , label = context.localization.securityGroup |> Helpers.String.toTitleCase
-      , chipPrefix = "Member of "
-      , filterOptions =
-            \_ ->
-                securityGroupFilterOptionValues
-                    |> Dict.fromList
-      , filterTypeAndDefaultValue =
-            DataList.MultiselectOption <| Set.empty
-      , onFilter =
-            \optionValue server ->
-                server.securityGroupIds
-                    |> Set.fromList
-                    |> Set.member optionValue
-      }
     ]
+        ++ (if context.experimentalFeaturesEnabled then
+                let
+                    securityGroupFilterOptionValues =
+                        project.securityGroups
+                            |> RDPP.withDefault []
+                            |> List.map (\sg -> ( sg.uuid, sg.name ))
+                in
+                [ { id = "securityGroup"
+                  , label = context.localization.securityGroup |> Helpers.String.toTitleCase
+                  , chipPrefix = "Member of "
+                  , filterOptions =
+                        \_ ->
+                            securityGroupFilterOptionValues
+                                |> Dict.fromList
+                  , filterTypeAndDefaultValue =
+                        DataList.MultiselectOption <| Set.empty
+                  , onFilter =
+                        \optionValue server ->
+                            server.securityGroupIds
+                                |> Set.fromList
+                                |> Set.member optionValue
+                  }
+                ]
+
+            else
+                []
+           )
