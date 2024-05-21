@@ -2,11 +2,13 @@ module Page.Credentials exposing (Model, init, view)
 
 import Element
 import Element.Background
+import FeatherIcons as Icons
 import Helpers.Credentials as Credentials
 import Helpers.String
 import Helpers.Url
 import Style.Helpers as SH
 import Style.Widgets.CopyableText exposing (copyableText)
+import Style.Widgets.Icon exposing (featherIcon)
 import Style.Widgets.Link as Link
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
@@ -43,14 +45,17 @@ view context project _ =
         , Element.spacing spacer.px24
         ]
         [ Element.row [ Element.width Element.fill ]
-            [ Text.heading context.palette [] Element.none <|
-                String.join " "
+            [ Text.heading context.palette
+                []
+                (featherIcon [] Icons.terminal)
+                (String.join " "
                     [ "Download"
                     , context.localization.credential |> Helpers.String.pluralize |> Helpers.String.toTitleCase
                     , "for"
                     , context.localization.commandDrivenTextInterface
                     , "access"
                     ]
+                )
             ]
         , Element.paragraph [ Element.width Element.fill ]
             [ Element.text "Choose "
