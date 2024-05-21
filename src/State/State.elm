@@ -2659,16 +2659,21 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
 
                 oldDnsRecordSets : List OpenStack.DnsRecordSet.DnsRecordSet
                 oldDnsRecordSets =
-                    -- map2 is used so we don't accidentally delete a record without creating a replacement
-                    Maybe.map2
-                        (\hostname _ ->
-                            GetterSetters.getServerDnsRecordSets project server.osProps.uuid
-                                -- Only match when a record fits the "expected" name for the old server name
-                                |> List.filter (\{ name, zone_name } -> (hostname ++ "." ++ zone_name) == name)
-                        )
-                        oldHostname
-                        newHostname
-                        |> Maybe.withDefault []
+                    if oldHostname == newHostname then
+                        -- when the hostname would not change, don't recreate any records
+                        []
+
+                    else
+                        -- map2 is used so we don't accidentally delete a record without creating a replacement
+                        Maybe.map2
+                            (\hostname _ ->
+                                GetterSetters.getServerDnsRecordSets project server.osProps.uuid
+                                    -- Only match when a record fits the "expected" name for the old server name
+                                    |> List.filter (\{ name, zone_name } -> (hostname ++ "." ++ zone_name) == name)
+                            )
+                            oldHostname
+                            newHostname
+                            |> Maybe.withDefault []
 
                 newDnsRecordSetRequests : List Rest.Designate.DnsRecordSetRequest
                 newDnsRecordSetRequests =
