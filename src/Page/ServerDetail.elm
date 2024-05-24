@@ -578,7 +578,7 @@ serverNameEditView context project currentTime model server =
         saveOnPress =
             case ( invalidNameReasons, model.serverNamePendingConfirmation ) of
                 ( Nothing, Just validName ) ->
-                    if validName == VH.resourceName (Just server.osProps.name) server.osProps.uuid then
+                    if validName == server.osProps.name then
                         cancelOnPress
 
                     else
