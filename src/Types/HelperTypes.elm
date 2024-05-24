@@ -225,7 +225,7 @@ type alias UnscopedProviderRegion =
 
 type alias OpenIdConnectLoginConfig =
     { keystoneAuthUrl : String
-    , webssoKeystoneEndpoint : String
+    , webssoUrl : String
     , oidcLoginIcon : String
     , oidcLoginButtonLabel : String
     , oidcLoginButtonDescription : String

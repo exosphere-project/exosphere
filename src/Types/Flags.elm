@@ -134,7 +134,7 @@ openIdConnectLoginConfigDecoder : Decoder OpenIdConnectLoginConfig
 openIdConnectLoginConfigDecoder =
     succeed OpenIdConnectLoginConfig
         |> required "keystoneAuthUrl" string
-        |> required "webssoKeystoneEndpoint" string
+        |> required "webssoUrl" string
         |> required "oidcLoginIcon" string
         |> required "oidcLoginButtonLabel" string
         |> required "oidcLoginButtonDescription" string

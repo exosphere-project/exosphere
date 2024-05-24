@@ -73,7 +73,7 @@ view context _ model =
                             , onPress =
                                 let
                                     url =
-                                        model.keystoneAuthUrl ++ model.webssoKeystoneEndpoint
+                                        model.webssoUrl
                                 in
                                 Just <| SharedMsg.LinkClicked <| Browser.External url
                             }
