@@ -168,7 +168,7 @@ view context project currentTime _ =
                 Nothing
                 (imageTileContents context project)
             , renderTile
-                (Icon.featherIcon [] Icons.lock)
+                (Icon.featherIcon [] Icons.terminal)
                 (context.localization.credential |> Helpers.String.pluralize |> Helpers.String.toTitleCase)
                 Route.Credentials
                 Nothing
