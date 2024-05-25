@@ -25,7 +25,7 @@ declare namespace Exosphere {
 
   type OpenIdConnectLoginConfig = {
     keystoneAuthUrl: string;
-    webssoKeystoneEndpoint: string;
+    webssoUrl: string;
     oidcLoginIcon: string;
     oidcLoginButtonLabel: string;
     oidcLoginButtonDescription: string;

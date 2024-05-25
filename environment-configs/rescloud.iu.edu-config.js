@@ -19,8 +19,8 @@ var config = {
     "[Rescloud] Support Request From Exosphere for Rescloud",
   openIdConnectLoginConfig: {
     keystoneAuthUrl: "https://rci.uits.iu.edu:5000/identity/v3",
-    webssoKeystoneEndpoint:
-      "/auth/OS-FEDERATION/websso/openid?origin=https://rescloud.iu.edu/exosphere/oidc-redirector",
+    webssoUrl:
+      "https://rci.uits.iu.edu:5000/identity/v3/auth/OS-FEDERATION/websso/openid?origin=https://rescloud.iu.edu/exosphere/oidc-redirector",
     oidcLoginIcon: "assets/img/iu-logo.png",
     oidcLoginButtonLabel: "IU Login",
     oidcLoginButtonDescription: "Recommended login method for Rescloud",

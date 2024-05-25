@@ -83,7 +83,7 @@ view context sharedModel =
                     , onPress =
                         let
                             url =
-                                oidcLoginConfig.keystoneAuthUrl ++ oidcLoginConfig.webssoKeystoneEndpoint
+                                oidcLoginConfig.webssoUrl
                         in
                         Just <| SharedMsg <| SharedMsg.LinkClicked <| Browser.External url
                     }
