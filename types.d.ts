@@ -49,7 +49,7 @@ declare namespace Exosphere {
     nonFloatingIpAddress: "internal IP address" | string;
     floatingIpAddress: "floating IP address" | string;
     publiclyRoutableIpAddress: "public IP address" | string;
-    securityGroup: "security group" | string;
+    securityGroup: "firewall ruleset" | string;
     graphicalDesktopEnvironment: "graphical desktop" | string;
     hostname: "hostname" | string;
     credential: "credential" | string;

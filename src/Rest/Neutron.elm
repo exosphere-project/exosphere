@@ -14,6 +14,7 @@ module Rest.Neutron exposing
     , requestPorts
     , requestSecurityGroups
     , requestUnassignFloatingIp
+    , securityGroupsDecoder
     )
 
 import Helpers.GetterSetters as GetterSetters

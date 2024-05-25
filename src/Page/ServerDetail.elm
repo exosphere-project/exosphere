@@ -37,7 +37,7 @@ import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
 import Time
-import Types.HelperTypes exposing (FloatingIpOption(..), ServerResourceQtys, UserAppProxyHostname)
+import Types.HelperTypes exposing (FloatingIpOption(..), ProjectIdentifier, ServerResourceQtys, UserAppProxyHostname)
 import Types.Interaction as ITypes
 import Types.Project exposing (Project)
 import Types.Server exposing (ExoFeature(..), ExoSetupStatus(..), Server, ServerOrigin(..))
@@ -401,6 +401,18 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                 [ serverVolumes context project server
                 , Element.el [ Element.centerX ] attachButton
                 ]
+            , if context.experimentalFeaturesEnabled then
+                tile
+                    [ Icon.featherIcon [] Icons.shield
+                    , context.localization.securityGroup
+                        |> Helpers.String.pluralize
+                        |> Helpers.String.toTitleCase
+                        |> Element.text
+                    ]
+                    [ renderSecurityGroups context project server ]
+
+              else
+                Element.none
             , tile
                 [ Icon.history (SH.toElementColor context.palette.neutral.text.default) 20
                 , Element.text "Action History"
@@ -1173,6 +1185,83 @@ serverEventHistory context project server currentTime =
 
         _ ->
             Element.none
+
+
+securityGroupsTable :
+    View.Types.Context
+    -> ProjectIdentifier
+    -> List OSTypes.SecurityGroup
+    -> Element.Element Msg
+securityGroupsTable context projectId securityGroups =
+    case List.length securityGroups of
+        0 ->
+            Element.text "(none)"
+
+        _ ->
+            let
+                columns : List (Element.Column { name : String, description : Maybe String, uuid : String } Msg)
+                columns =
+                    [ { header = Text.strong "Name"
+                      , width = Element.shrink
+                      , view =
+                            \securityGroup ->
+                                Element.link []
+                                    { url =
+                                        Route.toUrl context.urlPathPrefix
+                                            (Route.ProjectRoute projectId <|
+                                                Route.SecurityGroupDetail securityGroup.uuid
+                                            )
+                                    , label =
+                                        Element.el
+                                            [ Font.color (SH.toElementColor context.palette.primary), Element.width (Element.px 180) ]
+                                            (VH.ellipsizedText <|
+                                                VH.extendedResourceName
+                                                    (Just securityGroup.name)
+                                                    securityGroup.uuid
+                                                    context.localization.securityGroup
+                                            )
+                                    }
+                      }
+                    , { header = Text.strong "Description"
+                      , width = Element.fill
+                      , view =
+                            \securityGroup ->
+                                let
+                                    description =
+                                        Maybe.withDefault "-" securityGroup.description
+                                in
+                                Element.el [ Element.clipY ]
+                                    (Text.text Text.Body [ Element.width (Element.px 0) ] <|
+                                        if String.isEmpty description then
+                                            "-"
+
+                                        else
+                                            description
+                                    )
+                      }
+                    ]
+            in
+            Element.table
+                [ Element.spacing spacer.px16
+                ]
+                { data = List.map (\s -> { name = s.name, description = s.description, uuid = s.uuid }) securityGroups
+                , columns = columns
+                }
+
+
+renderSecurityGroups : View.Types.Context -> Project -> Server -> Element.Element Msg
+renderSecurityGroups context project server =
+    let
+        renderTable serverSecurityGroups =
+            securityGroupsTable
+                context
+                (GetterSetters.projectIdentifier project)
+                (GetterSetters.securityGroupsFromServerSecurityGroups project serverSecurityGroups)
+    in
+    VH.renderRDPP context
+        server.securityGroups
+        (context.localization.securityGroup |> Helpers.String.pluralize)
+        renderTable
 
 
 renderServerActionButton :

@@ -28,6 +28,7 @@ type alias Server =
     { osProps : OSTypes.Server
     , exoProps : ExoServerProps
     , events : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.ServerEvent)
+    , securityGroups : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.ServerSecurityGroup)
     }
 
 

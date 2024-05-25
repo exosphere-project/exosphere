@@ -15,6 +15,7 @@ module Rest.Nova exposing
     , requestServer
     , requestServerEvents
     , requestServerResize
+    , requestServerSecurityGroups
     , requestServers
     , requestSetServerHostName
     , requestSetServerMetadata
@@ -133,6 +134,33 @@ requestServerEvents project serverUuid =
         (expectJsonWithErrorBody
             resultToMsg
             (Decode.at [ "instanceActions" ] <| Decode.list serverEventDecoder)
+        )
+
+
+requestServerSecurityGroups : Project -> OSTypes.ServerUuid -> Cmd SharedMsg
+requestServerSecurityGroups project serverUuid =
+    let
+        errorContext =
+            ErrorContext
+                ("get security groups for server with UUID \"" ++ serverUuid ++ "\"")
+                ErrorDebug
+                Nothing
+
+        resultToMsg result =
+            ProjectMsg (GetterSetters.projectIdentifier project) <|
+                ServerMsg serverUuid <|
+                    ReceiveServerSecurityGroups errorContext result
+    in
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Get
+        (Just "compute 2.27")
+        []
+        (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/os-security-groups")
+        Http.emptyBody
+        (expectJsonWithErrorBody
+            resultToMsg
+            (Decode.at [ "security_groups" ] <| Decode.list serverSecurityGroupDecoder)
         )
 
 
@@ -787,7 +815,7 @@ receiveServer_ project osServer =
                                 Nothing
                                 False
                     in
-                    Server osServer defaultExoProps RDPP.empty
+                    Server osServer defaultExoProps RDPP.empty RDPP.empty
 
                 Just exoServer ->
                     let
@@ -1125,6 +1153,13 @@ serverFaultDecoder =
         (Decode.field "code" Decode.int)
         (Decode.field "created" (Decode.string |> Decode.andThen makeIso8601StringToPosixDecoder))
         (Decode.field "message" Decode.string)
+
+
+serverSecurityGroupDecoder : Decode.Decoder OSTypes.ServerSecurityGroup
+serverSecurityGroupDecoder =
+    Decode.map2 OSTypes.ServerSecurityGroup
+        (Decode.field "id" Decode.string)
+        (Decode.field "name" Decode.string)
 
 
 serverEventDecoder : Decode.Decoder OSTypes.ServerEvent

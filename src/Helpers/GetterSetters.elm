@@ -35,6 +35,7 @@ module Helpers.GetterSetters exposing
     , projectSetSecurityGroupsLoading
     , projectSetServerEventsLoading
     , projectSetServerLoading
+    , projectSetServerSecurityGroupsLoading
     , projectSetServersLoading
     , projectSetShareAccessRulesLoading
     , projectSetShareExportLocationsLoading
@@ -45,6 +46,7 @@ module Helpers.GetterSetters exposing
     , projectUpdateServer
     , sanitizeMountpoint
     , securityGroupLookup
+    , securityGroupsFromServerSecurityGroups
     , serverCreatedByCurrentUser
     , serverExoServerVersion
     , serverLookup
@@ -111,6 +113,13 @@ securityGroupLookup : Project -> OSTypes.SecurityGroupUuid -> Maybe OSTypes.Secu
 securityGroupLookup project securityGroupUuid =
     RDPP.withDefault [] project.securityGroups
         |> List.Extra.find (\s -> s.uuid == securityGroupUuid)
+
+
+securityGroupsFromServerSecurityGroups : Project -> List OSTypes.ServerSecurityGroup -> List OSTypes.SecurityGroup
+securityGroupsFromServerSecurityGroups project serverSecurityGroups =
+    serverSecurityGroups
+        |> List.map .uuid
+        |> List.filterMap (securityGroupLookup project)
 
 
 serverLookup : Project -> OSTypes.ServerUuid -> Maybe Server
@@ -688,6 +697,21 @@ projectSetServerEventsLoading serverUuid project =
             let
                 newServer =
                     { server | events = RDPP.setLoading server.events }
+            in
+            projectUpdateServer project newServer
+
+
+projectSetServerSecurityGroupsLoading : OSTypes.ServerUuid -> Project -> Project
+projectSetServerSecurityGroupsLoading serverUuid project =
+    case serverLookup project serverUuid of
+        Nothing ->
+            -- We can't do anything lol
+            project
+
+        Just server ->
+            let
+                newServer =
+                    { server | securityGroups = RDPP.setLoading server.securityGroups }
             in
             projectUpdateServer project newServer
 

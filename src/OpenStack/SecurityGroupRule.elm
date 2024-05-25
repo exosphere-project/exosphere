@@ -13,6 +13,7 @@ module OpenStack.SecurityGroupRule exposing
     , portRangeToString
     , protocolToString
     , securityGroupRuleDecoder
+    , stringToSecurityGroupRuleProtocol
     )
 
 import Json.Decode as Decode
