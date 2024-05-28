@@ -20,8 +20,10 @@ import State.Auth
 import State.ViewState
 import Style.Theme
 import Style.Types as ST
+import Task
 import Time
 import Toasty
+import Types.Banner as BannerTypes
 import Types.Defaults as Defaults
 import Types.Error exposing (AppError)
 import Types.Flags exposing (ConfigurationFlags, Flags, flagsDecoder)
@@ -185,6 +187,7 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
             { logMessages = logMessages
             , unscopedProviders = []
             , scopedAuthTokensWaitingRegionSelection = []
+            , banners = BannerTypes.empty (Maybe.withDefault "/banners.json" flags.bannersUrl)
             , projects = []
             , toasties = Toasty.initialState
             , networkConnectivity = Nothing
@@ -271,6 +274,9 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
                     in
                     List.filter projectNeedsAppCredential hydratedModel.projects
 
+                requestBannersCmd =
+                    Task.perform (\_ -> Types.SharedMsg.RequestBanners) Time.now
+
                 otherCmds =
                     [ refreshAuthTokenCmds
                     , List.map
@@ -281,6 +287,7 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
                         projectsNeedingAppCredentials
                         |> Cmd.batch
                     , setFaviconCmd
+                    , requestBannersCmd
                     ]
                         |> Cmd.batch
 

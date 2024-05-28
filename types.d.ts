@@ -124,6 +124,15 @@ declare namespace Exosphere {
     clouds: Array<CloudConfig>;
   };
 
+  type Banner =
+    | string
+    | {
+        message: string;
+        level?: "default" | "info" | "success" | "warning" | "danger";
+        startsAt?: string;
+        endsAt?: string;
+      };
+
   type Configuration = {
     showDebugMsgs: boolean;
     cloudCorsProxyUrl: null | string;
@@ -145,5 +154,6 @@ declare namespace Exosphere {
     sentryConfig: null | SentryConfig;
     openIdConnectLoginConfig: null | OpenIdConnectLoginConfig;
     localization: null | Localization;
+    bannersUrl: null | string;
   };
 }

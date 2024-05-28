@@ -22,5 +22,6 @@ var config = {
   localization: null,
   instanceConfigMgtRepoUrl: null,
   instanceConfigMgtRepoCheckout: null,
+  bannersUrl: null,
   sentryConfig: null,
 };

@@ -14,6 +14,7 @@ import Style.Types as ST
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Time
 import Toasty
+import Types.Banner as BannerTypes
 import Types.Error exposing (ErrorContext, HttpErrorWithBody, Toast)
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes as HelperTypes
@@ -34,6 +35,8 @@ type SharedMsg
     | ReceiveUnscopedRegions OSTypes.KeystoneUrl ErrorContext (Result HttpErrorWithBody (List HelperTypes.UnscopedProviderRegion))
     | RequestProjectScopedToken OSTypes.KeystoneUrl (List HelperTypes.UnscopedProviderProject)
     | CreateProjectsFromRegionSelections OSTypes.KeystoneUrl OSTypes.ProjectUuid (List OSTypes.RegionId)
+    | RequestBanners
+    | ReceiveBanners BannerTypes.Banners
     | ProjectMsg HelperTypes.ProjectIdentifier ProjectSpecificMsgConstructor
     | OpenNewWindow String
     | LinkClicked Browser.UrlRequest

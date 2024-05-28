@@ -61,6 +61,7 @@ import Rest.Glance
 import Rest.Keystone
 import Rest.Neutron
 import Rest.Nova
+import Result.Extra
 import Route
 import Set
 import State.Auth
@@ -70,6 +71,7 @@ import Style.Widgets.NumericTextInput.NumericTextInput
 import Style.Widgets.Toast as Toast
 import Task
 import Time
+import Types.Banner as BannerTypes
 import Types.Error as Error exposing (AppError, ErrorContext, ErrorLevel(..))
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes as HelperTypes exposing (UnscopedProviderProject)
@@ -686,6 +688,24 @@ processSharedMsg sharedMsg outerModel =
 
         ToastMsg subMsg ->
             Toast.update ToastMsg subMsg outerModel.sharedModel
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
+        RequestBanners ->
+            ( sharedModel
+            , Http.get
+                { url = sharedModel.banners.url
+                , expect =
+                    Http.expectJson
+                        (Result.Extra.unpack (\_ -> NoOp) ReceiveBanners)
+                        BannerTypes.decodeBanners
+                }
+            )
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
+        ReceiveBanners banners ->
+            ( { sharedModel | banners = BannerTypes.withBanners sharedModel.banners banners }, Cmd.none )
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 

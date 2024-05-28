@@ -63,6 +63,7 @@ import Types.Project exposing (Project)
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg exposing (SharedMsg(..))
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
+import View.Banner as Banner
 import View.Breadcrumb
 import View.Helpers as VH
 import View.Nav
@@ -183,6 +184,7 @@ appView windowSize outerModel context =
 
                     Nothing ->
                         Element.none
+                , Banner.view context.palette outerModel.sharedModel.clientCurrentTime outerModel.sharedModel.banners
                 , Element.column contentContainerAttrs
                     [ content
                     , Element.html

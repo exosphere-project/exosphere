@@ -57,6 +57,7 @@ type alias ConfigurationFlags =
     , instanceConfigMgtRepoUrl : Maybe String
     , instanceConfigMgtRepoCheckout : Maybe String
     , sentryConfig : Maybe HelperTypes.SentryConfig
+    , bannersUrl : Maybe String
 
     -- Flags that Exosphere sets dynamically
     , localeGuessingString : String
@@ -95,6 +96,7 @@ flagsDecoder =
         |> required "instanceConfigMgtRepoUrl" (maybe string)
         |> required "instanceConfigMgtRepoCheckout" (maybe string)
         |> required "sentryConfig" (nullable sentryConfigDecoder)
+        |> required "bannersUrl" (maybe string)
         |> required "localeGuessingString" string
         |> required "width" int
         |> required "height" int
