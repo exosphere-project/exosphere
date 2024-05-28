@@ -584,11 +584,17 @@ serverNameEditView context project currentTime model server =
             , Element.width Element.fill
             ]
 
+        cancelOnPress =
+            Just <| GotServerNamePendingConfirmation Nothing
+
         saveOnPress =
             case ( invalidNameReasons, model.serverNamePendingConfirmation ) of
                 ( Nothing, Just validName ) ->
-                    Just <|
-                        GotSetServerName validName
+                    if validName == server.osProps.name then
+                        cancelOnPress
+
+                    else
+                        Just <| GotSetServerName validName
 
                 ( _, _ ) ->
                     Nothing
@@ -630,7 +636,7 @@ serverNameEditView context project currentTime model server =
             { text = "Cancel"
             , icon = Icon.sizedFeatherIcon 16 Icons.xCircle
             , onPress =
-                Just <| GotServerNamePendingConfirmation Nothing
+                cancelOnPress
             }
         , renderServerNameExists
         ]
