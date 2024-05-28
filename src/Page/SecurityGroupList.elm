@@ -5,7 +5,7 @@ import Element.Font as Font
 import FeatherIcons
 import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (humanCount)
-import Helpers.GetterSetters as GetterSetters
+import Helpers.GetterSetters as GetterSetters exposing (LoadingProgress(..))
 import Helpers.ResourceList exposing (creationTimeFilterOptions, listItemColumnAttribs, onCreationTimeFilter)
 import Helpers.String exposing (pluralizeCount)
 import OpenStack.Types as OSTypes
@@ -156,19 +156,19 @@ securityGroupView context project currentTime securityGroupRecord =
                     )
                 )
 
-        servers =
+        { servers, progress } =
             GetterSetters.serversForSecurityGroup project securityGroupRecord.securityGroup.uuid
 
         numberOfServers =
-            Maybe.withDefault [] servers
+            servers
                 |> List.length
 
         unused =
             numberOfServers == 0
 
         tags =
-            case ( servers, unused ) of
-                ( Just _, True ) ->
+            case ( progress, unused ) of
+                ( Done, True ) ->
                     tag context.palette "unused"
 
                 _ ->
@@ -178,7 +178,7 @@ securityGroupView context project currentTime securityGroupRecord =
             Element.el []
                 (Element.text
                     (String.join " "
-                        [ if servers == Nothing then
+                        [ if progress /= Done then
                             "loading"
 
                           else

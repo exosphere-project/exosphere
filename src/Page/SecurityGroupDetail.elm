@@ -7,7 +7,7 @@ import Element.Font as Font
 import FeatherIcons
 import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (humanCount)
-import Helpers.GetterSetters as GetterSetters
+import Helpers.GetterSetters as GetterSetters exposing (LoadingProgress(..))
 import Helpers.Helpers exposing (serverCreatorName)
 import Helpers.String
 import Helpers.Time
@@ -271,64 +271,77 @@ rulesTable context projectId { rules, securityGroupForUuid } =
                 }
 
 
-serversTable : View.Types.Context -> ProjectIdentifier -> { servers : Maybe (List Server), currentTime : Time.Posix } -> Element.Element Msg
-serversTable context projectId { servers, currentTime } =
-    case servers of
-        Nothing ->
+serversTable : View.Types.Context -> ProjectIdentifier -> { servers : List Server, progress : LoadingProgress, currentTime : Time.Posix } -> Element.Element Msg
+serversTable context projectId { servers, progress, currentTime } =
+    let
+        table =
+            Element.table
+                [ Element.spacing spacer.px16
+                ]
+                { data = servers
+                , columns =
+                    [ { header = header "Name"
+                      , width = Element.shrink
+                      , view =
+                            \item ->
+                                Element.link [ Element.centerY ]
+                                    { url =
+                                        Route.toUrl context.urlPathPrefix
+                                            (Route.ProjectRoute projectId <|
+                                                Route.ServerDetail item.osProps.uuid
+                                            )
+                                    , label =
+                                        Element.el
+                                            [ Font.color (SH.toElementColor context.palette.primary), Element.width (Element.px 220) ]
+                                            (VH.ellipsizedText <|
+                                                VH.extendedResourceName
+                                                    (Just item.osProps.name)
+                                                    item.osProps.uuid
+                                                    context.localization.virtualComputer
+                                            )
+                                    }
+                      }
+                    , { header = header "Created By"
+                      , width = Element.shrink
+                      , view =
+                            \item ->
+                                Text.text Text.Body [ Element.centerY ] (serverCreatorName item)
+                      }
+                    , { header = header "Created"
+                      , width = Element.shrink
+                      , view =
+                            \item ->
+                                Text.text Text.Body [ Element.centerY ] (DateFormat.Relative.relativeTime currentTime item.osProps.details.created)
+                      }
+                    , { header = header ""
+                      , width = Element.shrink
+                      , view =
+                            \item ->
+                                VH.serverStatusBadge context.palette item
+                      }
+                    ]
+                }
+    in
+    case ( progress, List.length servers ) of
+        ( NotSure, _ ) ->
             Element.text "Loading..."
 
-        Just servers_ ->
-            case List.length servers_ of
-                0 ->
-                    Element.text "(none)"
+        ( Loading, 0 ) ->
+            Element.text "Loading..."
 
-                _ ->
-                    Element.table
-                        [ Element.spacing spacer.px16
-                        ]
-                        { data = servers_
-                        , columns =
-                            [ { header = header "Name"
-                              , width = Element.shrink
-                              , view =
-                                    \item ->
-                                        Element.link [ Element.centerY ]
-                                            { url =
-                                                Route.toUrl context.urlPathPrefix
-                                                    (Route.ProjectRoute projectId <|
-                                                        Route.ServerDetail item.osProps.uuid
-                                                    )
-                                            , label =
-                                                Element.el
-                                                    [ Font.color (SH.toElementColor context.palette.primary), Element.width (Element.px 220) ]
-                                                    (VH.ellipsizedText <|
-                                                        VH.extendedResourceName
-                                                            (Just item.osProps.name)
-                                                            item.osProps.uuid
-                                                            context.localization.virtualComputer
-                                                    )
-                                            }
-                              }
-                            , { header = header "Created By"
-                              , width = Element.shrink
-                              , view =
-                                    \item ->
-                                        Text.text Text.Body [ Element.centerY ] (serverCreatorName item)
-                              }
-                            , { header = header "Created"
-                              , width = Element.shrink
-                              , view =
-                                    \item ->
-                                        Text.text Text.Body [ Element.centerY ] (DateFormat.Relative.relativeTime currentTime item.osProps.details.created)
-                              }
-                            , { header = header ""
-                              , width = Element.shrink
-                              , view =
-                                    \item ->
-                                        VH.serverStatusBadge context.palette item
-                              }
-                            ]
-                        }
+        ( Loading, _ ) ->
+            Element.column []
+                [ table
+                , Element.row [ Element.paddingXY 0 spacer.px16 ]
+                    [ Element.text "Loading..."
+                    ]
+                ]
+
+        ( Done, 0 ) ->
+            Element.text "(none)"
+
+        ( Done, _ ) ->
+            table
 
 
 render : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> Model -> SecurityGroup -> Element.Element Msg
@@ -427,14 +440,15 @@ render context project ( currentTime, _ ) _ securityGroup =
                 (GetterSetters.projectIdentifier project)
                 { rules = securityGroup.rules, securityGroupForUuid = GetterSetters.securityGroupLookup project }
 
+        serverLookup =
+            GetterSetters.serversForSecurityGroup project securityGroup.uuid
+
         servers =
             serversTable
                 context
                 (GetterSetters.projectIdentifier project)
-                { servers =
-                    GetterSetters.serversForSecurityGroup project securityGroup.uuid
-                        -- Do a server lookup to display exosphere-enriched fields like status, creator.
-                        |> Maybe.map (\servers_ -> List.filterMap (\server -> GetterSetters.serverLookup project server.uuid) servers_)
+                { servers = serverLookup.servers
+                , progress = serverLookup.progress
                 , currentTime = currentTime
                 }
     in
