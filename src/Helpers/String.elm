@@ -5,6 +5,7 @@ module Helpers.String exposing
     , indefiniteArticle
     , itemsListToString
     , pluralize
+    , pluralizeCount
     , toTitleCase
     )
 
@@ -78,6 +79,15 @@ pluralize word =
           else
             "s"
         ]
+
+
+pluralizeCount : Int -> String -> String
+pluralizeCount count word =
+    if count == 1 then
+        word
+
+    else
+        pluralize word
 
 
 capitalizeWord : String -> String

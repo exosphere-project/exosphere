@@ -8,7 +8,7 @@ import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons as Icons
 import Helpers.GetterSetters as GetterSetters
-import Helpers.Helpers as Helpers
+import Helpers.Helpers as Helpers exposing (serverCreatorName)
 import Helpers.Interaction as IHelpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.ResourceList exposing (creationTimeFilterOptions, listItemColumnAttribs, onCreationTimeFilter)
@@ -31,7 +31,7 @@ import Style.Widgets.Text as Text
 import Time
 import Types.Interaction as ITypes
 import Types.Project exposing (Project)
-import Types.Server exposing (Server, ServerOrigin(..), ServerUiStatus(..))
+import Types.Server exposing (Server, ServerUiStatus(..))
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
@@ -54,12 +54,12 @@ type Msg
     | NoOp
 
 
-init : Project -> Bool -> Model
-init project showHeading =
+init : View.Types.Context -> Project -> Bool -> Model
+init context project showHeading =
     Model showHeading
         (DataList.init <|
             DataList.getDefaultFilterOptions
-                (filters project.auth.user.name (Time.millisToPosix 0))
+                (filters context project project.auth.user.name (Time.millisToPosix 0))
         )
         False
 
@@ -162,7 +162,7 @@ view context project currentTime model =
                             serversList
                             [ deletionAction context project ]
                             (Just
-                                { filters = filters project.auth.user.name currentTime
+                                { filters = filters context project project.auth.user.name currentTime
                                 , dropdownMsgMapper =
                                     \dropdownId ->
                                         SharedMsg <| SharedMsg.TogglePopover dropdownId
@@ -200,6 +200,7 @@ type alias ServerRecord msg =
                 { interactionStatus : ITypes.InteractionStatus
                 , interactionDetails : ITypes.InteractionDetails msg
                 }
+        , securityGroupIds : List OSTypes.SecurityGroupUuid
         }
 
 
@@ -211,19 +212,6 @@ serverRecords :
     -> List (ServerRecord msg)
 serverRecords context currentTime project servers =
     let
-        creatorName server =
-            case server.exoProps.serverOrigin of
-                ServerFromExo exoOriginProps ->
-                    case exoOriginProps.exoCreatorUsername of
-                        Just creatorUsername ->
-                            creatorUsername
-
-                        Nothing ->
-                            "unknown user"
-
-                _ ->
-                    "unknown user"
-
         floatingIpAddress server =
             List.head (GetterSetters.getServerFloatingIps project server.osProps.uuid)
                 |> Maybe.map .address
@@ -264,8 +252,9 @@ serverRecords context currentTime project servers =
             , size = flavor server
             , floatingIpAddress = floatingIpAddress server
             , creationTime = server.osProps.details.created
-            , creator = creatorName server
+            , creator = serverCreatorName server
             , interactions = interactions server
+            , securityGroupIds = server.securityGroups |> RDPP.withDefault [] |> List.map .uuid
             }
         )
         servers
@@ -561,7 +550,9 @@ deletionAction context project serverIds =
 
 
 filters :
-    String
+    View.Types.Context
+    -> Project
+    -> String
     -> Time.Posix
     ->
         List
@@ -569,9 +560,10 @@ filters :
                 { record
                     | creator : String
                     , creationTime : Time.Posix
+                    , securityGroupIds : List OSTypes.SecurityGroupUuid
                 }
             )
-filters currentUser currentTime =
+filters context project currentUser currentTime =
     let
         creatorFilterOptionValues servers =
             List.map .creator servers
@@ -613,3 +605,30 @@ filters currentUser currentTime =
                 onCreationTimeFilter optionValue server.creationTime currentTime
       }
     ]
+        ++ (if context.experimentalFeaturesEnabled then
+                let
+                    securityGroupFilterOptionValues =
+                        project.securityGroups
+                            |> RDPP.withDefault []
+                            |> List.map (\sg -> ( sg.uuid, sg.name ))
+                in
+                [ { id = "securityGroup"
+                  , label = context.localization.securityGroup |> Helpers.String.toTitleCase
+                  , chipPrefix = "Member of "
+                  , filterOptions =
+                        \_ ->
+                            securityGroupFilterOptionValues
+                                |> Dict.fromList
+                  , filterTypeAndDefaultValue =
+                        DataList.MultiselectOption <| Set.empty
+                  , onFilter =
+                        \optionValue server ->
+                            server.securityGroupIds
+                                |> Set.fromList
+                                |> Set.member optionValue
+                  }
+                ]
+
+            else
+                []
+           )

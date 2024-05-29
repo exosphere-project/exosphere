@@ -12,6 +12,7 @@ module Helpers.Helpers exposing
     , pipelineCmd
     , renderUserDataTemplate
     , sanitizeHostname
+    , serverCreatorName
     , serverFromThisExoClient
     , serverLessThanThisOld
     , serverOrigin
@@ -649,6 +650,21 @@ serverOrigin serverDetails =
 
         Nothing ->
             ServerNotFromExo
+
+
+serverCreatorName : Server -> String
+serverCreatorName server =
+    case server.exoProps.serverOrigin of
+        ServerFromExo exoOriginProps ->
+            case exoOriginProps.exoCreatorUsername of
+                Just creatorUsername ->
+                    creatorUsername
+
+                Nothing ->
+                    "unknown user"
+
+        _ ->
+            "unknown user"
 
 
 encodeCustomWorkflowSource : CustomWorkflowSource -> List ( String, Json.Encode.Value )

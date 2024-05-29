@@ -8,7 +8,7 @@ import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons as Icons
 import Helpers.GetterSetters as GetterSetters
-import Helpers.Helpers as Helpers
+import Helpers.Helpers as Helpers exposing (serverCreatorName)
 import Helpers.Interaction as IHelpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
@@ -211,17 +211,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                 ]
 
         creatorName =
-            case server.exoProps.serverOrigin of
-                ServerFromExo exoOriginProps ->
-                    case exoOriginProps.exoCreatorUsername of
-                        Just creatorName_ ->
-                            creatorName_
-
-                        Nothing ->
-                            "unknown user"
-
-                _ ->
-                    "unknown user"
+            serverCreatorName server
 
         maybeFlavor =
             GetterSetters.flavorLookup project details.flavorId
@@ -241,11 +231,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                                     Just vgpuQty ->
                                         let
                                             desc =
-                                                if vgpuQty == 1 then
-                                                    "virtual GPU"
-
-                                                else
-                                                    "virtual GPUs"
+                                                "virtual GPU" |> Helpers.String.pluralizeCount vgpuQty
                                         in
                                         Element.text
                                             (String.fromInt vgpuQty ++ " " ++ desc)

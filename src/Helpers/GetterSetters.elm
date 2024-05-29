@@ -1,5 +1,6 @@
 module Helpers.GetterSetters exposing
-    ( cloudSpecificConfigLookup
+    ( LoadingProgress(..)
+    , cloudSpecificConfigLookup
     , flavorLookup
     , floatingIpLookup
     , getBootVolume
@@ -52,6 +53,7 @@ module Helpers.GetterSetters exposing
     , serverLookup
     , serverPresentNotDeleting
     , serverSupportsFeature
+    , serversForSecurityGroup
     , shareLookup
     , sortedFlavors
     , transformRDPP
@@ -120,6 +122,51 @@ securityGroupsFromServerSecurityGroups project serverSecurityGroups =
     serverSecurityGroups
         |> List.map .uuid
         |> List.filterMap (securityGroupLookup project)
+
+
+type LoadingProgress
+    = NotSure
+    | Loading
+    | Done
+
+
+serversForSecurityGroup : Project -> OSTypes.SecurityGroupUuid -> { servers : List Server, progress : LoadingProgress }
+serversForSecurityGroup project securityGroupUuid =
+    case project.servers.data of
+        RDPP.DoHave servers _ ->
+            let
+                -- It may take a moment for all the server security groups to load.
+                -- Wait until all the data is available before reporting the list.
+                progress =
+                    if servers |> List.all (\server -> server.securityGroups.data /= RDPP.DontHave) then
+                        Done
+
+                    else
+                        Loading
+
+                linked =
+                    servers
+                        |> List.filterMap
+                            (\server ->
+                                let
+                                    serverSecurityGroups =
+                                        RDPP.withDefault [] server.securityGroups
+
+                                    hasSecurityGroup sgs uuid =
+                                        sgs
+                                            |> List.any (\sg -> sg.uuid == uuid)
+                                in
+                                if hasSecurityGroup serverSecurityGroups securityGroupUuid then
+                                    Just server
+
+                                else
+                                    Nothing
+                            )
+            in
+            { servers = linked, progress = progress }
+
+        RDPP.DontHave ->
+            { servers = [], progress = NotSure }
 
 
 serverLookup : Project -> OSTypes.ServerUuid -> Maybe Server
