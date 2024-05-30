@@ -17,6 +17,7 @@ import Style.Helpers as SH
 import Style.Widgets.Card
 import Style.Widgets.Icon as Icon
 import Style.Widgets.Spacer exposing (spacer)
+import Style.Widgets.StatusBadge as StatusBadge
 import Style.Widgets.Text as Text
 import Time
 import Types.Project exposing (Project)
@@ -193,7 +194,7 @@ serverTileContents context project =
                     , Element.width Element.fill
                     , Element.htmlAttribute <| Html.Attributes.style "min-width" "0"
                     ]
-            , VH.serverStatusBadge context.palette server
+            , VH.serverStatusBadge context.palette StatusBadge.Normal server
             ]
     in
     tileContents

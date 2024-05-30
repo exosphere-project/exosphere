@@ -1,4 +1,4 @@
-module Style.Widgets.StatusBadge exposing (StatusBadgeState(..), statusBadge, toColors)
+module Style.Widgets.StatusBadge exposing (StatusBadgeSize(..), StatusBadgeState(..), statusBadge, statusBadgeWithSize, toColors)
 
 import Element
 import Element.Background as Background
@@ -17,21 +17,48 @@ type StatusBadgeState
     | Error
 
 
+type StatusBadgeSize
+    = Small
+    | Normal
+
+
 statusBadge : Style.Types.ExoPalette -> StatusBadgeState -> Element.Element msg -> Element.Element msg
 statusBadge palette state status =
+    statusBadgeWithSize palette Normal state status
+
+
+statusBadgeWithSize : Style.Types.ExoPalette -> StatusBadgeSize -> StatusBadgeState -> Element.Element msg -> Element.Element msg
+statusBadgeWithSize palette size state status =
     let
         stateColor =
             toColors palette state
+
+        textVariant =
+            case size of
+                Small ->
+                    Text.Small
+
+                Normal ->
+                    Text.Body
+
+        ( x, y ) =
+            case size of
+                Small ->
+                    ( spacer.px8, 5 )
+
+                Normal ->
+                    ( spacer.px12, 6 )
     in
     Element.el
-        [ Element.paddingXY spacer.px12 6
+        [ Element.paddingXY x y
         , Border.rounded 24
         , Border.width 1
         , Border.color <| SH.toElementColor stateColor.border
         , Background.color <| SH.toElementColor stateColor.background
         , Font.color <| SH.toElementColor stateColor.textOnColoredBG
-        , Text.fontSize Text.Body
+        , Text.fontSize textVariant
         , Font.medium
+        , Font.center
         ]
         status
 
