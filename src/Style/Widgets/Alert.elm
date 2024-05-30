@@ -18,9 +18,9 @@ notes =
     """
 ## Usage
 
-Alert widgets show notifications in a consistent way
+Alert widgets show notifications in a consistent way.
 
-They are often used to show issues during form validation or to notify of status changes
+They are often used to show issues during form validation or to notify of status changes.
 """
 
 

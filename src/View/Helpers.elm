@@ -73,6 +73,7 @@ import Route
 import Style.Helpers as SH
 import Style.Types as ST exposing (ExoPalette)
 import Style.Widgets.Button as Button
+import Style.Widgets.Code exposing (codeBlock, codeSpan)
 import Style.Widgets.CopyableText exposing (copyableTextAccessory)
 import Style.Widgets.Icon exposing (featherIcon)
 import Style.Widgets.Link as Link
@@ -878,19 +879,6 @@ renderMarkdown palette markdown =
 
 elmUiRenderer : ExoPalette -> Markdown.Renderer.Renderer (Element.Element msg)
 elmUiRenderer palette =
-    let
-        codeAttrs =
-            [ Text.fontFamily Text.Mono
-            , Border.rounded spacer.px4
-            , Border.color (SH.toElementColor palette.muted.border)
-            , Background.color (SH.toElementColor palette.muted.background)
-            , Font.color (SH.toElementColor palette.muted.textOnColoredBG)
-            ]
-
-        codeRenderer =
-            Text.text Text.Body
-                (Element.paddingXY spacer.px4 spacer.px4 :: codeAttrs)
-    in
     -- Heavily borrowed and modified from https://ellie-app.com/bQLgjtbgdkZa1
     { heading = heading palette
     , paragraph =
@@ -902,7 +890,7 @@ elmUiRenderer palette =
     , emphasis = \content -> Element.row [ Font.italic ] content
     , strikethrough = \content -> Element.row [ Font.strike ] content
     , codeSpan =
-        codeRenderer
+        codeSpan palette
     , link =
         \{ destination } body ->
             Element.newTabLink (Link.linkStyle palette)
@@ -970,9 +958,7 @@ elmUiRenderer palette =
                 )
     , codeBlock =
         \{ body } ->
-            Element.row
-                (codeAttrs ++ [ Element.paddingXY spacer.px8 spacer.px8, Element.width Element.fill ])
-                [ codeRenderer body ]
+            codeBlock palette body
     , html = Markdown.Html.oneOf []
     , table = Element.column []
     , tableHeader = Element.column []
