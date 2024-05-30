@@ -184,7 +184,6 @@ appView windowSize outerModel context =
 
                     Nothing ->
                         Element.none
-                , Banner.view context.palette outerModel.sharedModel.clientCurrentTime outerModel.sharedModel.banners
                 , Element.column contentContainerAttrs
                     [ content
                     , Element.html
@@ -209,6 +208,7 @@ appView windowSize outerModel context =
             , Element.htmlAttribute <| Html.Attributes.style "z-index" "1"
             ]
             (View.Nav.navBar outerModel context)
+        , Banner.view context.palette outerModel.sharedModel.clientCurrentTime outerModel.sharedModel.banners
         , Element.el
             [ Element.padding 0
             , Element.spacing 0

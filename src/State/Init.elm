@@ -14,13 +14,13 @@ import OpenStack.Types as OSTypes
 import Ports
 import Random
 import Rest.ApiModelHelpers as ApiModelHelpers
+import Rest.Banner exposing (requestBanners)
 import Rest.Keystone
 import Set
 import State.Auth
 import State.ViewState
 import Style.Theme
 import Style.Types as ST
-import Task
 import Time
 import Toasty
 import Types.Banner as BannerTypes
@@ -275,7 +275,7 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
                     List.filter projectNeedsAppCredential hydratedModel.projects
 
                 requestBannersCmd =
-                    Task.perform (\_ -> Types.SharedMsg.RequestBanners) Time.now
+                    requestBanners Types.SharedMsg.ReceiveBanners hydratedModel.banners
 
                 otherCmds =
                     [ refreshAuthTokenCmds
