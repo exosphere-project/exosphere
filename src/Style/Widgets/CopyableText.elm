@@ -1,6 +1,7 @@
 module Style.Widgets.CopyableText exposing (copyableScript, copyableText, copyableTextAccessory, notes)
 
 import Element exposing (Element)
+import Element.Background as Background
 import Element.Border as Border
 import Element.Input as Input
 import Html
@@ -56,21 +57,25 @@ copyableScript palette script =
             copyableTextAccessory palette script
     in
     Element.el
-        [ Element.inFront <|
+        ([ Element.inFront <|
             Element.el
                 [ Element.alignRight
                 , Element.moveLeft <| toFloat spacer.px4
                 , Element.moveDown <| toFloat spacer.px4
                 ]
                 copyableAccessory.accessory
-        , copyableAccessory.id
-        , Element.width Element.fill
-        , Border.solid
-        , Border.width 1
-        , Border.color <| SH.toElementColor palette.muted.border
-        , Element.padding spacer.px4
-        , Text.fontFamily Text.Mono
-        ]
+         , copyableAccessory.id
+         , Element.width Element.fill
+         , Border.solid
+         , Border.width 1
+         , Border.rounded 3
+         , Element.padding spacer.px8
+         , Text.fontFamily Text.Mono
+         , Background.color <| SH.toElementColor palette.neutral.background.frontLayer
+         , Border.color <| SH.toElementColor palette.neutral.border
+         ]
+            ++ Text.typographyAttrs Text.Small
+        )
     <|
         Element.html <|
             Html.pre
