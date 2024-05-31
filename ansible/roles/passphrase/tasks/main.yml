@@ -20,6 +20,11 @@
   command: 'curl --fail --silent --request POST {{ passphrase_post_url }} --data "{{ exouser_passphrase }}"'
   no_log: true
 
+- name: Install passlib
+  pip:
+    name: passlib
+    state: present
+
 - name: 'passphrase set for exouser'
   user:
     name: 'exouser'
