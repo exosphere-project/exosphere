@@ -3419,7 +3419,6 @@ createProject_ outerModel description authToken region endpoints =
         ( newNewSharedModel, newCmd ) =
             ( newSharedModel
             , [ Rest.Nova.requestServers
-              , Rest.Neutron.requestSecurityGroups
               , Rest.Keystone.requestAppCredential sharedModel.clientUuid sharedModel.clientCurrentTime
               ]
                 |> List.map (\x -> x newProject)
@@ -3435,6 +3434,8 @@ createProject_ outerModel description authToken region endpoints =
                     (ApiModelHelpers.requestPorts (GetterSetters.projectIdentifier newProject))
                 |> Helpers.pipelineCmd
                     (ApiModelHelpers.requestNetworks (GetterSetters.projectIdentifier newProject))
+                |> Helpers.pipelineCmd
+                    (ApiModelHelpers.requestSecurityGroups (GetterSetters.projectIdentifier newProject))
                 |> Helpers.pipelineCmd
                     (ApiModelHelpers.requestImages (GetterSetters.projectIdentifier newProject))
                 |> Helpers.pipelineCmd
