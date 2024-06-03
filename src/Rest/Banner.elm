@@ -1,20 +1,33 @@
-module Rest.Banner exposing (requestBanners)
+module Rest.Banner exposing (receiveBanners, requestBanners)
 
 import Http
-import Result.Extra
-import Types.Banner exposing (BannerModel, decodeBanners, withBanners)
-import Types.SharedMsg as SharedMsg exposing (SharedMsg)
+import Rest.Helpers exposing (expectJsonWithErrorBody)
+import Types.Banner exposing (BannerModel, Banners, decodeBanners)
+import Types.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
+import Types.SharedMsg exposing (SharedMsg)
 
 
-requestBanners : (BannerModel -> SharedMsg) -> BannerModel -> Cmd SharedMsg
+errorContext : ErrorContext
+errorContext =
+    ErrorContext
+        "receive banners"
+        ErrorDebug
+        (Just "Check the formatting of your banners.json")
+
+
+requestBanners : (ErrorContext -> Result HttpErrorWithBody Banners -> SharedMsg) -> BannerModel -> Cmd SharedMsg
 requestBanners toCmd bannerModel =
     Http.get
         { url = bannerModel.url
         , expect =
-            Http.expectJson
-                (Result.Extra.unpack
-                    (\_ -> SharedMsg.NoOp)
-                    (withBanners bannerModel >> toCmd)
-                )
+            expectJsonWithErrorBody
+                (toCmd errorContext)
                 decodeBanners
         }
+
+
+receiveBanners : BannerModel -> Banners -> ( BannerModel, Cmd SharedMsg )
+receiveBanners bannerModel result =
+    ( { bannerModel | banners = result }
+    , Cmd.none
+    )

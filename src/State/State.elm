@@ -56,7 +56,7 @@ import Page.VolumeList
 import Page.VolumeMountInstructions
 import Ports
 import Rest.ApiModelHelpers as ApiModelHelpers
-import Rest.Banner exposing (requestBanners)
+import Rest.Banner exposing (receiveBanners, requestBanners)
 import Rest.Designate
 import Rest.Glance
 import Rest.Keystone
@@ -691,14 +691,24 @@ processSharedMsg sharedMsg outerModel =
                 |> mapToOuterModel outerModel
 
         RequestBanners ->
-            ( sharedModel
-            , requestBanners ReceiveBanners outerModel.sharedModel.banners
-            )
+            ( sharedModel, requestBanners ReceiveBanners outerModel.sharedModel.banners )
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
-        ReceiveBanners banners ->
-            ( { sharedModel | banners = banners }, Cmd.none )
+        ReceiveBanners errorContext res ->
+            (case res of
+                Ok banners ->
+                    let
+                        ( newBanners, cmd ) =
+                            receiveBanners
+                                sharedModel.banners
+                                banners
+                    in
+                    ( { sharedModel | banners = newBanners }, cmd )
+
+                Err err ->
+                    State.Error.processSynchronousApiError sharedModel errorContext err
+            )
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
