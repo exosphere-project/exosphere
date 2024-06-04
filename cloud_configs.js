@@ -51,13 +51,13 @@ var cloud_configs = {
               restrictFlavorIds: null,
             },
             {
-              friendlyName: "20.04",
+              friendlyName: "20.04 (no GPU support)",
               isPrimary: false,
               imageFilters: {
                 name: "Featured-Ubuntu20",
                 visibility: "public",
               },
-              restrictFlavorIds: null,
+              restrictFlavorIds: ["1", "14", "15", "2", "3", "3001", "3002", "3003", "3004", "3005", "4", "5", "7", "8", "9"],
             },
           ],
         },
