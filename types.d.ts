@@ -124,14 +124,12 @@ declare namespace Exosphere {
     clouds: Array<CloudConfig>;
   };
 
-  type Banner =
-    | string
-    | {
-        message: string;
-        level?: "default" | "info" | "success" | "warning" | "danger";
-        startsAt?: string;
-        endsAt?: string;
-      };
+  type Banner = {
+    message: string;
+    level?: "default" | "info" | "success" | "warning" | "danger";
+    startsAt?: string;
+    endsAt?: string;
+  };
 
   type Configuration = {
     showDebugMsgs: boolean;
