@@ -11,7 +11,7 @@ errorContext : ErrorContext
 errorContext =
     ErrorContext
         "receive banners"
-        ErrorDebug
+        ErrorInfo
         (Just "Check the formatting of your banners.json")
 
 
