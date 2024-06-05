@@ -33,7 +33,7 @@ import Style.Widgets.MultiMeter exposing (multiMeter)
 import Style.Widgets.Popover.Popover exposing (popover, toggleIfTargetIsOutside)
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.Spacer exposing (spacer)
-import Style.Widgets.StatusBadge exposing (StatusBadgeState(..), statusBadge)
+import Style.Widgets.StatusBadge as StatusBadge exposing (StatusBadgeState(..), statusBadgeWithSize)
 import Style.Widgets.Tag exposing (tag)
 import Style.Widgets.Text as Text
 import Style.Widgets.Toast as Toast
@@ -543,7 +543,7 @@ If you want to show a resource's current state or provide feedback on a process,
                             ( status.name
                             , \m ->
                                 toHtml (palettize m) <|
-                                    statusBadge (palettize m) status.variant status.text
+                                    statusBadgeWithSize (palettize m) status.size status.variant status.text
                             , { note = """
 ## Usage
 
@@ -551,10 +551,11 @@ To display a read-only label which clearly shows the current status of a resourc
                         """ }
                             )
                         )
-                        [ { name = "good", variant = ReadyGood, text = Element.text "Ready" }
-                        , { name = "muted", variant = Muted, text = Element.text "Unknown" }
-                        , { name = "warning", variant = Style.Widgets.StatusBadge.Warning, text = Element.text "Building" }
-                        , { name = "error", variant = Error, text = Element.text "Error" }
+                        [ { name = "good", size = StatusBadge.Normal, variant = ReadyGood, text = Element.text "Ready" }
+                        , { name = "muted", size = StatusBadge.Normal, variant = Muted, text = Element.text "Unknown" }
+                        , { name = "warning", size = StatusBadge.Normal, variant = StatusBadge.Warning, text = Element.text "Building" }
+                        , { name = "error", size = StatusBadge.Normal, variant = Error, text = Element.text "Error" }
+                        , { name = "small", size = StatusBadge.Small, variant = ReadyGood, text = Element.text "Ready" }
                         ]
                     )
                 ]

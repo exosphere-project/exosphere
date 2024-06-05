@@ -34,6 +34,7 @@ import Style.Widgets.Link as Link
 import Style.Widgets.Popover.Popover exposing (popover, popoverStyleDefaults)
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.Spacer exposing (spacer)
+import Style.Widgets.StatusBadge as StatusBadge
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
 import Time
@@ -709,7 +710,7 @@ serverStatus context project server =
             server.osProps.details
 
         statusBadge =
-            VH.serverStatusBadge context.palette server
+            VH.serverStatusBadge context.palette StatusBadge.Normal server
 
         lockStatus : OSTypes.ServerLockStatus -> Element.Element Msg
         lockStatus lockStatus_ =

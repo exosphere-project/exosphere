@@ -30,6 +30,7 @@ module View.Helpers exposing
     , requiredLabel
     , resourceName
     , serverStatusBadge
+    , serverStatusBadgeFromStatus
     , shareStatusBadge
     , sortProjects
     , titleFromHostname
@@ -78,7 +79,7 @@ import Style.Widgets.Icon exposing (featherIcon)
 import Style.Widgets.Link as Link
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.Spacer exposing (spacer)
-import Style.Widgets.StatusBadge as StatusBadge
+import Style.Widgets.StatusBadge as StatusBadge exposing (StatusBadgeSize)
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip as ToggleTip
 import Types.Error exposing (ErrorLevel(..), toFriendlyErrorLevel)
@@ -419,15 +420,21 @@ loginPickerButton context =
         }
 
 
-serverStatusBadge : ExoPalette -> Server -> Element.Element msg
-serverStatusBadge palette server =
+serverStatusBadge : ExoPalette -> StatusBadgeSize -> Server -> Element.Element msg
+serverStatusBadge palette size server =
+    serverStatusBadgeFromStatus palette size (getServerUiStatus server)
+
+
+serverStatusBadgeFromStatus : ExoPalette -> StatusBadgeSize -> ServerUiStatus -> Element.Element msg
+serverStatusBadgeFromStatus palette size status =
     let
         contents =
-            server |> getServerUiStatus |> getServerUiStatusStr |> Element.text
+            status |> getServerUiStatusStr |> Element.text
     in
-    StatusBadge.statusBadge
+    StatusBadge.statusBadgeWithSize
         palette
-        (server |> getServerUiStatus |> getServerUiStatusBadgeState)
+        size
+        (status |> getServerUiStatusBadgeState)
         contents
 
 

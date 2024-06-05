@@ -30,6 +30,7 @@ import Style.Widgets.Card
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.Spacer exposing (spacer)
+import Style.Widgets.StatusBadge as StatusBadge
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
 import Time
@@ -317,7 +318,7 @@ serversTable context projectId { servers, progress, currentTime } =
                       , width = Element.shrink
                       , view =
                             \item ->
-                                VH.serverStatusBadge context.palette item
+                                VH.serverStatusBadge context.palette StatusBadge.Small item
                       }
                     ]
                 }

@@ -2,8 +2,6 @@ module Page.ServerList exposing (Model, Msg, init, update, view)
 
 import Dict
 import Element
-import Element.Background as Background
-import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons as Icons
@@ -13,7 +11,6 @@ import Helpers.Interaction as IHelpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.ResourceList exposing (creationTimeFilterOptions, listItemColumnAttribs, onCreationTimeFilter)
 import Helpers.String
-import Html.Attributes as HtmlA
 import OpenStack.Types as OSTypes
 import Page.QuotaUsage
 import Route
@@ -31,7 +28,7 @@ import Style.Widgets.Text as Text
 import Time
 import Types.Interaction as ITypes
 import Types.Project exposing (Project)
-import Types.Server exposing (Server, ServerUiStatus(..))
+import Types.Server exposing (Server, ServerUiStatus)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
@@ -282,27 +279,6 @@ serverView context currentTime project retainFloatingIpsWhenDeleting serverRecor
                         (Element.text serverRecord.name)
                 }
 
-        statusColor =
-            serverRecord.status
-                |> VH.getServerUiStatusBadgeState
-                |> StatusBadge.toColors context.palette
-                |> .default
-                |> SH.toElementColor
-
-        statusText =
-            VH.getServerUiStatusStr serverRecord.status
-
-        statusTextToDisplay =
-            case serverRecord.status of
-                ServerUiStatusDeleting ->
-                    -- because server appears for a while in the DataList
-                    -- after delete action is taken
-                    Element.el [ Font.italic ] <|
-                        Element.text (statusText ++ " ...")
-
-                _ ->
-                    Element.none
-
         interactionPopover closePopover =
             Element.column []
                 (List.map
@@ -460,15 +436,7 @@ serverView context currentTime project retainFloatingIpsWhenDeleting serverRecor
         (listItemColumnAttribs context.palette)
         [ Element.row [ Element.spacing spacer.px12, Element.width Element.fill ]
             [ serverLink
-            , Element.el
-                [ Element.width (Element.px 12)
-                , Element.height (Element.px 12)
-                , Border.rounded 6
-                , Background.color statusColor
-                , Element.htmlAttribute <| HtmlA.title statusText
-                ]
-                Element.none
-            , statusTextToDisplay
+            , VH.serverStatusBadgeFromStatus context.palette StatusBadge.Small serverRecord.status
             , Element.el [ Element.alignRight ] interactionButton
             , Element.el [ Element.alignRight ] deleteServerBtnWithPopconfirm
             ]
