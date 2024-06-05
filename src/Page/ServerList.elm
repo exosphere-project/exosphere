@@ -529,12 +529,19 @@ filters :
                     | creator : String
                     , creationTime : Time.Posix
                     , securityGroupIds : List OSTypes.SecurityGroupUuid
+                    , status : ServerUiStatus
                 }
             )
 filters context project currentUser currentTime =
     let
         creatorFilterOptionValues servers =
             List.map .creator servers
+                |> Set.fromList
+                |> Set.toList
+
+        statusFilterOptionValues servers =
+            List.map .status servers
+                |> List.map VH.getServerUiStatusStr
                 |> Set.fromList
                 |> Set.toList
     in
@@ -571,6 +578,20 @@ filters context project currentUser currentTime =
       , onFilter =
             \optionValue server ->
                 onCreationTimeFilter optionValue server.creationTime currentTime
+      }
+    , { id = "status"
+      , label = "Status of"
+      , chipPrefix = "Status of "
+      , filterOptions =
+            \servers ->
+                statusFilterOptionValues servers
+                    |> List.map (\s -> ( s, s ))
+                    |> Dict.fromList
+      , filterTypeAndDefaultValue =
+            DataList.MultiselectOption <| Set.empty
+      , onFilter =
+            \optionValue server ->
+                (server.status |> VH.getServerUiStatusStr) == optionValue
       }
     ]
         ++ (if context.experimentalFeaturesEnabled then
