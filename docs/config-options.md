@@ -187,10 +187,10 @@ localization: {
 
 Banners are deployed through an optional JSON file, allowing deployers to show and update banners in the Exosphere interface. This JSON file will be polled by the Exosphere client.
 
-In your `config.js`, you can change the URL to this file to point to a custom endpoint (any URL which returns a valid `Banners` JSON response)
+In your `config.js`, you can change `bannersUrl` to use a custom endpoint (any URL which returns a valid `Banners` JSON response). If you leave this set to null, it will default to `banners.json`.
 
 ```
-"bannersUrl": "/banners.json"
+"bannersUrl": "/banners.json",
 ```
 
 Banners may be configured with both start and end times to display banners during a certain time period, as well as a `level` to adjust the color and icon shown along with a banner. 
@@ -199,12 +199,12 @@ Banners may be configured with both start and end times to display banners durin
 
 Banner messages are parsed as markdown, allowing rich links and formatting in your notifications.
 
-| *Option*                      | *Possible Values*       | *Description*                                                          |
-|-------------------------------|-------------------------|------------------------------------------------------------------------|
-| message                       | string (markdown)       | The message to display to the user, parsed as markdown                 |
-| level                         | string (banner)         | One of "default", "info", "success", "warning", or "danger"            |
-| startsAt                      | string (date and time)  | A date and time, such as "2024-05-28T13:00:00−05:00", formatted using [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) |
-| endsAt                        | string (date and time)  | A date and time, such as "2024-05-28T15:00:00−05:00", formatted using [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) |
+| *Option*            | *Possible Values*       | *Description*                                                                                                           |
+|---------------------|-------------------------|-------------------------------------------------------------------------------------------------------------------------|
+| message             | string (markdown)       | The message to display to the user, parsed as markdown                                                                  |
+| level (optional)    | string (banner)         | One of "default", "info", "success", "warning", or "danger"                                                             |
+| startsAt (optional) | string (date and time)  | A date and time, such as "2024-05-28T13:00:00−05:00", formatted using [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) |
+| endsAt (optional)   | string (date and time)  | A date and time, such as "2024-05-28T15:00:00−05:00", formatted using [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) |
 
 The example shown here would show a first banner for a pre-maintenance warning, a second banner during a maintenance period, and a third banner when maintenance is complete.
 
