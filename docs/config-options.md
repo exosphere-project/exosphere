@@ -21,6 +21,7 @@ These options are primarily intended for cloud operators who wish to offer a cus
 | localization                  | null, JSON object       | Pass custom localization strings for the UI, see example below         |
 | instanceConfigMgtRepoUrl      | null, string            | Set a custom repository to use for instance setup code                 |
 | instanceConfigMgtRepoCheckout | null, string            | Check out specific branch/tag/commit of instance setup code            |
+| bannersUrl                    | null, string            | Customizable URL for loading banners, see example below                |
 | sentryConfig                  | null, JSON object       | Pass Sentry DSN for error logging, see example below                   |
 
 ## Example cloud configuration
@@ -180,6 +181,53 @@ localization: {
     hostname: "hostname",
     credentials: "credentials"
 }
+```
+
+## Example Banners Configuration
+
+Banners are deployed through an optional JSON file, allowing deployers to show and update banners in the Exosphere interface. This JSON file will be polled by the Exosphere client.
+
+In your `config.js`, you can change `bannersUrl` to use a custom endpoint (any URL which returns a valid `Banners` JSON response). If you leave this set to null, it will default to `banners.json`.
+
+```
+"bannersUrl": "/banners.json",
+```
+
+Banners may be configured with both start and end times to display banners during a certain time period, as well as a `level` to adjust the color and icon shown along with a banner. 
+
+![Banners Example (light)](assets/banners-light.png) ![Banners Example (dark)](assets/banners-dark.png)
+
+Banner messages are parsed as markdown, allowing rich links and formatting in your notifications.
+
+| *Option*            | *Possible Values*       | *Description*                                                                                                           |
+|---------------------|-------------------------|-------------------------------------------------------------------------------------------------------------------------|
+| message             | string (markdown)       | The message to display to the user, parsed as markdown                                                                  |
+| level (optional)    | string (banner)         | One of "default", "info", "success", "warning", or "danger"                                                             |
+| startsAt (optional) | string (date and time)  | A date and time, such as "2024-05-28T13:00:00−05:00", formatted using [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) |
+| endsAt (optional)   | string (date and time)  | A date and time, such as "2024-05-28T15:00:00−05:00", formatted using [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) |
+
+The example shown here would show a first banner for a pre-maintenance warning, a second banner during a maintenance period, and a third banner when maintenance is complete.
+
+```json
+[
+  {
+    "message": "Maintenance period begins on 5/28/2024, at 1:00pm Eastern. Some functionality may be degraded", 
+    "level": "info", 
+    "endsAt": "2024-05-28T13:00:00-05:00" 
+  },
+  {
+    "message": "This Cloud is under Maintenance until 5/28/2024, 3:00pm Eastern. Some functionality may be degraded", 
+    "level": "warning",
+    "startsAt": "2024-05-28T13:00:00-05:00", 
+    "endsAt": "2024-05-28T15:00:00-05:00" 
+  },
+  {
+    "message": "Maintenance has been completed. Please notify support of any found issues", 
+    "level": "success",
+    "startsAt": "2024-05-28T15:00:00-05:00", 
+    "endsAt": "2024-05-30T00:00:00-05:00" 
+  },
+]
 ```
 
 ## Example Sentry Configuration

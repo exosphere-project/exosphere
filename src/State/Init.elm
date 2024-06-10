@@ -14,6 +14,7 @@ import OpenStack.Types as OSTypes
 import Ports
 import Random
 import Rest.ApiModelHelpers as ApiModelHelpers
+import Rest.Banner exposing (requestBanners)
 import Rest.Keystone
 import Set
 import State.Auth
@@ -22,6 +23,7 @@ import Style.Theme
 import Style.Types as ST
 import Time
 import Toasty
+import Types.Banner as BannerTypes
 import Types.Defaults as Defaults
 import Types.Error exposing (AppError)
 import Types.Flags exposing (ConfigurationFlags, Flags, flagsDecoder)
@@ -185,6 +187,7 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
             { logMessages = logMessages
             , unscopedProviders = []
             , scopedAuthTokensWaitingRegionSelection = []
+            , banners = BannerTypes.empty (Maybe.withDefault "/banners.json" flags.bannersUrl)
             , projects = []
             , toasties = Toasty.initialState
             , networkConnectivity = Nothing
@@ -271,6 +274,9 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
                     in
                     List.filter projectNeedsAppCredential hydratedModel.projects
 
+                requestBannersCmd =
+                    requestBanners Types.SharedMsg.ReceiveBanners hydratedModel.banners
+
                 otherCmds =
                     [ refreshAuthTokenCmds
                     , List.map
@@ -281,6 +287,7 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
                         projectsNeedingAppCredentials
                         |> Cmd.batch
                     , setFaviconCmd
+                    , requestBannersCmd
                     ]
                         |> Cmd.batch
 

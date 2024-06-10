@@ -50,6 +50,7 @@ var config = {
   },
   instanceConfigMgtRepoUrl: null,
   instanceConfigMgtRepoCheckout: null,
+  bannersUrl: null,
   sentryConfig: null,
   palette: {
     light: {

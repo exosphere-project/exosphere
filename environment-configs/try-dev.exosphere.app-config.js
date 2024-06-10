@@ -28,6 +28,7 @@ var config = {
   localization: null,
   instanceConfigMgtRepoUrl: null,
   instanceConfigMgtRepoCheckout: "dev",
+  bannersUrl: null,
   sentryConfig: {
     dsnPublicKey: "2c1487a758db4414b30ea690ab46b338",
     dsnHost: "o1143942.ingest.sentry.io",
