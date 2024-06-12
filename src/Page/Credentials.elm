@@ -1,13 +1,11 @@
 module Page.Credentials exposing (Model, init, view)
 
 import Element
-import Element.Background
 import FeatherIcons as Icons
 import Helpers.Credentials as Credentials
 import Helpers.String
 import Helpers.Url
-import Style.Helpers as SH
-import Style.Widgets.CopyableText exposing (copyableText)
+import Style.Widgets.Code exposing (codeSpan, copyableCodeSpan)
 import Style.Widgets.Icon exposing (featherIcon)
 import Style.Widgets.Link as Link
 import Style.Widgets.Spacer exposing (spacer)
@@ -31,9 +29,8 @@ view context project _ =
         openStackClient =
             Link.externalLink context.palette "https://docs.openstack.org/python-openstackclient/latest" "OpenStackClient"
 
-        highlightedMonoText =
-            Text.mono
-                >> Element.el [ Element.Background.color <| SH.toElementColor <| context.palette.neutral.background.frontLayer ]
+        styledCodeSpan =
+            codeSpan context.palette
 
         fileNames =
             { sh = Credentials.projectCloudName project ++ "-openrc.sh"
@@ -86,17 +83,14 @@ view context project _ =
             , Element.paragraph [ Element.moveRight 24, Element.width Element.fill ]
                 [ openStackClient
                 , Element.text " will look for a clouds.yaml in the current working directory, followed by "
-                , highlightedMonoText "~/.config/openstack"
+                , styledCodeSpan "~/.config/openstack"
                 , Element.text " or "
-                , highlightedMonoText "%LocalAppData%\\OpenStack\\openstack"
+                , styledCodeSpan "%LocalAppData%\\OpenStack\\openstack"
                 , Element.text " on Windows."
                 ]
             , Element.paragraph [ Element.moveRight 24, Element.width Element.fill ]
                 [ Element.text "Place your clouds.yaml in one of these locations, and run "
-                , copyableText context.palette
-                    [ Text.fontFamily Text.Mono
-                    , Element.Background.color <| SH.toElementColor <| context.palette.neutral.background.frontLayer
-                    ]
+                , copyableCodeSpan context.palette
                     ("openstack --os-cloud=" ++ Credentials.projectCloudName project)
                 , Element.text " to get started."
                 ]
@@ -118,9 +112,9 @@ view context project _ =
                 ]
             , Element.paragraph [ Element.moveRight 24, Element.width Element.fill ]
                 [ Element.text ("In your " ++ context.localization.commandDrivenTextInterface ++ ", run ")
-                , highlightedMonoText ("source " ++ fileNames.sh)
+                , styledCodeSpan ("source " ++ fileNames.sh)
                 , Element.text ", then any following "
-                , highlightedMonoText "openstack"
+                , styledCodeSpan "openstack"
                 , Element.text (" commands in the same " ++ context.localization.commandDrivenTextInterface ++ " window will be authenticated")
                 ]
             ]
@@ -136,9 +130,9 @@ view context project _ =
                 ]
             , Element.paragraph [ Element.moveRight 24, Element.width Element.fill ]
                 [ Element.text "In a powershell window, run "
-                , highlightedMonoText (".\\" ++ fileNames.ps1)
+                , styledCodeSpan (".\\" ++ fileNames.ps1)
                 , Element.text ", then any following "
-                , highlightedMonoText "openstack"
+                , styledCodeSpan "openstack"
                 , Element.text (" commands in the same " ++ context.localization.commandDrivenTextInterface ++ " window will be authenticated")
                 ]
             ]
