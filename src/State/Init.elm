@@ -36,6 +36,7 @@ import Types.SharedMsg exposing (SharedMsg)
 import Types.View exposing (NonProjectViewConstructor(..), ViewState(..))
 import UUID
 import Url
+import Url.Builder as UB
 import View.Helpers exposing (toExoPalette)
 
 
@@ -190,7 +191,11 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
             , banners =
                 let
                     defaultUrl =
-                        Maybe.withDefault "" flags.urlPathPrefix ++ "/banners.json"
+                        UB.absolute
+                            [ Maybe.withDefault "" flags.urlPathPrefix
+                            , "banners.json"
+                            ]
+                            []
 
                     bannersUrl =
                         Maybe.withDefault defaultUrl flags.bannersUrl
