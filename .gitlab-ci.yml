@@ -230,7 +230,7 @@ deploy_prod:
     - 'sed -i -e "s/\"instanceConfigMgtRepoCheckout\":.*/\"instanceConfigMgtRepoCheckout\": \"${CI_COMMIT_SHA}\",/g" public/config.js'
     - 'sed -i -e "s/\"releaseVersion\":.*/\"releaseVersion\":\"${CI_COMMIT_SHA}\",/g" public/config.js'
     - 'sed -i -e ''s/<base href="\/" \/>/<base href="\/exosphere\/" \/>/g'' public/index.html'
-    - 'rsync -av --delete public exouser@dogfood.exosphere.app:'
+    - 'rsync -av --delete --filter=''protect public/banners.json'' public exouser@dogfood.exosphere.app:'
   environment:
     name: prod
     url: https://try.exosphere.app/exosphere
@@ -260,7 +260,7 @@ deploy_jetstream2:
     - 'sed -i -e "s/\"instanceConfigMgtRepoCheckout\":.*/\"instanceConfigMgtRepoCheckout\": \"${CI_COMMIT_SHA}\",/g" public/config.js'
     - 'sed -i -e "s/\"releaseVersion\":.*/\"releaseVersion\":\"${CI_COMMIT_SHA}\",/g" public/config.js'
     - 'sed -i -e ''s/<base href="\/" \/>/<base href="\/exosphere\/" \/>/g'' public/index.html'
-    - 'rsync -av --delete public exouser@dogfood.exosphere.app:jetstream2-deploy/'
+    - 'rsync -av --delete --filter=''protect public/banners.json'' public exouser@dogfood.exosphere.app:jetstream2-deploy/'
   environment:
     name: jetstream2
     url: https://jetstream2.exosphere.app/exosphere
@@ -290,7 +290,7 @@ deploy_rescloud:
     - 'sed -i -e "s/\"instanceConfigMgtRepoCheckout\":.*/\"instanceConfigMgtRepoCheckout\": \"${CI_COMMIT_SHA}\",/g" public/config.js'
     - 'sed -i -e "s/\"releaseVersion\":.*/\"releaseVersion\":\"${CI_COMMIT_SHA}\",/g" public/config.js'
     - 'sed -i -e ''s/<base href="\/" \/>/<base href="\/exosphere\/" \/>/g'' public/index.html'
-    - 'rsync -av --delete public exouser@dogfood.exosphere.app:rescloud-deploy/'
+    - 'rsync -av --delete --filter=''protect public/banners.json'' public exouser@dogfood.exosphere.app:rescloud-deploy/'
   environment:
     name: rescloud
     url: https://rescloud.iu.edu/exosphere
@@ -320,7 +320,7 @@ deploy_dev:
     - 'sed -i -e "s/\"instanceConfigMgtRepoCheckout\":.*/\"instanceConfigMgtRepoCheckout\": \"${CI_COMMIT_SHA}\",/g" public/config.js'
     - 'sed -i -e "s/\"releaseVersion\":.*/\"releaseVersion\":\"${CI_COMMIT_SHA}\",/g" public/config.js'
     - 'sed -i -e ''s/<base href="\/" \/>/<base href="\/exosphere\/" \/>/g'' public/index.html'
-    - 'rsync -av --delete public exouser@dogfood.exosphere.app:dev-deploy/'
+    - 'rsync -av --delete --filter=''protect public/banners.json'' public exouser@dogfood.exosphere.app:dev-deploy/'
   environment:
     name: dev
     url: https://try-dev.exosphere.app/exosphere
