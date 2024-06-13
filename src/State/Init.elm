@@ -188,9 +188,14 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
             , unscopedProviders = []
             , scopedAuthTokensWaitingRegionSelection = []
             , banners =
-                flags.bannersUrl
-                    |> Maybe.withDefault ({ baseUrl | path = baseUrl.path ++ "/banners.json" } |> Url.toString)
-                    |> BannerTypes.empty
+                let
+                    defaultUrl =
+                        Maybe.withDefault "" flags.urlPathPrefix ++ "/banners.json"
+
+                    bannersUrl =
+                        Maybe.withDefault defaultUrl flags.bannersUrl
+                in
+                BannerTypes.empty bannersUrl
             , projects = []
             , toasties = Toasty.initialState
             , networkConnectivity = Nothing
