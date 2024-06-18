@@ -36,6 +36,7 @@ import Types.SharedMsg exposing (SharedMsg)
 import Types.View exposing (NonProjectViewConstructor(..), ViewState(..))
 import UUID
 import Url
+import Url.Builder as UB
 import View.Helpers exposing (toExoPalette)
 
 
@@ -187,7 +188,19 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
             { logMessages = logMessages
             , unscopedProviders = []
             , scopedAuthTokensWaitingRegionSelection = []
-            , banners = BannerTypes.empty (Maybe.withDefault "/banners.json" flags.bannersUrl)
+            , banners =
+                let
+                    defaultUrl =
+                        UB.absolute
+                            [ Maybe.withDefault "" flags.urlPathPrefix
+                            , "banners.json"
+                            ]
+                            []
+
+                    bannersUrl =
+                        Maybe.withDefault defaultUrl flags.bannersUrl
+                in
+                BannerTypes.empty bannersUrl
             , projects = []
             , toasties = Toasty.initialState
             , networkConnectivity = Nothing
