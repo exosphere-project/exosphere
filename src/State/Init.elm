@@ -191,11 +191,19 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
             , banners =
                 let
                     defaultUrl =
-                        UB.absolute
-                            [ Maybe.withDefault "" flags.urlPathPrefix
-                            , "banners.json"
-                            ]
-                            []
+                        let
+                            urlNoPathPrefix =
+                                UB.absolute [ "banners.json" ] []
+                        in
+                        case flags.urlPathPrefix of
+                            Nothing ->
+                                urlNoPathPrefix
+
+                            Just "" ->
+                                urlNoPathPrefix
+
+                            Just urlPathPrefix ->
+                                UB.absolute [ urlPathPrefix, "banners.json" ] []
 
                     bannersUrl =
                         Maybe.withDefault defaultUrl flags.bannersUrl
