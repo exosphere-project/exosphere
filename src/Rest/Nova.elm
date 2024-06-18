@@ -20,6 +20,7 @@ module Rest.Nova exposing
     , requestSetServerHostName
     , requestSetServerMetadata
     , requestSetServerName
+    , requestShelveServer
     )
 
 import Array
@@ -449,6 +450,37 @@ requestDeleteServer projectId novaUrl serverId =
         []
         (novaUrl ++ "/servers/" ++ serverId)
         Http.emptyBody
+        (expectStringWithErrorBody resultToMsg_)
+
+
+requestShelveServer : ProjectIdentifier -> Url -> OSTypes.ServerUuid -> Cmd SharedMsg
+requestShelveServer projectId novaUrl serverId =
+    let
+        body =
+            Encode.object [ ( "shelve", Encode.null ) ]
+
+        errorContext =
+            ErrorContext
+                ("shelve server with UUID " ++ serverId)
+                ErrorCrit
+                Nothing
+
+        resultToMsg_ =
+            resultToMsgErrorBody
+                errorContext
+                (\_ ->
+                    ProjectMsg projectId <|
+                        ServerMsg serverId <|
+                            ReceiveServerAction
+                )
+    in
+    openstackCredentialedRequest
+        projectId
+        Post
+        Nothing
+        []
+        (novaUrl ++ "/servers/" ++ serverId ++ "/action")
+        (Http.jsonBody body)
         (expectStringWithErrorBody resultToMsg_)
 
 
