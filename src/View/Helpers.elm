@@ -1165,6 +1165,28 @@ flavorPicker context project restrictFlavorIds computeQuota flavorGroupToggleTip
               , width = Element.fill
               , view = \r -> Element.el [ paddingRight ] (Element.text r.name)
               }
+            , { header = Element.none
+              , width = Element.fill |> Element.minimum 0
+              , view =
+                    \r ->
+                        case r.description of
+                            Nothing ->
+                                Element.none
+
+                            Just description ->
+                                let
+                                    toggleTipId =
+                                        Helpers.String.hyphenate
+                                            [ r.id
+                                            , description
+                                            ]
+                                in
+                                ToggleTip.toggleTip context
+                                    flavorGroupToggleTipMsgMapper
+                                    toggleTipId
+                                    (Element.text description)
+                                    ST.PositionRight
+              }
             , { header = Element.el (headerAttribs ++ [ Font.alignRight ]) (Element.text "CPUs")
               , width = Element.fill
               , view = \r -> Element.el [ paddingRight, Font.alignRight ] (Element.text (humanCount locale r.vcpu))
