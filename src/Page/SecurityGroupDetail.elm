@@ -22,7 +22,7 @@ import OpenStack.SecurityGroupRule
         , portRangeToString
         , protocolToString
         )
-import OpenStack.Types as OSTypes exposing (SecurityGroup, SecurityGroupUuid, securityGroupExoTags, securityGroupTaggedAs)
+import OpenStack.Types as OSTypes exposing (SecurityGroup, SecurityGroupUuid, isDefaultSecurityGroup, securityGroupExoTags, securityGroupTaggedAs)
 import Route
 import Style.Helpers as SH
 import Style.Types as ST
@@ -34,7 +34,7 @@ import Style.Widgets.Popover.Popover exposing (popover)
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.StatusBadge as StatusBadge
-import Style.Widgets.Tag exposing (tagPositive)
+import Style.Widgets.Tag exposing (tagNeutral, tagPositive)
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
 import Time
@@ -350,8 +350,8 @@ serversTable context projectId { servers, progress, currentTime } =
             table
 
 
-securityGroupActionsDropdown : View.Types.Context -> Project -> Model -> SecurityGroup -> Bool -> Element.Element Msg
-securityGroupActionsDropdown context project _ securityGroup preset =
+securityGroupActionsDropdown : View.Types.Context -> Project -> Model -> SecurityGroup -> { preset : Bool, default : Bool } -> Element.Element Msg
+securityGroupActionsDropdown context project _ securityGroup { preset, default } =
     let
         dropdownId =
             [ "securityGroupActionsDropdown", project.auth.project.uuid, securityGroup.uuid ]
@@ -363,43 +363,51 @@ securityGroupActionsDropdown context project _ securityGroup preset =
                 [ Element.row
                     [ Element.spacing spacer.px12, Element.width (Element.fill |> Element.minimum 280) ]
                     [ Element.text
-                        (if preset then
-                            "This " ++ context.localization.securityGroup ++ " is listed as a preset when creating " ++ Helpers.String.pluralize context.localization.virtualComputer ++ "."
+                        (case ( default, preset ) of
+                            ( True, _ ) ->
+                                "This " ++ context.localization.securityGroup ++ " is always listed when creating " ++ Helpers.String.pluralize context.localization.virtualComputer ++ "."
 
-                         else
-                            "List this " ++ context.localization.securityGroup ++ " as a preset when creating " ++ Helpers.String.pluralize context.localization.virtualComputer ++ "?"
+                            ( _, True ) ->
+                                "This " ++ context.localization.securityGroup ++ " is listed as a preset when creating " ++ Helpers.String.pluralize context.localization.virtualComputer ++ "."
+
+                            ( _, False ) ->
+                                "List this " ++ context.localization.securityGroup ++ " as a preset when creating " ++ Helpers.String.pluralize context.localization.virtualComputer ++ "?"
                         )
-                    , Element.el
-                        [ Element.alignRight, closeDropdown ]
-                      <|
-                        Button.button
-                            (if preset then
-                                Button.Danger
+                    , if default then
+                        Element.none
 
-                             else
-                                Button.Primary
-                            )
-                            context.palette
-                            { text =
-                                if preset then
-                                    "Remove"
+                      else
+                        Element.el
+                            [ Element.alignRight, closeDropdown ]
+                        <|
+                            Button.button
+                                (if preset then
+                                    Button.Danger
 
-                                else
-                                    "Add"
-                            , onPress =
-                                Just <|
-                                    SharedMsg <|
-                                        (SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
-                                            SharedMsg.RequestUpdateSecurityGroupTags securityGroup.uuid
-                                                (if preset then
-                                                    securityGroup.tags
-                                                        |> List.filter (\tag -> tag /= securityGroupExoTags.preset)
+                                 else
+                                    Button.Primary
+                                )
+                                context.palette
+                                { text =
+                                    if preset then
+                                        "Remove"
 
-                                                 else
-                                                    securityGroup.tags ++ [ securityGroupExoTags.preset ]
-                                                )
-                                        )
-                            }
+                                    else
+                                        "Add"
+                                , onPress =
+                                    Just <|
+                                        SharedMsg <|
+                                            (SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
+                                                SharedMsg.RequestUpdateSecurityGroupTags securityGroup.uuid
+                                                    (if preset then
+                                                        securityGroup.tags
+                                                            |> List.filter (\tag -> tag /= securityGroupExoTags.preset)
+
+                                                     else
+                                                        securityGroup.tags ++ [ securityGroupExoTags.preset ]
+                                                    )
+                                            )
+                                }
                     ]
                 ]
 
@@ -512,6 +520,16 @@ render context project ( currentTime, _ ) model securityGroup =
             else
                 Element.none
 
+        default =
+            isDefaultSecurityGroup securityGroup
+
+        defaultTag =
+            if default then
+                tagNeutral context.palette "default"
+
+            else
+                Element.none
+
         tile : List (Element.Element Msg) -> List (Element.Element Msg) -> Element.Element Msg
         tile headerContents contents =
             Style.Widgets.Card.exoCard context.palette
@@ -560,9 +578,10 @@ render context project ( currentTime, _ ) model securityGroup =
                     |> Helpers.String.toTitleCase
                 )
             , securityGroupNameView securityGroup
+            , defaultTag
             , presetTag
             , Element.row [ Element.alignRight, Text.fontSize Text.Body, Font.regular, Element.spacing spacer.px16 ]
-                [ securityGroupActionsDropdown context project model securityGroup preset
+                [ securityGroupActionsDropdown context project model securityGroup { preset = preset, default = default }
                 ]
             ]
         , tile

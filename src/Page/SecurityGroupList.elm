@@ -8,13 +8,13 @@ import Helpers.Formatting exposing (humanCount)
 import Helpers.GetterSetters as GetterSetters exposing (LoadingProgress(..))
 import Helpers.ResourceList exposing (creationTimeFilterOptions, listItemColumnAttribs, onCreationTimeFilter)
 import Helpers.String exposing (pluralizeCount)
-import OpenStack.Types as OSTypes exposing (securityGroupExoTags, securityGroupTaggedAs)
+import OpenStack.Types as OSTypes exposing (isDefaultSecurityGroup, securityGroupExoTags, securityGroupTaggedAs)
 import Route
 import Style.Helpers as SH
 import Style.Widgets.DataList as DataList
 import Style.Widgets.HumanTime exposing (relativeTimeElement)
 import Style.Widgets.Spacer exposing (spacer)
-import Style.Widgets.Tag exposing (tag, tagPositive)
+import Style.Widgets.Tag exposing (tag, tagNeutral, tagPositive)
 import Style.Widgets.Text as Text
 import Time
 import Types.Project exposing (Project)
@@ -173,8 +173,16 @@ securityGroupView context project currentTime securityGroupRecord =
             else
                 Element.none
 
+        default =
+            if isDefaultSecurityGroup securityGroupRecord.securityGroup then
+                tagNeutral context.palette "default"
+
+            else
+                Element.none
+
         tags =
             [ preset
+            , default
             , case ( progress, unused ) of
                 ( Done, True ) ->
                     tag context.palette "unused"

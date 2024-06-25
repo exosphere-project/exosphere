@@ -35,7 +35,7 @@ import Style.Widgets.Popover.Popover exposing (popover, toggleIfTargetIsOutside)
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.StatusBadge as StatusBadge exposing (StatusBadgeState(..), statusBadgeWithSize)
-import Style.Widgets.Tag exposing (tag, tagPositive)
+import Style.Widgets.Tag exposing (tag, tagNeutral, tagPositive)
 import Style.Widgets.Text as Text
 import Style.Widgets.Toast as Toast
 import Time
@@ -544,6 +544,7 @@ If you want to show a resource's current state or provide feedback on a process,
                         )
                         [ { name = "default", widget = tag, text = "Experimental" }
                         , { name = "positive", widget = tagPositive, text = "preset" }
+                        , { name = "neutral", widget = tagNeutral, text = "default" }
                         ]
                     )
                 , storiesOf

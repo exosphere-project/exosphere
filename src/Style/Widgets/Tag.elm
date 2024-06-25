@@ -1,4 +1,4 @@
-module Style.Widgets.Tag exposing (tag, tagPositive, tagWithColor)
+module Style.Widgets.Tag exposing (tag, tagNeutral, tagPositive, tagWithColor)
 
 import Color
 import Element
@@ -33,3 +33,8 @@ tag palette text =
 tagPositive : Style.Types.ExoPalette -> String -> Element.Element msg
 tagPositive palette text =
     tagWithColor palette.success.textOnNeutralBG text
+
+
+tagNeutral : Style.Types.ExoPalette -> String -> Element.Element msg
+tagNeutral palette text =
+    tagWithColor palette.muted.textOnNeutralBG text
