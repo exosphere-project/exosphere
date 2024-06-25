@@ -1434,6 +1434,7 @@ processProjectSpecificMsg outerModel project msg =
                             |> Maybe.andThen Style.Widgets.NumericTextInput.NumericTextInput.toMaybe
                     , networkUuid = networkUuid
                     , keypairName = pageModel.keypairName
+                    , securityGroupUuid = pageModel.securityGroupUuid
                     , userData =
                         Helpers.renderUserDataTemplate
                             project

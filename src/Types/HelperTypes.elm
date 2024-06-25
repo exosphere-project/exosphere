@@ -301,6 +301,7 @@ type alias CreateServerPageModel =
     , networkUuid : Maybe OSTypes.NetworkUuid
     , showAdvancedOptions : Bool
     , keypairName : Maybe String
+    , securityGroupUuid : Maybe OSTypes.SecurityGroupUuid
     , deployGuacamole : Maybe Bool -- Nothing when cloud doesn't support Guacamole
     , deployDesktopEnvironment : Bool
     , installOperatingSystemUpdates : Bool

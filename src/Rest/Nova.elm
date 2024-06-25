@@ -342,6 +342,17 @@ requestCreateServer project createServerRequest =
 
                         Just keypairName ->
                             [ ( "key_name", Encode.string keypairName ) ]
+
+                securityGroupUuid =
+                    Maybe.withDefault "" createServerRequest.securityGroupUuid
+
+                securityGroupName =
+                    case ( String.isEmpty securityGroupUuid, GetterSetters.securityGroupLookup project securityGroupUuid ) of
+                        ( False, Just sg ) ->
+                            sg.name
+
+                        _ ->
+                            "exosphere"
             in
             List.append
                 maybeKeypairJson
@@ -349,7 +360,7 @@ requestCreateServer project createServerRequest =
                 , ( "flavorRef", Encode.string innerCreateServerRequest.flavorId )
                 , ( "networks", Encode.list Encode.object [ [ ( "uuid", Encode.string innerCreateServerRequest.networkUuid ) ] ] )
                 , ( "user_data", Encode.string (Base64.encode createServerRequest.userData) )
-                , ( "security_groups", Encode.array Encode.object (Array.fromList [ [ ( "name", Encode.string "exosphere" ) ] ]) )
+                , ( "security_groups", Encode.array Encode.object (Array.fromList [ [ ( "name", Encode.string securityGroupName ) ] ]) )
                 , ( "metadata", Encode.object createServerRequest.metadata )
                 ]
 

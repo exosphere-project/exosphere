@@ -18,10 +18,11 @@ import Helpers.String
 import Helpers.Units
 import Helpers.Validation as Validation
 import Helpers.ValidationResult
+import Html.Attributes
 import Maybe
 import OpenStack.Quotas as OSQuotas
 import OpenStack.ServerNameValidator exposing (serverNameValidator)
-import OpenStack.Types as OSTypes
+import OpenStack.Types as OSTypes exposing (isDefaultSecurityGroup, securityGroupExoTags, securityGroupTaggedAs)
 import Rest.Naming
 import Route
 import ServerDeploy exposing (cloudInitUserDataTemplate)
@@ -76,6 +77,7 @@ type Msg
     | GotAutoAllocatedNetwork OSTypes.NetworkUuid
     | GotShowAdvancedOptions Bool
     | GotKeypairName (Maybe String)
+    | GotSecurityGroupUuid (Maybe OSTypes.SecurityGroupUuid)
     | GotDeployGuacamole (Maybe Bool)
     | GotDeployDesktopEnvironment Bool
     | GotInstallOperatingSystemUpdates Bool
@@ -103,6 +105,7 @@ init project imageUuid imageName restrictFlavorIds deployGuacamole =
     , networkUuid = Nothing
     , showAdvancedOptions = False
     , keypairName = initialKeypairName project
+    , securityGroupUuid = Nothing
     , deployGuacamole = deployGuacamole
     , deployDesktopEnvironment = False
     , installOperatingSystemUpdates = True
@@ -272,6 +275,9 @@ update msg project model =
 
         GotKeypairName maybeKeypairName ->
             ( { model | keypairName = maybeKeypairName }, Cmd.none, SharedMsg.NoOp )
+
+        GotSecurityGroupUuid maybeSecurityGroupUuid ->
+            ( { model | securityGroupUuid = maybeSecurityGroupUuid }, Cmd.none, SharedMsg.NoOp )
 
         GotDeployGuacamole maybeDeployGuacamole ->
             ( { model | deployGuacamole = maybeDeployGuacamole }, Cmd.none, SharedMsg.NoOp )
@@ -727,6 +733,11 @@ view context project currentTime model =
 
               else
                 -- No keypairs, so show this further down in advanced options
+                Element.none
+            , if context.experimentalFeaturesEnabled then
+                securityGroupPicker context project model
+
+              else
                 Element.none
             , Element.column
                 [ Element.spacing spacer.px32 ]
@@ -1800,7 +1811,7 @@ keypairPicker context project model =
                     ]
 
             else
-                Input.radio []
+                Input.radio [ Element.spacing spacer.px4 ]
                     { label = Input.labelHidden promptText
                     , onChange = \keypairName -> GotKeypairName <| keypairName
                     , options = noneOption :: List.map keypairAsOption keypairs
@@ -1835,6 +1846,68 @@ keypairPicker context project model =
                         Just <| NoOp
                     }
             }
+        ]
+
+
+securityGroupPicker : View.Types.Context -> Project -> Model -> Element.Element Msg
+securityGroupPicker context project model =
+    let
+        securityGroupAsOption : OSTypes.SecurityGroup -> Input.Option (Maybe String) msg
+        securityGroupAsOption securityGroup =
+            let
+                description =
+                    Maybe.withDefault "" securityGroup.description
+
+                extraInfo =
+                    if String.isEmpty description then
+                        ""
+
+                    else
+                        " - " ++ description
+            in
+            Input.option (Just securityGroup.uuid)
+                (Element.el
+                    [ Element.width <| Element.maximum 600 <| Element.fill, Element.htmlAttribute <| Html.Attributes.style "min-width" "0" ]
+                    (VH.ellipsizedText (securityGroup.name ++ extraInfo))
+                )
+
+        promptText =
+            String.join " "
+                [ "Choose"
+                , Helpers.String.indefiniteArticle context.localization.securityGroup
+                , context.localization.securityGroup
+                ]
+
+        renderSecurityGroups securityGroups =
+            let
+                presets =
+                    securityGroups
+                        |> List.filter (securityGroupTaggedAs securityGroupExoTags.preset)
+
+                default =
+                    securityGroups
+                        |> List.filter isDefaultSecurityGroup
+            in
+            Input.radio [ Element.spacing spacer.px4 ]
+                { label = Input.labelHidden promptText
+                , onChange = \securityGroupUuid -> GotSecurityGroupUuid <| securityGroupUuid
+                , options = List.map securityGroupAsOption (default ++ presets)
+                , selected =
+                    if model.securityGroupUuid == Nothing then
+                        Just (List.head default |> Maybe.map .uuid)
+
+                    else
+                        Just model.securityGroupUuid
+                }
+    in
+    Element.column
+        [ Element.spacing spacer.px12 ]
+        [ Text.strong promptText
+        , VH.renderRDPP
+            context
+            project.securityGroups
+            (Helpers.String.pluralize context.localization.securityGroup)
+            renderSecurityGroups
         ]
 
 
