@@ -1219,9 +1219,10 @@ flavorsDecoder =
 
 flavorDecoder : Decode.Decoder OSTypes.Flavor
 flavorDecoder =
-    Decode.map7 OSTypes.Flavor
+    Decode.map8 OSTypes.Flavor
         (Decode.field "id" Decode.string)
         (Decode.field "name" Decode.string)
+        (Decode.field "description" (Decode.maybe Decode.string))
         (Decode.field "vcpus" Decode.int)
         (Decode.field "ram" Decode.int)
         (Decode.field "disk" Decode.int)

@@ -367,6 +367,7 @@ type alias KeypairFingerprint =
 type alias Flavor =
     { id : FlavorId
     , name : String
+    , description : Maybe String
     , vcpu : Int
     , ram_mb : Int
     , disk_root : Int
