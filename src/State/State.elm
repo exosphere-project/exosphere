@@ -3109,8 +3109,22 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                 oldExoProps =
                     server.exoProps
 
+                newFloatingIpOption =
+                    if requestFloatingIpIfAppropriate then
+                        -- Reset this to whatever is stored in server metadata, because we may need to re-request/re-assign a floating IP despite having previously reached the terminal state of DoNotUseFloatingIp.
+                        Helpers.decodeFloatingIpOption server.osProps.details
+
+                    else
+                        oldExoProps.floatingIpCreationOption
+
                 newServer =
-                    Server server.osProps { oldExoProps | targetOpenstackStatus = targetStatuses } server.events server.securityGroups
+                    Server server.osProps
+                        { oldExoProps
+                            | targetOpenstackStatus = targetStatuses
+                            , floatingIpCreationOption = newFloatingIpOption
+                        }
+                        server.events
+                        server.securityGroups
 
                 newProject =
                     GetterSetters.projectUpdateServer project newServer
