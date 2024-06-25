@@ -2573,6 +2573,15 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
+        RequestShelveServer deleteFloatingIps ->
+            let
+                ( newProject, cmd ) =
+                    requestShelveServer project server deleteFloatingIps
+            in
+            ( GetterSetters.modelUpdateProject sharedModel newProject, cmd )
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
         RequestAttachVolume volumeUuid ->
             let
                 volumeName =
@@ -3486,6 +3495,57 @@ createUnscopedProvider model authToken authUrl =
     , Cmd.batch
         [ Rest.Keystone.requestUnscopedProjects newProvider model.cloudCorsProxyUrl
         , Rest.Keystone.requestUnscopedRegions newProvider model.cloudCorsProxyUrl
+        ]
+    )
+
+
+requestShelveServer : Project -> Server -> Bool -> ( Project, Cmd SharedMsg )
+requestShelveServer project server deleteFloatingIps =
+    let
+        oldExoProps =
+            server.exoProps
+
+        targetStatus =
+            Just [ OSTypes.ServerShelved, OSTypes.ServerShelvedOffloaded ]
+
+        newServer =
+            { server
+                | exoProps =
+                    { oldExoProps
+                        | targetOpenstackStatus = targetStatus
+                    }
+            }
+
+        newProject =
+            GetterSetters.projectUpdateServer project newServer
+
+        shelveCmd =
+            Rest.Nova.requestShelveServer (GetterSetters.projectIdentifier newProject) newProject.endpoints.nova newServer.osProps.uuid
+
+        deleteFloatingIpCmds =
+            if deleteFloatingIps then
+                let
+                    errorContext : OSTypes.IpAddressUuid -> ErrorContext
+                    errorContext ipUuid =
+                        ErrorContext
+                            ("delete floating IP address with UUID " ++ ipUuid)
+                            ErrorDebug
+                            Nothing
+                in
+                GetterSetters.getServerFloatingIps project server.osProps.uuid
+                    |> List.map .uuid
+                    |> List.map
+                        (\ipUuid ->
+                            Rest.Neutron.requestDeleteFloatingIp project (errorContext ipUuid) ipUuid
+                        )
+
+            else
+                []
+    in
+    ( newProject
+    , Cmd.batch
+        [ shelveCmd
+        , Cmd.batch deleteFloatingIpCmds
         ]
     )
 

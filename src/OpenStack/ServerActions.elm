@@ -213,11 +213,10 @@ actions maybeWordForServer maybeWordForImage maybeWordForFlavor =
       , allowedStatuses = Just [ OSTypes.ServerActive, OSTypes.ServerPaused, OSTypes.ServerShutoff, OSTypes.ServerSuspended ]
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
-            doAction (Json.Encode.object [ ( "shelve", Json.Encode.null ) ])
-                (Just [ OSTypes.ServerShelved, OSTypes.ServerShelvedOffloaded ])
-                False
+            \projectId server deleteFloatingIp ->
+                ProjectMsg projectId <| ServerMsg server.osProps.uuid <| RequestShelveServer deleteFloatingIp
       , selectMod = NoMod
-      , confirmable = False
+      , confirmable = True
       }
     , { name = "Resize"
       , description =

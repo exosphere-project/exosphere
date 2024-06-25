@@ -122,6 +122,7 @@ type ProjectSpecificMsgConstructor
 
 type ServerSpecificMsgConstructor
     = RequestDeleteServer Bool
+    | RequestShelveServer Bool
     | RequestSetServerName String
     | RequestAttachVolume OSTypes.VolumeUuid
     | RequestCreateServerImage String

@@ -57,6 +57,7 @@ type alias Model =
     , serverActionNamePendingConfirmation : Maybe String
     , serverNamePendingConfirmation : Maybe String
     , retainFloatingIpsWhenDeleting : Bool
+    , deleteFloatingIpsWhenShelving : Bool
     }
 
 
@@ -80,6 +81,7 @@ type Msg
     | GotServerActionNamePendingConfirmation (Maybe String)
     | GotServerNamePendingConfirmation (Maybe String)
     | GotRetainFloatingIpsWhenDeleting Bool
+    | GotDeleteFloatingIpsWhenShelving Bool
     | GotSetServerName String
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
@@ -94,6 +96,7 @@ init serverUuid =
     , serverActionNamePendingConfirmation = Nothing
     , serverNamePendingConfirmation = Nothing
     , retainFloatingIpsWhenDeleting = False
+    , deleteFloatingIpsWhenShelving = True
     }
 
 
@@ -114,6 +117,9 @@ update msg project model =
 
         GotRetainFloatingIpsWhenDeleting retain ->
             ( { model | retainFloatingIpsWhenDeleting = retain }, Cmd.none, SharedMsg.NoOp )
+
+        GotDeleteFloatingIpsWhenShelving delete ->
+            ( { model | deleteFloatingIpsWhenShelving = delete }, Cmd.none, SharedMsg.NoOp )
 
         GotSetServerName validName ->
             ( model
@@ -1024,7 +1030,7 @@ serverActionsDropdown context project model server =
             in
             Element.column [ Element.spacing spacer.px8 ] <|
                 List.map
-                    (renderServerActionButton context project model server closeDropdown)
+                    (renderServerAction context project model server closeDropdown)
                     (ServerActions.getAllowed
                         (Just context.localization.virtualComputer)
                         (Just context.localization.staticRepresentationOfBlockDeviceContents)
@@ -1257,7 +1263,7 @@ renderSecurityGroups context project server =
         renderTable
 
 
-renderServerActionButton :
+renderServerAction :
     View.Types.Context
     -> Project
     -> Model
@@ -1265,7 +1271,7 @@ renderServerActionButton :
     -> Element.Attribute Msg
     -> ServerActions.ServerAction
     -> Element.Element Msg
-renderServerActionButton context project model server closeActionsDropdown serverAction =
+renderServerAction context project model server closeActionsDropdown serverAction =
     let
         displayConfirmation =
             case model.serverActionNamePendingConfirmation of
@@ -1285,50 +1291,21 @@ renderServerActionButton context project model server closeActionsDropdown serve
 
         ( True, True ) ->
             let
-                renderKeepFloatingIpCheckbox : List (Element.Element Msg)
-                renderKeepFloatingIpCheckbox =
-                    if
-                        serverAction.name
-                            == "Delete"
-                            && (not <| List.isEmpty <| GetterSetters.getServerFloatingIps project server.osProps.uuid)
-                    then
-                        [ Input.checkbox
-                            []
-                            { onChange = GotRetainFloatingIpsWhenDeleting
-                            , icon = Input.defaultCheckbox
-                            , checked = model.retainFloatingIpsWhenDeleting
-                            , label =
-                                Input.labelRight []
-                                    (Element.text <|
-                                        String.join " "
-                                            [ "Keep the"
-                                            , context.localization.floatingIpAddress
-                                            , "of this"
-                                            , context.localization.virtualComputer
-                                            , "for future use"
-                                            ]
-                                    )
-                            }
-                        ]
-
-                    else
-                        []
-
-                actionMsg =
-                    Just <| serverAction.action (GetterSetters.projectIdentifier project) server model.retainFloatingIpsWhenDeleting
-
                 cancelMsg =
                     Just <| GotServerActionNamePendingConfirmation Nothing
 
                 title =
                     confirmationMessage serverAction
+
+                ( actionOption, actionOptionMsg ) =
+                    renderServerActionOption context project model server serverAction
             in
             Element.column
                 [ Element.spacing spacer.px8 ]
             <|
                 List.concat
-                    [ [ renderConfirmationButton context serverAction actionMsg cancelMsg title closeActionsDropdown ]
-                    , renderKeepFloatingIpCheckbox
+                    [ [ renderConfirmationButton context serverAction (Just actionOptionMsg) cancelMsg title closeActionsDropdown ]
+                    , actionOption
                     ]
 
         ( _, _ ) ->
@@ -1385,6 +1362,96 @@ renderServerActionButton context project model server closeActionsDropdown serve
 confirmationMessage : ServerActions.ServerAction -> String
 confirmationMessage serverAction =
     "Are you sure you want to " ++ (serverAction.name |> String.toLower) ++ "?"
+
+
+renderServerActionOption :
+    View.Types.Context
+    -> Project
+    -> Model
+    -> Server
+    -> ServerActions.ServerAction
+    -> ( List (Element.Element Msg), SharedMsg.SharedMsg )
+renderServerActionOption context project model server serverAction =
+    let
+        hasFloatingIps =
+            not <| List.isEmpty <| GetterSetters.getServerFloatingIps project server.osProps.uuid
+
+        noOption =
+            ( [], serverAction.action (GetterSetters.projectIdentifier project) server False )
+    in
+    if hasFloatingIps then
+        case serverAction.name of
+            "Delete" ->
+                deleteActionOption context project model server serverAction
+
+            "Shelve" ->
+                shelveActionOption context project model server serverAction
+
+            _ ->
+                noOption
+
+    else
+        noOption
+
+
+deleteActionOption :
+    View.Types.Context
+    -> Project
+    -> Model
+    -> Server
+    -> ServerActions.ServerAction
+    -> ( List (Element.Element Msg), SharedMsg.SharedMsg )
+deleteActionOption context project model server serverAction =
+    ( [ Input.checkbox
+            []
+            { onChange = GotRetainFloatingIpsWhenDeleting
+            , icon = Input.defaultCheckbox
+            , checked = model.retainFloatingIpsWhenDeleting
+            , label =
+                Input.labelRight []
+                    (Element.text <|
+                        String.join " "
+                            [ "Keep the"
+                            , context.localization.floatingIpAddress
+                            , "of this"
+                            , context.localization.virtualComputer
+                            , "for future use"
+                            ]
+                    )
+            }
+      ]
+    , serverAction.action (GetterSetters.projectIdentifier project) server model.retainFloatingIpsWhenDeleting
+    )
+
+
+shelveActionOption :
+    View.Types.Context
+    -> Project
+    -> Model
+    -> Server
+    -> ServerActions.ServerAction
+    -> ( List (Element.Element Msg), SharedMsg.SharedMsg )
+shelveActionOption context project model server serverAction =
+    ( [ Input.checkbox
+            []
+            { onChange = GotDeleteFloatingIpsWhenShelving
+            , icon = Input.defaultCheckbox
+            , checked = model.deleteFloatingIpsWhenShelving
+            , label =
+                Input.labelRight []
+                    (Element.text <|
+                        String.join " "
+                            [ "Release"
+                            , context.localization.floatingIpAddress
+                            , "from this"
+                            , context.localization.virtualComputer
+                            , "while shelved"
+                            ]
+                    )
+            }
+      ]
+    , serverAction.action (GetterSetters.projectIdentifier project) server model.deleteFloatingIpsWhenShelving
+    )
 
 
 serverActionSelectModButton : View.Types.Context -> ServerActions.SelectMod -> (Widget.TextButton Msg -> Element.Element Msg)
