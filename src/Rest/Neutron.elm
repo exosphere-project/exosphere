@@ -14,6 +14,7 @@ module Rest.Neutron exposing
     , requestPorts
     , requestSecurityGroups
     , requestUnassignFloatingIp
+    , requestUpdateSecurityGroupTags
     , securityGroupsDecoder
     )
 
@@ -383,6 +384,42 @@ requestCreateExoSecurityGroup project =
         )
 
 
+requestUpdateSecurityGroupTags : Project -> OSTypes.SecurityGroupUuid -> List OSTypes.SecurityGroupTag -> Cmd SharedMsg
+requestUpdateSecurityGroupTags project securityGroupUuid tags =
+    let
+        requestBody =
+            Encode.object
+                [ ( "tags", Encode.list Encode.string tags )
+                ]
+
+        errorContext =
+            ErrorContext
+                ("update security group uuid " ++ securityGroupUuid ++ " in project " ++ project.auth.project.name)
+                ErrorCrit
+                Nothing
+
+        resultToMsg =
+            resultToMsgErrorBody
+                errorContext
+                (\t ->
+                    ProjectMsg
+                        (GetterSetters.projectIdentifier project)
+                        (ReceiveUpdateSecurityGroupTags ( securityGroupUuid, t ))
+                )
+    in
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Put
+        Nothing
+        []
+        (project.endpoints.neutron ++ "/v2.0/security-groups/" ++ securityGroupUuid ++ "/tags")
+        (Http.jsonBody requestBody)
+        (expectJsonWithErrorBody
+            resultToMsg
+            tagDecoder
+        )
+
+
 requestCreateExoSecurityGroupRules : SharedModel -> Project -> List SecurityGroupRule -> ( SharedModel, Cmd SharedMsg )
 requestCreateExoSecurityGroupRules model project rules =
     let
@@ -699,6 +736,11 @@ securityGroupsDecoder =
 securityGroupDecoder : Decode.Decoder OSTypes.SecurityGroup
 securityGroupDecoder =
     Decode.field "security_group" securityGroupValueDecoder
+
+
+tagDecoder : Decode.Decoder (List String)
+tagDecoder =
+    Decode.field "tags" (Decode.list Decode.string)
 
 
 securityGroupValueDecoder : Decode.Decoder OSTypes.SecurityGroup

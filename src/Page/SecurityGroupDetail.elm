@@ -22,15 +22,19 @@ import OpenStack.SecurityGroupRule
         , portRangeToString
         , protocolToString
         )
-import OpenStack.Types as OSTypes exposing (SecurityGroup, SecurityGroupUuid)
+import OpenStack.Types as OSTypes exposing (SecurityGroup, SecurityGroupUuid, securityGroupExoTags, securityGroupTaggedAs)
 import Route
 import Style.Helpers as SH
 import Style.Types as ST
+import Style.Widgets.Button as Button
 import Style.Widgets.Card
 import Style.Widgets.CopyableText exposing (copyableText)
+import Style.Widgets.Icon as Icon
+import Style.Widgets.Popover.Popover exposing (popover)
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.StatusBadge as StatusBadge
+import Style.Widgets.Tag exposing (tagPositive)
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
 import Time
@@ -40,6 +44,7 @@ import Types.Server exposing (Server)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
+import Widget
 
 
 type alias Model =
@@ -345,8 +350,91 @@ serversTable context projectId { servers, progress, currentTime } =
             table
 
 
+securityGroupActionsDropdown : View.Types.Context -> Project -> Model -> SecurityGroup -> Bool -> Element.Element Msg
+securityGroupActionsDropdown context project _ securityGroup preset =
+    let
+        dropdownId =
+            [ "securityGroupActionsDropdown", project.auth.project.uuid, securityGroup.uuid ]
+                |> List.intersperse "-"
+                |> String.concat
+
+        dropdownContent closeDropdown =
+            Element.column [ Element.spacing spacer.px8 ] <|
+                [ Element.row
+                    [ Element.spacing spacer.px12, Element.width (Element.fill |> Element.minimum 280) ]
+                    [ Element.text
+                        (if preset then
+                            "This " ++ context.localization.securityGroup ++ " is listed as a preset when creating " ++ Helpers.String.pluralize context.localization.virtualComputer ++ "."
+
+                         else
+                            "List this " ++ context.localization.securityGroup ++ " as a preset when creating " ++ Helpers.String.pluralize context.localization.virtualComputer ++ "?"
+                        )
+                    , Element.el
+                        [ Element.alignRight, closeDropdown ]
+                      <|
+                        Button.button
+                            (if preset then
+                                Button.Danger
+
+                             else
+                                Button.Primary
+                            )
+                            context.palette
+                            { text =
+                                if preset then
+                                    "Remove"
+
+                                else
+                                    "Add"
+                            , onPress =
+                                Just <|
+                                    SharedMsg <|
+                                        (SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
+                                            SharedMsg.RequestUpdateSecurityGroupTags securityGroup.uuid
+                                                (if preset then
+                                                    securityGroup.tags
+                                                        |> List.filter (\tag -> tag /= securityGroupExoTags.preset)
+
+                                                 else
+                                                    securityGroup.tags ++ [ securityGroupExoTags.preset ]
+                                                )
+                                        )
+                            }
+                    ]
+                ]
+
+        dropdownTarget toggleDropdownMsg dropdownIsShown =
+            Widget.iconButton
+                (SH.materialStyle context.palette).button
+                { text = "Actions"
+                , icon =
+                    Element.row
+                        [ Element.spacing spacer.px4 ]
+                        [ Element.text "Actions"
+                        , Icon.sizedFeatherIcon 18 <|
+                            if dropdownIsShown then
+                                FeatherIcons.chevronUp
+
+                            else
+                                FeatherIcons.chevronDown
+                        ]
+                , onPress = Just toggleDropdownMsg
+                }
+    in
+    popover context
+        popoverMsgMapper
+        { id = dropdownId
+        , content = dropdownContent
+        , contentStyleAttrs = [ Element.padding spacer.px24 ]
+        , position = ST.PositionBottomRight
+        , distanceToTarget = Nothing
+        , target = dropdownTarget
+        , targetStyleAttrs = []
+        }
+
+
 render : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> Model -> SecurityGroup -> Element.Element Msg
-render context project ( currentTime, _ ) _ securityGroup =
+render context project ( currentTime, _ ) model securityGroup =
     let
         whenCreated =
             let
@@ -414,6 +502,16 @@ render context project ( currentTime, _ ) _ securityGroup =
                 Nothing ->
                     Element.none
 
+        preset =
+            securityGroupTaggedAs securityGroupExoTags.preset securityGroup
+
+        presetTag =
+            if preset then
+                tagPositive context.palette "preset"
+
+            else
+                Element.none
+
         tile : List (Element.Element Msg) -> List (Element.Element Msg) -> Element.Element Msg
         tile headerContents contents =
             Style.Widgets.Card.exoCard context.palette
@@ -462,6 +560,10 @@ render context project ( currentTime, _ ) _ securityGroup =
                     |> Helpers.String.toTitleCase
                 )
             , securityGroupNameView securityGroup
+            , presetTag
+            , Element.row [ Element.alignRight, Text.fontSize Text.Body, Font.regular, Element.spacing spacer.px16 ]
+                [ securityGroupActionsDropdown context project model securityGroup preset
+                ]
             ]
         , tile
             [ FeatherIcons.list |> FeatherIcons.toHtml [] |> Element.html |> Element.el []

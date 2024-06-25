@@ -2109,6 +2109,39 @@ processProjectSpecificMsg outerModel project msg =
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
+        RequestUpdateSecurityGroupTags securityGroupUuid tags ->
+            ( outerModel, Rest.Neutron.requestUpdateSecurityGroupTags project securityGroupUuid tags )
+                |> mapToOuterMsg
+
+        ReceiveUpdateSecurityGroupTags ( securityGroupUuid, tags ) ->
+            let
+                newSecurityGroups =
+                    project.securityGroups
+                        |> RDPP.withDefault []
+                        |> List.map
+                            (\sg ->
+                                if sg.uuid == securityGroupUuid then
+                                    { sg | tags = tags }
+
+                                else
+                                    sg
+                            )
+
+                newProject =
+                    { project
+                        | securityGroups =
+                            RDPP.RemoteDataPlusPlus
+                                (RDPP.DoHave newSecurityGroups sharedModel.clientCurrentTime)
+                                (RDPP.NotLoading Nothing)
+                    }
+
+                newModel =
+                    GetterSetters.modelUpdateProject sharedModel newProject
+            in
+            ( newModel, Cmd.none )
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
         ReceiveCreateShare share ->
             ( outerModel
             , Cmd.batch
