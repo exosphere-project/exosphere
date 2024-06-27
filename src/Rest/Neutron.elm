@@ -344,8 +344,8 @@ requestSecurityGroups project =
         )
 
 
-requestCreateExoSecurityGroup : Project -> Cmd SharedMsg
-requestCreateExoSecurityGroup project =
+requestCreateExoSecurityGroup : Project -> OSTypes.SecurityGroupTemplate -> Cmd SharedMsg
+requestCreateExoSecurityGroup project securityGroup =
     let
         desc =
             "Security group for instances launched via Exosphere"
@@ -354,22 +354,22 @@ requestCreateExoSecurityGroup project =
             Encode.object
                 [ ( "security_group"
                   , Encode.object
-                        [ ( "name", Encode.string "exosphere" )
-                        , ( "description", Encode.string desc )
+                        [ ( "name", Encode.string securityGroup.name )
+                        , ( "description", Encode.string <| Maybe.withDefault desc securityGroup.description )
                         ]
                   )
                 ]
 
         errorContext =
             ErrorContext
-                ("create security group for Exosphere in project " ++ project.auth.project.name)
+                ("create default security group for Exosphere in project " ++ project.auth.project.name)
                 ErrorCrit
                 Nothing
 
         resultToMsg result =
             ProjectMsg
                 (GetterSetters.projectIdentifier project)
-                (ReceiveCreateExoSecurityGroup errorContext result)
+                (ReceiveCreateExoSecurityGroup errorContext result securityGroup)
     in
     openstackCredentialedRequest
         (GetterSetters.projectIdentifier project)
@@ -581,11 +581,15 @@ receiveSecurityGroupsAndEnsureExoGroup model project securityGroups =
         newProject =
             { project | securityGroups = newSecurityGroups }
 
+        defaultSecurityGroup : OSTypes.SecurityGroupTemplate
+        defaultSecurityGroup =
+            GetterSetters.projectDefaultSecurityGroup model.viewContext project
+
         newModel =
             GetterSetters.modelUpdateProject model newProject
 
         cmds =
-            case List.Extra.find (\a -> a.name == "exosphere") securityGroups of
+            case List.Extra.find (\a -> a.name == defaultSecurityGroup.name) securityGroups of
                 Just exoGroup ->
                     -- check rules, ensure rules are latest set and none missing
                     -- if rules are missing, request to create them
@@ -596,7 +600,7 @@ receiveSecurityGroupsAndEnsureExoGroup model project securityGroups =
                             exoGroup.rules
 
                         defaultExosphereRules =
-                            SecurityGroupRule.defaultExosphereRules
+                            defaultSecurityGroup.rules
 
                         missingRules =
                             defaultExosphereRules
@@ -621,16 +625,16 @@ receiveSecurityGroupsAndEnsureExoGroup model project securityGroups =
                         newProject
                         exoGroup
                         missingRules
-                        "create missing rules for Exosphere security group"
+                        ("create missing rules for " ++ defaultSecurityGroup.name ++ " default security group")
 
                 Nothing ->
-                    [ requestCreateExoSecurityGroup newProject ]
+                    [ requestCreateExoSecurityGroup newProject defaultSecurityGroup ]
     in
     ( newModel, Cmd.batch cmds )
 
 
-receiveCreateExoSecurityGroupAndRequestCreateRules : SharedModel -> Project -> OSTypes.SecurityGroup -> ( SharedModel, Cmd SharedMsg )
-receiveCreateExoSecurityGroupAndRequestCreateRules model project newSecGroup =
+receiveCreateExoSecurityGroupAndRequestCreateRules : SharedModel -> Project -> OSTypes.SecurityGroup -> OSTypes.SecurityGroupTemplate -> ( SharedModel, Cmd SharedMsg )
+receiveCreateExoSecurityGroupAndRequestCreateRules model project newSecGroup securityGroupTemplate =
     let
         newSecGroups =
             newSecGroup
@@ -650,7 +654,7 @@ receiveCreateExoSecurityGroupAndRequestCreateRules model project newSecGroup =
     requestCreateExoSecurityGroupRules
         newModel
         newProject
-        SecurityGroupRule.defaultExosphereRules
+        securityGroupTemplate.rules
 
 
 
