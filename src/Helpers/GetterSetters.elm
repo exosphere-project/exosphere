@@ -21,8 +21,10 @@ module Helpers.GetterSetters exposing
     , imageGetDesktopMessage
     , imageLookup
     , isBootVolume
+    , isDefaultSecurityGroup
     , modelUpdateProject
     , modelUpdateUnscopedProvider
+    , projectDefaultSecurityGroup
     , projectDeleteServer
     , projectIdentifier
     , projectLookup
@@ -72,18 +74,20 @@ module Helpers.GetterSetters exposing
 import Dict
 import Helpers.List exposing (multiSortBy)
 import Helpers.RemoteDataPlusPlus as RDPP
+import Helpers.String exposing (toTitleCase)
 import Helpers.Url as UrlHelpers
 import List.Extra
 import OpenStack.DnsRecordSet
+import OpenStack.SecurityGroupRule as SecurityGroupRule
 import OpenStack.Types as OSTypes
 import Regex
 import Time
 import Types.Error
-import Types.HelperTypes as HelperTypes
+import Types.HelperTypes as HelperTypes exposing (SecurityGroupConfig)
 import Types.Project exposing (Project)
 import Types.Server exposing (ExoServerVersion, Server, ServerOrigin(..))
 import Types.SharedModel exposing (SharedModel)
-import View.Types
+import View.Types exposing (Context)
 
 
 
@@ -115,6 +119,56 @@ securityGroupLookup : Project -> OSTypes.SecurityGroupUuid -> Maybe OSTypes.Secu
 securityGroupLookup project securityGroupUuid =
     RDPP.withDefault [] project.securityGroups
         |> List.Extra.find (\s -> s.uuid == securityGroupUuid)
+
+
+projectDefaultSecurityGroup : Context -> Project -> OSTypes.SecurityGroupTemplate
+projectDefaultSecurityGroup context project =
+    let
+        cloudSpecificConfig =
+            cloudSpecificConfigLookup context.cloudSpecificConfigs project
+
+        cloudConfigSecurityGroups =
+            case cloudSpecificConfig of
+                Just config ->
+                    Maybe.withDefault [] config.securityGroups
+
+                Nothing ->
+                    []
+
+        cloudConfigRegionSecurityGroup =
+            cloudConfigSecurityGroups |> List.Extra.find (\sg -> sg.regionId == (project.region |> Maybe.map .id))
+
+        cloudConfigSecurityGroup : Maybe SecurityGroupConfig
+        cloudConfigSecurityGroup =
+            case cloudConfigRegionSecurityGroup of
+                Just sg ->
+                    Just sg
+
+                Nothing ->
+                    -- If there is no region-specific security group, use the first without a region id.
+                    cloudConfigSecurityGroups |> List.Extra.find (\sg -> sg.regionId == Nothing)
+    in
+    case cloudConfigSecurityGroup of
+        Just sg ->
+            { name = sg.name
+            , description = sg.description
+            , rules = sg.rules
+            }
+
+        Nothing ->
+            { name = "exosphere"
+            , description = Just <| toTitleCase context.localization.securityGroup ++ " for " ++ Helpers.String.pluralize context.localization.virtualComputer ++ " launched via Exosphere"
+            , rules = SecurityGroupRule.defaultExosphereRules
+            }
+
+
+isDefaultSecurityGroup : Context -> Project -> OSTypes.SecurityGroup -> Bool
+isDefaultSecurityGroup context project sg =
+    let
+        defaultSecurityGroup =
+            projectDefaultSecurityGroup context project
+    in
+    sg.name == defaultSecurityGroup.name
 
 
 securityGroupsFromServerSecurityGroups : Project -> List OSTypes.ServerSecurityGroup -> List OSTypes.SecurityGroup

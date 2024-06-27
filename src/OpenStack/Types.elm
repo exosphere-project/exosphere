@@ -58,6 +58,7 @@ module OpenStack.Types exposing
     , ScopedAuthToken
     , SecurityGroup
     , SecurityGroupTag
+    , SecurityGroupTemplate
     , SecurityGroupUuid
     , Server
     , ServerDetails
@@ -101,7 +102,6 @@ module OpenStack.Types exposing
     , boolToShareVisibility
     , defaultShareTypeNameForProtocol
     , imageVisibilityToString
-    , isDefaultSecurityGroup
     , securityGroupExoTags
     , securityGroupTaggedAs
     , serverPowerStateToString
@@ -801,6 +801,13 @@ type alias SecurityGroup =
     }
 
 
+type alias SecurityGroupTemplate =
+    { name : String
+    , description : Maybe String
+    , rules : List SecurityGroupRule
+    }
+
+
 {-|
 
     Tags for security groups that provide special Exosphere functionality.
@@ -816,12 +823,6 @@ securityGroupTaggedAs : SecurityGroupTag -> SecurityGroup -> Bool
 securityGroupTaggedAs tag sg =
     sg.tags
         |> List.member tag
-
-
-isDefaultSecurityGroup : SecurityGroup -> Bool
-isDefaultSecurityGroup sg =
-    -- TODO: securityGroupTaggedAs "default" sg
-    sg.name == "exosphere"
 
 
 {-|

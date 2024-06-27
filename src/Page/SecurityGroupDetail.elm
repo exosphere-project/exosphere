@@ -7,7 +7,7 @@ import Element.Font as Font
 import FeatherIcons
 import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (humanCount)
-import Helpers.GetterSetters as GetterSetters exposing (LoadingProgress(..))
+import Helpers.GetterSetters as GetterSetters exposing (LoadingProgress(..), isDefaultSecurityGroup)
 import Helpers.Helpers exposing (serverCreatorName)
 import Helpers.String
 import Helpers.Time
@@ -380,7 +380,7 @@ render context project ( currentTime, _ ) model securityGroup =
                 Element.none
 
         default =
-            isDefaultSecurityGroup securityGroup
+            isDefaultSecurityGroup context project securityGroup
 
         defaultTag =
             if default then

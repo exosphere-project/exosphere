@@ -10,7 +10,7 @@ import FeatherIcons as Icons
 import FormatNumber
 import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (humanCount)
-import Helpers.GetterSetters as GetterSetters
+import Helpers.GetterSetters as GetterSetters exposing (isDefaultSecurityGroup)
 import Helpers.Helpers as Helpers
 import Helpers.Random as RandomHelper
 import Helpers.RemoteDataPlusPlus as RDPP
@@ -22,7 +22,7 @@ import Html.Attributes
 import Maybe
 import OpenStack.Quotas as OSQuotas
 import OpenStack.ServerNameValidator exposing (serverNameValidator)
-import OpenStack.Types as OSTypes exposing (isDefaultSecurityGroup, securityGroupExoTags, securityGroupTaggedAs)
+import OpenStack.Types as OSTypes exposing (securityGroupExoTags, securityGroupTaggedAs)
 import Page.SecurityGroupRulesTable as SecurityGroupRulesTable
 import Rest.Naming
 import Route
@@ -1928,7 +1928,7 @@ securityGroupPicker context project model =
 
                 defaults =
                     securityGroups
-                        |> List.filter isDefaultSecurityGroup
+                        |> List.filter (isDefaultSecurityGroup context project)
             in
             Input.radio [ Element.spacing spacer.px4 ]
                 { label = Input.labelHidden promptText
