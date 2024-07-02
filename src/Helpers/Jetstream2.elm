@@ -44,7 +44,7 @@ resourceMultiplier resource =
             Just 1.0
 
         "g3" ->
-            Just 4.0
+            Just 2.0
 
         "r3" ->
             Just 2.0
