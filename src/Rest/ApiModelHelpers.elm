@@ -63,11 +63,18 @@ requestSecurityGroups : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd S
 requestSecurityGroups projectUuid model =
     case GetterSetters.projectLookup model projectUuid of
         Just project ->
-            ( project
-                |> GetterSetters.projectSetSecurityGroupsLoading
-                |> GetterSetters.modelUpdateProject model
-            , Rest.Neutron.requestSecurityGroups project
-            )
+            case project.securityGroups.refreshStatus of
+                -- Receiving security groups has a side-effect: ensuring the default exosphere security group exists.
+                -- To avoid conflicts, we don't request security groups if they're already loading.
+                RDPP.Loading ->
+                    ( model, Cmd.none )
+
+                _ ->
+                    ( project
+                        |> GetterSetters.projectSetSecurityGroupsLoading
+                        |> GetterSetters.modelUpdateProject model
+                    , Rest.Neutron.requestSecurityGroups project
+                    )
 
         Nothing ->
             ( model, Cmd.none )
