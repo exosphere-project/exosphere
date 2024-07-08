@@ -13,6 +13,7 @@ module OpenStack.SecurityGroupRule exposing
     , portRangeToString
     , protocolToString
     , securityGroupRuleDecoder
+    , securityGroupRuleDiff
     , stringToSecurityGroupRuleProtocol
     )
 
@@ -92,6 +93,29 @@ defaultExosphereRules =
     , buildRuleIcmp
     , buildRuleExposeAllIncomingPorts
     ]
+
+
+{-| Returns rules that are in the first list but not in the second list. (Difference read as A minus B.)
+-}
+securityGroupRuleDiff : List SecurityGroupRule -> List SecurityGroupRule -> List SecurityGroupRule
+securityGroupRuleDiff rulesA rulesB =
+    rulesA
+        |> List.filterMap
+            (\defaultRule ->
+                let
+                    ruleExists =
+                        rulesB
+                            |> List.any
+                                (\existingRule ->
+                                    matchRule existingRule defaultRule
+                                )
+                in
+                if ruleExists then
+                    Nothing
+
+                else
+                    Just defaultRule
+            )
 
 
 type alias SecurityGroupRuleUuid =

@@ -25,7 +25,7 @@ import Http
 import Json.Decode as Decode
 import Json.Encode as Encode
 import List.Extra
-import OpenStack.SecurityGroupRule as SecurityGroupRule exposing (SecurityGroupRule, securityGroupRuleDecoder)
+import OpenStack.SecurityGroupRule as SecurityGroupRule exposing (SecurityGroupRule, SecurityGroupRuleUuid, securityGroupRuleDecoder)
 import OpenStack.Types as OSTypes
 import Rest.Helpers
     exposing
@@ -449,6 +449,30 @@ requestCreateSecurityGroupRules project group rules errorMessage =
     bodies |> List.map buildRequestCmd
 
 
+requestDeleteSecurityGroupRules : Project -> List SecurityGroupRuleUuid -> String -> List (Cmd SharedMsg)
+requestDeleteSecurityGroupRules project ruleUuids errorMessage =
+    let
+        errorContext =
+            ErrorContext
+                errorMessage
+                ErrorWarn
+                Nothing
+
+        buildRequestCmd uuid =
+            openstackCredentialedRequest
+                (GetterSetters.projectIdentifier project)
+                Delete
+                Nothing
+                []
+                (project.endpoints.neutron ++ "/v2.0/security-group-rules/" ++ uuid)
+                Http.emptyBody
+                (expectStringWithErrorBody
+                    (resultToMsgErrorBody errorContext (\_ -> NoOp))
+                )
+    in
+    ruleUuids |> List.map buildRequestCmd
+
+
 
 {- HTTP Response Handling -}
 
@@ -578,11 +602,15 @@ receiveSecurityGroupsAndEnsureExoGroup model project securityGroups =
     ( newModel, Cmd.batch cmds )
 
 
+{-| Check rules & ensure rules are the latest set and none are missing.
+
+  - If rules are missing, request to create them.
+  - If there are extra rules, request to delete them.
+    (Esp. since the default OpenStack Networking security group rules are added to all new groups.)
+
+-}
 requestCreateMissingSecurityGroupRules : Project -> OSTypes.SecurityGroup -> OSTypes.SecurityGroupTemplate -> List (Cmd SharedMsg)
 requestCreateMissingSecurityGroupRules project exoGroup securityGroupTemplate =
-    -- check rules, ensure rules are latest set and none missing
-    -- if rules are missing, request to create them
-    -- TODO: Subtract additional rules since the default OpenStack Networking security group rules might not align with our defaults.
     let
         existingRules =
             exoGroup.rules
@@ -591,29 +619,20 @@ requestCreateMissingSecurityGroupRules project exoGroup securityGroupTemplate =
             securityGroupTemplate.rules
 
         missingRules =
-            defaultExosphereRules
-                |> List.filterMap
-                    (\defaultRule ->
-                        let
-                            ruleExists =
-                                existingRules
-                                    |> List.any
-                                        (\existingRule ->
-                                            SecurityGroupRule.matchRule existingRule defaultRule
-                                        )
-                        in
-                        if ruleExists then
-                            Nothing
+            SecurityGroupRule.securityGroupRuleDiff defaultExosphereRules existingRules
 
-                        else
-                            Just defaultRule
-                    )
+        extraRules =
+            SecurityGroupRule.securityGroupRuleDiff existingRules defaultExosphereRules
     in
     requestCreateSecurityGroupRules
         project
         exoGroup
         missingRules
         ("create missing rules for " ++ securityGroupTemplate.name ++ " security group")
+        ++ requestDeleteSecurityGroupRules
+            project
+            (extraRules |> List.map .uuid)
+            ("remove extra rules from " ++ securityGroupTemplate.name ++ " security group")
 
 
 receiveCreateExoSecurityGroupAndRequestCreateRules : SharedModel -> Project -> OSTypes.SecurityGroup -> OSTypes.SecurityGroupTemplate -> ( SharedModel, Cmd SharedMsg )
