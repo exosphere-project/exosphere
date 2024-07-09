@@ -2116,24 +2116,36 @@ processProjectSpecificMsg outerModel project msg =
 
         ReceiveUpdateSecurityGroupTags ( securityGroupUuid, tags ) ->
             let
-                newSecurityGroups =
+                { data, refreshStatus } =
                     project.securityGroups
-                        |> RDPP.withDefault []
-                        |> List.map
-                            (\sg ->
-                                if sg.uuid == securityGroupUuid then
-                                    { sg | tags = tags }
 
-                                else
-                                    sg
-                            )
+                newSecurityGroups =
+                    case data of
+                        -- Update tags, preserving loading/cache state of security groups.
+                        RDPP.DoHave groups receivedTime ->
+                            RDPP.RemoteDataPlusPlus
+                                (RDPP.DoHave
+                                    (List.map
+                                        (\sg ->
+                                            if sg.uuid == securityGroupUuid then
+                                                { sg | tags = tags }
+
+                                            else
+                                                sg
+                                        )
+                                        groups
+                                    )
+                                    receivedTime
+                                )
+                                refreshStatus
+
+                        _ ->
+                            project.securityGroups
 
                 newProject =
                     { project
                         | securityGroups =
-                            RDPP.RemoteDataPlusPlus
-                                (RDPP.DoHave newSecurityGroups sharedModel.clientCurrentTime)
-                                (RDPP.NotLoading Nothing)
+                            newSecurityGroups
                     }
 
                 newModel =
