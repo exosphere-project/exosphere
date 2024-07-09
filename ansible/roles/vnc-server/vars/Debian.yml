@@ -1,5 +1,14 @@
 ---
 
+vncserver_repos:
+  - name: VirtualGL
+    key: https://packagecloud.io/dcommander/virtualgl/gpgkey
+    repo: deb [signed-by=/etc/apt/trusted.gpg.d/VirtualGL.asc] https://packagecloud.io/dcommander/virtualgl/any/ any main
+  - name: TurboVNC
+    key: https://packagecloud.io/dcommander/turbovnc/gpgkey
+    repo: deb [signed-by=/etc/apt/trusted.gpg.d/TurboVNC.asc] https://packagecloud.io/dcommander/turbovnc/any/ any main
+
 vncserver_packages:
-  - 'tigervnc-standalone-server'
+  - 'virtualgl'
+  - 'turbovnc'
   - 'dbus-x11'

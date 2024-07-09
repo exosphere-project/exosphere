@@ -11,12 +11,6 @@
       paths:
         - "{{ role_path }}/vars"
 
-- name: 'VNC server packages installed'
-  package:
-    name: '{{ item }}'
-    state: 'present'
-  loop: '{{ vncserver_packages }}'
-
 - name: 'user-specific VNC configuration directory created'
   file:
     path: '/home/{{ vnc_server_user }}/.vnc'
