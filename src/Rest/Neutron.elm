@@ -751,4 +751,4 @@ securityGroupValueDecoder =
         (Decode.field "description" (Decode.nullable Decode.string))
         (Decode.field "security_group_rules" (Decode.list securityGroupRuleDecoder))
         (Decode.field "created_at" (Decode.string |> Decode.andThen Helpers.Time.makeIso8601StringToPosixDecoder))
-        (Decode.field "tags" (Decode.list Decode.string))
+        tagDecoder

@@ -343,16 +343,18 @@ requestCreateServer project createServerRequest =
                         Just keypairName ->
                             [ ( "key_name", Encode.string keypairName ) ]
 
-                securityGroupUuid =
-                    Maybe.withDefault "" createServerRequest.securityGroupUuid
-
                 securityGroupName =
-                    case ( String.isEmpty securityGroupUuid, GetterSetters.securityGroupLookup project securityGroupUuid ) of
-                        ( False, Just sg ) ->
-                            sg.name
-
-                        _ ->
+                    case createServerRequest.securityGroupUuid of
+                        Nothing ->
                             "exosphere"
+
+                        Just uuid ->
+                            case GetterSetters.securityGroupLookup project uuid of
+                                Nothing ->
+                                    "exosphere"
+
+                                Just sg ->
+                                    sg.name
             in
             List.append
                 maybeKeypairJson
