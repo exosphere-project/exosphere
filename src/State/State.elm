@@ -2067,6 +2067,8 @@ processProjectSpecificMsg outerModel project msg =
                     Rest.Neutron.receiveSecurityGroupsAndEnsureExoGroup sharedModel project groups
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
+                        -- Make the page aware of the shared msg.
+                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerCreateMsg <| Page.ServerCreate.GotSecurityGroups groups))
 
                 Err httpError ->
                     let

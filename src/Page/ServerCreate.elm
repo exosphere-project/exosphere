@@ -77,6 +77,7 @@ type Msg
     | GotAutoAllocatedNetwork OSTypes.NetworkUuid
     | GotShowAdvancedOptions Bool
     | GotKeypairName (Maybe String)
+    | GotSecurityGroups (List OSTypes.SecurityGroup)
     | GotSecurityGroupUuid (Maybe OSTypes.SecurityGroupUuid)
     | GotDeployGuacamole (Maybe Bool)
     | GotDeployDesktopEnvironment Bool
@@ -105,7 +106,16 @@ init project imageUuid imageName restrictFlavorIds deployGuacamole =
     , networkUuid = Nothing
     , showAdvancedOptions = False
     , keypairName = initialKeypairName project
-    , securityGroupUuid = Nothing
+    , securityGroupUuid =
+        case project.securityGroups.data of
+            RDPP.DoHave securityGroups _ ->
+                securityGroups
+                    |> List.filter isDefaultSecurityGroup
+                    |> List.head
+                    |> Maybe.map .uuid
+
+            _ ->
+                Nothing
     , deployGuacamole = deployGuacamole
     , deployDesktopEnvironment = False
     , installOperatingSystemUpdates = True
@@ -278,6 +288,21 @@ update msg project model =
 
         GotSecurityGroupUuid maybeSecurityGroupUuid ->
             ( { model | securityGroupUuid = maybeSecurityGroupUuid }, Cmd.none, SharedMsg.NoOp )
+
+        GotSecurityGroups securityGroups ->
+            -- SharedModel just updated with new security groups. If we don't have anything selected yet, choose the default.
+            if model.securityGroupUuid == Nothing then
+                let
+                    defaultSecurityGroupUuid =
+                        securityGroups
+                            |> List.filter isDefaultSecurityGroup
+                            |> List.head
+                            |> Maybe.map .uuid
+                in
+                ( { model | securityGroupUuid = defaultSecurityGroupUuid }, Cmd.none, SharedMsg.NoOp )
+
+            else
+                ( model, Cmd.none, SharedMsg.NoOp )
 
         GotDeployGuacamole maybeDeployGuacamole ->
             ( { model | deployGuacamole = maybeDeployGuacamole }, Cmd.none, SharedMsg.NoOp )
@@ -1884,20 +1909,15 @@ securityGroupPicker context project model =
                     securityGroups
                         |> List.filter (securityGroupTaggedAs securityGroupExoTags.preset)
 
-                default =
+                defaults =
                     securityGroups
                         |> List.filter isDefaultSecurityGroup
             in
             Input.radio [ Element.spacing spacer.px4 ]
                 { label = Input.labelHidden promptText
                 , onChange = \securityGroupUuid -> GotSecurityGroupUuid <| securityGroupUuid
-                , options = List.map securityGroupAsOption (default ++ presets)
-                , selected =
-                    if model.securityGroupUuid == Nothing then
-                        Just (List.head default |> Maybe.map .uuid)
-
-                    else
-                        Just model.securityGroupUuid
+                , options = List.map securityGroupAsOption (defaults ++ presets)
+                , selected = Just model.securityGroupUuid
                 }
     in
     Element.column
