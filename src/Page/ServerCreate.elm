@@ -23,6 +23,7 @@ import Maybe
 import OpenStack.Quotas as OSQuotas
 import OpenStack.ServerNameValidator exposing (serverNameValidator)
 import OpenStack.Types as OSTypes exposing (isDefaultSecurityGroup, securityGroupExoTags, securityGroupTaggedAs)
+import Page.SecurityGroupRulesTable as SecurityGroupRulesTable
 import Rest.Naming
 import Route
 import ServerDeploy exposing (cloudInitUserDataTemplate)
@@ -1231,7 +1232,7 @@ customWorkflowInputExperimental context project model =
                         ]
                     ]
                 )
-                ST.PositionTop
+                ST.PositionRight
 
         experimentalTag =
             Tag.tag context.palette "Experimental"
@@ -1877,7 +1878,7 @@ keypairPicker context project model =
 securityGroupPicker : View.Types.Context -> Project -> Model -> Element.Element Msg
 securityGroupPicker context project model =
     let
-        securityGroupAsOption : OSTypes.SecurityGroup -> Input.Option (Maybe String) msg
+        securityGroupAsOption : OSTypes.SecurityGroup -> Input.Option (Maybe String) Msg
         securityGroupAsOption securityGroup =
             let
                 description =
@@ -1889,11 +1890,27 @@ securityGroupPicker context project model =
 
                     else
                         " - " ++ description
+
+                rulesTable securityGroupUuid =
+                    SecurityGroupRulesTable.view context project securityGroupUuid
             in
             Input.option (Just securityGroup.uuid)
-                (Element.el
-                    [ Element.width <| Element.maximum 600 <| Element.fill, Element.htmlAttribute <| Html.Attributes.style "min-width" "0" ]
-                    (VH.ellipsizedText (securityGroup.name ++ extraInfo))
+                (Element.row []
+                    [ Element.el
+                        [ Element.width <| Element.maximum 600 <| Element.fill, Element.htmlAttribute <| Html.Attributes.style "min-width" "0" ]
+                        (VH.ellipsizedText (securityGroup.name ++ extraInfo))
+                    , Style.Widgets.ToggleTip.toggleTip
+                        context
+                        (SharedMsg << SharedMsg.TogglePopover)
+                        (Helpers.String.hyphenate
+                            [ "securityGroupRulesId"
+                            , project.auth.project.uuid
+                            , securityGroup.uuid
+                            ]
+                        )
+                        (rulesTable securityGroup.uuid)
+                        ST.PositionRight
+                    ]
                 )
 
         promptText =
