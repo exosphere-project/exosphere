@@ -342,6 +342,19 @@ requestCreateServer project createServerRequest =
 
                         Just keypairName ->
                             [ ( "key_name", Encode.string keypairName ) ]
+
+                securityGroupName =
+                    case createServerRequest.securityGroupUuid of
+                        Nothing ->
+                            "exosphere"
+
+                        Just uuid ->
+                            case GetterSetters.securityGroupLookup project uuid of
+                                Nothing ->
+                                    "exosphere"
+
+                                Just sg ->
+                                    sg.name
             in
             List.append
                 maybeKeypairJson
@@ -349,7 +362,7 @@ requestCreateServer project createServerRequest =
                 , ( "flavorRef", Encode.string innerCreateServerRequest.flavorId )
                 , ( "networks", Encode.list Encode.object [ [ ( "uuid", Encode.string innerCreateServerRequest.networkUuid ) ] ] )
                 , ( "user_data", Encode.string (Base64.encode createServerRequest.userData) )
-                , ( "security_groups", Encode.array Encode.object (Array.fromList [ [ ( "name", Encode.string "exosphere" ) ] ]) )
+                , ( "security_groups", Encode.array Encode.object (Array.fromList [ [ ( "name", Encode.string securityGroupName ) ] ]) )
                 , ( "metadata", Encode.object createServerRequest.metadata )
                 ]
 

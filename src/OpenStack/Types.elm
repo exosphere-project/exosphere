@@ -101,6 +101,9 @@ module OpenStack.Types exposing
     , boolToShareVisibility
     , defaultShareTypeNameForProtocol
     , imageVisibilityToString
+    , isDefaultSecurityGroup
+    , securityGroupExoTags
+    , securityGroupTaggedAs
     , serverPowerStateToString
     , serverStatusToString
     , shareProtocolToString
@@ -572,6 +575,7 @@ type alias CreateServerRequest =
     , volBackedSizeGb : Maybe VolumeSize
     , networkUuid : NetworkUuid
     , keypairName : Maybe String
+    , securityGroupUuid : Maybe SecurityGroupUuid
     , userData : String
     , metadata : List ( String, Json.Encode.Value )
     }
@@ -795,6 +799,29 @@ type alias SecurityGroup =
     , createdAt : Time.Posix
     , tags : List SecurityGroupTag
     }
+
+
+{-|
+
+    Tags for security groups that provide special Exosphere functionality.
+
+-}
+securityGroupExoTags : { preset : SecurityGroupTag }
+securityGroupExoTags =
+    { preset = "exo:preset"
+    }
+
+
+securityGroupTaggedAs : SecurityGroupTag -> SecurityGroup -> Bool
+securityGroupTaggedAs tag sg =
+    sg.tags
+        |> List.member tag
+
+
+isDefaultSecurityGroup : SecurityGroup -> Bool
+isDefaultSecurityGroup sg =
+    -- TODO: securityGroupTaggedAs "default" sg
+    sg.name == "exosphere"
 
 
 {-|

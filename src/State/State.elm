@@ -1434,6 +1434,7 @@ processProjectSpecificMsg outerModel project msg =
                             |> Maybe.andThen Style.Widgets.NumericTextInput.NumericTextInput.toMaybe
                     , networkUuid = networkUuid
                     , keypairName = pageModel.keypairName
+                    , securityGroupUuid = pageModel.securityGroupUuid
                     , userData =
                         Helpers.renderUserDataTemplate
                             project
@@ -2066,6 +2067,8 @@ processProjectSpecificMsg outerModel project msg =
                     Rest.Neutron.receiveSecurityGroupsAndEnsureExoGroup sharedModel project groups
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
+                        -- Make the page aware of the shared msg.
+                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerCreateMsg <| Page.ServerCreate.GotSecurityGroups groups))
 
                 Err httpError ->
                     let
@@ -2108,6 +2111,51 @@ processProjectSpecificMsg outerModel project msg =
                     State.Error.processSynchronousApiError newModel errorContext httpError
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
+
+        RequestUpdateSecurityGroupTags securityGroupUuid tags ->
+            ( outerModel, Rest.Neutron.requestUpdateSecurityGroupTags project securityGroupUuid tags )
+                |> mapToOuterMsg
+
+        ReceiveUpdateSecurityGroupTags ( securityGroupUuid, tags ) ->
+            let
+                { data, refreshStatus } =
+                    project.securityGroups
+
+                newSecurityGroups =
+                    case data of
+                        -- Update tags, preserving loading/cache state of security groups.
+                        RDPP.DoHave groups receivedTime ->
+                            RDPP.RemoteDataPlusPlus
+                                (RDPP.DoHave
+                                    (List.map
+                                        (\sg ->
+                                            if sg.uuid == securityGroupUuid then
+                                                { sg | tags = tags }
+
+                                            else
+                                                sg
+                                        )
+                                        groups
+                                    )
+                                    receivedTime
+                                )
+                                refreshStatus
+
+                        _ ->
+                            project.securityGroups
+
+                newProject =
+                    { project
+                        | securityGroups =
+                            newSecurityGroups
+                    }
+
+                newModel =
+                    GetterSetters.modelUpdateProject sharedModel newProject
+            in
+            ( newModel, Cmd.none )
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
 
         ReceiveCreateShare share ->
             ( outerModel

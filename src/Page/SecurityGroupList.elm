@@ -8,13 +8,13 @@ import Helpers.Formatting exposing (humanCount)
 import Helpers.GetterSetters as GetterSetters exposing (LoadingProgress(..))
 import Helpers.ResourceList exposing (creationTimeFilterOptions, listItemColumnAttribs, onCreationTimeFilter)
 import Helpers.String exposing (pluralizeCount)
-import OpenStack.Types as OSTypes
+import OpenStack.Types as OSTypes exposing (isDefaultSecurityGroup, securityGroupExoTags, securityGroupTaggedAs)
 import Route
 import Style.Helpers as SH
 import Style.Widgets.DataList as DataList
 import Style.Widgets.HumanTime exposing (relativeTimeElement)
 import Style.Widgets.Spacer exposing (spacer)
-import Style.Widgets.Tag exposing (tag)
+import Style.Widgets.Tag exposing (tag, tagNeutral, tagPositive)
 import Style.Widgets.Text as Text
 import Time
 import Types.Project exposing (Project)
@@ -166,13 +166,30 @@ securityGroupView context project currentTime securityGroupRecord =
         unused =
             numberOfServers == 0
 
+        preset =
+            if securityGroupTaggedAs securityGroupExoTags.preset securityGroupRecord.securityGroup then
+                tagPositive context.palette "preset"
+
+            else
+                Element.none
+
+        default =
+            if isDefaultSecurityGroup securityGroupRecord.securityGroup then
+                tagNeutral context.palette "default"
+
+            else
+                Element.none
+
         tags =
-            case ( progress, unused ) of
+            [ preset
+            , default
+            , case ( progress, unused ) of
                 ( Done, True ) ->
                     tag context.palette "unused"
 
                 _ ->
                     Element.none
+            ]
 
         serverCount =
             Element.el []
@@ -197,7 +214,7 @@ securityGroupView context project currentTime securityGroupRecord =
             Element.el [ Font.color accentColor ]
 
         actions =
-            Element.none
+            [ Element.none ]
     in
     Element.column
         (listItemColumnAttribs context.palette)
@@ -215,8 +232,8 @@ securityGroupView context project currentTime securityGroupRecord =
                     , serverCount
                     ]
                 ]
-            , Element.column [ Element.alignRight, Element.alignTop ]
-                [ tags, actions ]
+            , Element.row [ Element.spacing spacer.px4, Element.alignRight, Element.alignTop ]
+                (tags ++ actions)
             ]
         ]
 

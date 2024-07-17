@@ -35,7 +35,7 @@ import Style.Widgets.Popover.Popover exposing (popover, toggleIfTargetIsOutside)
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.StatusBadge as StatusBadge exposing (StatusBadgeState(..), statusBadgeWithSize)
-import Style.Widgets.Tag exposing (tag)
+import Style.Widgets.Tag exposing (tag, tagNeutral, tagPositive)
 import Style.Widgets.Text as Text
 import Style.Widgets.Toast as Toast
 import Time
@@ -524,7 +524,11 @@ Exosphere uses buttons from [elm-ui-widgets](https://package.elm-lang.org/packag
                 , IconButtonStories.stories toHtml
                 , storiesOf
                     "Tag"
-                    [ ( "default", \m -> toHtml (palettize m) <| tag (palettize m) "Experimental", { note = """
+                    (List.map
+                        (\t ->
+                            ( t.name
+                            , \m -> toHtml (palettize m) <| t.widget (palettize m) t.text
+                            , { note = """
 ## Usage
 
 To annotate additional but important information like marking features as "Experimental".
@@ -535,8 +539,14 @@ To annotate additional but important information like marking features as "Exper
 If you are looking for a way to display removable tags, consider a [chip](/#Organisms/Chip).
 
 If you want to show a resource's current state or provide feedback on a process, consider using a [status badge](/#Atoms/Status%20Badge).
-                        """ } )
-                    ]
+                        """ }
+                            )
+                        )
+                        [ { name = "default", widget = tag, text = "Experimental" }
+                        , { name = "positive", widget = tagPositive, text = "preset" }
+                        , { name = "neutral", widget = tagNeutral, text = "default" }
+                        ]
+                    )
                 , storiesOf
                     "Status Badge"
                     (List.map
