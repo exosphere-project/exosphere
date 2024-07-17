@@ -10,6 +10,7 @@ import Json.Decode as Decode
 import LocalStorage.LocalStorage as LocalStorage
 import LocalStorage.Types as LocalStorageTypes
 import Maybe
+import OpenStack.SecurityGroupRule exposing (securityGroupRuleDecoder)
 import OpenStack.Types as OSTypes
 import Ports
 import Random
@@ -361,13 +362,14 @@ decodeCloudSpecificConfigs value =
 
 cloudSpecificConfigDecoder : Decode.Decoder ( HelperTypes.KeystoneHostname, HelperTypes.CloudSpecificConfig )
 cloudSpecificConfigDecoder =
-    Decode.map7 HelperTypes.CloudSpecificConfig
+    Decode.map8 HelperTypes.CloudSpecificConfig
         (Decode.field "friendlyName" Decode.string)
         (Decode.field "userAppProxy" (Decode.nullable (Decode.list userAppProxyConfigDecoder)))
         (Decode.field "imageExcludeFilter" (Decode.nullable metadataFilterDecoder))
         (Decode.field "featuredImageNamePrefix" (Decode.nullable Decode.string))
         (Decode.field "instanceTypes" (Decode.list instanceTypeDecoder))
         (Decode.field "flavorGroups" (Decode.list flavorGroupDecoder))
+        (Decode.maybe (Decode.field "securityGroups" (Decode.list securityGroupConfigDecoder)))
         (Decode.field "desktopMessage" (Decode.nullable Decode.string))
         |> Decode.andThen
             (\cloudSpecificConfig ->
@@ -381,6 +383,15 @@ userAppProxyConfigDecoder =
     Decode.map2 HelperTypes.UserAppProxyConfig
         (Decode.field "region" (Decode.nullable Decode.string))
         (Decode.field "hostname" Decode.string)
+
+
+securityGroupConfigDecoder : Decode.Decoder HelperTypes.SecurityGroupConfig
+securityGroupConfigDecoder =
+    Decode.map4 HelperTypes.SecurityGroupConfig
+        (Decode.field "name" Decode.string)
+        (Decode.field "description" (Decode.nullable Decode.string))
+        (Decode.maybe (Decode.field "region" Decode.string))
+        (Decode.field "rules" (Decode.list securityGroupRuleDecoder))
 
 
 metadataFilterDecoder : Decode.Decoder HelperTypes.MetadataFilter

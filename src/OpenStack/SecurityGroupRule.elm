@@ -441,12 +441,12 @@ securityGroupRuleDecoder : Decode.Decoder SecurityGroupRule
 securityGroupRuleDecoder =
     Decode.succeed
         SecurityGroupRule
-        |> Pipeline.required "id" Decode.string
+        |> Pipeline.optional "id" Decode.string ""
         |> Pipeline.required "ethertype" (Decode.string |> Decode.map stringToSecurityGroupRuleEthertype)
         |> Pipeline.required "direction" (Decode.string |> Decode.map stringToSecurityGroupRuleDirection)
-        |> Pipeline.required "protocol" (Decode.nullable (Decode.string |> Decode.map stringToSecurityGroupRuleProtocol))
-        |> Pipeline.required "port_range_min" (Decode.nullable Decode.int)
-        |> Pipeline.required "port_range_max" (Decode.nullable Decode.int)
-        |> Pipeline.required "remote_ip_prefix" (Decode.nullable Decode.string)
-        |> Pipeline.required "remote_group_id" (Decode.nullable Decode.string)
-        |> Pipeline.required "description" (Decode.nullable Decode.string)
+        |> Pipeline.optional "protocol" (Decode.nullable (Decode.string |> Decode.map stringToSecurityGroupRuleProtocol)) Nothing
+        |> Pipeline.optional "port_range_min" (Decode.nullable Decode.int) Nothing
+        |> Pipeline.optional "port_range_max" (Decode.nullable Decode.int) Nothing
+        |> Pipeline.optional "remote_ip_prefix" (Decode.nullable Decode.string) Nothing
+        |> Pipeline.optional "remote_group_id" (Decode.nullable Decode.string) Nothing
+        |> Pipeline.optional "description" (Decode.nullable Decode.string) Nothing
