@@ -73,6 +73,20 @@ buildRuleIcmp =
     }
 
 
+buildRuleMosh : SecurityGroupRule
+buildRuleMosh =
+    { uuid = ""
+    , ethertype = Ipv4
+    , direction = Ingress
+    , protocol = Just ProtocolUdp
+    , port_range_min = Just 60000
+    , port_range_max = Just 61000
+    , remoteIpPrefix = Nothing
+    , remoteGroupUuid = Nothing
+    , description = Just "Mosh"
+    }
+
+
 buildRuleExposeAllIncomingPorts : SecurityGroupRule
 buildRuleExposeAllIncomingPorts =
     { uuid = ""
@@ -87,11 +101,42 @@ buildRuleExposeAllIncomingPorts =
     }
 
 
+buildRuleAllowAllOutgoingIPv4 : SecurityGroupRule
+buildRuleAllowAllOutgoingIPv4 =
+    { uuid = ""
+    , ethertype = Ipv4
+    , direction = Egress
+    , protocol = Nothing
+    , port_range_min = Nothing
+    , port_range_max = Nothing
+    , remoteIpPrefix = Nothing
+    , remoteGroupUuid = Nothing
+    , description = Just "Allow all outgoing IPv4 traffic"
+    }
+
+
+buildRuleAllowAllOutgoingIPv6 : SecurityGroupRule
+buildRuleAllowAllOutgoingIPv6 =
+    { uuid = ""
+    , ethertype = Ipv6
+    , direction = Egress
+    , protocol = Nothing
+    , port_range_min = Nothing
+    , port_range_max = Nothing
+    , remoteIpPrefix = Nothing
+    , remoteGroupUuid = Nothing
+    , description = Just "Allow all outgoing IPv6 traffic"
+    }
+
+
 defaultExosphereRules : List SecurityGroupRule
 defaultExosphereRules =
     [ buildRuleTCP 22 "SSH"
     , buildRuleIcmp
+    , buildRuleMosh
     , buildRuleExposeAllIncomingPorts
+    , buildRuleAllowAllOutgoingIPv4
+    , buildRuleAllowAllOutgoingIPv6
     ]
 
 
