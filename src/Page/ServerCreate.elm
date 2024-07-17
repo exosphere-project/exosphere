@@ -53,6 +53,7 @@ import Types.HelperTypes as HelperTypes
         )
 import Types.Project exposing (Project)
 import Types.Server exposing (NewServerNetworkOptions(..), Server)
+import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
 import View.Forms as Forms exposing (Resource(..))
 import View.Helpers as VH exposing (edges)
@@ -94,8 +95,8 @@ type Msg
     | NoOp
 
 
-init : Project -> OSTypes.ImageUuid -> String -> Maybe (List OSTypes.FlavorId) -> Maybe Bool -> Model
-init project imageUuid imageName restrictFlavorIds deployGuacamole =
+init : View.Types.Context -> Project -> OSTypes.ImageUuid -> String -> Maybe (List OSTypes.FlavorId) -> Maybe Bool -> Model
+init context project imageUuid imageName restrictFlavorIds deployGuacamole =
     { serverName = ""
     , imageUuid = imageUuid
     , imageName = imageName
@@ -111,7 +112,7 @@ init project imageUuid imageName restrictFlavorIds deployGuacamole =
         case project.securityGroups.data of
             RDPP.DoHave securityGroups _ ->
                 securityGroups
-                    |> List.filter isDefaultSecurityGroup
+                    |> List.filter (isDefaultSecurityGroup context project)
                     |> List.head
                     |> Maybe.map .uuid
 
@@ -209,8 +210,8 @@ getAllowedFlavors model projectFlavors =
     GetterSetters.sortedFlavors allowedFlavors
 
 
-update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
-update msg project model =
+update : Msg -> SharedModel -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
+update msg { viewContext } project model =
     case msg of
         GotRandomServerName name ->
             ( { model | randomServerName = name, serverName = name }, Cmd.none, SharedMsg.NoOp )
@@ -296,7 +297,7 @@ update msg project model =
                 let
                     defaultSecurityGroupUuid =
                         securityGroups
-                            |> List.filter isDefaultSecurityGroup
+                            |> List.filter (isDefaultSecurityGroup viewContext project)
                             |> List.head
                             |> Maybe.map .uuid
                 in

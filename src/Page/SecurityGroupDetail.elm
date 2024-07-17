@@ -11,7 +11,7 @@ import Helpers.GetterSetters as GetterSetters exposing (LoadingProgress(..), isD
 import Helpers.Helpers exposing (serverCreatorName)
 import Helpers.String
 import Helpers.Time
-import OpenStack.Types as OSTypes exposing (SecurityGroup, isDefaultSecurityGroup, securityGroupExoTags, securityGroupTaggedAs)
+import OpenStack.Types as OSTypes exposing (SecurityGroup, securityGroupExoTags, securityGroupTaggedAs)
 import Page.SecurityGroupRulesTable exposing (rulesTable)
 import Route
 import Style.Helpers as SH

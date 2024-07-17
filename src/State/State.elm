@@ -440,7 +440,7 @@ updateUnderlying outerMsg outerModel =
                         ( ServerCreateMsg pageMsg, ServerCreate pageModel ) ->
                             let
                                 ( newSharedModel, cmd, sharedMsg ) =
-                                    Page.ServerCreate.update pageMsg project pageModel
+                                    Page.ServerCreate.update pageMsg sharedModel project pageModel
                             in
                             ( { outerModel
                                 | viewState =
