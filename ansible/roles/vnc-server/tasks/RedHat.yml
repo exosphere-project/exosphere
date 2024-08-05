@@ -1,51 +1,50 @@
 ---
 
-- name: 'systemd service override directory created'
-  file:
-    path: '/etc/tigervnc'
-    state: 'directory'
+- name: "vncserver repositories added"
+  loop: "{{ vncserver_repos }}"
+  ansible.builtin.get_url:
+    url: '{{ item.repo }}'
+    dest: '/etc/yum.repos.d/{{ item.name }}.repo'
 
-- name: 'vncserver.users exists'
-  file:
-    path: '/etc/tigervnc/vncserver.users'
-    state: touch
+- name: 'VNC server packages installed'
+  loop: '{{ vncserver_packages }}'
+  package:
+    name: '{{ item }}'
+    state: 'present'
 
-- name: 'vncserver-config-defaults exists'
-  file:
-    path: '/etc/tigervnc/vncserver-config-defaults'
-    state: touch
+- name: 'vglserver configured'
+  shell: 'vglserver_config -config -s -f +t'
 
-- name: 'vncserver.users populated'
-  lineinfile:
-    path: '/etc/tigervnc/vncserver.users'
-    line: ':1={{ vnc_server_user }}'
+- name: 'exouser added to vglusers user group'
+  user:
+    name: 'exouser'
+    append: 'yes'
+    groups:
+      - 'vglusers'
 
-- name: 'vncserver-config-defaults populated'
-  blockinfile:
-    path: '/etc/tigervnc/vncserver-config-defaults'
-    block: |
-      interface=172.17.0.1
-      localhost=no
-      session=gnome
-      rfbauth=/home/{{ vnc_server_user }}/.vnc/passwd
-      MaxCutText=99999999
+- name: "default VGL_DISPLAY to egl"
+  copy:
+    dest: /etc/profile.d/99-vgl_display.sh
+    mode: '0644'
+    content: |
+      export VGL_DISPLAY=egl
 
 - name: 'SELinux context restored for .vnc directory'
   command: 'restorecon -RFv /home/{{ vnc_server_user }}/.vnc'
 
-- name: 'systemd service override directory created'
-  file:
-    path: '/etc/systemd/system/vncserver@.service.d'
-    state: 'directory'
-
-- name: 'systemd service start order override templated'
+- name: 'systemd unit file templated'
   template:
-    src: 'start_order.conf.j2'
-    dest: '/etc/systemd/system/vncserver@.service.d/start_order.conf'
+    src: 'redhat-vncserver@.service.j2'
+    dest: '/etc/systemd/system/vncserver@.service'
+
+- name: 'firewall rules added for VNC port 5901'
+  shell: |
+    firewall-cmd --permanent --zone=public --add-port=5901/tcp
+    firewall-cmd --reload
 
 - name: 'systemd service enabled and started'
   systemd:
-    name: 'vncserver@:1.service'
+    name: 'vncserver@1.service'
     daemon_reload: 'yes'
     enabled: 'yes'
     state: 'started'

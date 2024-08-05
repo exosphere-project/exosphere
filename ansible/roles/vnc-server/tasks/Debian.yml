@@ -1,5 +1,42 @@
 ---
 
+- name: vncserver repository keys added
+  loop: '{{ vncserver_repos }}'
+  ansible.builtin.get_url:
+    url: '{{ item.key }}'
+    dest: /etc/apt/trusted.gpg.d/{{ item.name }}.asc
+    mode: '0644'
+
+- name: 'vncserver repositories added'
+  loop: '{{ vncserver_repos }}'
+  apt_repository:
+    filename: "{{ item.name }}.list"
+    repo: '{{ item.repo }}'
+    state: present
+
+- name: 'VNC server packages installed'
+  loop: '{{ vncserver_packages }}'
+  package:
+    name: '{{ item }}'
+    state: 'present'
+
+- name: 'vglserver configured'
+  shell: 'vglserver_config -config -s -f +t'
+
+- name: 'exouser added to vglusers user group'
+  user:
+    name: 'exouser'
+    append: 'yes'
+    groups:
+      - 'vglusers'
+
+- name: "default VGL_DISPLAY to egl"
+  copy:
+    dest: /etc/profile.d/99-vgl_display.sh
+    mode: '0644'
+    content: |
+      export VGL_DISPLAY=egl
+
 - name: 'system-wide VNC configuration directory created'
   file:
     path: '/etc/vnc'

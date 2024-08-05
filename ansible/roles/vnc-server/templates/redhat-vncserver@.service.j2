@@ -1,16 +1,12 @@
 [Unit]
 Description=TurboVNC Server
-BindsTo=sys-devices-virtual-net-docker0.device
-After=syslog.target network.target sys-devices-virtual-net-docker0.device
-StartLimitIntervalSec=300
-StartLimitBurst=5
+After=syslog.target network.target
 
 [Service]
 Type=simple
 User={{ vnc_server_user }}
 PAMName=login
 PIDFile=/home/{{ vnc_server_user }}/.vnc/%H%i.pid
-ExecStartPre=/bin/sh -c 'ip address show dev docker0 | grep -q 172.17.0.1'
 ExecStartPre=-/opt/TurboVNC/bin/vncserver -kill :%i
 ExecStart=/opt/TurboVNC/bin/vncserver -fg -rfbauth /home/{{ vnc_server_user }}/.vnc/passwd :%i
 ExecStop=/opt/TurboVNC/bin/vncserver -kill :%i
