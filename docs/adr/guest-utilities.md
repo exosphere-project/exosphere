@@ -36,16 +36,16 @@ The most straightforward implementation is an HTTP daemon running on every insta
 
 Chosing an appropriate language is important. Existing developers on the Exosphere project will need familiarity to maintain and extend the codebase.
 
-#### Python
+#### Rust
 
 Pros: 
-* Already used within the Exosphere project
-* Rapid development
-* Easily deployed through `pip` or [`.pyz` (zip-apps)](https://docs.python.org/3/library/zipapp.html)
+* Far lower memory usage (~30MB vs Python around 300MB)
+* Strictly typed, compiler guarantees provide memory safety
 
 Cons:
-* Memory usage. Python web servers commonly require well into the hundreds of megabytes of RAM
-* Alma 8 currently ships Python 3.6.8, which has been deprecated by most modern Python frameworks
+* Somewhat more challenging to develop
+* Primary deployment strategy is shipping pre-built binaries
+* New language added to the Exosphere project
 
 ### Security
 
@@ -171,7 +171,7 @@ Note: mounts and shares are currently separated, due to the different requiremen
 `self` methods exist to support version upgrades
 
 - `self.check_updates`  
-  Check pypi (or other used distribution method) for available updates
+  Check releases (or other used distribution method) for available updates
 
 - `self.upgrade`
   Download the newest version of the guest utilities, and restart the daemon
@@ -207,14 +207,16 @@ All such notifications will start with `notify.` for clarity. Many notifications
 
 ## Decision and Consequences
 
-- Create an `exosphere-guest-utilities` python package
+- Create an `exosphere-guest-utilities` rust project
   - Implement an HTTP / Websocket service, exposing a OpenRPC documented JSON-RPC 2.0 interface
-    - [https://python-openrpc.burkard.cloud/](python-openrpc) is an easy toolkit for building the JSON-RPC router and exporting the schema
+    - [https://crates.io/crates/jsonrpsee](jsonrpsee) provides a JSON-RPC implementation
+    - [https://crates.io/crates/axum](axum) is a powerful library for developing web applications
+    - [https://github.com/MystenLabs/sui/tree/main/crates/sui-json-rpc](sui-json-rpc) has macros allowing auto-generation of the OpenRPC schema
   - Extend the current `cloud-config` or `ansible` to deploy this to /opt/exosphere_guest_utils and enable the service
 
 ## Elm Client implementation
 
-The proposed structure is split into four components
+The proposed structure is split into three components
 
 1. Types
     
