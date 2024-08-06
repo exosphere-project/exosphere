@@ -76,6 +76,7 @@ view : ExoPalette -> Time.Posix -> BannerModel -> Element.Element msg
 view palette clientCurrentTime model =
     Element.column
         [ Element.width Element.fill
+        , Element.spacing spacer.px4
         ]
         (model.banners
             |> List.filterMap
