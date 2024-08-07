@@ -47,6 +47,17 @@ Cons:
 * Primary deployment strategy is shipping pre-built binaries
 * New language added to the Exosphere project
 
+#### Python
+
+Pros: 
+* Already used within the Exosphere project
+* Rapid development
+* Easily deployed through `pip` or [`.pyz` (zip-apps)](https://docs.python.org/3/library/zipapp.html)
+
+Cons:
+* Memory usage. Python web servers commonly require well into the hundreds of megabytes of RAM
+* Alma 8 currently ships Python 3.6.8, which has been deprecated by most modern Python frameworks
+
 ### Security
 
 Adding an exposed service to instances is a security concern. To minimize this risk, the service will be installed and run as a non-root service user. `/opt/exoguest` will be created and ownership changed to the service user. `/opt/exoguest/data` will be used to store configuration files and generated systemd mount and services. 
@@ -209,9 +220,12 @@ All such notifications will start with `notify.` for clarity. Many notifications
 
 - Create an `exosphere-guest-utilities` rust project
   - Implement an HTTP / Websocket service, exposing a OpenRPC documented JSON-RPC 2.0 interface
-    - [https://crates.io/crates/jsonrpsee](jsonrpsee) provides a JSON-RPC implementation
-    - [https://crates.io/crates/axum](axum) is a powerful library for developing web applications
-    - [https://github.com/MystenLabs/sui/tree/main/crates/sui-json-rpc](sui-json-rpc) has macros allowing auto-generation of the OpenRPC schema
+    - For Rust
+      - [https://crates.io/crates/jsonrpsee](jsonrpsee) provides a JSON-RPC implementation
+      - [https://crates.io/crates/axum](axum) is a powerful library for developing web applications
+      - [https://github.com/MystenLabs/sui/tree/main/crates/sui-json-rpc](sui-json-rpc) has macros allowing auto-generation of the OpenRPC schema
+    - For Python
+      - [https://python-openrpc.burkard.cloud/](python-openrpc) is an easy toolkit for building the JSON-RPC router and exporting the schema
   - Extend the current `cloud-config` or `ansible` to deploy this to /opt/exosphere_guest_utils and enable the service
 
 ## Elm Client implementation
