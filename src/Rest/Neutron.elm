@@ -347,15 +347,12 @@ requestSecurityGroups project =
 requestCreateExoSecurityGroup : Project -> OSTypes.SecurityGroupTemplate -> Cmd SharedMsg
 requestCreateExoSecurityGroup project securityGroup =
     let
-        desc =
-            "Security group for instances launched via Exosphere"
-
         requestBody =
             Encode.object
                 [ ( "security_group"
                   , Encode.object
                         [ ( "name", Encode.string securityGroup.name )
-                        , ( "description", Encode.string <| Maybe.withDefault desc securityGroup.description )
+                        , ( "description", Encode.string <| Maybe.withDefault "" securityGroup.description )
                         ]
                   )
                 ]
@@ -571,7 +568,7 @@ receiveDeleteFloatingIp model project uuid =
 
 receiveSecurityGroupsAndEnsureExoGroup : SharedModel -> Project -> List OSTypes.SecurityGroup -> ( SharedModel, Cmd SharedMsg )
 receiveSecurityGroupsAndEnsureExoGroup model project securityGroups =
-    {- Create an "exosphere" security group unless one already exists -}
+    {- Create a default security group unless one already exists -}
     let
         newSecurityGroups =
             RDPP.RemoteDataPlusPlus
@@ -590,10 +587,10 @@ receiveSecurityGroupsAndEnsureExoGroup model project securityGroups =
 
         cmds =
             case List.Extra.find (\a -> a.name == defaultSecurityGroup.name) securityGroups of
-                Just exoGroup ->
+                Just defaultGroup ->
                     requestCreateMissingSecurityGroupRules
                         newProject
-                        exoGroup
+                        defaultGroup
                         defaultSecurityGroup
 
                 Nothing ->
