@@ -3505,6 +3505,7 @@ createProject_ outerModel description authToken region endpoints =
             , networkQuota = RDPP.empty
             , shareQuota = RDPP.empty
             , jetstream2Allocations = RDPP.empty
+            , knownUsernames = Dict.empty
             }
 
         newSharedModel =

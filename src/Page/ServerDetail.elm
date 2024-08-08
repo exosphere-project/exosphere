@@ -218,7 +218,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                 ]
 
         creatorName =
-            serverCreatorName server
+            serverCreatorName project server
 
         maybeFlavor =
             GetterSetters.flavorLookup project details.flavorId

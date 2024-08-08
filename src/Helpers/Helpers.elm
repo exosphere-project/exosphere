@@ -5,6 +5,7 @@ module Helpers.Helpers exposing
     , hiddenActionContexts
     , httpErrorToString
     , httpErrorWithBodyToString
+    , lookupUsername
     , naiveUuidParser
     , newServerMetadata
     , newServerNetworkOptions
@@ -27,6 +28,7 @@ module Helpers.Helpers exposing
 -- Many functions which get and set things in the data model have been moved from here to GetterSetters.elm.
 -- Getter/setter functions that remain here are too "smart" (too much business logic) for GetterSetters.elm.
 
+import Dict
 import Helpers.Credentials as Credentials
 import Helpers.ExoSetupStatus
 import Helpers.GetterSetters as GetterSetters
@@ -36,6 +38,7 @@ import Http
 import Json.Decode as Decode
 import Json.Encode
 import List.Extra
+import Maybe.Extra
 import OpenStack.Types as OSTypes
 import Parser exposing ((|.))
 import Regex
@@ -652,19 +655,23 @@ serverOrigin serverDetails =
             ServerNotFromExo
 
 
-serverCreatorName : Server -> String
-serverCreatorName server =
-    case server.exoProps.serverOrigin of
-        ServerFromExo exoOriginProps ->
-            case exoOriginProps.exoCreatorUsername of
-                Just creatorUsername ->
-                    creatorUsername
+serverCreatorName : Project -> Server -> String
+serverCreatorName project server =
+    Maybe.Extra.or
+        (lookupUsername project server.osProps.details.userUuid)
+        (case server.exoProps.serverOrigin of
+            ServerFromExo exoOriginProps ->
+                exoOriginProps.exoCreatorUsername
 
-                Nothing ->
-                    "unknown user"
+            _ ->
+                Nothing
+        )
+        |> Maybe.withDefault "unknown user"
 
-        _ ->
-            "unknown user"
+
+lookupUsername : Project -> OSTypes.UserUuid -> Maybe String
+lookupUsername project userUuid =
+    Dict.get userUuid project.knownUsernames
 
 
 encodeCustomWorkflowSource : CustomWorkflowSource -> List ( String, Json.Encode.Value )

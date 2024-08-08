@@ -1,13 +1,13 @@
 module Page.ShareList exposing (Model, Msg, init, update, view)
 
-import Dict
 import Element
 import Element.Font as Font
 import FeatherIcons
 import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (Unit(..), humanNumber)
 import Helpers.GetterSetters as GetterSetters
-import Helpers.ResourceList exposing (creationTimeFilterOptions, listItemColumnAttribs, onCreationTimeFilter)
+import Helpers.Helpers exposing (lookupUsername)
+import Helpers.ResourceList exposing (creationTimeFilterOptions, creatorFilterOptions, listItemColumnAttribs, onCreationTimeFilter)
 import Helpers.String
 import OpenStack.Types as OSTypes exposing (ShareStatus(..))
 import Page.QuotaUsage
@@ -40,9 +40,9 @@ type Msg
     | GotDeleteConfirm OSTypes.ShareUuid
 
 
-init : Bool -> Model
-init showHeading =
-    Model showHeading (DataList.init <| DataList.getDefaultFilterOptions (filters (Time.millisToPosix 0)))
+init : Project -> Bool -> Model
+init project showHeading =
+    Model showHeading (DataList.init <| DataList.getDefaultFilterOptions (filters project (Time.millisToPosix 0)))
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
@@ -80,7 +80,7 @@ view context project currentTime model =
                 (shareRecords project shares)
                 []
                 (Just
-                    { filters = filters currentTime
+                    { filters = filters project currentTime
                     , dropdownMsgMapper = \dropdownId -> SharedMsg <| SharedMsg.TogglePopover dropdownId
                     }
                 )
@@ -120,11 +120,8 @@ shareRecords project shares =
     let
         creator : OSTypes.Share -> String
         creator share =
-            if share.userUuid == project.auth.user.uuid then
-                "me"
-
-            else
-                "other user"
+            lookupUsername project share.userUuid
+                |> Maybe.withDefault "unknown user"
     in
     List.map
         (\share ->
@@ -255,13 +252,16 @@ shareView context project currentTime shareRecord =
         ]
 
 
-filters : Time.Posix -> List (DataList.Filter { record | share : OSTypes.Share, creator : String })
-filters currentTime =
+filters :
+    Project
+    -> Time.Posix
+    -> List (DataList.Filter { record | share : OSTypes.Share, creator : String })
+filters project currentTime =
     [ { id = "creator"
       , label = "Creator"
       , chipPrefix = "Created by "
-      , filterOptions = \_ -> [ "me", "other user" ] |> List.map (\creator -> ( creator, creator )) |> Dict.fromList
-      , filterTypeAndDefaultValue = DataList.UniselectOption DataList.UniselectNoChoice
+      , filterOptions = \records -> creatorFilterOptions project (List.map .creator records)
+      , filterTypeAndDefaultValue = DataList.UniselectOption (DataList.UniselectHasChoice project.auth.user.name)
       , onFilter = \optionValue share -> share.creator == optionValue
       }
     , { id = "creationTime"

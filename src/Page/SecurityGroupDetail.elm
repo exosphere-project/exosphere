@@ -28,7 +28,6 @@ import Style.Widgets.Tag exposing (tagNeutral, tagPositive)
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
 import Time
-import Types.HelperTypes exposing (ProjectIdentifier)
 import Types.Project exposing (Project)
 import Types.Server exposing (Server)
 import Types.SharedMsg as SharedMsg
@@ -136,9 +135,12 @@ header text =
     Element.el [ Font.heavy ] <| Element.text text
 
 
-serversTable : View.Types.Context -> ProjectIdentifier -> { servers : List Server, progress : LoadingProgress, currentTime : Time.Posix } -> Element.Element Msg
-serversTable context projectId { servers, progress, currentTime } =
+serversTable : View.Types.Context -> Project -> { servers : List Server, progress : LoadingProgress, currentTime : Time.Posix } -> Element.Element Msg
+serversTable context project { servers, progress, currentTime } =
     let
+        projectId =
+            GetterSetters.projectIdentifier project
+
         table =
             Element.table
                 [ Element.spacing spacer.px16
@@ -170,7 +172,7 @@ serversTable context projectId { servers, progress, currentTime } =
                       , width = Element.shrink
                       , view =
                             \item ->
-                                Text.text Text.Body [ Element.centerY ] (serverCreatorName item)
+                                Text.text Text.Body [ Element.centerY ] (serverCreatorName project item)
                       }
                     , { header = header "Created"
                       , width = Element.shrink
@@ -422,7 +424,7 @@ render context project ( currentTime, _ ) model securityGroup =
         servers =
             serversTable
                 context
-                (GetterSetters.projectIdentifier project)
+                project
                 { servers = serverLookup.servers
                 , progress = serverLookup.progress
                 , currentTime = currentTime
