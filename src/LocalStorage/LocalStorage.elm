@@ -116,7 +116,7 @@ hydrateProjectFromStoredProject storedProject =
     , networkQuota = RDPP.empty
     , shareQuota = RDPP.empty
     , jetstream2Allocations = RDPP.empty
-    , knownUsernames = Dict.empty
+    , knownUsernames = Dict.fromList [ ( storedProject.auth.user.uuid, storedProject.auth.user.name ) ]
     }
 
 
