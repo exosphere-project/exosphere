@@ -130,7 +130,7 @@ projectDefaultSecurityGroup context project =
         cloudConfigSecurityGroups =
             case cloudSpecificConfig of
                 Just config ->
-                    Maybe.withDefault [] config.securityGroups
+                    Dict.values (Maybe.withDefault Dict.empty config.securityGroups)
 
                 Nothing ->
                     []

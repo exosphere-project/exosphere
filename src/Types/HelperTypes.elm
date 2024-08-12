@@ -155,7 +155,7 @@ type alias CloudSpecificConfig =
     , featuredImageNamePrefix : Maybe String
     , instanceTypes : List InstanceType
     , flavorGroups : List FlavorGroup
-    , securityGroups : Maybe (List SecurityGroupConfig)
+    , securityGroups : Maybe (Dict.Dict String SecurityGroupConfig)
     , desktopMessage : Maybe String
     }
 

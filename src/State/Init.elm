@@ -10,7 +10,7 @@ import Json.Decode as Decode
 import LocalStorage.LocalStorage as LocalStorage
 import LocalStorage.Types as LocalStorageTypes
 import Maybe
-import OpenStack.SecurityGroupRule exposing (securityGroupRuleDecoder)
+import OpenStack.SecurityGroupRule exposing (SecurityGroupRule, securityGroupRuleDecoder)
 import OpenStack.Types as OSTypes
 import Ports
 import Random
@@ -369,7 +369,7 @@ cloudSpecificConfigDecoder =
         (Decode.field "featuredImageNamePrefix" (Decode.nullable Decode.string))
         (Decode.field "instanceTypes" (Decode.list instanceTypeDecoder))
         (Decode.field "flavorGroups" (Decode.list flavorGroupDecoder))
-        (Decode.maybe (Decode.field "securityGroups" (Decode.list securityGroupConfigDecoder)))
+        (Decode.maybe (Decode.field "securityGroups" securityGroupsRegionMapDecoder))
         (Decode.field "desktopMessage" (Decode.nullable Decode.string))
         |> Decode.andThen
             (\cloudSpecificConfig ->
@@ -385,12 +385,37 @@ userAppProxyConfigDecoder =
         (Decode.field "hostname" Decode.string)
 
 
-securityGroupConfigDecoder : Decode.Decoder HelperTypes.SecurityGroupConfig
-securityGroupConfigDecoder =
-    Decode.map4 HelperTypes.SecurityGroupConfig
+securityGroupsRegionMapDecoder : Decode.Decoder (Dict.Dict String HelperTypes.SecurityGroupConfig)
+securityGroupsRegionMapDecoder =
+    Decode.map (Dict.map securityGroupRegionContentsToConfig) (Decode.dict securityGroupRegionContentsDecoder)
+
+
+type alias SecurityGroupRegionContents =
+    { name : String
+    , description : Maybe String
+    , rules : List SecurityGroupRule
+    }
+
+
+securityGroupRegionContentsToConfig : String -> SecurityGroupRegionContents -> HelperTypes.SecurityGroupConfig
+securityGroupRegionContentsToConfig regionId { name, description, rules } =
+    HelperTypes.SecurityGroupConfig
+        name
+        description
+        (if regionId == "noRegion" then
+            Nothing
+
+         else
+            Just regionId
+        )
+        rules
+
+
+securityGroupRegionContentsDecoder : Decode.Decoder SecurityGroupRegionContents
+securityGroupRegionContentsDecoder =
+    Decode.map3 SecurityGroupRegionContents
         (Decode.field "name" Decode.string)
         (Decode.field "description" (Decode.nullable Decode.string))
-        (Decode.maybe (Decode.field "region" Decode.string))
         (Decode.field "rules" (Decode.list securityGroupRuleDecoder))
 
 
