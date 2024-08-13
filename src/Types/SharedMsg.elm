@@ -96,7 +96,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveDnsRecordSets (List OpenStack.DnsRecordSet.DnsRecordSet)
     | ReceiveCreateDnsRecordSet ErrorContext (Result HttpErrorWithBody OpenStack.DnsRecordSet.DnsRecordSet)
     | ReceiveDeleteDnsRecordSet ErrorContext (Result HttpErrorWithBody OpenStack.DnsRecordSet.DnsRecordSet)
-    | ReceiveCreateExoSecurityGroup ErrorContext (Result HttpErrorWithBody OSTypes.SecurityGroup) OSTypes.SecurityGroupTemplate
+    | ReceiveCreateDefaultSecurityGroup ErrorContext (Result HttpErrorWithBody OSTypes.SecurityGroup) OSTypes.SecurityGroupTemplate
     | ReceiveUpdateSecurityGroupTags ( OSTypes.SecurityGroupUuid, List OSTypes.SecurityGroupTag )
     | ReceiveCreateShare OSTypes.Share
     | ReceiveCreateAccessRule ( OSTypes.ShareUuid, OSTypes.AccessRule )

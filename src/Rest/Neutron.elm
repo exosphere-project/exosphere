@@ -1,10 +1,10 @@
 module Rest.Neutron exposing
-    ( receiveCreateExoSecurityGroupAndRequestCreateRules
+    ( receiveCreateDefaultSecurityGroupAndRequestCreateRules
     , receiveCreateFloatingIp
     , receiveDeleteFloatingIp
     , receiveFloatingIps
     , receiveNetworks
-    , receiveSecurityGroupsAndEnsureExoGroup
+    , receiveSecurityGroupsAndEnsureDefaultGroup
     , requestAssignFloatingIp
     , requestAutoAllocatedNetwork
     , requestCreateFloatingIp
@@ -344,8 +344,8 @@ requestSecurityGroups project =
         )
 
 
-requestCreateExoSecurityGroup : Project -> OSTypes.SecurityGroupTemplate -> Cmd SharedMsg
-requestCreateExoSecurityGroup project securityGroup =
+requestCreateDefaultSecurityGroup : Project -> OSTypes.SecurityGroupTemplate -> Cmd SharedMsg
+requestCreateDefaultSecurityGroup project securityGroup =
     let
         requestBody =
             Encode.object
@@ -366,7 +366,7 @@ requestCreateExoSecurityGroup project securityGroup =
         resultToMsg result =
             ProjectMsg
                 (GetterSetters.projectIdentifier project)
-                (ReceiveCreateExoSecurityGroup errorContext result securityGroup)
+                (ReceiveCreateDefaultSecurityGroup errorContext result securityGroup)
     in
     openstackCredentialedRequest
         (GetterSetters.projectIdentifier project)
@@ -566,8 +566,8 @@ receiveDeleteFloatingIp model project uuid =
             ( model, Cmd.none )
 
 
-receiveSecurityGroupsAndEnsureExoGroup : SharedModel -> Project -> List OSTypes.SecurityGroup -> ( SharedModel, Cmd SharedMsg )
-receiveSecurityGroupsAndEnsureExoGroup model project securityGroups =
+receiveSecurityGroupsAndEnsureDefaultGroup : SharedModel -> Project -> List OSTypes.SecurityGroup -> ( SharedModel, Cmd SharedMsg )
+receiveSecurityGroupsAndEnsureDefaultGroup model project securityGroups =
     {- Create a default security group unless one already exists -}
     let
         newSecurityGroups =
@@ -588,13 +588,13 @@ receiveSecurityGroupsAndEnsureExoGroup model project securityGroups =
         cmds =
             case List.Extra.find (\a -> a.name == defaultSecurityGroup.name) securityGroups of
                 Just defaultGroup ->
-                    requestCreateMissingSecurityGroupRules
+                    reconcileSecurityGroupRules
                         newProject
                         defaultGroup
                         defaultSecurityGroup
 
                 Nothing ->
-                    [ requestCreateExoSecurityGroup newProject defaultSecurityGroup ]
+                    [ requestCreateDefaultSecurityGroup newProject defaultSecurityGroup ]
     in
     ( newModel, Cmd.batch cmds )
 
@@ -606,24 +606,24 @@ receiveSecurityGroupsAndEnsureExoGroup model project securityGroups =
     (Esp. since the default OpenStack Networking security group rules are added to all new groups.)
 
 -}
-requestCreateMissingSecurityGroupRules : Project -> OSTypes.SecurityGroup -> OSTypes.SecurityGroupTemplate -> List (Cmd SharedMsg)
-requestCreateMissingSecurityGroupRules project exoGroup securityGroupTemplate =
+reconcileSecurityGroupRules : Project -> OSTypes.SecurityGroup -> OSTypes.SecurityGroupTemplate -> List (Cmd SharedMsg)
+reconcileSecurityGroupRules project defaultGroup securityGroupTemplate =
     let
         existingRules =
-            exoGroup.rules
+            defaultGroup.rules
 
-        defaultExosphereRules =
+        defaultRules =
             securityGroupTemplate.rules
 
         missingRules =
-            SecurityGroupRule.securityGroupRuleDiff defaultExosphereRules existingRules
+            SecurityGroupRule.securityGroupRuleDiff defaultRules existingRules
 
         extraRules =
-            SecurityGroupRule.securityGroupRuleDiff existingRules defaultExosphereRules
+            SecurityGroupRule.securityGroupRuleDiff existingRules defaultRules
     in
     requestCreateSecurityGroupRules
         project
-        exoGroup
+        defaultGroup
         missingRules
         ("create missing rules for " ++ securityGroupTemplate.name ++ " security group")
         ++ requestDeleteSecurityGroupRules
@@ -632,11 +632,11 @@ requestCreateMissingSecurityGroupRules project exoGroup securityGroupTemplate =
             ("remove extra rules from " ++ securityGroupTemplate.name ++ " security group")
 
 
-receiveCreateExoSecurityGroupAndRequestCreateRules : SharedModel -> Project -> OSTypes.SecurityGroup -> OSTypes.SecurityGroupTemplate -> ( SharedModel, Cmd SharedMsg )
-receiveCreateExoSecurityGroupAndRequestCreateRules model project exoGroup securityGroupTemplate =
+receiveCreateDefaultSecurityGroupAndRequestCreateRules : SharedModel -> Project -> OSTypes.SecurityGroup -> OSTypes.SecurityGroupTemplate -> ( SharedModel, Cmd SharedMsg )
+receiveCreateDefaultSecurityGroupAndRequestCreateRules model project defaultGroup securityGroupTemplate =
     let
         newSecGroups =
-            exoGroup
+            defaultGroup
                 :: (project.securityGroups |> RDPP.withDefault [])
 
         newProject =
@@ -652,9 +652,9 @@ receiveCreateExoSecurityGroupAndRequestCreateRules model project exoGroup securi
         -- All security groups are created with the project's OpenStack default security group rules.
         -- Any overlapping rules will cause a SecurityGroupRuleExists 409 ConflictException.
         -- So we create rules based on the difference, even for brand new groups.
-        requestCreateMissingSecurityGroupRules
+        reconcileSecurityGroupRules
             newProject
-            exoGroup
+            defaultGroup
             securityGroupTemplate
     )
 

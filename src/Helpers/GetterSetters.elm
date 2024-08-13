@@ -158,7 +158,7 @@ projectDefaultSecurityGroup context project =
         Nothing ->
             { name = "exosphere"
             , description = Just <| toTitleCase context.localization.securityGroup ++ " for " ++ Helpers.String.pluralize context.localization.virtualComputer ++ " launched via Exosphere"
-            , rules = SecurityGroupRule.defaultExosphereRules
+            , rules = SecurityGroupRule.defaultRules
             }
 
 

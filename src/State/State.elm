@@ -2064,7 +2064,7 @@ processProjectSpecificMsg outerModel project msg =
         ReceiveSecurityGroups errorContext result ->
             case result of
                 Ok groups ->
-                    Rest.Neutron.receiveSecurityGroupsAndEnsureExoGroup sharedModel project groups
+                    Rest.Neutron.receiveSecurityGroupsAndEnsureDefaultGroup sharedModel project groups
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
                         -- Make the page aware of the shared msg.
@@ -2085,10 +2085,10 @@ processProjectSpecificMsg outerModel project msg =
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
-        ReceiveCreateExoSecurityGroup errorContext result template ->
+        ReceiveCreateDefaultSecurityGroup errorContext result template ->
             case result of
                 Ok group ->
-                    Rest.Neutron.receiveCreateExoSecurityGroupAndRequestCreateRules sharedModel project group template
+                    Rest.Neutron.receiveCreateDefaultSecurityGroupAndRequestCreateRules sharedModel project group template
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 

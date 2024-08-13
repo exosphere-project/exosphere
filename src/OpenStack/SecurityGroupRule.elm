@@ -5,7 +5,7 @@ module OpenStack.SecurityGroupRule exposing
     , SecurityGroupRuleProtocol(..)
     , SecurityGroupRuleUuid
     , SecurityGroupUuid
-    , defaultExosphereRules
+    , defaultRules
     , directionToString
     , encode
     , etherTypeToString
@@ -129,8 +129,8 @@ buildRuleAllowAllOutgoingIPv6 =
     }
 
 
-defaultExosphereRules : List SecurityGroupRule
-defaultExosphereRules =
+defaultRules : List SecurityGroupRule
+defaultRules =
     [ buildRuleTCP 22 "SSH"
     , buildRuleIcmp
     , buildRuleMosh
