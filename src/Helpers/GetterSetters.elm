@@ -83,7 +83,7 @@ import OpenStack.Types as OSTypes
 import Regex
 import Time
 import Types.Error
-import Types.HelperTypes as HelperTypes exposing (SecurityGroupConfig)
+import Types.HelperTypes as HelperTypes
 import Types.Project exposing (Project)
 import Types.Server exposing (ExoServerVersion, Server, ServerOrigin(..))
 import Types.SharedModel exposing (SharedModel)
@@ -138,7 +138,7 @@ projectDefaultSecurityGroup context project =
         cloudConfigRegionSecurityGroup =
             cloudConfigSecurityGroups |> List.Extra.find (\sg -> sg.regionId == (project.region |> Maybe.map .id))
 
-        cloudConfigSecurityGroup : Maybe SecurityGroupConfig
+        cloudConfigSecurityGroup : Maybe OSTypes.SecurityGroupTemplate
         cloudConfigSecurityGroup =
             case cloudConfigRegionSecurityGroup of
                 Just sg ->
@@ -150,14 +150,12 @@ projectDefaultSecurityGroup context project =
     in
     case cloudConfigSecurityGroup of
         Just sg ->
-            { name = sg.name
-            , description = sg.description
-            , rules = sg.rules
-            }
+            sg
 
         Nothing ->
             { name = "exosphere"
             , description = Just <| toTitleCase context.localization.securityGroup ++ " for " ++ Helpers.String.pluralize context.localization.virtualComputer ++ " launched via Exosphere"
+            , regionId = Nothing
             , rules = SecurityGroupRule.defaultRules
             }
 

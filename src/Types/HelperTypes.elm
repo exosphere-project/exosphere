@@ -20,7 +20,6 @@ module Types.HelperTypes exposing
     , OpenIdConnectLoginConfig
     , Passphrase
     , ProjectIdentifier
-    , SecurityGroupConfig
     , SelectedFlavor(..)
     , SentryConfig
     , ServerActionName
@@ -38,7 +37,6 @@ module Types.HelperTypes exposing
 
 import Dict exposing (Dict)
 import Helpers.RemoteDataPlusPlus as RDPP
-import OpenStack.SecurityGroupRule exposing (SecurityGroupRule)
 import OpenStack.Types as OSTypes
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput)
 import Types.Error exposing (HttpErrorWithBody)
@@ -155,7 +153,7 @@ type alias CloudSpecificConfig =
     , featuredImageNamePrefix : Maybe String
     , instanceTypes : List InstanceType
     , flavorGroups : List FlavorGroup
-    , securityGroups : Maybe (Dict.Dict String SecurityGroupConfig)
+    , securityGroups : Maybe (Dict.Dict String OSTypes.SecurityGroupTemplate)
     , desktopMessage : Maybe String
     }
 
@@ -195,14 +193,6 @@ type alias FlavorGroup =
     , title : FlavorGroupTitle
     , description : Maybe String
     , disallowedActions : List ServerActionName
-    }
-
-
-type alias SecurityGroupConfig =
-    { name : String
-    , description : Maybe String
-    , regionId : Maybe OSTypes.RegionId
-    , rules : List SecurityGroupRule
     }
 
 

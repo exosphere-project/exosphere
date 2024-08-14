@@ -616,10 +616,10 @@ reconcileSecurityGroupRules project defaultGroup securityGroupTemplate =
             securityGroupTemplate.rules
 
         missingRules =
-            SecurityGroupRule.securityGroupRuleDiff defaultRules existingRules
+            SecurityGroupRule.securityGroupRuleDiff (defaultRules |> List.map SecurityGroupRule.securityGroupRuleTemplateToRule) existingRules
 
         extraRules =
-            SecurityGroupRule.securityGroupRuleDiff existingRules defaultRules
+            SecurityGroupRule.securityGroupRuleDiff existingRules (defaultRules |> List.map SecurityGroupRule.securityGroupRuleTemplateToRule)
     in
     requestCreateSecurityGroupRules
         project

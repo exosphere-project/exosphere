@@ -121,7 +121,7 @@ import Dict
 import Helpers.RemoteDataPlusPlus as RDPP
 import Json.Encode
 import OpenStack.HelperTypes as HelperTypes
-import OpenStack.SecurityGroupRule exposing (SecurityGroupRule)
+import OpenStack.SecurityGroupRule exposing (SecurityGroupRule, SecurityGroupRuleTemplate)
 import Time
 import Types.Error exposing (HttpErrorWithBody)
 
@@ -804,7 +804,8 @@ type alias SecurityGroup =
 type alias SecurityGroupTemplate =
     { name : String
     , description : Maybe String
-    , rules : List SecurityGroupRule
+    , regionId : Maybe RegionId
+    , rules : List SecurityGroupRuleTemplate
     }
 
 
