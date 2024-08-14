@@ -470,7 +470,7 @@ routeToViewStateModelCmd sharedModel route =
                                         |> Helpers.pipelineCmd (ApiModelHelpers.requestShares (GetterSetters.projectIdentifier project))
                                         |> Helpers.pipelineCmd (ApiModelHelpers.requestShareQuotas (GetterSetters.projectIdentifier project))
                             in
-                            ( projectViewProto <| ShareList (Page.ShareList.init True)
+                            ( projectViewProto <| ShareList (Page.ShareList.init project True)
                             , newNewSharedModel
                             , newCmd
                             )
@@ -523,7 +523,7 @@ routeToViewStateModelCmd sharedModel route =
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestVolumeSnapshots (GetterSetters.projectIdentifier project))
                             in
-                            ( projectViewProto <| VolumeList <| Page.VolumeList.init True
+                            ( projectViewProto <| VolumeList <| Page.VolumeList.init project True
                             , newSharedModel
                             , newCmd
                             )

@@ -25,6 +25,7 @@ module Rest.Nova exposing
 
 import Array
 import Base64
+import Dict
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.Json exposing (resultToDecoder)
@@ -794,10 +795,26 @@ receiveServers model project osServers =
                         (RDPP.NotLoading Nothing)
             }
 
+        knownUserNames =
+            newExoServers
+                |> List.filterMap
+                    (\s ->
+                        case s.exoProps.serverOrigin of
+                            ServerFromExo exoProps ->
+                                Maybe.map (Tuple.pair s.osProps.details.userUuid) exoProps.exoCreatorUsername
+
+                            _ ->
+                                Nothing
+                    )
+                |> Dict.fromList
+
         newProject =
             List.foldl
                 (\s p -> GetterSetters.projectUpdateServer p s)
-                projectNoDeletedSvrs
+                { projectNoDeletedSvrs
+                    | knownUsernames =
+                        Dict.union knownUserNames projectNoDeletedSvrs.knownUsernames
+                }
                 newExoServersClearSomeExoProps
     in
     ( GetterSetters.modelUpdateProject model newProject

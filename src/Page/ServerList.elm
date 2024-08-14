@@ -249,7 +249,7 @@ serverRecords context currentTime project servers =
             , size = flavor server
             , floatingIpAddress = floatingIpAddress server
             , creationTime = server.osProps.details.created
-            , creator = serverCreatorName server
+            , creator = serverCreatorName project server
             , interactions = interactions server
             , securityGroupIds = server.securityGroups |> RDPP.withDefault [] |> List.map .uuid
             }

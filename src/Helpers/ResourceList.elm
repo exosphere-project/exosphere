@@ -1,5 +1,6 @@
 module Helpers.ResourceList exposing
     ( creationTimeFilterOptions
+    , creatorFilterOptions
     , listItemColumnAttribs
     , onCreationTimeFilter
     )
@@ -12,6 +13,7 @@ import Style.Types exposing (ExoPalette)
 import Style.Widgets.DataList exposing (FilterOptionText, FilterOptionValue)
 import Style.Widgets.Spacer exposing (spacer)
 import Time
+import Types.Project exposing (Project)
 
 
 creationTimeFilterOptions : Dict.Dict FilterOptionValue FilterOptionText
@@ -46,3 +48,18 @@ listItemColumnAttribs palette =
     , Element.width Element.fill
     , Font.color (SH.toElementColor palette.neutral.text.subdued)
     ]
+
+
+creatorFilterOptions : Project -> List String -> Dict.Dict String String
+creatorFilterOptions project =
+    List.map
+        (\creator ->
+            ( creator
+            , if creator == project.auth.user.name then
+                "me (" ++ creator ++ ")"
+
+              else
+                creator
+            )
+        )
+        >> Dict.fromList

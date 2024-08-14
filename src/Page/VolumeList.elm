@@ -1,14 +1,14 @@
 module Page.VolumeList exposing (Model, Msg, init, update, view)
 
-import Dict
 import Element
 import Element.Font as Font
 import FeatherIcons as Icons
 import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (Unit(..), humanNumber)
 import Helpers.GetterSetters as GetterSetters
+import Helpers.Helpers exposing (lookupUsername)
 import Helpers.RemoteDataPlusPlus as RDPP
-import Helpers.ResourceList exposing (creationTimeFilterOptions, listItemColumnAttribs, onCreationTimeFilter)
+import Helpers.ResourceList exposing (creationTimeFilterOptions, creatorFilterOptions, listItemColumnAttribs, onCreationTimeFilter)
 import Helpers.String
 import OpenStack.Types as OSTypes
 import OpenStack.VolumeSnapshots as VS
@@ -47,10 +47,10 @@ type Msg
     | NoOp
 
 
-init : Bool -> Model
-init showHeading =
+init : Project -> Bool -> Model
+init project showHeading =
     Model showHeading
-        (DataList.init <| DataList.getDefaultFilterOptions (filters (Time.millisToPosix 0)))
+        (DataList.init <| DataList.getDefaultFilterOptions (filters project (Time.millisToPosix 0)))
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
@@ -115,7 +115,7 @@ view context project currentTime model =
                 (volumeRecords project ( volumes_, snapshots ))
                 []
                 (Just
-                    { filters = filters currentTime
+                    { filters = filters project currentTime
                     , dropdownMsgMapper =
                         \dropdownId ->
                             SharedMsg <| SharedMsg.TogglePopover dropdownId
@@ -157,11 +157,8 @@ volumeRecords : Project -> ( List OSTypes.Volume, List VS.VolumeSnapshot ) -> Li
 volumeRecords project ( volumes, snapshots ) =
     let
         creator volume =
-            if volume.userUuid == project.auth.user.uuid then
-                "me"
-
-            else
-                "other user"
+            lookupUsername project volume.userUuid
+                |> Maybe.withDefault "unknown user"
 
         isSnapshotOfVolume : OSTypes.Volume -> VS.VolumeSnapshot -> Bool
         isSnapshotOfVolume { uuid } { volumeId } =
@@ -466,19 +463,17 @@ volumeView context project currentTime volumeRecord =
 
 
 filters :
-    Time.Posix
+    Project
+    -> Time.Posix
     -> List (DataList.Filter { record | volume : OSTypes.Volume, creator : String })
-filters currentTime =
+filters project currentTime =
     [ { id = "creator"
       , label = "Creator"
       , chipPrefix = "Created by "
       , filterOptions =
-            \_ ->
-                [ "me", "other user" ]
-                    |> List.map (\creator -> ( creator, creator ))
-                    |> Dict.fromList
+            \records -> creatorFilterOptions project (List.map .creator records)
       , filterTypeAndDefaultValue =
-            DataList.MultiselectOption <| Set.singleton "me"
+            DataList.MultiselectOption <| Set.singleton project.auth.user.name
       , onFilter =
             \optionValue volume ->
                 volume.creator == optionValue
