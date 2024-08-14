@@ -40,6 +40,7 @@ Each of these JSON objects contains the following properties:
 - `instanceTypes` (array): An array of instance types specific to this cloud, can be left empty. See `docs/instance-types.md` for more information.
 - `flavorGroups` (array): An array of flavor groups specific to this cloud, can be left empty. See `docs/flavor-groups.md` for more information.
 - `desktopMessage` (null, string): Override message to show users who select a graphical desktop environment when creating an instance. `null` will display a default message, while an empty string will display no message.
+- `securityGroups` (null, JSON object): A map of default Security Groups for each cloud region, using `noRegion` as a fallback. See `docs/security-groups.md` for more information.
 
 ```javascript
 var cloud_configs = {
@@ -103,7 +104,91 @@ var cloud_configs = {
           "disallowedActions":["Suspend"],
         }        
       ],
-      "desktopMessage":null
+      "desktopMessage":null,
+      "securityGroups":{
+        "noRegion": {
+          "description": "Allow all traffic",
+          "name": "permissive",
+          "rules": [
+            {
+              "description": "Mosh",
+              "direction": "ingress",
+              "ethertype": "IPv4",
+              "port_range_max": 61000,
+              "port_range_min": 60000,
+              "protocol": "udp",
+              "remote_group_id": null,
+              "remote_ip_prefix": "0.0.0.0/0"
+            },
+            {
+              "description": "SSH",
+              "direction": "ingress",
+              "ethertype": "IPv4",
+              "port_range_max": 22,
+              "port_range_min": 22,
+              "protocol": "tcp",
+              "remote_group_id": null,
+              "remote_ip_prefix": null
+            },
+            {
+              "description": null,
+              "direction": "egress",
+              "ethertype": "IPv4",
+              "port_range_max": null,
+              "port_range_min": null,
+              "protocol": null,
+              "remote_group_id": null,
+              "remote_ip_prefix": null
+            },
+            {
+              "description": null,
+              "direction": "egress",
+              "ethertype": "IPv6",
+              "port_range_max": null,
+              "port_range_min": null,
+              "protocol": null,
+              "remote_group_id": null,
+              "remote_ip_prefix": null
+            },
+            {
+              "description": "Ping",
+              "direction": "ingress",
+              "ethertype": "IPv4",
+              "port_range_max": null,
+              "port_range_min": null,
+              "protocol": "icmp",
+              "remote_group_id": null,
+              "remote_ip_prefix": null
+            },
+            {
+              "description": "Expose all incoming ports",
+              "direction": "ingress",
+              "ethertype": "IPv4",
+              "port_range_max": null,
+              "port_range_min": null,
+              "protocol": "tcp",
+              "remote_group_id": null,
+              "remote_ip_prefix": null
+            }
+          ]
+        },
+        "IU": {
+          "name": "restrictive",
+          "description": "Only allow SSH",
+          "rules": [
+            {
+              "description": "SSH",
+              "direction": "ingress",
+              "ethertype": "IPv4",
+              "port_range_max": 22,
+              "port_range_min": 22,
+              "protocol": "tcp",
+              "remote_group_id": null,
+              "remote_ip_prefix": null
+            }
+          ]
+        }
+      }
     }
   ]
 }

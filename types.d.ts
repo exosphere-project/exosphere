@@ -111,7 +111,6 @@ declare namespace Exosphere {
   type CloudSecurityGroup = {
     name: string;
     description: null | string;
-    region?: null | string;
     rules: Array<{
       ethertype: string;
       direction: string;
@@ -133,7 +132,7 @@ declare namespace Exosphere {
     featuredImageNamePrefix: null | string;
     instanceTypes: Array<CloudInstanceType>;
     flavorGroups: Array<CloudFlavorGroup>;
-    securityGroups?: null | Array<CloudSecurityGroup>;
+    securityGroups?: null | { [region in string]: CloudSecurityGroup };
     desktopMessage: null | string;
   };
 
