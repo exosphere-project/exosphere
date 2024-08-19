@@ -101,24 +101,6 @@ var cloud_configs = {
               },
               restrictFlavorIds: null,
             },
-            {
-              friendlyName: "AlmaLinux 9",
-              isPrimary: false,
-              imageFilters: {
-                name: "Featured-AlmaLinux9",
-                visibility: "public",
-              },
-              restrictFlavorIds: null,
-            },
-            {
-              friendlyName: "AlmaLinux 8",
-              isPrimary: false,
-              imageFilters: {
-                name: "Featured-AlmaLinux8",
-                visibility: "public",
-              },
-              restrictFlavorIds: null,
-            },
           ],
         },
       ],
