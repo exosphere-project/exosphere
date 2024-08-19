@@ -108,6 +108,21 @@ declare namespace Exosphere {
     disallowedActions: Array<ServerActions | string>;
   };
 
+  type CloudSecurityGroup = {
+    name: string;
+    description: null | string;
+    rules: Array<{
+      ethertype: string;
+      direction: string;
+      protocol?: null | string;
+      port_range_min?: null | number;
+      port_range_max?: null | number;
+      remote_ip_prefix?: null | string;
+      remote_group_id?: null | string;
+      description?: null | string;
+    }>;
+  };
+
   type CloudConfig = {
     keystoneHostname: string;
     friendlyName: string;
@@ -117,6 +132,7 @@ declare namespace Exosphere {
     featuredImageNamePrefix: null | string;
     instanceTypes: Array<CloudInstanceType>;
     flavorGroups: Array<CloudFlavorGroup>;
+    securityGroups?: null | { [region in string]: CloudSecurityGroup };
     desktopMessage: null | string;
   };
 

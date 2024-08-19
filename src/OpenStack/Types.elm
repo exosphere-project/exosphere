@@ -58,6 +58,7 @@ module OpenStack.Types exposing
     , ScopedAuthToken
     , SecurityGroup
     , SecurityGroupTag
+    , SecurityGroupTemplate
     , SecurityGroupUuid
     , Server
     , ServerDetails
@@ -101,7 +102,6 @@ module OpenStack.Types exposing
     , boolToShareVisibility
     , defaultShareTypeNameForProtocol
     , imageVisibilityToString
-    , isDefaultSecurityGroup
     , securityGroupExoTags
     , securityGroupTaggedAs
     , serverPowerStateToString
@@ -121,7 +121,7 @@ import Dict
 import Helpers.RemoteDataPlusPlus as RDPP
 import Json.Encode
 import OpenStack.HelperTypes as HelperTypes
-import OpenStack.SecurityGroupRule exposing (SecurityGroupRule)
+import OpenStack.SecurityGroupRule exposing (SecurityGroupRule, SecurityGroupRuleTemplate)
 import Time
 import Types.Error exposing (HttpErrorWithBody)
 
@@ -801,6 +801,14 @@ type alias SecurityGroup =
     }
 
 
+type alias SecurityGroupTemplate =
+    { name : String
+    , description : Maybe String
+    , regionId : Maybe RegionId
+    , rules : List SecurityGroupRuleTemplate
+    }
+
+
 {-|
 
     Tags for security groups that provide special Exosphere functionality.
@@ -816,12 +824,6 @@ securityGroupTaggedAs : SecurityGroupTag -> SecurityGroup -> Bool
 securityGroupTaggedAs tag sg =
     sg.tags
         |> List.member tag
-
-
-isDefaultSecurityGroup : SecurityGroup -> Bool
-isDefaultSecurityGroup sg =
-    -- TODO: securityGroupTaggedAs "default" sg
-    sg.name == "exosphere"
 
 
 {-|

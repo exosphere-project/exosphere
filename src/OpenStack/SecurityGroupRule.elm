@@ -3,9 +3,10 @@ module OpenStack.SecurityGroupRule exposing
     , SecurityGroupRuleDirection(..)
     , SecurityGroupRuleEthertype(..)
     , SecurityGroupRuleProtocol(..)
+    , SecurityGroupRuleTemplate
     , SecurityGroupRuleUuid
     , SecurityGroupUuid
-    , defaultExosphereRules
+    , defaultRules
     , directionToString
     , encode
     , etherTypeToString
@@ -13,6 +14,10 @@ module OpenStack.SecurityGroupRule exposing
     , portRangeToString
     , protocolToString
     , securityGroupRuleDecoder
+    , securityGroupRuleDiff
+    , securityGroupRuleTemplateToRule
+    , stringToSecurityGroupRuleDirection
+    , stringToSecurityGroupRuleEthertype
     , stringToSecurityGroupRuleProtocol
     )
 
@@ -27,11 +32,37 @@ type alias SecurityGroupRule =
     , ethertype : SecurityGroupRuleEthertype
     , direction : SecurityGroupRuleDirection
     , protocol : Maybe SecurityGroupRuleProtocol
-    , port_range_min : Maybe Int
-    , port_range_max : Maybe Int
+    , portRangeMin : Maybe Int
+    , portRangeMax : Maybe Int
     , remoteIpPrefix : Maybe String -- TODO: Encode remote IP prefix in requests.
     , remoteGroupUuid : Maybe SecurityGroupRuleUuid -- TODO: Encode remote security group in requests.
     , description : Maybe String
+    }
+
+
+type alias SecurityGroupRuleTemplate =
+    { ethertype : SecurityGroupRuleEthertype
+    , direction : SecurityGroupRuleDirection
+    , protocol : Maybe SecurityGroupRuleProtocol
+    , portRangeMin : Maybe Int
+    , portRangeMax : Maybe Int
+    , remoteIpPrefix : Maybe String
+    , remoteGroupUuid : Maybe SecurityGroupRuleUuid
+    , description : Maybe String
+    }
+
+
+securityGroupRuleTemplateToRule : SecurityGroupRuleTemplate -> SecurityGroupRule
+securityGroupRuleTemplateToRule { ethertype, direction, protocol, portRangeMin, portRangeMax, remoteIpPrefix, remoteGroupUuid, description } =
+    { uuid = ""
+    , ethertype = ethertype
+    , direction = direction
+    , protocol = protocol
+    , portRangeMin = portRangeMin
+    , portRangeMax = portRangeMax
+    , remoteIpPrefix = remoteIpPrefix
+    , remoteGroupUuid = remoteGroupUuid
+    , description = description
     }
 
 
@@ -40,58 +71,120 @@ matchRule ruleA ruleB =
     (ruleA.ethertype == ruleB.ethertype)
         && (ruleA.direction == ruleB.direction)
         && (ruleA.protocol == ruleB.protocol)
-        && (ruleA.port_range_min == ruleB.port_range_min)
-        && (ruleA.port_range_max == ruleB.port_range_max)
+        && (ruleA.portRangeMin == ruleB.portRangeMin)
+        && (ruleA.portRangeMax == ruleB.portRangeMax)
 
 
-buildRuleTCP : Int -> String -> SecurityGroupRule
+buildRuleTCP : Int -> String -> SecurityGroupRuleTemplate
 buildRuleTCP portNumber description =
-    { uuid = ""
-    , ethertype = Ipv4
+    { ethertype = Ipv4
     , direction = Ingress
     , protocol = Just ProtocolTcp
-    , port_range_min = Just portNumber
-    , port_range_max = Just portNumber
+    , portRangeMin = Just portNumber
+    , portRangeMax = Just portNumber
     , remoteIpPrefix = Nothing
     , remoteGroupUuid = Nothing
     , description = Just description
     }
 
 
-buildRuleIcmp : SecurityGroupRule
+buildRuleIcmp : SecurityGroupRuleTemplate
 buildRuleIcmp =
-    { uuid = ""
-    , ethertype = Ipv4
+    { ethertype = Ipv4
     , direction = Ingress
     , protocol = Just ProtocolIcmp
-    , port_range_min = Nothing
-    , port_range_max = Nothing
+    , portRangeMin = Nothing
+    , portRangeMax = Nothing
     , remoteIpPrefix = Nothing
     , remoteGroupUuid = Nothing
     , description = Just "Ping"
     }
 
 
-buildRuleExposeAllIncomingPorts : SecurityGroupRule
+buildRuleMosh : SecurityGroupRuleTemplate
+buildRuleMosh =
+    { ethertype = Ipv4
+    , direction = Ingress
+    , protocol = Just ProtocolUdp
+    , portRangeMin = Just 60000
+    , portRangeMax = Just 61000
+    , remoteIpPrefix = Nothing
+    , remoteGroupUuid = Nothing
+    , description = Just "Mosh"
+    }
+
+
+buildRuleExposeAllIncomingPorts : SecurityGroupRuleTemplate
 buildRuleExposeAllIncomingPorts =
-    { uuid = ""
-    , ethertype = Ipv4
+    { ethertype = Ipv4
     , direction = Ingress
     , protocol = Just ProtocolTcp
-    , port_range_min = Nothing
-    , port_range_max = Nothing
+    , portRangeMin = Nothing
+    , portRangeMax = Nothing
     , remoteIpPrefix = Nothing
     , remoteGroupUuid = Nothing
     , description = Just "Expose all incoming ports"
     }
 
 
-defaultExosphereRules : List SecurityGroupRule
-defaultExosphereRules =
+buildRuleAllowAllOutgoingIPv4 : SecurityGroupRuleTemplate
+buildRuleAllowAllOutgoingIPv4 =
+    { ethertype = Ipv4
+    , direction = Egress
+    , protocol = Nothing
+    , portRangeMin = Nothing
+    , portRangeMax = Nothing
+    , remoteIpPrefix = Nothing
+    , remoteGroupUuid = Nothing
+    , description = Just "Allow all outgoing IPv4 traffic"
+    }
+
+
+buildRuleAllowAllOutgoingIPv6 : SecurityGroupRuleTemplate
+buildRuleAllowAllOutgoingIPv6 =
+    { ethertype = Ipv6
+    , direction = Egress
+    , protocol = Nothing
+    , portRangeMin = Nothing
+    , portRangeMax = Nothing
+    , remoteIpPrefix = Nothing
+    , remoteGroupUuid = Nothing
+    , description = Just "Allow all outgoing IPv6 traffic"
+    }
+
+
+defaultRules : List SecurityGroupRuleTemplate
+defaultRules =
     [ buildRuleTCP 22 "SSH"
     , buildRuleIcmp
+    , buildRuleMosh
     , buildRuleExposeAllIncomingPorts
+    , buildRuleAllowAllOutgoingIPv4
+    , buildRuleAllowAllOutgoingIPv6
     ]
+
+
+{-| Returns rules that are in the first list but not in the second list. (Difference read as A minus B.)
+-}
+securityGroupRuleDiff : List SecurityGroupRule -> List SecurityGroupRule -> List SecurityGroupRule
+securityGroupRuleDiff rulesA rulesB =
+    rulesA
+        |> List.filterMap
+            (\defaultRule ->
+                let
+                    ruleExists =
+                        rulesB
+                            |> List.any
+                                (\existingRule ->
+                                    matchRule existingRule defaultRule
+                                )
+                in
+                if ruleExists then
+                    Nothing
+
+                else
+                    Just defaultRule
+            )
 
 
 type alias SecurityGroupRuleUuid =
@@ -146,15 +239,15 @@ type PortRangeType
 
 
 encode : SecurityGroupUuid -> SecurityGroupRule -> Encode.Value
-encode securityGroupUuid { ethertype, direction, protocol, port_range_min, port_range_max, description } =
+encode securityGroupUuid { ethertype, direction, protocol, portRangeMin, portRangeMax, description } =
     Encode.object
         [ ( "security_group_rule"
           , [ ( "security_group_id", Encode.string securityGroupUuid ) ]
                 |> encodeEthertype ethertype
                 |> encodeDirection direction
                 |> encodeProtocol protocol
-                |> encodePort port_range_min PortRangeMin
-                |> encodePort port_range_max PortRangeMax
+                |> encodePort portRangeMin PortRangeMin
+                |> encodePort portRangeMax PortRangeMax
                 |> encodeDescription description
                 |> Encode.object
           )
@@ -173,12 +266,12 @@ encodeDescription maybeDescription object =
 
 portRangeToString :
     { a
-        | port_range_min : Maybe Int
-        , port_range_max : Maybe Int
+        | portRangeMin : Maybe Int
+        , portRangeMax : Maybe Int
     }
     -> String
-portRangeToString { port_range_min, port_range_max } =
-    case ( port_range_min, port_range_max ) of
+portRangeToString { portRangeMin, portRangeMax } =
+    case ( portRangeMin, portRangeMax ) of
         ( Just min, Just max ) ->
             if min == max then
                 String.fromInt min
@@ -444,9 +537,9 @@ securityGroupRuleDecoder =
         |> Pipeline.required "id" Decode.string
         |> Pipeline.required "ethertype" (Decode.string |> Decode.map stringToSecurityGroupRuleEthertype)
         |> Pipeline.required "direction" (Decode.string |> Decode.map stringToSecurityGroupRuleDirection)
-        |> Pipeline.required "protocol" (Decode.nullable (Decode.string |> Decode.map stringToSecurityGroupRuleProtocol))
-        |> Pipeline.required "port_range_min" (Decode.nullable Decode.int)
-        |> Pipeline.required "port_range_max" (Decode.nullable Decode.int)
-        |> Pipeline.required "remote_ip_prefix" (Decode.nullable Decode.string)
-        |> Pipeline.required "remote_group_id" (Decode.nullable Decode.string)
-        |> Pipeline.required "description" (Decode.nullable Decode.string)
+        |> Pipeline.optional "protocol" (Decode.nullable (Decode.string |> Decode.map stringToSecurityGroupRuleProtocol)) Nothing
+        |> Pipeline.optional "port_range_min" (Decode.nullable Decode.int) Nothing
+        |> Pipeline.optional "port_range_max" (Decode.nullable Decode.int) Nothing
+        |> Pipeline.optional "remote_ip_prefix" (Decode.nullable Decode.string) Nothing
+        |> Pipeline.optional "remote_group_id" (Decode.nullable Decode.string) Nothing
+        |> Pipeline.optional "description" (Decode.nullable Decode.string) Nothing

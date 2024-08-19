@@ -360,6 +360,7 @@ routeToViewStateModelCmd sharedModel route =
                             ( projectViewProto <|
                                 ServerCreate
                                     (Page.ServerCreate.init
+                                        newSharedModel.viewContext
                                         project
                                         imageId
                                         imageName

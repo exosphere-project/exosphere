@@ -10,7 +10,7 @@ import FeatherIcons as Icons
 import FormatNumber
 import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (humanCount)
-import Helpers.GetterSetters as GetterSetters
+import Helpers.GetterSetters as GetterSetters exposing (isDefaultSecurityGroup)
 import Helpers.Helpers as Helpers
 import Helpers.Random as RandomHelper
 import Helpers.RemoteDataPlusPlus as RDPP
@@ -22,7 +22,7 @@ import Html.Attributes
 import Maybe
 import OpenStack.Quotas as OSQuotas
 import OpenStack.ServerNameValidator exposing (serverNameValidator)
-import OpenStack.Types as OSTypes exposing (isDefaultSecurityGroup, securityGroupExoTags, securityGroupTaggedAs)
+import OpenStack.Types as OSTypes exposing (securityGroupExoTags, securityGroupTaggedAs)
 import Page.SecurityGroupRulesTable as SecurityGroupRulesTable
 import Rest.Naming
 import Route
@@ -53,6 +53,7 @@ import Types.HelperTypes as HelperTypes
         )
 import Types.Project exposing (Project)
 import Types.Server exposing (NewServerNetworkOptions(..), Server)
+import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
 import View.Forms as Forms exposing (Resource(..))
 import View.Helpers as VH exposing (edges)
@@ -94,8 +95,8 @@ type Msg
     | NoOp
 
 
-init : Project -> OSTypes.ImageUuid -> String -> Maybe (List OSTypes.FlavorId) -> Maybe Bool -> Model
-init project imageUuid imageName restrictFlavorIds deployGuacamole =
+init : View.Types.Context -> Project -> OSTypes.ImageUuid -> String -> Maybe (List OSTypes.FlavorId) -> Maybe Bool -> Model
+init context project imageUuid imageName restrictFlavorIds deployGuacamole =
     { serverName = ""
     , imageUuid = imageUuid
     , imageName = imageName
@@ -111,7 +112,7 @@ init project imageUuid imageName restrictFlavorIds deployGuacamole =
         case project.securityGroups.data of
             RDPP.DoHave securityGroups _ ->
                 securityGroups
-                    |> List.filter isDefaultSecurityGroup
+                    |> List.filter (isDefaultSecurityGroup context project)
                     |> List.head
                     |> Maybe.map .uuid
 
@@ -209,8 +210,8 @@ getAllowedFlavors model projectFlavors =
     GetterSetters.sortedFlavors allowedFlavors
 
 
-update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
-update msg project model =
+update : Msg -> SharedModel -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
+update msg { viewContext } project model =
     case msg of
         GotRandomServerName name ->
             ( { model | randomServerName = name, serverName = name }, Cmd.none, SharedMsg.NoOp )
@@ -296,7 +297,7 @@ update msg project model =
                 let
                     defaultSecurityGroupUuid =
                         securityGroups
-                            |> List.filter isDefaultSecurityGroup
+                            |> List.filter (isDefaultSecurityGroup viewContext project)
                             |> List.head
                             |> Maybe.map .uuid
                 in
@@ -1928,7 +1929,7 @@ securityGroupPicker context project model =
 
                 defaults =
                     securityGroups
-                        |> List.filter isDefaultSecurityGroup
+                        |> List.filter (isDefaultSecurityGroup context project)
             in
             Input.radio [ Element.spacing spacer.px4 ]
                 { label = Input.labelHidden promptText

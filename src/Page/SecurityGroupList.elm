@@ -5,10 +5,10 @@ import Element.Font as Font
 import FeatherIcons
 import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (humanCount)
-import Helpers.GetterSetters as GetterSetters exposing (LoadingProgress(..))
+import Helpers.GetterSetters as GetterSetters exposing (LoadingProgress(..), isDefaultSecurityGroup)
 import Helpers.ResourceList exposing (creationTimeFilterOptions, listItemColumnAttribs, onCreationTimeFilter)
 import Helpers.String exposing (pluralizeCount)
-import OpenStack.Types as OSTypes exposing (isDefaultSecurityGroup, securityGroupExoTags, securityGroupTaggedAs)
+import OpenStack.Types as OSTypes exposing (securityGroupExoTags, securityGroupTaggedAs)
 import Route
 import Style.Helpers as SH
 import Style.Widgets.DataList as DataList
@@ -174,7 +174,7 @@ securityGroupView context project currentTime securityGroupRecord =
                 Element.none
 
         default =
-            if isDefaultSecurityGroup securityGroupRecord.securityGroup then
+            if isDefaultSecurityGroup context project securityGroupRecord.securityGroup then
                 tagNeutral context.palette "default"
 
             else

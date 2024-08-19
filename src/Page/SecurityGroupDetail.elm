@@ -7,11 +7,11 @@ import Element.Font as Font
 import FeatherIcons
 import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (humanCount)
-import Helpers.GetterSetters as GetterSetters exposing (LoadingProgress(..))
+import Helpers.GetterSetters as GetterSetters exposing (LoadingProgress(..), isDefaultSecurityGroup)
 import Helpers.Helpers exposing (serverCreatorName)
 import Helpers.String
 import Helpers.Time
-import OpenStack.Types as OSTypes exposing (SecurityGroup, isDefaultSecurityGroup, securityGroupExoTags, securityGroupTaggedAs)
+import OpenStack.Types as OSTypes exposing (SecurityGroup, securityGroupExoTags, securityGroupTaggedAs)
 import Page.SecurityGroupRulesTable exposing (rulesTable)
 import Route
 import Style.Helpers as SH
@@ -382,7 +382,7 @@ render context project ( currentTime, _ ) model securityGroup =
                 Element.none
 
         default =
-            isDefaultSecurityGroup securityGroup
+            isDefaultSecurityGroup context project securityGroup
 
         defaultTag =
             if default then

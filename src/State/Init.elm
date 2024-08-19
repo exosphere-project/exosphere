@@ -7,9 +7,11 @@ import FormatNumber.Locales
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Json.Decode as Decode
+import Json.Decode.Pipeline as Pipeline
 import LocalStorage.LocalStorage as LocalStorage
 import LocalStorage.Types as LocalStorageTypes
 import Maybe
+import OpenStack.SecurityGroupRule exposing (SecurityGroupRuleTemplate, stringToSecurityGroupRuleDirection, stringToSecurityGroupRuleEthertype, stringToSecurityGroupRuleProtocol)
 import OpenStack.Types as OSTypes
 import Ports
 import Random
@@ -361,13 +363,14 @@ decodeCloudSpecificConfigs value =
 
 cloudSpecificConfigDecoder : Decode.Decoder ( HelperTypes.KeystoneHostname, HelperTypes.CloudSpecificConfig )
 cloudSpecificConfigDecoder =
-    Decode.map7 HelperTypes.CloudSpecificConfig
+    Decode.map8 HelperTypes.CloudSpecificConfig
         (Decode.field "friendlyName" Decode.string)
         (Decode.field "userAppProxy" (Decode.nullable (Decode.list userAppProxyConfigDecoder)))
         (Decode.field "imageExcludeFilter" (Decode.nullable metadataFilterDecoder))
         (Decode.field "featuredImageNamePrefix" (Decode.nullable Decode.string))
         (Decode.field "instanceTypes" (Decode.list instanceTypeDecoder))
         (Decode.field "flavorGroups" (Decode.list flavorGroupDecoder))
+        (Decode.maybe (Decode.field "securityGroups" securityGroupsRegionConfigDecoder))
         (Decode.field "desktopMessage" (Decode.nullable Decode.string))
         |> Decode.andThen
             (\cloudSpecificConfig ->
@@ -381,6 +384,54 @@ userAppProxyConfigDecoder =
     Decode.map2 HelperTypes.UserAppProxyConfig
         (Decode.field "region" (Decode.nullable Decode.string))
         (Decode.field "hostname" Decode.string)
+
+
+securityGroupsRegionConfigDecoder : Decode.Decoder (Dict.Dict String OSTypes.SecurityGroupTemplate)
+securityGroupsRegionConfigDecoder =
+    Decode.map (Dict.map securityGroupRegionConfigToTemplate) (Decode.dict securityGroupRegionContentsDecoder)
+
+
+type alias SecurityGroupRegionConfig =
+    { name : String
+    , description : Maybe String
+    , rules : List SecurityGroupRuleTemplate
+    }
+
+
+securityGroupRegionConfigToTemplate : String -> SecurityGroupRegionConfig -> OSTypes.SecurityGroupTemplate
+securityGroupRegionConfigToTemplate regionId { name, description, rules } =
+    OSTypes.SecurityGroupTemplate
+        name
+        description
+        (if regionId == "noRegion" then
+            Nothing
+
+         else
+            Just regionId
+        )
+        rules
+
+
+securityGroupRegionContentsDecoder : Decode.Decoder SecurityGroupRegionConfig
+securityGroupRegionContentsDecoder =
+    Decode.map3 SecurityGroupRegionConfig
+        (Decode.field "name" Decode.string)
+        (Decode.field "description" (Decode.nullable Decode.string))
+        (Decode.field "rules" (Decode.list securityGroupRuleTemplateDecoder))
+
+
+securityGroupRuleTemplateDecoder : Decode.Decoder SecurityGroupRuleTemplate
+securityGroupRuleTemplateDecoder =
+    Decode.succeed
+        SecurityGroupRuleTemplate
+        |> Pipeline.required "ethertype" (Decode.string |> Decode.map stringToSecurityGroupRuleEthertype)
+        |> Pipeline.required "direction" (Decode.string |> Decode.map stringToSecurityGroupRuleDirection)
+        |> Pipeline.optional "protocol" (Decode.nullable (Decode.string |> Decode.map stringToSecurityGroupRuleProtocol)) Nothing
+        |> Pipeline.optional "port_range_min" (Decode.nullable Decode.int) Nothing
+        |> Pipeline.optional "port_range_max" (Decode.nullable Decode.int) Nothing
+        |> Pipeline.optional "remote_ip_prefix" (Decode.nullable Decode.string) Nothing
+        |> Pipeline.optional "remote_group_id" (Decode.nullable Decode.string) Nothing
+        |> Pipeline.optional "description" (Decode.nullable Decode.string) Nothing
 
 
 metadataFilterDecoder : Decode.Decoder HelperTypes.MetadataFilter
