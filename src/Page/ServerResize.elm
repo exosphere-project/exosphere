@@ -123,6 +123,7 @@ view_ context project model computeQuota =
             [ VH.flavorPicker context
                 project
                 restrictFlavorIds
+                (Just ("This flavor has a root disk smaller than your current " ++ context.localization.virtualComputer))
                 computeQuota
                 (\flavorGroupTipId -> SharedMsg <| SharedMsg.TogglePopover flavorGroupTipId)
                 (Helpers.String.hyphenate [ "serverResizeFlavorGroupTip", project.auth.project.uuid ])
