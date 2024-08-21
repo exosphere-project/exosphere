@@ -101,6 +101,19 @@ buildRuleIcmp =
     }
 
 
+buildRuleIcmpIPv6 : SecurityGroupRuleTemplate
+buildRuleIcmpIPv6 =
+    { ethertype = Ipv6
+    , direction = Ingress
+    , protocol = Just ProtocolIcmpv6
+    , portRangeMin = Nothing
+    , portRangeMax = Nothing
+    , remoteIpPrefix = Nothing
+    , remoteGroupUuid = Nothing
+    , description = Just "Ping IPv6"
+    }
+
+
 buildRuleMosh : SecurityGroupRuleTemplate
 buildRuleMosh =
     { ethertype = Ipv4
@@ -157,6 +170,7 @@ defaultRules : List SecurityGroupRuleTemplate
 defaultRules =
     [ buildRuleTCP 22 "SSH"
     , buildRuleIcmp
+    , buildRuleIcmpIPv6
     , buildRuleMosh
     , buildRuleExposeAllIncomingPorts
     , buildRuleAllowAllOutgoingIPv4
@@ -210,7 +224,7 @@ type SecurityGroupRuleEthertype
 type SecurityGroupRuleProtocol
     = AnyProtocol
     | ProtocolIcmp
-    | ProtcolIcmpv6
+    | ProtocolIcmpv6
     | ProtocolTcp
     | ProtocolUdp
     | ProtocolAh
@@ -314,7 +328,7 @@ protocolToString protocol =
         ProtocolIcmp ->
             "ICMP"
 
-        ProtcolIcmpv6 ->
+        ProtocolIcmpv6 ->
             "ICMPv6"
 
         ProtocolTcp ->
@@ -388,10 +402,10 @@ stringToSecurityGroupRuleProtocol protocol =
             ProtocolIcmp
 
         "icmpv6" ->
-            ProtcolIcmpv6
+            ProtocolIcmpv6
 
         "ipv6-icmp" ->
-            ProtcolIcmpv6
+            ProtocolIcmpv6
 
         "tcp" ->
             ProtocolTcp
