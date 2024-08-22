@@ -42,7 +42,25 @@ var cloud_configs = {
           logo: "assets/img/ubuntu.svg",
           versions: [
             {
-              friendlyName: "22.04 (latest)",
+              friendlyName: "24.04 (preview)",
+              isPrimary: false,
+              imageFilters: {
+                name: "Preview-Ubuntu24",
+                visibility: "public",
+              },
+              restrictFlavorIds: null,
+            },
+            {
+              friendlyName: "24.04 (latest)",
+              isPrimary: true,
+              imageFilters: {
+                name: "Featured-Ubuntu24",
+                visibility: "public",
+              },
+              restrictFlavorIds: null,
+            },
+            {
+              friendlyName: "22.04",
               isPrimary: true,
               imageFilters: {
                 name: "Featured-Ubuntu22",
