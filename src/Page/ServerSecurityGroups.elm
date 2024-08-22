@@ -1,12 +1,22 @@
 module Page.ServerSecurityGroups exposing (Model, Msg(..), init, update, view)
 
+import Array
 import Element
+import Element.Background as Background
 import Element.Font as Font
+import Element.Input as Input
 import FeatherIcons
-import Helpers.GetterSetters as GetterSetters
+import Helpers.GetterSetters as GetterSetters exposing (isDefaultSecurityGroup)
+import Helpers.RemoteDataPlusPlus as RDPP
+import Helpers.ResourceList exposing (listItemColumnAttribs)
 import Helpers.String
-import OpenStack.Types as OSTypes
+import OpenStack.Types as OSTypes exposing (securityGroupExoTags, securityGroupTaggedAs)
+import Route
+import Set
+import Style.Helpers as SH
+import Style.Widgets.DataList as DataList exposing (borderStyleForRow, defaultRowStyle)
 import Style.Widgets.Spacer exposing (spacer)
+import Style.Widgets.Tag exposing (tagNeutral, tagPositive)
 import Style.Widgets.Text as Text
 import Types.Project exposing (Project)
 import Types.Server exposing (Server)
@@ -17,16 +27,42 @@ import View.Types
 
 type alias Model =
     { serverUuid : OSTypes.ServerUuid
+    , dataListModel : DataList.Model
+    , selectedSecurityGroups : Maybe.Maybe (Set.Set OSTypes.SecurityGroupUuid)
     }
 
 
 type Msg
-    = SharedMsg SharedMsg.SharedMsg
+    = DataListMsg DataList.Msg
+    | GotServerSecurityGroups OSTypes.ServerUuid (List OSTypes.ServerSecurityGroup)
+    | SecurityGroupSelected (Set.Set OSTypes.SecurityGroupUuid) OSTypes.SecurityGroupUuid Bool
+    | SharedMsg SharedMsg.SharedMsg
 
 
-init : OSTypes.ServerUuid -> Model
-init serverUuid =
+init : Project -> OSTypes.ServerUuid -> Model
+init project serverUuid =
     { serverUuid = serverUuid
+    , dataListModel = DataList.init <| DataList.getDefaultFilterOptions []
+    , selectedSecurityGroups =
+        case GetterSetters.serverLookup project serverUuid of
+            Just server ->
+                case server.securityGroups.data of
+                    RDPP.DoHave serverSecurityGroups _ ->
+                        case project.securityGroups.data of
+                            RDPP.DoHave securityGroups _ ->
+                                List.map .uuid serverSecurityGroups
+                                    |> Set.fromList
+                                    |> Set.intersect (Set.fromList <| List.map .uuid securityGroups)
+                                    |> Just
+
+                            _ ->
+                                Nothing
+
+                    _ ->
+                        Nothing
+
+            _ ->
+                Nothing
     }
 
 
@@ -35,6 +71,219 @@ update msg model =
     case msg of
         SharedMsg sharedMsg ->
             ( model, Cmd.none, sharedMsg )
+
+        DataListMsg dataListMsg ->
+            ( { model | dataListModel = DataList.update dataListMsg model.dataListModel }, Cmd.none, SharedMsg.NoOp )
+
+        GotServerSecurityGroups serverUuid serverSecurityGroups ->
+            -- SharedModel just updated with new security groups for this server. If we don't have anything selected yet, show those already applied.
+            if serverUuid == model.serverUuid && model.selectedSecurityGroups == Nothing then
+                ( { model | selectedSecurityGroups = Just <| appliedSecurityGroups serverSecurityGroups }, Cmd.none, SharedMsg.NoOp )
+
+            else
+                ( model, Cmd.none, SharedMsg.NoOp )
+
+        SecurityGroupSelected applied securityGroupUuid selected ->
+            let
+                selectedSecurityGroups =
+                    case model.selectedSecurityGroups of
+                        Just selectedSecurityGroups_ ->
+                            selectedSecurityGroups_
+
+                        Nothing ->
+                            -- If unavailable, use the currently applied security groups as the initial selection.
+                            applied
+
+                nextSelectedSecurityGroups =
+                    if selected then
+                        Set.insert securityGroupUuid selectedSecurityGroups
+
+                    else
+                        Set.remove securityGroupUuid selectedSecurityGroups
+            in
+            ( { model | selectedSecurityGroups = Just nextSelectedSecurityGroups }, Cmd.none, SharedMsg.NoOp )
+
+
+type alias SecurityGroupRecord =
+    DataList.DataRecord
+        { securityGroup : OSTypes.SecurityGroup
+        , applied : Bool
+        }
+
+
+securityGroupRecords : List OSTypes.SecurityGroup -> List OSTypes.ServerSecurityGroup -> List SecurityGroupRecord
+securityGroupRecords securityGroups serverSecurityGroups =
+    List.map
+        (\securityGroup ->
+            { id = securityGroup.uuid
+            , selectable = False -- DataList doesn't render checkboxes without bulk actions.
+            , securityGroup = securityGroup
+            , applied = appliedSecurityGroups serverSecurityGroups |> Set.member securityGroup.uuid
+            }
+        )
+        securityGroups
+
+
+appliedSecurityGroups : List OSTypes.ServerSecurityGroup -> Set.Set OSTypes.SecurityGroupUuid
+appliedSecurityGroups serverSecurityGroups =
+    serverSecurityGroups
+        |> List.map .uuid
+        |> Set.fromList
+
+
+isSecurityGroupSelected : Model -> OSTypes.SecurityGroupUuid -> Bool
+isSecurityGroupSelected model securityGroupUuid =
+    Set.member securityGroupUuid (Maybe.withDefault Set.empty model.selectedSecurityGroups)
+
+
+securityGroupView : View.Types.Context -> Project -> Model -> List OSTypes.ServerSecurityGroup -> SecurityGroupRecord -> Element.Element Msg
+securityGroupView context project model serverSecurityGroups securityGroupRecord =
+    let
+        securityGroup =
+            securityGroupRecord.securityGroup
+
+        securityGroupUuid =
+            securityGroup.uuid
+
+        securityGroupName =
+            VH.extendedResourceName
+                (Just securityGroup.name)
+                securityGroupUuid
+                context.localization.securityGroup
+
+        securityGroupLink =
+            Element.link []
+                { url =
+                    Route.toUrl context.urlPathPrefix
+                        (Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
+                            Route.SecurityGroupDetail securityGroupUuid
+                        )
+                , label =
+                    Element.el
+                        (Text.typographyAttrs Text.Emphasized
+                            ++ [ Font.color (SH.toElementColor context.palette.primary)
+                               ]
+                        )
+                        (Element.text <| securityGroupName)
+                }
+
+        preset =
+            if securityGroupTaggedAs securityGroupExoTags.preset securityGroup then
+                tagPositive context.palette "preset"
+
+            else
+                Element.none
+
+        default =
+            if isDefaultSecurityGroup context project securityGroup then
+                tagNeutral context.palette "default"
+
+            else
+                Element.none
+
+        tags =
+            [ preset
+            , default
+            ]
+
+        actions =
+            [ Element.none ]
+    in
+    Element.column
+        (listItemColumnAttribs context.palette)
+        [ Element.row
+            [ Element.spacing spacer.px16, Element.width Element.fill ]
+            [ let
+                selected =
+                    isSecurityGroupSelected model securityGroupUuid
+
+                selectWord =
+                    if selected then
+                        "Deselect"
+
+                    else
+                        "Select"
+              in
+              Input.checkbox
+                [ Element.width Element.shrink ]
+                { onChange = SecurityGroupSelected (appliedSecurityGroups serverSecurityGroups) securityGroupUuid
+                , icon = Input.defaultCheckbox
+                , checked = selected
+                , label = Input.labelHidden (selectWord ++ " " ++ securityGroupName)
+                }
+            , Element.column [ Element.spacing spacer.px12, Element.width Element.fill ]
+                [ securityGroupLink
+                ]
+            , Element.row [ Element.spacing spacer.px4, Element.alignRight, Element.alignTop ]
+                (tags ++ actions)
+            ]
+        ]
+
+
+renderSelectableSecurityGroupsList : View.Types.Context -> Project -> Model -> List OSTypes.SecurityGroup -> List OSTypes.ServerSecurityGroup -> Element.Element Msg
+renderSelectableSecurityGroupsList context project model securityGroups serverSecurityGroups =
+    DataList.viewWithCustomRowStyle
+        (\filteredData i ->
+            let
+                securityGroupRecord =
+                    Array.get i (Array.fromList filteredData)
+
+                selected =
+                    case securityGroupRecord of
+                        Just record ->
+                            isSecurityGroupSelected model record.securityGroup.uuid
+
+                        Nothing ->
+                            False
+
+                applied =
+                    case securityGroupRecord of
+                        Just record ->
+                            record.applied
+
+                        Nothing ->
+                            False
+
+                highlight =
+                    case ( selected, applied ) of
+                        ( True, False ) ->
+                            [ Background.color <| SH.toElementColorWithOpacity context.palette.success.textOnNeutralBG 0.1 ]
+
+                        ( False, True ) ->
+                            [ Background.color <| SH.toElementColorWithOpacity context.palette.danger.textOnNeutralBG 0.1 ]
+
+                        _ ->
+                            []
+
+                rowStyle =
+                    defaultRowStyle context.palette
+                        ++ [ Element.padding spacer.px16
+                           , Element.spacing spacer.px16
+                           ]
+                        ++ highlight
+            in
+            borderStyleForRow rowStyle (List.length filteredData) i
+        )
+        context.localization.securityGroup
+        model.dataListModel
+        DataListMsg
+        context
+        []
+        (securityGroupView context project model serverSecurityGroups)
+        (securityGroupRecords securityGroups serverSecurityGroups)
+        []
+        Nothing
+        Nothing
+
+
+renderSecurityGroupsList : View.Types.Context -> Project -> Model -> Server -> List OSTypes.SecurityGroup -> Element.Element Msg
+renderSecurityGroupsList context project model server securityGroups =
+    VH.renderRDPP context
+        server.securityGroups
+        (context.localization.securityGroup
+            |> Helpers.String.pluralize
+        )
+        (renderSelectableSecurityGroupsList context project model securityGroups)
 
 
 view : View.Types.Context -> Project -> Model -> Element.Element Msg
@@ -58,7 +307,7 @@ view context project model =
 
 
 render : View.Types.Context -> Project -> Model -> Server -> Element.Element Msg
-render context _ _ server =
+render context project model server =
     Element.column [ Element.spacing spacer.px24, Element.width Element.fill ]
         [ Element.row (Text.headingStyleAttrs context.palette)
             [ FeatherIcons.shield |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
@@ -77,4 +326,9 @@ render context _ _ server =
             , Element.row [ Element.alignRight, Text.fontSize Text.Body, Font.regular, Element.spacing spacer.px16 ]
                 []
             ]
+        , VH.renderRDPP
+            context
+            project.securityGroups
+            (Helpers.String.pluralize context.localization.securityGroup)
+            (renderSecurityGroupsList context project model server)
         ]

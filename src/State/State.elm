@@ -2864,6 +2864,8 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                     , Cmd.none
                     )
                         |> mapToOuterModel outerModel
+                        -- Make the page aware of the shared msg.
+                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerSecurityGroupsMsg <| Page.ServerSecurityGroups.GotServerSecurityGroups server.osProps.uuid serverSecurityGroups))
 
                 Err httpErrorWithBody ->
                     State.Error.processSynchronousApiError sharedModel errorContext httpErrorWithBody
