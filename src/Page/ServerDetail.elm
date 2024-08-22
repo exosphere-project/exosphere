@@ -401,6 +401,14 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                         |> Helpers.String.pluralize
                         |> Helpers.String.toTitleCase
                         |> Element.text
+                    , Element.link []
+                        { url =
+                            Route.toUrl context.urlPathPrefix <|
+                                Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
+                                    Route.ServerSecurityGroups server.osProps.uuid
+                        , label =
+                            Style.Widgets.IconButton.goToButton context.palette (Just NoOp)
+                        }
                     ]
                     [ renderSecurityGroups context project server ]
 

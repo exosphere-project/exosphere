@@ -63,6 +63,7 @@ type ProjectRouteConstructor
     | ServerDetail OSTypes.ServerUuid
     | ServerList
     | ServerResize OSTypes.ServerUuid
+    | ServerSecurityGroups OSTypes.ServerUuid
     | ShareCreate
     | ShareList
     | ShareDetail OSTypes.ShareUuid
@@ -303,6 +304,14 @@ toUrl maybePathPrefix route =
                             ( [ "servers"
                               , serverUuid
                               , "resize"
+                              ]
+                            , []
+                            )
+
+                        ServerSecurityGroups serverUuid ->
+                            ( [ "servers"
+                              , serverUuid
+                              , "securitygroups"
                               ]
                             , []
                             )
@@ -627,6 +636,9 @@ projectRouteParsers =
     , map
         ServerResize
         (s "servers" </> string </> s "resize")
+    , map
+        ServerSecurityGroups
+        (s "servers" </> string </> s "securitygroups")
     , map
         ShareCreate
         (s "createshare")

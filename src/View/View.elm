@@ -36,6 +36,7 @@ import Page.ServerCreateImage
 import Page.ServerDetail
 import Page.ServerList
 import Page.ServerResize
+import Page.ServerSecurityGroups
 import Page.Settings
 import Page.ShareCreate
 import Page.ShareDetail
@@ -371,6 +372,10 @@ projectContentView model context p viewConstructor =
         ServerResize pageModel ->
             Page.ServerResize.view context p pageModel
                 |> Element.map ServerResizeMsg
+
+        ServerSecurityGroups pageModel ->
+            Page.ServerSecurityGroups.view context p pageModel
+                |> Element.map ServerSecurityGroupsMsg
 
         ShareCreate pageModel ->
             Page.ShareCreate.view context p model.clientCurrentTime pageModel

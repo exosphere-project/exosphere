@@ -224,6 +224,17 @@ pageTitle outerModel =
                         , serverName maybeProject pageModel.serverUuid
                         ]
 
+                ServerSecurityGroups pageModel ->
+                    String.join " "
+                        [ localization.virtualComputer
+                            |> Helpers.String.toTitleCase
+                        , localization.securityGroup
+                            |> Helpers.String.pluralize
+                            |> Helpers.String.toTitleCase
+                        , "for"
+                        , serverName maybeProject pageModel.serverUuid
+                        ]
+
                 ShareCreate _ ->
                     String.join " "
                         [ "Create"

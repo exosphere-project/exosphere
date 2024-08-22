@@ -22,6 +22,7 @@ import Page.ServerCreateImage
 import Page.ServerDetail
 import Page.ServerList
 import Page.ServerResize
+import Page.ServerSecurityGroups
 import Page.Settings
 import Page.ShareCreate
 import Page.ShareDetail
@@ -64,6 +65,7 @@ type OuterMsg
     | ServerDetailMsg Page.ServerDetail.Msg
     | ServerListMsg Page.ServerList.Msg
     | ServerResizeMsg Page.ServerResize.Msg
+    | ServerSecurityGroupsMsg Page.ServerSecurityGroups.Msg
     | ShareCreateMsg Page.ShareCreate.Msg
     | ShareDetailMsg Page.ShareDetail.Msg
     | ShareListMsg Page.ShareList.Msg

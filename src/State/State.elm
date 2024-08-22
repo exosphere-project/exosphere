@@ -45,6 +45,7 @@ import Page.ServerCreateImage
 import Page.ServerDetail
 import Page.ServerList
 import Page.ServerResize
+import Page.ServerSecurityGroups
 import Page.Settings
 import Page.ShareCreate
 import Page.ShareDetail
@@ -508,6 +509,21 @@ updateUnderlying outerMsg outerModel =
                                         ServerResize newSharedModel
                               }
                             , Cmd.map ServerResizeMsg cmd
+                            )
+                                |> pipelineCmdOuterModelMsg
+                                    (processSharedMsg sharedMsg)
+
+                        ( ServerSecurityGroupsMsg pageMsg, ServerSecurityGroups pageModel ) ->
+                            let
+                                ( newSharedModel, cmd, sharedMsg ) =
+                                    Page.ServerSecurityGroups.update pageMsg pageModel
+                            in
+                            ( { outerModel
+                                | viewState =
+                                    ProjectView projectId <|
+                                        ServerSecurityGroups newSharedModel
+                              }
+                            , Cmd.map ServerSecurityGroupsMsg cmd
                             )
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)

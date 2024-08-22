@@ -280,6 +280,31 @@ breadcrumb_ outerModel context =
                                       }
                                     ]
 
+                                ServerSecurityGroups pageModel ->
+                                    [ { route = Just <| Route.ProjectRoute projectId <| Route.ServerList
+                                      , label =
+                                            String.join " "
+                                                [ context.localization.virtualComputer
+                                                    |> Helpers.String.pluralize
+                                                    |> Helpers.String.toTitleCase
+                                                ]
+                                      }
+                                    , { route = Just <| Route.ProjectRoute projectId <| Route.ServerDetail pageModel.serverUuid
+                                      , label =
+                                            String.join " "
+                                                [ context.localization.virtualComputer
+                                                    |> Helpers.String.toTitleCase
+                                                , View.PageTitle.serverName (GetterSetters.projectLookup outerModel.sharedModel projectId) pageModel.serverUuid
+                                                ]
+                                      }
+                                    , { route = Nothing
+                                      , label =
+                                            context.localization.securityGroup
+                                                |> Helpers.String.pluralize
+                                                |> Helpers.String.toTitleCase
+                                      }
+                                    ]
+
                                 ShareCreate _ ->
                                     [ { route = Nothing
                                       , label =

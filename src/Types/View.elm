@@ -28,6 +28,7 @@ import Page.ServerCreateImage
 import Page.ServerDetail
 import Page.ServerList
 import Page.ServerResize
+import Page.ServerSecurityGroups
 import Page.Settings
 import Page.ShareCreate
 import Page.ShareDetail
@@ -84,6 +85,7 @@ type ProjectViewConstructor
     | ServerDetail Page.ServerDetail.Model
     | ServerList Page.ServerList.Model
     | ServerResize Page.ServerResize.Model
+    | ServerSecurityGroups Page.ServerSecurityGroups.Model
     | ShareCreate Page.ShareCreate.Model
     | ShareDetail Page.ShareDetail.Model
     | ShareList Page.ShareList.Model
