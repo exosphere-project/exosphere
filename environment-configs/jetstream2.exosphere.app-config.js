@@ -41,8 +41,7 @@ var config = {
   supportInfoMarkdown:
     "See the [documentation](https://docs.jetstream-cloud.org/ui/exo/exo/) to learn about using Exosphere with Jetstream2.\\\n\\\nIn particular, please read about [instance management actions](https://docs.jetstream-cloud.org/general/instancemgt/) or [troubleshooting](https://docs.jetstream-cloud.org/faq/trouble/) for answers to common problems before submitting a request to support staff.\\\n\\\nIf you would like to discuss an issue or idea directly with the Jetstream2 Support team, please consider attending Jetstream2 office hours. These will be held on Tuesdays from 2-3PM ET (dates subject to change for holidays, trainings, or other events). [Join Jetstream2 Office Hours on Zoom](https://iu.zoom.us/j/88646623407)",
   userSupportEmailAddress: "help@jetstream-cloud.org",
-  userSupportEmailSubject:
-    "[Jetstream2] Support Request From Exosphere for Jetstream2",
+  userSupportEmailSubject: "Support Request From Exosphere",
   openIdConnectLoginConfig: {
     keystoneAuthUrl: "https://js2.jetstream-cloud.org:5000/identity/v3",
     webssoUrl:
