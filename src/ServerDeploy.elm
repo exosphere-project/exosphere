@@ -32,7 +32,7 @@ runcmd:
     python3 -m venv /opt/ansible-venv
     . /opt/ansible-venv/bin/activate
     pip install --upgrade pip
-    pip install ansible-core
+    pip install ansible-core passlib
     ansible-pull \\
       --url "{instance-config-mgt-repo-url}" \\
       --checkout "{instance-config-mgt-repo-checkout}" \\
