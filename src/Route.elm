@@ -56,7 +56,7 @@ type ProjectRouteConstructor
     | FloatingIpCreate (Maybe OSTypes.ServerUuid)
     | KeypairCreate
     | KeypairList
-    | SecurityGroupDetail OSTypes.ShareUuid
+    | SecurityGroupDetail OSTypes.SecurityGroupUuid
     | SecurityGroupList
     | ServerCreate OSTypes.ImageUuid String (Maybe (List OSTypes.FlavorId)) (Maybe Bool)
     | ServerCreateImage OSTypes.ServerUuid (Maybe String)
