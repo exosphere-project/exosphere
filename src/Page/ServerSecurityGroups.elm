@@ -11,13 +11,16 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.ResourceList exposing (listItemColumnAttribs)
 import Helpers.String
 import OpenStack.Types as OSTypes exposing (securityGroupExoTags, securityGroupTaggedAs)
+import Page.SecurityGroupRulesTable as SecurityGroupRulesTable
 import Route
 import Set
 import Style.Helpers as SH
+import Style.Types as ST
 import Style.Widgets.DataList as DataList exposing (borderStyleForRow, defaultRowStyle)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Tag exposing (tagNeutral, tagPositive)
 import Style.Widgets.Text as Text
+import Style.Widgets.ToggleTip
 import Types.Project exposing (Project)
 import Types.Server exposing (Server)
 import Types.SharedMsg as SharedMsg
@@ -186,8 +189,19 @@ securityGroupView context project model serverSecurityGroups securityGroupRecord
             , default
             ]
 
-        actions =
-            [ Element.none ]
+        tooltip =
+            [ Style.Widgets.ToggleTip.toggleTip
+                context
+                (SharedMsg << SharedMsg.TogglePopover)
+                (Helpers.String.hyphenate
+                    [ "securityGroupRulesId"
+                    , project.auth.project.uuid
+                    , securityGroup.uuid
+                    ]
+                )
+                (SecurityGroupRulesTable.view context project securityGroupUuid)
+                ST.PositionLeft
+            ]
     in
     Element.column
         (listItemColumnAttribs context.palette)
@@ -215,7 +229,7 @@ securityGroupView context project model serverSecurityGroups securityGroupRecord
                 [ securityGroupLink
                 ]
             , Element.row [ Element.spacing spacer.px4, Element.alignRight, Element.alignTop ]
-                (tags ++ actions)
+                (tags ++ tooltip)
             ]
         ]
 
