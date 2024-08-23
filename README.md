@@ -46,6 +46,7 @@ What can I do with Exosphere?
 - [Nomenclature Reference](docs/nomenclature-reference.md)
 - [Installing Exosphere Progressive Web Application](docs/pwa-install.md)
 - [Cockpit Deprecation and Manual Installation](docs/cockpit.md)
+- [Graphical Acceleration](docs/graphical-acceleration.md)
 
 ### For Cloud Operators
 

@@ -20,6 +20,7 @@ nav:
       - 'docs/compatibility.md'
       - 'docs/nomenclature-reference.md'
       - 'docs/pwa-install.md'
+      - 'docs/graphical-acceleration.md'
   - For Cloud Operators:
       - 'docs/prod-deploy-maint.md'
       - 'docs/config-options.md'
