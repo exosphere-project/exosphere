@@ -20,6 +20,12 @@
     name: '{{ item }}'
     state: 'present'
 
+- name: "TurboVNC security settings created"
+  copy:
+    src: 'turbovncserver-security.conf'
+    dest: '/etc/turbovncserver-security.conf'
+    mode: '0644'
+
 - name: 'vglserver configured'
   shell: 'vglserver_config -config -s -f +t'
 
