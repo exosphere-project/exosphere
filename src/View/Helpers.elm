@@ -1073,6 +1073,7 @@ flavorPicker :
     View.Types.Context
     -> Project
     -> Maybe (List OSTypes.FlavorId)
+    -> Maybe String
     -> OSTypes.ComputeQuota
     -> (PopoverId -> msg)
     -> PopoverId
@@ -1080,7 +1081,7 @@ flavorPicker :
     -> Maybe OSTypes.FlavorId
     -> (OSTypes.FlavorId -> msg)
     -> Element.Element msg
-flavorPicker context project restrictFlavorIds computeQuota flavorGroupToggleTipMsgMapper flavorGroupToggleTipId maybeCurrentFlavorId selectedFlavorId changeMsg =
+flavorPicker context project restrictFlavorIds showDisabledFlavorsReason computeQuota flavorGroupToggleTipMsgMapper flavorGroupToggleTipId maybeCurrentFlavorId selectedFlavorId changeMsg =
     let
         { locale } =
             context
@@ -1090,14 +1091,32 @@ flavorPicker context project restrictFlavorIds computeQuota flavorGroupToggleTip
                 |> Maybe.map .flavorGroups
                 |> Maybe.withDefault []
 
-        allowedFlavors =
+        isFlavorAllowed flavor =
             case restrictFlavorIds of
                 Nothing ->
-                    RDPP.withDefault [] project.flavors
+                    True
 
                 Just restrictedFlavorIds ->
+                    List.member flavor.id restrictedFlavorIds
+
+        flavorsToShow =
+            case ( restrictFlavorIds, showDisabledFlavorsReason ) of
+                ( Just restrictedFlavorIds, Nothing ) ->
                     restrictedFlavorIds
                         |> List.filterMap (GetterSetters.flavorLookup project)
+
+                _ ->
+                    RDPP.withDefault [] project.flavors
+
+        disabledFlavorTooltip flavor reason =
+            ToggleTip.toggleTip context
+                flavorGroupToggleTipMsgMapper
+                (flavor.id ++ "--restricted")
+                (reason
+                    |> Maybe.withDefault "This flavor is restricted"
+                    |> Element.text
+                )
+                ST.PositionRight
 
         -- This is a kludge. Input.radio is intended to display a group of multiple radio buttons,
         -- but we want to embed a button in each table row, so we define several Input.radios,
@@ -1115,25 +1134,20 @@ flavorPicker context project restrictFlavorIds computeQuota flavorGroupToggleTip
 
                 radio_ =
                     if isCurrentFlavor then
-                        Element.text "Current"
+                        Element.el [ paddingRight ] <|
+                            Element.text "Current"
 
-                    else
+                    else if isFlavorAllowed flavor then
                         Element.Input.radio
-                            []
+                            [ Element.centerX ]
                             { label = Element.Input.labelHidden flavor.name
                             , onChange = changeMsg
                             , options = [ Element.Input.option flavor.id (Element.text " ") ]
-                            , selected =
-                                selectedFlavorId
-                                    |> Maybe.andThen
-                                        (\flavorId ->
-                                            if flavor.id == flavorId then
-                                                Just flavor.id
-
-                                            else
-                                                Nothing
-                                        )
+                            , selected = selectedFlavorId
                             }
+
+                    else
+                        disabledFlavorTooltip flavor showDisabledFlavorsReason
             in
             -- Only allow selection if there is enough available quota
             case OSQuotas.computeQuotaFlavorAvailServers computeQuota flavor of
@@ -1142,7 +1156,8 @@ flavorPicker context project restrictFlavorIds computeQuota flavorGroupToggleTip
 
                 Just availServers ->
                     if availServers < 1 then
-                        Element.text "X"
+                        disabledFlavorTooltip flavor
+                            (Just "This size would exceed your allocation's quota")
 
                     else
                         radio_
@@ -1226,7 +1241,7 @@ flavorPicker context project restrictFlavorIds computeQuota flavorGroupToggleTip
             ]
 
         zeroRootDiskExplainText =
-            case List.Extra.find (\f -> f.disk_root == 0) allowedFlavors of
+            case List.Extra.find (\f -> f.disk_root == 0) flavorsToShow of
                 Just _ ->
                     String.concat
                         [ "* No default root disk size is defined for this "
@@ -1253,7 +1268,7 @@ flavorPicker context project restrictFlavorIds computeQuota flavorGroupToggleTip
                 []
 
         anyFlavorsTooLarge =
-            allowedFlavors
+            flavorsToShow
                 |> List.filterMap (OSQuotas.computeQuotaFlavorAvailServers computeQuota)
                 |> List.filter (\x -> x < 1)
                 |> List.isEmpty
@@ -1318,12 +1333,12 @@ flavorPicker context project restrictFlavorIds computeQuota flavorGroupToggleTip
         [ Text.strong <| Helpers.String.toTitleCase context.localization.virtualComputerHardwareConfig
         , Element.el flavorEmptyHint <|
             if List.isEmpty flavorGroups then
-                renderFlavors (GetterSetters.sortedFlavors allowedFlavors)
+                renderFlavors (GetterSetters.sortedFlavors flavorsToShow)
 
             else
                 Element.column
                     [ Element.spacing spacer.px12 ]
-                    (flavorGroups |> List.map (renderFlavorGroup (GetterSetters.sortedFlavors allowedFlavors)))
+                    (flavorGroups |> List.map (renderFlavorGroup (GetterSetters.sortedFlavors flavorsToShow)))
         , if anyFlavorsTooLarge then
             Element.text <|
                 String.join " "

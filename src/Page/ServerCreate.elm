@@ -745,6 +745,7 @@ view context project currentTime model =
             , VH.flavorPicker context
                 project
                 model.restrictFlavorIds
+                Nothing
                 computeQuota
                 (\flavorGroupTipId -> SharedMsg <| SharedMsg.TogglePopover flavorGroupTipId)
                 (Helpers.String.hyphenate [ "serverCreateFlavorGroupTip", project.auth.project.uuid ])
