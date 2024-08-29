@@ -42,7 +42,7 @@ var cloud_configs = {
           logo: "assets/img/ubuntu.svg",
           versions: [
             {
-              friendlyName: "24.04 (preview)",
+              friendlyName: "24.04 (no software collection)",
               isPrimary: false,
               imageFilters: {
                 name: "Preview-Ubuntu24",
