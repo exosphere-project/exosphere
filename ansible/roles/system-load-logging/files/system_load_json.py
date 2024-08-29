@@ -73,7 +73,7 @@ def gpu():
         for line in output_stripped_whitespace:
             if in_utilization_section:
                 if line.startswith("Gpu"):
-                    match = re.search(":\s*(\d+)\s*%", line)
+                    match = re.search(r":\s*(\d+)\s*%", line)
                     if match:
                         gpu_used_percent = int(match.group(1))
                         return gpu_used_percent
