@@ -1,4 +1,4 @@
-module Page.SecurityGroupRulesTable exposing (rulesTable, view)
+module Page.SecurityGroupRulesTable exposing (defaultRowStyle, rulesTable, rulesTableWithRowStyle, view)
 
 import Element
 import Element.Font as Font
@@ -27,6 +27,20 @@ import View.Types
 
 rulesTable : View.Types.Context -> ProjectIdentifier -> { rules : List SecurityGroupRule, securityGroupForUuid : SecurityGroupUuid -> Maybe SecurityGroup } -> Element.Element msg
 rulesTable context projectId { rules, securityGroupForUuid } =
+    rulesTableWithRowStyle
+        context
+        projectId
+        { rules = rules, securityGroupForUuid = securityGroupForUuid }
+        (always defaultRowStyle)
+
+
+defaultRowStyle : List (Element.Attribute msg)
+defaultRowStyle =
+    [ Element.padding spacer.px8 ]
+
+
+rulesTableWithRowStyle : View.Types.Context -> ProjectIdentifier -> { rules : List SecurityGroupRule, securityGroupForUuid : SecurityGroupUuid -> Maybe SecurityGroup } -> (SecurityGroupRule -> List (Element.Attribute msg)) -> Element.Element msg
+rulesTableWithRowStyle context projectId { rules, securityGroupForUuid } styleForRow =
     case List.length rules of
         0 ->
             Element.text "(none)"
@@ -34,7 +48,7 @@ rulesTable context projectId { rules, securityGroupForUuid } =
         _ ->
             let
                 header text =
-                    Element.el [ Font.heavy ] <| Element.text text
+                    Element.el (Font.heavy :: defaultRowStyle) <| Element.text text
 
                 scrollableCell attrs msg =
                     Element.el
@@ -47,9 +61,12 @@ rulesTable context projectId { rules, securityGroupForUuid } =
                             ]
                             msg
                         )
+
+                container rule =
+                    Element.el (styleForRow rule)
             in
             Element.table
-                [ Element.spacing spacer.px16
+                [ Element.spacing 0
                 ]
                 { data = sortBy (\item -> directionToString item.direction) rules
                 , columns =
@@ -57,13 +74,13 @@ rulesTable context projectId { rules, securityGroupForUuid } =
                       , width = Element.shrink
                       , view =
                             \item ->
-                                Text.body <| directionToString <| item.direction
+                                container item <| Text.body <| directionToString <| item.direction
                       }
                     , { header = header "Ether Type"
                       , width = Element.shrink
                       , view =
                             \item ->
-                                Text.body <| etherTypeToString <| item.ethertype
+                                container item <| Text.body <| etherTypeToString <| item.ethertype
                       }
                     , { header = header "Protocol"
                       , width = Element.shrink
@@ -79,62 +96,66 @@ rulesTable context projectId { rules, securityGroupForUuid } =
                                             Nothing ->
                                                 protocolToString AnyProtocol
                                 in
-                                Text.body <| protocolString
+                                container item <| Text.body <| protocolString
                       }
                     , { header = header "Port Range"
                       , width = Element.shrink
                       , view =
                             \item ->
-                                Text.body <| portRangeToString item
+                                container item <| Text.body <| portRangeToString item
                       }
                     , { header = header "Remote"
                       , width = Element.shrink
                       , view =
                             \item ->
-                                case ( item.remoteIpPrefix, item.remoteGroupUuid ) of
-                                    -- Either IP prefix or remote security group.
-                                    ( Just ipPrefix, _ ) ->
-                                        Text.body ipPrefix
+                                let
+                                    cell =
+                                        case ( item.remoteIpPrefix, item.remoteGroupUuid ) of
+                                            -- Either IP prefix or remote security group.
+                                            ( Just ipPrefix, _ ) ->
+                                                Text.body <| ipPrefix
 
-                                    ( _, Just remoteGroupUuid ) ->
-                                        -- Look up a the remote security group locally.
-                                        case securityGroupForUuid remoteGroupUuid of
-                                            Just securityGroup ->
-                                                Element.link []
-                                                    { url =
-                                                        Route.toUrl context.urlPathPrefix
-                                                            (Route.ProjectRoute projectId <|
-                                                                Route.SecurityGroupDetail securityGroup.uuid
-                                                            )
-                                                    , label =
-                                                        Element.el
-                                                            [ Font.color (SH.toElementColor context.palette.primary) ]
-                                                            (Element.text <|
-                                                                VH.extendedResourceName
-                                                                    (Just securityGroup.name)
-                                                                    securityGroup.uuid
-                                                                    context.localization.securityGroup
-                                                            )
-                                                    }
+                                            ( _, Just remoteGroupUuid ) ->
+                                                -- Look up a the remote security group locally.
+                                                case securityGroupForUuid remoteGroupUuid of
+                                                    Just securityGroup ->
+                                                        Element.link []
+                                                            { url =
+                                                                Route.toUrl context.urlPathPrefix
+                                                                    (Route.ProjectRoute projectId <|
+                                                                        Route.SecurityGroupDetail securityGroup.uuid
+                                                                    )
+                                                            , label =
+                                                                Element.el
+                                                                    [ Font.color (SH.toElementColor context.palette.primary) ]
+                                                                    (Element.text <|
+                                                                        VH.extendedResourceName
+                                                                            (Just securityGroup.name)
+                                                                            securityGroup.uuid
+                                                                            context.localization.securityGroup
+                                                                    )
+                                                            }
 
-                                            Nothing ->
-                                                Text.body <|
-                                                    VH.extendedResourceName
-                                                        Nothing
-                                                        remoteGroupUuid
-                                                        context.localization.securityGroup
+                                                    Nothing ->
+                                                        Text.body <|
+                                                            VH.extendedResourceName
+                                                                Nothing
+                                                                remoteGroupUuid
+                                                                context.localization.securityGroup
 
-                                    ( Nothing, Nothing ) ->
-                                        -- Assume 'any' address when neither remote group nor IP prefix are specified
-                                        case item.ethertype of
-                                            Ipv4 ->
-                                                Text.body "0.0.0.0/0"
+                                            ( Nothing, Nothing ) ->
+                                                -- Assume 'any' address when neither remote group nor IP prefix are specified
+                                                case item.ethertype of
+                                                    Ipv4 ->
+                                                        Text.body "0.0.0.0/0"
 
-                                            Ipv6 ->
-                                                Text.body "::/0"
+                                                    Ipv6 ->
+                                                        Text.body "::/0"
 
-                                            _ ->
-                                                Text.body "-"
+                                                    _ ->
+                                                        Text.body "-"
+                                in
+                                container item <| cell
                       }
                     , { header = header "Description"
                       , width = Element.fill
@@ -145,7 +166,7 @@ rulesTable context projectId { rules, securityGroupForUuid } =
                                         Maybe.withDefault "-" item.description
                                 in
                                 scrollableCell
-                                    []
+                                    (styleForRow item)
                                     (Text.body <|
                                         if String.isEmpty description then
                                             "-"

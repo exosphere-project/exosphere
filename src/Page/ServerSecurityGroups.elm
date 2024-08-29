@@ -3,19 +3,23 @@ module Page.ServerSecurityGroups exposing (Model, Msg(..), init, update, view)
 import Array
 import Element
 import Element.Background as Background
+import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons
 import Helpers.GetterSetters as GetterSetters exposing (isDefaultSecurityGroup)
+import Helpers.List exposing (uniqueBy)
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.ResourceList exposing (listItemColumnAttribs)
 import Helpers.String
+import OpenStack.SecurityGroupRule exposing (matchRule)
 import OpenStack.Types as OSTypes exposing (securityGroupExoTags, securityGroupTaggedAs)
 import Page.SecurityGroupRulesTable as SecurityGroupRulesTable
 import Route
 import Set
 import Style.Helpers as SH
 import Style.Types as ST
+import Style.Widgets.Card
 import Style.Widgets.DataList as DataList exposing (borderStyleForRow, defaultRowStyle)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Tag exposing (tagNeutral, tagPositive)
@@ -81,7 +85,7 @@ update msg model =
         GotServerSecurityGroups serverUuid serverSecurityGroups ->
             -- SharedModel just updated with new security groups for this server. If we don't have anything selected yet, show those already applied.
             if serverUuid == model.serverUuid && model.selectedSecurityGroups == Nothing then
-                ( { model | selectedSecurityGroups = Just <| appliedSecurityGroups serverSecurityGroups }, Cmd.none, SharedMsg.NoOp )
+                ( { model | selectedSecurityGroups = Just <| appliedSecurityGroupUuids serverSecurityGroups }, Cmd.none, SharedMsg.NoOp )
 
             else
                 ( model, Cmd.none, SharedMsg.NoOp )
@@ -121,14 +125,14 @@ securityGroupRecords securityGroups serverSecurityGroups =
             { id = securityGroup.uuid
             , selectable = False -- DataList doesn't render checkboxes without bulk actions.
             , securityGroup = securityGroup
-            , applied = appliedSecurityGroups serverSecurityGroups |> Set.member securityGroup.uuid
+            , applied = appliedSecurityGroupUuids serverSecurityGroups |> Set.member securityGroup.uuid
             }
         )
         securityGroups
 
 
-appliedSecurityGroups : List OSTypes.ServerSecurityGroup -> Set.Set OSTypes.SecurityGroupUuid
-appliedSecurityGroups serverSecurityGroups =
+appliedSecurityGroupUuids : List OSTypes.ServerSecurityGroup -> Set.Set OSTypes.SecurityGroupUuid
+appliedSecurityGroupUuids serverSecurityGroups =
     serverSecurityGroups
         |> List.map .uuid
         |> Set.fromList
@@ -220,7 +224,7 @@ securityGroupView context project model serverSecurityGroups securityGroupRecord
               in
               Input.checkbox
                 [ Element.width Element.shrink ]
-                { onChange = SecurityGroupSelected (appliedSecurityGroups serverSecurityGroups) securityGroupUuid
+                { onChange = SecurityGroupSelected (appliedSecurityGroupUuids serverSecurityGroups) securityGroupUuid
                 , icon = Input.defaultCheckbox
                 , checked = selected
                 , label = Input.labelHidden (selectWord ++ " " ++ securityGroupName)
@@ -282,12 +286,97 @@ renderSelectableSecurityGroupsList context project model securityGroups serverSe
         model.dataListModel
         DataListMsg
         context
-        []
+        [ Element.alignTop ]
         (securityGroupView context project model serverSecurityGroups)
         (securityGroupRecords securityGroups serverSecurityGroups)
         []
         Nothing
         Nothing
+
+
+renderSecurityGroupListAndRules : View.Types.Context -> Project -> Model -> List OSTypes.SecurityGroup -> List OSTypes.ServerSecurityGroup -> Element.Element Msg
+renderSecurityGroupListAndRules context project model securityGroups serverSecurityGroups =
+    let
+        tile : List (Element.Element Msg) -> List (Element.Element Msg) -> Element.Element Msg
+        tile headerContents contents =
+            Style.Widgets.Card.exoCard context.palette
+                (Element.column
+                    [ Element.width Element.fill
+                    , Element.padding spacer.px16
+                    , Element.spacing spacer.px16
+                    ]
+                    (List.concat
+                        [ [ Element.row
+                                (Text.subheadingStyleAttrs context.palette
+                                    ++ Text.typographyAttrs Text.Large
+                                    ++ [ Border.width 0 ]
+                                )
+                                headerContents
+                          ]
+                        , contents
+                        ]
+                    )
+                )
+
+        appliedSercurityGroupUuids_ =
+            appliedSecurityGroupUuids serverSecurityGroups
+
+        appliedSecurityGroups : List OSTypes.SecurityGroup
+        appliedSecurityGroups =
+            securityGroups |> List.filter (\securityGroup -> Set.member securityGroup.uuid appliedSercurityGroupUuids_)
+
+        selectedSecurityGroups : List OSTypes.SecurityGroup
+        selectedSecurityGroups =
+            securityGroups
+                |> List.filter (\securityGroup -> isSecurityGroupSelected model securityGroup.uuid)
+
+        appliedRules =
+            List.concatMap .rules appliedSecurityGroups |> uniqueBy matchRule
+
+        selectedRules =
+            List.concatMap .rules selectedSecurityGroups |> uniqueBy matchRule
+
+        rules =
+            List.concatMap .rules (appliedSecurityGroups ++ selectedSecurityGroups) |> uniqueBy matchRule
+    in
+    Element.wrappedRow [ Element.spacing spacer.px24 ]
+        [ renderSelectableSecurityGroupsList context project model securityGroups serverSecurityGroups
+        , tile
+            [ Element.text
+                (String.join " "
+                    [ "Consolidated"
+                    , context.localization.securityGroup
+                        |> Helpers.String.toTitleCase
+                    ]
+                )
+            ]
+            [ SecurityGroupRulesTable.rulesTableWithRowStyle
+                context
+                (GetterSetters.projectIdentifier project)
+                { rules = rules, securityGroupForUuid = GetterSetters.securityGroupLookup project }
+                (\rule ->
+                    let
+                        selected =
+                            selectedRules |> List.any (\r -> matchRule r rule)
+
+                        applied =
+                            appliedRules |> List.any (\r -> matchRule r rule)
+
+                        highlight =
+                            case ( selected, applied ) of
+                                ( True, False ) ->
+                                    [ Background.color <| SH.toElementColorWithOpacity context.palette.success.textOnNeutralBG 0.1 ]
+
+                                ( False, True ) ->
+                                    [ Background.color <| SH.toElementColorWithOpacity context.palette.danger.textOnNeutralBG 0.1 ]
+
+                                _ ->
+                                    []
+                    in
+                    SecurityGroupRulesTable.defaultRowStyle ++ highlight
+                )
+            ]
+        ]
 
 
 renderSecurityGroupsList : View.Types.Context -> Project -> Model -> Server -> List OSTypes.SecurityGroup -> Element.Element Msg
@@ -297,7 +386,7 @@ renderSecurityGroupsList context project model server securityGroups =
         (context.localization.securityGroup
             |> Helpers.String.pluralize
         )
-        (renderSelectableSecurityGroupsList context project model securityGroups)
+        (renderSecurityGroupListAndRules context project model securityGroups)
 
 
 view : View.Types.Context -> Project -> Model -> Element.Element Msg
