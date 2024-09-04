@@ -19,6 +19,7 @@ import Route
 import Set
 import Style.Helpers as SH
 import Style.Types as ST
+import Style.Widgets.Button as Button
 import Style.Widgets.Card
 import Style.Widgets.DataList as DataList exposing (borderStyleForRow, defaultRowStyle)
 import Style.Widgets.Spacer exposing (spacer)
@@ -41,6 +42,7 @@ type alias Model =
 
 type Msg
     = DataListMsg DataList.Msg
+    | GotApplyServerSecurityGroupUpdates (List OSTypes.ServerSecurityGroupUpdate)
     | GotServerSecurityGroups OSTypes.ServerUuid (List OSTypes.ServerSecurityGroup)
     | SecurityGroupSelected (Set.Set OSTypes.SecurityGroupUuid) OSTypes.SecurityGroupUuid Bool
     | SharedMsg SharedMsg.SharedMsg
@@ -73,14 +75,22 @@ init project serverUuid =
     }
 
 
-update : Msg -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
-update msg model =
+update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
+update msg project model =
     case msg of
         SharedMsg sharedMsg ->
             ( model, Cmd.none, sharedMsg )
 
         DataListMsg dataListMsg ->
             ( { model | dataListModel = DataList.update dataListMsg model.dataListModel }, Cmd.none, SharedMsg.NoOp )
+
+        GotApplyServerSecurityGroupUpdates serverSecurityGroupUpdates ->
+            ( model
+            , Cmd.none
+            , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
+                SharedMsg.ServerMsg model.serverUuid <|
+                    SharedMsg.RequestServerSecurityGroupUpdates serverSecurityGroupUpdates
+            )
 
         GotServerSecurityGroups serverUuid serverSecurityGroups ->
             -- SharedModel just updated with new security groups for this server. If we don't have anything selected yet, show those already applied.
@@ -427,7 +437,45 @@ render context project model server =
                     ]
                 )
             , Element.row [ Element.alignRight, Text.fontSize Text.Body, Font.regular, Element.spacing spacer.px16 ]
-                []
+                [ Button.primary
+                    context.palette
+                    { text = "Apply Changes"
+                    , onPress =
+                        let
+                            serverSecurityGroupUpdates : List OSTypes.ServerSecurityGroupUpdate
+                            serverSecurityGroupUpdates =
+                                List.filterMap
+                                    (\securityGroup ->
+                                        let
+                                            applied =
+                                                Set.member securityGroup.uuid (server.securityGroups |> RDPP.withDefault [] |> List.map .uuid |> Set.fromList)
+
+                                            selected =
+                                                Set.member securityGroup.uuid (Maybe.withDefault Set.empty model.selectedSecurityGroups)
+
+                                            serverSecurityGroup =
+                                                { uuid = securityGroup.uuid, name = securityGroup.name }
+                                        in
+                                        case ( applied, selected ) of
+                                            ( False, True ) ->
+                                                Just (OSTypes.AddServerSecurityGroup serverSecurityGroup)
+
+                                            ( True, False ) ->
+                                                Just (OSTypes.RemoveServerSecurityGroup serverSecurityGroup)
+
+                                            _ ->
+                                                Nothing
+                                    )
+                                    (project.securityGroups |> RDPP.withDefault [])
+                        in
+                        case serverSecurityGroupUpdates of
+                            [] ->
+                                Nothing
+
+                            _ ->
+                                Just (GotApplyServerSecurityGroupUpdates serverSecurityGroupUpdates)
+                    }
+                ]
             ]
         , VH.renderRDPP
             context

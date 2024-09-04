@@ -129,6 +129,7 @@ type ServerSpecificMsgConstructor
     | RequestAttachVolume OSTypes.VolumeUuid
     | RequestCreateServerImage String
     | RequestResizeServer OSTypes.FlavorId
+    | RequestServerSecurityGroupUpdates (List OSTypes.ServerSecurityGroupUpdate)
     | RequestCreateServerFloatingIp (Maybe OSTypes.IpAddressValue)
     | ReceiveServerAction
     | ReceiveServerEvents ErrorContext (Result HttpErrorWithBody (List OSTypes.ServerEvent))

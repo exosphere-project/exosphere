@@ -19,7 +19,7 @@ import OpenStack.ServerPassword as OSServerPassword
 import OpenStack.ServerTags as OSServerTags
 import OpenStack.ServerVolumes as OSSvrVols
 import OpenStack.Shares as OSShares
-import OpenStack.Types as OSTypes
+import OpenStack.Types as OSTypes exposing (ServerSecurityGroupUpdate(..))
 import OpenStack.Volumes as OSVolumes
 import Orchestration.GoalServer as GoalServer
 import Orchestration.Orchestration as Orchestration
@@ -516,7 +516,7 @@ updateUnderlying outerMsg outerModel =
                         ( ServerSecurityGroupsMsg pageMsg, ServerSecurityGroups pageModel ) ->
                             let
                                 ( newSharedModel, cmd, sharedMsg ) =
-                                    Page.ServerSecurityGroups.update pageMsg pageModel
+                                    Page.ServerSecurityGroups.update pageMsg project pageModel
                             in
                             ( { outerModel
                                 | viewState =
@@ -2689,6 +2689,25 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                 , Route.pushUrl sharedModel.viewContext newRoute
                 ]
             )
+
+        RequestServerSecurityGroupUpdates serverSecurityGroupUpdates ->
+            let
+                requests =
+                    serverSecurityGroupUpdates
+                        |> List.map
+                            (\serverSecurityGroupUpdate ->
+                                case serverSecurityGroupUpdate of
+                                    AddServerSecurityGroup sg ->
+                                        Rest.Nova.requestAddServerSecurityGroup project server.osProps.uuid sg
+
+                                    RemoveServerSecurityGroup sg ->
+                                        Rest.Nova.requestRemoveServerSecurityGroup project server.osProps.uuid sg
+                            )
+            in
+            ( outerModel
+            , Cmd.batch requests
+            )
+                |> mapToOuterMsg
 
         RequestResizeServer flavorId ->
             let
