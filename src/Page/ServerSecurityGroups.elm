@@ -4,6 +4,7 @@ import Array
 import Element
 import Element.Background as Background
 import Element.Border as Border
+import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons
@@ -15,7 +16,6 @@ import Helpers.String
 import OpenStack.SecurityGroupRule exposing (matchRule)
 import OpenStack.Types as OSTypes exposing (securityGroupExoTags, securityGroupTaggedAs)
 import Page.SecurityGroupRulesTable as SecurityGroupRulesTable
-import Route
 import Set
 import Set.Extra
 import Style.Helpers as SH
@@ -162,21 +162,16 @@ securityGroupView context project model securityGroupRecord =
                 securityGroupUuid
                 context.localization.securityGroup
 
-        securityGroupLink =
-            Element.link []
-                { url =
-                    Route.toUrl context.urlPathPrefix
-                        (Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
-                            Route.SecurityGroupDetail securityGroupUuid
-                        )
-                , label =
-                    Element.el
-                        (Text.typographyAttrs Text.Emphasized
-                            ++ [ Font.color (SH.toElementColor context.palette.primary)
-                               ]
-                        )
-                        (Element.text <| securityGroupName)
-                }
+        securityGroupTextButton msg =
+            Element.el
+                (Text.typographyAttrs Text.Emphasized
+                    ++ [ Font.color <| SH.toElementColor <| context.palette.primary
+                       , Element.pointer
+                       , Events.onClick msg
+                       , Element.width Element.fill
+                       ]
+                )
+                (Element.text <| securityGroupName)
 
         preset =
             if securityGroupTaggedAs securityGroupExoTags.preset securityGroup then
@@ -208,7 +203,7 @@ securityGroupView context project model securityGroupRecord =
                     ]
                 )
                 (SecurityGroupRulesTable.view context project securityGroupUuid)
-                ST.PositionLeft
+                ST.PositionRight
             ]
     in
     Element.column
@@ -234,7 +229,7 @@ securityGroupView context project model securityGroupRecord =
                 , label = Input.labelHidden (selectWord ++ " " ++ securityGroupName)
                 }
             , Element.column [ Element.spacing spacer.px12, Element.width Element.fill ]
-                [ securityGroupLink
+                [ securityGroupTextButton (ToggleSelectedGroup securityGroupUuid)
                 ]
             , Element.row [ Element.spacing spacer.px4, Element.alignRight, Element.alignTop ]
                 (tags ++ tooltip)
