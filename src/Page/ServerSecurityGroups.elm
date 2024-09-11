@@ -16,6 +16,7 @@ import Helpers.String
 import OpenStack.SecurityGroupRule exposing (matchRule)
 import OpenStack.Types as OSTypes exposing (securityGroupExoTags, securityGroupTaggedAs)
 import Page.SecurityGroupRulesTable as SecurityGroupRulesTable
+import Route
 import Set
 import Set.Extra
 import Style.Helpers as SH
@@ -29,6 +30,7 @@ import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
 import Types.Project exposing (Project)
 import Types.Server exposing (Server)
+import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
@@ -44,6 +46,7 @@ type alias Model =
 type Msg
     = DataListMsg DataList.Msg
     | GotApplyServerSecurityGroupUpdates (List OSTypes.ServerSecurityGroupUpdate)
+    | GotDone
     | GotServerSecurityGroups OSTypes.ServerUuid (List OSTypes.ServerSecurityGroup)
     | ToggleSelectedGroup OSTypes.SecurityGroupUuid
     | SharedMsg SharedMsg.SharedMsg
@@ -76,8 +79,8 @@ init project serverUuid =
     }
 
 
-update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
-update msg project model =
+update : Msg -> SharedModel -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
+update msg sharedModel project model =
     case msg of
         SharedMsg sharedMsg ->
             ( model, Cmd.none, sharedMsg )
@@ -92,6 +95,9 @@ update msg project model =
                 SharedMsg.ServerMsg model.serverUuid <|
                     SharedMsg.RequestServerSecurityGroupUpdates serverSecurityGroupUpdates
             )
+
+        GotDone ->
+            ( model, Route.pushUrl sharedModel.viewContext (Route.ProjectRoute (GetterSetters.projectIdentifier project) (Route.ServerDetail model.serverUuid)), SharedMsg.NoOp )
 
         GotServerSecurityGroups serverUuid serverSecurityGroups ->
             -- SharedModel just updated with new security groups for this server. If we don't have anything selected yet, show those already applied.
@@ -430,7 +436,12 @@ render context project model server =
                     ]
                 )
             , Element.row [ Element.alignRight, Text.fontSize Text.Body, Font.regular, Element.spacing spacer.px16 ]
-                [ Button.primary
+                [ Button.default
+                    context.palette
+                    { text = "Return to " ++ VH.resourceName (Just server.osProps.name) server.osProps.uuid
+                    , onPress = Just GotDone
+                    }
+                , Button.primary
                     context.palette
                     { text = "Apply Changes"
                     , onPress =
