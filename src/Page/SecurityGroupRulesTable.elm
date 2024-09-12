@@ -3,7 +3,7 @@ module Page.SecurityGroupRulesTable exposing (defaultRowStyle, rulesTable, rules
 import Element
 import Element.Font as Font
 import Helpers.GetterSetters as GetterSetters
-import List exposing (sortBy)
+import List
 import OpenStack.SecurityGroupRule
     exposing
         ( SecurityGroupRule
@@ -68,7 +68,8 @@ rulesTableWithRowStyle context projectId { rules, securityGroupForUuid } styleFo
             Element.table
                 [ Element.spacing 0
                 ]
-                { data = sortBy (\item -> directionToString item.direction) rules
+                { data =
+                    rules |> GetterSetters.sortedSecurityGroupRules securityGroupForUuid
                 , columns =
                     [ { header = header "Direction"
                       , width = Element.shrink
