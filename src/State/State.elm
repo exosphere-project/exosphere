@@ -2886,7 +2886,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
 
         ReceiveServerAddSecurityGroup serverSecurityGroup ->
             case server.securityGroups.data of
-                RDPP.DoHave serverSecurityGroups _ ->
+                RDPP.DoHave serverSecurityGroups receivedTime ->
                     let
                         newServerSecurityGroups =
                             if List.member serverSecurityGroup serverSecurityGroups then
@@ -2899,7 +2899,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                             { server
                                 | securityGroups =
                                     RDPP.RemoteDataPlusPlus
-                                        (RDPP.DoHave newServerSecurityGroups sharedModel.clientCurrentTime)
+                                        (RDPP.DoHave newServerSecurityGroups receivedTime)
                                         -- don't interfere with any loading in progress
                                         server.securityGroups.refreshStatus
                             }
@@ -2917,7 +2917,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
 
         ReceiveServerRemoveSecurityGroup serverSecurityGroup ->
             case server.securityGroups.data of
-                RDPP.DoHave serverSecurityGroups _ ->
+                RDPP.DoHave serverSecurityGroups receivedTime ->
                     let
                         newServerSecurityGroups =
                             List.filter (\sg -> sg /= serverSecurityGroup) serverSecurityGroups
@@ -2926,7 +2926,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                             { server
                                 | securityGroups =
                                     RDPP.RemoteDataPlusPlus
-                                        (RDPP.DoHave newServerSecurityGroups sharedModel.clientCurrentTime)
+                                        (RDPP.DoHave newServerSecurityGroups receivedTime)
                                         -- don't interfere with any loading in progress
                                         server.securityGroups.refreshStatus
                             }
