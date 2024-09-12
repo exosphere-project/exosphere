@@ -4,7 +4,6 @@ module Rest.Nova exposing
     , receiveKeypairs
     , receiveServer
     , receiveServers
-    , requestAddServerSecurityGroup
     , requestCreateKeypair
     , requestCreateServer
     , requestCreateServerImage
@@ -13,7 +12,6 @@ module Rest.Nova exposing
     , requestDeleteServerMetadata
     , requestFlavors
     , requestKeypairs
-    , requestRemoveServerSecurityGroup
     , requestServer
     , requestServerEvents
     , requestServerResize
@@ -23,6 +21,7 @@ module Rest.Nova exposing
     , requestSetServerMetadata
     , requestSetServerName
     , requestShelveServer
+    , requestUpdateServerSecurityGroup
     )
 
 import Array
@@ -612,15 +611,23 @@ requestServerResize project serverUuid flavorId =
         )
 
 
-requestAddServerSecurityGroup : Project -> OSTypes.ServerUuid -> OSTypes.ServerSecurityGroup -> Cmd SharedMsg
-requestAddServerSecurityGroup project serverUuid serverSecurityGroup =
+requestUpdateServerSecurityGroup : Project -> OSTypes.ServerUuid -> OSTypes.ServerSecurityGroupUpdate -> Cmd SharedMsg
+requestUpdateServerSecurityGroup project serverUuid update =
     let
+        ( word, group, msg ) =
+            case update of
+                OSTypes.AddServerSecurityGroup group_ ->
+                    ( "add", group_, ReceiveServerAddSecurityGroup )
+
+                OSTypes.RemoveServerSecurityGroup group_ ->
+                    ( "remove", group_, ReceiveServerRemoveSecurityGroup )
+
         body =
             Encode.object
-                [ ( "addSecurityGroup"
+                [ ( word ++ "SecurityGroup"
                   , Encode.object
                         [ ( "name"
-                          , Encode.string serverSecurityGroup.name
+                          , Encode.string group.name
                           )
                         ]
                   )
@@ -628,7 +635,7 @@ requestAddServerSecurityGroup project serverUuid serverSecurityGroup =
 
         errorContext =
             ErrorContext
-                ("add security group " ++ serverSecurityGroup.name ++ " to server with UUID " ++ serverUuid)
+                (word ++ " security group " ++ group.name ++ " for server with UUID " ++ serverUuid)
                 ErrorWarn
                 Nothing
     in
@@ -642,43 +649,7 @@ requestAddServerSecurityGroup project serverUuid serverSecurityGroup =
         (expectStringWithErrorBody
             (resultToMsgErrorBody errorContext
                 (\_ ->
-                    ProjectMsg (GetterSetters.projectIdentifier project) <| ServerMsg serverUuid <| ReceiveServerAddSecurityGroup serverSecurityGroup
-                )
-            )
-        )
-
-
-requestRemoveServerSecurityGroup : Project -> OSTypes.ServerUuid -> OSTypes.ServerSecurityGroup -> Cmd SharedMsg
-requestRemoveServerSecurityGroup project serverUuid serverSecurityGroup =
-    let
-        body =
-            Encode.object
-                [ ( "removeSecurityGroup"
-                  , Encode.object
-                        [ ( "name"
-                          , Encode.string serverSecurityGroup.name
-                          )
-                        ]
-                  )
-                ]
-
-        errorContext =
-            ErrorContext
-                ("remove security group " ++ serverSecurityGroup.name ++ " from server with UUID " ++ serverUuid)
-                ErrorWarn
-                Nothing
-    in
-    openstackCredentialedRequest
-        (GetterSetters.projectIdentifier project)
-        Post
-        Nothing
-        []
-        (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/action")
-        (Http.jsonBody body)
-        (expectStringWithErrorBody
-            (resultToMsgErrorBody errorContext
-                (\_ ->
-                    ProjectMsg (GetterSetters.projectIdentifier project) <| ServerMsg serverUuid <| ReceiveServerRemoveSecurityGroup serverSecurityGroup
+                    ProjectMsg (GetterSetters.projectIdentifier project) <| ServerMsg serverUuid <| msg group
                 )
             )
         )

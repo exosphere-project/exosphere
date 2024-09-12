@@ -2695,14 +2695,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                 requests =
                     serverSecurityGroupUpdates
                         |> List.map
-                            (\serverSecurityGroupUpdate ->
-                                case serverSecurityGroupUpdate of
-                                    AddServerSecurityGroup sg ->
-                                        Rest.Nova.requestAddServerSecurityGroup project server.osProps.uuid sg
-
-                                    RemoveServerSecurityGroup sg ->
-                                        Rest.Nova.requestRemoveServerSecurityGroup project server.osProps.uuid sg
-                            )
+                            (Rest.Nova.requestUpdateServerSecurityGroup project server.osProps.uuid)
             in
             ( outerModel
             , Cmd.batch requests
