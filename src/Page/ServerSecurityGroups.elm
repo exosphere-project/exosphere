@@ -147,8 +147,8 @@ isSecurityGroupSelected model securityGroupUuid =
     Set.member securityGroupUuid (Maybe.withDefault Set.empty model.selectedSecurityGroups)
 
 
-securityGroupView : View.Types.Context -> Project -> Model -> List OSTypes.ServerSecurityGroup -> SecurityGroupRecord -> Element.Element Msg
-securityGroupView context project model serverSecurityGroups securityGroupRecord =
+securityGroupView : View.Types.Context -> Project -> Model -> SecurityGroupRecord -> Element.Element Msg
+securityGroupView context project model securityGroupRecord =
     let
         securityGroup =
             securityGroupRecord.securityGroup
@@ -294,7 +294,7 @@ renderSelectableSecurityGroupsList context project model securityGroups serverSe
         DataListMsg
         context
         [ Element.alignTop ]
-        (securityGroupView context project model serverSecurityGroups)
+        (securityGroupView context project model)
         (securityGroupRecords securityGroups serverSecurityGroups)
         []
         Nothing
