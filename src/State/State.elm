@@ -19,7 +19,7 @@ import OpenStack.ServerPassword as OSServerPassword
 import OpenStack.ServerTags as OSServerTags
 import OpenStack.ServerVolumes as OSSvrVols
 import OpenStack.Shares as OSShares
-import OpenStack.Types as OSTypes exposing (ServerSecurityGroupUpdate(..))
+import OpenStack.Types as OSTypes
 import OpenStack.Volumes as OSVolumes
 import Orchestration.GoalServer as GoalServer
 import Orchestration.Orchestration as Orchestration
