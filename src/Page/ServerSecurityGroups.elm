@@ -357,11 +357,9 @@ renderSecurityGroupListAndRules context project model securityGroups serverSecur
                     ]
                 )
             ]
-            [ SecurityGroupRulesTable.rulesTableWithRowStyle
-                context
-                (GetterSetters.projectIdentifier project)
-                { rules = rules, securityGroupForUuid = GetterSetters.securityGroupLookup project }
-                (\rule ->
+            [ let
+                rowStyleForRule : OpenStack.SecurityGroupRule.SecurityGroupRule -> List (Element.Attribute msg)
+                rowStyleForRule rule =
                     let
                         selected =
                             selectedRules |> List.any (\r -> matchRule r rule)
@@ -381,7 +379,12 @@ renderSecurityGroupListAndRules context project model securityGroups serverSecur
                                     []
                     in
                     SecurityGroupRulesTable.defaultRowStyle ++ highlight
-                )
+              in
+              SecurityGroupRulesTable.rulesTableWithRowStyle
+                context
+                (GetterSetters.projectIdentifier project)
+                { rules = rules, securityGroupForUuid = GetterSetters.securityGroupLookup project }
+                rowStyleForRule
             ]
         ]
 
