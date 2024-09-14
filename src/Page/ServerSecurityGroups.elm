@@ -17,6 +17,7 @@ import OpenStack.Types as OSTypes exposing (securityGroupExoTags, securityGroupT
 import Page.SecurityGroupRulesTable as SecurityGroupRulesTable
 import Route
 import Set
+import Set.Extra
 import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.Button as Button
@@ -44,7 +45,7 @@ type Msg
     = DataListMsg DataList.Msg
     | GotApplyServerSecurityGroupUpdates (List OSTypes.ServerSecurityGroupUpdate)
     | GotServerSecurityGroups OSTypes.ServerUuid (List OSTypes.ServerSecurityGroup)
-    | SecurityGroupSelected (Set.Set OSTypes.SecurityGroupUuid) OSTypes.SecurityGroupUuid Bool
+    | ToggleSelectedGroup OSTypes.SecurityGroupUuid
     | SharedMsg SharedMsg.SharedMsg
 
 
@@ -100,25 +101,18 @@ update msg project model =
             else
                 ( model, Cmd.none, SharedMsg.NoOp )
 
-        SecurityGroupSelected applied securityGroupUuid selected ->
-            let
-                selectedSecurityGroups =
-                    case model.selectedSecurityGroups of
-                        Just selectedSecurityGroups_ ->
-                            selectedSecurityGroups_
+        ToggleSelectedGroup securityGroupUuid ->
+            case model.selectedSecurityGroups of
+                Just selectedSecurityGroups ->
+                    let
+                        newSelectedSecurityGroups =
+                            Set.Extra.toggle securityGroupUuid selectedSecurityGroups
+                    in
+                    ( { model | selectedSecurityGroups = Just newSelectedSecurityGroups }, Cmd.none, SharedMsg.NoOp )
 
-                        Nothing ->
-                            -- If unavailable, use the currently applied security groups as the initial selection.
-                            applied
-
-                nextSelectedSecurityGroups =
-                    if selected then
-                        Set.insert securityGroupUuid selectedSecurityGroups
-
-                    else
-                        Set.remove securityGroupUuid selectedSecurityGroups
-            in
-            ( { model | selectedSecurityGroups = Just nextSelectedSecurityGroups }, Cmd.none, SharedMsg.NoOp )
+                Nothing ->
+                    -- We should never be here, because this is already a `Just` when there are security groups to select.
+                    ( model, Cmd.none, SharedMsg.NoOp )
 
 
 type alias SecurityGroupRecord =
@@ -234,7 +228,7 @@ securityGroupView context project model serverSecurityGroups securityGroupRecord
               in
               Input.checkbox
                 [ Element.width Element.shrink ]
-                { onChange = SecurityGroupSelected (appliedSecurityGroupUuids serverSecurityGroups) securityGroupUuid
+                { onChange = always (ToggleSelectedGroup securityGroupUuid)
                 , icon = Input.defaultCheckbox
                 , checked = selected
                 , label = Input.labelHidden (selectWord ++ " " ++ securityGroupName)
