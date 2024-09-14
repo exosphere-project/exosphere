@@ -444,8 +444,9 @@ render context project model server =
                         let
                             serverSecurityGroupUpdates : List OSTypes.ServerSecurityGroupUpdate
                             serverSecurityGroupUpdates =
-                                List.filterMap
-                                    (\securityGroup ->
+                                let
+                                    updateIfNeeded : OSTypes.SecurityGroup -> Maybe OSTypes.ServerSecurityGroupUpdate
+                                    updateIfNeeded securityGroup =
                                         let
                                             applied =
                                                 Set.member securityGroup.uuid (server.securityGroups |> RDPP.withDefault [] |> List.map .uuid |> Set.fromList)
@@ -465,7 +466,8 @@ render context project model server =
 
                                             _ ->
                                                 Nothing
-                                    )
+                                in
+                                List.filterMap updateIfNeeded
                                     (project.securityGroups |> RDPP.withDefault [])
                         in
                         case serverSecurityGroupUpdates of
