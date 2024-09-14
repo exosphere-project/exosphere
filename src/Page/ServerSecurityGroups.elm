@@ -336,15 +336,6 @@ renderSecurityGroupListAndRules context project model securityGroups serverSecur
         selectedSecurityGroups =
             securityGroups
                 |> List.filter (\securityGroup -> isSecurityGroupSelected model securityGroup.uuid)
-
-        appliedRules =
-            List.concatMap .rules appliedSecurityGroups |> uniqueBy matchRule
-
-        selectedRules =
-            List.concatMap .rules selectedSecurityGroups |> uniqueBy matchRule
-
-        rules =
-            List.concatMap .rules (appliedSecurityGroups ++ selectedSecurityGroups) |> uniqueBy matchRule
     in
     Element.wrappedRow [ Element.spacing spacer.px24 ]
         [ renderSelectableSecurityGroupsList context project model securityGroups serverSecurityGroups
@@ -362,10 +353,14 @@ renderSecurityGroupListAndRules context project model securityGroups serverSecur
                 rowStyleForRule rule =
                     let
                         selected =
-                            selectedRules |> List.any (\r -> matchRule r rule)
+                            List.concatMap .rules selectedSecurityGroups
+                                |> uniqueBy matchRule
+                                |> List.any (\r -> matchRule r rule)
 
                         applied =
-                            appliedRules |> List.any (\r -> matchRule r rule)
+                            List.concatMap .rules appliedSecurityGroups
+                                |> uniqueBy matchRule
+                                |> List.any (\r -> matchRule r rule)
 
                         highlight =
                             case ( selected, applied ) of
@@ -379,6 +374,9 @@ renderSecurityGroupListAndRules context project model securityGroups serverSecur
                                     []
                     in
                     SecurityGroupRulesTable.defaultRowStyle ++ highlight
+
+                rules =
+                    List.concatMap .rules (appliedSecurityGroups ++ selectedSecurityGroups) |> uniqueBy matchRule
               in
               SecurityGroupRulesTable.rulesTableWithRowStyle
                 context
