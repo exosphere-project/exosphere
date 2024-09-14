@@ -324,18 +324,6 @@ renderSecurityGroupListAndRules context project model securityGroups serverSecur
                         ]
                     )
                 )
-
-        appliedSercurityGroupUuids_ =
-            appliedSecurityGroupUuids serverSecurityGroups
-
-        appliedSecurityGroups : List OSTypes.SecurityGroup
-        appliedSecurityGroups =
-            securityGroups |> List.filter (\securityGroup -> Set.member securityGroup.uuid appliedSercurityGroupUuids_)
-
-        selectedSecurityGroups : List OSTypes.SecurityGroup
-        selectedSecurityGroups =
-            securityGroups
-                |> List.filter (\securityGroup -> isSecurityGroupSelected model securityGroup.uuid)
     in
     Element.wrappedRow [ Element.spacing spacer.px24 ]
         [ renderSelectableSecurityGroupsList context project model securityGroups serverSecurityGroups
@@ -349,6 +337,18 @@ renderSecurityGroupListAndRules context project model securityGroups serverSecur
                 )
             ]
             [ let
+                appliedSercurityGroupUuids_ =
+                    appliedSecurityGroupUuids serverSecurityGroups
+
+                appliedSecurityGroups : List OSTypes.SecurityGroup
+                appliedSecurityGroups =
+                    securityGroups |> List.filter (\securityGroup -> Set.member securityGroup.uuid appliedSercurityGroupUuids_)
+
+                selectedSecurityGroups : List OSTypes.SecurityGroup
+                selectedSecurityGroups =
+                    securityGroups
+                        |> List.filter (\securityGroup -> isSecurityGroupSelected model securityGroup.uuid)
+
                 rowStyleForRule : OpenStack.SecurityGroupRule.SecurityGroupRule -> List (Element.Attribute msg)
                 rowStyleForRule rule =
                     let
