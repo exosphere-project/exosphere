@@ -244,8 +244,9 @@ securityGroupView context project model serverSecurityGroups securityGroupRecord
 
 renderSelectableSecurityGroupsList : View.Types.Context -> Project -> Model -> List OSTypes.SecurityGroup -> List OSTypes.ServerSecurityGroup -> Element.Element Msg
 renderSelectableSecurityGroupsList context project model securityGroups serverSecurityGroups =
-    DataList.viewWithCustomRowStyle
-        (\filteredData i ->
+    let
+        customRowStyle : List SecurityGroupRecord -> Int -> List (Element.Attribute msg)
+        customRowStyle filteredData i =
             let
                 securityGroupRecord =
                     Array.get i (Array.fromList filteredData)
@@ -285,7 +286,9 @@ renderSelectableSecurityGroupsList context project model securityGroups serverSe
                         ++ highlight
             in
             borderStyleForRow rowStyle (List.length filteredData) i
-        )
+    in
+    DataList.viewWithCustomRowStyle
+        customRowStyle
         context.localization.securityGroup
         model.dataListModel
         DataListMsg
