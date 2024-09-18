@@ -12,13 +12,10 @@ module Style.Widgets.DataList exposing
     , SearchFilter
     , SelectedFilterOptions
     , UniselectOptionIdentifier(..)
-    , borderStyleForRow
-    , defaultRowStyle
     , getDefaultFilterOptions
     , init
     , update
     , view
-    , viewWithCustomRowStyle
     )
 
 import Dict
@@ -312,34 +309,6 @@ view :
     -> Maybe (SearchFilter record)
     -> Element.Element msg
 view resourceName model toMsg context styleAttrs listItemView data bulkActions selectionFilters searchFilter =
-    viewWithCustomRowStyle
-        (\filteredData i -> borderStyleForRow (defaultRowStyle context.palette) (List.length filteredData) i)
-        resourceName
-        model
-        toMsg
-        context
-        styleAttrs
-        listItemView
-        data
-        bulkActions
-        selectionFilters
-        searchFilter
-
-
-viewWithCustomRowStyle :
-    (List (DataRecord record) -> Int -> List (Element.Attribute msg))
-    -> String
-    -> Model
-    -> (Msg -> msg) -- convert DataList.Msg to a consumer's msg
-    -> { viewContext | palette : ExoPalette, showPopovers : Set.Set PopoverId }
-    -> List (Element.Attribute msg)
-    -> (DataRecord record -> Element.Element msg)
-    -> List (DataRecord record)
-    -> List (Set.Set RowId -> Element.Element msg)
-    -> Maybe (SelectionFilters record msg)
-    -> Maybe (SearchFilter record)
-    -> Element.Element msg
-viewWithCustomRowStyle rowStyle resourceName model toMsg context styleAttrs listItemView data bulkActions selectionFilters searchFilter =
     let
         filteredData =
             case selectionFilters of
@@ -355,8 +324,8 @@ viewWithCustomRowStyle rowStyle resourceName model toMsg context styleAttrs list
                 Nothing ->
                     data |> List.filter filterRecordsBySearchText
 
-        styleForRow =
-            rowStyle filteredData
+        styleForRow i =
+            borderStyleForRow (defaultRowStyle context.palette) (List.length filteredData) i
 
         keepARecord : Filter record -> DataRecord record -> Bool
         keepARecord filter dataRecord =

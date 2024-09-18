@@ -1,6 +1,5 @@
 module Page.ServerSecurityGroups exposing (Model, Msg(..), init, update, view)
 
-import Array
 import Element
 import Element.Background as Background
 import Element.Border as Border
@@ -23,7 +22,6 @@ import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.Button as Button
 import Style.Widgets.Card
-import Style.Widgets.DataList as DataList exposing (borderStyleForRow, defaultRowStyle)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Tag exposing (tagNeutral, tagPositive)
 import Style.Widgets.Text as Text
@@ -38,14 +36,14 @@ import View.Types
 
 type alias Model =
     { serverUuid : OSTypes.ServerUuid
-    , dataListModel : DataList.Model
+    , securityGroups : List OSTypes.SecurityGroup
+    , appliedSecurityGroups : Set.Set OSTypes.SecurityGroupUuid
     , selectedSecurityGroups : Maybe.Maybe (Set.Set OSTypes.SecurityGroupUuid)
     }
 
 
 type Msg
-    = DataListMsg DataList.Msg
-    | GotApplyServerSecurityGroupUpdates (List OSTypes.ServerSecurityGroupUpdate)
+    = GotApplyServerSecurityGroupUpdates (List OSTypes.ServerSecurityGroupUpdate)
     | GotDone
     | GotServerSecurityGroups OSTypes.ServerUuid (List OSTypes.ServerSecurityGroup)
     | ToggleSelectedGroup OSTypes.SecurityGroupUuid
@@ -54,25 +52,41 @@ type Msg
 
 init : Project -> OSTypes.ServerUuid -> Model
 init project serverUuid =
+    let
+        maybeServer =
+            GetterSetters.serverLookup project serverUuid
+
+        serverSecurityGroups =
+            case maybeServer of
+                Just server ->
+                    case server.securityGroups.data of
+                        RDPP.DoHave serverSecurityGroups_ _ ->
+                            Just serverSecurityGroups_
+
+                        _ ->
+                            Nothing
+
+                _ ->
+                    Nothing
+
+        maybeProjectSecurityGroups =
+            case project.securityGroups.data of
+                RDPP.DoHave projectSecurityGroups_ _ ->
+                    Just projectSecurityGroups_
+
+                _ ->
+                    Nothing
+    in
     { serverUuid = serverUuid
-    , dataListModel = DataList.init <| DataList.getDefaultFilterOptions []
+    , securityGroups = Maybe.withDefault [] maybeProjectSecurityGroups
+    , appliedSecurityGroups = appliedSecurityGroupUuids (Maybe.withDefault [] serverSecurityGroups)
     , selectedSecurityGroups =
-        case GetterSetters.serverLookup project serverUuid of
-            Just server ->
-                case server.securityGroups.data of
-                    RDPP.DoHave serverSecurityGroups _ ->
-                        case project.securityGroups.data of
-                            RDPP.DoHave securityGroups _ ->
-                                List.map .uuid serverSecurityGroups
-                                    |> Set.fromList
-                                    |> Set.intersect (Set.fromList <| List.map .uuid securityGroups)
-                                    |> Just
-
-                            _ ->
-                                Nothing
-
-                    _ ->
-                        Nothing
+        case ( serverSecurityGroups, maybeProjectSecurityGroups ) of
+            ( Just serverSecurityGroups_, Just projectSecurityGroups_ ) ->
+                List.map .uuid serverSecurityGroups_
+                    |> Set.fromList
+                    |> Set.intersect (Set.fromList <| List.map .uuid projectSecurityGroups_)
+                    |> Just
 
             _ ->
                 Nothing
@@ -84,9 +98,6 @@ update msg sharedModel project model =
     case msg of
         SharedMsg sharedMsg ->
             ( model, Cmd.none, sharedMsg )
-
-        DataListMsg dataListMsg ->
-            ( { model | dataListModel = DataList.update dataListMsg model.dataListModel }, Cmd.none, SharedMsg.NoOp )
 
         GotApplyServerSecurityGroupUpdates serverSecurityGroupUpdates ->
             ( model
@@ -100,9 +111,21 @@ update msg sharedModel project model =
             ( model, Route.pushUrl sharedModel.viewContext (Route.ProjectRoute (GetterSetters.projectIdentifier project) (Route.ServerDetail model.serverUuid)), SharedMsg.NoOp )
 
         GotServerSecurityGroups serverUuid serverSecurityGroups ->
-            -- SharedModel just updated with new security groups for this server. If we don't have anything selected yet, show those already applied.
-            if serverUuid == model.serverUuid && model.selectedSecurityGroups == Nothing then
-                ( { model | selectedSecurityGroups = Just <| appliedSecurityGroupUuids serverSecurityGroups }, Cmd.none, SharedMsg.NoOp )
+            -- SharedModel just updated with new security groups for this server.
+            if serverUuid == model.serverUuid then
+                let
+                    appliedSecurityGroups =
+                        appliedSecurityGroupUuids serverSecurityGroups
+
+                    selectedSecurityGroups =
+                        -- If we don't have anything selected yet, show those already applied.
+                        if model.selectedSecurityGroups == Nothing then
+                            Just appliedSecurityGroups
+
+                        else
+                            model.selectedSecurityGroups
+                in
+                ( { model | appliedSecurityGroups = appliedSecurityGroups, selectedSecurityGroups = selectedSecurityGroups }, Cmd.none, SharedMsg.NoOp )
 
             else
                 ( model, Cmd.none, SharedMsg.NoOp )
@@ -121,26 +144,6 @@ update msg sharedModel project model =
                     ( model, Cmd.none, SharedMsg.NoOp )
 
 
-type alias SecurityGroupRecord =
-    DataList.DataRecord
-        { securityGroup : OSTypes.SecurityGroup
-        , applied : Bool
-        }
-
-
-securityGroupRecords : List OSTypes.SecurityGroup -> List OSTypes.ServerSecurityGroup -> List SecurityGroupRecord
-securityGroupRecords securityGroups serverSecurityGroups =
-    List.map
-        (\securityGroup ->
-            { id = securityGroup.uuid
-            , selectable = False -- DataList doesn't render checkboxes without bulk actions.
-            , securityGroup = securityGroup
-            , applied = appliedSecurityGroupUuids serverSecurityGroups |> Set.member securityGroup.uuid
-            }
-        )
-        securityGroups
-
-
 appliedSecurityGroupUuids : List OSTypes.ServerSecurityGroup -> Set.Set OSTypes.SecurityGroupUuid
 appliedSecurityGroupUuids serverSecurityGroups =
     serverSecurityGroups
@@ -148,17 +151,19 @@ appliedSecurityGroupUuids serverSecurityGroups =
         |> Set.fromList
 
 
+isSecurityGroupApplied : Model -> OSTypes.SecurityGroupUuid -> Bool
+isSecurityGroupApplied model securityGroupUuid =
+    Set.member securityGroupUuid model.appliedSecurityGroups
+
+
 isSecurityGroupSelected : Model -> OSTypes.SecurityGroupUuid -> Bool
 isSecurityGroupSelected model securityGroupUuid =
     Set.member securityGroupUuid (Maybe.withDefault Set.empty model.selectedSecurityGroups)
 
 
-securityGroupView : View.Types.Context -> Project -> Model -> SecurityGroupRecord -> Element.Element Msg
-securityGroupView context project model securityGroupRecord =
+securityGroupRow : View.Types.Context -> Project -> Model -> OSTypes.SecurityGroup -> Element.Element Msg
+securityGroupRow context project model securityGroup =
     let
-        securityGroup =
-            securityGroupRecord.securityGroup
-
         securityGroupUuid =
             securityGroup.uuid
 
@@ -211,15 +216,39 @@ securityGroupView context project model securityGroupRecord =
                 (SecurityGroupRulesTable.view context project securityGroupUuid)
                 ST.PositionRight
             ]
+
+        selected =
+            isSecurityGroupSelected model securityGroupUuid
+
+        applied =
+            isSecurityGroupApplied model securityGroupUuid
+
+        highlight =
+            case ( selected, applied ) of
+                ( True, False ) ->
+                    [ Background.color <| SH.toElementColorWithOpacity context.palette.success.textOnNeutralBG 0.1 ]
+
+                ( False, True ) ->
+                    [ Background.color <| SH.toElementColorWithOpacity context.palette.danger.textOnNeutralBG 0.1 ]
+
+                _ ->
+                    []
+
+        rowStyle =
+            [ Element.padding spacer.px16
+            , Element.spacing spacer.px16
+            , Border.widthEach { top = 0, bottom = 1, left = 0, right = 0 }
+            , Border.color <|
+                SH.toElementColor context.palette.neutral.border
+            , Element.width Element.fill
+            ]
+                ++ highlight
     in
     Element.column
-        (listItemColumnAttribs context.palette)
+        (listItemColumnAttribs context.palette ++ rowStyle)
         [ Element.row
             [ Element.spacing spacer.px16, Element.width Element.fill ]
             [ let
-                selected =
-                    isSecurityGroupSelected model securityGroupUuid
-
                 selectWord =
                     if selected then
                         "Deselect"
@@ -243,63 +272,25 @@ securityGroupView context project model securityGroupRecord =
         ]
 
 
-renderSelectableSecurityGroupsList : View.Types.Context -> Project -> Model -> List OSTypes.SecurityGroup -> List OSTypes.ServerSecurityGroup -> Element.Element Msg
-renderSelectableSecurityGroupsList context project model securityGroups serverSecurityGroups =
-    let
-        customRowStyle : List SecurityGroupRecord -> Int -> List (Element.Attribute msg)
-        customRowStyle filteredData i =
-            let
-                securityGroupRecord =
-                    Array.get i (Array.fromList filteredData)
+renderList : List (Element.Attribute Msg) -> (a -> Element.Element Msg) -> List a -> Element.Element Msg
+renderList attrs rowForItem list =
+    Element.column
+        attrs
+        (List.map rowForItem list)
 
-                selected =
-                    case securityGroupRecord of
-                        Just record ->
-                            isSecurityGroupSelected model record.securityGroup.uuid
 
-                        Nothing ->
-                            False
-
-                applied =
-                    case securityGroupRecord of
-                        Just record ->
-                            record.applied
-
-                        Nothing ->
-                            False
-
-                highlight =
-                    case ( selected, applied ) of
-                        ( True, False ) ->
-                            [ Background.color <| SH.toElementColorWithOpacity context.palette.success.textOnNeutralBG 0.1 ]
-
-                        ( False, True ) ->
-                            [ Background.color <| SH.toElementColorWithOpacity context.palette.danger.textOnNeutralBG 0.1 ]
-
-                        _ ->
-                            []
-
-                rowStyle =
-                    defaultRowStyle context.palette
-                        ++ [ Element.padding spacer.px16
-                           , Element.spacing spacer.px16
-                           ]
-                        ++ highlight
-            in
-            borderStyleForRow rowStyle (List.length filteredData) i
-    in
-    DataList.viewWithCustomRowStyle
-        customRowStyle
-        context.localization.securityGroup
-        model.dataListModel
-        DataListMsg
-        context
-        [ Element.alignTop ]
-        (securityGroupView context project model)
-        (securityGroupRecords securityGroups serverSecurityGroups)
-        []
-        Nothing
-        Nothing
+renderSelectableSecurityGroupsList : View.Types.Context -> Project -> Model -> List OSTypes.SecurityGroup -> Element.Element Msg
+renderSelectableSecurityGroupsList context project model securityGroups =
+    renderList
+        [ Element.alignTop
+        , Element.width Element.fill
+        , Border.width 1
+        , Border.color <| SH.toElementColor context.palette.neutral.border
+        , Border.rounded 4
+        , Background.color <| SH.toElementColor context.palette.neutral.background.frontLayer
+        ]
+        (securityGroupRow context project model)
+        securityGroups
 
 
 renderSecurityGroupListAndRules : View.Types.Context -> Project -> Model -> List OSTypes.SecurityGroup -> List OSTypes.ServerSecurityGroup -> Element.Element Msg
@@ -327,7 +318,7 @@ renderSecurityGroupListAndRules context project model securityGroups serverSecur
                 )
     in
     Element.wrappedRow [ Element.spacing spacer.px24 ]
-        [ renderSelectableSecurityGroupsList context project model securityGroups serverSecurityGroups
+        [ renderSelectableSecurityGroupsList context project model securityGroups
         , tile
             [ Element.text
                 (String.join " "
