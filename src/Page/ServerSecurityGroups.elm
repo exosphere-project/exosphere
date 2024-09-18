@@ -13,7 +13,7 @@ import Helpers.List exposing (uniqueBy)
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.ResourceList exposing (listItemColumnAttribs)
 import Helpers.String
-import OpenStack.SecurityGroupRule exposing (matchRule)
+import OpenStack.SecurityGroupRule exposing (isRuleShadowed, matchRule)
 import OpenStack.Types as OSTypes exposing (securityGroupExoTags, securityGroupTaggedAs)
 import Page.SecurityGroupRulesTable as SecurityGroupRulesTable
 import Route
@@ -353,9 +353,11 @@ renderSecurityGroupListAndRules context project model securityGroups serverSecur
                 rowStyleForRule : OpenStack.SecurityGroupRule.SecurityGroupRule -> List (Element.Attribute msg)
                 rowStyleForRule rule =
                     let
+                        selectedRules =
+                            List.concatMap .rules selectedSecurityGroups |> uniqueBy matchRule
+
                         selected =
-                            List.concatMap .rules selectedSecurityGroups
-                                |> uniqueBy matchRule
+                            selectedRules
                                 |> List.any (\r -> matchRule r rule)
 
                         applied =
@@ -373,8 +375,15 @@ renderSecurityGroupListAndRules context project model securityGroups serverSecur
 
                                 _ ->
                                     []
+
+                        shadowed =
+                            if isRuleShadowed rule selectedRules then
+                                [ Font.color <| SH.toElementColorWithOpacity context.palette.neutral.text.default 0.25 ]
+
+                            else
+                                []
                     in
-                    SecurityGroupRulesTable.defaultRowStyle ++ highlight
+                    SecurityGroupRulesTable.defaultRowStyle ++ highlight ++ shadowed
 
                 rules =
                     List.concatMap .rules (appliedSecurityGroups ++ selectedSecurityGroups) |> uniqueBy matchRule
