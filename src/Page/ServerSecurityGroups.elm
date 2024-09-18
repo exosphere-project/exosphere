@@ -1,4 +1,4 @@
-module Page.ServerSecurityGroups exposing (Model, Msg(..), init, update, view)
+module Page.ServerSecurityGroups exposing (DataDependent, Model, Msg(..), init, update, view)
 
 import Element
 import Element.Background as Background
@@ -38,7 +38,7 @@ type alias Model =
     { serverUuid : OSTypes.ServerUuid
     , securityGroups : List OSTypes.SecurityGroup
     , appliedSecurityGroups : Set.Set OSTypes.SecurityGroupUuid
-    , selectedSecurityGroups : Maybe.Maybe (Set.Set OSTypes.SecurityGroupUuid)
+    , selectedSecurityGroups : DataDependent (Set.Set OSTypes.SecurityGroupUuid)
     }
 
 
@@ -48,6 +48,11 @@ type Msg
     | GotServerSecurityGroups OSTypes.ServerUuid (List OSTypes.ServerSecurityGroup)
     | ToggleSelectedGroup OSTypes.SecurityGroupUuid
     | SharedMsg SharedMsg.SharedMsg
+
+
+type DataDependent a
+    = Uninitialised
+    | Ready a
 
 
 init : Project -> OSTypes.ServerUuid -> Model
@@ -86,10 +91,10 @@ init project serverUuid =
                 List.map .uuid serverSecurityGroups_
                     |> Set.fromList
                     |> Set.intersect (Set.fromList <| List.map .uuid projectSecurityGroups_)
-                    |> Just
+                    |> Ready
 
             _ ->
-                Nothing
+                Uninitialised
     }
 
 
@@ -119,8 +124,8 @@ update msg sharedModel project model =
 
                     selectedSecurityGroups =
                         -- If we don't have anything selected yet, show those already applied.
-                        if model.selectedSecurityGroups == Nothing then
-                            Just appliedSecurityGroups
+                        if model.selectedSecurityGroups == Uninitialised then
+                            Ready appliedSecurityGroups
 
                         else
                             model.selectedSecurityGroups
@@ -132,15 +137,15 @@ update msg sharedModel project model =
 
         ToggleSelectedGroup securityGroupUuid ->
             case model.selectedSecurityGroups of
-                Just selectedSecurityGroups ->
+                Ready selectedSecurityGroups ->
                     let
                         newSelectedSecurityGroups =
                             Set.Extra.toggle securityGroupUuid selectedSecurityGroups
                     in
-                    ( { model | selectedSecurityGroups = Just newSelectedSecurityGroups }, Cmd.none, SharedMsg.NoOp )
+                    ( { model | selectedSecurityGroups = Ready newSelectedSecurityGroups }, Cmd.none, SharedMsg.NoOp )
 
-                Nothing ->
-                    -- We should never be here, because this is already a `Just` when there are security groups to select.
+                Uninitialised ->
+                    -- We should never be here, because this is already a `Ready` when there are security groups to select.
                     ( model, Cmd.none, SharedMsg.NoOp )
 
 
@@ -158,7 +163,12 @@ isSecurityGroupApplied model securityGroupUuid =
 
 isSecurityGroupSelected : Model -> OSTypes.SecurityGroupUuid -> Bool
 isSecurityGroupSelected model securityGroupUuid =
-    Set.member securityGroupUuid (Maybe.withDefault Set.empty model.selectedSecurityGroups)
+    case model.selectedSecurityGroups of
+        Ready selectedSecurityGroups ->
+            Set.member securityGroupUuid selectedSecurityGroups
+
+        Uninitialised ->
+            False
 
 
 securityGroupRow : View.Types.Context -> Project -> Model -> OSTypes.SecurityGroup -> Element.Element Msg
@@ -453,10 +463,15 @@ render context project model server =
                                     updateIfNeeded securityGroup =
                                         let
                                             applied =
-                                                Set.member securityGroup.uuid (server.securityGroups |> RDPP.withDefault [] |> List.map .uuid |> Set.fromList)
+                                                isSecurityGroupApplied model securityGroup.uuid
 
                                             selected =
-                                                Set.member securityGroup.uuid (Maybe.withDefault Set.empty model.selectedSecurityGroups)
+                                                case model.selectedSecurityGroups of
+                                                    Ready selectedSecurityGroups ->
+                                                        Set.member securityGroup.uuid selectedSecurityGroups
+
+                                                    Uninitialised ->
+                                                        False
 
                                             serverSecurityGroup =
                                                 { uuid = securityGroup.uuid, name = securityGroup.name }
