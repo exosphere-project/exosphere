@@ -401,6 +401,20 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                         |> Helpers.String.pluralize
                         |> Helpers.String.toTitleCase
                         |> Element.text
+                    , Element.link [ Element.alignRight ]
+                        { url =
+                            Route.toUrl context.urlPathPrefix <|
+                                Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
+                                    Route.ServerSecurityGroups server.osProps.uuid
+                        , label =
+                            Widget.button
+                                (SH.materialStyle context.palette).button
+                                { text = "Edit"
+                                , icon = Icon.sizedFeatherIcon 16 Icons.edit3
+                                , onPress =
+                                    Just NoOp
+                                }
+                        }
                     ]
                     [ renderSecurityGroups context project server ]
 

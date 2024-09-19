@@ -32,6 +32,7 @@ import Page.ServerCreateImage
 import Page.ServerDetail
 import Page.ServerList
 import Page.ServerResize
+import Page.ServerSecurityGroups
 import Page.Settings
 import Page.ShareCreate
 import Page.ShareDetail
@@ -440,6 +441,21 @@ routeToViewStateModelCmd sharedModel route =
                                 [ cmd
                                 , OSQuotas.requestComputeQuota project
                                 ]
+                            )
+
+                        Route.ServerSecurityGroups serverId ->
+                            let
+                                ( newSharedModel, newCmd ) =
+                                    ( project |> GetterSetters.modelUpdateProject sharedModel
+                                    , Ports.instantiateClipboardJs ()
+                                    )
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestServer (GetterSetters.projectIdentifier project) serverId)
+                                        |> Helpers.pipelineCmd (ApiModelHelpers.requestSecurityGroups (GetterSetters.projectIdentifier project))
+                            in
+                            ( projectViewProto <| ServerSecurityGroups (Page.ServerSecurityGroups.init project serverId)
+                            , newSharedModel
+                            , newCmd
                             )
 
                         Route.ShareDetail shareId ->

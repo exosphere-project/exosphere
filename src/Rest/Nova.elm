@@ -21,6 +21,7 @@ module Rest.Nova exposing
     , requestSetServerMetadata
     , requestSetServerName
     , requestShelveServer
+    , requestUpdateServerSecurityGroup
     )
 
 import Array
@@ -605,6 +606,50 @@ requestServerResize project serverUuid flavorId =
             (resultToMsgErrorBody errorContext
                 (\_ ->
                     ProjectMsg (GetterSetters.projectIdentifier project) <| ServerMsg serverUuid <| ReceiveServerAction
+                )
+            )
+        )
+
+
+requestUpdateServerSecurityGroup : Project -> OSTypes.ServerUuid -> OSTypes.ServerSecurityGroupUpdate -> Cmd SharedMsg
+requestUpdateServerSecurityGroup project serverUuid update =
+    let
+        ( word, group, msg ) =
+            case update of
+                OSTypes.AddServerSecurityGroup group_ ->
+                    ( "add", group_, ReceiveServerAddSecurityGroup )
+
+                OSTypes.RemoveServerSecurityGroup group_ ->
+                    ( "remove", group_, ReceiveServerRemoveSecurityGroup )
+
+        body =
+            Encode.object
+                [ ( word ++ "SecurityGroup"
+                  , Encode.object
+                        [ ( "name"
+                          , Encode.string group.name
+                          )
+                        ]
+                  )
+                ]
+
+        errorContext =
+            ErrorContext
+                (word ++ " security group " ++ group.name ++ " for server with UUID " ++ serverUuid)
+                ErrorWarn
+                Nothing
+    in
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Post
+        Nothing
+        []
+        (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/action")
+        (Http.jsonBody body)
+        (expectStringWithErrorBody
+            (resultToMsgErrorBody errorContext
+                (\_ ->
+                    ProjectMsg (GetterSetters.projectIdentifier project) <| ServerMsg serverUuid <| msg group
                 )
             )
         )

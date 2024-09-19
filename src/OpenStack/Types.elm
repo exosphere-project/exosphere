@@ -68,6 +68,7 @@ module OpenStack.Types exposing
     , ServerPassword
     , ServerPowerState(..)
     , ServerSecurityGroup
+    , ServerSecurityGroupUpdate(..)
     , ServerStatus(..)
     , ServerTag
     , ServerUuid
@@ -837,6 +838,11 @@ type alias ServerSecurityGroup =
     { uuid : SecurityGroupUuid
     , name : String
     }
+
+
+type ServerSecurityGroupUpdate
+    = AddServerSecurityGroup ServerSecurityGroup
+    | RemoveServerSecurityGroup ServerSecurityGroup
 
 
 type alias SecurityGroupUuid =

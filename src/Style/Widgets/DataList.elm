@@ -12,10 +12,13 @@ module Style.Widgets.DataList exposing
     , SearchFilter
     , SelectedFilterOptions
     , UniselectOptionIdentifier(..)
+    , borderStyleForRow
+    , defaultRowStyle
     , getDefaultFilterOptions
     , init
     , update
     , view
+    , viewWithCustomRowStyle
     )
 
 import Dict
@@ -275,6 +278,27 @@ getFilterOptionText filter data filterOptionValue =
         |> Maybe.withDefault filterOptionValue
 
 
+defaultRowStyle : ExoPalette -> List (Element.Attribute msg)
+defaultRowStyle palette =
+    [ Element.padding spacer.px24
+    , Element.spacing spacer.px24
+    , Border.widthEach { top = 0, bottom = 1, left = 0, right = 0 }
+    , Border.color <|
+        SH.toElementColor palette.neutral.border
+    , Element.width Element.fill
+    ]
+
+
+borderStyleForRow : List (Element.Attribute msg) -> Int -> Int -> List (Element.Attribute msg)
+borderStyleForRow rowStyle length i =
+    if i == length - 1 then
+        -- Don't show divider (bottom border) for last row
+        rowStyle ++ [ Border.width 0 ]
+
+    else
+        rowStyle
+
+
 view :
     String
     -> Model
@@ -288,24 +312,51 @@ view :
     -> Maybe (SearchFilter record)
     -> Element.Element msg
 view resourceName model toMsg context styleAttrs listItemView data bulkActions selectionFilters searchFilter =
+    viewWithCustomRowStyle
+        (\filteredData i -> borderStyleForRow (defaultRowStyle context.palette) (List.length filteredData) i)
+        resourceName
+        model
+        toMsg
+        context
+        styleAttrs
+        listItemView
+        data
+        bulkActions
+        selectionFilters
+        searchFilter
+
+
+viewWithCustomRowStyle :
+    (List (DataRecord record) -> Int -> List (Element.Attribute msg))
+    -> String
+    -> Model
+    -> (Msg -> msg) -- convert DataList.Msg to a consumer's msg
+    -> { viewContext | palette : ExoPalette, showPopovers : Set.Set PopoverId }
+    -> List (Element.Attribute msg)
+    -> (DataRecord record -> Element.Element msg)
+    -> List (DataRecord record)
+    -> List (Set.Set RowId -> Element.Element msg)
+    -> Maybe (SelectionFilters record msg)
+    -> Maybe (SearchFilter record)
+    -> Element.Element msg
+viewWithCustomRowStyle rowStyle resourceName model toMsg context styleAttrs listItemView data bulkActions selectionFilters searchFilter =
     let
-        defaultRowStyle =
-            [ Element.padding spacer.px24
-            , Element.spacing spacer.px24
-            , Border.widthEach { top = 0, bottom = 1, left = 0, right = 0 }
-            , Border.color <|
-                SH.toElementColor context.palette.neutral.border
-            , Element.width Element.fill
-            ]
+        filteredData =
+            case selectionFilters of
+                Just selectionFilters_ ->
+                    List.foldl
+                        (\filter dataRecords ->
+                            List.filter (keepARecord filter) dataRecords
+                        )
+                        data
+                        selectionFilters_.filters
+                        |> List.filter filterRecordsBySearchText
 
-        rowStyle : Int -> List (Element.Attribute msg)
-        rowStyle i =
-            if i == List.length filteredData - 1 then
-                -- Don't show divider (bottom border) for last row
-                defaultRowStyle ++ [ Border.width 0 ]
+                Nothing ->
+                    data |> List.filter filterRecordsBySearchText
 
-            else
-                defaultRowStyle
+        styleForRow =
+            rowStyle filteredData
 
         keepARecord : Filter record -> DataRecord record -> Bool
         keepARecord filter dataRecord =
@@ -347,24 +398,10 @@ view resourceName model toMsg context styleAttrs listItemView data bulkActions s
                 Nothing ->
                     \_ -> True
 
-        filteredData =
-            case selectionFilters of
-                Just selectionFilters_ ->
-                    List.foldl
-                        (\filter dataRecords ->
-                            List.filter (keepARecord filter) dataRecords
-                        )
-                        data
-                        selectionFilters_.filters
-                        |> List.filter filterRecordsBySearchText
-
-                Nothing ->
-                    data |> List.filter filterRecordsBySearchText
-
         rows =
             if List.isEmpty filteredData then
                 [ Element.column
-                    (rowStyle -1
+                    (styleForRow -1
                         ++ [ Font.color <|
                                 SH.toElementColor context.palette.neutral.text.subdued
                            ]
@@ -397,7 +434,7 @@ view resourceName model toMsg context styleAttrs listItemView data bulkActions s
                         not (List.isEmpty bulkActions)
                 in
                 List.indexedMap
-                    (rowView model toMsg context.palette rowStyle listItemView showRowCheckbox)
+                    (rowView model toMsg context.palette styleForRow listItemView showRowCheckbox)
                     filteredData
     in
     Element.column
@@ -415,7 +452,7 @@ view resourceName model toMsg context styleAttrs listItemView data bulkActions s
             model
             toMsg
             context
-            defaultRowStyle
+            (defaultRowStyle context.palette)
             { complete = data, filtered = filteredData }
             bulkActions
             selectionFilters

@@ -45,6 +45,7 @@ import Page.ServerCreateImage
 import Page.ServerDetail
 import Page.ServerList
 import Page.ServerResize
+import Page.ServerSecurityGroups
 import Page.Settings
 import Page.ShareCreate
 import Page.ShareDetail
@@ -508,6 +509,21 @@ updateUnderlying outerMsg outerModel =
                                         ServerResize newSharedModel
                               }
                             , Cmd.map ServerResizeMsg cmd
+                            )
+                                |> pipelineCmdOuterModelMsg
+                                    (processSharedMsg sharedMsg)
+
+                        ( ServerSecurityGroupsMsg pageMsg, ServerSecurityGroups pageModel ) ->
+                            let
+                                ( newSharedModel, cmd, sharedMsg ) =
+                                    Page.ServerSecurityGroups.update pageMsg project pageModel
+                            in
+                            ( { outerModel
+                                | viewState =
+                                    ProjectView projectId <|
+                                        ServerSecurityGroups newSharedModel
+                              }
+                            , Cmd.map ServerSecurityGroupsMsg cmd
                             )
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
@@ -2674,6 +2690,18 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                 ]
             )
 
+        RequestServerSecurityGroupUpdates serverSecurityGroupUpdates ->
+            let
+                requests =
+                    serverSecurityGroupUpdates
+                        |> List.map
+                            (Rest.Nova.requestUpdateServerSecurityGroup project server.osProps.uuid)
+            in
+            ( outerModel
+            , Cmd.batch requests
+            )
+                |> mapToOuterMsg
+
         RequestResizeServer flavorId ->
             let
                 oldExoProps =
@@ -2848,11 +2876,71 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                     , Cmd.none
                     )
                         |> mapToOuterModel outerModel
+                        -- Make the page aware of the shared msg.
+                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerSecurityGroupsMsg <| Page.ServerSecurityGroups.GotServerSecurityGroups server.osProps.uuid serverSecurityGroups))
 
                 Err httpErrorWithBody ->
                     State.Error.processSynchronousApiError sharedModel errorContext httpErrorWithBody
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
+
+        ReceiveServerAddSecurityGroup serverSecurityGroup ->
+            case server.securityGroups.data of
+                RDPP.DoHave serverSecurityGroups receivedTime ->
+                    let
+                        newServerSecurityGroups =
+                            if List.member serverSecurityGroup serverSecurityGroups then
+                                serverSecurityGroups
+
+                            else
+                                serverSecurityGroup :: serverSecurityGroups
+
+                        newServer =
+                            { server
+                                | securityGroups =
+                                    RDPP.RemoteDataPlusPlus
+                                        (RDPP.DoHave newServerSecurityGroups receivedTime)
+                                        -- don't interfere with any loading in progress
+                                        server.securityGroups.refreshStatus
+                            }
+
+                        newProject =
+                            GetterSetters.projectUpdateServer project newServer
+                    in
+                    ( GetterSetters.modelUpdateProject sharedModel newProject, Cmd.none )
+                        |> mapToOuterModel outerModel
+                        -- Make the page aware of the shared msg.
+                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerSecurityGroupsMsg <| Page.ServerSecurityGroups.GotServerSecurityGroups server.osProps.uuid newServerSecurityGroups))
+
+                _ ->
+                    ( outerModel, Cmd.none )
+
+        ReceiveServerRemoveSecurityGroup serverSecurityGroup ->
+            case server.securityGroups.data of
+                RDPP.DoHave serverSecurityGroups receivedTime ->
+                    let
+                        newServerSecurityGroups =
+                            List.filter (\sg -> sg /= serverSecurityGroup) serverSecurityGroups
+
+                        newServer =
+                            { server
+                                | securityGroups =
+                                    RDPP.RemoteDataPlusPlus
+                                        (RDPP.DoHave newServerSecurityGroups receivedTime)
+                                        -- don't interfere with any loading in progress
+                                        server.securityGroups.refreshStatus
+                            }
+
+                        newProject =
+                            GetterSetters.projectUpdateServer project newServer
+                    in
+                    ( GetterSetters.modelUpdateProject sharedModel newProject, Cmd.none )
+                        |> mapToOuterModel outerModel
+                        -- Make the page aware of the shared msg.
+                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerSecurityGroupsMsg <| Page.ServerSecurityGroups.GotServerSecurityGroups server.osProps.uuid newServerSecurityGroups))
+
+                _ ->
+                    ( outerModel, Cmd.none )
 
         ReceiveConsoleUrl url ->
             Rest.Nova.receiveConsoleUrl sharedModel project server url
