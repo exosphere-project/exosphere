@@ -22,6 +22,7 @@ import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.Button as Button
 import Style.Widgets.Card
+import Style.Widgets.Icon
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Tag exposing (tagNeutral, tagPositive)
 import Style.Widgets.Text as Text
@@ -366,8 +367,8 @@ renderSecurityGroupListAndRules context project model securityGroups =
                     securityGroups
                         |> List.filter (\securityGroup -> isSecurityGroupSelected model securityGroup.uuid)
 
-                rowStyleForRule : OpenStack.SecurityGroupRule.SecurityGroupRule -> List (Element.Attribute msg)
-                rowStyleForRule rule =
+                customiser : OpenStack.SecurityGroupRule.SecurityGroupRule -> { iconForRow : Maybe (Element.Element msg), styleForRow : List (Element.Attribute msg) }
+                customiser rule =
                     let
                         selectedRules =
                             List.concatMap .rules selectedSecurityGroups |> uniqueBy matchRule
@@ -398,17 +399,31 @@ renderSecurityGroupListAndRules context project model securityGroups =
 
                             else
                                 []
+
+                        icon =
+                            case ( selected, applied ) of
+                                ( True, False ) ->
+                                    Just <| Style.Widgets.Icon.sizedFeatherIcon 16 FeatherIcons.plus
+
+                                ( False, True ) ->
+                                    Just <| Style.Widgets.Icon.sizedFeatherIcon 16 FeatherIcons.minus
+
+                                _ ->
+                                    -- Chosen for consistent spacing when no icon is present.
+                                    Just <| Element.el [ Element.width <| Element.px 18 ] (Element.text "")
                     in
-                    SecurityGroupRulesTable.defaultRowStyle ++ highlight ++ shadowed
+                    { iconForRow = icon
+                    , styleForRow = SecurityGroupRulesTable.defaultRowStyle ++ highlight ++ shadowed
+                    }
 
                 rules =
                     List.concatMap .rules (appliedSecurityGroups ++ selectedSecurityGroups) |> uniqueBy matchRule
               in
-              SecurityGroupRulesTable.rulesTableWithRowStyle
+              SecurityGroupRulesTable.rulesTableWithRowCustomiser
                 context
                 (GetterSetters.projectIdentifier project)
                 { rules = rules, securityGroupForUuid = GetterSetters.securityGroupLookup project }
-                rowStyleForRule
+                customiser
             ]
         ]
 
