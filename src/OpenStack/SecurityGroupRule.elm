@@ -10,6 +10,7 @@ module OpenStack.SecurityGroupRule exposing
     , directionToString
     , encode
     , etherTypeToString
+    , isRuleShadowed
     , matchRule
     , portRangeToString
     , protocolToString
@@ -73,6 +74,117 @@ matchRule ruleA ruleB =
         && (ruleA.protocol == ruleB.protocol)
         && (ruleA.portRangeMin == ruleB.portRangeMin)
         && (ruleA.portRangeMax == ruleB.portRangeMax)
+
+
+isRuleShadowed : SecurityGroupRule -> List SecurityGroupRule -> Bool
+isRuleShadowed rule rules =
+    List.any (\r -> isSubsumedBy rule r) rules
+
+
+isSubsumedBy : SecurityGroupRule -> SecurityGroupRule -> Bool
+isSubsumedBy ruleA ruleB =
+    ruleA.uuid
+        /= ruleB.uuid
+        && (not <| matchRule ruleA ruleB)
+        && (ruleA.direction == ruleB.direction)
+        && (ruleA.ethertype == ruleB.ethertype)
+        && protocolSubsumedBy ruleA.protocol ruleB.protocol
+        && portRangeSubsumedBy ( ruleA.portRangeMin, ruleA.portRangeMax ) ( ruleB.portRangeMin, ruleB.portRangeMax )
+        && remoteSubsumedBy ruleA ruleB
+
+
+protocolSubsumedBy : Maybe SecurityGroupRuleProtocol -> Maybe SecurityGroupRuleProtocol -> Bool
+protocolSubsumedBy protocolA protocolB =
+    case ( protocolA, protocolB ) of
+        ( Nothing, Nothing ) ->
+            True
+
+        ( Just _, Nothing ) ->
+            -- RuleB applies to any protocol.
+            True
+
+        ( Just pA, Just pB ) ->
+            pA == pB
+
+        ( Nothing, Just _ ) ->
+            -- RuleA applies to any protocol, but RuleB is more specific.
+            False
+
+
+portRangeSubsumedBy : ( Maybe Int, Maybe Int ) -> ( Maybe Int, Maybe Int ) -> Bool
+portRangeSubsumedBy ( portMinA, portMaxA ) ( portMinB, portMaxB ) =
+    let
+        minA =
+            Maybe.withDefault 0 portMinA
+
+        maxA =
+            Maybe.withDefault 65535 portMaxA
+
+        minB =
+            Maybe.withDefault 0 portMinB
+
+        maxB =
+            Maybe.withDefault 65535 portMaxB
+    in
+    (minB <= minA) && (maxA <= maxB)
+
+
+{-| A remote is either an IP prefix or a security group uuid.
+-}
+type Remote
+    = RemoteIpPrefix String
+    | RemoteGroupUuid String
+
+
+getRemote : SecurityGroupRule -> Maybe Remote
+getRemote rule =
+    case ( rule.remoteIpPrefix, rule.remoteGroupUuid ) of
+        ( Just ipPrefix, Nothing ) ->
+            Just (RemoteIpPrefix ipPrefix)
+
+        ( Nothing, Just groupUuid ) ->
+            Just (RemoteGroupUuid groupUuid)
+
+        ( Nothing, Nothing ) ->
+            Nothing
+
+        ( Just _, Just _ ) ->
+            -- Should not happen since IP & remote group are mutually exclusive.
+            Nothing
+
+
+remoteSubsumedBy : SecurityGroupRule -> SecurityGroupRule -> Bool
+remoteSubsumedBy ruleA ruleB =
+    let
+        remoteA =
+            getRemote ruleA
+
+        remoteB =
+            getRemote ruleB
+    in
+    case ( remoteA, remoteB ) of
+        ( Nothing, Nothing ) ->
+            True
+
+        ( Just _, Nothing ) ->
+            -- RuleB applies to any remote, subsumes RuleA.
+            True
+
+        ( Just ra, Just rb ) ->
+            case ( ra, rb ) of
+                ( RemoteIpPrefix ipA, RemoteIpPrefix ipB ) ->
+                    -- TODO: Parse CIDR notation and compare ranges.
+                    ipA == ipB
+
+                ( RemoteGroupUuid groupA, RemoteGroupUuid groupB ) ->
+                    groupA == groupB
+
+                ( _, _ ) ->
+                    False
+
+        ( Nothing, Just _ ) ->
+            -- RuleA applies to any remote, RuleB is more specific.
+            False
 
 
 buildRuleTCP : Int -> String -> SecurityGroupRuleTemplate

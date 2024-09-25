@@ -58,6 +58,7 @@ module Helpers.GetterSetters exposing
     , serversForSecurityGroup
     , shareLookup
     , sortedFlavors
+    , sortedSecurityGroupRules
     , transformRDPP
     , unscopedProjectLookup
     , unscopedProviderLookup
@@ -457,6 +458,51 @@ getServerExouserPassphrase serverDetails =
 sortedFlavors : List OSTypes.Flavor -> List OSTypes.Flavor
 sortedFlavors =
     multiSortBy [ .vcpu, .ram_mb, .disk_root, .disk_ephemeral ]
+
+
+sortedSecurityGroupRules : (OSTypes.SecurityGroupUuid -> Maybe OSTypes.SecurityGroup) -> List SecurityGroupRule.SecurityGroupRule -> List SecurityGroupRule.SecurityGroupRule
+sortedSecurityGroupRules remoteSecurityGroupLookup =
+    multiSortBy
+        [ \item -> SecurityGroupRule.directionToString item.direction
+        , \item -> SecurityGroupRule.etherTypeToString item.ethertype
+        , \item -> SecurityGroupRule.protocolToString (Maybe.withDefault SecurityGroupRule.AnyProtocol item.protocol)
+        , \item ->
+            case SecurityGroupRule.portRangeToString item of
+                -- List "Any" port range first.
+                "Any" ->
+                    ""
+
+                str ->
+                    str
+        , \item ->
+            case ( item.remoteIpPrefix, item.remoteGroupUuid ) of
+                ( Just ipPrefix, _ ) ->
+                    ipPrefix
+
+                ( _, Just remoteGroupUuid ) ->
+                    case remoteSecurityGroupLookup remoteGroupUuid of
+                        Just securityGroup ->
+                            case securityGroup.name of
+                                "" ->
+                                    securityGroup.uuid
+
+                                name ->
+                                    name
+
+                        Nothing ->
+                            remoteGroupUuid
+
+                ( Nothing, Nothing ) ->
+                    case item.ethertype of
+                        SecurityGroupRule.Ipv4 ->
+                            "0.0.0.0/0"
+
+                        SecurityGroupRule.Ipv6 ->
+                            "::/0"
+
+                        _ ->
+                            "-"
+        ]
 
 
 getFlavorFlavorGroup : OSTypes.Flavor -> List HelperTypes.FlavorGroup -> Maybe HelperTypes.FlavorGroup

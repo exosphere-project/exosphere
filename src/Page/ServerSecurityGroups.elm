@@ -4,6 +4,7 @@ import Array
 import Element
 import Element.Background as Background
 import Element.Border as Border
+import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons
@@ -12,7 +13,7 @@ import Helpers.List exposing (uniqueBy)
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.ResourceList exposing (listItemColumnAttribs)
 import Helpers.String
-import OpenStack.SecurityGroupRule exposing (matchRule)
+import OpenStack.SecurityGroupRule exposing (isRuleShadowed, matchRule)
 import OpenStack.Types as OSTypes exposing (securityGroupExoTags, securityGroupTaggedAs)
 import Page.SecurityGroupRulesTable as SecurityGroupRulesTable
 import Route
@@ -29,6 +30,7 @@ import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
 import Types.Project exposing (Project)
 import Types.Server exposing (Server)
+import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
@@ -44,6 +46,7 @@ type alias Model =
 type Msg
     = DataListMsg DataList.Msg
     | GotApplyServerSecurityGroupUpdates (List OSTypes.ServerSecurityGroupUpdate)
+    | GotDone
     | GotServerSecurityGroups OSTypes.ServerUuid (List OSTypes.ServerSecurityGroup)
     | ToggleSelectedGroup OSTypes.SecurityGroupUuid
     | SharedMsg SharedMsg.SharedMsg
@@ -76,8 +79,8 @@ init project serverUuid =
     }
 
 
-update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
-update msg project model =
+update : Msg -> SharedModel -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
+update msg sharedModel project model =
     case msg of
         SharedMsg sharedMsg ->
             ( model, Cmd.none, sharedMsg )
@@ -92,6 +95,9 @@ update msg project model =
                 SharedMsg.ServerMsg model.serverUuid <|
                     SharedMsg.RequestServerSecurityGroupUpdates serverSecurityGroupUpdates
             )
+
+        GotDone ->
+            ( model, Route.pushUrl sharedModel.viewContext (Route.ProjectRoute (GetterSetters.projectIdentifier project) (Route.ServerDetail model.serverUuid)), SharedMsg.NoOp )
 
         GotServerSecurityGroups serverUuid serverSecurityGroups ->
             -- SharedModel just updated with new security groups for this server. If we don't have anything selected yet, show those already applied.
@@ -162,21 +168,16 @@ securityGroupView context project model securityGroupRecord =
                 securityGroupUuid
                 context.localization.securityGroup
 
-        securityGroupLink =
-            Element.link []
-                { url =
-                    Route.toUrl context.urlPathPrefix
-                        (Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
-                            Route.SecurityGroupDetail securityGroupUuid
-                        )
-                , label =
-                    Element.el
-                        (Text.typographyAttrs Text.Emphasized
-                            ++ [ Font.color (SH.toElementColor context.palette.primary)
-                               ]
-                        )
-                        (Element.text <| securityGroupName)
-                }
+        securityGroupTextButton msg =
+            Element.el
+                (Text.typographyAttrs Text.Emphasized
+                    ++ [ Font.color <| SH.toElementColor <| context.palette.primary
+                       , Element.pointer
+                       , Events.onClick msg
+                       , Element.width Element.fill
+                       ]
+                )
+                (Element.text <| securityGroupName)
 
         preset =
             if securityGroupTaggedAs securityGroupExoTags.preset securityGroup then
@@ -208,7 +209,7 @@ securityGroupView context project model securityGroupRecord =
                     ]
                 )
                 (SecurityGroupRulesTable.view context project securityGroupUuid)
-                ST.PositionLeft
+                ST.PositionRight
             ]
     in
     Element.column
@@ -234,7 +235,7 @@ securityGroupView context project model securityGroupRecord =
                 , label = Input.labelHidden (selectWord ++ " " ++ securityGroupName)
                 }
             , Element.column [ Element.spacing spacer.px12, Element.width Element.fill ]
-                [ securityGroupLink
+                [ securityGroupTextButton (ToggleSelectedGroup securityGroupUuid)
                 ]
             , Element.row [ Element.spacing spacer.px4, Element.alignRight, Element.alignTop ]
                 (tags ++ tooltip)
@@ -352,9 +353,11 @@ renderSecurityGroupListAndRules context project model securityGroups serverSecur
                 rowStyleForRule : OpenStack.SecurityGroupRule.SecurityGroupRule -> List (Element.Attribute msg)
                 rowStyleForRule rule =
                     let
+                        selectedRules =
+                            List.concatMap .rules selectedSecurityGroups |> uniqueBy matchRule
+
                         selected =
-                            List.concatMap .rules selectedSecurityGroups
-                                |> uniqueBy matchRule
+                            selectedRules
                                 |> List.any (\r -> matchRule r rule)
 
                         applied =
@@ -372,8 +375,15 @@ renderSecurityGroupListAndRules context project model securityGroups serverSecur
 
                                 _ ->
                                     []
+
+                        shadowed =
+                            if isRuleShadowed rule selectedRules then
+                                [ Font.color <| SH.toElementColorWithOpacity context.palette.neutral.text.default 0.25 ]
+
+                            else
+                                []
                     in
-                    SecurityGroupRulesTable.defaultRowStyle ++ highlight
+                    SecurityGroupRulesTable.defaultRowStyle ++ highlight ++ shadowed
 
                 rules =
                     List.concatMap .rules (appliedSecurityGroups ++ selectedSecurityGroups) |> uniqueBy matchRule
@@ -435,7 +445,12 @@ render context project model server =
                     ]
                 )
             , Element.row [ Element.alignRight, Text.fontSize Text.Body, Font.regular, Element.spacing spacer.px16 ]
-                [ Button.primary
+                [ Button.default
+                    context.palette
+                    { text = "Return to " ++ VH.resourceName (Just server.osProps.name) server.osProps.uuid
+                    , onPress = Just GotDone
+                    }
+                , Button.primary
                     context.palette
                     { text = "Apply Changes"
                     , onPress =

@@ -516,7 +516,7 @@ updateUnderlying outerMsg outerModel =
                         ( ServerSecurityGroupsMsg pageMsg, ServerSecurityGroups pageModel ) ->
                             let
                                 ( newSharedModel, cmd, sharedMsg ) =
-                                    Page.ServerSecurityGroups.update pageMsg project pageModel
+                                    Page.ServerSecurityGroups.update pageMsg sharedModel project pageModel
                             in
                             ( { outerModel
                                 | viewState =

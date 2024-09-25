@@ -3,7 +3,7 @@ module Page.SecurityGroupRulesTable exposing (defaultRowStyle, rulesTable, rules
 import Element
 import Element.Font as Font
 import Helpers.GetterSetters as GetterSetters
-import List exposing (sortBy)
+import List
 import OpenStack.SecurityGroupRule
     exposing
         ( SecurityGroupRule
@@ -68,7 +68,8 @@ rulesTableWithRowStyle context projectId { rules, securityGroupForUuid } styleFo
             Element.table
                 [ Element.spacing 0
                 ]
-                { data = sortBy (\item -> directionToString item.direction) rules
+                { data =
+                    rules |> GetterSetters.sortedSecurityGroupRules securityGroupForUuid
                 , columns =
                     [ { header = header "Direction"
                       , width = Element.shrink
@@ -188,10 +189,26 @@ view context project securityGroupUuid =
             {- Attempt to look up a given security group uuid; if a security group is found, call render. -}
             case GetterSetters.securityGroupLookup project securityGroupUuid of
                 Just securityGroup ->
-                    rulesTable
-                        context
-                        (GetterSetters.projectIdentifier project)
-                        { rules = securityGroup.rules, securityGroupForUuid = GetterSetters.securityGroupLookup project }
+                    Element.column []
+                        [ rulesTable
+                            context
+                            (GetterSetters.projectIdentifier project)
+                            { rules = securityGroup.rules, securityGroupForUuid = GetterSetters.securityGroupLookup project }
+                        , Element.link [ Element.paddingEach { top = spacer.px12, right = spacer.px8, bottom = spacer.px8, left = spacer.px8 } ]
+                            { url =
+                                Route.toUrl context.urlPathPrefix
+                                    (Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
+                                        Route.SecurityGroupDetail securityGroupUuid
+                                    )
+                            , label =
+                                Element.el
+                                    (Text.typographyAttrs Text.Tiny
+                                        ++ [ Font.color (SH.toElementColor context.palette.primary)
+                                           ]
+                                    )
+                                    (Element.text "View details")
+                            }
+                        ]
 
                 Nothing ->
                     Element.text <|
