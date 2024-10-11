@@ -36,8 +36,6 @@ import View.Types
 
 type alias Model =
     { serverUuid : OSTypes.ServerUuid
-    , securityGroups : List OSTypes.SecurityGroup
-    , appliedSecurityGroups : Set.Set OSTypes.SecurityGroupUuid
     , selectedSecurityGroups : DataDependent (Set.Set OSTypes.SecurityGroupUuid)
     }
 
@@ -45,7 +43,7 @@ type alias Model =
 type Msg
     = GotApplyServerSecurityGroupUpdates (List OSTypes.ServerSecurityGroupUpdate)
     | GotDone
-    | GotServerSecurityGroups OSTypes.ServerUuid (List OSTypes.ServerSecurityGroup)
+    | GotServerSecurityGroups OSTypes.ServerUuid
     | ToggleSelectedGroup OSTypes.SecurityGroupUuid
     | SharedMsg SharedMsg.SharedMsg
 
@@ -83,8 +81,6 @@ init project serverUuid =
                     Nothing
     in
     { serverUuid = serverUuid
-    , securityGroups = Maybe.withDefault [] maybeProjectSecurityGroups
-    , appliedSecurityGroups = appliedSecurityGroupUuids (Maybe.withDefault [] serverSecurityGroups)
     , selectedSecurityGroups =
         case ( serverSecurityGroups, maybeProjectSecurityGroups ) of
             ( Just serverSecurityGroups_, Just projectSecurityGroups_ ) ->
@@ -115,22 +111,19 @@ update msg sharedModel project model =
         GotDone ->
             ( model, Route.pushUrl sharedModel.viewContext (Route.ProjectRoute (GetterSetters.projectIdentifier project) (Route.ServerDetail model.serverUuid)), SharedMsg.NoOp )
 
-        GotServerSecurityGroups serverUuid serverSecurityGroups ->
+        GotServerSecurityGroups serverUuid ->
             -- SharedModel just updated with new security groups for this server.
             if serverUuid == model.serverUuid then
                 let
-                    appliedSecurityGroups =
-                        appliedSecurityGroupUuids serverSecurityGroups
-
                     selectedSecurityGroups =
                         -- If we don't have anything selected yet, show those already applied.
                         if model.selectedSecurityGroups == Uninitialised then
-                            Ready appliedSecurityGroups
+                            Ready (appliedSecurityGroupsUuids project serverUuid)
 
                         else
                             model.selectedSecurityGroups
                 in
-                ( { model | appliedSecurityGroups = appliedSecurityGroups, selectedSecurityGroups = selectedSecurityGroups }, Cmd.none, SharedMsg.NoOp )
+                ( { model | selectedSecurityGroups = selectedSecurityGroups }, Cmd.none, SharedMsg.NoOp )
 
             else
                 ( model, Cmd.none, SharedMsg.NoOp )
@@ -149,16 +142,38 @@ update msg sharedModel project model =
                     ( model, Cmd.none, SharedMsg.NoOp )
 
 
-appliedSecurityGroupUuids : List OSTypes.ServerSecurityGroup -> Set.Set OSTypes.SecurityGroupUuid
-appliedSecurityGroupUuids serverSecurityGroups =
+appliedSecurityGroupsUuids : Project -> OSTypes.ServerUuid -> Set.Set OSTypes.SecurityGroupUuid
+appliedSecurityGroupsUuids project serverUuid =
+    let
+        maybeServer =
+            GetterSetters.serverLookup project serverUuid
+
+        serverSecurityGroups =
+            case maybeServer of
+                Just server ->
+                    case server.securityGroups.data of
+                        RDPP.DoHave serverSecurityGroups_ _ ->
+                            Just serverSecurityGroups_
+
+                        _ ->
+                            Nothing
+
+                _ ->
+                    Nothing
+    in
+    serverSecurityGroupUuids (Maybe.withDefault [] serverSecurityGroups)
+
+
+serverSecurityGroupUuids : List OSTypes.ServerSecurityGroup -> Set.Set OSTypes.SecurityGroupUuid
+serverSecurityGroupUuids serverSecurityGroups =
     serverSecurityGroups
         |> List.map .uuid
         |> Set.fromList
 
 
-isSecurityGroupApplied : Model -> OSTypes.SecurityGroupUuid -> Bool
-isSecurityGroupApplied model securityGroupUuid =
-    Set.member securityGroupUuid model.appliedSecurityGroups
+isSecurityGroupApplied : Project -> OSTypes.ServerUuid -> OSTypes.SecurityGroupUuid -> Bool
+isSecurityGroupApplied project serverUuid securityGroupUuid =
+    Set.member securityGroupUuid (appliedSecurityGroupsUuids project serverUuid)
 
 
 isSecurityGroupSelected : Model -> OSTypes.SecurityGroupUuid -> Bool
@@ -231,7 +246,7 @@ securityGroupRow context project model securityGroup =
             isSecurityGroupSelected model securityGroupUuid
 
         applied =
-            isSecurityGroupApplied model securityGroupUuid
+            isSecurityGroupApplied project model.serverUuid securityGroupUuid
 
         highlight =
             case ( selected, applied ) of
@@ -303,8 +318,8 @@ renderSelectableSecurityGroupsList context project model securityGroups =
         securityGroups
 
 
-renderSecurityGroupListAndRules : View.Types.Context -> Project -> Model -> List OSTypes.SecurityGroup -> List OSTypes.ServerSecurityGroup -> Element.Element Msg
-renderSecurityGroupListAndRules context project model securityGroups serverSecurityGroups =
+renderSecurityGroupListAndRules : View.Types.Context -> Project -> Model -> List OSTypes.SecurityGroup -> Element.Element Msg
+renderSecurityGroupListAndRules context project model securityGroups =
     let
         tile : List (Element.Element Msg) -> List (Element.Element Msg) -> Element.Element Msg
         tile headerContents contents =
@@ -339,12 +354,12 @@ renderSecurityGroupListAndRules context project model securityGroups serverSecur
                 )
             ]
             [ let
-                appliedSercurityGroupUuids_ =
-                    appliedSecurityGroupUuids serverSecurityGroups
+                appliedSecurityGroupUuidsSet =
+                    appliedSecurityGroupsUuids project model.serverUuid
 
                 appliedSecurityGroups : List OSTypes.SecurityGroup
                 appliedSecurityGroups =
-                    securityGroups |> List.filter (\securityGroup -> Set.member securityGroup.uuid appliedSercurityGroupUuids_)
+                    securityGroups |> List.filter (\securityGroup -> Set.member securityGroup.uuid appliedSecurityGroupUuidsSet)
 
                 selectedSecurityGroups : List OSTypes.SecurityGroup
                 selectedSecurityGroups =
@@ -405,7 +420,7 @@ renderSecurityGroupsList context project model server securityGroups =
         (context.localization.securityGroup
             |> Helpers.String.pluralize
         )
-        (renderSecurityGroupListAndRules context project model securityGroups)
+        (always <| renderSecurityGroupListAndRules context project model securityGroups)
 
 
 view : View.Types.Context -> Project -> Model -> Element.Element Msg
@@ -463,7 +478,7 @@ render context project model server =
                                     updateIfNeeded securityGroup =
                                         let
                                             applied =
-                                                isSecurityGroupApplied model securityGroup.uuid
+                                                isSecurityGroupApplied project model.serverUuid securityGroup.uuid
 
                                             selected =
                                                 case model.selectedSecurityGroups of

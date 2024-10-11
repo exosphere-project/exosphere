@@ -2877,7 +2877,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                     )
                         |> mapToOuterModel outerModel
                         -- Make the page aware of the shared msg.
-                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerSecurityGroupsMsg <| Page.ServerSecurityGroups.GotServerSecurityGroups server.osProps.uuid serverSecurityGroups))
+                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerSecurityGroupsMsg <| Page.ServerSecurityGroups.GotServerSecurityGroups server.osProps.uuid))
 
                 Err httpErrorWithBody ->
                     State.Error.processSynchronousApiError sharedModel errorContext httpErrorWithBody
@@ -2910,7 +2910,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                     ( GetterSetters.modelUpdateProject sharedModel newProject, Cmd.none )
                         |> mapToOuterModel outerModel
                         -- Make the page aware of the shared msg.
-                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerSecurityGroupsMsg <| Page.ServerSecurityGroups.GotServerSecurityGroups server.osProps.uuid newServerSecurityGroups))
+                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerSecurityGroupsMsg <| Page.ServerSecurityGroups.GotServerSecurityGroups server.osProps.uuid))
 
                 _ ->
                     ( outerModel, Cmd.none )
@@ -2937,7 +2937,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                     ( GetterSetters.modelUpdateProject sharedModel newProject, Cmd.none )
                         |> mapToOuterModel outerModel
                         -- Make the page aware of the shared msg.
-                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerSecurityGroupsMsg <| Page.ServerSecurityGroups.GotServerSecurityGroups server.osProps.uuid newServerSecurityGroups))
+                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerSecurityGroupsMsg <| Page.ServerSecurityGroups.GotServerSecurityGroups server.osProps.uuid))
 
                 _ ->
                     ( outerModel, Cmd.none )
