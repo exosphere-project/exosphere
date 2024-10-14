@@ -87,8 +87,19 @@ select attributes palette { onChange, options, selected, label } =
          ]
             ++ attributes
         )
-        [ Element.el [ Element.width Element.fill ] <| Element.html select_
-        , featherIcon [] Icons.chevronDown
+        [ Element.el
+            [ Element.width Element.fill
+            , Element.onRight
+                (Icons.chevronDown
+                    |> featherIcon
+                        [ Element.moveLeft <| toFloat <| spacer.px24
+                        , Element.centerY
+                        , Element.htmlAttribute (HtmlA.style "pointer-events" "none")
+                        ]
+                )
+            ]
+          <|
+            Element.html select_
         ]
 
 
