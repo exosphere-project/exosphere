@@ -14,6 +14,7 @@ import Helpers.ResourceList exposing (listItemColumnAttribs)
 import Helpers.String
 import OpenStack.SecurityGroupRule exposing (isRuleShadowed, matchRule)
 import OpenStack.Types as OSTypes exposing (securityGroupExoTags, securityGroupTaggedAs)
+import Page.SecurityGroupForm as SecurityGroupForm
 import Page.SecurityGroupRulesTable as SecurityGroupRulesTable
 import Route
 import Set
@@ -38,6 +39,7 @@ import View.Types
 type alias Model =
     { serverUuid : OSTypes.ServerUuid
     , selectedSecurityGroups : DataDependent (Set.Set OSTypes.SecurityGroupUuid)
+    , securityGroupForm : Maybe SecurityGroupForm.Model
     }
 
 
@@ -47,6 +49,7 @@ type Msg
     | GotServerSecurityGroups OSTypes.ServerUuid
     | ToggleSelectedGroup OSTypes.SecurityGroupUuid
     | SharedMsg SharedMsg.SharedMsg
+    | SecurityGroupFormMsg SecurityGroupForm.Msg
 
 
 type DataDependent a
@@ -92,6 +95,7 @@ init project serverUuid =
 
             _ ->
                 Uninitialised
+    , securityGroupForm = Nothing
     }
 
 
@@ -141,6 +145,28 @@ update msg sharedModel project model =
                 Uninitialised ->
                     -- We should never be here, because this is already a `Ready` when there are security groups to select.
                     ( model, Cmd.none, SharedMsg.NoOp )
+
+        SecurityGroupFormMsg securityGroupFormMsg ->
+            let
+                securityGroupForm =
+                    case model.securityGroupForm of
+                        Just securityGroupForm_ ->
+                            SecurityGroupForm.update securityGroupFormMsg securityGroupForm_ |> Tuple.first
+
+                        Nothing ->
+                            let
+                                securityGroupName =
+                                    -- Set the security group name to the server name if it exists.
+                                    case GetterSetters.serverLookup project model.serverUuid of
+                                        Just server ->
+                                            server.osProps.name
+
+                                        Nothing ->
+                                            ""
+                            in
+                            SecurityGroupForm.init { name = securityGroupName }
+            in
+            ( { model | securityGroupForm = Just <| securityGroupForm }, Cmd.none, SharedMsg.NoOp )
 
 
 appliedSecurityGroupsUuids : Project -> OSTypes.ServerUuid -> Set.Set OSTypes.SecurityGroupUuid
@@ -345,85 +371,114 @@ renderSecurityGroupListAndRules context project model securityGroups =
     in
     Element.wrappedRow [ Element.spacing spacer.px24 ]
         [ renderSelectableSecurityGroupsList context project model securityGroups
-        , tile
-            [ Element.text
-                (String.join " "
-                    [ "Consolidated"
-                    , context.localization.securityGroup
-                        |> Helpers.String.toTitleCase
-                    ]
-                )
-            ]
-            [ let
-                appliedSecurityGroupUuidsSet =
-                    appliedSecurityGroupsUuids project model.serverUuid
+        , Element.column [ Element.alignTop, Element.spacing spacer.px24, Element.width Element.fill ]
+            [ tile
+                [ Element.text
+                    (String.join " "
+                        [ "Consolidated"
+                        , context.localization.securityGroup
+                            |> Helpers.String.toTitleCase
+                        ]
+                    )
+                ]
+                [ let
+                    appliedSecurityGroupUuidsSet =
+                        appliedSecurityGroupsUuids project model.serverUuid
 
-                appliedSecurityGroups : List OSTypes.SecurityGroup
-                appliedSecurityGroups =
-                    securityGroups |> List.filter (\securityGroup -> Set.member securityGroup.uuid appliedSecurityGroupUuidsSet)
+                    appliedSecurityGroups : List OSTypes.SecurityGroup
+                    appliedSecurityGroups =
+                        securityGroups |> List.filter (\securityGroup -> Set.member securityGroup.uuid appliedSecurityGroupUuidsSet)
 
-                selectedSecurityGroups : List OSTypes.SecurityGroup
-                selectedSecurityGroups =
-                    securityGroups
-                        |> List.filter (\securityGroup -> isSecurityGroupSelected model securityGroup.uuid)
+                    selectedSecurityGroups : List OSTypes.SecurityGroup
+                    selectedSecurityGroups =
+                        securityGroups
+                            |> List.filter (\securityGroup -> isSecurityGroupSelected model securityGroup.uuid)
 
-                customiser : OpenStack.SecurityGroupRule.SecurityGroupRule -> { iconForRow : Maybe (Element.Element msg), styleForRow : List (Element.Attribute msg) }
-                customiser rule =
-                    let
-                        selectedRules =
-                            List.concatMap .rules selectedSecurityGroups |> uniqueBy matchRule
+                    customiser : OpenStack.SecurityGroupRule.SecurityGroupRule -> { iconForRow : Maybe (Element.Element msg), styleForRow : List (Element.Attribute msg) }
+                    customiser rule =
+                        let
+                            selectedRules =
+                                List.concatMap .rules selectedSecurityGroups |> uniqueBy matchRule
 
-                        selected =
-                            selectedRules
-                                |> List.any (\r -> matchRule r rule)
+                            selected =
+                                selectedRules
+                                    |> List.any (\r -> matchRule r rule)
 
-                        applied =
-                            List.concatMap .rules appliedSecurityGroups
-                                |> uniqueBy matchRule
-                                |> List.any (\r -> matchRule r rule)
+                            applied =
+                                List.concatMap .rules appliedSecurityGroups
+                                    |> uniqueBy matchRule
+                                    |> List.any (\r -> matchRule r rule)
 
-                        highlight =
-                            case ( selected, applied ) of
-                                ( True, False ) ->
-                                    [ Background.color <| SH.toElementColorWithOpacity context.palette.success.textOnNeutralBG 0.1 ]
+                            highlight =
+                                case ( selected, applied ) of
+                                    ( True, False ) ->
+                                        [ Background.color <| SH.toElementColorWithOpacity context.palette.success.textOnNeutralBG 0.1 ]
 
-                                ( False, True ) ->
-                                    [ Background.color <| SH.toElementColorWithOpacity context.palette.danger.textOnNeutralBG 0.1 ]
+                                    ( False, True ) ->
+                                        [ Background.color <| SH.toElementColorWithOpacity context.palette.danger.textOnNeutralBG 0.1 ]
 
-                                _ ->
+                                    _ ->
+                                        []
+
+                            shadowed =
+                                if isRuleShadowed rule selectedRules then
+                                    [ Font.color <| SH.toElementColorWithOpacity context.palette.neutral.text.default 0.25 ]
+
+                                else
                                     []
 
-                        shadowed =
-                            if isRuleShadowed rule selectedRules then
-                                [ Font.color <| SH.toElementColorWithOpacity context.palette.neutral.text.default 0.25 ]
+                            icon =
+                                case ( selected, applied ) of
+                                    ( True, False ) ->
+                                        Just <| Style.Widgets.Icon.sizedFeatherIcon 16 FeatherIcons.plus
 
-                            else
-                                []
+                                    ( False, True ) ->
+                                        Just <| Style.Widgets.Icon.sizedFeatherIcon 16 FeatherIcons.minus
 
-                        icon =
-                            case ( selected, applied ) of
-                                ( True, False ) ->
-                                    Just <| Style.Widgets.Icon.sizedFeatherIcon 16 FeatherIcons.plus
+                                    _ ->
+                                        -- Chosen for consistent spacing when no icon is present.
+                                        Just <| Element.el [ Element.width <| Element.px 18 ] (Element.text "")
+                        in
+                        { iconForRow = icon
+                        , styleForRow = SecurityGroupRulesTable.defaultRowStyle ++ highlight ++ shadowed
+                        }
 
-                                ( False, True ) ->
-                                    Just <| Style.Widgets.Icon.sizedFeatherIcon 16 FeatherIcons.minus
+                    rules =
+                        List.concatMap .rules (appliedSecurityGroups ++ selectedSecurityGroups) |> uniqueBy matchRule
+                  in
+                  SecurityGroupRulesTable.rulesTableWithRowCustomiser
+                    context
+                    (GetterSetters.projectIdentifier project)
+                    { rules = rules, securityGroupForUuid = GetterSetters.securityGroupLookup project }
+                    customiser
+                ]
+            , tile
+                [ Element.text
+                    (String.join " "
+                        [ "New"
+                        , context.localization.securityGroup
+                            |> Helpers.String.toTitleCase
+                        ]
+                    )
+                ]
+                [ case GetterSetters.securityGroupLookup project "dcb9f124-d43d-4952-a7cb-624b9e67306a" of
+                    Just securityGroup ->
+                        Element.column []
+                            [ SecurityGroupForm.view
+                                context
+                                project
+                                securityGroup
+                                |> Element.map SecurityGroupFormMsg
+                            ]
 
-                                _ ->
-                                    -- Chosen for consistent spacing when no icon is present.
-                                    Just <| Element.el [ Element.width <| Element.px 18 ] (Element.text "")
-                    in
-                    { iconForRow = icon
-                    , styleForRow = SecurityGroupRulesTable.defaultRowStyle ++ highlight ++ shadowed
-                    }
-
-                rules =
-                    List.concatMap .rules (appliedSecurityGroups ++ selectedSecurityGroups) |> uniqueBy matchRule
-              in
-              SecurityGroupRulesTable.rulesTableWithRowCustomiser
-                context
-                (GetterSetters.projectIdentifier project)
-                { rules = rules, securityGroupForUuid = GetterSetters.securityGroupLookup project }
-                customiser
+                    Nothing ->
+                        Element.text <|
+                            String.join " "
+                                [ "No"
+                                , context.localization.securityGroup
+                                , "found"
+                                ]
+                ]
             ]
         ]
 
