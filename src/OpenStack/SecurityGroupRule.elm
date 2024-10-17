@@ -74,6 +74,16 @@ matchRule ruleA ruleB =
         && (ruleA.protocol == ruleB.protocol)
         && (ruleA.portRangeMin == ruleB.portRangeMin)
         && (ruleA.portRangeMax == ruleB.portRangeMax)
+        && (case ( getRemote ruleA, getRemote ruleB ) of
+                ( Just remoteA, Just remoteB ) ->
+                    remoteMatch remoteA remoteB
+
+                ( Nothing, Nothing ) ->
+                    True
+
+                _ ->
+                    False
+           )
 
 
 isRuleShadowed : SecurityGroupRule -> List SecurityGroupRule -> Bool
@@ -153,6 +163,19 @@ getRemote rule =
             Nothing
 
 
+remoteMatch : Remote -> Remote -> Bool
+remoteMatch remoteA remoteB =
+    case ( remoteA, remoteB ) of
+        ( RemoteIpPrefix ipA, RemoteIpPrefix ipB ) ->
+            ipA == ipB
+
+        ( RemoteGroupUuid groupA, RemoteGroupUuid groupB ) ->
+            groupA == groupB
+
+        ( _, _ ) ->
+            False
+
+
 remoteSubsumedBy : SecurityGroupRule -> SecurityGroupRule -> Bool
 remoteSubsumedBy ruleA ruleB =
     let
@@ -171,16 +194,8 @@ remoteSubsumedBy ruleA ruleB =
             True
 
         ( Just ra, Just rb ) ->
-            case ( ra, rb ) of
-                ( RemoteIpPrefix ipA, RemoteIpPrefix ipB ) ->
-                    -- TODO: Parse CIDR notation and compare ranges.
-                    ipA == ipB
-
-                ( RemoteGroupUuid groupA, RemoteGroupUuid groupB ) ->
-                    groupA == groupB
-
-                ( _, _ ) ->
-                    False
+            -- TODO: Parse CIDR notation and compare ranges instead of using strict match for IP prefix.
+            remoteMatch ra rb
 
         ( Nothing, Just _ ) ->
             -- RuleA applies to any remote, RuleB is more specific.
