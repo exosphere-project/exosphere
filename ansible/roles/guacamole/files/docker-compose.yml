@@ -8,7 +8,9 @@ services:
   exo-watchtower:
     image: containrrr/watchtower
     volumes:
-       - /var/run/docker.sock:/var/run/docker.sock
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      WATCHTOWER_LABEL_ENABLE: 'true'
   exo-guac-guacd:
     image: 'guacamole/guacd:latest'
     restart: 'always'
