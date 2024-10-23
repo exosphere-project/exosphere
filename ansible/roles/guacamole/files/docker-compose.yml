@@ -5,14 +5,20 @@ networks:
   exo-guac-net:
     driver: bridge
 services:
+  exo-watchtower:
+    image: containrrr/watchtower
+    volumes:
+       - /var/run/docker.sock:/var/run/docker.sock
   exo-guac-guacd:
-    image: 'guacamole/guacd'
+    image: 'guacamole/guacd:latest'
     restart: 'always'
     hostname: 'guacd'
     networks:
       exo-guac-net:
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
   exo-guac-guacamole:
-    image: 'guacamole/guacamole'
+    image: 'guacamole/guacamole:latest'
     restart: 'always'
     networks:
       exo-guac-net:
@@ -29,3 +35,5 @@ services:
         target: '/config'
     ports:
       - '49528:8080'
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
