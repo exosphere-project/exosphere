@@ -20,6 +20,9 @@ numericTextInput palette attribs currentVal params onchangeFunc =
                 InvalidNumericTextInput s ->
                     s
 
+                BlankNumericTextInput ->
+                    ""
+
         runValidators : String -> ( NumericTextInput, Maybe String )
         runValidators s =
             let
@@ -47,22 +50,30 @@ numericTextInput palette attribs currentVal params onchangeFunc =
                         )
                         params.minVal
             in
-            case String.toInt s of
-                Just i ->
-                    case tooLarge i of
-                        Just reason ->
-                            ( InvalidNumericTextInput s, Just reason )
+            if String.isEmpty s then
+                if params.required then
+                    ( InvalidNumericTextInput s, Just "Input is required." )
 
-                        Nothing ->
-                            case tooSmall i of
-                                Just reason_ ->
-                                    ( InvalidNumericTextInput s, Just reason_ )
+                else
+                    ( BlankNumericTextInput, Nothing )
 
-                                Nothing ->
-                                    ( ValidNumericTextInput i, Nothing )
+            else
+                case String.toInt s of
+                    Just i ->
+                        case tooLarge i of
+                            Just reason ->
+                                ( InvalidNumericTextInput s, Just reason )
 
-                Nothing ->
-                    ( InvalidNumericTextInput s, Just "Input must be a whole number." )
+                            Nothing ->
+                                case tooSmall i of
+                                    Just reason_ ->
+                                        ( InvalidNumericTextInput s, Just reason_ )
+
+                                    Nothing ->
+                                        ( ValidNumericTextInput i, Nothing )
+
+                    Nothing ->
+                        ( InvalidNumericTextInput s, Just "Input must be a whole number." )
 
         textInput =
             Input.text
@@ -87,7 +98,9 @@ numericTextInput palette attribs currentVal params onchangeFunc =
                         (Element.text reason)
     in
     Element.column
-        [ Element.spacing spacer.px8
+        [ Element.alignTop
+        , Element.width Element.fill
+        , Element.spacing spacer.px8
         ]
         [ textInput
         , warnText
@@ -101,4 +114,7 @@ toMaybe numericTextInput_ =
             Just i
 
         InvalidNumericTextInput _ ->
+            Nothing
+
+        BlankNumericTextInput ->
             Nothing

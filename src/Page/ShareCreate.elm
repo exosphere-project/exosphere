@@ -152,6 +152,7 @@ view context project currentTime model =
                         ( OSTypes.Unlimited, OSTypes.Unlimited ) ->
                             Nothing
                 , defaultVal = Just 2
+                , required = True
                 }
                 GotSize
             , Input.multiline

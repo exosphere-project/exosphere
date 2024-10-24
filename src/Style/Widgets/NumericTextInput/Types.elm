@@ -4,6 +4,7 @@ module Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..), Nume
 type NumericTextInput
     = ValidNumericTextInput Int
     | InvalidNumericTextInput String
+    | BlankNumericTextInput
 
 
 type alias NumericTextInputParams =
@@ -11,4 +12,5 @@ type alias NumericTextInputParams =
     , minVal : Maybe Int
     , maxVal : Maybe Int
     , defaultVal : Maybe Int
+    , required : Bool
     }
