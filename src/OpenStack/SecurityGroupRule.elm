@@ -1,5 +1,6 @@
 module OpenStack.SecurityGroupRule exposing
-    ( SecurityGroupRule
+    ( Remote(..)
+    , SecurityGroupRule
     , SecurityGroupRuleDirection(..)
     , SecurityGroupRuleEthertype(..)
     , SecurityGroupRuleProtocol(..)
@@ -10,10 +11,12 @@ module OpenStack.SecurityGroupRule exposing
     , directionToString
     , encode
     , etherTypeToString
+    , getRemote
     , isRuleShadowed
     , matchRule
     , portRangeToString
     , protocolToString
+    , remoteToString
     , securityGroupRuleDecoder
     , securityGroupRuleDiff
     , securityGroupRuleTemplateToRule
@@ -161,6 +164,19 @@ getRemote rule =
         ( Just _, Just _ ) ->
             -- Should not happen since IP & remote group are mutually exclusive.
             Nothing
+
+
+remoteToString : Maybe Remote -> String
+remoteToString remote =
+    case remote of
+        Just (RemoteIpPrefix ip) ->
+            ip
+
+        Just (RemoteGroupUuid groupUuid) ->
+            groupUuid
+
+        Nothing ->
+            "Any"
 
 
 remoteMatch : Remote -> Remote -> Bool

@@ -40,7 +40,12 @@ defaultRowStyle =
 
 
 type alias RulesTableRowCustomiser msg =
-    SecurityGroupRule -> { leftElementForRow : Maybe (Element.Element msg), styleForRow : List (Element.Attribute msg), rightElementForRow : Maybe (Element.Element msg) }
+    SecurityGroupRule
+    ->
+        { leftElementForRow : Maybe (Element.Element msg)
+        , styleForRow : List (Element.Attribute msg)
+        , rightElementForRow : Maybe (Element.Element msg)
+        }
 
 
 rulesTableWithRowCustomiser :
@@ -52,7 +57,7 @@ rulesTableWithRowCustomiser :
 rulesTableWithRowCustomiser context projectId { rules, securityGroupForUuid } customiser =
     case List.length rules of
         0 ->
-            Element.text "(none)"
+            Element.text "(no rules)"
 
         _ ->
             let

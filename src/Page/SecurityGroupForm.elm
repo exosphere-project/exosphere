@@ -1,37 +1,35 @@
 module Page.SecurityGroupForm exposing (Model, Msg(..), init, update, view)
 
 import Element
-import Element.Font as Font
+import Element.Border as Border
+import Element.Input as Input
 import Helpers.GetterSetters as GetterSetters
 import List
+import List.Extra
 import OpenStack.SecurityGroupRule
     exposing
         ( SecurityGroupRule
-        , SecurityGroupRuleDirection(..)
-        , SecurityGroupRuleEthertype(..)
-        , SecurityGroupRuleProtocol(..)
         , SecurityGroupRuleUuid
-        , directionToString
-        , etherTypeToString
-        , portRangeToString
-        , protocolToString
-        , stringToSecurityGroupRuleDirection
         )
 import OpenStack.Types exposing (SecurityGroup, SecurityGroupUuid)
-import Route
+import Page.SecurityGroupRuleForm as SecurityGroupRuleForm
+import Page.SecurityGroupRulesTable as SecurityGroupRulesTable
 import Style.Helpers as SH
-import Style.Widgets.Select
+import Style.Widgets.Button as Button
 import Style.Widgets.Spacer exposing (spacer)
-import Style.Widgets.Text as Text
-import Types.HelperTypes exposing (ProjectIdentifier)
 import Types.Project exposing (Project)
 import View.Helpers as VH
 import View.Types
 
 
 type Msg
-    = GotDirection SecurityGroupRuleUuid SecurityGroupRuleDirection
-    | NoOp
+    = SecurityGroupRuleFormMsg SecurityGroupRuleForm.Msg
+    | GotName String
+    | GotDescription (Maybe String)
+    | GotAddRule
+    | GotDeleteRule SecurityGroupRuleUuid
+    | GotDoneEditingRule
+    | GotEditRule SecurityGroupRuleUuid
 
 
 type alias Model =
@@ -39,6 +37,7 @@ type alias Model =
     , name : String
     , description : Maybe String
     , rules : List SecurityGroupRule
+    , securityGroupRuleForm : Maybe SecurityGroupRuleForm.Model
     }
 
 
@@ -49,201 +48,184 @@ init { name } =
     , name = name
     , description = Nothing
     , rules = []
+    , securityGroupRuleForm = Nothing
     }
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        GotDirection ruleUuid direction ->
-            ( { model
-                | rules =
-                    List.map
-                        (\rule ->
-                            if rule.uuid == ruleUuid then
-                                { rule | direction = direction }
+        SecurityGroupRuleFormMsg ruleFormMsg ->
+            case model.securityGroupRuleForm of
+                Just ruleForm ->
+                    let
+                        ( updatedRuleForm, ruleFormCmd ) =
+                            SecurityGroupRuleForm.update ruleFormMsg ruleForm
+                    in
+                    ( { model
+                        | securityGroupRuleForm = Just updatedRuleForm
+                        , rules =
+                            List.map
+                                (\r ->
+                                    if r.uuid == updatedRuleForm.rule.uuid then
+                                        updatedRuleForm.rule
 
-                            else
-                                rule
-                        )
-                        model.rules
+                                    else
+                                        r
+                                )
+                                model.rules
+                      }
+                    , Cmd.map SecurityGroupRuleFormMsg ruleFormCmd
+                    )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        GotName name ->
+            ( { model | name = name }, Cmd.none )
+
+        GotDescription description ->
+            ( { model | description = description }, Cmd.none )
+
+        GotAddRule ->
+            let
+                newRule =
+                    SecurityGroupRuleForm.newBlankRule (List.length model.rules)
+            in
+            ( { model
+                | rules = model.rules ++ [ newRule ]
               }
             , Cmd.none
             )
 
-        NoOp ->
-            ( model, Cmd.none )
+        GotDeleteRule ruleUuid ->
+            ( { model
+                | rules =
+                    List.filter (\r -> r.uuid /= ruleUuid) model.rules
+                , securityGroupRuleForm =
+                    if Maybe.map (\f -> f.rule.uuid == ruleUuid) model.securityGroupRuleForm |> Maybe.withDefault False then
+                        Nothing
+
+                    else
+                        model.securityGroupRuleForm
+              }
+            , Cmd.none
+            )
+
+        GotDoneEditingRule ->
+            ( { model
+                | securityGroupRuleForm = Nothing
+              }
+            , Cmd.none
+            )
+
+        GotEditRule ruleUuid ->
+            ( { model
+                | securityGroupRuleForm =
+                    let
+                        rule : Maybe.Maybe SecurityGroupRule
+                        rule =
+                            List.Extra.find (\r -> r.uuid == ruleUuid) model.rules
+                    in
+                    Just <|
+                        SecurityGroupRuleForm.init <|
+                            case rule of
+                                Just r ->
+                                    r
+
+                                Nothing ->
+                                    SecurityGroupRuleForm.newBlankRule (List.length model.rules)
+              }
+            , Cmd.none
+            )
 
 
-allDirections : List SecurityGroupRuleDirection
-allDirections =
-    [ Ingress, Egress ]
-
-
-directionOptions : List ( SecurityGroupRuleDirection, String )
-directionOptions =
-    List.map (\direction -> ( direction, directionToString direction )) allDirections
-
-
-rulesTable :
+rulesList :
     View.Types.Context
-    -> ProjectIdentifier
+    -> Project
+    -> Model
     -> { rules : List SecurityGroupRule, securityGroupForUuid : SecurityGroupUuid -> Maybe SecurityGroup }
     -> Element.Element Msg
-rulesTable context projectId { rules, securityGroupForUuid } =
-    case List.length rules of
-        0 ->
-            Element.text "(none)"
-
-        _ ->
+rulesList context project model { rules, securityGroupForUuid } =
+    let
+        customiser : SecurityGroupRulesTable.RulesTableRowCustomiser Msg
+        customiser rule =
             let
-                header text =
-                    Element.el [ Font.heavy ] <| Element.text text
-
-                scrollableCell attrs msg =
-                    Element.el
-                        ([ Element.scrollbarX, Element.clipY ]
-                            ++ attrs
-                        )
-                        (Element.el
-                            [ -- HACK: A width needs to be set so that the cell expands responsively while having a horizontal scrollbar to contain overflow.
-                              Element.width (Element.px 0)
-                            ]
-                            msg
-                        )
+                isRuleBeingEdited =
+                    Maybe.map (\f -> f.rule.uuid == rule.uuid) model.securityGroupRuleForm |> Maybe.withDefault False
             in
-            Element.table
-                [ Element.spacing spacer.px16 ]
-                { data =
-                    rules |> GetterSetters.sortedSecurityGroupRules securityGroupForUuid
-                , columns =
-                    [ { header = header "Direction"
-                      , width = Element.shrink
-                      , view =
-                            \item ->
-                                -- Text.body <|
-                                --     directionToString <|
-                                --         item.direction
-                                Style.Widgets.Select.select
-                                    []
-                                    context.palette
-                                    { label = "Choose a direction"
-                                    , onChange =
-                                        \direction ->
-                                            case direction of
-                                                Just dir ->
-                                                    GotDirection item.uuid (stringToSecurityGroupRuleDirection dir)
+            { leftElementForRow = Nothing
+            , rightElementForRow =
+                Just <|
+                    Element.row [ Element.spacing spacer.px12 ]
+                        [ if isRuleBeingEdited then
+                            Button.button Button.Primary context.palette { text = "Done", onPress = Just <| GotDoneEditingRule }
 
-                                                Nothing ->
-                                                    NoOp
-                                    , options = List.map (\( dir, label ) -> ( directionToString dir, label )) directionOptions
-                                    , selected = Just (directionToString Ingress)
-                                    }
-                      }
-                    , { header = header "Ether Type"
-                      , width = Element.shrink
-                      , view =
-                            \item ->
-                                Text.body <| etherTypeToString <| item.ethertype
-                      }
-                    , { header = header "Protocol"
-                      , width = Element.shrink
-                      , view =
-                            \item ->
-                                let
-                                    protocolString =
-                                        case item.protocol of
-                                            Just protocol ->
-                                                protocolToString protocol
+                          else
+                            Button.button Button.Secondary context.palette { text = "Edit", onPress = Just <| GotEditRule rule.uuid }
+                        , Button.button Button.DangerSecondary context.palette { text = "Delete", onPress = Just <| GotDeleteRule rule.uuid }
+                        ]
+            , styleForRow = SecurityGroupRulesTable.defaultRowStyle ++ [ Element.centerY ]
+            }
+    in
+    SecurityGroupRulesTable.rulesTableWithRowCustomiser
+        context
+        (GetterSetters.projectIdentifier project)
+        { rules = rules, securityGroupForUuid = securityGroupForUuid }
+        customiser
 
-                                            -- A `null` protocol implies "any".
-                                            Nothing ->
-                                                protocolToString AnyProtocol
-                                in
-                                Text.body <| protocolString
-                      }
-                    , { header = header "Port Range"
-                      , width = Element.shrink
-                      , view =
-                            \item ->
-                                Text.body <| portRangeToString item
-                      }
-                    , { header = header "Remote"
-                      , width = Element.shrink
-                      , view =
-                            \item ->
-                                case ( item.remoteIpPrefix, item.remoteGroupUuid ) of
-                                    -- Either IP prefix or remote security group.
-                                    ( Just ipPrefix, _ ) ->
-                                        Text.body <| ipPrefix
 
-                                    ( _, Just remoteGroupUuid ) ->
-                                        -- Look up a the remote security group locally.
-                                        case securityGroupForUuid remoteGroupUuid of
-                                            Just securityGroup ->
-                                                Element.link []
-                                                    { url =
-                                                        Route.toUrl context.urlPathPrefix
-                                                            (Route.ProjectRoute projectId <|
-                                                                Route.SecurityGroupDetail securityGroup.uuid
-                                                            )
-                                                    , label =
-                                                        Element.el
-                                                            [ Font.color (SH.toElementColor context.palette.primary) ]
-                                                            (Element.text <|
-                                                                VH.extendedResourceName
-                                                                    (Just securityGroup.name)
-                                                                    securityGroup.uuid
-                                                                    context.localization.securityGroup
-                                                            )
-                                                    }
-
-                                            Nothing ->
-                                                Text.body <|
-                                                    VH.extendedResourceName
-                                                        Nothing
-                                                        remoteGroupUuid
-                                                        context.localization.securityGroup
-
-                                    ( Nothing, Nothing ) ->
-                                        -- Assume 'any' address when neither remote group nor IP prefix are specified
-                                        case item.ethertype of
-                                            Ipv4 ->
-                                                Text.body "0.0.0.0/0"
-
-                                            Ipv6 ->
-                                                Text.body "::/0"
-
-                                            _ ->
-                                                Text.body "-"
-                      }
-                    , { header = header "Description"
-                      , width = Element.fill
-                      , view =
-                            \item ->
-                                let
-                                    description =
-                                        Maybe.withDefault "-" item.description
-                                in
-                                scrollableCell
-                                    []
-                                    (Text.body <|
-                                        if String.isEmpty description then
-                                            "-"
-
-                                        else
-                                            description
-                                    )
-                      }
-                    ]
+view : View.Types.Context -> Project -> Model -> Element.Element Msg
+view context project model =
+    Element.column [ Element.spacing spacer.px24, Element.width Element.fill ]
+        [ Element.column [ Element.paddingXY spacer.px8 0, Element.spacing spacer.px12, Element.width Element.fill ]
+            [ Input.text
+                (VH.inputItemAttributes context.palette ++ [ Element.width <| Element.minimum 240 Element.fill ])
+                { text = model.name
+                , placeholder = Nothing
+                , onChange = GotName
+                , label = Input.labelLeft [] (Element.text "Name")
                 }
-
-
-view : View.Types.Context -> Project -> SecurityGroup -> Element.Element Msg
-view context project securityGroup =
-    Element.column []
-        [ rulesTable
+            , Input.text
+                (VH.inputItemAttributes context.palette ++ [ Element.width <| Element.minimum 240 Element.fill ])
+                { text = model.description |> Maybe.withDefault ""
+                , placeholder = Just <| Input.placeholder [] (Element.text "Optional")
+                , onChange = GotDescription << Just
+                , label = Input.labelLeft [] (Element.text "Description")
+                }
+            ]
+        , rulesList
             context
-            (GetterSetters.projectIdentifier project)
-            { rules = securityGroup.rules, securityGroupForUuid = GetterSetters.securityGroupLookup project }
+            project
+            model
+            { rules = model.rules, securityGroupForUuid = GetterSetters.securityGroupLookup project }
+        , case model.securityGroupRuleForm of
+            Just ruleForm ->
+                let
+                    -- Horizontal rule
+                    hr =
+                        Element.row [ Element.paddingEach { bottom = spacer.px12, left = 0, right = 0, top = 0 }, Element.width Element.fill ]
+                            [ Element.row
+                                [ Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
+                                , Border.color (context.palette.neutral.border |> SH.toElementColor)
+                                , Element.width Element.fill
+                                ]
+                                [ Element.none ]
+                            ]
+                in
+                Element.column [ Element.spacing spacer.px12 ]
+                    [ hr
+                    , SecurityGroupRuleForm.view
+                        context
+                        ruleForm
+                        |> Element.map SecurityGroupRuleFormMsg
+                    ]
+
+            Nothing ->
+                Element.none
+        , if model.securityGroupRuleForm == Nothing then
+            Button.button Button.Primary context.palette { text = "Add Rule", onPress = Just GotAddRule }
+
+          else
+            Button.button Button.Secondary context.palette { text = "Add Another Rule", onPress = Just GotAddRule }
         ]

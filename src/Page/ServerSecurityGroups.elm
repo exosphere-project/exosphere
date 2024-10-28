@@ -95,7 +95,9 @@ init project serverUuid =
 
             _ ->
                 Uninitialised
-    , securityGroupForm = Nothing
+    , securityGroupForm =
+        -- FIXME: This is a hack to get the form to show up.
+        Just <| SecurityGroupForm.init { name = "enormously-mature-rhino" }
     }
 
 
@@ -324,23 +326,35 @@ securityGroupRow context project model securityGroup =
         ]
 
 
-renderList : List (Element.Attribute Msg) -> (a -> Element.Element Msg) -> List a -> Element.Element Msg
-renderList attrs rowForItem list =
+renderList : List (Element.Attribute msg) -> { empty : Maybe (Element.Element msg) } -> (a -> Element.Element msg) -> List a -> Element.Element msg
+renderList attrs { empty } rowForItem list =
     Element.column
         attrs
-        (List.map rowForItem list)
+        (case List.length list of
+            0 ->
+                case empty of
+                    Just emptyElement ->
+                        [ emptyElement ]
+
+                    Nothing ->
+                        [ Element.none ]
+
+            _ ->
+                List.map rowForItem list
+        )
 
 
 renderSelectableSecurityGroupsList : View.Types.Context -> Project -> Model -> List OSTypes.SecurityGroup -> Element.Element Msg
 renderSelectableSecurityGroupsList context project model securityGroups =
     renderList
         [ Element.alignTop
-        , Element.width Element.fill
+        , Element.width Element.shrink
         , Border.width 1
         , Border.color <| SH.toElementColor context.palette.neutral.border
         , Border.rounded 4
         , Background.color <| SH.toElementColor context.palette.neutral.background.frontLayer
         ]
+        { empty = Just <| Element.text "(none)" }
         (securityGroupRow context project model)
         (sortedSecurityGroups securityGroups)
 
@@ -462,23 +476,19 @@ renderSecurityGroupListAndRules context project model securityGroups =
                         ]
                     )
                 ]
-                [ case GetterSetters.securityGroupLookup project "dcb9f124-d43d-4952-a7cb-624b9e67306a" of
-                    Just securityGroup ->
-                        Element.column []
-                            [ SecurityGroupForm.view
+                [ Element.column
+                    [ Element.spacing spacer.px16, Element.width Element.fill ]
+                    [ case model.securityGroupForm of
+                        Just securityGroupForm ->
+                            SecurityGroupForm.view
                                 context
                                 project
-                                securityGroup
+                                securityGroupForm
                                 |> Element.map SecurityGroupFormMsg
-                            ]
 
-                    Nothing ->
-                        Element.text <|
-                            String.join " "
-                                [ "No"
-                                , context.localization.securityGroup
-                                , "found"
-                                ]
+                        Nothing ->
+                            Element.none
+                    ]
                 ]
             ]
         ]
@@ -517,7 +527,7 @@ view context project model =
 render : View.Types.Context -> Project -> Model -> Server -> Element.Element Msg
 render context project model server =
     Element.column [ Element.spacing spacer.px24, Element.width Element.fill ]
-        [ Element.row (Text.headingStyleAttrs context.palette)
+        [ Element.wrappedRow (Text.headingStyleAttrs context.palette)
             [ FeatherIcons.shield |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
             , Text.text Text.ExtraLarge
                 []
