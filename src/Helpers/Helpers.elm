@@ -743,26 +743,28 @@ serverPollIntervalMs project server =
 myOwnServerPollIntervalMs : Server -> Int
 myOwnServerPollIntervalMs server =
     case
-        ( server.osProps.details.openstackStatus
-        , ( server.exoProps.deletionAttempted
-          , server.exoProps.targetOpenstackStatus
-          , server.exoProps.serverOrigin
-          )
-        )
+        server.osProps.details.openstackStatus
     of
-        ( OSTypes.ServerBuild, _ ) ->
+        OSTypes.ServerBuild ->
             15000
 
-        ( _, ( False, Nothing, ServerNotFromExo ) ) ->
-            -- Not created from Exosphere, not deleting or waiting a pending server action
-            60000
-
-        ( _, ( False, Nothing, ServerFromExo fromExoProps ) ) ->
-            myOwnServerFromExoPollIntervalMs fromExoProps
-
         _ ->
-            -- We're expecting OpenStack status to change (or server to be deleted) very soon
-            4500
+            case
+                ( server.exoProps.deletionAttempted
+                , server.exoProps.targetOpenstackStatus
+                , server.exoProps.serverOrigin
+                )
+            of
+                ( False, Nothing, ServerNotFromExo ) ->
+                    -- Not created from Exosphere, not deleting or waiting a pending server action
+                    60000
+
+                ( False, Nothing, ServerFromExo fromExoProps ) ->
+                    myOwnServerFromExoPollIntervalMs fromExoProps
+
+                _ ->
+                    -- We're expecting OpenStack status to change (or server to be deleted) very soon
+                    4500
 
 
 myOwnServerFromExoPollIntervalMs : ServerFromExoProps -> Int
