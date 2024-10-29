@@ -7,7 +7,7 @@ import Helpers.Url as UrlHelpers
 import OpenStack.ConsoleLog
 import OpenStack.DnsRecordSet
 import OpenStack.Types as OSTypes
-import Orchestration.Helpers exposing (applyStepToAllServers)
+import Orchestration.Helpers exposing (applyStepToAllServers, serverPollIntervalMs)
 import Rest.Designate
 import Rest.Guacamole
 import Rest.Neutron
@@ -84,7 +84,7 @@ stepServerPoll time project server =
                                     Time.millisToPosix 0
 
                 pollInterval =
-                    Helpers.serverPollIntervalMs project server
+                    serverPollIntervalMs project server
             in
             Time.posixToMillis time < (Time.posixToMillis receivedTime + pollInterval)
     in
