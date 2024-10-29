@@ -1,7 +1,8 @@
 module Orchestration.GoalNetworkResources exposing (goalPollNetworkResources)
 
 import Helpers.GetterSetters as GetterSetters
-import Orchestration.Helpers exposing (applyProjectStep, pollRDPP)
+import Orchestration.Helpers exposing (applyProjectStep, pollIntervalToMs, pollRDPP)
+import Orchestration.Types exposing (PollInterval(..))
 import Rest.Neutron
 import Time
 import Types.Project exposing (Project)
@@ -27,7 +28,7 @@ stepPollFloatingIps : Time.Posix -> Project -> ( Project, Cmd SharedMsg )
 stepPollFloatingIps time project =
     let
         pollIntervalMs =
-            120000
+            pollIntervalToMs Regular
     in
     if pollRDPP project.floatingIps time pollIntervalMs then
         ( GetterSetters.projectSetFloatingIpsLoading project
@@ -42,7 +43,7 @@ stepPollPorts : Time.Posix -> Project -> ( Project, Cmd SharedMsg )
 stepPollPorts time project =
     let
         pollIntervalMs =
-            120000
+            pollIntervalToMs Regular
     in
     if pollRDPP project.ports time pollIntervalMs then
         ( GetterSetters.projectSetPortsLoading project
@@ -57,7 +58,7 @@ stepPollSecurityGroups : Time.Posix -> Project -> ( Project, Cmd SharedMsg )
 stepPollSecurityGroups time project =
     let
         pollIntervalMs =
-            120000
+            pollIntervalToMs Regular
     in
     if pollRDPP project.securityGroups time pollIntervalMs then
         ( GetterSetters.projectSetSecurityGroupsLoading project

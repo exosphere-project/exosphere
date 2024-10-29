@@ -7,7 +7,8 @@ import Helpers.Url as UrlHelpers
 import OpenStack.ConsoleLog
 import OpenStack.DnsRecordSet
 import OpenStack.Types as OSTypes
-import Orchestration.Helpers exposing (applyStepToAllServers, serverPollIntervalMs)
+import Orchestration.Helpers exposing (applyStepToAllServers, pollIntervalToMs, serverPollIntervalMs)
+import Orchestration.Types exposing (PollInterval(..))
 import Rest.Designate
 import Rest.Guacamole
 import Rest.Neutron
@@ -148,8 +149,8 @@ stepServerRequestNetworks time project server =
         in
         case project.networks.refreshStatus of
             RDPP.NotLoading (Just ( _, receivedTime )) ->
-                -- If we got an error, try again 10 seconds later?
-                if Time.posixToMillis time - Time.posixToMillis receivedTime > 10000 then
+                -- If we got an error, try again slightly later
+                if Time.posixToMillis time - Time.posixToMillis receivedTime > pollIntervalToMs Rapid then
                     requestStuff
 
                 else
@@ -195,8 +196,8 @@ stepServerRequestPorts time project server =
         in
         case project.ports.refreshStatus of
             RDPP.NotLoading (Just ( _, receivedTime )) ->
-                -- If we got an error, try again 10 seconds later?
-                if Time.posixToMillis time - Time.posixToMillis receivedTime > 10000 then
+                -- If we got an error, try again slightly later?
+                if Time.posixToMillis time - Time.posixToMillis receivedTime > pollIntervalToMs Rapid then
                     requestStuff
 
                 else
@@ -229,8 +230,8 @@ stepServerRequestHostname time project server =
     if
         not server.exoProps.deletionAttempted
             && serverIsNew server time
-            -- If not requested in last 5 seconds
-            && RDPP.isPollableWithInterval project.dnsRecordSets time 5000
+            -- If not requested in last few seconds
+            && RDPP.isPollableWithInterval project.dnsRecordSets time (pollIntervalToMs Rapid)
             && (-- If any server ip is without hostname then request records
                 GetterSetters.getServerFloatingIps project server.osProps.uuid
                     |> List.any
@@ -318,32 +319,26 @@ stepServerPollConsoleLog time project server =
                     -- Poll the maximum amount of whatever log is needed between resource usage graphs and setup status
                     -- This factoring could be nicer
                     let
-                        thirtyMinMillis =
-                            1000 * 60 * 30
-
                         -- For return type of next functions, the outer maybe determines whether to poll at all. The inner maybe
                         -- determines whether we poll the whole log (Nothing) or just a set number of lines (Just Int).
                         doPollLinesExoSetupStatus : Maybe (Maybe Int)
                         doPollLinesExoSetupStatus =
                             let
-                                thirtySecMillis =
-                                    30000
-
                                 pollInterval =
                                     -- Poll more frequently if ExoSetupStatus is in a non-terminal state
                                     case exoOriginProps.exoSetupStatus.data of
                                         RDPP.DontHave ->
-                                            thirtySecMillis
+                                            pollIntervalToMs Rapid
 
                                         RDPP.DoHave statusTuple _ ->
                                             if
                                                 List.member (Tuple.first statusTuple)
                                                     [ ExoSetupUnknown, ExoSetupWaiting, ExoSetupRunning ]
                                             then
-                                                thirtySecMillis
+                                                pollIntervalToMs Rapid
 
                                             else
-                                                thirtyMinMillis
+                                                pollIntervalToMs Seldom
                             in
                             if
                                 serverIsActiveEnough server
@@ -357,14 +352,10 @@ stepServerPollConsoleLog time project server =
 
                         doPollLinesResourceUsage : Maybe (Maybe Int)
                         doPollLinesResourceUsage =
-                            let
-                                oneMinMillis =
-                                    60000
-                            in
                             if
                                 serverIsActiveEnough server
                                     && (exoOriginProps.exoServerVersion >= 2)
-                                    && RDPP.isPollableWithInterval exoOriginProps.resourceUsage time oneMinMillis
+                                    && RDPP.isPollableWithInterval exoOriginProps.resourceUsage time (pollIntervalToMs Regular)
                             then
                                 Just <|
                                     case exoOriginProps.resourceUsage.data of
@@ -373,7 +364,7 @@ stepServerPollConsoleLog time project server =
                                             Nothing
 
                                         RDPP.DoHave data _ ->
-                                            if Helpers.serverLessThanThisOld server time thirtyMinMillis || (data.pollingStrikes > 0) then
+                                            if Helpers.serverLessThanThisOld server time (pollIntervalToMs Seldom) || (data.pollingStrikes > 0) then
                                                 -- Get all the log if server is new or there were polling failures
                                                 Nothing
 
@@ -452,8 +443,7 @@ stepServerPollEvents : Time.Posix -> Project -> Server -> ( Project, Cmd SharedM
 stepServerPollEvents time project server =
     let
         pollIntervalMillis =
-            -- 5 minutes
-            300000
+            pollIntervalToMs Seldom
 
         curTimeMillis =
             Time.posixToMillis time
@@ -498,8 +488,7 @@ stepServerPollSecurityGroups : Time.Posix -> Project -> Server -> ( Project, Cmd
 stepServerPollSecurityGroups time project server =
     let
         pollIntervalMillis =
-            -- 5 minutes
-            300000
+            pollIntervalToMs Seldom
 
         curTimeMillis =
             Time.posixToMillis time
@@ -543,7 +532,6 @@ stepServerPollSecurityGroups time project server =
 stepServerGuacamoleAuth : Time.Posix -> Maybe UserAppProxyHostname -> Project -> Server -> ( Project, Cmd SharedMsg )
 stepServerGuacamoleAuth time maybeUserAppProxy project server =
     let
-        -- Default value in Guacamole is 60 minutes, using 55 minutes for safety
         guacUpstreamPort =
             49528
 
@@ -632,7 +620,7 @@ stepServerGuacamoleAuth time maybeUserAppProxy project server =
                                                 Just ( _, receivedTime ) ->
                                                     let
                                                         errorRetryIntervalMillis =
-                                                            15000
+                                                            pollIntervalToMs Rapid
 
                                                         whenToRetryMillis =
                                                             Time.posixToMillis receivedTime + errorRetryIntervalMillis
@@ -646,6 +634,7 @@ stepServerGuacamoleAuth time maybeUserAppProxy project server =
                                         RDPP.DoHave _ receivedTime ->
                                             let
                                                 maxGuacTokenLifetimeMillis =
+                                                    -- Default value in Guacamole is 60 minutes, using 55 minutes for safety
                                                     3300000
 
                                                 whenToRefreshMillis =

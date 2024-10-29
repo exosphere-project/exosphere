@@ -1,4 +1,4 @@
-module Orchestration.Helpers exposing (applyProjectStep, applyStepToAllServers, pollRDPP, serverPollIntervalMs)
+module Orchestration.Helpers exposing (applyProjectStep, applyStepToAllServers, pollIntervalToMs, pollRDPP, serverPollIntervalMs)
 
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers exposing (serverFromThisExoClient)
