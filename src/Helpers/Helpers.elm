@@ -737,7 +737,7 @@ serverPollIntervalMs project server =
             myOwnServerPollIntervalMs server
 
         _ ->
-            300000
+            1800000
 
 
 myOwnServerPollIntervalMs : Server -> Int
@@ -757,14 +757,14 @@ myOwnServerPollIntervalMs server =
             of
                 ( False, Nothing, ServerNotFromExo ) ->
                     -- Not created from Exosphere, not deleting or waiting a pending server action
-                    60000
+                    120000
 
                 ( False, Nothing, ServerFromExo fromExoProps ) ->
                     myOwnServerFromExoPollIntervalMs fromExoProps
 
                 _ ->
                     -- We're expecting OpenStack status to change (or server to be deleted) very soon
-                    4500
+                    15000
 
 
 myOwnServerFromExoPollIntervalMs : ServerFromExoProps -> Int
@@ -776,11 +776,11 @@ myOwnServerFromExoPollIntervalMs { exoSetupStatus } =
 
         RDPP.DoHave ( ExoSetupRunning, _ ) _ ->
             -- Exosphere-created, running setup
-            10000
+            15000
 
         RDPP.DoHave _ _ ->
             -- Exosphere-created, not waiting for setup to complete
-            60000
+            120000
 
         RDPP.DontHave ->
             -- Exosphere-created and Exosphere setup status unknown
