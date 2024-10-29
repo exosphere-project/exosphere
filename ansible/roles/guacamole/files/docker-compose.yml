@@ -5,14 +5,22 @@ networks:
   exo-guac-net:
     driver: bridge
 services:
+  exo-watchtower:
+    image: containrrr/watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      WATCHTOWER_LABEL_ENABLE: 'true'
   exo-guac-guacd:
-    image: 'guacamole/guacd-dev@sha256:67b192929a69179db6729060b5be47e1d9e2fe51c010aa16979db17b19da18f2'
+    image: 'guacamole/guacd:latest'
     restart: 'always'
     hostname: 'guacd'
     networks:
       exo-guac-net:
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
   exo-guac-guacamole:
-    image: 'guacamole/guacamole@sha256:24a9a494a6d3a3da1371fa04de8b4e608d3e56affefa40282d09f2dfc1e465c0'
+    image: 'guacamole/guacamole:latest'
     restart: 'always'
     networks:
       exo-guac-net:
@@ -21,10 +29,6 @@ services:
     links:
       - 'exo-guac-guacd:guacd'
     environment:
-      MYSQL_HOSTNAME: 'dummy-ignore'
-      MYSQL_DATABASE: 'dummy-ignore'
-      MYSQL_USER: 'dummy-ignore'
-      MYSQL_PASSWORD: 'dummy-ignore'
       GUACD_HOSTNAME: 'guacd'
       GUACAMOLE_HOME: '/config'
     volumes:
@@ -33,3 +37,5 @@ services:
         target: '/config'
     ports:
       - '49528:8080'
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
