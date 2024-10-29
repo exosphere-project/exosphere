@@ -18,19 +18,37 @@ Content-Transfer-Encoding: 7bit
 Content-Disposition: attachment; filename="part-001"
 
 #!/bin/bash
+set +e
+
+retry() {
+  local max_attempt=3
+  local attempt=0
+  while [ $attempt -lt $max_attempt ]; do
+    if "$@"; then
+      return 0
+    fi
+    echo "Command failed: $@"
+    attempt=$((attempt + 1))
+    if [ $attempt -lt $max_attempt ]; then
+      sleep 5
+    fi
+  done
+  echo "All retries of command failed: $@"
+  return 1
+}
 
 echo on > /proc/sys/kernel/printk_devkmsg || true  # Disable console rate limiting for distros that use kmsg
 sleep 1  # Ensures that console log output from any previous command completes before the following command begins
 echo '{"status":"running", "epoch": '$(date '+%s')'000}' | tee --append /dev/console > /dev/kmsg || true
 chmod 640 /var/log/cloud-init-output.log
 {create-cluster-command}
-(which apt-get && apt-get install -y python3-venv) # Install python3-venv on Debian-based platforms
-(which yum     && yum     install -y python3)      # Install python3 on RHEL-based platforms
+(which apt-get && retry apt-get install -y python3-venv) # Install python3-venv on Debian-based platforms
+(which yum     && retry yum install -y python3)      # Install python3 on RHEL-based platforms
 python3 -m venv /opt/ansible-venv
 . /opt/ansible-venv/bin/activate
-pip install --upgrade pip
-pip install ansible-core passlib
-ansible-pull \\
+retry pip install --upgrade pip
+retry pip install ansible-core passlib
+retry ansible-pull \\
   --url "{instance-config-mgt-repo-url}" \\
   --checkout "{instance-config-mgt-repo-checkout}" \\
   --directory /opt/instance-config-mgt \\
