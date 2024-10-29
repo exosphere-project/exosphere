@@ -17,7 +17,6 @@ module Helpers.Helpers exposing
     , serverFromThisExoClient
     , serverLessThanThisOld
     , serverOrigin
-    , serverPollIntervalMs
     , serverResourceQtys
     , serviceCatalogToEndpoints
     , specialActionContexts
@@ -728,55 +727,6 @@ serverFromThisExoClient : UUID.UUID -> Server -> Bool
 serverFromThisExoClient clientUuid server =
     -- Determine if server was created by this Exosphere client
     List.member (OSTypes.MetadataItem "exoClientUuid" (UUID.toString clientUuid)) server.osProps.details.metadata
-
-
-serverPollIntervalMs : Project -> Server -> Int
-serverPollIntervalMs project server =
-    case GetterSetters.serverCreatedByCurrentUser project server.osProps.uuid of
-        Just createdByCurrentUser ->
-            if createdByCurrentUser then
-                case
-                    ( server.osProps.details.openstackStatus
-                    , ( server.exoProps.deletionAttempted
-                      , server.exoProps.targetOpenstackStatus
-                      , server.exoProps.serverOrigin
-                      )
-                    )
-                of
-                    ( OSTypes.ServerBuild, _ ) ->
-                        15000
-
-                    ( _, ( False, Nothing, ServerNotFromExo ) ) ->
-                        -- Not created from Exosphere, not deleting or waiting a pending server action
-                        60000
-
-                    ( _, ( False, Nothing, ServerFromExo { exoSetupStatus } ) ) ->
-                        case exoSetupStatus.data of
-                            RDPP.DoHave ( ExoSetupWaiting, _ ) _ ->
-                                -- Exosphere-created, booting up for the first time
-                                15000
-
-                            RDPP.DoHave ( ExoSetupRunning, _ ) _ ->
-                                -- Exosphere-created, running setup
-                                10000
-
-                            RDPP.DoHave _ _ ->
-                                -- Exosphere-created, not waiting for setup to complete
-                                60000
-
-                            RDPP.DontHave ->
-                                -- Exosphere-created and Exosphere setup status unknown
-                                15000
-
-                    _ ->
-                        -- We're expecting OpenStack status to change (or server to be deleted) very soon
-                        4500
-
-            else
-                300000
-
-        Nothing ->
-            300000
 
 
 serverLessThanThisOld : Server -> Time.Posix -> Int -> Bool

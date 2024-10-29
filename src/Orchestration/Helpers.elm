@@ -1,10 +1,13 @@
-module Orchestration.Helpers exposing (applyProjectStep, applyStepToAllServers, pollRDPP)
+module Orchestration.Helpers exposing (applyProjectStep, applyStepToAllServers, pollIntervalToMs, pollRDPP, serverPollIntervalMs)
 
+import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers exposing (serverFromThisExoClient)
 import Helpers.RemoteDataPlusPlus as RDPP
+import OpenStack.Types as OSTypes
+import Orchestration.Types exposing (PollInterval(..))
 import Time
 import Types.Project exposing (Project)
-import Types.Server exposing (Server)
+import Types.Server exposing (ExoSetupStatus(..), Server, ServerFromExoProps, ServerOrigin(..))
 import Types.SharedMsg exposing (SharedMsg)
 import UUID
 
@@ -78,3 +81,81 @@ pollRDPP rdpp time pollIntervalMs =
                     False
     in
     not receivedRecentlyEnough && not loading
+
+
+pollIntervalToMs : PollInterval -> Int
+pollIntervalToMs i =
+    case i of
+        Rapid ->
+            -- 15 seconds
+            15000
+
+        Regular ->
+            -- 2 minutes
+            120000
+
+        Seldom ->
+            -- 30 minutes
+            1800000
+
+
+serverPollIntervalMs : Project -> Server -> Int
+serverPollIntervalMs project server =
+    serverPollIntervalMs_ project server |> pollIntervalToMs
+
+
+serverPollIntervalMs_ : Project -> Server -> PollInterval
+serverPollIntervalMs_ project server =
+    case GetterSetters.serverCreatedByCurrentUser project server.osProps.uuid of
+        Just True ->
+            myOwnServerPollIntervalMs server
+
+        _ ->
+            Seldom
+
+
+myOwnServerPollIntervalMs : Server -> PollInterval
+myOwnServerPollIntervalMs server =
+    case
+        server.osProps.details.openstackStatus
+    of
+        OSTypes.ServerBuild ->
+            Rapid
+
+        _ ->
+            case
+                ( server.exoProps.deletionAttempted
+                , server.exoProps.targetOpenstackStatus
+                , server.exoProps.serverOrigin
+                )
+            of
+                ( False, Nothing, ServerNotFromExo ) ->
+                    -- Not created from Exosphere, not deleting or waiting a pending server action
+                    Regular
+
+                ( False, Nothing, ServerFromExo fromExoProps ) ->
+                    myOwnServerFromExoPollIntervalMs fromExoProps
+
+                _ ->
+                    -- We're expecting OpenStack status to change (or server to be deleted) very soon
+                    Rapid
+
+
+myOwnServerFromExoPollIntervalMs : ServerFromExoProps -> PollInterval
+myOwnServerFromExoPollIntervalMs { exoSetupStatus } =
+    case exoSetupStatus.data of
+        RDPP.DoHave ( ExoSetupWaiting, _ ) _ ->
+            -- Exosphere-created, booting up for the first time
+            Rapid
+
+        RDPP.DoHave ( ExoSetupRunning, _ ) _ ->
+            -- Exosphere-created, running setup
+            Rapid
+
+        RDPP.DoHave _ _ ->
+            -- Exosphere-created, not waiting for setup to complete
+            Regular
+
+        RDPP.DontHave ->
+            -- Exosphere-created and Exosphere setup status unknown
+            Rapid

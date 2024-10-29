@@ -6,7 +6,8 @@ import Helpers.RemoteDataPlusPlus as RDPP exposing (Haveness(..), RefreshStatus(
 import List
 import OpenStack.Shares as Shares
 import OpenStack.Types exposing (AccessRuleAccessLevel(..), AccessRuleAccessType(..), Share, ShareStatus(..), accessRuleAccessLevelToApiString)
-import Orchestration.Helpers exposing (applyProjectStep, pollRDPP)
+import Orchestration.Helpers exposing (applyProjectStep, pollIntervalToMs, pollRDPP)
+import Orchestration.Types exposing (PollInterval(..))
 import Time
 import Types.Project exposing (Project)
 import Types.SharedMsg exposing (SharedMsg)
@@ -29,9 +30,13 @@ goalNewShare exoClientUuid time project =
 
 stepPollNewShares : Time.Posix -> Project -> ( Project, Cmd SharedMsg )
 stepPollNewShares time project =
+    let
+        newSharePollInterval =
+            pollIntervalToMs Rapid
+    in
     if
         anyShareIsNewAndHasNoAccessRules time project
-            && pollRDPP project.shares time 5000
+            && pollRDPP project.shares time newSharePollInterval
     then
         case project.endpoints.manila of
             Just url ->

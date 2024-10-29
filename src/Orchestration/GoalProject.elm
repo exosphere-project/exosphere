@@ -4,15 +4,11 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.Quotas exposing (requestVolumeQuota)
 import OpenStack.VolumeSnapshots
 import OpenStack.Volumes exposing (requestVolumeSnapshots)
-import Orchestration.Helpers exposing (applyProjectStep)
+import Orchestration.Helpers exposing (applyProjectStep, pollIntervalToMs)
+import Orchestration.Types exposing (PollInterval(..))
 import Time
 import Types.Project exposing (Project)
 import Types.SharedMsg exposing (SharedMsg)
-
-
-transitioningSnapshotPollInterval : Int
-transitioningSnapshotPollInterval =
-    3000
 
 
 goalPollProject : Time.Posix -> Project -> ( Project, Cmd SharedMsg )
@@ -51,7 +47,7 @@ stepSnapshotPoll time project =
 
                 -- Only poll if it's been a few seconds since the last one.
                 ( RDPP.DoHave _ _, _ ) ->
-                    RDPP.isPollableWithInterval snapshots time transitioningSnapshotPollInterval
+                    RDPP.isPollableWithInterval snapshots time (pollIntervalToMs Rapid)
     in
     if shouldPoll then
         ( { project | volumeSnapshots = RDPP.setLoading project.volumeSnapshots }
