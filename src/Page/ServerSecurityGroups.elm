@@ -394,7 +394,7 @@ renderSecurityGroupListAndRules context project model securityGroups =
                         securityGroups
                             |> List.filter (\securityGroup -> isSecurityGroupSelected model securityGroup.uuid)
 
-                    customiser : OpenStack.SecurityGroupRule.SecurityGroupRule -> { iconForRow : Maybe (Element.Element msg), styleForRow : List (Element.Attribute msg) }
+                    customiser : SecurityGroupRulesTable.RulesTableRowCustomiser Msg
                     customiser rule =
                         let
                             selectedRules =
@@ -439,7 +439,8 @@ renderSecurityGroupListAndRules context project model securityGroups =
                                         -- Chosen for consistent spacing when no icon is present.
                                         Just <| Element.el [ Element.width <| Element.px 18 ] (Element.text "")
                         in
-                        { iconForRow = icon
+                        { leftElementForRow = icon
+                        , rightElementForRow = Nothing
                         , styleForRow = SecurityGroupRulesTable.defaultRowStyle ++ highlight ++ shadowed
                         }
 

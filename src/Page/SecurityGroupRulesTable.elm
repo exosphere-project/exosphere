@@ -1,4 +1,4 @@
-module Page.SecurityGroupRulesTable exposing (defaultRowStyle, rulesTable, rulesTableWithRowCustomiser, view)
+module Page.SecurityGroupRulesTable exposing (RulesTableRowCustomiser, defaultRowStyle, rulesTable, rulesTableWithRowCustomiser, view)
 
 import Element
 import Element.Font as Font
@@ -31,7 +31,7 @@ rulesTable context projectId { rules, securityGroupForUuid } =
         context
         projectId
         { rules = rules, securityGroupForUuid = securityGroupForUuid }
-        (always { iconForRow = Nothing, styleForRow = defaultRowStyle })
+        (always { leftElementForRow = Nothing, rightElementForRow = Nothing, styleForRow = defaultRowStyle })
 
 
 defaultRowStyle : List (Element.Attribute msg)
@@ -39,11 +39,15 @@ defaultRowStyle =
     [ Element.padding spacer.px8 ]
 
 
+type alias RulesTableRowCustomiser msg =
+    SecurityGroupRule -> { leftElementForRow : Maybe (Element.Element msg), styleForRow : List (Element.Attribute msg), rightElementForRow : Maybe (Element.Element msg) }
+
+
 rulesTableWithRowCustomiser :
     View.Types.Context
     -> ProjectIdentifier
     -> { rules : List SecurityGroupRule, securityGroupForUuid : SecurityGroupUuid -> Maybe SecurityGroup }
-    -> (SecurityGroupRule -> { iconForRow : Maybe (Element.Element msg), styleForRow : List (Element.Attribute msg) })
+    -> RulesTableRowCustomiser msg
     -> Element.Element msg
 rulesTableWithRowCustomiser context projectId { rules, securityGroupForUuid } customiser =
     case List.length rules of
@@ -67,8 +71,11 @@ rulesTableWithRowCustomiser context projectId { rules, securityGroupForUuid } cu
                             msg
                         )
 
-                iconForRow rule =
-                    (customiser rule).iconForRow
+                leftElementForRow rule =
+                    (customiser rule).leftElementForRow
+
+                rightElementForRow rule =
+                    (customiser rule).rightElementForRow
 
                 styleForRow rule =
                     (customiser rule).styleForRow
@@ -86,9 +93,9 @@ rulesTableWithRowCustomiser context projectId { rules, securityGroupForUuid } cu
                       , width = Element.shrink
                       , view =
                             \item ->
-                                case iconForRow item of
-                                    Just icon ->
-                                        container item icon
+                                case leftElementForRow item of
+                                    Just element ->
+                                        container item element
 
                                     Nothing ->
                                         Element.none
@@ -197,6 +204,17 @@ rulesTableWithRowCustomiser context projectId { rules, securityGroupForUuid } cu
                                         else
                                             description
                                     )
+                      }
+                    , { header = Element.none
+                      , width = Element.shrink
+                      , view =
+                            \item ->
+                                case rightElementForRow item of
+                                    Just element ->
+                                        container item element
+
+                                    Nothing ->
+                                        Element.none
                       }
                     ]
                 }
