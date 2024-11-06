@@ -48,10 +48,12 @@ python3 -m venv /opt/ansible-venv
 . /opt/ansible-venv/bin/activate
 retry pip install --upgrade pip
 retry pip install ansible-core passlib
-retry ansible-pull \\
-  --url "{instance-config-mgt-repo-url}" \\
-  --checkout "{instance-config-mgt-repo-checkout}" \\
-  --directory /opt/instance-config-mgt \\
+retry git clone \\
+  --depth=1 \\
+  --branch="{instance-config-mgt-repo-checkout}" \\
+  "{instance-config-mgt-repo-url}" \\
+  /opt/instance-config-mgt
+ansible-playbook \\
   -i /opt/instance-config-mgt/ansible/hosts \\
   -e "{ansible-extra-vars}" \\
   /opt/instance-config-mgt/ansible/playbook.yml
