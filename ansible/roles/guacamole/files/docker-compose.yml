@@ -11,6 +11,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       WATCHTOWER_LABEL_ENABLE: 'true'
+      WATCHTOWER_CLEANUP: 'true'
   exo-guac-guacd:
     image: 'guacamole/guacd:latest'
     restart: 'always'
