@@ -53,6 +53,7 @@ module Helpers.GetterSetters exposing
     , serverCreatedByCurrentUser
     , serverExoServerVersion
     , serverLookup
+    , serverNameLookup
     , serverPresentNotDeleting
     , serverSupportsFeature
     , serversForSecurityGroup
@@ -227,6 +228,12 @@ serverLookup : Project -> OSTypes.ServerUuid -> Maybe Server
 serverLookup project serverUuid =
     RDPP.withDefault [] project.servers
         |> List.Extra.find (\s -> s.osProps.uuid == serverUuid)
+
+
+serverNameLookup : Project -> OSTypes.ServerUuid -> Maybe String
+serverNameLookup project serverUuid =
+    serverLookup project serverUuid
+        |> Maybe.map (\server -> server.osProps.name)
 
 
 serverExoServerVersion : Server -> Maybe ExoServerVersion
