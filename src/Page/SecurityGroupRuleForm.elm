@@ -441,7 +441,7 @@ form context model =
             { text = Maybe.withDefault "" rule.description
             , placeholder = Just <| Input.placeholder [] (Element.text "Optional")
             , onChange = \text -> GotRuleUpdate { rule | description = Just text }
-            , label = Input.labelAbove [] (Element.text "Description")
+            , label = Input.labelAbove [] (Element.text "Rule Description")
             }
         ]
 

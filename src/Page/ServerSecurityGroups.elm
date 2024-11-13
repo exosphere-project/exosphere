@@ -45,6 +45,7 @@ type alias Model =
 
 type Msg
     = GotApplyServerSecurityGroupUpdates (List OSTypes.ServerSecurityGroupUpdate)
+    | GotCreateSecurityGroupForm
     | GotDone
     | GotServerSecurityGroups OSTypes.ServerUuid
     | ToggleSelectedGroup OSTypes.SecurityGroupUuid
@@ -96,8 +97,7 @@ init project serverUuid =
             _ ->
                 Uninitialised
     , securityGroupForm =
-        -- FIXME: This is a hack to get the form to show up.
-        Just <| SecurityGroupForm.init { name = "enormously-mature-rhino" }
+        Nothing
     }
 
 
@@ -156,19 +156,23 @@ update msg sharedModel project model =
                             SecurityGroupForm.update securityGroupFormMsg securityGroupForm_ |> Tuple.first
 
                         Nothing ->
-                            let
-                                securityGroupName =
-                                    -- Set the security group name to the server name if it exists.
-                                    case GetterSetters.serverLookup project model.serverUuid of
-                                        Just server ->
-                                            server.osProps.name
-
-                                        Nothing ->
-                                            ""
-                            in
-                            SecurityGroupForm.init { name = securityGroupName }
+                            -- If we get a message without a form, initialise one.
+                            SecurityGroupForm.init { name = newSecurityGroupName project model.serverUuid }
             in
             ( { model | securityGroupForm = Just <| securityGroupForm }, Cmd.none, SharedMsg.NoOp )
+
+        GotCreateSecurityGroupForm ->
+            let
+                securityGroupForm =
+                    SecurityGroupForm.init { name = newSecurityGroupName project model.serverUuid }
+            in
+            ( { model | securityGroupForm = Just <| securityGroupForm }, Cmd.none, SharedMsg.NoOp )
+
+
+newSecurityGroupName : Project -> OSTypes.ServerUuid -> String
+newSecurityGroupName project serverUuid =
+    -- Set the security group name to the server name if it exists.
+    Maybe.withDefault "" <| GetterSetters.serverNameLookup project serverUuid
 
 
 appliedSecurityGroupsUuids : Project -> OSTypes.ServerUuid -> Set.Set OSTypes.SecurityGroupUuid
@@ -362,7 +366,7 @@ renderSelectableSecurityGroupsList context project model securityGroups =
 renderSecurityGroupListAndRules : View.Types.Context -> Project -> Model -> List OSTypes.SecurityGroup -> Element.Element Msg
 renderSecurityGroupListAndRules context project model securityGroups =
     let
-        tile : List (Element.Element Msg) -> List (Element.Element Msg) -> Element.Element Msg
+        tile : Maybe (List (Element.Element Msg)) -> List (Element.Element Msg) -> Element.Element Msg
         tile headerContents contents =
             Style.Widgets.Card.exoCard context.palette
                 (Element.column
@@ -371,13 +375,18 @@ renderSecurityGroupListAndRules context project model securityGroups =
                     , Element.spacing spacer.px16
                     ]
                     (List.concat
-                        [ [ Element.row
-                                (Text.subheadingStyleAttrs context.palette
-                                    ++ Text.typographyAttrs Text.Large
-                                    ++ [ Border.width 0 ]
-                                )
-                                headerContents
-                          ]
+                        [ case headerContents of
+                            Just header ->
+                                [ Element.row
+                                    (Text.subheadingStyleAttrs context.palette
+                                        ++ Text.typographyAttrs Text.Large
+                                        ++ [ Border.width 0 ]
+                                    )
+                                    header
+                                ]
+
+                            Nothing ->
+                                []
                         , contents
                         ]
                     )
@@ -387,14 +396,16 @@ renderSecurityGroupListAndRules context project model securityGroups =
         [ renderSelectableSecurityGroupsList context project model securityGroups
         , Element.column [ Element.alignTop, Element.spacing spacer.px24, Element.width Element.fill ]
             [ tile
-                [ Element.text
-                    (String.join " "
-                        [ "Consolidated"
-                        , context.localization.securityGroup
-                            |> Helpers.String.toTitleCase
-                        ]
-                    )
-                ]
+                (Just
+                    [ Element.text
+                        (String.join " "
+                            [ "Consolidated"
+                            , context.localization.securityGroup
+                                |> Helpers.String.toTitleCase
+                            ]
+                        )
+                    ]
+                )
                 [ let
                     appliedSecurityGroupUuidsSet =
                         appliedSecurityGroupsUuids project model.serverUuid
@@ -467,29 +478,47 @@ renderSecurityGroupListAndRules context project model securityGroups =
                     { rules = rules, securityGroupForUuid = GetterSetters.securityGroupLookup project }
                     customiser
                 ]
-            , tile
-                [ Element.text
-                    (String.join " "
-                        [ "New"
-                        , context.localization.securityGroup
-                            |> Helpers.String.toTitleCase
-                        ]
-                    )
-                ]
-                [ Element.column
-                    [ Element.spacing spacer.px16, Element.width Element.fill ]
-                    [ case model.securityGroupForm of
-                        Just securityGroupForm ->
-                            SecurityGroupForm.view
+            , case model.securityGroupForm of
+                Just securityGroupForm ->
+                    tile
+                        (Just
+                            [ Element.text
+                                (String.join " "
+                                    [ "New"
+                                    , context.localization.securityGroup
+                                        |> Helpers.String.toTitleCase
+                                    ]
+                                )
+                            ]
+                        )
+                        [ Element.column
+                            [ Element.spacing spacer.px16, Element.width Element.fill ]
+                            [ SecurityGroupForm.view
                                 context
                                 project
                                 securityGroupForm
                                 |> Element.map SecurityGroupFormMsg
+                            ]
+                        ]
 
-                        Nothing ->
-                            Element.none
-                    ]
-                ]
+                Nothing ->
+                    tile
+                        Nothing
+                        [ Element.row
+                            [ Element.spaceEvenly, Element.spacing spacer.px12, Element.width Element.fill ]
+                            [ Text.p [] [ Text.body <| "You can create a " ++ context.localization.securityGroup ++ " for this " ++ context.localization.virtualComputer ++ " to capture additional rules." ]
+                            , Button.button Button.Secondary
+                                context.palette
+                                { text =
+                                    String.join " "
+                                        [ "New"
+                                        , context.localization.securityGroup
+                                            |> Helpers.String.toTitleCase
+                                        ]
+                                , onPress = Just GotCreateSecurityGroupForm
+                                }
+                            ]
+                        ]
             ]
         ]
 
