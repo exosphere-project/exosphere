@@ -47,6 +47,7 @@ select attributes palette { onChange, options, selected, label } =
                 , HtmlA.style "-webkit-appearance" "none"
                 , HtmlA.style "-moz-appearance" "none"
                 , HtmlA.style "padding" "5px"
+                , HtmlA.style "paddingRight" "24px" -- offset for down chevron
                 , HtmlA.style "border-width" "0"
                 , HtmlA.style "height" "48px"
                 , HtmlA.style "font-size" "18px"
