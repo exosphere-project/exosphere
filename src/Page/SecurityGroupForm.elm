@@ -4,6 +4,7 @@ import Element
 import Element.Border as Border
 import Element.Input as Input
 import Helpers.GetterSetters as GetterSetters
+import Helpers.String
 import List
 import List.Extra
 import OpenStack.SecurityGroupRule
@@ -24,12 +25,13 @@ import View.Types
 
 type Msg
     = SecurityGroupRuleFormMsg SecurityGroupRuleForm.Msg
-    | GotName String
-    | GotDescription (Maybe String)
     | GotAddRule
     | GotDeleteRule SecurityGroupRuleUuid
+    | GotDescription (Maybe String)
     | GotDoneEditingRule
     | GotEditRule SecurityGroupRuleUuid
+    | GotName String
+    | GotRequestCreateSecurityGroup
 
 
 type alias Model =
@@ -139,6 +141,12 @@ update msg model =
             , Cmd.none
             )
 
+        GotRequestCreateSecurityGroup ->
+            ( model
+              -- TODO: Send a command to create the security group.
+            , Cmd.none
+            )
+
 
 rulesList :
     View.Types.Context
@@ -223,9 +231,33 @@ view context project model =
 
             Nothing ->
                 Element.none
-        , if model.securityGroupRuleForm == Nothing then
-            Button.button Button.Primary context.palette { text = "Add Rule", onPress = Just GotAddRule }
+        , Element.row [ Element.spaceEvenly, Element.width Element.fill ]
+            [ let
+                variant =
+                    if List.length model.rules > 0 then
+                        Button.Secondary
 
-          else
-            Button.button Button.Secondary context.palette { text = "Add Another Rule", onPress = Just GotAddRule }
+                    else
+                        Button.Primary
+              in
+              Button.button variant context.palette { text = "Add Rule", onPress = Just GotAddRule }
+            , let
+                variant =
+                    if List.length model.rules > 0 then
+                        Button.Primary
+
+                    else
+                        Button.Secondary
+              in
+              Button.button variant
+                context.palette
+                { text =
+                    String.join " "
+                        [ "Create"
+                        , context.localization.securityGroup
+                            |> Helpers.String.toTitleCase
+                        ]
+                , onPress = Just GotRequestCreateSecurityGroup
+                }
+            ]
         ]
