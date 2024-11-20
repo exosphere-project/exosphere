@@ -4,7 +4,8 @@ import Element
 import Element.Input as Input
 import OpenStack.SecurityGroupRule
     exposing
-        ( Remote(..)
+        ( PortRangeBounds(..)
+        , Remote(..)
         , RemoteType(..)
         , SecurityGroupRule
         , SecurityGroupRuleDirection(..)
@@ -15,12 +16,15 @@ import OpenStack.SecurityGroupRule
         , etherTypeOptions
         , etherTypeToString
         , getRemote
+        , portRangeBoundsOptions
+        , portRangeBoundsToString
         , protocolOptions
         , protocolToString
         , remoteOptions
         , remoteToRemoteType
         , remoteToStringInput
         , remoteTypeToString
+        , stringToPortRangeBounds
         , stringToRemoteType
         , stringToSecurityGroupRuleDirection
         , stringToSecurityGroupRuleEthertype
@@ -42,6 +46,7 @@ type PortInput
 
 type Msg
     = GotRuleUpdate SecurityGroupRule
+    | GotPortRangeBounds PortRangeBounds
     | GotPortInput PortInput
     | GotRemoteTypeUpdate RemoteType
     | GotRemote (Maybe Remote)
@@ -50,6 +55,7 @@ type Msg
 
 type alias Model =
     { rule : SecurityGroupRule
+    , portRangeBounds : PortRangeBounds
     , startingPortInput : NumericTextInput
     , endingPortInput : NumericTextInput
     , remoteType : RemoteType
@@ -59,6 +65,7 @@ type alias Model =
 init : SecurityGroupRule -> Model
 init rule =
     { rule = rule
+    , portRangeBounds = PortRangeAny
     , startingPortInput =
         case rule.portRangeMin of
             Just portRangeMin ->
@@ -104,6 +111,49 @@ update msg model =
             , Cmd.none
             )
 
+        GotPortRangeBounds portRangeBounds ->
+            ( { model
+                | portRangeBounds =
+                    portRangeBounds
+                , startingPortInput =
+                    if portRangeBounds == PortRangeAny then
+                        BlankNumericTextInput
+
+                    else
+                        model.startingPortInput
+                , endingPortInput =
+                    if portRangeBounds == PortRangeMinMax then
+                        model.endingPortInput
+
+                    else
+                        BlankNumericTextInput
+                , rule =
+                    let
+                        rule =
+                            model.rule
+                    in
+                    case portRangeBounds of
+                        PortRangeAny ->
+                            { rule
+                                | portRangeMin = Nothing
+                                , portRangeMax = Nothing
+                            }
+
+                        PortRangeSingle ->
+                            { rule
+                                | portRangeMin = NumericTextInput.toMaybe model.startingPortInput
+                                , portRangeMax = NumericTextInput.toMaybe model.startingPortInput
+                            }
+
+                        PortRangeMinMax ->
+                            { rule
+                                | portRangeMin = NumericTextInput.toMaybe model.startingPortInput
+                                , portRangeMax = NumericTextInput.toMaybe model.endingPortInput
+                            }
+              }
+            , Cmd.none
+            )
+
         GotPortInput portInput ->
             ( { model
                 | startingPortInput =
@@ -129,6 +179,14 @@ update msg model =
                         StartingPort i ->
                             { rule
                                 | portRangeMin = NumericTextInput.toMaybe i
+                                , portRangeMax =
+                                    case model.portRangeBounds of
+                                        PortRangeSingle ->
+                                            -- For single ports, start = end.
+                                            NumericTextInput.toMaybe i
+
+                                        _ ->
+                                            rule.portRangeMax
                             }
 
                         EndingPort i ->
@@ -254,29 +312,62 @@ form context model =
                     }
                 ]
             , Element.row [ Element.spacing spacer.px12 ]
-                [ numericTextInput
-                    context.palette
-                    (VH.inputItemAttributes context.palette ++ [ consistentHeight ])
-                    model.startingPortInput
-                    { labelText = "Starting port"
-                    , minVal = Just 1
-                    , maxVal = Just 65535
-                    , defaultVal = Nothing
-                    , required = False
-                    }
-                    (\input -> GotPortInput <| StartingPort input)
-                , numericTextInput
-                    context.palette
-                    (VH.inputItemAttributes context.palette ++ [ consistentHeight ])
-                    model.endingPortInput
-                    { labelText = "Ending port"
-                    , minVal = Just 1
-                    , maxVal = Just 65535
-                    , defaultVal = Nothing
-                    , required = False
-                    }
-                    (\input -> GotPortInput <| EndingPort input)
-                ]
+                (Element.column [ Element.spacing spacer.px12 ]
+                    [ Text.body "Port Range"
+                    , Style.Widgets.Select.select
+                        []
+                        context.palette
+                        { label = "Choose a port range"
+                        , onChange =
+                            \portRangeBounds ->
+                                case portRangeBounds of
+                                    Just portRangeBounds_ ->
+                                        GotPortRangeBounds <| stringToPortRangeBounds portRangeBounds_
+
+                                    Nothing ->
+                                        NoOp
+                        , options = portRangeBoundsOptions
+                        , selected = Just <| portRangeBoundsToString model.portRangeBounds
+                        }
+                    ]
+                    :: (let
+                            startingPortInput =
+                                numericTextInput
+                                    context.palette
+                                    (VH.inputItemAttributes context.palette ++ [ consistentHeight ])
+                                    model.startingPortInput
+                                    { labelText = "Starting port"
+                                    , minVal = Just 1
+                                    , maxVal = Just 65535
+                                    , defaultVal = Nothing
+                                    , required = False
+                                    }
+                                    (\input -> GotPortInput <| StartingPort input)
+                        in
+                        case model.portRangeBounds of
+                            PortRangeAny ->
+                                []
+
+                            PortRangeSingle ->
+                                [ startingPortInput ]
+
+                            PortRangeMinMax ->
+                                [ startingPortInput
+                                , -- endingPortInput
+                                  numericTextInput
+                                    context.palette
+                                    (VH.inputItemAttributes context.palette ++ [ consistentHeight ])
+                                    model.endingPortInput
+                                    { labelText = "Ending port"
+                                    , minVal = Just 1
+                                    , maxVal = Just 65535
+                                    , defaultVal = Nothing
+                                    , required = False
+                                    }
+                                    (\input -> GotPortInput <| EndingPort input)
+                                ]
+                       )
+                )
             , Element.row [ Element.spacingXY spacer.px12 0, Element.width <| Element.fill ]
                 [ Element.column [ Element.spacing spacer.px12 ]
                     [ Text.body "Remote"

@@ -1,5 +1,6 @@
 module OpenStack.SecurityGroupRule exposing
-    ( Remote(..)
+    ( PortRangeBounds(..)
+    , Remote(..)
     , RemoteType(..)
     , SecurityGroupRule
     , SecurityGroupRuleDirection(..)
@@ -8,6 +9,7 @@ module OpenStack.SecurityGroupRule exposing
     , SecurityGroupRuleTemplate
     , SecurityGroupRuleUuid
     , SecurityGroupUuid
+    , allPortRangeBounds
     , decodeDirection
     , defaultRules
     , directionOptions
@@ -18,6 +20,9 @@ module OpenStack.SecurityGroupRule exposing
     , getRemote
     , isRuleShadowed
     , matchRule
+    , portRangeBoundsOptions
+    , portRangeBoundsToString
+    , portRangeToBounds
     , portRangeToString
     , protocolOptions
     , protocolToString
@@ -29,6 +34,7 @@ module OpenStack.SecurityGroupRule exposing
     , securityGroupRuleDecoder
     , securityGroupRuleDiff
     , securityGroupRuleTemplateToRule
+    , stringToPortRangeBounds
     , stringToRemoteType
     , stringToSecurityGroupRuleDirection
     , stringToSecurityGroupRuleEthertype
@@ -425,6 +431,12 @@ type PortRangeType
     | PortRangeMax
 
 
+type PortRangeBounds
+    = PortRangeAny
+    | PortRangeSingle
+    | PortRangeMinMax
+
+
 encode : SecurityGroupUuid -> SecurityGroupRule -> Encode.Value
 encode securityGroupUuid { ethertype, direction, protocol, portRangeMin, portRangeMax, description } =
     Encode.object
@@ -449,6 +461,25 @@ encodeDescription maybeDescription object =
 
         Nothing ->
             object
+
+
+portRangeToBounds :
+    { a
+        | portRangeMin : Maybe Int
+        , portRangeMax : Maybe Int
+    }
+    -> PortRangeBounds
+portRangeToBounds { portRangeMin, portRangeMax } =
+    case ( portRangeMin, portRangeMax ) of
+        ( Just min, Just max ) ->
+            if min == max then
+                PortRangeSingle
+
+            else
+                PortRangeMinMax
+
+        _ ->
+            PortRangeAny
 
 
 portRangeToString :
@@ -807,6 +838,44 @@ allProtocols =
 protocolOptions : List ( String, String )
 protocolOptions =
     List.map (\protocol -> ( protocolToString protocol, protocolToString protocol |> toTitleCase )) allProtocols
+
+
+portRangeBoundsOptions : List ( String, String )
+portRangeBoundsOptions =
+    List.map
+        (\bounds -> ( portRangeBoundsToString bounds, portRangeBoundsToString bounds ))
+        allPortRangeBounds
+
+
+allPortRangeBounds : List PortRangeBounds
+allPortRangeBounds =
+    [ PortRangeAny, PortRangeSingle, PortRangeMinMax ]
+
+
+portRangeBoundsToString : PortRangeBounds -> String
+portRangeBoundsToString bounds =
+    case bounds of
+        PortRangeAny ->
+            "Any"
+
+        PortRangeSingle ->
+            "Single"
+
+        PortRangeMinMax ->
+            "Min - Max"
+
+
+stringToPortRangeBounds : String -> PortRangeBounds
+stringToPortRangeBounds bounds =
+    case bounds of
+        "Single" ->
+            PortRangeSingle
+
+        "Min - Max" ->
+            PortRangeMinMax
+
+        _ ->
+            PortRangeAny
 
 
 remoteOptions : List ( String, String )
