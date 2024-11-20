@@ -96,6 +96,7 @@ update msg model =
             in
             ( { model
                 | rules = model.rules ++ [ newRule ]
+                , securityGroupRuleForm = Just <| SecurityGroupRuleForm.init newRule
               }
             , Cmd.none
             )
