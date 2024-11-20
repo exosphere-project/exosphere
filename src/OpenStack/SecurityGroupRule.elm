@@ -8,6 +8,7 @@ module OpenStack.SecurityGroupRule exposing
     , SecurityGroupRuleTemplate
     , SecurityGroupRuleUuid
     , SecurityGroupUuid
+    , decodeDirection
     , defaultRules
     , directionOptions
     , directionToString
@@ -658,10 +659,10 @@ directionToString : SecurityGroupRuleDirection -> String
 directionToString direction =
     case direction of
         Ingress ->
-            "ingress"
+            "incoming"
 
         Egress ->
-            "egress"
+            "outgoing"
 
         UnsupportedDirection str ->
             str
@@ -669,6 +670,19 @@ directionToString direction =
 
 stringToSecurityGroupRuleDirection : String -> SecurityGroupRuleDirection
 stringToSecurityGroupRuleDirection direction =
+    case direction of
+        "incoming" ->
+            Ingress
+
+        "outgoing" ->
+            Egress
+
+        _ ->
+            UnsupportedDirection direction
+
+
+decodeDirection : String -> SecurityGroupRuleDirection
+decodeDirection direction =
     case direction of
         "ingress" ->
             Ingress
@@ -682,7 +696,19 @@ stringToSecurityGroupRuleDirection direction =
 
 encodeDirection : SecurityGroupRuleDirection -> List ( String, Encode.Value ) -> List ( String, Encode.Value )
 encodeDirection direction object =
-    ( "direction", Encode.string <| directionToString direction ) :: object
+    ( "direction"
+    , Encode.string <|
+        case direction of
+            Ingress ->
+                "ingress"
+
+            Egress ->
+                "egress"
+
+            UnsupportedDirection str ->
+                str
+    )
+        :: object
 
 
 etherTypeToString : SecurityGroupRuleEthertype -> String
@@ -722,7 +748,7 @@ securityGroupRuleDecoder =
         SecurityGroupRule
         |> Pipeline.required "id" Decode.string
         |> Pipeline.required "ethertype" (Decode.string |> Decode.map stringToSecurityGroupRuleEthertype)
-        |> Pipeline.required "direction" (Decode.string |> Decode.map stringToSecurityGroupRuleDirection)
+        |> Pipeline.required "direction" (Decode.string |> Decode.map decodeDirection)
         |> Pipeline.optional "protocol" (Decode.nullable (Decode.string |> Decode.map stringToSecurityGroupRuleProtocol)) Nothing
         |> Pipeline.optional "port_range_min" (Decode.nullable Decode.int) Nothing
         |> Pipeline.optional "port_range_max" (Decode.nullable Decode.int) Nothing
