@@ -244,7 +244,7 @@ view context project model =
               Button.button variant context.palette { text = "Add Rule", onPress = Just GotAddRule }
             , let
                 variant =
-                    if List.length model.rules > 0 then
+                    if List.length model.rules > 0 && model.securityGroupRuleForm == Nothing then
                         Button.Primary
 
                     else
