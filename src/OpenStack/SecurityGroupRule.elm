@@ -1,5 +1,6 @@
 module OpenStack.SecurityGroupRule exposing
     ( Remote(..)
+    , RemoteType(..)
     , SecurityGroupRule
     , SecurityGroupRuleDirection(..)
     , SecurityGroupRuleEthertype(..)
@@ -8,23 +9,32 @@ module OpenStack.SecurityGroupRule exposing
     , SecurityGroupRuleUuid
     , SecurityGroupUuid
     , defaultRules
+    , directionOptions
     , directionToString
     , encode
+    , etherTypeOptions
     , etherTypeToString
     , getRemote
     , isRuleShadowed
     , matchRule
     , portRangeToString
+    , protocolOptions
     , protocolToString
+    , remoteOptions
+    , remoteToRemoteType
     , remoteToString
+    , remoteToStringInput
+    , remoteTypeToString
     , securityGroupRuleDecoder
     , securityGroupRuleDiff
     , securityGroupRuleTemplateToRule
+    , stringToRemoteType
     , stringToSecurityGroupRuleDirection
     , stringToSecurityGroupRuleEthertype
     , stringToSecurityGroupRuleProtocol
     )
 
+import Helpers.String exposing (toTitleCase)
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
 import Json.Encode as Encode
@@ -149,6 +159,12 @@ type Remote
     | RemoteGroupUuid String
 
 
+type RemoteType
+    = Any
+    | IpPrefix
+    | GroupId
+
+
 getRemote : SecurityGroupRule -> Maybe Remote
 getRemote rule =
     case ( rule.remoteIpPrefix, rule.remoteGroupUuid ) of
@@ -177,6 +193,19 @@ remoteToString remote =
 
         Nothing ->
             "Any"
+
+
+remoteToStringInput : Maybe Remote -> String
+remoteToStringInput remote =
+    remote
+        |> remoteToString
+        |> (\remoteString ->
+                if remoteString == "Any" then
+                    ""
+
+                else
+                    remoteString
+           )
 
 
 remoteMatch : Remote -> Remote -> Bool
@@ -700,3 +729,106 @@ securityGroupRuleDecoder =
         |> Pipeline.optional "remote_ip_prefix" (Decode.nullable Decode.string) Nothing
         |> Pipeline.optional "remote_group_id" (Decode.nullable Decode.string) Nothing
         |> Pipeline.optional "description" (Decode.nullable Decode.string) Nothing
+
+
+allDirections : List SecurityGroupRuleDirection
+allDirections =
+    [ Ingress, Egress ]
+
+
+directionOptions : List ( String, String )
+directionOptions =
+    List.map (\direction -> ( directionToString direction, directionToString direction |> toTitleCase )) allDirections
+
+
+allEtherTypes : List SecurityGroupRuleEthertype
+allEtherTypes =
+    [ Ipv4, Ipv6 ]
+
+
+etherTypeOptions : List ( String, String )
+etherTypeOptions =
+    List.map (\etherType -> ( etherTypeToString etherType, etherTypeToString etherType |> toTitleCase )) allEtherTypes
+
+
+allProtocols : List SecurityGroupRuleProtocol
+allProtocols =
+    [ AnyProtocol
+    , ProtocolIcmp
+    , ProtocolIcmpv6
+    , ProtocolTcp
+    , ProtocolUdp
+    , ProtocolAh
+    , ProtocolDccp
+    , ProtocolEgp
+    , ProtocolEsp
+    , ProtocolGre
+    , ProtocolIgmp
+    , ProtocolIpv6Encap
+    , ProtocolIpv6Frag
+    , ProtocolIpv6Nonxt
+    , ProtocolIpv6Opts
+    , ProtocolIpv6Route
+    , ProtocolOspf
+    , ProtocolPgm
+    , ProtocolRsvp
+    , ProtocolSctp
+    , ProtocolUdpLite
+    , ProtocolVrrp
+    ]
+
+
+protocolOptions : List ( String, String )
+protocolOptions =
+    List.map (\protocol -> ( protocolToString protocol, protocolToString protocol |> toTitleCase )) allProtocols
+
+
+remoteOptions : List ( String, String )
+remoteOptions =
+    List.map
+        (\remoteType -> ( remoteTypeToString remoteType, remoteTypeToString remoteType |> toTitleCase ))
+        allRemoteTypes
+
+
+allRemoteTypes : List RemoteType
+allRemoteTypes =
+    [ Any, IpPrefix, GroupId ]
+
+
+stringToRemoteType : String -> RemoteType
+stringToRemoteType remoteType =
+    case remoteType of
+        "IP Prefix" ->
+            IpPrefix
+
+        "Group ID" ->
+            GroupId
+
+        _ ->
+            Any
+
+
+remoteTypeToString : RemoteType -> String
+remoteTypeToString remoteType =
+    case remoteType of
+        IpPrefix ->
+            "IP Prefix"
+
+        GroupId ->
+            "Group ID"
+
+        Any ->
+            "Any"
+
+
+remoteToRemoteType : Maybe Remote -> RemoteType
+remoteToRemoteType remote =
+    case remote of
+        Just (RemoteIpPrefix _) ->
+            IpPrefix
+
+        Just (RemoteGroupUuid _) ->
+            GroupId
+
+        _ ->
+            Any

@@ -1,20 +1,27 @@
-module Page.SecurityGroupRuleForm exposing (Model, Msg(..), PortInput, RemoteType, init, newBlankRule, update, view)
+module Page.SecurityGroupRuleForm exposing (Model, Msg(..), PortInput, init, newBlankRule, update, view)
 
 import Element
 import Element.Input as Input
-import Helpers.String exposing (toTitleCase)
-import List
 import OpenStack.SecurityGroupRule
     exposing
         ( Remote(..)
+        , RemoteType(..)
         , SecurityGroupRule
         , SecurityGroupRuleDirection(..)
         , SecurityGroupRuleEthertype(..)
         , SecurityGroupRuleProtocol(..)
+        , directionOptions
         , directionToString
+        , etherTypeOptions
         , etherTypeToString
         , getRemote
+        , protocolOptions
         , protocolToString
+        , remoteOptions
+        , remoteToRemoteType
+        , remoteToStringInput
+        , remoteTypeToString
+        , stringToRemoteType
         , stringToSecurityGroupRuleDirection
         , stringToSecurityGroupRuleEthertype
         , stringToSecurityGroupRuleProtocol
@@ -31,12 +38,6 @@ import View.Types
 type PortInput
     = StartingPort NumericTextInput
     | EndingPort NumericTextInput
-
-
-type RemoteType
-    = Any
-    | IpPrefix
-    | GroupId
 
 
 type Msg
@@ -184,122 +185,6 @@ update msg model =
             ( model, Cmd.none )
 
 
-allDirections : List SecurityGroupRuleDirection
-allDirections =
-    [ Ingress, Egress ]
-
-
-directionOptions : List ( String, String )
-directionOptions =
-    List.map (\direction -> ( directionToString direction, directionToString direction |> toTitleCase )) allDirections
-
-
-allEtherTypes : List SecurityGroupRuleEthertype
-allEtherTypes =
-    [ Ipv4, Ipv6 ]
-
-
-etherTypeOptions : List ( String, String )
-etherTypeOptions =
-    List.map (\etherType -> ( etherTypeToString etherType, etherTypeToString etherType |> toTitleCase )) allEtherTypes
-
-
-allProtocols : List SecurityGroupRuleProtocol
-allProtocols =
-    [ AnyProtocol
-    , ProtocolIcmp
-    , ProtocolIcmpv6
-    , ProtocolTcp
-    , ProtocolUdp
-    , ProtocolAh
-    , ProtocolDccp
-    , ProtocolEgp
-    , ProtocolEsp
-    , ProtocolGre
-    , ProtocolIgmp
-    , ProtocolIpv6Encap
-    , ProtocolIpv6Frag
-    , ProtocolIpv6Nonxt
-    , ProtocolIpv6Opts
-    , ProtocolIpv6Route
-    , ProtocolOspf
-    , ProtocolPgm
-    , ProtocolRsvp
-    , ProtocolSctp
-    , ProtocolUdpLite
-    , ProtocolVrrp
-    ]
-
-
-protocolOptions : List ( String, String )
-protocolOptions =
-    List.map (\protocol -> ( protocolToString protocol, protocolToString protocol |> toTitleCase )) allProtocols
-
-
-remoteOptions : List ( String, String )
-remoteOptions =
-    List.map
-        (\remoteType -> ( remoteTypeToString remoteType, remoteTypeToString remoteType |> toTitleCase ))
-        allRemoteTypes
-
-
-allRemoteTypes : List RemoteType
-allRemoteTypes =
-    [ Any, IpPrefix, GroupId ]
-
-
-stringToRemoteType : String -> RemoteType
-stringToRemoteType remoteType =
-    case remoteType of
-        "IP Prefix" ->
-            IpPrefix
-
-        "Group ID" ->
-            GroupId
-
-        _ ->
-            Any
-
-
-remoteTypeToString : RemoteType -> String
-remoteTypeToString remoteType =
-    case remoteType of
-        IpPrefix ->
-            "IP Prefix"
-
-        GroupId ->
-            "Group ID"
-
-        Any ->
-            "Any"
-
-
-remoteToRemoteType : Maybe Remote -> RemoteType
-remoteToRemoteType remote =
-    case remote of
-        Just (RemoteIpPrefix _) ->
-            IpPrefix
-
-        Just (RemoteGroupUuid _) ->
-            GroupId
-
-        _ ->
-            Any
-
-
-remoteToInput : Maybe Remote -> String
-remoteToInput remote =
-    case remote of
-        Just (RemoteIpPrefix ip) ->
-            ip
-
-        Just (RemoteGroupUuid groupUuid) ->
-            groupUuid
-
-        Nothing ->
-            ""
-
-
 form :
     View.Types.Context
     -> Model
@@ -419,7 +304,7 @@ form context model =
                         -- TODO: renderInvalidReason invalidReason
                         Input.text
                             (VH.inputItemAttributes context.palette ++ [ consistentHeight, Element.width Element.fill ])
-                            { text = remoteToInput <| getRemote rule
+                            { text = remoteToStringInput <| getRemote rule
                             , placeholder = Nothing
                             , onChange =
                                 \text ->
