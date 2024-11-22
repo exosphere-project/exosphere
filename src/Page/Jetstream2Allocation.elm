@@ -20,6 +20,7 @@ import Types.SharedMsg as SharedMsg
 import View.Helpers as VH exposing (edges)
 import View.Types
 
+
 view : View.Types.Context -> Project -> Time.Posix -> Element.Element SharedMsg.SharedMsg
 view context project currentTime =
     let
@@ -44,10 +45,7 @@ view context project currentTime =
                     String.join " "
                         [ serviceUnitsRemaining
                             |> Helpers.Formatting.humanCount FormatNumber.Locales.usLocale
-                        , "SUs remaining of"
-                        , serviceUnitsAllocated
-                            |> Helpers.Formatting.humanCount FormatNumber.Locales.usLocale
-                        , "SUs"
+                        , "SUs remaining"
                         ]
             in
             Style.Widgets.Meter.meter
@@ -75,6 +73,13 @@ view context project currentTime =
                         , " ("
                         , Helpers.Time.humanReadableDate allocation.endDate
                         , ")"
+                        ]
+                    , String.concat
+                        [ "Original Allocation: "
+                        , allocation.serviceUnitsAllocated
+                            |> round
+                            |> Helpers.Formatting.humanCount FormatNumber.Locales.usLocale
+                        , " SUs"
                         ]
                     ]
                         |> List.map Element.text
