@@ -20,7 +20,6 @@ import Types.SharedMsg as SharedMsg
 import View.Helpers as VH exposing (edges)
 import View.Types
 
-
 view : View.Types.Context -> Project -> Time.Posix -> Element.Element SharedMsg.SharedMsg
 view context project currentTime =
     let
@@ -30,6 +29,12 @@ view context project currentTime =
                 serviceUnitsUsed =
                     allocation.serviceUnitsUsed |> Maybe.map round |> Maybe.withDefault 0
 
+                serviceUnitsAllocated =
+                    allocation.serviceUnitsAllocated |> round
+
+                serviceUnitsRemaining =
+                    max 0 (serviceUnitsAllocated - serviceUnitsUsed)
+
                 title =
                     Accounting.resourceToStr context.localization.virtualComputer allocation.resource
 
@@ -37,11 +42,10 @@ view context project currentTime =
                     -- Hard-coding USA locale to work around some kind of bug in elm-format-number where 1000000 is rendered as 10,00,000.
                     -- Don't worry, approximately all Jetstream2 users are USA-based, and nobody else will see this.
                     String.join " "
-                        [ serviceUnitsUsed
+                        [ serviceUnitsRemaining
                             |> Helpers.Formatting.humanCount FormatNumber.Locales.usLocale
-                        , "of"
-                        , allocation.serviceUnitsAllocated
-                            |> round
+                        , "SUs remaining of"
+                        , serviceUnitsAllocated
                             |> Helpers.Formatting.humanCount FormatNumber.Locales.usLocale
                         , "SUs"
                         ]
@@ -51,7 +55,7 @@ view context project currentTime =
                 title
                 subtitle
                 serviceUnitsUsed
-                (round allocation.serviceUnitsAllocated)
+                serviceUnitsAllocated
 
         toggleTip : Accounting.Allocation -> Element.Element SharedMsg.SharedMsg
         toggleTip allocation =
