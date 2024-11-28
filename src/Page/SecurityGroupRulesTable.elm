@@ -17,6 +17,7 @@ import OpenStack.SecurityGroupRule
 import OpenStack.Types exposing (SecurityGroup, SecurityGroupUuid)
 import Route
 import Style.Helpers as SH
+import Style.Widgets.Grid exposing (scrollableCell)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Types.HelperTypes exposing (ProjectIdentifier)
@@ -63,18 +64,6 @@ rulesTableWithRowCustomiser context projectId { rules, securityGroupForUuid } cu
             let
                 header text =
                     Element.el (Font.heavy :: defaultRowStyle) <| Element.text text
-
-                scrollableCell attrs msg =
-                    Element.el
-                        ([ Element.scrollbarX, Element.clipY ]
-                            ++ attrs
-                        )
-                        (Element.el
-                            [ -- HACK: A width needs to be set so that the cell expands responsively while having a horizontal scrollbar to contain overflow.
-                              Element.width (Element.px 0)
-                            ]
-                            msg
-                        )
 
                 leftElementForRow rule =
                     (customiser rule).leftElementForRow
