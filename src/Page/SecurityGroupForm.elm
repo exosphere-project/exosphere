@@ -1,7 +1,8 @@
 module Page.SecurityGroupForm exposing (Model, Msg(..), init, update, view)
 
-import Element
+import Element exposing (paddingEach)
 import Element.Border as Border
+import Element.Font as Font
 import Element.Input as Input
 import Helpers.GetterSetters as GetterSetters
 import Helpers.String
@@ -10,14 +11,21 @@ import List.Extra
 import OpenStack.SecurityGroupRule
     exposing
         ( SecurityGroupRule
+        , SecurityGroupRuleProtocol(..)
         , SecurityGroupRuleUuid
+        , directionToString
+        , etherTypeToString
+        , portRangeToString
+        , protocolToString
         )
-import OpenStack.Types exposing (SecurityGroup, SecurityGroupUuid)
+import OpenStack.Types exposing (SecurityGroupUuid)
 import Page.SecurityGroupRuleForm as SecurityGroupRuleForm
 import Page.SecurityGroupRulesTable as SecurityGroupRulesTable
 import Style.Helpers as SH
 import Style.Widgets.Button as Button
+import Style.Widgets.Grid exposing (GridCell(..), GridRow(..), grid, scrollableCell)
 import Style.Widgets.Spacer exposing (spacer)
+import Style.Widgets.Text as Text
 import Types.Project exposing (Project)
 import View.Helpers as VH
 import View.Types
@@ -149,24 +157,58 @@ update msg model =
             )
 
 
-rulesList :
+rulesGrid :
     View.Types.Context
     -> Project
     -> Model
-    -> { rules : List SecurityGroupRule, securityGroupForUuid : SecurityGroupUuid -> Maybe SecurityGroup }
+    -> List SecurityGroupRule
     -> Element.Element Msg
-rulesList context project model { rules, securityGroupForUuid } =
+rulesGrid context project model rules =
     let
-        customiser : SecurityGroupRulesTable.RulesTableRowCustomiser Msg
-        customiser rule =
-            let
-                isRuleBeingEdited =
-                    Maybe.map (\f -> f.rule.uuid == rule.uuid) model.securityGroupRuleForm |> Maybe.withDefault False
-            in
-            { leftElementForRow = Nothing
-            , rightElementForRow =
-                Just <|
-                    Element.row [ Element.spacing spacer.px12 ]
+        dividerAttrs =
+            [ Border.widthEach { top = 0, bottom = 1, left = 0, right = 0 }
+            , Border.color <|
+                SH.toElementColor context.palette.neutral.border
+            , paddingEach { top = 0, bottom = spacer.px12, left = 0, right = 0 }
+            ]
+
+        headerRow =
+            GridRow dividerAttrs
+                [ GridCell [] (Element.el [ Font.heavy ] <| Element.text "Direction")
+                , GridCell [] (Element.el [ Font.heavy ] <| Element.text "Ether Type")
+                , GridCell [] (Element.el [ Font.heavy ] <| Element.text "Protocol")
+                , GridCell [] (Element.el [ Font.heavy ] <| Element.text "Port Range")
+                , GridCell [] (Element.el [ Font.heavy ] <| Element.text "Remote")
+                , GridCell [ Element.width <| Element.fillPortion 1 ] (Element.el [ Font.heavy ] <| Element.text "Description")
+                , GridCell [ Element.width <| Element.px 165 ] Element.none
+                ]
+
+        ruleRow rule =
+            GridRow dividerAttrs
+                [ GridCell [] (Text.body <| directionToString rule.direction)
+                , GridCell [] (Text.body <| etherTypeToString rule.ethertype)
+                , GridCell [] (Text.body <| protocolToString <| Maybe.withDefault AnyProtocol rule.protocol)
+                , GridCell [] (scrollableCell [ Element.width Element.fill ] <| Text.body <| portRangeToString rule)
+                , GridCell [] (scrollableCell [ Element.width Element.fill ] <| SecurityGroupRulesTable.renderRemote context (GetterSetters.projectIdentifier project) (GetterSetters.securityGroupLookup project) rule)
+                , GridCell [ Element.width <| Element.fillPortion 1 ]
+                    (let
+                        description =
+                            Maybe.withDefault "-" rule.description
+                     in
+                     scrollableCell [ Element.width Element.fill ] <|
+                        Text.body <|
+                            if String.isEmpty description then
+                                "-"
+
+                            else
+                                description
+                    )
+                , GridCell [ Element.width <| Element.px 165 ]
+                    (let
+                        isRuleBeingEdited =
+                            Maybe.map (\f -> f.rule.uuid == rule.uuid) model.securityGroupRuleForm |> Maybe.withDefault False
+                     in
+                     Element.row [ Element.spacing spacer.px12 ]
                         [ if isRuleBeingEdited then
                             Button.button Button.Primary context.palette { text = "Done", onPress = Just <| GotDoneEditingRule }
 
@@ -174,14 +216,48 @@ rulesList context project model { rules, securityGroupForUuid } =
                             Button.button Button.Secondary context.palette { text = "Edit", onPress = Just <| GotEditRule rule.uuid }
                         , Button.button Button.DangerSecondary context.palette { text = "Delete", onPress = Just <| GotDeleteRule rule.uuid }
                         ]
-            , styleForRow = SecurityGroupRulesTable.defaultRowStyle ++ [ Element.centerY ]
-            }
+                    )
+                ]
+
+        formRow =
+            GridRow dividerAttrs
+                [ GridCell []
+                    (case model.securityGroupRuleForm of
+                        Just ruleForm ->
+                            Element.column [ Element.spacing spacer.px12 ]
+                                [ SecurityGroupRuleForm.view
+                                    context
+                                    ruleForm
+                                    |> Element.map SecurityGroupRuleFormMsg
+                                , Element.el [ Element.alignRight, Element.paddingXY spacer.px12 0 ] <| Button.button Button.Primary context.palette { text = "Done", onPress = Just <| GotDoneEditingRule }
+                                ]
+
+                        Nothing ->
+                            Element.none
+                    )
+                ]
+
+        renderRow rule =
+            let
+                isRuleBeingEdited =
+                    Maybe.map (\f -> f.rule.uuid == rule.uuid) model.securityGroupRuleForm |> Maybe.withDefault False
+            in
+            if isRuleBeingEdited then
+                formRow
+
+            else
+                ruleRow rule
     in
-    SecurityGroupRulesTable.rulesTableWithRowCustomiser
-        context
-        (GetterSetters.projectIdentifier project)
-        { rules = rules, securityGroupForUuid = securityGroupForUuid }
-        customiser
+    grid
+        [ Element.spacing spacer.px12 ]
+        (headerRow
+            :: (if List.isEmpty rules then
+                    [ GridRow dividerAttrs [ GridCell [] (Text.text Text.Body [ Element.centerX ] "(none)") ] ]
+
+                else
+                    List.map renderRow rules
+               )
+        )
 
 
 view : View.Types.Context -> Project -> Model -> Element.Element Msg
@@ -203,35 +279,11 @@ view context project model =
                 , label = Input.labelLeft [] (Element.text "Description")
                 }
             ]
-        , rulesList
+        , rulesGrid
             context
             project
             model
-            { rules = model.rules, securityGroupForUuid = GetterSetters.securityGroupLookup project }
-        , case model.securityGroupRuleForm of
-            Just ruleForm ->
-                let
-                    -- Horizontal rule
-                    hr =
-                        Element.row [ Element.paddingEach { bottom = spacer.px12, left = 0, right = 0, top = 0 }, Element.width Element.fill ]
-                            [ Element.row
-                                [ Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
-                                , Border.color (context.palette.neutral.border |> SH.toElementColor)
-                                , Element.width Element.fill
-                                ]
-                                [ Element.none ]
-                            ]
-                in
-                Element.column [ Element.spacing spacer.px12 ]
-                    [ hr
-                    , SecurityGroupRuleForm.view
-                        context
-                        ruleForm
-                        |> Element.map SecurityGroupRuleFormMsg
-                    ]
-
-            Nothing ->
-                Element.none
+            model.rules
         , Element.row [ Element.spaceEvenly, Element.width Element.fill ]
             [ let
                 variant =
