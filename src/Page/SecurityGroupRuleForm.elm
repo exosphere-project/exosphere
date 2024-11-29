@@ -35,6 +35,7 @@ import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Style.Widgets.Select
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
+import Style.Widgets.Validation as Validation
 import View.Helpers as VH
 import View.Types
 
@@ -312,7 +313,7 @@ form context model =
                     }
                 ]
             , Element.row [ Element.spacing spacer.px12 ]
-                (Element.column [ Element.spacing spacer.px12 ]
+                [ Element.column [ Element.spacing spacer.px12 ]
                     [ Text.body "Port Range"
                     , Style.Widgets.Select.select
                         []
@@ -330,7 +331,9 @@ form context model =
                         , selected = Just <| portRangeBoundsToString model.portRangeBounds
                         }
                     ]
-                    :: (let
+                , Element.column [ Element.spacing spacer.px12 ]
+                    [ Element.row [ Element.spacing spacer.px12 ]
+                        (let
                             startingPortInput =
                                 numericTextInput
                                     context.palette
@@ -343,8 +346,8 @@ form context model =
                                     , required = False
                                     }
                                     (\input -> GotPortInput <| StartingPort input)
-                        in
-                        case model.portRangeBounds of
+                         in
+                         case model.portRangeBounds of
                             PortRangeAny ->
                                 []
 
@@ -366,8 +369,37 @@ form context model =
                                     }
                                     (\input -> GotPortInput <| EndingPort input)
                                 ]
-                       )
-                )
+                        )
+                    , let
+                        renderInvalidReason reason =
+                            case reason of
+                                Just r ->
+                                    r |> Validation.invalidMessage context.palette
+
+                                Nothing ->
+                                    Element.none
+
+                        invalidReason =
+                            if model.portRangeBounds == PortRangeMinMax then
+                                let
+                                    startingPortValue =
+                                        Maybe.withDefault 0 <| NumericTextInput.toMaybe model.startingPortInput
+
+                                    endingPortValue =
+                                        Maybe.withDefault 65535 <| NumericTextInput.toMaybe model.endingPortInput
+                                in
+                                if startingPortValue > endingPortValue then
+                                    Just "Starting port cannot be greater than ending port."
+
+                                else
+                                    Nothing
+
+                            else
+                                Nothing
+                      in
+                      renderInvalidReason invalidReason
+                    ]
+                ]
             , Element.row [ Element.spacingXY spacer.px12 0, Element.width <| Element.fill ]
                 [ Element.column [ Element.spacing spacer.px12 ]
                     [ Text.body "Remote"
