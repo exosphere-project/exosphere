@@ -30,6 +30,12 @@ view context project currentTime =
                 serviceUnitsUsed =
                     allocation.serviceUnitsUsed |> Maybe.map round |> Maybe.withDefault 0
 
+                serviceUnitsAllocated =
+                    allocation.serviceUnitsAllocated |> round
+
+                serviceUnitsRemaining =
+                    max 0 (serviceUnitsAllocated - serviceUnitsUsed)
+
                 title =
                     Accounting.resourceToStr context.localization.virtualComputer allocation.resource
 
@@ -37,13 +43,9 @@ view context project currentTime =
                     -- Hard-coding USA locale to work around some kind of bug in elm-format-number where 1000000 is rendered as 10,00,000.
                     -- Don't worry, approximately all Jetstream2 users are USA-based, and nobody else will see this.
                     String.join " "
-                        [ serviceUnitsUsed
+                        [ serviceUnitsRemaining
                             |> Helpers.Formatting.humanCount FormatNumber.Locales.usLocale
-                        , "of"
-                        , allocation.serviceUnitsAllocated
-                            |> round
-                            |> Helpers.Formatting.humanCount FormatNumber.Locales.usLocale
-                        , "SUs"
+                        , "SUs remaining"
                         ]
             in
             Style.Widgets.Meter.meter
@@ -51,7 +53,7 @@ view context project currentTime =
                 title
                 subtitle
                 serviceUnitsUsed
-                (round allocation.serviceUnitsAllocated)
+                serviceUnitsAllocated
 
         toggleTip : Accounting.Allocation -> Element.Element SharedMsg.SharedMsg
         toggleTip allocation =
@@ -71,6 +73,13 @@ view context project currentTime =
                         , " ("
                         , Helpers.Time.humanReadableDate allocation.endDate
                         , ")"
+                        ]
+                    , String.concat
+                        [ "Original Allocation: "
+                        , allocation.serviceUnitsAllocated
+                            |> round
+                            |> Helpers.Formatting.humanCount FormatNumber.Locales.usLocale
+                        , " SUs"
                         ]
                     ]
                         |> List.map Element.text
