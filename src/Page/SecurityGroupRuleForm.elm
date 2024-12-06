@@ -2,6 +2,7 @@ module Page.SecurityGroupRuleForm exposing (Model, Msg(..), PortInput, init, new
 
 import Element
 import Element.Input as Input
+import Helpers.Cidr exposing (isValidCidr)
 import OpenStack.SecurityGroupRule
     exposing
         ( PortRangeBounds(..)
@@ -255,6 +256,14 @@ form context model =
 
         consistentHeight =
             Element.height <| Element.px spacer.px48
+
+        renderInvalidReason reason =
+            case reason of
+                Just r ->
+                    r |> Validation.invalidMessage context.palette
+
+                Nothing ->
+                    Element.none
     in
     Element.column [ Element.spacing spacer.px12 ]
         [ Element.wrappedRow [ Element.spacing spacer.px12 ]
@@ -371,14 +380,6 @@ form context model =
                                 ]
                         )
                     , let
-                        renderInvalidReason reason =
-                            case reason of
-                                Just r ->
-                                    r |> Validation.invalidMessage context.palette
-
-                                Nothing ->
-                                    Element.none
-
                         invalidReason =
                             if model.portRangeBounds == PortRangeMinMax then
                                 let
@@ -424,24 +425,38 @@ form context model =
                         Element.none
 
                     remoteType ->
-                        -- TODO: renderInvalidReason invalidReason
-                        Input.text
-                            (VH.inputItemAttributes context.palette ++ [ consistentHeight, Element.width Element.fill ])
-                            { text = remoteToStringInput <| getRemote rule
-                            , placeholder = Nothing
-                            , onChange =
-                                \text ->
-                                    case remoteType of
-                                        IpPrefix ->
-                                            GotRemote <| Just <| RemoteIpPrefix text
+                        Element.column [ Element.spacing spacer.px12, Element.width Element.fill ]
+                            [ Input.text
+                                (VH.inputItemAttributes context.palette ++ [ consistentHeight ])
+                                { text = remoteToStringInput <| getRemote rule
+                                , placeholder = Nothing
+                                , onChange =
+                                    \text ->
+                                        case remoteType of
+                                            IpPrefix ->
+                                                GotRemote <| Just <| RemoteIpPrefix text
 
-                                        GroupId ->
-                                            GotRemote <| Just <| RemoteGroupUuid text
+                                            GroupId ->
+                                                GotRemote <| Just <| RemoteGroupUuid text
 
-                                        Any ->
-                                            GotRemote Nothing
-                            , label = Input.labelAbove [] (VH.requiredLabel context.palette (Element.text <| remoteTypeToString <| remoteType))
-                            }
+                                            Any ->
+                                                GotRemote Nothing
+                                , label = Input.labelAbove [] (VH.requiredLabel context.palette (Element.text <| remoteTypeToString <| remoteType))
+                                }
+                            , let
+                                invalidReason =
+                                    if remoteType == IpPrefix then
+                                        if not <| isValidCidr rule.ethertype (remoteToStringInput <| getRemote rule) then
+                                            Just <| "Invalid CIDR for " ++ etherTypeToString rule.ethertype ++ " Prefix."
+
+                                        else
+                                            Nothing
+
+                                    else
+                                        Nothing
+                              in
+                              renderInvalidReason invalidReason
+                            ]
                 ]
             ]
         , Input.text
