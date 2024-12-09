@@ -43,10 +43,17 @@
     src: 'redhat-vncserver@.service.j2'
     dest: '/etc/systemd/system/vncserver@.service'
 
+# https://gitlab.com/exosphere/exosphere/-/issues/1034
+- name: 'SELinux set to permissive (so that we can add firewall rules)'
+  shell: setenforce 0
+
 - name: 'firewall rules added for VNC port 5901'
   shell: |
     firewall-cmd --permanent --zone=public --add-port=5901/tcp
     firewall-cmd --reload
+
+- name: 'SELinux set back to enforcing'
+  shell: setenforce 1
 
 - name: 'systemd service enabled and started'
   systemd:
