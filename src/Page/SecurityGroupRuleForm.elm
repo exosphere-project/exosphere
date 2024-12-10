@@ -1,4 +1,4 @@
-module Page.SecurityGroupRuleForm exposing (Model, Msg(..), PortInput, init, newBlankRule, update, view)
+module Page.SecurityGroupRuleForm exposing (FormInteraction(..), Model, Msg(..), PortInput, init, newBlankRule, update, view)
 
 import Element
 import Element.Input as Input
@@ -46,6 +46,11 @@ type PortInput
     | EndingPort NumericTextInput
 
 
+type FormInteraction
+    = Pristine
+    | Touched
+
+
 type Msg
     = GotRuleUpdate SecurityGroupRule
     | GotPortRangeBounds PortRangeBounds
@@ -61,6 +66,7 @@ type alias Model =
     , startingPortInput : NumericTextInput
     , endingPortInput : NumericTextInput
     , remoteType : RemoteType
+    , remoteTypeInputInteraction : FormInteraction
     }
 
 
@@ -93,6 +99,7 @@ init rule =
             Nothing ->
                 BlankNumericTextInput
     , remoteType = remoteToRemoteType <| getRemote rule
+    , remoteTypeInputInteraction = Pristine
     }
 
 
@@ -212,6 +219,7 @@ update msg model =
         GotRemoteTypeUpdate remoteType ->
             ( { model
                 | remoteType = remoteType
+                , remoteTypeInputInteraction = Pristine
               }
             , Cmd.none
             )
@@ -247,6 +255,7 @@ update msg model =
                                 | remoteIpPrefix = Nothing
                                 , remoteGroupUuid = Nothing
                             }
+                , remoteTypeInputInteraction = Touched
               }
             , Cmd.none
             )
@@ -455,15 +464,28 @@ form context model =
                                 }
                             , let
                                 invalidReason =
-                                    if remoteType == IpPrefix then
-                                        if not <| isValidCidr rule.ethertype (remoteToStringInput <| getRemote rule) then
-                                            Just <| "Invalid CIDR for " ++ etherTypeToString rule.ethertype ++ " Prefix."
-
-                                        else
-                                            Nothing
+                                    -- If the input is pristine & blank, don't evaluate it.
+                                    if model.remoteTypeInputInteraction == Pristine && String.isEmpty (remoteToStringInput <| getRemote rule) then
+                                        Nothing
 
                                     else
-                                        Nothing
+                                        case remoteType of
+                                            IpPrefix ->
+                                                if not <| isValidCidr rule.ethertype (remoteToStringInput <| getRemote rule) then
+                                                    Just <| "Invalid CIDR for " ++ etherTypeToString rule.ethertype ++ " Prefix."
+
+                                                else
+                                                    Nothing
+
+                                            GroupId ->
+                                                if String.isEmpty <| (remoteToStringInput <| getRemote rule) then
+                                                    Just "Group ID is required."
+
+                                                else
+                                                    Nothing
+
+                                            Any ->
+                                                Nothing
                               in
                               renderInvalidReason invalidReason
                             ]
