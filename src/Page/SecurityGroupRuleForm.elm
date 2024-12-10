@@ -67,7 +67,17 @@ type alias Model =
 init : SecurityGroupRule -> Model
 init rule =
     { rule = rule
-    , portRangeBounds = PortRangeAny
+    , portRangeBounds =
+        case rule.portRangeMin of
+            Just _ ->
+                if rule.portRangeMin == rule.portRangeMax then
+                    PortRangeSingle
+
+                else
+                    PortRangeMinMax
+
+            Nothing ->
+                PortRangeAny
     , startingPortInput =
         case rule.portRangeMin of
             Just portRangeMin ->
