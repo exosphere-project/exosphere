@@ -74,16 +74,20 @@ init : SecurityGroupRule -> Model
 init rule =
     { rule = rule
     , portRangeBounds =
-        case rule.portRangeMin of
-            Just _ ->
+        case ( rule.portRangeMin, rule.portRangeMax ) of
+            ( Just _, Just _ ) ->
                 if rule.portRangeMin == rule.portRangeMax then
                     PortRangeSingle
 
                 else
                     PortRangeMinMax
 
-            Nothing ->
+            ( Nothing, Nothing ) ->
                 PortRangeAny
+
+            _ ->
+                -- These are incomplete or unbounded ranges.
+                PortRangeMinMax
     , startingPortInput =
         case rule.portRangeMin of
             Just portRangeMin ->
@@ -478,7 +482,7 @@ form context model =
                                                     Nothing
 
                                             GroupId ->
-                                                if String.isEmpty <| (remoteToStringInput <| getRemote rule) then
+                                                if String.isEmpty <| String.trim <| (remoteToStringInput <| getRemote rule) then
                                                     Just "Group ID is required."
 
                                                 else

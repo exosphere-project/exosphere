@@ -4,13 +4,18 @@ import Element exposing (paddingEach)
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
+import FormatNumber.Locales exposing (Decimals(..))
+import Helpers.Cidr exposing (isValidCidr)
+import Helpers.Formatting exposing (humanCount)
 import Helpers.GetterSetters as GetterSetters
-import Helpers.String
+import Helpers.String exposing (pluralizeCount)
 import List
 import List.Extra
 import OpenStack.SecurityGroupRule
     exposing
         ( SecurityGroupRule
+        , SecurityGroupRuleDirection(..)
+        , SecurityGroupRuleEthertype(..)
         , SecurityGroupRuleProtocol(..)
         , SecurityGroupRuleUuid
         , directionToString
@@ -26,6 +31,7 @@ import Style.Widgets.Button as Button
 import Style.Widgets.Grid exposing (GridCell(..), GridRow(..), grid, scrollableCell)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
+import Style.Widgets.Validation as Validation
 import Types.Project exposing (Project)
 import View.Helpers as VH
 import View.Types
@@ -157,6 +163,68 @@ update msg model =
             )
 
 
+isRuleValid : SecurityGroupRule -> Bool
+isRuleValid { ethertype, direction, protocol, portRangeMin, portRangeMax, remoteIpPrefix, remoteGroupUuid } =
+    let
+        isEthertypeValid =
+            case ethertype of
+                UnsupportedEthertype _ ->
+                    False
+
+                _ ->
+                    True
+
+        isDirectionValid =
+            case direction of
+                UnsupportedDirection _ ->
+                    False
+
+                _ ->
+                    True
+
+        isProtocolValid =
+            case protocol of
+                Just (UnsupportedProtocol _) ->
+                    False
+
+                _ ->
+                    True
+
+        isPortRangeValid =
+            case ( portRangeMin, portRangeMax ) of
+                ( Just min, Just max ) ->
+                    min <= max
+
+                ( Just _, Nothing ) ->
+                    False
+
+                ( Nothing, Just _ ) ->
+                    False
+
+                ( Nothing, Nothing ) ->
+                    True
+
+        isRemoteValid =
+            case ( remoteIpPrefix, remoteGroupUuid ) of
+                ( Just _, Just _ ) ->
+                    False
+
+                ( Just ipPrefix, Nothing ) ->
+                    isValidCidr ethertype ipPrefix
+
+                ( Nothing, Just groupUuid ) ->
+                    not <| String.isEmpty <| String.trim <| groupUuid
+
+                ( Nothing, Nothing ) ->
+                    True
+    in
+    isEthertypeValid
+        && isDirectionValid
+        && isProtocolValid
+        && isPortRangeValid
+        && isRemoteValid
+
+
 rulesGrid :
     View.Types.Context
     -> Project
@@ -174,7 +242,8 @@ rulesGrid context project model rules =
 
         headerRow =
             GridRow dividerAttrs
-                [ GridCell [] (Element.el [ Font.heavy ] <| Element.text "Direction")
+                [ GridCell [ Element.width <| Element.px 30 ] Element.none
+                , GridCell [] (Element.el [ Font.heavy ] <| Element.text "Direction")
                 , GridCell [] (Element.el [ Font.heavy ] <| Element.text "Ether Type")
                 , GridCell [] (Element.el [ Font.heavy ] <| Element.text "Protocol")
                 , GridCell [] (Element.el [ Font.heavy ] <| Element.text "Port Range")
@@ -185,7 +254,14 @@ rulesGrid context project model rules =
 
         ruleRow rule =
             GridRow dividerAttrs
-                [ GridCell [] (Text.body <| directionToString rule.direction)
+                [ GridCell [ Element.width <| Element.px 30 ]
+                    (if isRuleValid rule then
+                        Element.none
+
+                     else
+                        Validation.invalidIcon context.palette
+                    )
+                , GridCell [] (Text.body <| directionToString rule.direction)
                 , GridCell [] (Text.body <| etherTypeToString rule.ethertype)
                 , GridCell [] (Text.body <| protocolToString <| Maybe.withDefault AnyProtocol rule.protocol)
                 , GridCell [] (scrollableCell [ Element.width Element.fill ] <| Text.body <| portRangeToString rule)
@@ -284,7 +360,14 @@ view context project model =
             project
             model
             model.rules
-        , Element.row [ Element.spaceEvenly, Element.width Element.fill ]
+        , let
+            numberOfInvalidRules =
+                List.length <| List.filter (not << isRuleValid) model.rules
+
+            isFormValid =
+                numberOfInvalidRules == 0
+          in
+          Element.row [ Element.spaceEvenly, Element.width Element.fill ]
             [ let
                 variant =
                     if List.length model.rules > 0 then
@@ -294,6 +377,20 @@ view context project model =
                         Button.Primary
               in
               Button.button variant context.palette { text = "Add Rule", onPress = Just GotAddRule }
+            , if isFormValid then
+                Element.none
+
+              else
+                let
+                    locale =
+                        context.locale
+
+                    invalidRulesCount =
+                        humanCount
+                            { locale | decimals = Exact 0 }
+                            numberOfInvalidRules
+                in
+                Element.el [ Element.width Element.shrink, Element.centerX ] <| Validation.invalidMessage context.palette <| String.join " " [ "Please review", invalidRulesCount, "rule" |> pluralizeCount numberOfInvalidRules, "with problems." ]
             , let
                 variant =
                     if List.length model.rules > 0 && model.securityGroupRuleForm == Nothing then
@@ -310,7 +407,12 @@ view context project model =
                         , context.localization.securityGroup
                             |> Helpers.String.toTitleCase
                         ]
-                , onPress = Just GotRequestCreateSecurityGroup
+                , onPress =
+                    if isFormValid then
+                        Just GotRequestCreateSecurityGroup
+
+                    else
+                        Nothing
                 }
             ]
         ]
