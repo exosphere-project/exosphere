@@ -598,7 +598,8 @@ protocolToString protocol =
 
 stringToSecurityGroupRuleProtocol : String -> SecurityGroupRuleProtocol
 stringToSecurityGroupRuleProtocol protocol =
-    case protocol of
+    -- forgive mixed case strings like "ICMPv6"
+    case String.toLower protocol of
         "any" ->
             AnyProtocol
 
