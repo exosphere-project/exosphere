@@ -32,7 +32,9 @@ import Style.Widgets.Grid exposing (GridCell(..), GridRow(..), grid, scrollableC
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Style.Widgets.Validation as Validation
+import Time
 import Types.Project exposing (Project)
+import View.Forms as Forms
 import View.Helpers as VH
 import View.Types
 
@@ -336,25 +338,33 @@ rulesGrid context project model rules =
         )
 
 
-view : View.Types.Context -> Project -> Model -> Element.Element Msg
-view context project model =
+view : View.Types.Context -> Project -> Time.Posix -> Model -> Element.Element Msg
+view context project currentTime model =
     Element.column [ Element.spacing spacer.px24, Element.width Element.fill ]
-        [ Element.column [ Element.paddingXY spacer.px8 0, Element.spacing spacer.px12, Element.width Element.fill ]
+        [ Element.column [ Element.paddingXY spacer.px8 0, Element.spacing spacer.px12, Element.width Element.fill ] <|
             [ Input.text
                 (VH.inputItemAttributes context.palette ++ [ Element.width <| Element.minimum 240 Element.fill ])
                 { text = model.name
                 , placeholder = Nothing
                 , onChange = GotName
-                , label = Input.labelLeft [] (Element.text "Name")
+                , label = Input.labelLeft [] (VH.requiredLabel context.palette (Element.text "Name"))
                 }
-            , Input.text
-                (VH.inputItemAttributes context.palette ++ [ Element.width <| Element.minimum 240 Element.fill ])
-                { text = model.description |> Maybe.withDefault ""
-                , placeholder = Just <| Input.placeholder [] (Element.text "Optional")
-                , onChange = GotDescription << Just
-                , label = Input.labelLeft [] (Element.text "Description")
-                }
+            , Text.text Text.Small [ Element.paddingEach { top = 0, right = 0, bottom = 0, left = spacer.px64 + spacer.px12 } ] <|
+                String.join " "
+                    [ "(Note:"
+                    , Helpers.String.toTitleCase <| Helpers.String.pluralize context.localization.securityGroup
+                    , "require a unique name.)"
+                    ]
             ]
+                ++ Forms.resourceNameAlreadyExists context project currentTime { resource = Forms.SecurityGroup model.name, onSuggestionPressed = \suggestion -> GotName suggestion }
+                ++ [ Input.text
+                        (VH.inputItemAttributes context.palette ++ [ Element.width <| Element.minimum 240 Element.fill ])
+                        { text = model.description |> Maybe.withDefault ""
+                        , placeholder = Just <| Input.placeholder [] (Element.text "Optional")
+                        , onChange = GotDescription << Just
+                        , label = Input.labelLeft [] (Element.text "Description")
+                        }
+                   ]
         , rulesGrid
             context
             project

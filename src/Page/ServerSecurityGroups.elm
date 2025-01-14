@@ -28,6 +28,7 @@ import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Tag exposing (tagNeutral, tagPositive)
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
+import Time
 import Types.Project exposing (Project)
 import Types.Server exposing (Server)
 import Types.SharedModel exposing (SharedModel)
@@ -363,8 +364,8 @@ renderSelectableSecurityGroupsList context project model securityGroups =
         (sortedSecurityGroups securityGroups)
 
 
-renderSecurityGroupListAndRules : View.Types.Context -> Project -> Model -> List OSTypes.SecurityGroup -> Element.Element Msg
-renderSecurityGroupListAndRules context project model securityGroups =
+renderSecurityGroupListAndRules : View.Types.Context -> Project -> Time.Posix -> Model -> List OSTypes.SecurityGroup -> Element.Element Msg
+renderSecurityGroupListAndRules context project currentTime model securityGroups =
     let
         tile : Maybe (List (Element.Element Msg)) -> List (Element.Element Msg) -> Element.Element Msg
         tile headerContents contents =
@@ -496,6 +497,7 @@ renderSecurityGroupListAndRules context project model securityGroups =
                             [ SecurityGroupForm.view
                                 context
                                 project
+                                currentTime
                                 securityGroupForm
                                 |> Element.map SecurityGroupFormMsg
                             ]
@@ -523,25 +525,25 @@ renderSecurityGroupListAndRules context project model securityGroups =
         ]
 
 
-renderSecurityGroupsList : View.Types.Context -> Project -> Model -> Server -> List OSTypes.SecurityGroup -> Element.Element Msg
-renderSecurityGroupsList context project model server securityGroups =
+renderSecurityGroupsList : View.Types.Context -> Project -> Time.Posix -> Model -> Server -> List OSTypes.SecurityGroup -> Element.Element Msg
+renderSecurityGroupsList context project currentTime model server securityGroups =
     VH.renderRDPP context
         server.securityGroups
         (context.localization.securityGroup
             |> Helpers.String.pluralize
         )
-        (always <| renderSecurityGroupListAndRules context project model securityGroups)
+        (always <| renderSecurityGroupListAndRules context project currentTime model securityGroups)
 
 
-view : View.Types.Context -> Project -> Model -> Element.Element Msg
-view context project model =
+view : View.Types.Context -> Project -> Time.Posix -> Model -> Element.Element Msg
+view context project currentTime model =
     VH.renderRDPP context
         project.servers
         context.localization.virtualComputer
         (\_ ->
             case GetterSetters.serverLookup project model.serverUuid of
                 Just server ->
-                    render context project model server
+                    render context project currentTime model server
 
                 Nothing ->
                     Element.text <|
@@ -553,8 +555,8 @@ view context project model =
         )
 
 
-render : View.Types.Context -> Project -> Model -> Server -> Element.Element Msg
-render context project model server =
+render : View.Types.Context -> Project -> Time.Posix -> Model -> Server -> Element.Element Msg
+render context project currentTime model server =
     Element.column [ Element.spacing spacer.px24, Element.width Element.fill ]
         [ Element.wrappedRow (Text.headingStyleAttrs context.palette)
             [ FeatherIcons.shield |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
@@ -627,5 +629,5 @@ render context project model server =
             context
             project.securityGroups
             (Helpers.String.pluralize context.localization.securityGroup)
-            (renderSecurityGroupsList context project model server)
+            (renderSecurityGroupsList context project currentTime model server)
         ]

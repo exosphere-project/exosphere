@@ -374,7 +374,7 @@ projectContentView model context p viewConstructor =
                 |> Element.map ServerResizeMsg
 
         ServerSecurityGroups pageModel ->
-            Page.ServerSecurityGroups.view context p pageModel
+            Page.ServerSecurityGroups.view context p model.clientCurrentTime pageModel
                 |> Element.map ServerSecurityGroupsMsg
 
         ShareCreate pageModel ->
