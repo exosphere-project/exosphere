@@ -60,11 +60,11 @@ warningMessage palette helperText =
     Element.row [ Element.spacingXY spacer.px8 0 ]
         [ Icons.alertTriangle
             |> featherIcon [ Font.color (palette.warning.textOnNeutralBG |> SH.toElementColor) ]
-        , Element.el
+        , Text.p
             [ Font.color (SH.toElementColor palette.warning.textOnNeutralBG)
             , Text.fontSize Text.Small
             ]
-            (Element.text helperText)
+            [ Element.text helperText ]
         ]
 
 
