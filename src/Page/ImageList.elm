@@ -19,7 +19,7 @@ import Style.Types as ST
 import Style.Widgets.Button as Button
 import Style.Widgets.DataList as DataList
 import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
-import Style.Widgets.Icon exposing (featherIcon, sizedFeatherIcon)
+import Style.Widgets.Icon as Icon exposing (featherIcon, sizedFeatherIcon)
 import Style.Widgets.Popover.Popover as Popover
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.Spacer exposing (spacer)
@@ -260,6 +260,30 @@ imageView model context project imageRecord =
             else
                 Element.none
 
+        imageSupportedLabel =
+            imageRecord.image.operatingSystem
+                |> Maybe.map
+                    (\{ supported, distribution } ->
+                        case supported of
+                            Just True ->
+                                Icon.featherIcon [ Font.color (SH.toElementColor context.palette.success.textOnNeutralBG) ] Icons.checkCircle
+
+                            Just False ->
+                                Element.row
+                                    [ Element.spacing spacer.px4, Font.color (SH.toElementColor context.palette.danger.textOnNeutralBG) ]
+                                    [ Icon.featherIcon [] Icons.alertOctagon
+                                    , Element.text <|
+                                        String.concat
+                                            [ distribution
+                                            , " is not supported"
+                                            ]
+                                    ]
+
+                            _ ->
+                                Element.none
+                    )
+                |> Maybe.withDefault Element.none
+
         createServerBtn =
             let
                 textBtn onPress =
@@ -302,7 +326,8 @@ imageView model context project imageRecord =
 
         imageActions =
             Element.row [ Element.alignRight, Element.spacing spacer.px12 ]
-                [ deleteImageBtn
+                [ imageSupportedLabel
+                , deleteImageBtn
                 , createServerBtn
                 , if imageRecord.owned then
                     imageVisibilityDropdown imageRecord context project

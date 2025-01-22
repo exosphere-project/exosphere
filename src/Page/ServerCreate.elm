@@ -32,7 +32,7 @@ import Style.Types as ST
 import Style.Widgets.Alert as Alert
 import Style.Widgets.Button as Button
 import Style.Widgets.CopyableText exposing (copyableTextAccessory)
-import Style.Widgets.Icon exposing (featherIcon)
+import Style.Widgets.Icon as Icon exposing (featherIcon)
 import Style.Widgets.Link as Link
 import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
@@ -471,6 +471,9 @@ enforceQuotaCompliance project model =
 view : View.Types.Context -> Project -> Time.Posix -> Model -> Element.Element Msg
 view context project currentTime model =
     let
+        maybeImage =
+            GetterSetters.imageLookup project model.imageUuid
+
         serverNameExists =
             Validation.serverNameExists project model.serverName
 
@@ -741,6 +744,31 @@ view context project currentTime model =
                         , ": "
                         ]
                 , Element.text model.imageName
+                , case
+                    maybeImage
+                        |> Maybe.andThen .operatingSystem
+                        |> Maybe.map (\operatingSystem -> ( operatingSystem.supported, operatingSystem.distribution ))
+                  of
+                    Just ( Just False, distribution ) ->
+                        Element.row
+                            [ Element.spacing spacer.px8
+                            , Font.color (SH.toElementColor context.palette.danger.textOnNeutralBG)
+                            ]
+                            [ Icon.featherIcon [] Icons.alertCircle
+                            , Element.text (distribution ++ " is not supported")
+                            ]
+
+                    Just ( Just True, distribution ) ->
+                        Element.row
+                            [ Element.spacing spacer.px8
+                            , Font.color (SH.toElementColor context.palette.success.textOnNeutralBG)
+                            ]
+                            [ Icon.featherIcon [] Icons.checkCircle
+                            , Element.text (distribution ++ " is officially supported ")
+                            ]
+
+                    _ ->
+                        Element.none
                 ]
             , VH.flavorPicker context
                 project

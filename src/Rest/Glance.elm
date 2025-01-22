@@ -9,6 +9,7 @@ module Rest.Glance exposing
 
 import Dict
 import Helpers.GetterSetters as GetterSetters
+import Helpers.Image exposing (detectImageOperatingSystem)
 import Helpers.Json exposing (resultToDecoder)
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.Time exposing (makeIso8601StringToPosixDecoder)
@@ -376,6 +377,16 @@ imageDecoderHelper =
         |> Pipeline.required "protected" Decode.bool
         |> Pipeline.optional "image_type" (Decode.string |> Decode.andThen (\s -> Decode.succeed <| Just s)) Nothing
         |> Pipeline.optional "min_disk" (Decode.nullable Decode.int) Nothing
+        |> Pipeline.custom imageOperatingSystemDecoder
+
+
+imageOperatingSystemDecoder : Decode.Decoder (Maybe { distribution : String, version : Maybe String, supported : Maybe Bool })
+imageOperatingSystemDecoder =
+    Decode.map3
+        detectImageOperatingSystem
+        (Decode.field "name" Decode.string)
+        (Decode.maybe <| Decode.field "os_distro" Decode.string)
+        (Decode.maybe <| Decode.field "os_version" Decode.string)
 
 
 parseImageVisibility : String -> Result String OSTypes.ImageVisibility

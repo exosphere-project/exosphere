@@ -26,6 +26,7 @@ module OpenStack.Types exposing
     , FlavorId
     , FloatingIp
     , Image
+    , ImageOperatingSystem
     , ImageStatus(..)
     , ImageUuid
     , ImageVisibility(..)
@@ -283,6 +284,13 @@ type alias RegionDescription =
 -- Glance
 
 
+type alias ImageOperatingSystem =
+    { distribution : String
+    , version : Maybe String
+    , supported : Maybe Bool
+    }
+
+
 type alias Image =
     { name : String
     , status : ImageStatus
@@ -301,6 +309,7 @@ type alias Image =
     , protected : Bool
     , imageType : Maybe String
     , minDiskGB : Maybe Int
+    , operatingSystem : Maybe ImageOperatingSystem
     }
 
 
