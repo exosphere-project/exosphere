@@ -1,6 +1,7 @@
 module Page.SecurityGroupForm exposing (Model, Msg(..), init, initWithSecurityGroup, update, view)
 
 import Element exposing (paddingEach)
+import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
@@ -9,6 +10,7 @@ import Helpers.Cidr exposing (isValidCidr)
 import Helpers.Formatting exposing (humanCount)
 import Helpers.GetterSetters as GetterSetters
 import Helpers.String exposing (pluralizeCount)
+import Html.Attributes
 import List
 import List.Extra
 import OpenStack.SecurityGroupRule
@@ -23,7 +25,7 @@ import OpenStack.SecurityGroupRule
         , portRangeToString
         , protocolToString
         )
-import OpenStack.Types exposing (SecurityGroup, SecurityGroupUuid)
+import OpenStack.Types exposing (SecurityGroup, SecurityGroupUuid, ServerUuid)
 import Page.SecurityGroupRuleForm as SecurityGroupRuleForm
 import Page.SecurityGroupRulesTable as SecurityGroupRulesTable
 import Style.Helpers as SH
@@ -49,6 +51,7 @@ type Msg
     | GotName String
     | GotCancel
     | GotRequestCreateSecurityGroup
+    | GotRequestUpdateSecurityGroup
 
 
 type alias Model =
@@ -175,6 +178,12 @@ update msg model =
         GotRequestCreateSecurityGroup ->
             ( model
               -- TODO: Send a command to create the security group.
+            , Cmd.none
+            )
+
+        GotRequestUpdateSecurityGroup ->
+            ( model
+              -- TODO: Send a command to update the security group.
             , Cmd.none
             )
 
@@ -352,25 +361,57 @@ rulesGrid context project model rules =
         )
 
 
-view : View.Types.Context -> Project -> Time.Posix -> Model -> Element.Element Msg
-view context project currentTime model =
+view : View.Types.Context -> Project -> Time.Posix -> Model -> Maybe ServerUuid -> Element.Element Msg
+view context project currentTime model maybeServerUuid =
+    let
+        isExistingRule =
+            model.uuid /= Nothing
+
+        numberOfInvalidRules =
+            List.length <| List.filter (not << isRuleValid) model.rules
+
+        isFormValid =
+            numberOfInvalidRules == 0
+    in
     Element.column [ Element.spacing spacer.px24, Element.width Element.fill ]
         [ Element.column [ Element.paddingXY spacer.px8 0, Element.spacing spacer.px12, Element.width Element.fill ] <|
-            [ Input.text
-                (VH.inputItemAttributes context.palette ++ [ Element.width <| Element.minimum 240 Element.fill ])
+            Input.text
+                (VH.inputItemAttributes context.palette
+                    ++ (if isExistingRule then
+                            [ Element.htmlAttribute (Html.Attributes.disabled True)
+                            , Background.color <| SH.toElementColor <| context.palette.muted.background
+                            ]
+
+                        else
+                            []
+                       )
+                    ++ [ Element.width <| Element.minimum 240 Element.fill ]
+                )
                 { text = model.name
                 , placeholder = Nothing
                 , onChange = GotName
-                , label = Input.labelLeft [] (VH.requiredLabel context.palette (Element.text "Name"))
+                , label =
+                    Input.labelLeft []
+                        (if isExistingRule then
+                            Element.text "Name"
+
+                         else
+                            VH.requiredLabel context.palette (Element.text "Name")
+                        )
                 }
-            , Text.text Text.Small [ Element.paddingEach { top = 0, right = 0, bottom = 0, left = spacer.px64 + spacer.px12 } ] <|
-                String.join " "
-                    [ "(Note:"
-                    , Helpers.String.toTitleCase <| Helpers.String.pluralize context.localization.securityGroup
-                    , "require a unique name.)"
-                    ]
-            ]
-                ++ Forms.resourceNameAlreadyExists context project currentTime { resource = Forms.SecurityGroup model.name, onSuggestionPressed = \suggestion -> GotName suggestion }
+                :: (if isExistingRule then
+                        []
+
+                    else
+                        (Text.text Text.Small [ Element.paddingEach { top = 0, right = 0, bottom = 0, left = spacer.px64 + spacer.px12 } ] <|
+                            String.join " "
+                                [ "(Note:"
+                                , Helpers.String.toTitleCase <| Helpers.String.pluralize context.localization.securityGroup
+                                , "require a unique name.)"
+                                ]
+                        )
+                            :: Forms.resourceNameAlreadyExists context project currentTime { resource = Forms.SecurityGroup model.name, onSuggestionPressed = \suggestion -> GotName suggestion }
+                   )
                 ++ [ Input.text
                         (VH.inputItemAttributes context.palette ++ [ Element.width <| Element.minimum 240 Element.fill ])
                         { text = model.description |> Maybe.withDefault ""
@@ -384,14 +425,67 @@ view context project currentTime model =
             project
             model
             model.rules
-        , let
-            numberOfInvalidRules =
-                List.length <| List.filter (not << isRuleValid) model.rules
+        , case model.uuid of
+            Just securityGroupUuid ->
+                let
+                    serversAffected =
+                        GetterSetters.serversForSecurityGroup project securityGroupUuid
+                            |> .servers
 
-            isFormValid =
-                numberOfInvalidRules == 0
-          in
-          Element.row [ Element.spaceEvenly, Element.width Element.fill ]
+                    otherServersAffected =
+                        case maybeServerUuid of
+                            Just serverUuid ->
+                                List.filter (\s -> s.osProps.uuid /= serverUuid) serversAffected
+
+                            Nothing ->
+                                serversAffected
+
+                    numberOfServers =
+                        List.length otherServersAffected
+                in
+                if numberOfServers == 0 then
+                    Element.none
+
+                else
+                    let
+                        { locale } =
+                            context
+                    in
+                    Element.el
+                        [ Element.width Element.shrink, Element.centerX ]
+                    <|
+                        Validation.warningMessage context.palette <|
+                            String.join " "
+                                [ "Editing this"
+                                , context.localization.securityGroup
+                                , "will affect"
+                                , numberOfServers
+                                    |> humanCount { locale | decimals = Exact 0 }
+                                , "other"
+                                , (context.localization.virtualComputer |> pluralizeCount numberOfServers) ++ "."
+                                ]
+
+            _ ->
+                Element.none
+        , if isFormValid then
+            Element.none
+
+          else
+            let
+                locale =
+                    context.locale
+
+                invalidRulesCount =
+                    humanCount
+                        { locale | decimals = Exact 0 }
+                        numberOfInvalidRules
+            in
+            Element.el
+                [ Element.width Element.shrink, Element.centerX ]
+            <|
+                Validation.invalidMessage context.palette <|
+                    String.join " " [ "Please review", invalidRulesCount, "rule" |> pluralizeCount numberOfInvalidRules, "with problems." ]
+        , Element.row [ Element.spaceEvenly, Element.width Element.fill ]
             [ let
                 variant =
                     if List.length model.rules > 0 then
@@ -401,20 +495,6 @@ view context project currentTime model =
                         Button.Primary
               in
               Button.button variant context.palette { text = "Add Rule", onPress = Just GotAddRule }
-            , if isFormValid then
-                Element.none
-
-              else
-                let
-                    locale =
-                        context.locale
-
-                    invalidRulesCount =
-                        humanCount
-                            { locale | decimals = Exact 0 }
-                            numberOfInvalidRules
-                in
-                Element.el [ Element.width Element.shrink, Element.centerX ] <| Validation.invalidMessage context.palette <| String.join " " [ "Please review", invalidRulesCount, "rule" |> pluralizeCount numberOfInvalidRules, "with problems." ]
             , Element.el
                 [ Element.paddingXY spacer.px8 0, Element.width Element.shrink, Element.alignRight ]
                 (Button.button Button.DangerSecondary context.palette { text = "Cancel", onPress = Just GotCancel })
@@ -430,13 +510,21 @@ view context project currentTime model =
                 context.palette
                 { text =
                     String.join " "
-                        [ "Create"
+                        [ if isExistingRule then
+                            "Update"
+
+                          else
+                            "Create"
                         , context.localization.securityGroup
                             |> Helpers.String.toTitleCase
                         ]
                 , onPress =
                     if isFormValid then
-                        Just GotRequestCreateSecurityGroup
+                        if isExistingRule then
+                            Just GotRequestUpdateSecurityGroup
+
+                        else
+                            Just GotRequestCreateSecurityGroup
 
                     else
                         Nothing

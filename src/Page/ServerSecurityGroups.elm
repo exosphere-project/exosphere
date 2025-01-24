@@ -510,11 +510,19 @@ renderSecurityGroupListAndRules context project currentTime model securityGroups
                 ]
             , case model.securityGroupForm of
                 Just securityGroupForm ->
+                    let
+                        isExistingSecurityGroup =
+                            securityGroupForm.uuid /= Nothing
+                    in
                     tile
                         (Just
                             [ Element.text
                                 (String.join " "
-                                    [ "New"
+                                    [ if isExistingSecurityGroup then
+                                        "Edit"
+
+                                      else
+                                        "New"
                                     , context.localization.securityGroup
                                         |> Helpers.String.toTitleCase
                                     ]
@@ -528,6 +536,7 @@ renderSecurityGroupListAndRules context project currentTime model securityGroups
                                 project
                                 currentTime
                                 securityGroupForm
+                                (Just model.serverUuid)
                                 |> Element.map SecurityGroupFormMsg
                             ]
                         ]
