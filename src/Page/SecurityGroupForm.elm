@@ -1,4 +1,4 @@
-module Page.SecurityGroupForm exposing (Model, Msg(..), init, update, view)
+module Page.SecurityGroupForm exposing (Model, Msg(..), init, initWithSecurityGroup, update, view)
 
 import Element exposing (paddingEach)
 import Element.Border as Border
@@ -23,7 +23,7 @@ import OpenStack.SecurityGroupRule
         , portRangeToString
         , protocolToString
         )
-import OpenStack.Types exposing (SecurityGroupUuid)
+import OpenStack.Types exposing (SecurityGroup, SecurityGroupUuid)
 import Page.SecurityGroupRuleForm as SecurityGroupRuleForm
 import Page.SecurityGroupRulesTable as SecurityGroupRulesTable
 import Style.Helpers as SH
@@ -66,6 +66,16 @@ init { name } =
     , name = name
     , description = Nothing
     , rules = []
+    , securityGroupRuleForm = Nothing
+    }
+
+
+initWithSecurityGroup : SecurityGroup -> Model
+initWithSecurityGroup securityGroup =
+    { uuid = Just securityGroup.uuid
+    , name = securityGroup.name
+    , description = securityGroup.description
+    , rules = securityGroup.rules
     , securityGroupRuleForm = Nothing
     }
 

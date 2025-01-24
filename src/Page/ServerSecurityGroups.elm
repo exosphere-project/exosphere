@@ -6,7 +6,7 @@ import Element.Border as Border
 import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
-import FeatherIcons
+import FeatherIcons exposing (edit2)
 import Helpers.GetterSetters as GetterSetters exposing (isDefaultSecurityGroup, sortedSecurityGroups)
 import Helpers.List exposing (uniqueBy)
 import Helpers.RemoteDataPlusPlus as RDPP
@@ -24,6 +24,7 @@ import Style.Types as ST
 import Style.Widgets.Button as Button
 import Style.Widgets.Card
 import Style.Widgets.Icon
+import Style.Widgets.IconButton exposing (clickableIcon)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Tag exposing (tagNeutral, tagPositive)
 import Style.Widgets.Text as Text
@@ -47,6 +48,7 @@ type alias Model =
 type Msg
     = GotApplyServerSecurityGroupUpdates (List OSTypes.ServerSecurityGroupUpdate)
     | GotCreateSecurityGroupForm
+    | GotEditSecurityGroupForm OSTypes.SecurityGroupUuid
     | GotDone
     | GotServerSecurityGroups OSTypes.ServerUuid
     | ToggleSelectedGroup OSTypes.SecurityGroupUuid
@@ -169,6 +171,18 @@ update msg sharedModel project model =
             in
             ( { model | securityGroupForm = Just <| securityGroupForm }, Cmd.none, SharedMsg.NoOp )
 
+        GotEditSecurityGroupForm securityGroupUuid ->
+            let
+                securityGroupForm =
+                    case GetterSetters.securityGroupLookup project securityGroupUuid of
+                        Just securityGroup ->
+                            SecurityGroupForm.initWithSecurityGroup securityGroup
+
+                        Nothing ->
+                            SecurityGroupForm.init { name = newSecurityGroupName project model.serverUuid }
+            in
+            ( { model | securityGroupForm = Just <| securityGroupForm }, Cmd.none, SharedMsg.NoOp )
+
 
 newSecurityGroupName : Project -> OSTypes.ServerUuid -> String
 newSecurityGroupName project serverUuid =
@@ -262,6 +276,16 @@ securityGroupRow context project model securityGroup =
             , default
             ]
 
+        edit msg =
+            [ clickableIcon []
+                { icon = edit2
+                , accessibilityLabel = "edit " ++ securityGroupName
+                , onClick = msg
+                , color = context.palette.neutral.icon |> SH.toElementColor
+                , hoverColor = context.palette.neutral.text.default |> SH.toElementColor
+                }
+            ]
+
         tooltip =
             [ Style.Widgets.ToggleTip.toggleTip
                 context
@@ -326,7 +350,7 @@ securityGroupRow context project model securityGroup =
                 [ securityGroupTextButton (ToggleSelectedGroup securityGroupUuid)
                 ]
             , Element.row [ Element.spacing spacer.px4, Element.alignRight, Element.alignTop ]
-                (tags ++ tooltip)
+                (tags ++ edit (Just <| GotEditSecurityGroupForm securityGroupUuid) ++ tooltip)
             ]
         ]
 
