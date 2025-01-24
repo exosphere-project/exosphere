@@ -152,17 +152,22 @@ update msg sharedModel project model =
                     ( model, Cmd.none, SharedMsg.NoOp )
 
         SecurityGroupFormMsg securityGroupFormMsg ->
-            let
-                securityGroupForm =
-                    case model.securityGroupForm of
-                        Just securityGroupForm_ ->
-                            SecurityGroupForm.update securityGroupFormMsg securityGroupForm_ |> Tuple.first
+            case securityGroupFormMsg of
+                SecurityGroupForm.GotCancel ->
+                    ( { model | securityGroupForm = Nothing }, Cmd.none, SharedMsg.NoOp )
 
-                        Nothing ->
-                            -- If we get a message without a form, initialise one.
-                            SecurityGroupForm.init { name = newSecurityGroupName project model.serverUuid }
-            in
-            ( { model | securityGroupForm = Just <| securityGroupForm }, Cmd.none, SharedMsg.NoOp )
+                _ ->
+                    let
+                        securityGroupForm =
+                            case model.securityGroupForm of
+                                Just securityGroupForm_ ->
+                                    SecurityGroupForm.update securityGroupFormMsg securityGroupForm_ |> Tuple.first
+
+                                Nothing ->
+                                    -- If we get a message without a form, initialise one.
+                                    SecurityGroupForm.init { name = newSecurityGroupName project model.serverUuid }
+                    in
+                    ( { model | securityGroupForm = Just securityGroupForm }, Cmd.none, SharedMsg.NoOp )
 
         GotCreateSecurityGroupForm ->
             let

@@ -47,6 +47,7 @@ type Msg
     | GotDoneEditingRule
     | GotEditRule SecurityGroupRuleUuid
     | GotName String
+    | GotCancel
     | GotRequestCreateSecurityGroup
 
 
@@ -167,6 +168,9 @@ update msg model =
               }
             , Cmd.none
             )
+
+        GotCancel ->
+            ( model, Cmd.none )
 
         GotRequestCreateSecurityGroup ->
             ( model
@@ -411,6 +415,9 @@ view context project currentTime model =
                             numberOfInvalidRules
                 in
                 Element.el [ Element.width Element.shrink, Element.centerX ] <| Validation.invalidMessage context.palette <| String.join " " [ "Please review", invalidRulesCount, "rule" |> pluralizeCount numberOfInvalidRules, "with problems." ]
+            , Element.el
+                [ Element.paddingXY spacer.px8 0, Element.width Element.shrink, Element.alignRight ]
+                (Button.button Button.DangerSecondary context.palette { text = "Cancel", onPress = Just GotCancel })
             , let
                 variant =
                     if List.length model.rules > 0 && model.securityGroupRuleForm == Nothing then
