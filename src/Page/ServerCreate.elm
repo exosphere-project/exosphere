@@ -12,6 +12,7 @@ import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (humanCount)
 import Helpers.GetterSetters as GetterSetters exposing (isDefaultSecurityGroup)
 import Helpers.Helpers as Helpers
+import Helpers.Image exposing (detectImageOperatingSystem)
 import Helpers.Random as RandomHelper
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
@@ -696,6 +697,9 @@ view context project currentTime model =
                 hasAnyKeypairs : Bool
                 hasAnyKeypairs =
                     project.keypairs |> RDPP.withDefault [] |> List.isEmpty |> not
+
+                maybeOperatingSystem =
+                    maybeImage |> Maybe.andThen detectImageOperatingSystem
             in
             [ Element.column
                 [ Element.spacing spacer.px8
@@ -745,17 +749,29 @@ view context project currentTime model =
                         ]
                 , Element.text model.imageName
                 , case
-                    maybeImage
-                        |> Maybe.andThen .operatingSystem
-                        |> Maybe.map (\operatingSystem -> ( operatingSystem.supported, operatingSystem.distribution ))
+                    maybeOperatingSystem
+                        |> Maybe.map (\{ supported, distribution } -> ( supported, distribution ))
                   of
                     Just ( Just False, distribution ) ->
                         Element.row
                             [ Element.spacing spacer.px8
                             , Font.color (SH.toElementColor context.palette.danger.textOnNeutralBG)
+                            , Element.htmlAttribute <|
+                                Html.Attributes.title <|
+                                    String.join " "
+                                        [ "You can still use this"
+                                        , context.localization.staticRepresentationOfBlockDeviceContents
+                                        , "but it may not work with some features of Exosphere"
+                                        ]
                             ]
                             [ Icon.featherIcon [] Icons.alertCircle
-                            , Element.text (distribution ++ " is not supported")
+                            , Element.text
+                                (String.join " "
+                                    [ "Exosphere does not support launching"
+                                    , distribution
+                                    , Helpers.String.pluralize context.localization.virtualComputer
+                                    ]
+                                )
                             ]
 
                     Just ( Just True, distribution ) ->
@@ -764,7 +780,7 @@ view context project currentTime model =
                             , Font.color (SH.toElementColor context.palette.success.textOnNeutralBG)
                             ]
                             [ Icon.featherIcon [] Icons.checkCircle
-                            , Element.text (distribution ++ " is officially supported ")
+                            , Element.text (distribution ++ " is officially supported by Exosphere")
                             ]
 
                     _ ->
