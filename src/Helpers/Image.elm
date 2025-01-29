@@ -13,7 +13,7 @@ supportedDistributions =
     -}
     [ ( "Debian", [ "11" ] )
     , ( "Ubuntu", [ "20.04", "22.04", "24.04", "24.10" ] )
-    , ( "RockyLinux", [ "8", "9" ] )
+    , ( "rocky", [ "8", "9" ] )
 
     -- Images removed from JS2, but the code should still function
     , ( "AlmaLinux", [ "8", "9" ] )
