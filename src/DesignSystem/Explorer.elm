@@ -521,7 +521,7 @@ Exosphere uses buttons from [elm-ui-widgets](https://package.elm-lang.org/packag
                         , { name = "danger secondary", widget = Button.button Button.DangerSecondary, text = "Delete All", onPress = Just NoOp }
                         ]
                     )
-                , IconButtonStories.stories toHtml
+                , IconButtonStories.stories toHtml (Just NoOp)
                 , storiesOf
                     "Tag"
                     (List.map

@@ -5,7 +5,7 @@ import Element.Font as Font
 import Route
 import Style.Helpers as SH
 import Style.Widgets.Icon exposing (Icon)
-import Style.Widgets.IconButton exposing (FlowOrder(..), iconButton)
+import Style.Widgets.IconButton exposing (FlowOrder(..), navIconButton)
 import View.Types
 
 
@@ -16,5 +16,5 @@ navButton context attributes { icon, label, route } =
             :: attributes
         )
         { url = Route.toUrl context.urlPathPrefix route
-        , label = iconButton context.palette [] { icon = icon, iconPlacement = Before, label = label, onClick = Nothing }
+        , label = navIconButton context.palette [] { icon = icon, iconPlacement = Before, label = label, onClick = Nothing }
         }

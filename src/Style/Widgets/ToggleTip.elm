@@ -2,16 +2,14 @@ module Style.Widgets.ToggleTip exposing (toggleTip, toggleTipWithIcon, warningTo
 
 import Element
 import Element.Border as Border
-import Element.Events as Events
 import Element.Font as Font
 import FeatherIcons as Icons
 import Set
 import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
-import Style.Widgets.Icon exposing (featherIcon)
+import Style.Widgets.IconButton exposing (clickableIcon)
 import Style.Widgets.Popover.Popover exposing (popover)
 import Style.Widgets.Popover.Types exposing (PopoverId)
-import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 
 
@@ -32,6 +30,7 @@ toggleTip context msgMapper id content position =
         content
         position
         Icons.info
+        "info"
         (context.palette.neutral.icon |> SH.toElementColor)
         (context.palette.neutral.text.default |> SH.toElementColor)
 
@@ -53,6 +52,7 @@ warningToggleTip context msgMapper id content position =
         content
         position
         Icons.alertTriangle
+        "warning"
         -- FIXME: Palette's warning `default` is difficult to read on a neutral bg so `textOnNeutralBG` is better; but the focus color must be darker & `textOnColoredBG` is a bit too dark.
         (context.palette.warning.textOnNeutralBG |> SH.toElementColor)
         (context.palette.warning.textOnColoredBG |> SH.toElementColor)
@@ -67,10 +67,11 @@ toggleTipWithIcon :
     -> Element.Element msg
     -> Style.Types.PopoverPosition
     -> Icons.Icon
+    -> String
     -> Element.Color
     -> Element.Color
     -> Element.Element msg
-toggleTipWithIcon context msgMapper id content position icon color hoverColor =
+toggleTipWithIcon context msgMapper id content position icon accessibilityLabel color hoverColor =
     let
         tipStyle =
             [ Border.rounded 4
@@ -78,27 +79,21 @@ toggleTipWithIcon context msgMapper id content position icon color hoverColor =
             , Text.fontSize Text.Small
             ]
 
-        btnClickOrHoverStyle =
-            [ -- darken the icon color
-              Font.color hoverColor
-            ]
-
         tipIconBtn toggleMsg tipIsShown =
-            (icon |> Icons.withSize 20)
-                |> featherIcon
-                    ([ Element.paddingXY spacer.px4 0
-                     , Events.onClick toggleMsg
-                     , Element.pointer
-                     , Font.color color
-                     , Element.mouseOver btnClickOrHoverStyle
-                     ]
-                        ++ (if tipIsShown then
-                                btnClickOrHoverStyle
+            clickableIcon
+                -- persist the hover style if the tooltip is shown
+                (if tipIsShown then
+                    [ Font.color hoverColor ]
 
-                            else
-                                []
-                           )
-                    )
+                 else
+                    []
+                )
+                { icon = icon
+                , accessibilityLabel = accessibilityLabel
+                , onClick = Just toggleMsg
+                , color = color
+                , hoverColor = hoverColor
+                }
     in
     popover context
         msgMapper

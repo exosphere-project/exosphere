@@ -1,24 +1,42 @@
-module Style.Widgets.IconButton exposing (FlowOrder(..), goToButton, iconButton, notes)
+module Style.Widgets.IconButton exposing (FlowOrder(..), clickableIcon, goToButton, navIconButton, notes)
 
 import Element exposing (Element)
 import Element.Border as Border
+import Element.Events as Events
+import Element.Font as Font
 import Element.Input as Input
-import FeatherIcons as Icons
+import FeatherIcons as Icons exposing (withSize)
+import Html.Attributes exposing (attribute, style)
 import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
-import Style.Widgets.Icon exposing (Icon, iconEl, sizedFeatherIcon)
+import Style.Widgets.Icon exposing (Icon, featherIcon, iconEl, sizedFeatherIcon)
 import Style.Widgets.Spacer exposing (spacer)
 
 
 notes : String
 notes =
-    {- @nonlocalized -}
     """
 ## Usage
 
-Icon Buttons are commonly used to show hints with actions, such as a warning icon when deleting an instance
+Icon buttons are are clickable elements which communicate their function through an icon.
 
-At the moment, the icon uses `palette.menu.textOrIcon` for color, if needed that can be moved into the configuration
+### Icon Button
+
+An elm-ui `Widget.iconButton` with an icon & label using `SH.materialStyle palette` button styles.
+
+### Go To Button
+
+A button with a chevron that indicates a navigate to detail action.
+
+### Clickable Icon
+
+A clickable [FeatherIcons](https://package.elm-lang.org/packages/1602/elm-feather/latest/FeatherIcons) icon with an accessibility label, & hover & disabled states.
+
+### Nav Icon Button
+
+Used from the header bar for top-level navigation.
+
+At the moment, the icon uses `palette.menu.textOrIcon` for color, if needed that can be moved into the configuration.
 """
 
 
@@ -40,8 +58,36 @@ goToButton palette onPress =
         }
 
 
-iconButton : ExoPalette -> List (Element.Attribute msg) -> { icon : Icon, iconPlacement : FlowOrder, label : String, onClick : Maybe msg } -> Element.Element msg
-iconButton palette attributes { icon, iconPlacement, label, onClick } =
+clickableIcon : List (Element.Attribute msg) -> { icon : Icons.Icon, accessibilityLabel : String, onClick : Maybe msg, color : Element.Color, hoverColor : Element.Color } -> Element.Element msg
+clickableIcon attributes { icon, accessibilityLabel, onClick, color, hoverColor } =
+    featherIcon
+        ([ Element.paddingXY spacer.px4 0
+         , Font.color color
+         , Element.mouseOver
+            [ -- darken the icon color
+              Font.color hoverColor
+            ]
+         , Element.htmlAttribute (attribute "aria-label" accessibilityLabel)
+         , Element.htmlAttribute (attribute "role" "button")
+         ]
+            ++ (case onClick of
+                    Just msg ->
+                        [ Element.pointer
+                        , Events.onClick msg
+                        ]
+
+                    Nothing ->
+                        [ Element.htmlAttribute (style "cursor" "not-allowed")
+                        , Element.alpha 0.6
+                        ]
+               )
+            ++ attributes
+        )
+        (icon |> withSize 20)
+
+
+navIconButton : ExoPalette -> List (Element.Attribute msg) -> { icon : Icon, iconPlacement : FlowOrder, label : String, onClick : Maybe msg } -> Element.Element msg
+navIconButton palette attributes { icon, iconPlacement, label, onClick } =
     let
         labelUI =
             Element.text label
