@@ -670,6 +670,11 @@ imageOSDetectionSuite =
                 Expect.equal
                     (dIOS "Featured-Ubuntu24" (Just "ubuntu") (Just "24.04"))
                     (Just { distribution = "Ubuntu", version = Just "24.04", supported = Just True })
+        , test "Rocky Linux image" <|
+            \_ ->
+                Expect.equal
+                    (dIOS "Featured-RockyLinux8" (Just "rocky") (Just "8"))
+                    (Just { distribution = "rocky", version = Just "8", supported = Just True })
         , test "JS2 Windows image, no metadata" <|
             \_ ->
                 Expect.equal
