@@ -3,7 +3,7 @@ module Tests exposing
     , computeQuotasAndLimitsSuite
     , decodeSynchronousOpenStackAPIErrorSuite
     , hostnameSuite
-    , imageOSSuite
+    , imageOSDetectionSuite
     , indefiniteArticlesSuite
     , manilaQuotasAndLimitsSuite
     , processOpenRcSuite

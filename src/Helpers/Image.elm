@@ -53,7 +53,7 @@ detectImageOperatingSystem imageName maybeOsDistro maybeOsVersion =
         )
     of
         ( Just unsupportedDistribution, _ ) ->
-            Just (ImageOperatingSystem unsupportedDistribution Nothing (Just False))
+            Just (ImageOperatingSystem unsupportedDistribution maybeOsVersion (Just False))
 
         ( _, Just ( distribution, supportedVersions ) ) ->
             let
@@ -75,4 +75,4 @@ detectImageOperatingSystem imageName maybeOsDistro maybeOsVersion =
                we'll just use that with unknown support as a fallback
             -}
             maybeOsDistro
-                |> Maybe.map (\distribution -> ImageOperatingSystem distribution Nothing Nothing)
+                |> Maybe.map (\distribution -> ImageOperatingSystem distribution maybeOsVersion Nothing)
