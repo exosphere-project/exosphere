@@ -1,5 +1,7 @@
 module Rest.Neutron exposing
-    ( receiveCreateDefaultSecurityGroupAndRequestCreateRules
+    ( NeutronError
+    , neutronErrorDecoder
+    , receiveCreateDefaultSecurityGroupAndRequestCreateRules
     , receiveCreateFloatingIp
     , receiveDeleteFloatingIp
     , receiveFloatingIps
@@ -44,6 +46,26 @@ import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecif
 
 
 {- HTTP Requests -}
+
+
+{-| The shape of an error response from Neutron:
+
+    {
+        "NeutronError": {
+            "type": "SecurityGroupProtocolRequiredWithPorts",
+            "message": "Must also specify protocol if port range is given.",
+            "detail": ""
+        }
+    }
+
+-}
+type alias NeutronError =
+    { message : String }
+
+
+neutronErrorDecoder : Decode.Decoder NeutronError
+neutronErrorDecoder =
+    Decode.map NeutronError <| Decode.field "message" Decode.string
 
 
 requestNetworks : Project -> Cmd SharedMsg
