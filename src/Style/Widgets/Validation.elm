@@ -1,5 +1,6 @@
 module Style.Widgets.Validation exposing
-    ( invalidIcon
+    ( FormInteraction(..)
+    , invalidIcon
     , invalidMessage
     , notes
     , validIcon
@@ -28,6 +29,11 @@ Validation widgets show errors, warnings & suggested remedies in a consistent wa
 
 Use them in your forms together with your business logic.
 """
+
+
+type FormInteraction
+    = Pristine
+    | Touched
 
 
 
