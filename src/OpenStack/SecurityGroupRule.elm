@@ -7,6 +7,7 @@ module OpenStack.SecurityGroupRule exposing
     , SecurityGroupRuleTemplate
     , SecurityGroupRuleUuid
     , SecurityGroupUuid
+    , compareSecurityGroupRuleLists
     , decodeDirection
     , defaultRules
     , directionToString
@@ -22,6 +23,7 @@ module OpenStack.SecurityGroupRule exposing
     , securityGroupRuleDecoder
     , securityGroupRuleDiff
     , securityGroupRuleTemplateToRule
+    , securityGroupRuleToTemplate
     , stringToSecurityGroupRuleDirection
     , stringToSecurityGroupRuleEthertype
     , stringToSecurityGroupRuleProtocol
@@ -62,6 +64,19 @@ securityGroupRuleTemplateToRule : SecurityGroupRuleTemplate -> SecurityGroupRule
 securityGroupRuleTemplateToRule { ethertype, direction, protocol, portRangeMin, portRangeMax, remoteIpPrefix, remoteGroupUuid, description } =
     { uuid = ""
     , ethertype = ethertype
+    , direction = direction
+    , protocol = protocol
+    , portRangeMin = portRangeMin
+    , portRangeMax = portRangeMax
+    , remoteIpPrefix = remoteIpPrefix
+    , remoteGroupUuid = remoteGroupUuid
+    , description = description
+    }
+
+
+securityGroupRuleToTemplate : SecurityGroupRule -> SecurityGroupRuleTemplate
+securityGroupRuleToTemplate { ethertype, direction, protocol, portRangeMin, portRangeMax, remoteIpPrefix, remoteGroupUuid, description } =
+    { ethertype = ethertype
     , direction = direction
     , protocol = protocol
     , portRangeMin = portRangeMin
@@ -357,6 +372,20 @@ securityGroupRuleDiff rulesA rulesB =
                 else
                     Just defaultRule
             )
+
+
+{-| Given two lists of security group rules, determine which are missing or extra when comparing the first list to the second.
+-}
+compareSecurityGroupRuleLists : List SecurityGroupRule -> List SecurityGroupRule -> { extra : List SecurityGroupRule, missing : List SecurityGroupRule }
+compareSecurityGroupRuleLists existingRules updatedRules =
+    let
+        missingRules =
+            securityGroupRuleDiff updatedRules existingRules
+
+        extraRules =
+            securityGroupRuleDiff existingRules updatedRules
+    in
+    { extra = extraRules, missing = missingRules }
 
 
 type alias SecurityGroupRuleUuid =

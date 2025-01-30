@@ -12,7 +12,7 @@ import Helpers.List exposing (uniqueBy)
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.ResourceList exposing (listItemColumnAttribs)
 import Helpers.String
-import OpenStack.SecurityGroupRule exposing (isRuleShadowed, matchRule)
+import OpenStack.SecurityGroupRule as SecurityGroupRule exposing (isRuleShadowed, matchRule)
 import OpenStack.Types as OSTypes exposing (securityGroupExoTags, securityGroupTaggedAs)
 import Page.SecurityGroupForm as SecurityGroupForm
 import Page.SecurityGroupRulesTable as SecurityGroupRulesTable
@@ -29,6 +29,7 @@ import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Tag exposing (tagNeutral, tagPositive)
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
+import Style.Widgets.Validation as Validation
 import Time
 import Types.Project exposing (Project)
 import Types.Server exposing (Server)
@@ -36,12 +37,18 @@ import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
+import Widget
 
 
 type alias Model =
     { serverUuid : OSTypes.ServerUuid
     , selectedSecurityGroups : DataDependent (Set.Set OSTypes.SecurityGroupUuid)
     , securityGroupForm : Maybe SecurityGroupForm.Model
+    , pendingRuleChanges :
+        { creations : Int
+        , deletions : Int
+        , errors : List String
+        }
     }
 
 
@@ -51,6 +58,10 @@ type Msg
     | GotEditSecurityGroupForm OSTypes.SecurityGroupUuid
     | GotDone
     | GotServerSecurityGroups OSTypes.ServerUuid
+    | GotCreateSecurityGroupRuleSuccess OSTypes.SecurityGroupUuid
+    | GotCreateSecurityGroupRuleFailure OSTypes.SecurityGroupUuid String
+    | GotDeleteSecurityGroupRuleSuccess OSTypes.SecurityGroupUuid
+    | GotDeleteSecurityGroupRuleFailure OSTypes.SecurityGroupUuid String
     | ToggleSelectedGroup OSTypes.SecurityGroupUuid
     | SharedMsg SharedMsg.SharedMsg
     | SecurityGroupFormMsg SecurityGroupForm.Msg
@@ -101,11 +112,25 @@ init project serverUuid =
                 Uninitialised
     , securityGroupForm =
         Nothing
+    , pendingRuleChanges =
+        initPendingRulesChanges
+    }
+
+
+initPendingRulesChanges : { creations : Int, deletions : Int, errors : List String }
+initPendingRulesChanges =
+    { creations = 0
+    , deletions = 0
+    , errors = []
     }
 
 
 update : Msg -> SharedModel -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
 update msg sharedModel project model =
+    let
+        formSecurityGroupUuid =
+            Maybe.andThen (\form -> form.uuid) model.securityGroupForm |> Maybe.withDefault ""
+    in
     case msg of
         SharedMsg sharedMsg ->
             ( model, Cmd.none, sharedMsg )
@@ -151,10 +176,102 @@ update msg sharedModel project model =
                     -- We should never be here, because this is already a `Ready` when there are security groups to select.
                     ( model, Cmd.none, SharedMsg.NoOp )
 
+        GotCreateSecurityGroupRuleSuccess securityGroupUuid ->
+            ( { model
+                | pendingRuleChanges =
+                    if securityGroupUuid == formSecurityGroupUuid then
+                        { creations = model.pendingRuleChanges.creations - 1
+                        , deletions = model.pendingRuleChanges.deletions
+                        , errors = model.pendingRuleChanges.errors
+                        }
+
+                    else
+                        model.pendingRuleChanges
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
+
+        GotCreateSecurityGroupRuleFailure securityGroupUuid error ->
+            ( { model
+                | pendingRuleChanges =
+                    if securityGroupUuid == formSecurityGroupUuid then
+                        { creations = model.pendingRuleChanges.creations - 1
+                        , deletions = model.pendingRuleChanges.deletions
+                        , errors = error :: model.pendingRuleChanges.errors
+                        }
+
+                    else
+                        model.pendingRuleChanges
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
+
+        GotDeleteSecurityGroupRuleSuccess securityGroupUuid ->
+            ( { model
+                | pendingRuleChanges =
+                    if securityGroupUuid == formSecurityGroupUuid then
+                        { creations = model.pendingRuleChanges.creations
+                        , deletions = model.pendingRuleChanges.deletions - 1
+                        , errors = model.pendingRuleChanges.errors
+                        }
+
+                    else
+                        model.pendingRuleChanges
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
+
+        GotDeleteSecurityGroupRuleFailure securityGroupUuid error ->
+            ( { model
+                | pendingRuleChanges =
+                    if securityGroupUuid == formSecurityGroupUuid then
+                        { creations = model.pendingRuleChanges.creations
+                        , deletions = model.pendingRuleChanges.deletions - 1
+                        , errors = error :: model.pendingRuleChanges.errors
+                        }
+
+                    else
+                        model.pendingRuleChanges
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
+
         SecurityGroupFormMsg securityGroupFormMsg ->
             case securityGroupFormMsg of
+                SecurityGroupForm.GotRequestUpdateSecurityGroup securityGroupUuid ->
+                    case ( GetterSetters.securityGroupLookup project securityGroupUuid, model.securityGroupForm ) of
+                        ( Just existingSecurityGroup, Just form ) ->
+                            let
+                                existingRules =
+                                    existingSecurityGroup.rules
+
+                                intendedRules =
+                                    (SecurityGroupForm.securityGroupFormToTemplate form).rules |> List.map SecurityGroupRule.securityGroupRuleTemplateToRule
+
+                                { missing, extra } =
+                                    SecurityGroupRule.compareSecurityGroupRuleLists existingRules intendedRules
+                            in
+                            ( { model | pendingRuleChanges = { creations = List.length missing, deletions = List.length extra, errors = [] } }
+                            , Cmd.none
+                            , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
+                                SharedMsg.RequestUpdateSecurityGroupRules existingSecurityGroup (SecurityGroupForm.securityGroupFormToTemplate <| form)
+                            )
+
+                        _ ->
+                            ( model, Cmd.none, SharedMsg.NoOp )
+
                 SecurityGroupForm.GotCancel ->
-                    ( { model | securityGroupForm = Nothing }, Cmd.none, SharedMsg.NoOp )
+                    ( { model
+                        | securityGroupForm = Nothing
+                        , pendingRuleChanges = initPendingRulesChanges
+                      }
+                    , Cmd.none
+                    , SharedMsg.NoOp
+                    )
 
                 _ ->
                     let
@@ -539,6 +656,35 @@ renderSecurityGroupListAndRules context project currentTime model securityGroups
                                 (Just model.serverUuid)
                                 |> Element.map SecurityGroupFormMsg
                             ]
+                        , let
+                            updates =
+                                model.pendingRuleChanges.creations
+                                    + model.pendingRuleChanges.deletions
+                          in
+                          if updates > 0 then
+                            Element.row [ Element.spacing spacer.px16, Element.centerX ]
+                                [ Widget.circularProgressIndicator
+                                    (SH.materialStyle context.palette).progressIndicator
+                                    Nothing
+                                , Element.text <|
+                                    String.join " "
+                                        [ updates |> String.fromInt
+                                        , "update" |> Helpers.String.pluralizeCount updates
+                                        , "remaining..."
+                                        ]
+                                ]
+
+                          else
+                            Element.none
+                        , if List.length model.pendingRuleChanges.errors > 0 then
+                            Element.el
+                                [ Element.width Element.shrink, Element.centerX ]
+                            <|
+                                Validation.invalidMessage context.palette <|
+                                    String.join ", " model.pendingRuleChanges.errors
+
+                          else
+                            Element.none
                         ]
 
                 Nothing ->

@@ -1,4 +1,4 @@
-module Page.SecurityGroupForm exposing (Model, Msg(..), init, initWithSecurityGroup, update, view)
+module Page.SecurityGroupForm exposing (Model, Msg(..), init, initWithSecurityGroup, securityGroupFormToTemplate, update, view)
 
 import Element exposing (paddingEach)
 import Element.Background as Background
@@ -25,7 +25,7 @@ import OpenStack.SecurityGroupRule
         , portRangeToString
         , protocolToString
         )
-import OpenStack.Types exposing (SecurityGroup, SecurityGroupUuid, ServerUuid)
+import OpenStack.Types exposing (SecurityGroup, SecurityGroupTemplate, SecurityGroupUuid, ServerUuid)
 import Page.SecurityGroupRuleForm as SecurityGroupRuleForm
 import Page.SecurityGroupRulesTable as SecurityGroupRulesTable
 import Style.Helpers as SH
@@ -51,7 +51,7 @@ type Msg
     | GotName String
     | GotCancel
     | GotRequestCreateSecurityGroup
-    | GotRequestUpdateSecurityGroup
+    | GotRequestUpdateSecurityGroup SecurityGroupUuid
 
 
 type alias Model =
@@ -81,6 +81,15 @@ initWithSecurityGroup securityGroup =
     , description = securityGroup.description
     , rules = securityGroup.rules
     , securityGroupRuleForm = Nothing
+    }
+
+
+securityGroupFormToTemplate : Model -> SecurityGroupTemplate
+securityGroupFormToTemplate model =
+    { name = model.name
+    , description = model.description
+    , regionId = Nothing
+    , rules = List.map OpenStack.SecurityGroupRule.securityGroupRuleToTemplate model.rules
     }
 
 
@@ -181,11 +190,9 @@ update msg model =
             , Cmd.none
             )
 
-        GotRequestUpdateSecurityGroup ->
-            ( model
-              -- TODO: Send a command to update the security group.
-            , Cmd.none
-            )
+        GotRequestUpdateSecurityGroup _ ->
+            -- Expect the form owner to handle this.
+            ( model, Cmd.none )
 
 
 isRuleValid : SecurityGroupRule -> Bool
@@ -520,11 +527,12 @@ view context project currentTime model maybeServerUuid =
                         ]
                 , onPress =
                     if isFormValid then
-                        if isExistingRule then
-                            Just GotRequestUpdateSecurityGroup
+                        case model.uuid of
+                            Just securityGroupUuid ->
+                                Just (GotRequestUpdateSecurityGroup securityGroupUuid)
 
-                        else
-                            Just GotRequestCreateSecurityGroup
+                            Nothing ->
+                                Just GotRequestCreateSecurityGroup
 
                     else
                         Nothing
