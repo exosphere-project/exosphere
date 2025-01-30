@@ -2,6 +2,8 @@ module Style.Widgets.Validation exposing
     ( invalidIcon
     , invalidMessage
     , notes
+    , validIcon
+    , validMessage
     , warningAlreadyExists
     , warningMessage
     )
@@ -30,6 +32,27 @@ Use them in your forms together with your business logic.
 
 
 --- components
+
+
+validIcon : ExoPalette -> Element msg
+validIcon palette =
+    Icons.checkCircle
+        |> featherIcon [ Font.color (palette.success.textOnNeutralBG |> SH.toElementColor) ]
+
+
+{-| Shows a message for a form validation reassurance.
+-}
+validMessage : ExoPalette -> String -> Element.Element msg
+validMessage palette helperText =
+    Element.row [ Element.spacingXY spacer.px8 0 ]
+        [ validIcon palette
+        , -- let text wrap if it exceeds container's width
+          Element.paragraph
+            [ Font.color (SH.toElementColor palette.success.textOnNeutralBG)
+            , Text.fontSize Text.Small
+            ]
+            [ Element.text helperText ]
+        ]
 
 
 invalidIcon : ExoPalette -> Element msg
