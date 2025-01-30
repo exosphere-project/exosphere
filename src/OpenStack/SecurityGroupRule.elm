@@ -87,6 +87,8 @@ securityGroupRuleToTemplate { ethertype, direction, protocol, portRangeMin, port
     }
 
 
+{-| Compare security group rules. If they have the same impact, they are equal.
+-}
 matchRule : SecurityGroupRule -> SecurityGroupRule -> Bool
 matchRule ruleA ruleB =
     (ruleA.ethertype == ruleB.ethertype)
@@ -104,6 +106,14 @@ matchRule ruleA ruleB =
                 _ ->
                     False
            )
+
+
+{-| Compare security group rules based on rule impact & description.
+-}
+matchRuleAndDescription : SecurityGroupRule -> SecurityGroupRule -> Bool
+matchRuleAndDescription ruleA ruleB =
+    matchRule ruleA ruleB
+        && (ruleA.description == ruleB.description)
 
 
 isRuleShadowed : SecurityGroupRule -> List SecurityGroupRule -> Bool
@@ -352,6 +362,9 @@ defaultRules =
 
 
 {-| Returns rules that are in the first list but not in the second list. (Difference read as A minus B.)
+
+Note: This includes differences in rule description.
+
 -}
 securityGroupRuleDiff : List SecurityGroupRule -> List SecurityGroupRule -> List SecurityGroupRule
 securityGroupRuleDiff rulesA rulesB =
@@ -363,7 +376,7 @@ securityGroupRuleDiff rulesA rulesB =
                         rulesB
                             |> List.any
                                 (\existingRule ->
-                                    matchRule existingRule defaultRule
+                                    matchRuleAndDescription existingRule defaultRule
                                 )
                 in
                 if ruleExists then
@@ -375,6 +388,9 @@ securityGroupRuleDiff rulesA rulesB =
 
 
 {-| Given two lists of security group rules, determine which are missing or extra when comparing the first list to the second.
+
+Note: Rules that have the same impact but different descriptions are considered different.
+
 -}
 compareSecurityGroupRuleLists : List SecurityGroupRule -> List SecurityGroupRule -> { extra : List SecurityGroupRule, missing : List SecurityGroupRule }
 compareSecurityGroupRuleLists existingRules updatedRules =
