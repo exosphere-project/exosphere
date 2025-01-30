@@ -44,6 +44,7 @@ type alias Model =
     { serverUuid : OSTypes.ServerUuid
     , selectedSecurityGroups : DataDependent (Set.Set OSTypes.SecurityGroupUuid)
     , securityGroupForm : Maybe SecurityGroupForm.Model
+    , securityGroupFormSubmitted : Bool
     , pendingRuleChanges :
         { creations : Int
         , deletions : Int
@@ -112,6 +113,7 @@ init project serverUuid =
                 Uninitialised
     , securityGroupForm =
         Nothing
+    , securityGroupFormSubmitted = False
     , pendingRuleChanges =
         initPendingRulesChanges
     }
@@ -255,7 +257,10 @@ update msg sharedModel project model =
                                 { missing, extra } =
                                     SecurityGroupRule.compareSecurityGroupRuleLists existingRules intendedRules
                             in
-                            ( { model | pendingRuleChanges = { creations = List.length missing, deletions = List.length extra, errors = [] } }
+                            ( { model
+                                | securityGroupFormSubmitted = True
+                                , pendingRuleChanges = { creations = List.length missing, deletions = List.length extra, errors = [] }
+                              }
                             , Cmd.none
                             , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
                                 SharedMsg.RequestUpdateSecurityGroupRules existingSecurityGroup (SecurityGroupForm.securityGroupFormToTemplate <| form)
@@ -267,6 +272,7 @@ update msg sharedModel project model =
                 SecurityGroupForm.GotCancel ->
                     ( { model
                         | securityGroupForm = Nothing
+                        , securityGroupFormSubmitted = False
                         , pendingRuleChanges = initPendingRulesChanges
                       }
                     , Cmd.none
@@ -284,14 +290,26 @@ update msg sharedModel project model =
                                     -- If we get a message without a form, initialise one.
                                     SecurityGroupForm.init { name = newSecurityGroupName project model.serverUuid }
                     in
-                    ( { model | securityGroupForm = Just securityGroupForm }, Cmd.none, SharedMsg.NoOp )
+                    ( { model
+                        | securityGroupForm = Just securityGroupForm
+                        , securityGroupFormSubmitted = False
+                      }
+                    , Cmd.none
+                    , SharedMsg.NoOp
+                    )
 
         GotCreateSecurityGroupForm ->
             let
                 securityGroupForm =
                     SecurityGroupForm.init { name = newSecurityGroupName project model.serverUuid }
             in
-            ( { model | securityGroupForm = Just <| securityGroupForm }, Cmd.none, SharedMsg.NoOp )
+            ( { model
+                | securityGroupForm = Just <| securityGroupForm
+                , securityGroupFormSubmitted = False
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
 
         GotEditSecurityGroupForm securityGroupUuid ->
             let
@@ -303,7 +321,13 @@ update msg sharedModel project model =
                         Nothing ->
                             SecurityGroupForm.init { name = newSecurityGroupName project model.serverUuid }
             in
-            ( { model | securityGroupForm = Just <| securityGroupForm }, Cmd.none, SharedMsg.NoOp )
+            ( { model
+                | securityGroupForm = Just <| securityGroupForm
+                , securityGroupFormSubmitted = False
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
 
 
 newSecurityGroupName : Project -> OSTypes.ServerUuid -> String
@@ -682,6 +706,19 @@ renderSecurityGroupListAndRules context project currentTime model securityGroups
                             <|
                                 Validation.invalidMessage context.palette <|
                                     String.join ", " model.pendingRuleChanges.errors
+
+                          else
+                            Element.none
+                        , if
+                            model.securityGroupFormSubmitted
+                                && model.pendingRuleChanges
+                                == initPendingRulesChanges
+                          then
+                            Element.el
+                                [ Element.width Element.shrink, Element.centerX ]
+                            <|
+                                Validation.validMessage context.palette <|
+                                    String.join " " [ Helpers.String.toTitleCase context.localization.securityGroup, "is up to date." ]
 
                           else
                             Element.none
