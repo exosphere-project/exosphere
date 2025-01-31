@@ -48,6 +48,7 @@ module Helpers.GetterSetters exposing
     , projectSetVolumeSnapshotsLoading
     , projectSetVolumesLoading
     , projectUpdateKeypair
+    , projectUpdateSecurityGroup
     , projectUpdateServer
     , sanitizeMountpoint
     , securityGroupLookup
@@ -1013,6 +1014,43 @@ projectUpdateKeypair sharedModel project keypair =
             RDPP.setData
                 (RDPP.DoHave keypairs sharedModel.clientCurrentTime)
                 project.keypairs
+    }
+
+
+projectUpdateSecurityGroup : Project -> OSTypes.SecurityGroup -> Project
+projectUpdateSecurityGroup project securityGroup =
+    let
+        { data, refreshStatus } =
+            project.securityGroups
+
+        newSecurityGroups =
+            case data of
+                -- Preserve the current loading state of security groups.
+                RDPP.DoHave _ receivedTime ->
+                    let
+                        otherSecurityGroups =
+                            project.securityGroups
+                                |> RDPP.withDefault []
+                                |> List.filter
+                                    (\sg ->
+                                        sg.uuid
+                                            /= securityGroup.uuid
+                                    )
+
+                        securityGroups =
+                            securityGroup
+                                :: otherSecurityGroups
+                    in
+                    RDPP.RemoteDataPlusPlus
+                        (RDPP.DoHave securityGroups receivedTime)
+                        refreshStatus
+
+                _ ->
+                    project.securityGroups
+    in
+    { project
+        | securityGroups =
+            newSecurityGroups
     }
 
 

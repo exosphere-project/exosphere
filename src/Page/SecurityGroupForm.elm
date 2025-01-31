@@ -1,4 +1,4 @@
-module Page.SecurityGroupForm exposing (Model, Msg(..), init, initWithSecurityGroup, securityGroupFormToTemplate, update, view)
+module Page.SecurityGroupForm exposing (Model, Msg(..), init, initWithSecurityGroup, securityGroupUpdateFromForm, update, view)
 
 import Element exposing (paddingEach)
 import Element.Background as Background
@@ -25,7 +25,7 @@ import OpenStack.SecurityGroupRule
         , portRangeToString
         , protocolToString
         )
-import OpenStack.Types exposing (SecurityGroup, SecurityGroupTemplate, SecurityGroupUuid, ServerUuid)
+import OpenStack.Types exposing (SecurityGroup, SecurityGroupUpdate, SecurityGroupUuid, ServerUuid)
 import Page.SecurityGroupRuleForm as SecurityGroupRuleForm
 import Page.SecurityGroupRulesTable as SecurityGroupRulesTable
 import Style.Helpers as SH
@@ -84,11 +84,9 @@ initWithSecurityGroup securityGroup =
     }
 
 
-securityGroupFormToTemplate : Model -> SecurityGroupTemplate
-securityGroupFormToTemplate model =
-    { name = model.name
-    , description = model.description
-    , regionId = Nothing
+securityGroupUpdateFromForm : Model -> SecurityGroupUpdate
+securityGroupUpdateFromForm model =
+    { description = model.description
     , rules = List.map OpenStack.SecurityGroupRule.securityGroupRuleToTemplate model.rules
     }
 

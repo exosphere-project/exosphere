@@ -75,7 +75,7 @@ type ProjectSpecificMsgConstructor
     | RequestAssignFloatingIp OSTypes.Port OSTypes.IpAddressUuid
     | RequestUnassignFloatingIp OSTypes.IpAddressUuid
     | RequestDeleteImage OSTypes.ImageUuid
-    | RequestUpdateSecurityGroupRules OSTypes.SecurityGroup OSTypes.SecurityGroupTemplate
+    | RequestUpdateSecurityGroup OSTypes.SecurityGroup OSTypes.SecurityGroupUpdate
     | RequestUpdateSecurityGroupTags OSTypes.SecurityGroupUuid (List OSTypes.SecurityGroupTag)
     | ReceiveImages (List OSTypes.Image)
     | ReceiveServerImage (Maybe OSTypes.Image)
@@ -101,6 +101,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveCreateDefaultSecurityGroup ErrorContext (Result HttpErrorWithBody OSTypes.SecurityGroup) OSTypes.SecurityGroupTemplate
     | ReceiveCreateSecurityGroupRule ErrorContext OSTypes.SecurityGroupUuid (Result HttpErrorWithBody SecurityGroupRule.SecurityGroupRule)
     | ReceiveDeleteSecurityGroupRule ErrorContext ( OSTypes.SecurityGroupUuid, SecurityGroupRule.SecurityGroupRuleUuid ) (Result Http.Error ())
+    | ReceiveUpdateSecurityGroup ErrorContext OSTypes.SecurityGroupUuid (Result HttpErrorWithBody OSTypes.SecurityGroup)
     | ReceiveUpdateSecurityGroupTags ( OSTypes.SecurityGroupUuid, List OSTypes.SecurityGroupTag )
     | ReceiveCreateShare OSTypes.Share
     | ReceiveCreateAccessRule ( OSTypes.ShareUuid, OSTypes.AccessRule )

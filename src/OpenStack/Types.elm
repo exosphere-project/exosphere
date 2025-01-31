@@ -59,6 +59,7 @@ module OpenStack.Types exposing
     , SecurityGroup
     , SecurityGroupTag
     , SecurityGroupTemplate
+    , SecurityGroupUpdate
     , SecurityGroupUuid
     , Server
     , ServerDetails
@@ -806,6 +807,12 @@ type alias SecurityGroupTemplate =
     { name : String
     , description : Maybe String
     , regionId : Maybe RegionId
+    , rules : List SecurityGroupRuleTemplate
+    }
+
+
+type alias SecurityGroupUpdate =
+    { description : Maybe String
     , rules : List SecurityGroupRuleTemplate
     }
 

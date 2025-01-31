@@ -17,6 +17,7 @@ module Rest.Neutron exposing
     , requestPorts
     , requestSecurityGroups
     , requestUnassignFloatingIp
+    , requestUpdateSecurityGroup
     , requestUpdateSecurityGroupRules
     , requestUpdateSecurityGroupTags
     , securityGroupsDecoder
@@ -405,6 +406,44 @@ requestCreateDefaultSecurityGroup project securityGroup =
         )
 
 
+requestUpdateSecurityGroup : Project -> OSTypes.SecurityGroupUuid -> OSTypes.SecurityGroupUpdate -> Cmd SharedMsg
+requestUpdateSecurityGroup project securityGroupUuid securityGroupUpdate =
+    let
+        requestBody =
+            Encode.object
+                [ ( "security_group"
+                  , Encode.object
+                        -- Updating security group name can lead to broken relationships
+                        -- because OpenStack links servers to security groups by name.
+                        [ ( "description", Encode.string <| Maybe.withDefault "" securityGroupUpdate.description )
+                        ]
+                  )
+                ]
+
+        errorContext =
+            ErrorContext
+                ("update security group uuid " ++ securityGroupUuid ++ " in project " ++ project.auth.project.name)
+                ErrorCrit
+                Nothing
+
+        resultToMsg result =
+            ProjectMsg
+                (GetterSetters.projectIdentifier project)
+                (ReceiveUpdateSecurityGroup errorContext securityGroupUuid result)
+    in
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Put
+        Nothing
+        []
+        (project.endpoints.neutron ++ "/v2.0/security-groups/" ++ securityGroupUuid)
+        (Http.jsonBody requestBody)
+        (expectJsonWithErrorBody
+            resultToMsg
+            securityGroupDecoder
+        )
+
+
 requestUpdateSecurityGroupTags : Project -> OSTypes.SecurityGroupUuid -> List OSTypes.SecurityGroupTag -> Cmd SharedMsg
 requestUpdateSecurityGroupTags project securityGroupUuid tags =
     let
@@ -415,7 +454,7 @@ requestUpdateSecurityGroupTags project securityGroupUuid tags =
 
         errorContext =
             ErrorContext
-                ("update security group uuid " ++ securityGroupUuid ++ " in project " ++ project.auth.project.name)
+                ("update tags for security group uuid " ++ securityGroupUuid ++ " in project " ++ project.auth.project.name)
                 ErrorCrit
                 Nothing
 
@@ -621,7 +660,7 @@ receiveSecurityGroupsAndEnsureDefaultGroup model project securityGroups =
                     reconcileDefaultSecurityGroupRules
                         newProject
                         defaultGroup
-                        defaultSecurityGroup
+                        defaultSecurityGroup.rules
 
                 Nothing ->
                     [ requestCreateDefaultSecurityGroup newProject defaultSecurityGroup ]
@@ -629,14 +668,14 @@ receiveSecurityGroupsAndEnsureDefaultGroup model project securityGroups =
     ( newModel, Cmd.batch cmds )
 
 
-requestUpdateSecurityGroupRules : Project -> OSTypes.SecurityGroup -> OSTypes.SecurityGroupTemplate -> List (Cmd SharedMsg)
-requestUpdateSecurityGroupRules project securityGroup securityGroupTemplate =
+requestUpdateSecurityGroupRules : Project -> OSTypes.SecurityGroup -> List SecurityGroupRule.SecurityGroupRuleTemplate -> List (Cmd SharedMsg)
+requestUpdateSecurityGroupRules project securityGroup updatedRules =
     let
         existingRules =
             securityGroup.rules
 
         expectedRules =
-            securityGroupTemplate.rules |> List.map SecurityGroupRule.securityGroupRuleTemplateToRule
+            updatedRules |> List.map SecurityGroupRule.securityGroupRuleTemplateToRule
     in
     reconcileSecurityGroupRules project securityGroup existingRules expectedRules
 
@@ -649,7 +688,7 @@ requestUpdateSecurityGroupRules project securityGroup securityGroupTemplate =
     are added to all new security groups, and those might differ from our application default rules.)
 
 -}
-reconcileDefaultSecurityGroupRules : Project -> OSTypes.SecurityGroup -> OSTypes.SecurityGroupTemplate -> List (Cmd SharedMsg)
+reconcileDefaultSecurityGroupRules : Project -> OSTypes.SecurityGroup -> List SecurityGroupRule.SecurityGroupRuleTemplate -> List (Cmd SharedMsg)
 reconcileDefaultSecurityGroupRules =
     requestUpdateSecurityGroupRules
 
@@ -701,7 +740,7 @@ receiveCreateDefaultSecurityGroupAndRequestCreateRules model project defaultGrou
         reconcileDefaultSecurityGroupRules
             newProject
             defaultGroup
-            securityGroupTemplate
+            securityGroupTemplate.rules
     )
 
 
