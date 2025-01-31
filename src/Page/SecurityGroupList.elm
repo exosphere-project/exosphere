@@ -5,7 +5,7 @@ import Element.Font as Font
 import FeatherIcons
 import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (humanCount)
-import Helpers.GetterSetters as GetterSetters exposing (LoadingProgress(..), isDefaultSecurityGroup)
+import Helpers.GetterSetters as GetterSetters exposing (LoadingProgress(..), isDefaultSecurityGroup, sortedSecurityGroups)
 import Helpers.ResourceList exposing (creationTimeFilterOptions, listItemColumnAttribs, onCreationTimeFilter)
 import Helpers.String exposing (pluralizeCount)
 import OpenStack.Types as OSTypes exposing (securityGroupExoTags, securityGroupTaggedAs)
@@ -62,7 +62,7 @@ view context project currentTime model =
                 context
                 []
                 (securityGroupView context project currentTime)
-                (securityGroupRecords securityGroups)
+                (securityGroupRecords <| sortedSecurityGroups <| securityGroups)
                 []
                 (Just
                     { filters = filters currentTime
