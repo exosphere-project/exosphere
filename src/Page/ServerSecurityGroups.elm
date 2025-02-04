@@ -7,7 +7,7 @@ import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons
-import Helpers.GetterSetters as GetterSetters exposing (isDefaultSecurityGroup)
+import Helpers.GetterSetters as GetterSetters exposing (isDefaultSecurityGroup, sortedSecurityGroups)
 import Helpers.List exposing (uniqueBy)
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.ResourceList exposing (listItemColumnAttribs)
@@ -316,7 +316,7 @@ renderSelectableSecurityGroupsList context project model securityGroups =
         , Background.color <| SH.toElementColor context.palette.neutral.background.frontLayer
         ]
         (securityGroupRow context project model)
-        securityGroups
+        (sortedSecurityGroups securityGroups)
 
 
 renderSecurityGroupListAndRules : View.Types.Context -> Project -> Model -> List OSTypes.SecurityGroup -> Element.Element Msg

@@ -59,6 +59,7 @@ module Helpers.GetterSetters exposing
     , shareLookup
     , sortedFlavors
     , sortedSecurityGroupRules
+    , sortedSecurityGroups
     , transformRDPP
     , unscopedProjectLookup
     , unscopedProviderLookup
@@ -458,6 +459,11 @@ getServerExouserPassphrase serverDetails =
 sortedFlavors : List OSTypes.Flavor -> List OSTypes.Flavor
 sortedFlavors =
     multiSortBy [ .vcpu, .ram_mb, .disk_root, .disk_ephemeral ]
+
+
+sortedSecurityGroups : List OSTypes.SecurityGroup -> List OSTypes.SecurityGroup
+sortedSecurityGroups =
+    List.sortBy (\sg -> sg.name |> String.toLower)
 
 
 sortedSecurityGroupRules : (OSTypes.SecurityGroupUuid -> Maybe OSTypes.SecurityGroup) -> List SecurityGroupRule.SecurityGroupRule -> List SecurityGroupRule.SecurityGroupRule
