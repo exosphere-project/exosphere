@@ -6,6 +6,7 @@ module Helpers.ExoSetupStatus exposing
     , parseConsoleLogExoSetupStatus
     )
 
+import Helpers.Time exposing (hoursToMillis, minutesToMillis)
 import Json.Decode
 import Json.Encode
 import Time
@@ -47,19 +48,13 @@ parseConsoleLogExoSetupStatus ( oldExoSetupStatus, oldTimestamp ) consoleLog ser
                 |> List.head
                 |> Maybe.withDefault ( oldExoSetupStatus, oldTimestamp )
 
-        nonTerminalStatuses =
-            [ ExoSetupWaiting, ExoSetupStarting, ExoSetupRunning ]
-
-        statusIsNonTerminal =
-            List.member latestStatus nonTerminalStatuses
-
-        serverTooOldForNonTerminalStatus =
-            Time.posixToMillis serverCreatedTime
-                -- 2 hours
-                + 7200000
-                < Time.posixToMillis currentTime
+        serverOlderThan millis =
+            (Time.posixToMillis currentTime - Time.posixToMillis serverCreatedTime) > millis
     in
-    if statusIsNonTerminal && serverTooOldForNonTerminalStatus then
+    if
+        (latestStatus == ExoSetupWaiting && serverOlderThan (minutesToMillis 15))
+            || (List.member latestStatus [ ExoSetupStarting, ExoSetupRunning ] && serverOlderThan (hoursToMillis 2))
+    then
         ( ExoSetupTimeout, Just currentTime )
 
     else

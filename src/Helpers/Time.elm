@@ -1,9 +1,27 @@
-module Helpers.Time exposing (humanReadableDate, humanReadableDateAndTime, iso8601StringToPosix, makeIso8601StringToPosixDecoder, relativeTimeNoAffixes)
+module Helpers.Time exposing
+    ( hoursToMillis
+    , humanReadableDate
+    , humanReadableDateAndTime
+    , iso8601StringToPosix
+    , makeIso8601StringToPosixDecoder
+    , minutesToMillis
+    , relativeTimeNoAffixes
+    )
 
 import DateFormat.Relative
 import ISO8601
 import Json.Decode exposing (Decoder, fail, succeed)
 import Time
+
+
+minutesToMillis : Int -> Int
+minutesToMillis =
+    (*) 60000
+
+
+hoursToMillis : Int -> Int
+hoursToMillis =
+    (*) 3600000
 
 
 humanReadableDateAndTime : Time.Posix -> String
