@@ -3,6 +3,28 @@ module ServerDeploy exposing (cloudInitUserDataTemplate)
 import Helpers.Multipart as Multipart
 
 
+exosphereBootHook : String
+exosphereBootHook =
+    """#!/bin/bash
+
+# Ensure this hook only runs on the first boot
+cloud-init-per once exosphere-setup-starting /bin/true || exit 0
+
+echo on > /proc/sys/kernel/printk_devkmsg || true  # Disable console rate limiting for distros that use kmsg
+sleep 1  # Ensures that console log output from any previous command completes before the following command begins
+echo '{"status":"starting", "epoch": '$(date '+%s')'000}' | tee --append /dev/console > /dev/kmsg || true
+chmod 640 /var/log/cloud-init-output.log
+"""
+
+
+exosphereSetupRunning : String
+exosphereSetupRunning =
+    """#!/bin/bash
+
+echo '{"status":"running", "epoch": '$(date '+%s')'000}' | tee --append /dev/console > /dev/kmsg || true
+"""
+
+
 exosphereAnsibleSetup : String
 exosphereAnsibleSetup =
     """#!/bin/bash
@@ -25,10 +47,6 @@ retry() {
   return 1
 }
 
-echo on > /proc/sys/kernel/printk_devkmsg || true  # Disable console rate limiting for distros that use kmsg
-sleep 1  # Ensures that console log output from any previous command completes before the following command begins
-echo '{"status":"running", "epoch": '$(date '+%s')'000}' | tee --append /dev/console > /dev/kmsg || true
-chmod 640 /var/log/cloud-init-output.log
 {create-cluster-command}
 (which apt-get && retry apt-get install -y python3-venv) # Install python3-venv on Debian-based platforms
 (which yum     && retry yum install -y python3)      # Install python3 on RHEL-based platforms
@@ -73,7 +91,9 @@ packages:
 cloudInitUserDataTemplate : String
 cloudInitUserDataTemplate =
     Multipart.mixed (Multipart.boundary "===============exosphere-user-data==")
-        |> Multipart.addAttachment "text/x-shellscript" "exosphere-ansible-setup.sh" [] exosphereAnsibleSetup
+        |> Multipart.addAttachment "text/cloud-boothook" "00-exosphere-boothook.sh" [] exosphereBootHook
+        |> Multipart.addAttachment "text/x-shellscript" "00-exosphere-setup-running.sh" [] exosphereSetupRunning
+        |> Multipart.addAttachment "text/x-shellscript" "90-exosphere-ansible-setup.sh" [] exosphereAnsibleSetup
         |> Multipart.addAttachment "text/cloud-config" "exosphere.yml" [] exosphereCloudConfig
         |> Multipart.string
         -- Strip carriage returns, cloud-init doesn't require them when parsing

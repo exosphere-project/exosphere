@@ -48,7 +48,7 @@ parseConsoleLogExoSetupStatus ( oldExoSetupStatus, oldTimestamp ) consoleLog ser
                 |> Maybe.withDefault ( oldExoSetupStatus, oldTimestamp )
 
         nonTerminalStatuses =
-            [ ExoSetupWaiting, ExoSetupRunning ]
+            [ ExoSetupWaiting, ExoSetupStarting, ExoSetupRunning ]
 
         statusIsNonTerminal =
             List.member latestStatus nonTerminalStatuses
@@ -71,6 +71,9 @@ exoSetupStatusToStr status =
     case status of
         ExoSetupWaiting ->
             "waiting"
+
+        ExoSetupStarting ->
+            "starting"
 
         ExoSetupRunning ->
             "running"
@@ -99,6 +102,9 @@ strtoExoSetupStatus str =
     case str of
         "waiting" ->
             ExoSetupWaiting
+
+        "starting" ->
+            ExoSetupStarting
 
         "running" ->
             ExoSetupRunning

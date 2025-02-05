@@ -112,6 +112,7 @@ type ServerUiStatus
 
 type ExoSetupStatus
     = ExoSetupWaiting
+    | ExoSetupStarting
     | ExoSetupRunning
     | ExoSetupComplete
     | ExoSetupError
@@ -131,6 +132,9 @@ exoSetupStatusToString status =
     case status of
         ExoSetupWaiting ->
             "Waiting"
+
+        ExoSetupStarting ->
+            "Starting"
 
         ExoSetupRunning ->
             "Running"

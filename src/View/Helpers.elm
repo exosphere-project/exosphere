@@ -485,6 +485,9 @@ getServerUiStatus server =
                                         ExoSetupWaiting ->
                                             ServerUiStatusBuilding
 
+                                        ExoSetupStarting ->
+                                            ServerUiStatusRunningSetup
+
                                         ExoSetupRunning ->
                                             ServerUiStatusRunningSetup
 
