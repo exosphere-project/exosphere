@@ -22,22 +22,20 @@ parseConsoleLogExoSetupStatus ( oldExoSetupStatus, oldTimestamp ) consoleLog ser
         decodedData =
             -- TODO this may do a lot of work and it can easily be made more performant
             logLines
-                -- Throw out anything before the start of a JSON object on a given line
-                |> List.map
+                -- Throw out anything before the start of a JSON object on a given line, ignoring lines without '{'
+                |> List.filterMap
                     (\line ->
                         String.indexes "{" line
                             |> List.head
                             |> Maybe.map (\index -> String.dropLeft index line)
-                            |> Maybe.withDefault line
                     )
-                -- Throw out anything after the end of a JSON object on a given line
-                |> List.map
+                -- Throw out anything after the end of a JSON object on a given line, ignoring lines with '}'
+                |> List.filterMap
                     (\line ->
                         String.indexes "}" line
                             |> List.reverse
                             |> List.head
                             |> Maybe.map (\index -> String.left (index + 1) line)
-                            |> Maybe.withDefault line
                     )
                 |> List.map (Json.Decode.decodeString exoSetupDecoder)
                 |> List.filterMap Result.toMaybe
