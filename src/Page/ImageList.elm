@@ -7,6 +7,7 @@ import FeatherIcons as Icons
 import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (Unit(..), humanNumber)
 import Helpers.GetterSetters as GetterSetters
+import Helpers.Image exposing (ImageOperatingSystem, detectImageOperatingSystem)
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.ResourceList exposing (listItemColumnAttribs)
 import Helpers.String
@@ -19,7 +20,7 @@ import Style.Types as ST
 import Style.Widgets.Button as Button
 import Style.Widgets.DataList as DataList
 import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
-import Style.Widgets.Icon exposing (featherIcon, sizedFeatherIcon)
+import Style.Widgets.Icon as Icon exposing (featherIcon, sizedFeatherIcon)
 import Style.Widgets.Popover.Popover as Popover
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.Spacer exposing (spacer)
@@ -172,6 +173,7 @@ type alias ImageRecord =
         , visibility : String
         , featured : Bool
         , owned : Bool
+        , operatingSystem : Maybe ImageOperatingSystem
         }
 
 
@@ -189,6 +191,7 @@ imageRecords context project images =
             , visibility = OSTypes.imageVisibilityToString image.visibility
             , featured = isImageFeaturedByDeployer featuredImageNamePrefix image
             , owned = projectOwnsImage project image
+            , operatingSystem = detectImageOperatingSystem image
             }
         )
         images
@@ -260,6 +263,51 @@ imageView model context project imageRecord =
             else
                 Element.none
 
+        imageSupportedLabel =
+            imageRecord.operatingSystem
+                |> Maybe.map
+                    (\{ supported, distribution } ->
+                        case supported of
+                            Just True ->
+                                Icon.featherIcon
+                                    [ Font.color (SH.toElementColor context.palette.success.textOnNeutralBG)
+                                    , Element.htmlAttribute <|
+                                        HtmlA.title
+                                            (String.join " "
+                                                [ "Exosphere supports launching"
+                                                , distribution
+                                                , Helpers.String.pluralize context.localization.virtualComputer
+                                                ]
+                                            )
+                                    ]
+                                    Icons.checkCircle
+
+                            Just False ->
+                                Element.row
+                                    [ Element.spacing spacer.px4
+                                    , Font.color (SH.toElementColor context.palette.danger.textOnNeutralBG)
+                                    , Element.htmlAttribute <|
+                                        HtmlA.title <|
+                                            String.concat
+                                                [ "Exosphere does not support launching "
+                                                , distribution
+                                                , " "
+                                                , Helpers.String.pluralize context.localization.virtualComputer
+                                                , "."
+                                                , "\n"
+                                                , "You can still use this "
+                                                , context.localization.staticRepresentationOfBlockDeviceContents
+                                                , " but it may not work with some features of Exosphere"
+                                                ]
+                                    ]
+                                    [ Icon.featherIcon [] Icons.alertOctagon
+                                    ]
+
+                            _ ->
+                                Element.none
+                    )
+                |> Maybe.withDefault Element.none
+
         createServerBtn =
             let
                 textBtn onPress =
@@ -302,7 +350,8 @@ imageView model context project imageRecord =
 
         imageActions =
             Element.row [ Element.alignRight, Element.spacing spacer.px12 ]
-                [ deleteImageBtn
+                [ imageSupportedLabel
+                , deleteImageBtn
                 , createServerBtn
                 , if imageRecord.owned then
                     imageVisibilityDropdown imageRecord context project

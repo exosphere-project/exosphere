@@ -12,6 +12,7 @@ import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (humanCount)
 import Helpers.GetterSetters as GetterSetters exposing (isDefaultSecurityGroup)
 import Helpers.Helpers as Helpers
+import Helpers.Image exposing (detectImageOperatingSystem)
 import Helpers.Random as RandomHelper
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
@@ -32,7 +33,7 @@ import Style.Types as ST
 import Style.Widgets.Alert as Alert
 import Style.Widgets.Button as Button
 import Style.Widgets.CopyableText exposing (copyableTextAccessory)
-import Style.Widgets.Icon exposing (featherIcon)
+import Style.Widgets.Icon as Icon exposing (featherIcon)
 import Style.Widgets.Link as Link
 import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
@@ -471,6 +472,9 @@ enforceQuotaCompliance project model =
 view : View.Types.Context -> Project -> Time.Posix -> Model -> Element.Element Msg
 view context project currentTime model =
     let
+        maybeImage =
+            GetterSetters.imageLookup project model.imageUuid
+
         serverNameExists =
             Validation.serverNameExists project model.serverName
 
@@ -693,6 +697,9 @@ view context project currentTime model =
                 hasAnyKeypairs : Bool
                 hasAnyKeypairs =
                     project.keypairs |> RDPP.withDefault [] |> List.isEmpty |> not
+
+                maybeOperatingSystem =
+                    maybeImage |> Maybe.andThen detectImageOperatingSystem
             in
             [ Element.column
                 [ Element.spacing spacer.px8
@@ -741,6 +748,43 @@ view context project currentTime model =
                         , ": "
                         ]
                 , Element.text model.imageName
+                , case
+                    maybeOperatingSystem
+                        |> Maybe.map (\{ supported, distribution } -> ( supported, distribution ))
+                  of
+                    Just ( Just False, distribution ) ->
+                        Element.row
+                            [ Element.spacing spacer.px8
+                            , Font.color (SH.toElementColor context.palette.danger.textOnNeutralBG)
+                            , Element.htmlAttribute <|
+                                Html.Attributes.title <|
+                                    String.join " "
+                                        [ "You can still use this"
+                                        , context.localization.staticRepresentationOfBlockDeviceContents
+                                        , "but it may not work with some features of Exosphere"
+                                        ]
+                            ]
+                            [ Icon.featherIcon [] Icons.alertCircle
+                            , Element.text
+                                (String.join " "
+                                    [ "Exosphere does not support launching"
+                                    , distribution
+                                    , Helpers.String.pluralize context.localization.virtualComputer
+                                    ]
+                                )
+                            ]
+
+                    Just ( Just True, distribution ) ->
+                        Element.row
+                            [ Element.spacing spacer.px8
+                            , Font.color (SH.toElementColor context.palette.success.textOnNeutralBG)
+                            ]
+                            [ Icon.featherIcon [] Icons.checkCircle
+                            , Element.text (distribution ++ " is officially supported by Exosphere")
+                            ]
+
+                    _ ->
+                        Element.none
                 ]
             , VH.flavorPicker context
                 project
