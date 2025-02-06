@@ -32,6 +32,7 @@ build_standalone_container:
   image:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [ "" ]
+  retry: 2
   before_script:
     - 'sed -i -e "s/instanceConfigMgtRepoUrl:.*/instanceConfigMgtRepoUrl: \"https:\/\/gitlab.com\/${CI_PROJECT_NAMESPACE}\/${CI_PROJECT_NAME}\.git\",/g" environment-configs/docker-config.js'
     - 'sed -i -e "s/\"instanceConfigMgtRepoCheckout\":.*/instanceConfigMgtRepoCheckout: \"${CI_COMMIT_SHA}\",/g" environment-configs/docker-config.js'
