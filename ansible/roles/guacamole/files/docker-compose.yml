@@ -6,14 +6,14 @@ networks:
     driver: bridge
 services:
   exo-watchtower:
-    image: containrrr/watchtower
+    image: 'registry.gitlab.com/exosphere/exosphere/containrrr/watchtower'
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       WATCHTOWER_LABEL_ENABLE: 'true'
       WATCHTOWER_CLEANUP: 'true'
   exo-guac-guacd:
-    image: 'guacamole/guacd:latest'
+    image: 'registry.gitlab.com/exosphere/exosphere/guacamole/guacd'
     restart: 'always'
     hostname: 'guacd'
     networks:
@@ -21,7 +21,7 @@ services:
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
   exo-guac-guacamole:
-    image: 'guacamole/guacamole:latest'
+    image: 'registry.gitlab.com/exosphere/exosphere/guacamole/guacamole'
     restart: 'always'
     networks:
       exo-guac-net:
