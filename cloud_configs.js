@@ -139,7 +139,7 @@ var cloud_configs = {
           matchOn: "g3..*",
           title: "GPU",
           description: "These have a graphics processing unit.",
-          disallowedActions: ["Suspend"],
+          disallowedActions: ["Suspend", "Resize"],
         },
         {
           matchOn: "p3..*",
