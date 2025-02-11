@@ -365,6 +365,47 @@ rulesGrid context project model rules =
         )
 
 
+warningSecurityGroupAffectsServers : View.Types.Context -> Project -> SecurityGroupUuid -> Maybe ServerUuid -> Element.Element msg
+warningSecurityGroupAffectsServers context project securityGroupUuid exceptServerUuid =
+    let
+        serversAffected =
+            GetterSetters.serversForSecurityGroup project securityGroupUuid
+                |> .servers
+
+        otherServersAffected =
+            case exceptServerUuid of
+                Just serverUuid ->
+                    List.filter (\s -> s.osProps.uuid /= serverUuid) serversAffected
+
+                Nothing ->
+                    serversAffected
+
+        numberOfServers =
+            List.length otherServersAffected
+    in
+    if numberOfServers == 0 then
+        Element.none
+
+    else
+        let
+            { locale } =
+                context
+        in
+        Element.el
+            [ Element.width Element.shrink, Element.centerX ]
+        <|
+            Validation.warningMessage context.palette <|
+                String.join " "
+                    [ "Editing this"
+                    , context.localization.securityGroup
+                    , "will affect"
+                    , numberOfServers
+                        |> humanCount { locale | decimals = Exact 0 }
+                    , "other"
+                    , (context.localization.virtualComputer |> pluralizeCount numberOfServers) ++ "."
+                    ]
+
+
 view : View.Types.Context -> Project -> Time.Posix -> Model -> Maybe ServerUuid -> Element.Element Msg
 view context project currentTime model maybeServerUuid =
     let
@@ -440,43 +481,7 @@ view context project currentTime model maybeServerUuid =
             model.rules
         , case model.uuid of
             Just securityGroupUuid ->
-                let
-                    serversAffected =
-                        GetterSetters.serversForSecurityGroup project securityGroupUuid
-                            |> .servers
-
-                    otherServersAffected =
-                        case maybeServerUuid of
-                            Just serverUuid ->
-                                List.filter (\s -> s.osProps.uuid /= serverUuid) serversAffected
-
-                            Nothing ->
-                                serversAffected
-
-                    numberOfServers =
-                        List.length otherServersAffected
-                in
-                if numberOfServers == 0 then
-                    Element.none
-
-                else
-                    let
-                        { locale } =
-                            context
-                    in
-                    Element.el
-                        [ Element.width Element.shrink, Element.centerX ]
-                    <|
-                        Validation.warningMessage context.palette <|
-                            String.join " "
-                                [ "Editing this"
-                                , context.localization.securityGroup
-                                , "will affect"
-                                , numberOfServers
-                                    |> humanCount { locale | decimals = Exact 0 }
-                                , "other"
-                                , (context.localization.virtualComputer |> pluralizeCount numberOfServers) ++ "."
-                                ]
+                warningSecurityGroupAffectsServers context project securityGroupUuid maybeServerUuid
 
             _ ->
                 Element.none

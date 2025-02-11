@@ -2190,6 +2190,68 @@ processProjectSpecificMsg outerModel project msg =
                         -- Make the page aware of the shared msg.
                         |> pipelineCmdOuterModelMsg (updateUnderlying (ServerSecurityGroupsMsg <| Page.ServerSecurityGroups.GotDeleteSecurityGroupRuleResult securityGroupUuid (Result.Err (Helpers.httpErrorToString httpError))))
 
+        RequestDeleteSecurityGroup securityGroupUuid ->
+            let
+                serversAffected =
+                    GetterSetters.serversForSecurityGroup project securityGroupUuid
+                        |> .servers
+
+                numberOfServers =
+                    List.length serversAffected
+            in
+            ( outerModel
+            , Cmd.batch <|
+                -- if numberOfServers > 0 then
+                --     -- TODO: Unlink any servers from this security group.
+                --     []
+                -- else
+                -- TODO: Delete the security group.
+                [ Rest.Neutron.requestDeleteSecurityGroup project securityGroupUuid ]
+            )
+                |> mapToOuterMsg
+
+        ReceiveDeleteSecurityGroup errorContext securityGroupUuid result ->
+            case result of
+                Ok () ->
+                    let
+                        newProject =
+                            GetterSetters.projectDeleteSecurityGroup project securityGroupUuid
+
+                        newModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+                    in
+                    ( newModel, Cmd.none )
+                        |> mapToOuterMsg
+                        -- TODO: Make the page aware of the shared msg.
+                        |> mapToOuterModel outerModel
+
+                Err httpError ->
+                    let
+                        error =
+                            Decode.decodeString
+                                (Decode.field (OpenStack.Error.fieldForErrorDomain OpenStack.Error.NeutronError) Rest.Neutron.neutronErrorDecoder)
+                                httpError.body
+
+                        errorMessage =
+                            -- {
+                            --     "NeutronError": {
+                            --         "type": "SecurityGroupInUse",
+                            --         "message": "Security Group dcb9f124-d43d-4952-a7cb-624b9e67306a in use.",
+                            --         "detail": ""
+                            --     }
+                            -- }
+                            case error of
+                                Ok neutronError ->
+                                    neutronError.message
+
+                                Err _ ->
+                                    httpError.body
+                    in
+                    State.Error.processSynchronousApiError sharedModel errorContext httpError
+                        |> mapToOuterMsg
+                        -- TODO: Make the page aware of the shared msg.
+                        |> mapToOuterModel outerModel
+
         RequestUpdateSecurityGroup existingSecurityGroup securityGroupUpdate ->
             ( outerModel
             , Cmd.batch <|
