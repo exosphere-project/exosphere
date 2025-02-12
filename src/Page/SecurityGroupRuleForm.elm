@@ -5,28 +5,16 @@ import Element.Input as Input
 import Helpers.Cidr exposing (isValidCidr)
 import OpenStack.SecurityGroupRule
     exposing
-        ( PortRangeBounds(..)
-        , Remote(..)
-        , RemoteType(..)
+        ( Remote(..)
         , SecurityGroupRule
         , SecurityGroupRuleDirection(..)
         , SecurityGroupRuleEthertype(..)
         , SecurityGroupRuleProtocol(..)
-        , directionOptions
         , directionToString
-        , etherTypeOptions
         , etherTypeToString
         , getRemote
-        , portRangeBoundsOptions
-        , portRangeBoundsToString
-        , protocolOptions
         , protocolToString
-        , remoteOptions
-        , remoteToRemoteType
         , remoteToStringInput
-        , remoteTypeToString
-        , stringToPortRangeBounds
-        , stringToRemoteType
         , stringToSecurityGroupRuleDirection
         , stringToSecurityGroupRuleEthertype
         , stringToSecurityGroupRuleProtocol
@@ -37,8 +25,8 @@ import Style.Widgets.Select
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Style.Widgets.Validation as Validation
-import View.Helpers as VH
-import View.Types
+import View.Helpers as VH exposing (directionOptions, etherTypeOptions, portRangeBoundsOptions, portRangeBoundsToString, protocolOptions, remoteOptions, remoteToRemoteType, remoteTypeToString, stringToPortRangeBounds, stringToRemoteType)
+import View.Types exposing (PortRangeBounds(..), RemoteType(..))
 
 
 type PortInput
