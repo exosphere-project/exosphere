@@ -368,7 +368,7 @@ form context model =
                                     , minVal = Just 1
                                     , maxVal = Just 65535
                                     , defaultVal = Nothing
-                                    , required = False
+                                    , required = True
                                     }
                                     (\input -> GotPortInput <| StartingPort input)
                          in
@@ -390,7 +390,7 @@ form context model =
                                     , minVal = Just 1
                                     , maxVal = Just 65535
                                     , defaultVal = Nothing
-                                    , required = False
+                                    , required = True
                                     }
                                     (\input -> GotPortInput <| EndingPort input)
                                 ]
