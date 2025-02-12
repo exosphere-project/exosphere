@@ -22,7 +22,6 @@ module OpenStack.SecurityGroupRule exposing
     , matchRule
     , portRangeBoundsOptions
     , portRangeBoundsToString
-    , portRangeToBounds
     , portRangeToString
     , protocolOptions
     , protocolToString
@@ -461,25 +460,6 @@ encodeDescription maybeDescription object =
 
         Nothing ->
             object
-
-
-portRangeToBounds :
-    { a
-        | portRangeMin : Maybe Int
-        , portRangeMax : Maybe Int
-    }
-    -> PortRangeBounds
-portRangeToBounds { portRangeMin, portRangeMax } =
-    case ( portRangeMin, portRangeMax ) of
-        ( Just min, Just max ) ->
-            if min == max then
-                PortRangeSingle
-
-            else
-                PortRangeMinMax
-
-        _ ->
-            PortRangeAny
 
 
 portRangeToString :
