@@ -354,12 +354,17 @@ form context model =
                 , Element.column [ Element.spacing spacer.px12 ]
                     [ Element.row [ Element.spacing spacer.px12 ]
                         (let
-                            startingPortInput =
+                            startingPortInput bounds =
                                 numericTextInput
                                     context.palette
-                                    (VH.inputItemAttributes context.palette ++ [ consistentHeight ])
+                                    (VH.inputItemAttributes context.palette ++ [ consistentHeight, Element.width (Element.shrink |> Element.minimum 100) ])
                                     model.startingPortInput
-                                    { labelText = "Starting port"
+                                    { labelText =
+                                        if bounds == PortRangeSingle then
+                                            "Port"
+
+                                        else
+                                            "Starting port"
                                     , minVal = Just 1
                                     , maxVal = Just 65535
                                     , defaultVal = Nothing
@@ -372,10 +377,10 @@ form context model =
                                 []
 
                             PortRangeSingle ->
-                                [ startingPortInput ]
+                                [ startingPortInput model.portRangeBounds ]
 
                             PortRangeMinMax ->
-                                [ startingPortInput
+                                [ startingPortInput model.portRangeBounds
                                 , -- endingPortInput
                                   numericTextInput
                                     context.palette
