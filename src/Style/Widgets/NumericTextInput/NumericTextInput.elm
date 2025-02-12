@@ -7,6 +7,7 @@ import Style.Helpers as SH
 import Style.Types
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..), NumericTextInputParams)
 import Style.Widgets.Spacer exposing (spacer)
+import View.Helpers exposing (requiredLabel)
 
 
 numericTextInput : Style.Types.ExoPalette -> List (Element.Attribute msg) -> NumericTextInput -> NumericTextInputParams -> (NumericTextInput -> msg) -> Element.Element msg
@@ -84,7 +85,16 @@ numericTextInput palette attribs currentVal params onchangeFunc =
                         (\v -> Input.placeholder [] (Element.text <| String.fromInt v))
                         params.defaultVal
                 , onChange = \v -> runValidators v |> Tuple.first |> onchangeFunc
-                , label = Input.labelAbove [] (Element.text params.labelText)
+                , label =
+                    let
+                        requiredIndicator =
+                            if params.required then
+                                requiredLabel palette
+
+                            else
+                                identity
+                    in
+                    Input.labelAbove [] <| requiredIndicator <| Element.text params.labelText
                 }
 
         warnText =
