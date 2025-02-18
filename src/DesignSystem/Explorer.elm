@@ -9,6 +9,7 @@ import DesignSystem.Stories.Code as CodeStories
 import DesignSystem.Stories.ColorPalette as ColorPalette
 import DesignSystem.Stories.CopyableText as CopyableTextStories
 import DesignSystem.Stories.DataList
+import DesignSystem.Stories.Grid as GridStories
 import DesignSystem.Stories.IconButton as IconButtonStories
 import DesignSystem.Stories.Link as LinkStories
 import DesignSystem.Stories.Markdown as Markdown
@@ -576,6 +577,7 @@ To display a read-only label which clearly shows the current status of a resourc
                 -- TODO: Add `filterChipView` (inside DataList) since `chip` is not in use.
                 , CodeStories.stories toHtml
                 , CopyableTextStories.stories toHtml (\_ -> NoOp)
+                , GridStories.stories toHtml
                 , Markdown.stories toHtml
                 , storiesOf
                     "Meter"

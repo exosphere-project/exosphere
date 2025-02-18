@@ -4,7 +4,7 @@ module View.Forms exposing
     )
 
 import Element exposing (Element)
-import Helpers.Validation exposing (resourceNameExistsMessage, resourceNameSuggestions, serverNameExists, shareNameExists, sshKeyNameExists, volumeNameExists)
+import Helpers.Validation exposing (resourceNameExistsMessage, resourceNameSuggestions, securityGroupNameExists, serverNameExists, shareNameExists, sshKeyNameExists, volumeNameExists)
 import Style.Types exposing (ExoPalette)
 import Style.Widgets.Validation exposing (warningAlreadyExists)
 import Time
@@ -19,6 +19,7 @@ import Types.Project exposing (Project)
 type Resource
     = Compute String
     | Keypair String
+    | SecurityGroup String
     | Share String
     | Volume String
 
@@ -44,6 +45,9 @@ resourceNameAlreadyExists context project currentTime { resource, onSuggestionPr
 
                 Keypair n ->
                     ( n, sshKeyNameExists project, context.localization.pkiPublicKeyForSsh )
+
+                SecurityGroup n ->
+                    ( n, securityGroupNameExists project, context.localization.securityGroup )
 
                 Share n ->
                     ( n, shareNameExists project, context.localization.share )

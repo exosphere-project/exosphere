@@ -11,7 +11,7 @@ import Json.Decode.Pipeline as Pipeline
 import LocalStorage.LocalStorage as LocalStorage
 import LocalStorage.Types as LocalStorageTypes
 import Maybe
-import OpenStack.SecurityGroupRule exposing (SecurityGroupRuleTemplate, stringToSecurityGroupRuleDirection, stringToSecurityGroupRuleEthertype, stringToSecurityGroupRuleProtocol)
+import OpenStack.SecurityGroupRule exposing (SecurityGroupRuleTemplate, decodeDirection, stringToSecurityGroupRuleEthertype, stringToSecurityGroupRuleProtocol)
 import OpenStack.Types as OSTypes
 import Ports
 import Random
@@ -425,7 +425,7 @@ securityGroupRuleTemplateDecoder =
     Decode.succeed
         SecurityGroupRuleTemplate
         |> Pipeline.required "ethertype" (Decode.string |> Decode.map stringToSecurityGroupRuleEthertype)
-        |> Pipeline.required "direction" (Decode.string |> Decode.map stringToSecurityGroupRuleDirection)
+        |> Pipeline.required "direction" (Decode.string |> Decode.map decodeDirection)
         |> Pipeline.optional "protocol" (Decode.nullable (Decode.string |> Decode.map stringToSecurityGroupRuleProtocol)) Nothing
         |> Pipeline.optional "port_range_min" (Decode.nullable Decode.int) Nothing
         |> Pipeline.optional "port_range_max" (Decode.nullable Decode.int) Nothing

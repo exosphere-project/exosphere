@@ -1062,6 +1062,7 @@ volBackedPrompt project context model volumeQuota flavor =
                                 OSTypes.Unlimited ->
                                     Nothing
                         , defaultVal = Just defaultVolSizeGB
+                        , required = True
                         }
                 in
                 Element.row [ Element.spacing spacer.px8 ]

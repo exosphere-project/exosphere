@@ -14,6 +14,7 @@ import Helpers.ResourceList exposing (listItemColumnAttribs)
 import Helpers.String
 import OpenStack.SecurityGroupRule exposing (isRuleShadowed, matchRule)
 import OpenStack.Types as OSTypes exposing (securityGroupExoTags, securityGroupTaggedAs)
+import Page.SecurityGroupForm as SecurityGroupForm
 import Page.SecurityGroupRulesTable as SecurityGroupRulesTable
 import Route
 import Set
@@ -27,6 +28,7 @@ import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Tag exposing (tagNeutral, tagPositive)
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
+import Time
 import Types.Project exposing (Project)
 import Types.Server exposing (Server)
 import Types.SharedModel exposing (SharedModel)
@@ -38,15 +40,18 @@ import View.Types
 type alias Model =
     { serverUuid : OSTypes.ServerUuid
     , selectedSecurityGroups : DataDependent (Set.Set OSTypes.SecurityGroupUuid)
+    , securityGroupForm : Maybe SecurityGroupForm.Model
     }
 
 
 type Msg
     = GotApplyServerSecurityGroupUpdates (List OSTypes.ServerSecurityGroupUpdate)
+    | GotCreateSecurityGroupForm
     | GotDone
     | GotServerSecurityGroups OSTypes.ServerUuid
     | ToggleSelectedGroup OSTypes.SecurityGroupUuid
     | SharedMsg SharedMsg.SharedMsg
+    | SecurityGroupFormMsg SecurityGroupForm.Msg
 
 
 type DataDependent a
@@ -92,6 +97,8 @@ init project serverUuid =
 
             _ ->
                 Uninitialised
+    , securityGroupForm =
+        Nothing
     }
 
 
@@ -141,6 +148,32 @@ update msg sharedModel project model =
                 Uninitialised ->
                     -- We should never be here, because this is already a `Ready` when there are security groups to select.
                     ( model, Cmd.none, SharedMsg.NoOp )
+
+        SecurityGroupFormMsg securityGroupFormMsg ->
+            let
+                securityGroupForm =
+                    case model.securityGroupForm of
+                        Just securityGroupForm_ ->
+                            SecurityGroupForm.update securityGroupFormMsg securityGroupForm_ |> Tuple.first
+
+                        Nothing ->
+                            -- If we get a message without a form, initialise one.
+                            SecurityGroupForm.init { name = newSecurityGroupName project model.serverUuid }
+            in
+            ( { model | securityGroupForm = Just <| securityGroupForm }, Cmd.none, SharedMsg.NoOp )
+
+        GotCreateSecurityGroupForm ->
+            let
+                securityGroupForm =
+                    SecurityGroupForm.init { name = newSecurityGroupName project model.serverUuid }
+            in
+            ( { model | securityGroupForm = Just <| securityGroupForm }, Cmd.none, SharedMsg.NoOp )
+
+
+newSecurityGroupName : Project -> OSTypes.ServerUuid -> String
+newSecurityGroupName project serverUuid =
+    -- Set the security group name to the server name if it exists.
+    Maybe.withDefault "" <| GetterSetters.serverNameLookup project serverUuid
 
 
 appliedSecurityGroupsUuids : Project -> OSTypes.ServerUuid -> Set.Set OSTypes.SecurityGroupUuid
@@ -298,31 +331,43 @@ securityGroupRow context project model securityGroup =
         ]
 
 
-renderList : List (Element.Attribute Msg) -> (a -> Element.Element Msg) -> List a -> Element.Element Msg
-renderList attrs rowForItem list =
+renderList : List (Element.Attribute msg) -> { empty : Maybe (Element.Element msg) } -> (a -> Element.Element msg) -> List a -> Element.Element msg
+renderList attrs { empty } rowForItem list =
     Element.column
         attrs
-        (List.map rowForItem list)
+        (case List.length list of
+            0 ->
+                case empty of
+                    Just emptyElement ->
+                        [ emptyElement ]
+
+                    Nothing ->
+                        [ Element.none ]
+
+            _ ->
+                List.map rowForItem list
+        )
 
 
 renderSelectableSecurityGroupsList : View.Types.Context -> Project -> Model -> List OSTypes.SecurityGroup -> Element.Element Msg
 renderSelectableSecurityGroupsList context project model securityGroups =
     renderList
         [ Element.alignTop
-        , Element.width Element.fill
+        , Element.width Element.shrink
         , Border.width 1
         , Border.color <| SH.toElementColor context.palette.neutral.border
         , Border.rounded 4
         , Background.color <| SH.toElementColor context.palette.neutral.background.frontLayer
         ]
+        { empty = Just <| Element.text "(none)" }
         (securityGroupRow context project model)
         (sortedSecurityGroups securityGroups)
 
 
-renderSecurityGroupListAndRules : View.Types.Context -> Project -> Model -> List OSTypes.SecurityGroup -> Element.Element Msg
-renderSecurityGroupListAndRules context project model securityGroups =
+renderSecurityGroupListAndRules : View.Types.Context -> Project -> Time.Posix -> Model -> List OSTypes.SecurityGroup -> Element.Element Msg
+renderSecurityGroupListAndRules context project currentTime model securityGroups =
     let
-        tile : List (Element.Element Msg) -> List (Element.Element Msg) -> Element.Element Msg
+        tile : Maybe (List (Element.Element Msg)) -> List (Element.Element Msg) -> Element.Element Msg
         tile headerContents contents =
             Style.Widgets.Card.exoCard context.palette
                 (Element.column
@@ -331,13 +376,18 @@ renderSecurityGroupListAndRules context project model securityGroups =
                     , Element.spacing spacer.px16
                     ]
                     (List.concat
-                        [ [ Element.row
-                                (Text.subheadingStyleAttrs context.palette
-                                    ++ Text.typographyAttrs Text.Large
-                                    ++ [ Border.width 0 ]
-                                )
-                                headerContents
-                          ]
+                        [ case headerContents of
+                            Just header ->
+                                [ Element.row
+                                    (Text.subheadingStyleAttrs context.palette
+                                        ++ Text.typographyAttrs Text.Large
+                                        ++ [ Border.width 0 ]
+                                    )
+                                    header
+                                ]
+
+                            Nothing ->
+                                []
                         , contents
                         ]
                     )
@@ -345,108 +395,155 @@ renderSecurityGroupListAndRules context project model securityGroups =
     in
     Element.wrappedRow [ Element.spacing spacer.px24 ]
         [ renderSelectableSecurityGroupsList context project model securityGroups
-        , tile
-            [ Element.text
-                (String.join " "
-                    [ "Consolidated"
-                    , context.localization.securityGroup
-                        |> Helpers.String.toTitleCase
+        , Element.column [ Element.alignTop, Element.spacing spacer.px24, Element.width Element.fill ]
+            [ tile
+                (Just
+                    [ Element.text
+                        (String.join " "
+                            [ "Consolidated"
+                            , context.localization.securityGroup
+                                |> Helpers.String.toTitleCase
+                            ]
+                        )
                     ]
                 )
-            ]
-            [ let
-                appliedSecurityGroupUuidsSet =
-                    appliedSecurityGroupsUuids project model.serverUuid
+                [ let
+                    appliedSecurityGroupUuidsSet =
+                        appliedSecurityGroupsUuids project model.serverUuid
 
-                appliedSecurityGroups : List OSTypes.SecurityGroup
-                appliedSecurityGroups =
-                    securityGroups |> List.filter (\securityGroup -> Set.member securityGroup.uuid appliedSecurityGroupUuidsSet)
+                    appliedSecurityGroups : List OSTypes.SecurityGroup
+                    appliedSecurityGroups =
+                        securityGroups |> List.filter (\securityGroup -> Set.member securityGroup.uuid appliedSecurityGroupUuidsSet)
 
-                selectedSecurityGroups : List OSTypes.SecurityGroup
-                selectedSecurityGroups =
-                    securityGroups
-                        |> List.filter (\securityGroup -> isSecurityGroupSelected model securityGroup.uuid)
+                    selectedSecurityGroups : List OSTypes.SecurityGroup
+                    selectedSecurityGroups =
+                        securityGroups
+                            |> List.filter (\securityGroup -> isSecurityGroupSelected model securityGroup.uuid)
 
-                customiser : OpenStack.SecurityGroupRule.SecurityGroupRule -> { iconForRow : Maybe (Element.Element msg), styleForRow : List (Element.Attribute msg) }
-                customiser rule =
-                    let
-                        selectedRules =
-                            List.concatMap .rules selectedSecurityGroups |> uniqueBy matchRule
+                    customiser : SecurityGroupRulesTable.RulesTableRowCustomiser Msg
+                    customiser rule =
+                        let
+                            selectedRules =
+                                List.concatMap .rules selectedSecurityGroups |> uniqueBy matchRule
 
-                        selected =
-                            selectedRules
-                                |> List.any (\r -> matchRule r rule)
+                            selected =
+                                selectedRules
+                                    |> List.any (\r -> matchRule r rule)
 
-                        applied =
-                            List.concatMap .rules appliedSecurityGroups
-                                |> uniqueBy matchRule
-                                |> List.any (\r -> matchRule r rule)
+                            applied =
+                                List.concatMap .rules appliedSecurityGroups
+                                    |> uniqueBy matchRule
+                                    |> List.any (\r -> matchRule r rule)
 
-                        highlight =
-                            case ( selected, applied ) of
-                                ( True, False ) ->
-                                    [ Background.color <| SH.toElementColorWithOpacity context.palette.success.textOnNeutralBG 0.1 ]
+                            highlight =
+                                case ( selected, applied ) of
+                                    ( True, False ) ->
+                                        [ Background.color <| SH.toElementColorWithOpacity context.palette.success.textOnNeutralBG 0.1 ]
 
-                                ( False, True ) ->
-                                    [ Background.color <| SH.toElementColorWithOpacity context.palette.danger.textOnNeutralBG 0.1 ]
+                                    ( False, True ) ->
+                                        [ Background.color <| SH.toElementColorWithOpacity context.palette.danger.textOnNeutralBG 0.1 ]
 
-                                _ ->
+                                    _ ->
+                                        []
+
+                            shadowed =
+                                if isRuleShadowed rule selectedRules then
+                                    [ Font.color <| SH.toElementColorWithOpacity context.palette.neutral.text.default 0.25 ]
+
+                                else
                                     []
 
-                        shadowed =
-                            if isRuleShadowed rule selectedRules then
-                                [ Font.color <| SH.toElementColorWithOpacity context.palette.neutral.text.default 0.25 ]
+                            icon =
+                                case ( selected, applied ) of
+                                    ( True, False ) ->
+                                        Just <| Style.Widgets.Icon.sizedFeatherIcon 16 FeatherIcons.plus
 
-                            else
-                                []
+                                    ( False, True ) ->
+                                        Just <| Style.Widgets.Icon.sizedFeatherIcon 16 FeatherIcons.minus
 
-                        icon =
-                            case ( selected, applied ) of
-                                ( True, False ) ->
-                                    Just <| Style.Widgets.Icon.sizedFeatherIcon 16 FeatherIcons.plus
+                                    _ ->
+                                        -- Chosen for consistent spacing when no icon is present.
+                                        Just <| Element.el [ Element.width <| Element.px 18 ] (Element.text "")
+                        in
+                        { leftElementForRow = icon
+                        , rightElementForRow = Nothing
+                        , styleForRow = SecurityGroupRulesTable.defaultRowStyle ++ highlight ++ shadowed
+                        }
 
-                                ( False, True ) ->
-                                    Just <| Style.Widgets.Icon.sizedFeatherIcon 16 FeatherIcons.minus
+                    rules =
+                        List.concatMap .rules (appliedSecurityGroups ++ selectedSecurityGroups) |> uniqueBy matchRule
+                  in
+                  SecurityGroupRulesTable.rulesTableWithRowCustomiser
+                    context
+                    (GetterSetters.projectIdentifier project)
+                    { rules = rules, securityGroupForUuid = GetterSetters.securityGroupLookup project }
+                    customiser
+                ]
+            , case model.securityGroupForm of
+                Just securityGroupForm ->
+                    tile
+                        (Just
+                            [ Element.text
+                                (String.join " "
+                                    [ "New"
+                                    , context.localization.securityGroup
+                                        |> Helpers.String.toTitleCase
+                                    ]
+                                )
+                            ]
+                        )
+                        [ Element.column
+                            [ Element.spacing spacer.px16, Element.width Element.fill ]
+                            [ SecurityGroupForm.view
+                                context
+                                project
+                                currentTime
+                                securityGroupForm
+                                |> Element.map SecurityGroupFormMsg
+                            ]
+                        ]
 
-                                _ ->
-                                    -- Chosen for consistent spacing when no icon is present.
-                                    Just <| Element.el [ Element.width <| Element.px 18 ] (Element.text "")
-                    in
-                    { iconForRow = icon
-                    , styleForRow = SecurityGroupRulesTable.defaultRowStyle ++ highlight ++ shadowed
-                    }
-
-                rules =
-                    List.concatMap .rules (appliedSecurityGroups ++ selectedSecurityGroups) |> uniqueBy matchRule
-              in
-              SecurityGroupRulesTable.rulesTableWithRowCustomiser
-                context
-                (GetterSetters.projectIdentifier project)
-                { rules = rules, securityGroupForUuid = GetterSetters.securityGroupLookup project }
-                customiser
+                Nothing ->
+                    tile
+                        Nothing
+                        [ Element.row
+                            [ Element.spaceEvenly, Element.spacing spacer.px12, Element.width Element.fill ]
+                            [ Text.p [] [ Text.body <| "You can create a " ++ context.localization.securityGroup ++ " for this " ++ context.localization.virtualComputer ++ " to capture additional rules." ]
+                            , Button.button Button.Secondary
+                                context.palette
+                                { text =
+                                    String.join " "
+                                        [ "New"
+                                        , context.localization.securityGroup
+                                            |> Helpers.String.toTitleCase
+                                        ]
+                                , onPress = Just GotCreateSecurityGroupForm
+                                }
+                            ]
+                        ]
             ]
         ]
 
 
-renderSecurityGroupsList : View.Types.Context -> Project -> Model -> Server -> List OSTypes.SecurityGroup -> Element.Element Msg
-renderSecurityGroupsList context project model server securityGroups =
+renderSecurityGroupsList : View.Types.Context -> Project -> Time.Posix -> Model -> Server -> List OSTypes.SecurityGroup -> Element.Element Msg
+renderSecurityGroupsList context project currentTime model server securityGroups =
     VH.renderRDPP context
         server.securityGroups
         (context.localization.securityGroup
             |> Helpers.String.pluralize
         )
-        (always <| renderSecurityGroupListAndRules context project model securityGroups)
+        (always <| renderSecurityGroupListAndRules context project currentTime model securityGroups)
 
 
-view : View.Types.Context -> Project -> Model -> Element.Element Msg
-view context project model =
+view : View.Types.Context -> Project -> Time.Posix -> Model -> Element.Element Msg
+view context project currentTime model =
     VH.renderRDPP context
         project.servers
         context.localization.virtualComputer
         (\_ ->
             case GetterSetters.serverLookup project model.serverUuid of
                 Just server ->
-                    render context project model server
+                    render context project currentTime model server
 
                 Nothing ->
                     Element.text <|
@@ -458,10 +555,10 @@ view context project model =
         )
 
 
-render : View.Types.Context -> Project -> Model -> Server -> Element.Element Msg
-render context project model server =
+render : View.Types.Context -> Project -> Time.Posix -> Model -> Server -> Element.Element Msg
+render context project currentTime model server =
     Element.column [ Element.spacing spacer.px24, Element.width Element.fill ]
-        [ Element.row (Text.headingStyleAttrs context.palette)
+        [ Element.wrappedRow (Text.headingStyleAttrs context.palette)
             [ FeatherIcons.shield |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
             , Text.text Text.ExtraLarge
                 []
@@ -532,5 +629,5 @@ render context project model server =
             context
             project.securityGroups
             (Helpers.String.pluralize context.localization.securityGroup)
-            (renderSecurityGroupsList context project model server)
+            (renderSecurityGroupsList context project currentTime model server)
         ]

@@ -1,6 +1,7 @@
 module Helpers.Validation exposing
     ( resourceNameExistsMessage
     , resourceNameSuggestions
+    , securityGroupNameExists
     , serverNameExists
     , shareNameExists
     , sshKeyNameExists
@@ -33,6 +34,23 @@ serverNameExists project serverName =
 
         _ ->
             False
+
+
+{-| Does this security group name already exist on the project?
+-}
+securityGroupNameExists : Project -> String -> Bool
+securityGroupNameExists project securityGroupName_ =
+    let
+        name =
+            String.trim securityGroupName_
+    in
+    if isEmpty name then
+        False
+
+    else
+        RDPP.withDefault [] project.securityGroups
+            |> List.map .name
+            |> List.member name
 
 
 {-| Does this share name already exist on the project?

@@ -1,19 +1,24 @@
 module OpenStack.SecurityGroupRule exposing
-    ( SecurityGroupRule
+    ( Remote(..)
+    , SecurityGroupRule
     , SecurityGroupRuleDirection(..)
     , SecurityGroupRuleEthertype(..)
     , SecurityGroupRuleProtocol(..)
     , SecurityGroupRuleTemplate
     , SecurityGroupRuleUuid
     , SecurityGroupUuid
+    , decodeDirection
     , defaultRules
     , directionToString
     , encode
     , etherTypeToString
+    , getRemote
     , isRuleShadowed
     , matchRule
     , portRangeToString
     , protocolToString
+    , remoteToString
+    , remoteToStringInput
     , securityGroupRuleDecoder
     , securityGroupRuleDiff
     , securityGroupRuleTemplateToRule
@@ -161,6 +166,32 @@ getRemote rule =
         ( Just _, Just _ ) ->
             -- Should not happen since IP & remote group are mutually exclusive.
             Nothing
+
+
+remoteToString : Maybe Remote -> String
+remoteToString remote =
+    case remote of
+        Just (RemoteIpPrefix ip) ->
+            ip
+
+        Just (RemoteGroupUuid groupUuid) ->
+            groupUuid
+
+        Nothing ->
+            "Any"
+
+
+remoteToStringInput : Maybe Remote -> String
+remoteToStringInput remote =
+    remote
+        |> remoteToString
+        |> (\remoteString ->
+                if remoteString == "Any" then
+                    ""
+
+                else
+                    remoteString
+           )
 
 
 remoteMatch : Remote -> Remote -> Bool
@@ -521,7 +552,8 @@ protocolToString protocol =
 
 stringToSecurityGroupRuleProtocol : String -> SecurityGroupRuleProtocol
 stringToSecurityGroupRuleProtocol protocol =
-    case protocol of
+    -- forgive mixed case strings like "ICMPv6"
+    case String.toLower protocol of
         "any" ->
             AnyProtocol
 
@@ -613,10 +645,10 @@ directionToString : SecurityGroupRuleDirection -> String
 directionToString direction =
     case direction of
         Ingress ->
-            "ingress"
+            "incoming"
 
         Egress ->
-            "egress"
+            "outgoing"
 
         UnsupportedDirection str ->
             str
@@ -624,6 +656,19 @@ directionToString direction =
 
 stringToSecurityGroupRuleDirection : String -> SecurityGroupRuleDirection
 stringToSecurityGroupRuleDirection direction =
+    case direction of
+        "incoming" ->
+            Ingress
+
+        "outgoing" ->
+            Egress
+
+        _ ->
+            UnsupportedDirection direction
+
+
+decodeDirection : String -> SecurityGroupRuleDirection
+decodeDirection direction =
     case direction of
         "ingress" ->
             Ingress
@@ -637,7 +682,19 @@ stringToSecurityGroupRuleDirection direction =
 
 encodeDirection : SecurityGroupRuleDirection -> List ( String, Encode.Value ) -> List ( String, Encode.Value )
 encodeDirection direction object =
-    ( "direction", Encode.string <| directionToString direction ) :: object
+    ( "direction"
+    , Encode.string <|
+        case direction of
+            Ingress ->
+                "ingress"
+
+            Egress ->
+                "egress"
+
+            UnsupportedDirection str ->
+                str
+    )
+        :: object
 
 
 etherTypeToString : SecurityGroupRuleEthertype -> String
@@ -677,7 +734,7 @@ securityGroupRuleDecoder =
         SecurityGroupRule
         |> Pipeline.required "id" Decode.string
         |> Pipeline.required "ethertype" (Decode.string |> Decode.map stringToSecurityGroupRuleEthertype)
-        |> Pipeline.required "direction" (Decode.string |> Decode.map stringToSecurityGroupRuleDirection)
+        |> Pipeline.required "direction" (Decode.string |> Decode.map decodeDirection)
         |> Pipeline.optional "protocol" (Decode.nullable (Decode.string |> Decode.map stringToSecurityGroupRuleProtocol)) Nothing
         |> Pipeline.optional "port_range_min" (Decode.nullable Decode.int) Nothing
         |> Pipeline.optional "port_range_max" (Decode.nullable Decode.int) Nothing

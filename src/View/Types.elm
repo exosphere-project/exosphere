@@ -1,6 +1,8 @@
 module View.Types exposing
     ( Context
     , ImageTag
+    , PortRangeBounds(..)
+    , RemoteType(..)
     )
 
 import Browser.Navigation
@@ -31,3 +33,15 @@ type alias ImageTag =
     { label : String
     , frequency : Int
     }
+
+
+type RemoteType
+    = Any
+    | IpPrefix
+    | GroupId
+
+
+type PortRangeBounds
+    = PortRangeAny
+    | PortRangeSingle
+    | PortRangeMinMax

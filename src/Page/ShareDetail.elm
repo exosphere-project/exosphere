@@ -18,6 +18,7 @@ import Style.Types as ST exposing (ExoPalette)
 import Style.Widgets.Button as Button
 import Style.Widgets.Card
 import Style.Widgets.CopyableText exposing (copyableScript, copyableText, copyableTextAccessory)
+import Style.Widgets.Grid exposing (scrollableCell)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.Popover.Popover exposing (popover)
 import Style.Widgets.Popover.Types exposing (PopoverId)
@@ -284,20 +285,6 @@ shareActionsDropdown context project model share =
 header : String -> Element.Element msg
 header text =
     Element.el [ Font.heavy ] <| Element.text text
-
-
-scrollableCell : List (Element.Attribute msg) -> Element.Element msg -> Element.Element msg
-scrollableCell attrs msg =
-    Element.el
-        ([ Element.scrollbarX, Element.clipY ]
-            ++ attrs
-        )
-        (Element.el
-            [ -- HACK: A width needs to be set so that the cell expands responsively while having a horizontal scrollbar to contain overflow.
-              Element.width (Element.px 0)
-            ]
-            msg
-        )
 
 
 accessRulesTable : ExoPalette -> List AccessRule -> Element.Element Msg
