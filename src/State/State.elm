@@ -2190,8 +2190,11 @@ processProjectSpecificMsg outerModel project msg =
                         -- Make the page aware of the shared msg.
                         |> pipelineCmdOuterModelMsg (updateUnderlying (ServerSecurityGroupsMsg <| Page.ServerSecurityGroups.GotDeleteSecurityGroupRuleResult securityGroupUuid (Result.Err (Helpers.httpErrorToString httpError))))
 
-        RequestDeleteSecurityGroup securityGroupUuid ->
+        RequestDeleteSecurityGroup securityGroup ->
             let
+                securityGroupUuid =
+                    securityGroup.uuid
+
                 serversAffected =
                     GetterSetters.serversForSecurityGroup project securityGroupUuid
                         |> .servers
