@@ -8,6 +8,7 @@ import OpenStack.VolumeSnapshots exposing (VolumeSnapshot)
 import Types.Error exposing (HttpErrorWithBody)
 import Types.HelperTypes as HelperTypes
 import Types.Jetstream2Accounting
+import Types.SecurityGroupActions exposing (SecurityGroupAction)
 import Types.Server exposing (Server)
 
 
@@ -36,6 +37,7 @@ type alias Project =
     , dnsRecordSets : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OpenStack.DnsRecordSet.DnsRecordSet)
     , ports : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Port)
     , securityGroups : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.SecurityGroup)
+    , securityGroupActions : Dict.Dict OSTypes.SecurityGroupUuid SecurityGroupAction
     , computeQuota : RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.ComputeQuota
     , volumeQuota : RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.VolumeQuota
     , networkQuota : RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.NetworkQuota

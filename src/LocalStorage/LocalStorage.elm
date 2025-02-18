@@ -111,6 +111,7 @@ hydrateProjectFromStoredProject storedProject =
     , floatingIps = RDPP.empty
     , ports = RDPP.empty
     , securityGroups = RDPP.empty
+    , securityGroupActions = Dict.empty
     , computeQuota = RDPP.empty
     , volumeQuota = RDPP.empty
     , networkQuota = RDPP.empty

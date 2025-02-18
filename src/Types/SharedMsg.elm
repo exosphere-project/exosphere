@@ -141,8 +141,8 @@ type ServerSpecificMsgConstructor
     | ReceiveServerAction
     | ReceiveServerEvents ErrorContext (Result HttpErrorWithBody (List OSTypes.ServerEvent))
     | ReceiveServerSecurityGroups ErrorContext (Result HttpErrorWithBody (List OSTypes.ServerSecurityGroup))
-    | ReceiveServerAddSecurityGroup OSTypes.ServerSecurityGroup
-    | ReceiveServerRemoveSecurityGroup OSTypes.ServerSecurityGroup
+    | ReceiveServerAddSecurityGroup ErrorContext OSTypes.ServerSecurityGroup (Result HttpErrorWithBody String)
+    | ReceiveServerRemoveSecurityGroup ErrorContext OSTypes.ServerSecurityGroup (Result HttpErrorWithBody String)
     | ReceiveConsoleUrl (Result HttpErrorWithBody OSTypes.ConsoleUrl)
     | ReceiveDeleteServer
     | ReceiveCreateServerFloatingIp ErrorContext (Result HttpErrorWithBody OSTypes.FloatingIp)
