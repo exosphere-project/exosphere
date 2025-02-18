@@ -50,7 +50,7 @@ parseConsoleLogExoSetupStatus ( oldExoSetupStatus, oldTimestamp ) consoleLog ser
             (Time.posixToMillis currentTime - Time.posixToMillis serverCreatedTime) > millis
     in
     if
-        (latestStatus == ExoSetupWaiting && serverOlderThan (minutesToMillis 15))
+        (latestStatus == ExoSetupWaiting && serverOlderThan (minutesToMillis 20))
             || (List.member latestStatus [ ExoSetupStarting, ExoSetupRunning ] && serverOlderThan (hoursToMillis 2))
     then
         ( ExoSetupTimeout, Just currentTime )
