@@ -21,6 +21,7 @@ exosphereSetupRunning : String
 exosphereSetupRunning =
     """#!/bin/bash
 
+sleep 1  # Ensures that console log output from any previous command completes before the following command begins
 echo '{"status":"running", "epoch": '$(date '+%s')'000}' | tee --append /dev/console > /dev/kmsg || true
 """
 
