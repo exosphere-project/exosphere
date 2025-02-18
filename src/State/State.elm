@@ -1474,7 +1474,7 @@ processProjectSpecificMsg outerModel project msg =
                             customWorkFlowSource
                     }
             in
-            ( outerModel, Rest.Nova.requestCreateServer project createServerRequest )
+            ( outerModel, Rest.Nova.requestCreateServer viewContext project createServerRequest )
                 |> mapToOuterMsg
 
         RequestCreateShare name description size protocol shareTypeName ->

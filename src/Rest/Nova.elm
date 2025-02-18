@@ -53,6 +53,7 @@ import Types.Project exposing (Project)
 import Types.Server exposing (ExoServerProps, ExoSetupStatus(..), Server, ServerOrigin(..))
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
+import View.Types exposing (Context)
 
 
 
@@ -324,8 +325,8 @@ requestDeleteKeypair project keypairId =
         )
 
 
-requestCreateServer : Project -> OSTypes.CreateServerRequest -> Cmd SharedMsg
-requestCreateServer project createServerRequest =
+requestCreateServer : Context -> Project -> OSTypes.CreateServerRequest -> Cmd SharedMsg
+requestCreateServer context project createServerRequest =
     let
         instanceNumbers =
             List.range 1 createServerRequest.count
@@ -345,15 +346,21 @@ requestCreateServer project createServerRequest =
                         Just keypairName ->
                             [ ( "key_name", Encode.string keypairName ) ]
 
+                defaultSecurityGroup =
+                    GetterSetters.projectDefaultSecurityGroup context project
+
+                defaultSecurityGroupName =
+                    defaultSecurityGroup.name
+
                 securityGroupName =
                     case createServerRequest.securityGroupUuid of
                         Nothing ->
-                            "exosphere"
+                            defaultSecurityGroupName
 
                         Just uuid ->
                             case GetterSetters.securityGroupLookup project uuid of
                                 Nothing ->
-                                    "exosphere"
+                                    defaultSecurityGroupName
 
                                 Just sg ->
                                     sg.name
