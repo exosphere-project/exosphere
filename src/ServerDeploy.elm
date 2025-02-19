@@ -1,23 +1,34 @@
 module ServerDeploy exposing (cloudInitUserDataTemplate)
 
+import Helpers.Multipart as Multipart
 
-cloudInitUserDataTemplate : String
-cloudInitUserDataTemplate =
-    {-
-       The virtualenv case expression is due to CentOS 7 requiring use of `virtualenv-3`,
-       Ubuntu 18 requiring `python3 -m virtualenv`, and everything else just using `virtualenv`.
-    -}
-    """Content-Type: multipart/mixed; boundary="===============2389165605550749110=="
-MIME-Version: 1.0
-Number-Attachments: 2
 
---===============2389165605550749110==
-Content-Type: text/x-shellscript; charset="us-ascii"
-MIME-Version: 1.0
-Content-Transfer-Encoding: 7bit
-Content-Disposition: attachment; filename="part-001"
+exosphereBootHook : String
+exosphereBootHook =
+    """#!/bin/bash
 
-#!/bin/bash
+# Ensure this hook only runs on the first boot
+cloud-init-per once exosphere-setup-starting /bin/true || exit 0
+
+echo on > /proc/sys/kernel/printk_devkmsg || true  # Disable console rate limiting for distros that use kmsg
+sleep 1  # Ensures that console log output from any previous command completes before the following command begins
+echo '{"status":"starting", "epoch": '$(date '+%s')'000}' | tee --append /dev/console > /dev/kmsg || true
+chmod 640 /var/log/cloud-init-output.log
+"""
+
+
+exosphereSetupRunning : String
+exosphereSetupRunning =
+    """#!/bin/bash
+
+sleep 1  # Ensures that console log output from any previous command completes before the following command begins
+echo '{"status":"running", "epoch": '$(date '+%s')'000}' | tee --append /dev/console > /dev/kmsg || true
+"""
+
+
+exosphereAnsibleSetup : String
+exosphereAnsibleSetup =
+    """#!/bin/bash
 set +e
 
 retry() {
@@ -37,10 +48,6 @@ retry() {
   return 1
 }
 
-echo on > /proc/sys/kernel/printk_devkmsg || true  # Disable console rate limiting for distros that use kmsg
-sleep 1  # Ensures that console log output from any previous command completes before the following command begins
-echo '{"status":"running", "epoch": '$(date '+%s')'000}' | tee --append /dev/console > /dev/kmsg || true
-chmod 640 /var/log/cloud-init-output.log
 {create-cluster-command}
 (which apt-get && retry apt-get install -y python3-venv) # Install python3-venv on Debian-based platforms
 (which yum     && retry yum install -y python3)      # Install python3 on RHEL-based platforms
@@ -61,12 +68,12 @@ ANSIBLE_RETURN_CODE=$?
 if [ $ANSIBLE_RETURN_CODE -eq 0 ]; then STATUS="complete"; else STATUS="error"; fi
 sleep 1  # Ensures that console log output from any previous commands complete before the following command begins
 echo '{"status":"'$STATUS'", "epoch": '$(date '+%s')'000}' | tee --append /dev/console > /dev/kmsg || true
+"""
 
---===============2389165605550749110==
-Content-Type: text/cloud-config; charset="us-ascii"
-MIME-Version: 1.0
-Content-Transfer-Encoding: 7bit
-Content-Disposition: attachment; filename="part-002"
+
+exosphereCloudConfig : String
+exosphereCloudConfig =
+    """#cloud-config
 
 users:
   - default
@@ -79,6 +86,17 @@ package_update: true
 package_upgrade: {install-os-updates}
 packages:
   - git{write-files}
-
---===============2389165605550749110==--
 """
+
+
+cloudInitUserDataTemplate : String
+cloudInitUserDataTemplate =
+    Multipart.mixed (Multipart.boundary "===============exosphere-user-data==")
+        |> Multipart.addAttachment "text/cloud-boothook" "00-exosphere-boothook.sh" [] exosphereBootHook
+        |> Multipart.addAttachment "text/x-shellscript" "00-exosphere-setup-running.sh" [] exosphereSetupRunning
+        |> Multipart.addAttachment "text/x-shellscript" "90-exosphere-ansible-setup.sh" [] exosphereAnsibleSetup
+        |> Multipart.addAttachment "text/cloud-config" "exosphere.yml" [] exosphereCloudConfig
+        |> Multipart.string
+        -- Strip carriage returns, cloud-init doesn't require them when parsing
+        -- but trailing carriage returns sometimes get left on shellscripts
+        |> String.replace "\u{000D}" ""
