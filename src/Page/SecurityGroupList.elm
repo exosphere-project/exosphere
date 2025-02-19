@@ -1,5 +1,6 @@
 module Page.SecurityGroupList exposing (Model, Msg, init, update, view)
 
+import Dict
 import Element
 import Element.Font as Font
 import FeatherIcons
@@ -25,6 +26,7 @@ import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
+import Widget
 
 
 type alias Model =
@@ -263,57 +265,72 @@ securityGroupView context project currentTime securityGroupRecord =
                 -- Reveal the delete option once we know how many servers might be affected.
                 Done ->
                     let
-                        protected =
-                            securityGroupTaggedAs securityGroupExoTags.preset securityGroupRecord.securityGroup
-                                || isDefaultSecurityGroup context project securityGroupRecord.securityGroup
+                        securityGroupAction =
+                            Dict.get securityGroupRecord.id project.securityGroupActions
 
-                        deleteBtn togglePopconfirmMsg _ =
-                            deleteIconButton
-                                context.palette
-                                False
-                                ("Delete " ++ context.localization.securityGroup)
-                                (if protected then
-                                    Nothing
-
-                                 else
-                                    Just togglePopconfirmMsg
-                                )
-
-                        deletePopconfirmId =
-                            Helpers.String.hyphenate
-                                [ "securityGroupListDeletePopconfirm"
-                                , project.auth.project.uuid
-                                , securityGroupRecord.id
-                                ]
+                        deletionInProgress =
+                            securityGroupAction
+                                |> Maybe.map .pendingDeletion
+                                |> Maybe.withDefault False
                     in
-                    popover context
-                        (\deletePopconfirmId_ -> SharedMsg <| SharedMsg.TogglePopover deletePopconfirmId_)
-                        { id = deletePopconfirmId
-                        , content =
-                            \confirmEl ->
-                                Element.column [ Element.spacing spacer.px8, Element.padding spacer.px4 ] <|
-                                    [ deletePopconfirmContent
-                                        context.palette
-                                        { confirmation =
-                                            Element.column [ Element.spacingXY spacer.px4 spacer.px12 ]
-                                                [ Element.text <|
-                                                    "Are you sure you want to delete this "
-                                                        ++ context.localization.securityGroup
-                                                        ++ "?"
-                                                , warningSecurityGroupAffectsServers context project securityGroupRecord.id
-                                                ]
-                                        , buttonText = Nothing
-                                        , onCancel = Just NoOp
-                                        , onConfirm = Just <| GotDeleteConfirm securityGroupRecord.securityGroup
-                                        }
-                                        confirmEl
+                    if deletionInProgress then
+                        Widget.circularProgressIndicator
+                            (SH.materialStyle context.palette).progressIndicator
+                            Nothing
+
+                    else
+                        let
+                            protected =
+                                securityGroupTaggedAs securityGroupExoTags.preset securityGroupRecord.securityGroup
+                                    || isDefaultSecurityGroup context project securityGroupRecord.securityGroup
+
+                            deleteBtn togglePopconfirmMsg _ =
+                                deleteIconButton
+                                    context.palette
+                                    False
+                                    ("Delete " ++ context.localization.securityGroup)
+                                    (if protected then
+                                        Nothing
+
+                                     else
+                                        Just togglePopconfirmMsg
+                                    )
+
+                            deletePopconfirmId =
+                                Helpers.String.hyphenate
+                                    [ "securityGroupListDeletePopconfirm"
+                                    , project.auth.project.uuid
+                                    , securityGroupRecord.id
                                     ]
-                        , contentStyleAttrs = []
-                        , position = ST.PositionBottomRight
-                        , distanceToTarget = Nothing
-                        , target = deleteBtn
-                        , targetStyleAttrs = []
-                        }
+                        in
+                        popover context
+                            (\deletePopconfirmId_ -> SharedMsg <| SharedMsg.TogglePopover deletePopconfirmId_)
+                            { id = deletePopconfirmId
+                            , content =
+                                \confirmEl ->
+                                    Element.column [ Element.spacing spacer.px8, Element.padding spacer.px4 ] <|
+                                        [ deletePopconfirmContent
+                                            context.palette
+                                            { confirmation =
+                                                Element.column [ Element.spacingXY spacer.px4 spacer.px12 ]
+                                                    [ Element.text <|
+                                                        "Are you sure you want to delete this "
+                                                            ++ context.localization.securityGroup
+                                                            ++ "?"
+                                                    , warningSecurityGroupAffectsServers context project securityGroupRecord.id
+                                                    ]
+                                            , buttonText = Nothing
+                                            , onCancel = Just NoOp
+                                            , onConfirm = Just <| GotDeleteConfirm securityGroupRecord.securityGroup
+                                            }
+                                            confirmEl
+                                        ]
+                            , contentStyleAttrs = []
+                            , position = ST.PositionBottomRight
+                            , distanceToTarget = Nothing
+                            , target = deleteBtn
+                            , targetStyleAttrs = []
+                            }
 
                 _ ->
                     Element.none

@@ -406,6 +406,7 @@ requestCreateDefaultSecurityGroup project securityGroup =
             securityGroupDecoder
         )
 
+
 requestDeleteSecurityGroup : Project -> OSTypes.SecurityGroupUuid -> Cmd SharedMsg
 requestDeleteSecurityGroup project securityGroupUuid =
     let
@@ -434,6 +435,7 @@ requestDeleteSecurityGroup project securityGroupUuid =
         (expectStringWithErrorBody
             resultToMsg
         )
+
 
 requestUpdateSecurityGroup :
     Project
