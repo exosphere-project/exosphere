@@ -27,6 +27,7 @@ import Style.Widgets.StatusBadge as StatusBadge
 import Style.Widgets.Tag exposing (tagNeutral, tagPositive)
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
+import Style.Widgets.Validation as Validation
 import Time
 import Types.Project exposing (Project)
 import Types.Server exposing (Server)
@@ -37,23 +38,29 @@ import Widget
 
 
 type alias Model =
-    { securityGroupUuid : OSTypes.SecurityGroupUuid
+    { deletePendingConfirmation : Maybe OSTypes.SecurityGroupUuid
+    , securityGroupUuid : OSTypes.SecurityGroupUuid
     }
 
 
 type Msg
-    = SharedMsg SharedMsg.SharedMsg
+    = GotDeleteNeedsConfirm (Maybe OSTypes.SecurityGroupUuid)
+    | SharedMsg SharedMsg.SharedMsg
 
 
 init : OSTypes.SecurityGroupUuid -> Model
 init securityGroupUuid =
-    { securityGroupUuid = securityGroupUuid
+    { deletePendingConfirmation = Nothing
+    , securityGroupUuid = securityGroupUuid
     }
 
 
 update : Msg -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
 update msg model =
     case msg of
+        GotDeleteNeedsConfirm securityGroupUuid ->
+            ( { model | deletePendingConfirmation = securityGroupUuid }, Cmd.none, SharedMsg.NoOp )
+
         SharedMsg sharedMsg ->
             ( model, Cmd.none, sharedMsg )
 
@@ -211,8 +218,121 @@ serversTable context project { servers, progress, currentTime } =
             table
 
 
+warningSecurityGroupAffectsServers : View.Types.Context -> Project -> OSTypes.SecurityGroupUuid -> Element.Element msg
+warningSecurityGroupAffectsServers context project securityGroupUuid =
+    let
+        serversAffected =
+            GetterSetters.serversForSecurityGroup project securityGroupUuid
+                |> .servers
+
+        numberOfServers =
+            List.length serversAffected
+    in
+    if numberOfServers == 0 then
+        Element.none
+
+    else
+        let
+            { locale } =
+                context
+        in
+        Element.el
+            [ Element.width Element.shrink, Element.alignLeft ]
+        <|
+            Validation.warningMessage context.palette <|
+                String.join " "
+                    [ "Deleting this"
+                    , context.localization.securityGroup
+                    , "will affect"
+                    , numberOfServers
+                        |> humanCount { locale | decimals = Exact 0 }
+                    , (context.localization.virtualComputer |> Helpers.String.pluralizeCount numberOfServers) ++ "."
+                    ]
+
+
+renderConfirmation : View.Types.Context -> Maybe Msg -> Maybe Msg -> String -> List (Element.Attribute Msg) -> Element.Element Msg
+renderConfirmation context actionMsg cancelMsg title closeActionsAttributes =
+    Element.row
+        [ Element.spacing spacer.px12, Element.width (Element.fill |> Element.minimum 280) ]
+        [ Element.text title
+        , Element.el
+            (Element.alignRight :: closeActionsAttributes)
+          <|
+            Button.button
+                Button.Danger
+                context.palette
+                { text = "Yes"
+                , onPress = actionMsg
+                }
+        , Element.el
+            [ Element.alignRight ]
+          <|
+            Button.button
+                Button.Secondary
+                context.palette
+                { text = "No"
+                , onPress = cancelMsg
+                }
+        ]
+
+
+renderDeleteAction : View.Types.Context -> Project -> Model -> { preset : Bool, default : Bool } -> Maybe Msg -> Maybe (Element.Attribute Msg) -> List (Element.Element Msg)
+renderDeleteAction context project model { preset, default } actionMsg closeActionsDropdown =
+    [ case model.deletePendingConfirmation of
+        Just _ ->
+            let
+                additionalBtnAttribs =
+                    case closeActionsDropdown of
+                        Just closeActionsDropdown_ ->
+                            [ closeActionsDropdown_ ]
+
+                        Nothing ->
+                            []
+            in
+            renderConfirmation
+                context
+                actionMsg
+                (Just <|
+                    GotDeleteNeedsConfirm Nothing
+                )
+                "Are you sure?"
+                additionalBtnAttribs
+
+        Nothing ->
+            Element.row
+                [ Element.spacing spacer.px12, Element.width (Element.fill |> Element.minimum 280) ]
+                [ Element.text
+                    (case ( preset, default ) of
+                        ( True, _ ) ->
+                            "Preset " ++ (context.localization.securityGroup |> Helpers.String.pluralize) ++ " cannot be deleted."
+
+                        ( _, True ) ->
+                            "Default " ++ (context.localization.securityGroup |> Helpers.String.pluralize) ++ " cannot be deleted."
+
+                        _ ->
+                            "Delete " ++ context.localization.securityGroup ++ "?"
+                    )
+                , Element.el
+                    [ Element.alignRight ]
+                  <|
+                    Button.button
+                        Button.Danger
+                        context.palette
+                        { text = "Delete"
+                        , onPress =
+                            if preset || default then
+                                Nothing
+
+                            else
+                                Just <| GotDeleteNeedsConfirm <| Just model.securityGroupUuid
+                        }
+                ]
+    , warningSecurityGroupAffectsServers context project model.securityGroupUuid
+    ]
+
+
 securityGroupActionsDropdown : View.Types.Context -> Project -> Model -> SecurityGroup -> { preset : Bool, default : Bool } -> Element.Element Msg
-securityGroupActionsDropdown context project _ securityGroup { preset, default } =
+securityGroupActionsDropdown context project model securityGroup { preset, default } =
     let
         dropdownId =
             [ "securityGroupActionsDropdown", project.auth.project.uuid, securityGroup.uuid ]
@@ -220,8 +340,8 @@ securityGroupActionsDropdown context project _ securityGroup { preset, default }
                 |> String.concat
 
         dropdownContent closeDropdown =
-            Element.column [ Element.spacing spacer.px8 ] <|
-                [ Element.row
+            Element.column [ Element.spacing spacer.px12 ] <|
+                Element.row
                     [ Element.spacing spacer.px12, Element.width (Element.fill |> Element.minimum 280) ]
                     [ Element.text
                         (case ( default, preset ) of
@@ -243,7 +363,7 @@ securityGroupActionsDropdown context project _ securityGroup { preset, default }
                         <|
                             Button.button
                                 (if preset then
-                                    Button.Danger
+                                    Button.DangerSecondary
 
                                  else
                                     Button.Primary
@@ -270,7 +390,17 @@ securityGroupActionsDropdown context project _ securityGroup { preset, default }
                                             )
                                 }
                     ]
-                ]
+                    :: renderDeleteAction context
+                        project
+                        model
+                        { preset = preset, default = default }
+                        (Just <|
+                            SharedMsg <|
+                                (SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
+                                    SharedMsg.RequestDeleteSecurityGroup securityGroup
+                                )
+                        )
+                        (Just closeDropdown)
 
         dropdownTarget toggleDropdownMsg dropdownIsShown =
             Widget.iconButton
