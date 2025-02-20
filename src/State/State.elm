@@ -2104,30 +2104,48 @@ processProjectSpecificMsg outerModel project msg =
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
-        ReceiveCreateDefaultSecurityGroup errorContext result template ->
+        RequestCreateSecurityGroup securityGroupTemplate ->
+            let
+                newSecurityGroupAction =
+                    { initSecurityGroupAction | pendingCreation = True }
+
+                newProject =
+                    { project
+                        | securityGroupActions =
+                            -- FIXME: We should be using a uuid but we don't have one.
+                            Dict.insert securityGroupTemplate.name
+                                newSecurityGroupAction
+                                project.securityGroupActions
+                    }
+
+                newModel =
+                    GetterSetters.modelUpdateProject sharedModel newProject
+            in
+            ( newModel, Rest.Neutron.requestCreateSecurityGroup project securityGroupTemplate )
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
+        ReceiveCreateSecurityGroup errorContext template result ->
+            let
+                newProject =
+                    { project
+                        | securityGroupActions = Dict.remove template.name project.securityGroupActions
+                    }
+            in
             case result of
                 Ok group ->
-                    Rest.Neutron.receiveCreateDefaultSecurityGroupAndRequestCreateRules sharedModel project group template
+                    Rest.Neutron.receiveCreateSecurityGroupAndRequestCreateRules sharedModel newProject template group
+                        -- TODO: Make the page aware of the shared msg.
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
                 Err httpError ->
                     let
-                        oldSecurityGroups =
-                            project.securityGroups.data
-
-                        newProject =
-                            { project
-                                | securityGroups =
-                                    RDPP.RemoteDataPlusPlus
-                                        oldSecurityGroups
-                                        (RDPP.NotLoading (Just ( httpError, sharedModel.clientCurrentTime )))
-                            }
-
                         newModel =
                             GetterSetters.modelUpdateProject sharedModel newProject
                     in
                     State.Error.processSynchronousApiError newModel errorContext httpError
+                        -- TODO: Make the page aware of the shared msg.
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 

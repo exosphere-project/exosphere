@@ -75,6 +75,7 @@ type ProjectSpecificMsgConstructor
     | RequestAssignFloatingIp OSTypes.Port OSTypes.IpAddressUuid
     | RequestUnassignFloatingIp OSTypes.IpAddressUuid
     | RequestDeleteImage OSTypes.ImageUuid
+    | RequestCreateSecurityGroup OSTypes.SecurityGroupTemplate
     | RequestDeleteSecurityGroup OSTypes.SecurityGroup
     | RequestUpdateSecurityGroup OSTypes.SecurityGroup OSTypes.SecurityGroupUpdate
     | RequestUpdateSecurityGroupTags OSTypes.SecurityGroupUuid (List OSTypes.SecurityGroupTag)
@@ -99,7 +100,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveDnsRecordSets (List OpenStack.DnsRecordSet.DnsRecordSet)
     | ReceiveCreateDnsRecordSet ErrorContext (Result HttpErrorWithBody OpenStack.DnsRecordSet.DnsRecordSet)
     | ReceiveDeleteDnsRecordSet ErrorContext (Result HttpErrorWithBody OpenStack.DnsRecordSet.DnsRecordSet)
-    | ReceiveCreateDefaultSecurityGroup ErrorContext (Result HttpErrorWithBody OSTypes.SecurityGroup) OSTypes.SecurityGroupTemplate
+    | ReceiveCreateSecurityGroup ErrorContext OSTypes.SecurityGroupTemplate (Result HttpErrorWithBody OSTypes.SecurityGroup)
     | ReceiveCreateSecurityGroupRule ErrorContext OSTypes.SecurityGroupUuid (Result HttpErrorWithBody SecurityGroupRule.SecurityGroupRule)
     | ReceiveDeleteSecurityGroupRule ErrorContext ( OSTypes.SecurityGroupUuid, SecurityGroupRule.SecurityGroupRuleUuid ) (Result Http.Error ())
     | ReceiveDeleteSecurityGroup ErrorContext OSTypes.SecurityGroupUuid (Result HttpErrorWithBody ())

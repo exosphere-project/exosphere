@@ -2,7 +2,8 @@ module Types.SecurityGroupActions exposing (SecurityGroupAction, initSecurityGro
 
 
 type alias SecurityGroupAction =
-    { pendingDeletion : Bool
+    { pendingCreation : Bool
+    , pendingDeletion : Bool
     , pendingServerChanges :
         { updates : Int
         , errors : List String
@@ -12,6 +13,7 @@ type alias SecurityGroupAction =
 
 initSecurityGroupAction : SecurityGroupAction
 initSecurityGroupAction =
-    { pendingDeletion = False
+    { pendingCreation = False
+    , pendingDeletion = False
     , pendingServerChanges = { updates = 0, errors = [] }
     }
