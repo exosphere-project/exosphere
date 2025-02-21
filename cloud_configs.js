@@ -136,9 +136,16 @@ var cloud_configs = {
           disallowedActions: ["Suspend"],
         },
         {
-          matchOn: "g3..*",
-          title: "GPU",
+          matchOn: "g3.(small|medium|large)",
+          title: "Partial GPU",
           description: "These have a graphics processing unit.",
+          disallowedActions: ["Suspend"],
+        },
+        {
+          matchOn: "g3.\\d?xl",
+          title: "Full GPU",
+          description:
+            "Full-GPU instances cannot resize to partial-GPU after creation.",
           disallowedActions: ["Suspend", "Resize"],
         },
         {
