@@ -31,6 +31,7 @@ import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
 import Style.Widgets.Validation as Validation
 import Time
+import Types.Error as Error
 import Types.Project exposing (Project)
 import Types.Server exposing (Server)
 import Types.SharedModel exposing (SharedModel)
@@ -63,6 +64,7 @@ type Msg
     | GotEditSecurityGroupForm OSTypes.SecurityGroupUuid
     | GotDone
     | GotServerSecurityGroups OSTypes.ServerUuid
+    | GotCreateSecurityGroupResult OSTypes.SecurityGroupTemplate (Result Error.HttpErrorWithBody OSTypes.SecurityGroup)
     | GotCreateSecurityGroupRuleResult OSTypes.SecurityGroupUuid (Result String ())
     | GotDeleteSecurityGroupRuleResult OSTypes.SecurityGroupUuid (Result String ())
     | GotUpdateSecurityGroupResult OSTypes.SecurityGroupUuid (Result String OSTypes.SecurityGroup)
@@ -159,6 +161,37 @@ update msg sharedModel project model =
 
         GotDone ->
             ( model, Route.pushUrl sharedModel.viewContext (Route.ProjectRoute (GetterSetters.projectIdentifier project) (Route.ServerDetail model.serverUuid)), SharedMsg.NoOp )
+
+        GotCreateSecurityGroupResult template result ->
+            case model.securityGroupForm of
+                Just form ->
+                    -- Names ought to be unique within the project.
+                    if form.name == template.name then
+                        case result of
+                            Ok securityGroup ->
+                                ( { model
+                                    -- Update the form to use the existing security group with uuid.
+                                    | securityGroupForm = Just <| SecurityGroupForm.initWithSecurityGroup securityGroup
+                                    , securityGroupFormSubmitted = False
+                                  }
+                                , Cmd.none
+                                , SharedMsg.NoOp
+                                )
+
+                            Err _ ->
+                                -- TODO: Parse the error.
+                                ( { model
+                                    | securityGroupFormSubmitted = False
+                                  }
+                                , Cmd.none
+                                , SharedMsg.NoOp
+                                )
+
+                    else
+                        ( model, Cmd.none, SharedMsg.NoOp )
+
+                Nothing ->
+                    ( model, Cmd.none, SharedMsg.NoOp )
 
         GotServerSecurityGroups serverUuid ->
             -- SharedModel just updated with new security groups for this server.
@@ -268,6 +301,21 @@ update msg sharedModel project model =
 
         SecurityGroupFormMsg securityGroupFormMsg ->
             case securityGroupFormMsg of
+                SecurityGroupForm.GotRequestCreateSecurityGroup ->
+                    case model.securityGroupForm of
+                        Just form ->
+                            ( { model
+                                -- TODO: The project model should track these updates.
+                                | securityGroupFormSubmitted = True
+                              }
+                            , Cmd.none
+                            , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
+                                SharedMsg.RequestCreateSecurityGroup (SecurityGroupForm.securityGroupTemplateFromForm <| form)
+                            )
+
+                        _ ->
+                            ( model, Cmd.none, SharedMsg.NoOp )
+
                 SecurityGroupForm.GotRequestUpdateSecurityGroup securityGroupUuid ->
                     case ( GetterSetters.securityGroupLookup project securityGroupUuid, model.securityGroupForm ) of
                         ( Just existingSecurityGroup, Just form ) ->

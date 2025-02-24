@@ -2134,10 +2134,13 @@ processProjectSpecificMsg outerModel project msg =
             in
             case result of
                 Ok group ->
+                    -- FIXME: Substitute in a new `securityGroupAction` with the uuid.
                     Rest.Neutron.receiveCreateSecurityGroupAndRequestCreateRules sharedModel newProject template group
-                        -- TODO: Make the page aware of the shared msg.
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
+                        -- FIXME: Update the page form when the security group rules are updated.
+                        -- Make the page aware of the shared msg.
+                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerSecurityGroupsMsg <| Page.ServerSecurityGroups.GotCreateSecurityGroupResult template result))
 
                 Err httpError ->
                     let
@@ -2145,9 +2148,10 @@ processProjectSpecificMsg outerModel project msg =
                             GetterSetters.modelUpdateProject sharedModel newProject
                     in
                     State.Error.processSynchronousApiError newModel errorContext httpError
-                        -- TODO: Make the page aware of the shared msg.
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
+                        -- Make the page aware of the shared msg.
+                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerSecurityGroupsMsg <| Page.ServerSecurityGroups.GotCreateSecurityGroupResult template result))
 
         ReceiveCreateSecurityGroupRule errorContext securityGroupUuid result ->
             case result of

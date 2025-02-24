@@ -1,4 +1,4 @@
-module Page.SecurityGroupForm exposing (Model, Msg(..), init, initWithSecurityGroup, securityGroupUpdateFromForm, update, view)
+module Page.SecurityGroupForm exposing (Model, Msg(..), init, initWithSecurityGroup, securityGroupTemplateFromForm, securityGroupUpdateFromForm, update, view)
 
 import Element exposing (paddingEach)
 import Element.Border as Border
@@ -23,7 +23,7 @@ import OpenStack.SecurityGroupRule
         , portRangeToString
         , protocolToString
         )
-import OpenStack.Types exposing (SecurityGroup, SecurityGroupUpdate, SecurityGroupUuid, ServerUuid)
+import OpenStack.Types exposing (SecurityGroup, SecurityGroupTemplate, SecurityGroupUpdate, SecurityGroupUuid, ServerUuid)
 import Page.SecurityGroupRuleForm as SecurityGroupRuleForm
 import Page.SecurityGroupRulesTable as SecurityGroupRulesTable
 import Style.Helpers as SH
@@ -63,7 +63,6 @@ type alias Model =
 
 init : { name : String } -> Model
 init { name } =
-    -- TODO: Optionally init from an existing security group.
     { uuid = Nothing
     , name = name
     , description = Nothing
@@ -86,6 +85,15 @@ securityGroupUpdateFromForm : Model -> SecurityGroupUpdate
 securityGroupUpdateFromForm model =
     { name = String.trim model.name
     , description = model.description |> Maybe.map String.trim
+    , rules = List.map OpenStack.SecurityGroupRule.securityGroupRuleToTemplate model.rules
+    }
+
+
+securityGroupTemplateFromForm : Model -> SecurityGroupTemplate
+securityGroupTemplateFromForm model =
+    { name = model.name
+    , description = model.description
+    , regionId = Nothing
     , rules = List.map OpenStack.SecurityGroupRule.securityGroupRuleToTemplate model.rules
     }
 
