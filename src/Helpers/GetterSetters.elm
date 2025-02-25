@@ -51,7 +51,9 @@ module Helpers.GetterSetters exposing
     , projectSetVolumesLoading
     , projectUpdateKeypair
     , projectUpdateSecurityGroup
+    , projectUpdateSecurityGroupActionsIfExists
     , projectUpdateServer
+    , projectUpsertSecurityGroupActions
     , sanitizeMountpoint
     , securityGroupLookup
     , securityGroupsFromServerSecurityGroups
@@ -93,6 +95,7 @@ import Time
 import Types.Error
 import Types.HelperTypes as HelperTypes
 import Types.Project exposing (Project)
+import Types.SecurityGroupActions as SecurityGroupActions exposing (SecurityGroupAction)
 import Types.Server exposing (ExoServerVersion, Server, ServerOrigin(..))
 import Types.SharedModel exposing (SharedModel)
 import View.Types exposing (Context)
@@ -1134,4 +1137,38 @@ projectDeleteSecurityGroupActions : Project -> OSTypes.SecurityGroupUuid -> Proj
 projectDeleteSecurityGroupActions project securityGroupUuid =
     { project
         | securityGroupActions = Dict.remove securityGroupUuid project.securityGroupActions
+    }
+
+
+projectUpsertSecurityGroupActions : Project -> OSTypes.SecurityGroupUuid -> (SecurityGroupAction -> SecurityGroupAction) -> Project
+projectUpsertSecurityGroupActions project securityGroupUuid onUpdateAction =
+    let
+        securityGroupActions =
+            Dict.update securityGroupUuid
+                (\actions_ ->
+                    let
+                        actions =
+                            Maybe.withDefault SecurityGroupActions.initSecurityGroupAction actions_
+                    in
+                    Just <| onUpdateAction actions
+                )
+                project.securityGroupActions
+    in
+    { project
+        | securityGroupActions =
+            securityGroupActions
+    }
+
+
+projectUpdateSecurityGroupActionsIfExists : Project -> OSTypes.SecurityGroupUuid -> (SecurityGroupAction -> SecurityGroupAction) -> Project
+projectUpdateSecurityGroupActionsIfExists project securityGroupUuid onUpdateActions =
+    let
+        securityGroupActions =
+            Dict.update securityGroupUuid
+                (Maybe.map onUpdateActions)
+                project.securityGroupActions
+    in
+    { project
+        | securityGroupActions =
+            securityGroupActions
     }
