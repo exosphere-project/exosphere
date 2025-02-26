@@ -190,10 +190,8 @@ update msg model =
             ( model, Cmd.none )
 
         GotRequestCreateSecurityGroup ->
-            ( model
-              -- TODO: Send a command to create the security group.
-            , Cmd.none
-            )
+            -- Expect the form owner to handle this.
+            ( model, Cmd.none )
 
         GotRequestUpdateSecurityGroup _ ->
             -- Expect the form owner to handle this.

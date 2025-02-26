@@ -2130,8 +2130,27 @@ processProjectSpecificMsg outerModel project msg =
             in
             case result of
                 Ok group ->
-                    -- FIXME: Substitute in a new `securityGroupAction` with the uuid.
-                    Rest.Neutron.receiveCreateSecurityGroupAndRequestCreateRules sharedModel newProject template group
+                    -- Substitute in a new `securityGroupAction` with the uuid.
+                    let
+                        existingRules =
+                            group.rules
+
+                        intendedRules =
+                            template.rules |> List.map SecurityGroupRule.securityGroupRuleTemplateToRule
+
+                        { missing, extra } =
+                            SecurityGroupRule.compareSecurityGroupRuleLists existingRules intendedRules
+
+                        newerProject =
+                            GetterSetters.projectUpsertSecurityGroupActions newProject
+                                group.uuid
+                                (\actions ->
+                                    { actions
+                                        | pendingRuleChanges = { creations = List.length missing, deletions = List.length extra, errors = [] }
+                                    }
+                                )
+                    in
+                    Rest.Neutron.receiveCreateSecurityGroupAndRequestCreateRules sharedModel newerProject template group
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
                         -- Make the page aware of the shared msg.

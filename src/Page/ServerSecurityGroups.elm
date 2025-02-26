@@ -48,6 +48,7 @@ type alias Model =
     , selectedSecurityGroups : DataDependent (Set.Set OSTypes.SecurityGroupUuid)
     , securityGroupForm : Maybe SecurityGroupForm.Model
     , securityGroupFormSubmitted : Bool
+    , securityGroupBeingCreated : Bool
     }
 
 
@@ -109,6 +110,7 @@ init project serverUuid =
     , securityGroupForm =
         Nothing
     , securityGroupFormSubmitted = False
+    , securityGroupBeingCreated = False
     }
 
 
@@ -138,8 +140,24 @@ update msg sharedModel project model =
                             Ok securityGroup ->
                                 ( { model
                                     -- Update the form to use the existing security group with uuid.
-                                    | securityGroupForm = Just <| SecurityGroupForm.initWithSecurityGroup securityGroup
-                                    , securityGroupFormSubmitted = False
+                                    | securityGroupForm =
+                                        let
+                                            { creations, deletions } =
+                                                Dict.get securityGroup.uuid project.securityGroupActions
+                                                    |> Maybe.withDefault SecurityGroupActions.initSecurityGroupAction
+                                                    |> .pendingRuleChanges
+
+                                            securityGroupForm =
+                                                SecurityGroupForm.initWithSecurityGroup securityGroup
+                                        in
+                                        if creations == 0 && deletions == 0 then
+                                            Just securityGroupForm
+
+                                        else
+                                            -- Except that we retain the intended form rules if there are pending changes.
+                                            -- (And we expect there to be because new security groups are created with default rules.)
+                                            Just <| { securityGroupForm | rules = form.rules }
+                                    , securityGroupBeingCreated = False
                                   }
                                 , Cmd.none
                                 , SharedMsg.NoOp
@@ -147,9 +165,7 @@ update msg sharedModel project model =
 
                             Err _ ->
                                 -- TODO: Parse the error.
-                                ( { model
-                                    | securityGroupFormSubmitted = False
-                                  }
+                                ( { model | securityGroupBeingCreated = False }
                                 , Cmd.none
                                 , SharedMsg.NoOp
                                 )
@@ -196,8 +212,8 @@ update msg sharedModel project model =
                     case model.securityGroupForm of
                         Just form ->
                             ( { model
-                                -- TODO: The project model should track these updates.
                                 | securityGroupFormSubmitted = True
+                                , securityGroupBeingCreated = True
                               }
                             , Cmd.none
                             , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
@@ -225,6 +241,7 @@ update msg sharedModel project model =
                     ( { model
                         | securityGroupForm = Nothing
                         , securityGroupFormSubmitted = False
+                        , securityGroupBeingCreated = False
                       }
                     , Cmd.none
                     , SharedMsg.NoOp
@@ -244,6 +261,7 @@ update msg sharedModel project model =
                     ( { model
                         | securityGroupForm = Just securityGroupForm
                         , securityGroupFormSubmitted = False
+                        , securityGroupBeingCreated = False
                       }
                     , Cmd.none
                     , SharedMsg.NoOp
@@ -257,6 +275,7 @@ update msg sharedModel project model =
             ( { model
                 | securityGroupForm = Just <| securityGroupForm
                 , securityGroupFormSubmitted = False
+                , securityGroupBeingCreated = False
               }
             , Cmd.none
             , SharedMsg.NoOp
@@ -275,6 +294,7 @@ update msg sharedModel project model =
             ( { model
                 | securityGroupForm = Just <| securityGroupForm
                 , securityGroupFormSubmitted = False
+                , securityGroupBeingCreated = False
               }
             , Cmd.none
             , SharedMsg.NoOp
@@ -665,6 +685,22 @@ renderSecurityGroupListAndRules context project currentTime model securityGroups
                                 (Just model.serverUuid)
                                 |> Element.map SecurityGroupFormMsg
                             ]
+                        , if action.pendingCreation then
+                            Element.row [ Element.spacing spacer.px16, Element.centerX ]
+                                [ Widget.circularProgressIndicator
+                                    (SH.materialStyle context.palette).progressIndicator
+                                    Nothing
+                                , Element.text <|
+                                    String.join " "
+                                        [ "Creating"
+                                        , context.localization.securityGroup
+                                            |> Helpers.String.toTitleCase
+                                        , "..."
+                                        ]
+                                ]
+
+                          else
+                            Element.none
                         , let
                             updates =
                                 action.pendingSecurityGroupChanges.updates
@@ -701,6 +737,8 @@ renderSecurityGroupListAndRules context project currentTime model securityGroups
                             Element.none
                         , if
                             model.securityGroupFormSubmitted
+                                && not model.securityGroupBeingCreated
+                                && not action.pendingCreation
                                 && action.pendingSecurityGroupChanges
                                 == initPendingSecurityGroupChanges
                                 && action.pendingRuleChanges
