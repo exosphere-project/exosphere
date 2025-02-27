@@ -1,7 +1,6 @@
 module Page.SecurityGroupForm exposing (Model, Msg(..), init, initWithSecurityGroup, securityGroupUpdateFromForm, update, view)
 
 import Element exposing (paddingEach)
-import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
@@ -10,7 +9,6 @@ import Helpers.Cidr exposing (isValidCidr)
 import Helpers.Formatting exposing (humanCount)
 import Helpers.GetterSetters as GetterSetters
 import Helpers.String exposing (pluralizeCount)
-import Html.Attributes
 import List
 import List.Extra
 import OpenStack.SecurityGroupRule
@@ -86,7 +84,8 @@ initWithSecurityGroup securityGroup =
 
 securityGroupUpdateFromForm : Model -> SecurityGroupUpdate
 securityGroupUpdateFromForm model =
-    { description = model.description
+    { name = String.trim model.name
+    , description = model.description |> Maybe.map String.trim
     , rules = List.map OpenStack.SecurityGroupRule.securityGroupRuleToTemplate model.rules
     }
 
@@ -369,27 +368,40 @@ rulesGrid context project model rules =
 view : View.Types.Context -> Project -> Time.Posix -> Model -> Maybe ServerUuid -> Element.Element Msg
 view context project currentTime model maybeServerUuid =
     let
-        isExistingRule =
-            model.uuid /= Nothing
+        existingSecurityGroupName =
+            model.uuid |> Maybe.andThen (GetterSetters.securityGroupLookup project) |> Maybe.map .name
 
         numberOfInvalidRules =
             List.length <| List.filter (not << isRuleValid) model.rules
 
-        isFormValid =
+        renderInvalidReason reason =
+            case reason of
+                Just r ->
+                    r |> Validation.invalidMessage context.palette
+
+                Nothing ->
+                    Element.none
+
+        isNameValid =
+            String.isEmpty (String.trim model.name) == False
+
+        invalidReason =
+            if isNameValid then
+                Nothing
+
+            else
+                Just "Name is required"
+
+        isRuleSetValid =
             numberOfInvalidRules == 0
+
+        formPadding =
+            Element.paddingEach { top = 0, right = 0, bottom = 0, left = spacer.px64 + spacer.px12 }
     in
     Element.column [ Element.spacing spacer.px24, Element.width Element.fill ]
         [ Element.column [ Element.paddingXY spacer.px8 0, Element.spacing spacer.px12, Element.width Element.fill ] <|
             Input.text
                 (VH.inputItemAttributes context.palette
-                    ++ (if isExistingRule then
-                            [ Element.htmlAttribute (Html.Attributes.disabled True)
-                            , Background.color <| SH.toElementColor <| context.palette.muted.background
-                            ]
-
-                        else
-                            []
-                       )
                     ++ [ Element.width <| Element.minimum 240 Element.fill ]
                 )
                 { text = model.name
@@ -397,18 +409,13 @@ view context project currentTime model maybeServerUuid =
                 , onChange = GotName
                 , label =
                     Input.labelLeft []
-                        (if isExistingRule then
-                            Element.text "Name"
-
-                         else
-                            VH.requiredLabel context.palette (Element.text "Name")
-                        )
+                        (VH.requiredLabel context.palette (Element.text "Name"))
                 }
-                :: (if isExistingRule then
+                :: (if existingSecurityGroupName == Just (String.trim model.name) then
                         []
 
                     else
-                        (Text.text Text.Small [ Element.paddingEach { top = 0, right = 0, bottom = 0, left = spacer.px64 + spacer.px12 } ] <|
+                        (Text.text Text.Small [ formPadding ] <|
                             String.join " "
                                 [ "(Note:"
                                 , Helpers.String.toTitleCase <| Helpers.String.pluralize context.localization.securityGroup
@@ -417,7 +424,8 @@ view context project currentTime model maybeServerUuid =
                         )
                             :: Forms.resourceNameAlreadyExists context project currentTime { resource = Forms.SecurityGroup model.name, onSuggestionPressed = \suggestion -> GotName suggestion }
                    )
-                ++ [ Input.text
+                ++ [ Element.el [ formPadding ] <| renderInvalidReason invalidReason
+                   , Input.text
                         (VH.inputItemAttributes context.palette ++ [ Element.width <| Element.minimum 240 Element.fill ])
                         { text = model.description |> Maybe.withDefault ""
                         , placeholder = Just <| Input.placeholder [] (Element.text "Optional")
@@ -472,7 +480,7 @@ view context project currentTime model maybeServerUuid =
 
             _ ->
                 Element.none
-        , if isFormValid then
+        , if isRuleSetValid then
             Element.none
 
           else
@@ -514,6 +522,10 @@ view context project currentTime model maybeServerUuid =
               Button.button variant
                 context.palette
                 { text =
+                    let
+                        isExistingRule =
+                            model.uuid /= Nothing
+                    in
                     String.join " "
                         [ if isExistingRule then
                             "Update"
@@ -524,6 +536,10 @@ view context project currentTime model maybeServerUuid =
                             |> Helpers.String.toTitleCase
                         ]
                 , onPress =
+                    let
+                        isFormValid =
+                            isRuleSetValid && isNameValid
+                    in
                     if isFormValid then
                         case model.uuid of
                             Just securityGroupUuid ->

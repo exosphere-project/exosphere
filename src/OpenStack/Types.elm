@@ -812,7 +812,8 @@ type alias SecurityGroupTemplate =
 
 
 type alias SecurityGroupUpdate =
-    { description : Maybe String
+    { name : String
+    , description : Maybe String
     , rules : List SecurityGroupRuleTemplate
     }
 

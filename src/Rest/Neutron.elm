@@ -406,16 +406,23 @@ requestCreateDefaultSecurityGroup project securityGroup =
         )
 
 
-requestUpdateSecurityGroup : Project -> OSTypes.SecurityGroupUuid -> OSTypes.SecurityGroupUpdate -> Cmd SharedMsg
+requestUpdateSecurityGroup :
+    Project
+    -> OSTypes.SecurityGroupUuid
+    ->
+        { a
+            | name : String
+            , description : Maybe String
+        }
+    -> Cmd SharedMsg
 requestUpdateSecurityGroup project securityGroupUuid securityGroupUpdate =
     let
         requestBody =
             Encode.object
                 [ ( "security_group"
                   , Encode.object
-                        -- Updating security group name can lead to broken relationships
-                        -- because OpenStack links servers to security groups by name.
-                        [ ( "description", Encode.string <| Maybe.withDefault "" securityGroupUpdate.description )
+                        [ ( "name", Encode.string securityGroupUpdate.name )
+                        , ( "description", Encode.string <| Maybe.withDefault "" securityGroupUpdate.description )
                         ]
                   )
                 ]
