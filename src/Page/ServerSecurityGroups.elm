@@ -781,6 +781,40 @@ renderSecurityGroupListAndRules context project currentTime model securityGroups
 
                           else
                             Element.none
+                        , if isExistingSecurityGroup then
+                            let
+                                selected =
+                                    securityGroupForm.uuid
+                                        |> Maybe.map (\uuid -> isSecurityGroupSelected model uuid)
+                                        |> Maybe.withDefault False
+
+                                applied =
+                                    securityGroupForm.uuid
+                                        |> Maybe.map (isSecurityGroupApplied project model.serverUuid)
+                                        |> Maybe.withDefault False
+
+                                securityGroupWord =
+                                    context.localization.securityGroup
+
+                                serverWord =
+                                    context.localization.virtualComputer
+
+                                positioning =
+                                    Element.el
+                                        [ Element.width Element.shrink, Element.centerX, Element.paddingEach { top = spacer.px12, bottom = 0, left = 0, right = 0 } ]
+                            in
+                            case ( selected, applied ) of
+                                ( False, _ ) ->
+                                    positioning <| Validation.warningText context.palette <| "This " ++ securityGroupWord ++ " isn't currently selected for your " ++ serverWord ++ "."
+
+                                ( _, False ) ->
+                                    positioning <| Validation.warningText context.palette <| "This " ++ securityGroupWord ++ " isn't yet applied to your " ++ serverWord ++ "."
+
+                                _ ->
+                                    Element.none
+
+                          else
+                            Element.none
                         ]
 
                 Nothing ->
