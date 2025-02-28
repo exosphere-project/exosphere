@@ -7,6 +7,7 @@ module Style.Widgets.Validation exposing
     , validMessage
     , warningAlreadyExists
     , warningMessage
+    , warningText
     )
 
 import Element exposing (Element)
@@ -82,18 +83,25 @@ invalidMessage palette helperText =
         ]
 
 
-{-| Shows a message for a non-blocking but potentially problematic form field input.
+{-| Renders text for a non-blocking but potentially problematic form field input.
+-}
+warningText : ExoPalette -> String -> Element.Element msg
+warningText palette helperText =
+    Text.p
+        [ Font.color (SH.toElementColor palette.warning.textOnNeutralBG)
+        , Text.fontSize Text.Small
+        ]
+        [ Element.text helperText ]
+
+
+{-| Shows a warning icon & message for a non-blocking but potentially problematic form field input.
 -}
 warningMessage : ExoPalette -> String -> Element.Element msg
 warningMessage palette helperText =
     Element.row [ Element.spacingXY spacer.px8 0 ]
         [ Icons.alertTriangle
             |> featherIcon [ Font.color (palette.warning.textOnNeutralBG |> SH.toElementColor) ]
-        , Text.p
-            [ Font.color (SH.toElementColor palette.warning.textOnNeutralBG)
-            , Text.fontSize Text.Small
-            ]
-            [ Element.text helperText ]
+        , warningText palette helperText
         ]
 
 
