@@ -26,7 +26,7 @@ import Style.Widgets.Card
 import Style.Widgets.Icon
 import Style.Widgets.IconButton exposing (clickableIcon)
 import Style.Widgets.Spacer exposing (spacer)
-import Style.Widgets.Tag exposing (tagNeutral, tagPositive)
+import Style.Widgets.Tag exposing (tagInfo, tagNeutral, tagPositive)
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
 import Style.Widgets.Validation as Validation
@@ -446,8 +446,21 @@ securityGroupRow context project model securityGroup =
             else
                 Element.none
 
+        isBeingEdited =
+            model.securityGroupForm
+                |> Maybe.map (\form -> form.uuid == Just securityGroupUuid)
+                |> Maybe.withDefault False
+
+        editing =
+            if isBeingEdited then
+                tagInfo context.palette "editing"
+
+            else
+                Element.none
+
         tags =
-            [ preset
+            [ editing
+            , preset
             , default
             ]
 
@@ -527,7 +540,7 @@ securityGroupRow context project model securityGroup =
             , Element.row [ Element.spacing spacer.px4, Element.alignRight, Element.alignTop ]
                 (tags
                     ++ edit
-                        (if isDefault then
+                        (if isDefault || isBeingEdited then
                             -- You cannot edit the default security group.
                             Nothing
 
