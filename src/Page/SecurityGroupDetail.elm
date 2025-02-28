@@ -276,8 +276,8 @@ renderConfirmation context actionMsg cancelMsg title closeActionsAttributes =
         ]
 
 
-renderDeleteAction : View.Types.Context -> Project -> Model -> { preset : Bool, default : Bool } -> Maybe Msg -> Maybe (Element.Attribute Msg) -> List (Element.Element Msg)
-renderDeleteAction context project model { preset, default } actionMsg closeActionsDropdown =
+renderDeleteAction : View.Types.Context -> Project -> Model -> { preset : Bool, default : Bool, progress : LoadingProgress } -> Maybe Msg -> Maybe (Element.Attribute Msg) -> List (Element.Element Msg)
+renderDeleteAction context project model { preset, default, progress } actionMsg closeActionsDropdown =
     [ case model.deletePendingConfirmation of
         Just _ ->
             let
@@ -302,15 +302,18 @@ renderDeleteAction context project model { preset, default } actionMsg closeActi
             Element.row
                 [ Element.spacing spacer.px12, Element.width (Element.fill |> Element.minimum 280) ]
                 [ Element.text
-                    (case ( preset, default ) of
-                        ( True, _ ) ->
+                    (case ( preset, default, progress ) of
+                        ( True, _, _ ) ->
                             "Preset " ++ (context.localization.securityGroup |> Helpers.String.pluralize) ++ " cannot be deleted."
 
-                        ( _, True ) ->
+                        ( _, True, _ ) ->
                             "Default " ++ (context.localization.securityGroup |> Helpers.String.pluralize) ++ " cannot be deleted."
 
-                        _ ->
+                        ( False, False, Done ) ->
                             "Delete " ++ context.localization.securityGroup ++ "?"
+
+                        ( False, False, _ ) ->
+                            "Loading " ++ (context.localization.virtualComputer |> Helpers.String.pluralize) ++ "..."
                     )
                 , Element.el
                     [ Element.alignRight ]
@@ -320,7 +323,7 @@ renderDeleteAction context project model { preset, default } actionMsg closeActi
                         context.palette
                         { text = "Delete"
                         , onPress =
-                            if preset || default then
+                            if preset || default || progress /= Done then
                                 Nothing
 
                             else
@@ -331,8 +334,8 @@ renderDeleteAction context project model { preset, default } actionMsg closeActi
     ]
 
 
-securityGroupActionsDropdown : View.Types.Context -> Project -> Model -> SecurityGroup -> { preset : Bool, default : Bool } -> Element.Element Msg
-securityGroupActionsDropdown context project model securityGroup { preset, default } =
+securityGroupActionsDropdown : View.Types.Context -> Project -> Model -> SecurityGroup -> { preset : Bool, default : Bool, progress : LoadingProgress } -> Element.Element Msg
+securityGroupActionsDropdown context project model securityGroup { preset, default, progress } =
     let
         dropdownId =
             [ "securityGroupActionsDropdown", project.auth.project.uuid, securityGroup.uuid ]
@@ -393,7 +396,7 @@ securityGroupActionsDropdown context project model securityGroup { preset, defau
                     :: renderDeleteAction context
                         project
                         model
-                        { preset = preset, default = default }
+                        { preset = preset, default = default, progress = progress }
                         (Just <|
                             SharedMsg <|
                                 (SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
@@ -572,7 +575,7 @@ render context project ( currentTime, _ ) model securityGroup =
             , defaultTag
             , presetTag
             , Element.row [ Element.alignRight, Text.fontSize Text.Body, Font.regular, Element.spacing spacer.px16 ]
-                [ securityGroupActionsDropdown context project model securityGroup { preset = preset, default = default }
+                [ securityGroupActionsDropdown context project model securityGroup { preset = preset, default = default, progress = serverLookup.progress }
                 ]
             ]
         , tile
