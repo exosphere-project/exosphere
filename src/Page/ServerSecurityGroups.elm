@@ -436,8 +436,11 @@ securityGroupRow context project model securityGroup =
             else
                 Element.none
 
+        isDefault =
+            isDefaultSecurityGroup context project securityGroup
+
         default =
-            if isDefaultSecurityGroup context project securityGroup then
+            if isDefault then
                 tagNeutral context.palette "default"
 
             else
@@ -522,7 +525,17 @@ securityGroupRow context project model securityGroup =
                 [ securityGroupTextButton (ToggleSelectedGroup securityGroupUuid)
                 ]
             , Element.row [ Element.spacing spacer.px4, Element.alignRight, Element.alignTop ]
-                (tags ++ edit (Just <| GotEditSecurityGroupForm securityGroupUuid) ++ tooltip)
+                (tags
+                    ++ edit
+                        (if isDefault then
+                            -- You cannot edit the default security group.
+                            Nothing
+
+                         else
+                            Just <| GotEditSecurityGroupForm securityGroupUuid
+                        )
+                    ++ tooltip
+                )
             ]
         ]
 
