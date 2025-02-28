@@ -1026,11 +1026,10 @@ projectUpdateSecurityGroup project securityGroup =
         newSecurityGroups =
             case data of
                 -- Preserve the current loading state of security groups.
-                RDPP.DoHave _ receivedTime ->
+                RDPP.DoHave groups receivedTime ->
                     let
                         otherSecurityGroups =
-                            project.securityGroups
-                                |> RDPP.withDefault []
+                            groups
                                 |> List.filter
                                     (\sg ->
                                         sg.uuid
