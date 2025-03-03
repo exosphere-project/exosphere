@@ -12,6 +12,7 @@ import Helpers.Helpers exposing (serverCreatorName)
 import Helpers.String
 import Helpers.Time
 import OpenStack.Types as OSTypes exposing (SecurityGroup, securityGroupExoTags, securityGroupTaggedAs)
+import Page.SecurityGroupForm as SecurityGroupForm
 import Page.SecurityGroupRulesTable exposing (rulesTable)
 import Route
 import Style.Helpers as SH
@@ -40,11 +41,15 @@ import Widget
 type alias Model =
     { deletePendingConfirmation : Maybe OSTypes.SecurityGroupUuid
     , securityGroupUuid : OSTypes.SecurityGroupUuid
+    , securityGroupForm : Maybe SecurityGroupForm.Model
+    , securityGroupFormSubmitted : Bool
     }
 
 
 type Msg
     = GotDeleteNeedsConfirm (Maybe OSTypes.SecurityGroupUuid)
+    | GotEditSecurityGroupForm
+    | SecurityGroupFormMsg SecurityGroupForm.Msg
     | SharedMsg SharedMsg.SharedMsg
 
 
@@ -52,14 +57,69 @@ init : OSTypes.SecurityGroupUuid -> Model
 init securityGroupUuid =
     { deletePendingConfirmation = Nothing
     , securityGroupUuid = securityGroupUuid
+    , securityGroupForm = Nothing
+    , securityGroupFormSubmitted = False
     }
 
 
-update : Msg -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
-update msg model =
+update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
+update msg project model =
     case msg of
         GotDeleteNeedsConfirm securityGroupUuid ->
             ( { model | deletePendingConfirmation = securityGroupUuid }, Cmd.none, SharedMsg.NoOp )
+
+        GotEditSecurityGroupForm ->
+            let
+                securityGroupForm =
+                    GetterSetters.securityGroupLookup project model.securityGroupUuid
+                        |> Maybe.map SecurityGroupForm.initWithSecurityGroup
+            in
+            ( { model
+                | securityGroupForm = securityGroupForm
+                , securityGroupFormSubmitted = False
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
+
+        SecurityGroupFormMsg securityGroupFormMsg ->
+            case securityGroupFormMsg of
+                SecurityGroupForm.GotRequestUpdateSecurityGroup securityGroupUuid ->
+                    case ( GetterSetters.securityGroupLookup project securityGroupUuid, model.securityGroupForm ) of
+                        ( Just existingSecurityGroup, Just form ) ->
+                            ( { model
+                                | securityGroupFormSubmitted = True
+                              }
+                            , Cmd.none
+                            , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
+                                SharedMsg.RequestUpdateSecurityGroup existingSecurityGroup (SecurityGroupForm.securityGroupUpdateFromForm <| form)
+                            )
+
+                        _ ->
+                            ( model, Cmd.none, SharedMsg.NoOp )
+
+                SecurityGroupForm.GotCancel ->
+                    ( { model
+                        | securityGroupForm = Nothing
+                        , securityGroupFormSubmitted = False
+                      }
+                    , Cmd.none
+                    , SharedMsg.NoOp
+                    )
+
+                _ ->
+                    let
+                        securityGroupForm =
+                            model.securityGroupForm
+                                |> Maybe.map (\securityGroupForm_ -> SecurityGroupForm.update securityGroupFormMsg securityGroupForm_ |> Tuple.first)
+                    in
+                    ( { model
+                        | securityGroupForm = securityGroupForm
+                        , securityGroupFormSubmitted = False
+                      }
+                    , Cmd.none
+                    , SharedMsg.NoOp
+                    )
 
         SharedMsg sharedMsg ->
             ( model, Cmd.none, sharedMsg )
@@ -574,10 +634,42 @@ render context project ( currentTime, _ ) model securityGroup =
             , securityGroupNameView securityGroup
             , defaultTag
             , presetTag
+            , Widget.button
+                (SH.materialStyle context.palette).button
+                { text = "Edit"
+                , icon = Icon.sizedFeatherIcon 16 FeatherIcons.edit3
+                , onPress =
+                    Just GotEditSecurityGroupForm
+                }
             , Element.row [ Element.alignRight, Text.fontSize Text.Body, Font.regular, Element.spacing spacer.px16 ]
                 [ securityGroupActionsDropdown context project model securityGroup { preset = preset, default = default, progress = serverLookup.progress }
                 ]
             ]
+        , case model.securityGroupForm of
+            Just securityGroupForm ->
+                tile
+                    [ Element.text
+                        (String.join " "
+                            [ "Edit"
+                            , context.localization.securityGroup
+                                |> Helpers.String.toTitleCase
+                            ]
+                        )
+                    ]
+                    [ Element.column
+                        [ Element.spacing spacer.px16, Element.width Element.fill ]
+                        [ SecurityGroupForm.view
+                            context
+                            project
+                            currentTime
+                            securityGroupForm
+                            Nothing
+                            |> Element.map SecurityGroupFormMsg
+                        ]
+                    ]
+
+            Nothing ->
+                Element.none
         , tile
             [ FeatherIcons.list |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
             , Element.text "Info"
