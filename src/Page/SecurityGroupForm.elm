@@ -33,7 +33,9 @@ import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Style.Widgets.Validation as Validation
 import Time
+import Types.Error as Error
 import Types.Project exposing (Project)
+import Types.SharedMsg as SharedMsg
 import View.Forms as Forms
 import View.Helpers as VH
 import View.Types
@@ -49,6 +51,7 @@ type Msg
     | GotName String
     | GotCancel
     | GotRequestCreateSecurityGroup
+    | GotCreateSecurityGroupResult SecurityGroupTemplate (Result Error.HttpErrorWithBody SecurityGroup)
     | GotRequestUpdateSecurityGroup SecurityGroupUuid
 
 
@@ -58,6 +61,8 @@ type alias Model =
     , description : Maybe String
     , rules : List SecurityGroupRule
     , securityGroupRuleForm : Maybe SecurityGroupRuleForm.Model
+    , submitted : Bool
+    , creationInProgress : Bool
     }
 
 
@@ -68,6 +73,8 @@ init { name } =
     , description = Nothing
     , rules = []
     , securityGroupRuleForm = Nothing
+    , submitted = False
+    , creationInProgress = False
     }
 
 
@@ -78,6 +85,8 @@ initWithSecurityGroup securityGroup =
     , description = securityGroup.description
     , rules = securityGroup.rules
     , securityGroupRuleForm = Nothing
+    , submitted = False
+    , creationInProgress = False
     }
 
 
@@ -98,8 +107,8 @@ securityGroupTemplateFromForm model =
     }
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
-update msg model =
+update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
+update msg project model =
     case msg of
         SecurityGroupRuleFormMsg ruleFormMsg ->
             case model.securityGroupRuleForm of
@@ -122,16 +131,17 @@ update msg model =
                                 model.rules
                       }
                     , Cmd.map SecurityGroupRuleFormMsg ruleFormCmd
+                    , SharedMsg.NoOp
                     )
 
                 Nothing ->
-                    ( model, Cmd.none )
+                    ( model, Cmd.none, SharedMsg.NoOp )
 
         GotName name ->
-            ( { model | name = name }, Cmd.none )
+            ( { model | name = name }, Cmd.none, SharedMsg.NoOp )
 
         GotDescription description ->
-            ( { model | description = description }, Cmd.none )
+            ( { model | description = description }, Cmd.none, SharedMsg.NoOp )
 
         GotAddRule ->
             let
@@ -143,6 +153,7 @@ update msg model =
                 , securityGroupRuleForm = Just <| SecurityGroupRuleForm.init newRule
               }
             , Cmd.none
+            , SharedMsg.NoOp
             )
 
         GotDeleteRule ruleUuid ->
@@ -157,13 +168,13 @@ update msg model =
                         model.securityGroupRuleForm
               }
             , Cmd.none
+            , SharedMsg.NoOp
             )
 
         GotDoneEditingRule ->
-            ( { model
-                | securityGroupRuleForm = Nothing
-              }
+            ( { model | securityGroupRuleForm = Nothing }
             , Cmd.none
+            , SharedMsg.NoOp
             )
 
         GotEditRule ruleUuid ->
@@ -184,18 +195,74 @@ update msg model =
                                     SecurityGroupRuleForm.newBlankRule (List.length model.rules)
               }
             , Cmd.none
+            , SharedMsg.NoOp
             )
 
         GotCancel ->
-            ( model, Cmd.none )
+            -- Expect the form owner to clear the form's model.
+            ( model, Cmd.none, SharedMsg.NoOp )
 
         GotRequestCreateSecurityGroup ->
-            -- Expect the form owner to handle this.
-            ( model, Cmd.none )
+            let
+                newModel =
+                    { model
+                        | submitted = True
+                        , creationInProgress = True
+                    }
+            in
+            ( newModel
+            , Cmd.none
+            , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
+                SharedMsg.RequestCreateSecurityGroup (securityGroupTemplateFromForm <| newModel)
+            )
 
-        GotRequestUpdateSecurityGroup _ ->
-            -- Expect the form owner to handle this.
-            ( model, Cmd.none )
+        GotCreateSecurityGroupResult template result ->
+            -- Names ought to be unique within the project.
+            if model.name == template.name then
+                case result of
+                    Ok securityGroup ->
+                        let
+                            newModel =
+                                { model
+                                  -- Update the form to use the newly available security group uuid.
+                                  -- Retain the form state rules since those changes are probably still pending.
+                                  -- (We expect that because new security groups are created with default rules.)
+                                    | uuid = Just securityGroup.uuid
+                                    , name = securityGroup.name
+                                    , description = securityGroup.description
+                                    , creationInProgress = False
+                                }
+                        in
+                        ( newModel
+                        , Cmd.none
+                        , SharedMsg.NoOp
+                        )
+
+                    Err _ ->
+                        -- TODO: Parse the error.
+                        ( { model | creationInProgress = False }
+                        , Cmd.none
+                        , SharedMsg.NoOp
+                        )
+
+            else
+                ( model, Cmd.none, SharedMsg.NoOp )
+
+        GotRequestUpdateSecurityGroup securityGroupUuid ->
+            case GetterSetters.securityGroupLookup project securityGroupUuid of
+                Just existingSecurityGroup ->
+                    let
+                        newModel =
+                            { model | submitted = True }
+                    in
+                    ( newModel
+                    , Cmd.none
+                    , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
+                        SharedMsg.RequestUpdateSecurityGroup existingSecurityGroup (securityGroupUpdateFromForm <| newModel)
+                    )
+
+                _ ->
+                    ( model, Cmd.none, SharedMsg.NoOp )
 
 
 isRuleValid : SecurityGroupRule -> Bool

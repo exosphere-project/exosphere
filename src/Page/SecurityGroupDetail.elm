@@ -42,7 +42,6 @@ type alias Model =
     { deletePendingConfirmation : Maybe OSTypes.SecurityGroupUuid
     , securityGroupUuid : OSTypes.SecurityGroupUuid
     , securityGroupForm : Maybe SecurityGroupForm.Model
-    , securityGroupFormSubmitted : Bool
     }
 
 
@@ -58,7 +57,6 @@ init securityGroupUuid =
     { deletePendingConfirmation = Nothing
     , securityGroupUuid = securityGroupUuid
     , securityGroupForm = Nothing
-    , securityGroupFormSubmitted = False
     }
 
 
@@ -74,52 +72,33 @@ update msg project model =
                     GetterSetters.securityGroupLookup project model.securityGroupUuid
                         |> Maybe.map SecurityGroupForm.initWithSecurityGroup
             in
-            ( { model
-                | securityGroupForm = securityGroupForm
-                , securityGroupFormSubmitted = False
-              }
+            ( { model | securityGroupForm = securityGroupForm }
             , Cmd.none
             , SharedMsg.NoOp
             )
 
         SecurityGroupFormMsg securityGroupFormMsg ->
             case securityGroupFormMsg of
-                SecurityGroupForm.GotRequestUpdateSecurityGroup securityGroupUuid ->
-                    case ( GetterSetters.securityGroupLookup project securityGroupUuid, model.securityGroupForm ) of
-                        ( Just existingSecurityGroup, Just form ) ->
-                            ( { model
-                                | securityGroupFormSubmitted = True
-                              }
-                            , Cmd.none
-                            , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
-                                SharedMsg.RequestUpdateSecurityGroup existingSecurityGroup (SecurityGroupForm.securityGroupUpdateFromForm <| form)
-                            )
-
-                        _ ->
-                            ( model, Cmd.none, SharedMsg.NoOp )
-
                 SecurityGroupForm.GotCancel ->
-                    ( { model
-                        | securityGroupForm = Nothing
-                        , securityGroupFormSubmitted = False
-                      }
+                    ( { model | securityGroupForm = Nothing }
                     , Cmd.none
                     , SharedMsg.NoOp
                     )
 
                 _ ->
-                    let
-                        securityGroupForm =
-                            model.securityGroupForm
-                                |> Maybe.map (\securityGroupForm_ -> SecurityGroupForm.update securityGroupFormMsg securityGroupForm_ |> Tuple.first)
-                    in
-                    ( { model
-                        | securityGroupForm = securityGroupForm
-                        , securityGroupFormSubmitted = False
-                      }
-                    , Cmd.none
-                    , SharedMsg.NoOp
-                    )
+                    case model.securityGroupForm of
+                        Just securityGroupForm ->
+                            let
+                                ( newSecurityGroupForm, securityGroupFormCmd, securityGroupFormSharedMsg ) =
+                                    SecurityGroupForm.update securityGroupFormMsg project securityGroupForm
+                            in
+                            ( { model | securityGroupForm = Just newSecurityGroupForm }
+                            , Cmd.map SecurityGroupFormMsg securityGroupFormCmd
+                            , securityGroupFormSharedMsg
+                            )
+
+                        Nothing ->
+                            ( model, Cmd.none, SharedMsg.NoOp )
 
         SharedMsg sharedMsg ->
             ( model, Cmd.none, sharedMsg )

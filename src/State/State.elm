@@ -40,6 +40,7 @@ import Page.LoginPicker
 import Page.MessageLog
 import Page.ProjectOverview
 import Page.SecurityGroupDetail
+import Page.SecurityGroupForm
 import Page.SecurityGroupList
 import Page.SelectProjectRegions
 import Page.SelectProjects
@@ -2189,8 +2190,8 @@ processProjectSpecificMsg outerModel project msg =
                     ( newSharedModel, newerCmd )
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
-                        -- Make the page aware of the shared msg.
-                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerSecurityGroupsMsg <| Page.ServerSecurityGroups.GotCreateSecurityGroupResult template result))
+                        -- Make the form aware of the shared msg.
+                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerSecurityGroupsMsg <| Page.ServerSecurityGroups.SecurityGroupFormMsg <| Page.SecurityGroupForm.GotCreateSecurityGroupResult template result))
 
                 Err httpError ->
                     let
@@ -2200,8 +2201,8 @@ processProjectSpecificMsg outerModel project msg =
                     State.Error.processSynchronousApiError newModel errorContext httpError
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
-                        -- Make the page aware of the shared msg.
-                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerSecurityGroupsMsg <| Page.ServerSecurityGroups.GotCreateSecurityGroupResult template result))
+                        -- Make the form aware of the shared msg.
+                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerSecurityGroupsMsg <| Page.ServerSecurityGroups.SecurityGroupFormMsg <| Page.SecurityGroupForm.GotCreateSecurityGroupResult template result))
 
         ReceiveCreateSecurityGroupRule errorContext securityGroupUuid result ->
             case result of
