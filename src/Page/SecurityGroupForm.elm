@@ -1,5 +1,6 @@
 module Page.SecurityGroupForm exposing (Model, Msg(..), init, initWithSecurityGroup, securityGroupTemplateFromForm, securityGroupUpdateFromForm, update, view)
 
+import Dict
 import Element exposing (paddingEach)
 import Element.Border as Border
 import Element.Font as Font
@@ -35,10 +36,12 @@ import Style.Widgets.Validation as Validation
 import Time
 import Types.Error as Error
 import Types.Project exposing (Project)
+import Types.SecurityGroupActions as SecurityGroupActions
 import Types.SharedMsg as SharedMsg
 import View.Forms as Forms
 import View.Helpers as VH
 import View.Types
+import Widget
 
 
 type Msg
@@ -119,6 +122,7 @@ update msg project model =
                     in
                     ( { model
                         | securityGroupRuleForm = Just updatedRuleForm
+                        , submitted = False
                         , rules =
                             List.map
                                 (\r ->
@@ -138,10 +142,10 @@ update msg project model =
                     ( model, Cmd.none, SharedMsg.NoOp )
 
         GotName name ->
-            ( { model | name = name }, Cmd.none, SharedMsg.NoOp )
+            ( { model | name = name, submitted = False }, Cmd.none, SharedMsg.NoOp )
 
         GotDescription description ->
-            ( { model | description = description }, Cmd.none, SharedMsg.NoOp )
+            ( { model | description = description, submitted = False }, Cmd.none, SharedMsg.NoOp )
 
         GotAddRule ->
             let
@@ -151,6 +155,7 @@ update msg project model =
             ( { model
                 | rules = model.rules ++ [ newRule ]
                 , securityGroupRuleForm = Just <| SecurityGroupRuleForm.init newRule
+                , submitted = False
               }
             , Cmd.none
             , SharedMsg.NoOp
@@ -166,6 +171,7 @@ update msg project model =
 
                     else
                         model.securityGroupRuleForm
+                , submitted = False
               }
             , Cmd.none
             , SharedMsg.NoOp
@@ -511,6 +517,11 @@ view context project currentTime model maybeServerUuid =
 
         formPadding =
             Element.paddingEach { top = 0, right = 0, bottom = 0, left = spacer.px64 + spacer.px12 }
+
+        action =
+            model.uuid
+                |> Maybe.andThen (\uuid -> Dict.get uuid project.securityGroupActions)
+                |> Maybe.withDefault SecurityGroupActions.initSecurityGroupAction
     in
     Element.column [ Element.spacing spacer.px24, Element.width Element.fill ]
         [ Element.column [ Element.paddingXY spacer.px8 0, Element.spacing spacer.px12, Element.width Element.fill ] <|
@@ -630,4 +641,71 @@ view context project currentTime model maybeServerUuid =
                         Nothing
                 }
             ]
+        , if action.pendingCreation then
+            Element.row [ Element.spacing spacer.px16, Element.centerX ]
+                [ Widget.circularProgressIndicator
+                    (SH.materialStyle context.palette).progressIndicator
+                    Nothing
+                , Element.text <|
+                    String.join " "
+                        [ "Creating"
+                        , context.localization.securityGroup
+                            |> Helpers.String.toTitleCase
+                        , "..."
+                        ]
+                ]
+
+          else
+            Element.none
+        , let
+            updates =
+                action.pendingSecurityGroupChanges.updates
+                    + action.pendingRuleChanges.creations
+                    + action.pendingRuleChanges.deletions
+          in
+          if updates > 0 then
+            Element.row [ Element.spacing spacer.px16, Element.centerX ]
+                [ Widget.circularProgressIndicator
+                    (SH.materialStyle context.palette).progressIndicator
+                    Nothing
+                , Element.text <|
+                    String.join " "
+                        [ updates |> String.fromInt
+                        , "update" |> Helpers.String.pluralizeCount updates
+                        , "remaining..."
+                        ]
+                ]
+
+          else
+            Element.none
+        , let
+            errors =
+                action.pendingSecurityGroupChanges.errors ++ action.pendingRuleChanges.errors
+          in
+          if List.length errors > 0 then
+            Element.el
+                [ Element.width Element.shrink, Element.centerX ]
+            <|
+                Validation.invalidMessage context.palette <|
+                    String.join ", " errors
+
+          else
+            Element.none
+        , if
+            model.submitted
+                && not model.creationInProgress
+                && not action.pendingCreation
+                && action.pendingSecurityGroupChanges
+                == SecurityGroupActions.initPendingSecurityGroupChanges
+                && action.pendingRuleChanges
+                == SecurityGroupActions.initPendingRulesChanges
+          then
+            Element.el
+                [ Element.width Element.shrink, Element.centerX ]
+            <|
+                Validation.validMessage context.palette <|
+                    String.join " " [ Helpers.String.toTitleCase context.localization.securityGroup, "is up to date." ]
+
+          else
+            Element.none
         ]

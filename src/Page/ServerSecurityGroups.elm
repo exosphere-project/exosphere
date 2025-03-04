@@ -32,13 +32,11 @@ import Style.Widgets.ToggleTip
 import Style.Widgets.Validation as Validation
 import Time
 import Types.Project exposing (Project)
-import Types.SecurityGroupActions as SecurityGroupActions exposing (initPendingRulesChanges, initPendingSecurityGroupChanges)
 import Types.Server exposing (Server)
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
-import Widget
 
 
 type alias Model =
@@ -561,19 +559,8 @@ renderSecurityGroupListAndRules context project currentTime model securityGroups
             , case model.securityGroupForm of
                 Just securityGroupForm ->
                     let
-                        ( isExistingSecurityGroup, action ) =
-                            case securityGroupForm.uuid of
-                                Just securityGroupUuid ->
-                                    ( True
-                                    , GetterSetters.getSecurityGroupActions project (SecurityGroupActions.ExtantGroup securityGroupUuid)
-                                        |> Maybe.withDefault SecurityGroupActions.initSecurityGroupAction
-                                    )
-
-                                Nothing ->
-                                    ( False
-                                    , GetterSetters.getSecurityGroupActions project (SecurityGroupActions.NewGroup securityGroupForm.name)
-                                        |> Maybe.withDefault SecurityGroupActions.initSecurityGroupAction
-                                    )
+                        isExistingSecurityGroup =
+                            securityGroupForm.uuid /= Nothing
                     in
                     tile
                         (Just
@@ -600,73 +587,6 @@ renderSecurityGroupListAndRules context project currentTime model securityGroups
                                 (Just model.serverUuid)
                                 |> Element.map SecurityGroupFormMsg
                             ]
-                        , if action.pendingCreation then
-                            Element.row [ Element.spacing spacer.px16, Element.centerX ]
-                                [ Widget.circularProgressIndicator
-                                    (SH.materialStyle context.palette).progressIndicator
-                                    Nothing
-                                , Element.text <|
-                                    String.join " "
-                                        [ "Creating"
-                                        , context.localization.securityGroup
-                                            |> Helpers.String.toTitleCase
-                                        , "..."
-                                        ]
-                                ]
-
-                          else
-                            Element.none
-                        , let
-                            updates =
-                                action.pendingSecurityGroupChanges.updates
-                                    + action.pendingRuleChanges.creations
-                                    + action.pendingRuleChanges.deletions
-                          in
-                          if updates > 0 then
-                            Element.row [ Element.spacing spacer.px16, Element.centerX ]
-                                [ Widget.circularProgressIndicator
-                                    (SH.materialStyle context.palette).progressIndicator
-                                    Nothing
-                                , Element.text <|
-                                    String.join " "
-                                        [ updates |> String.fromInt
-                                        , "update" |> Helpers.String.pluralizeCount updates
-                                        , "remaining..."
-                                        ]
-                                ]
-
-                          else
-                            Element.none
-                        , let
-                            errors =
-                                action.pendingSecurityGroupChanges.errors ++ action.pendingRuleChanges.errors
-                          in
-                          if List.length errors > 0 then
-                            Element.el
-                                [ Element.width Element.shrink, Element.centerX ]
-                            <|
-                                Validation.invalidMessage context.palette <|
-                                    String.join ", " errors
-
-                          else
-                            Element.none
-                        , if
-                            securityGroupForm.submitted
-                                && not securityGroupForm.creationInProgress
-                                && not action.pendingCreation
-                                && action.pendingSecurityGroupChanges
-                                == initPendingSecurityGroupChanges
-                                && action.pendingRuleChanges
-                                == initPendingRulesChanges
-                          then
-                            Element.el
-                                [ Element.width Element.shrink, Element.centerX ]
-                            <|
-                                Validation.validMessage context.palette <|
-                                    String.join " " [ Helpers.String.toTitleCase context.localization.securityGroup, "is up to date." ]
-
-                          else
-                            Element.none
                         , if isExistingSecurityGroup then
                             let
                                 selected =
