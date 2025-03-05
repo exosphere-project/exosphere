@@ -22,6 +22,7 @@ import Types.HelperTypes
 import Types.Project
 import Types.SharedModel
 import Types.SharedMsg
+import Url.Builder
 
 
 requestRecordSets : Types.Project.Project -> Cmd Types.SharedMsg.SharedMsg
@@ -49,7 +50,7 @@ requestRecordSets project =
                 Types.HelperTypes.Get
                 Nothing
                 []
-                (designateUrl ++ "/v2/recordsets?limit=1000")
+                ( designateUrl, [ "v2", "recordsets" ], [ Url.Builder.int "limit" 1000 ] )
                 Http.emptyBody
                 (Rest.Helpers.expectJsonWithErrorBody
                     resultToMsg_
@@ -127,7 +128,7 @@ requestCreateRecordSet project request =
                 Types.HelperTypes.Post
                 Nothing
                 []
-                (designateUrl ++ "/v2/zones/" ++ request.zone_id ++ "/recordsets")
+                ( designateUrl, [ "v2", "zones", request.zone_id, "recordsets" ], [] )
                 (Http.jsonBody encodedRequest)
                 (Rest.Helpers.expectJsonWithErrorBody
                     resultToMsg
@@ -174,7 +175,7 @@ requestDeleteRecordSet errorLevel project { zone_id, id } =
                 Types.HelperTypes.Delete
                 Nothing
                 []
-                (designateUrl ++ "/v2/zones/" ++ zone_id ++ "/recordsets/" ++ id)
+                ( designateUrl, [ "v2", "zones", zone_id, "recordsets", id ], [] )
                 Http.emptyBody
                 (Rest.Helpers.expectJsonWithErrorBody
                     resultToMsg

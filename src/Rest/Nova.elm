@@ -79,7 +79,7 @@ requestServers project =
         Get
         (Just "compute 2.27")
         []
-        (project.endpoints.nova ++ "/servers/detail")
+        ( project.endpoints.nova, [ "servers", "detail" ], [] )
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg
@@ -106,7 +106,7 @@ requestServer project serverUuid =
         Get
         (Just "compute 2.27")
         []
-        (project.endpoints.nova ++ "/servers/" ++ serverUuid)
+        ( project.endpoints.nova, [ "servers", serverUuid ], [] )
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg
@@ -133,7 +133,7 @@ requestServerEvents project serverUuid =
         Get
         (Just "compute 2.27")
         []
-        (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/os-instance-actions")
+        ( project.endpoints.nova, [ "servers", serverUuid, "os-instance-actions" ], [] )
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg
@@ -160,7 +160,7 @@ requestServerSecurityGroups project serverUuid =
         Get
         (Just "compute 2.27")
         []
-        (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/os-security-groups")
+        ( project.endpoints.nova, [ "servers", serverUuid, "os-security-groups" ], [] )
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg
@@ -198,7 +198,7 @@ requestConsoleUrls project serverUuid =
                 Post
                 Nothing
                 []
-                (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/action")
+                ( project.endpoints.nova, [ "servers", serverUuid, "action" ], [] )
                 (Http.jsonBody reqBody)
                 (expectJsonWithErrorBody
                     (\result ->
@@ -232,7 +232,7 @@ requestFlavors project =
         Get
         (Just "compute 2.61")
         []
-        (project.endpoints.nova ++ "/flavors/detail")
+        ( project.endpoints.nova, [ "flavors", "detail" ], [] )
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg_
@@ -259,7 +259,7 @@ requestKeypairs project =
         Get
         Nothing
         []
-        (project.endpoints.nova ++ "/os-keypairs")
+        ( project.endpoints.nova, [ "os-keypairs" ], [] )
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg
@@ -296,7 +296,7 @@ requestCreateKeypair project keypairName publicKey =
         Post
         Nothing
         []
-        (project.endpoints.nova ++ "/os-keypairs")
+        ( project.endpoints.nova, [ "os-keypairs" ], [] )
         (Http.jsonBody body)
         (expectJsonWithErrorBody
             resultToMsg
@@ -318,7 +318,7 @@ requestDeleteKeypair project keypairId =
         Delete
         Nothing
         []
-        (project.endpoints.nova ++ "/os-keypairs/" ++ Tuple.first keypairId)
+        ( project.endpoints.nova, [ "os-keypairs", Tuple.first keypairId ], [] )
         Http.emptyBody
         (Http.expectWhatever
             (\result -> ProjectMsg (GetterSetters.projectIdentifier project) <| ReceiveDeleteKeypair errorContext (Tuple.first keypairId) result)
@@ -437,7 +437,7 @@ requestCreateServer context project createServerRequest =
                         Post
                         Nothing
                         []
-                        (project.endpoints.nova ++ "/servers")
+                        ( project.endpoints.nova, [ "servers" ], [] )
                         (Http.jsonBody requestBody)
                         (expectJsonWithErrorBody
                             resultToMsg
@@ -470,7 +470,7 @@ requestDeleteServer projectId novaUrl serverId =
         Delete
         Nothing
         []
-        (novaUrl ++ "/servers/" ++ serverId)
+        ( novaUrl, [ "servers", serverId ], [] )
         Http.emptyBody
         (expectStringWithErrorBody resultToMsg_)
 
@@ -501,7 +501,7 @@ requestShelveServer projectId novaUrl serverId =
         Post
         Nothing
         []
-        (novaUrl ++ "/servers/" ++ serverId ++ "/action")
+        ( novaUrl, [ "servers", serverId, "action" ], [] )
         (Http.jsonBody body)
         (expectStringWithErrorBody resultToMsg_)
 
@@ -577,7 +577,7 @@ requestCreateServerImage project serverUuid imageName =
         Post
         Nothing
         []
-        (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/action")
+        ( project.endpoints.nova, [ "servers", serverUuid, "action" ], [] )
         (Http.jsonBody body)
         (expectStringWithErrorBody
             (resultToMsgErrorBody errorContext (\_ -> NoOp))
@@ -607,7 +607,7 @@ requestServerResize project serverUuid flavorId =
         Post
         Nothing
         []
-        (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/action")
+        ( project.endpoints.nova, [ "servers", serverUuid, "action" ], [] )
         (Http.jsonBody body)
         (expectStringWithErrorBody
             (resultToMsgErrorBody errorContext
@@ -651,7 +651,7 @@ requestUpdateServerSecurityGroup project serverUuid update =
         Post
         Nothing
         []
-        (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/action")
+        ( project.endpoints.nova, [ "servers", serverUuid, "action" ], [] )
         (Http.jsonBody body)
         (expectStringWithErrorBody
             (resultToMsgErrorBody errorContext
@@ -692,7 +692,7 @@ requestSetServerName project serverUuid newServerName =
         Put
         Nothing
         []
-        (project.endpoints.nova ++ "/servers/" ++ serverUuid)
+        ( project.endpoints.nova, [ "servers", serverUuid ], [] )
         (Http.jsonBody body)
         (expectJsonWithErrorBody
             resultToMsg
@@ -722,7 +722,7 @@ requestSetServerHostName project serverUuid newServerHostName =
         Put
         (Just "compute 2.90")
         []
-        (project.endpoints.nova ++ "/servers/" ++ serverUuid)
+        ( project.endpoints.nova, [ "servers", serverUuid ], [] )
         (Http.jsonBody body)
         (expectJsonWithErrorBody
             resultToMsg
@@ -764,7 +764,7 @@ requestSetServerMetadata project serverUuid metadataItem =
         Post
         Nothing
         []
-        (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/metadata")
+        ( project.endpoints.nova, [ "servers", serverUuid, "metadata" ], [] )
         (Http.jsonBody body)
         (expectJsonWithErrorBody
             resultToMsg
@@ -797,7 +797,7 @@ requestDeleteServerMetadata project serverUuid metadataKey =
         Delete
         Nothing
         []
-        (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/metadata/" ++ metadataKey)
+        ( project.endpoints.nova, [ "servers", serverUuid, "metadata", metadataKey ], [] )
         Http.emptyBody
         (expectStringWithErrorBody resultToMsg)
 

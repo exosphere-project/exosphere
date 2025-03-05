@@ -19,6 +19,7 @@ import Types.Error exposing (ErrorContext, HttpErrorWithBody)
 import Types.HelperTypes as HelperTypes exposing (HttpRequestMethod(..))
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import Url
+import Url.Builder
 
 
 httpRequestMethodStr : HttpRequestMethod -> String
@@ -45,11 +46,11 @@ openstackCredentialedRequest :
     -> HttpRequestMethod
     -> Maybe String
     -> List ( String, String )
-    -> String
+    -> ( String, List String, List Url.Builder.QueryParameter )
     -> Http.Body
     -> Http.Expect SharedMsg
     -> Cmd SharedMsg
-openstackCredentialedRequest projectId method maybeMicroversion additionalHeaders origUrl requestBody expect =
+openstackCredentialedRequest projectId method maybeMicroversion additionalHeaders urlParts requestBody expect =
     {-
        Prepare an HTTP request to OpenStack which requires a currently valid auth token and maybe a proxy server URL.
 
@@ -62,6 +63,13 @@ openstackCredentialedRequest projectId method maybeMicroversion additionalHeader
         requestProto : Maybe HelperTypes.Url -> OSTypes.AuthTokenString -> Cmd SharedMsg
         requestProto maybeProxyUrl token =
             let
+                origUrl =
+                    let
+                        ( baseUrl, urlParameters, urlQueryParameters ) =
+                            urlParts
+                    in
+                    Url.Builder.crossOrigin baseUrl urlParameters urlQueryParameters
+
                 ( url, headers ) =
                     case maybeProxyUrl of
                         Just proxyUrl ->

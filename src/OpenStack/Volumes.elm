@@ -64,7 +64,7 @@ requestCreateVolume project createVolumeRequest =
         Post
         Nothing
         []
-        (project.endpoints.cinder ++ "/volumes")
+        ( project.endpoints.cinder, [ "volumes" ], [] )
         (Http.jsonBody body)
         (expectJsonWithErrorBody
             resultToMsg_
@@ -91,7 +91,7 @@ requestVolumes project =
         Get
         Nothing
         []
-        (project.endpoints.cinder ++ "/volumes/detail")
+        ( project.endpoints.cinder, [ "volumes", "detail" ], [] )
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg
@@ -122,7 +122,7 @@ requestVolumeSnapshots project =
         Get
         Nothing
         []
-        (project.endpoints.cinder ++ "/snapshots")
+        ( project.endpoints.cinder, [ "snapshots" ], [] )
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg_
@@ -149,7 +149,7 @@ requestDeleteVolume project volumeUuid =
         Delete
         Nothing
         []
-        (project.endpoints.cinder ++ "/volumes/" ++ volumeUuid)
+        ( project.endpoints.cinder, [ "volumes", volumeUuid ], [] )
         Http.emptyBody
         (expectStringWithErrorBody resultToMsg_)
 
@@ -173,7 +173,7 @@ requestDeleteVolumeSnapshot project snapshotUuid =
         Delete
         Nothing
         []
-        (project.endpoints.cinder ++ "/snapshots/" ++ snapshotUuid)
+        ( project.endpoints.cinder, [ "snapshots", snapshotUuid ], [] )
         Http.emptyBody
         (expectStringWithErrorBody resultToMsg_)
 
@@ -206,7 +206,7 @@ requestUpdateVolumeName project volumeUuid name =
         Put
         Nothing
         []
-        (project.endpoints.cinder ++ "/volumes/" ++ volumeUuid)
+        ( project.endpoints.cinder, [ "volumes", volumeUuid ], [] )
         (Http.jsonBody body)
         (expectStringWithErrorBody resultToMsg_)
 

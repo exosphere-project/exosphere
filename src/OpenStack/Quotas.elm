@@ -47,7 +47,7 @@ requestComputeQuota project =
         Get
         Nothing
         []
-        (project.endpoints.nova ++ "/limits")
+        ( project.endpoints.nova, [ "limits" ], [] )
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg
@@ -88,7 +88,7 @@ requestVolumeQuota project =
         Get
         Nothing
         []
-        (project.endpoints.cinder ++ "/limits")
+        ( project.endpoints.cinder, [ "limits" ], [] )
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg
@@ -127,7 +127,7 @@ requestNetworkQuota project =
         Get
         Nothing
         []
-        (project.endpoints.neutron ++ "/v2.0/quotas/" ++ project.auth.project.uuid ++ "/details.json")
+        ( project.endpoints.neutron, [ "v2.0", "quotas", project.auth.project.uuid, "details.json" ], [] )
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg
@@ -164,11 +164,7 @@ requestShareQuota project url =
         Get
         Nothing
         [ ( "X-OpenStack-Manila-API-Version", "2.42" ) ]
-        (url
-            ++ "/"
-            ++ project.auth.project.uuid
-            ++ "/limits"
-        )
+        ( url, [ project.auth.project.uuid, "limits" ], [] )
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg
