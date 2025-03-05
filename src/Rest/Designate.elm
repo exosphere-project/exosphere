@@ -127,7 +127,7 @@ requestCreateRecordSet project request =
                 Types.HelperTypes.Post
                 Nothing
                 []
-                (designateUrl ++ "v2/zones/" ++ request.zone_id ++ "/recordsets")
+                (designateUrl ++ "/v2/zones/" ++ request.zone_id ++ "/recordsets")
                 (Http.jsonBody encodedRequest)
                 (Rest.Helpers.expectJsonWithErrorBody
                     resultToMsg
@@ -174,7 +174,7 @@ requestDeleteRecordSet errorLevel project { zone_id, id } =
                 Types.HelperTypes.Delete
                 Nothing
                 []
-                (designateUrl ++ "v2/zones/" ++ zone_id ++ "/recordsets/" ++ id)
+                (designateUrl ++ "/v2/zones/" ++ zone_id ++ "/recordsets/" ++ id)
                 Http.emptyBody
                 (Rest.Helpers.expectJsonWithErrorBody
                     resultToMsg
