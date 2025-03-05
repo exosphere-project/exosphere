@@ -1,9 +1,13 @@
 module Style.Widgets.Validation exposing
-    ( invalidIcon
+    ( FormInteraction(..)
+    , invalidIcon
     , invalidMessage
     , notes
+    , validIcon
+    , validMessage
     , warningAlreadyExists
     , warningMessage
+    , warningText
     )
 
 import Element exposing (Element)
@@ -28,8 +32,34 @@ Use them in your forms together with your business logic.
 """
 
 
+type FormInteraction
+    = Pristine
+    | Touched
+
+
 
 --- components
+
+
+validIcon : ExoPalette -> Element msg
+validIcon palette =
+    Icons.checkCircle
+        |> featherIcon [ Font.color (palette.success.textOnNeutralBG |> SH.toElementColor) ]
+
+
+{-| Shows a message for a form validation reassurance.
+-}
+validMessage : ExoPalette -> String -> Element.Element msg
+validMessage palette helperText =
+    Element.row [ Element.spacingXY spacer.px8 0 ]
+        [ validIcon palette
+        , -- let text wrap if it exceeds container's width
+          Element.paragraph
+            [ Font.color (SH.toElementColor palette.success.textOnNeutralBG)
+            , Text.fontSize Text.Small
+            ]
+            [ Element.text helperText ]
+        ]
 
 
 invalidIcon : ExoPalette -> Element msg
@@ -53,18 +83,25 @@ invalidMessage palette helperText =
         ]
 
 
-{-| Shows a message for a non-blocking but potentially problematic form field input.
+{-| Renders text for a non-blocking but potentially problematic form field input.
+-}
+warningText : ExoPalette -> String -> Element.Element msg
+warningText palette helperText =
+    Text.p
+        [ Font.color (SH.toElementColor palette.warning.textOnNeutralBG)
+        , Text.fontSize Text.Small
+        ]
+        [ Element.text helperText ]
+
+
+{-| Shows a warning icon & message for a non-blocking but potentially problematic form field input.
 -}
 warningMessage : ExoPalette -> String -> Element.Element msg
 warningMessage palette helperText =
     Element.row [ Element.spacingXY spacer.px8 0 ]
         [ Icons.alertTriangle
             |> featherIcon [ Font.color (palette.warning.textOnNeutralBG |> SH.toElementColor) ]
-        , Text.p
-            [ Font.color (SH.toElementColor palette.warning.textOnNeutralBG)
-            , Text.fontSize Text.Small
-            ]
-            [ Element.text helperText ]
+        , warningText palette helperText
         ]
 
 

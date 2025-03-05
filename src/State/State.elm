@@ -10,11 +10,13 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.ServerResourceUsage
 import Helpers.String exposing (pluralize, toTitleCase)
 import Http
+import Json.Decode as Decode
 import Json.Encode
 import List.Extra
 import LocalStorage.LocalStorage as LocalStorage
 import Maybe
 import OpenStack.DnsRecordSet
+import OpenStack.Error
 import OpenStack.ServerPassword as OSServerPassword
 import OpenStack.ServerTags as OSServerTags
 import OpenStack.ServerVolumes as OSSvrVols
@@ -2127,6 +2129,113 @@ processProjectSpecificMsg outerModel project msg =
                     State.Error.processSynchronousApiError newModel errorContext httpError
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
+
+        ReceiveCreateSecurityGroupRule errorContext securityGroupUuid result ->
+            case result of
+                Ok rule ->
+                    let
+                        newProject =
+                            GetterSetters.projectAddSecurityGroupRule project securityGroupUuid rule
+
+                        newModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+                    in
+                    ( newModel, Cmd.none )
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+                        -- Make the page aware of the shared msg.
+                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerSecurityGroupsMsg <| Page.ServerSecurityGroups.GotCreateSecurityGroupRuleResult securityGroupUuid (Result.Ok ())))
+
+                Err httpError ->
+                    let
+                        error =
+                            Decode.decodeString
+                                (Decode.field (OpenStack.Error.fieldForErrorDomain OpenStack.Error.NeutronError) Rest.Neutron.neutronErrorDecoder)
+                                httpError.body
+
+                        errorMessage =
+                            case error of
+                                Ok neutronError ->
+                                    neutronError.message
+
+                                Err _ ->
+                                    httpError.body
+                    in
+                    State.Error.processSynchronousApiError sharedModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+                        -- Make the page aware of the shared msg.
+                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerSecurityGroupsMsg <| Page.ServerSecurityGroups.GotCreateSecurityGroupRuleResult securityGroupUuid (Result.Err errorMessage)))
+
+        ReceiveDeleteSecurityGroupRule errorContext ( securityGroupUuid, ruleUuid ) result ->
+            case result of
+                Ok () ->
+                    let
+                        newProject =
+                            GetterSetters.projectDeleteSecurityGroupRule project securityGroupUuid ruleUuid
+
+                        newModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+                    in
+                    ( newModel, Cmd.none )
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+                        -- Make the page aware of the shared msg.
+                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerSecurityGroupsMsg <| Page.ServerSecurityGroups.GotDeleteSecurityGroupRuleResult securityGroupUuid (Result.Ok ())))
+
+                Err httpError ->
+                    State.Error.processStringError sharedModel errorContext (Helpers.httpErrorToString httpError)
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+                        -- Make the page aware of the shared msg.
+                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerSecurityGroupsMsg <| Page.ServerSecurityGroups.GotDeleteSecurityGroupRuleResult securityGroupUuid (Result.Err (Helpers.httpErrorToString httpError))))
+
+        RequestUpdateSecurityGroup existingSecurityGroup securityGroupUpdate ->
+            ( outerModel
+            , Cmd.batch <|
+                -- Update the security group.
+                Rest.Neutron.requestUpdateSecurityGroup project existingSecurityGroup.uuid securityGroupUpdate
+                    -- Update the security group rules.
+                    :: Rest.Neutron.requestUpdateSecurityGroupRules project existingSecurityGroup securityGroupUpdate.rules
+            )
+                |> mapToOuterMsg
+
+        ReceiveUpdateSecurityGroup errorContext securityGroupUuid result ->
+            case result of
+                Ok group ->
+                    let
+                        newProject =
+                            GetterSetters.projectUpdateSecurityGroup project group
+
+                        newModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+                    in
+                    ( newModel, Cmd.none )
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+                        -- Make the page aware of the shared msg.
+                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerSecurityGroupsMsg <| Page.ServerSecurityGroups.GotUpdateSecurityGroupResult securityGroupUuid (Result.Ok group)))
+
+                Err httpError ->
+                    let
+                        error =
+                            Decode.decodeString
+                                (Decode.field (OpenStack.Error.fieldForErrorDomain OpenStack.Error.NeutronError) Rest.Neutron.neutronErrorDecoder)
+                                httpError.body
+
+                        errorMessage =
+                            case error of
+                                Ok neutronError ->
+                                    neutronError.message
+
+                                Err _ ->
+                                    httpError.body
+                    in
+                    State.Error.processSynchronousApiError sharedModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+                        -- Make the page aware of the shared msg.
+                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerSecurityGroupsMsg <| Page.ServerSecurityGroups.GotUpdateSecurityGroupResult securityGroupUuid (Result.Err errorMessage)))
 
         RequestUpdateSecurityGroupTags securityGroupUuid tags ->
             ( outerModel, Rest.Neutron.requestUpdateSecurityGroupTags project securityGroupUuid tags )

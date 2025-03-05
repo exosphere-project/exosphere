@@ -1,4 +1,4 @@
-module Page.SecurityGroupRuleForm exposing (FormInteraction(..), Model, Msg(..), PortInput, init, newBlankRule, update, view)
+module Page.SecurityGroupRuleForm exposing (Model, Msg(..), PortInput, init, newBlankRule, update, view)
 
 import Element
 import Element.Input as Input
@@ -24,7 +24,7 @@ import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Style.Widgets.Select
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
-import Style.Widgets.Validation as Validation
+import Style.Widgets.Validation as Validation exposing (FormInteraction(..))
 import View.Helpers as VH exposing (directionOptions, etherTypeOptions, portRangeBoundsOptions, portRangeBoundsToString, protocolOptions, remoteOptions, remoteToRemoteType, remoteTypeToString, stringToPortRangeBounds, stringToRemoteType)
 import View.Types exposing (PortRangeBounds(..), RemoteType(..))
 
@@ -32,11 +32,6 @@ import View.Types exposing (PortRangeBounds(..), RemoteType(..))
 type PortInput
     = StartingPort NumericTextInput
     | EndingPort NumericTextInput
-
-
-type FormInteraction
-    = Pristine
-    | Touched
 
 
 type Msg

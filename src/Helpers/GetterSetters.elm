@@ -24,7 +24,9 @@ module Helpers.GetterSetters exposing
     , isDefaultSecurityGroup
     , modelUpdateProject
     , modelUpdateUnscopedProvider
+    , projectAddSecurityGroupRule
     , projectDefaultSecurityGroup
+    , projectDeleteSecurityGroupRule
     , projectDeleteServer
     , projectIdentifier
     , projectLookup
@@ -46,6 +48,7 @@ module Helpers.GetterSetters exposing
     , projectSetVolumeSnapshotsLoading
     , projectSetVolumesLoading
     , projectUpdateKeypair
+    , projectUpdateSecurityGroup
     , projectUpdateServer
     , sanitizeMountpoint
     , securityGroupLookup
@@ -1011,4 +1014,93 @@ projectUpdateKeypair sharedModel project keypair =
             RDPP.setData
                 (RDPP.DoHave keypairs sharedModel.clientCurrentTime)
                 project.keypairs
+    }
+
+
+projectUpdateSecurityGroup : Project -> OSTypes.SecurityGroup -> Project
+projectUpdateSecurityGroup project securityGroup =
+    let
+        { data, refreshStatus } =
+            project.securityGroups
+
+        newSecurityGroups =
+            case data of
+                -- Preserve the current loading state of security groups.
+                RDPP.DoHave groups receivedTime ->
+                    let
+                        otherSecurityGroups =
+                            groups
+                                |> List.filter
+                                    (\sg ->
+                                        sg.uuid
+                                            /= securityGroup.uuid
+                                    )
+
+                        securityGroups =
+                            securityGroup
+                                :: otherSecurityGroups
+                    in
+                    RDPP.RemoteDataPlusPlus
+                        (RDPP.DoHave securityGroups receivedTime)
+                        refreshStatus
+
+                _ ->
+                    project.securityGroups
+    in
+    { project
+        | securityGroups =
+            newSecurityGroups
+    }
+
+
+projectAddSecurityGroupRule : Project -> OSTypes.SecurityGroupUuid -> SecurityGroupRule.SecurityGroupRule -> Project
+projectAddSecurityGroupRule project securityGroupUuid rule =
+    projectUpdateSecurityGroupRules project
+        securityGroupUuid
+        (\prevRules -> List.filter (\r -> r.uuid /= rule.uuid) prevRules ++ [ rule ])
+
+
+projectDeleteSecurityGroupRule : Project -> OSTypes.SecurityGroupUuid -> SecurityGroupRule.SecurityGroupRuleUuid -> Project
+projectDeleteSecurityGroupRule project securityGroupUuid ruleUuid =
+    projectUpdateSecurityGroupRules project
+        securityGroupUuid
+        (List.filter (\rule -> rule.uuid /= ruleUuid))
+
+
+projectUpdateSecurityGroupRules : Project -> OSTypes.SecurityGroupUuid -> (List SecurityGroupRule.SecurityGroupRule -> List SecurityGroupRule.SecurityGroupRule) -> Project
+projectUpdateSecurityGroupRules project securityGroupUuid onUpdateRules =
+    let
+        { data, refreshStatus } =
+            project.securityGroups
+
+        newSecurityGroups =
+            case data of
+                -- Update rules, preserving loading/cache state of security groups.
+                RDPP.DoHave groups receivedTime ->
+                    RDPP.RemoteDataPlusPlus
+                        (RDPP.DoHave
+                            (List.map
+                                (\sg ->
+                                    if sg.uuid == securityGroupUuid then
+                                        let
+                                            rules =
+                                                onUpdateRules sg.rules
+                                        in
+                                        { sg | rules = rules }
+
+                                    else
+                                        sg
+                                )
+                                groups
+                            )
+                            receivedTime
+                        )
+                        refreshStatus
+
+                _ ->
+                    project.securityGroups
+    in
+    { project
+        | securityGroups =
+            newSecurityGroups
     }
