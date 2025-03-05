@@ -18,6 +18,7 @@ import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.HelperTypes exposing (HttpRequestMethod(..), Url)
 import Types.Project exposing (Project)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
+import Url.Builder
 
 
 requestCreateShare : Project -> Url -> OSTypes.CreateShareRequest -> Cmd SharedMsg
@@ -58,7 +59,7 @@ requestCreateShare project url createShareRequest =
         Nothing
         -- `user_id` is only returned from v2.16 onwards
         [ ( "X-OpenStack-Manila-API-Version", "2.16" ) ]
-        (url ++ "/shares")
+        ( url, [ "shares" ], [] )
         (Http.jsonBody body)
         (expectJsonWithErrorBody
             resultToMsg_
@@ -103,7 +104,7 @@ requestCreateAccessRule project url createAccessRuleRequest =
         Nothing
         -- Access rule metadata is supported from 2.45.
         [ ( "X-OpenStack-Manila-API-Version", "2.45" ) ]
-        (url ++ "/shares/" ++ createAccessRuleRequest.shareUuid ++ "/action")
+        ( url, [ "shares", createAccessRuleRequest.shareUuid, "action" ], [] )
         (Http.jsonBody body)
         (expectJsonWithErrorBody
             resultToMsg_
@@ -135,7 +136,7 @@ requestShares project url =
         Nothing
         -- `user_id` is only returned from v2.16 onwards
         [ ( "X-OpenStack-Manila-API-Version", "2.16" ) ]
-        (url ++ "/shares/detail")
+        ( url, [ "shares", "detail" ], [] )
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg_
@@ -184,7 +185,7 @@ requestShareAccessRules project url shareUuid =
         Nothing
         -- Replaces the older list share access rules API from before 2.45.
         [ ( "X-OpenStack-Manila-API-Version", "2.45" ) ]
-        (url ++ "/share-access-rules?share_id=" ++ shareUuid)
+        ( url, [ "share-access-rules" ], [ Url.Builder.string "share_id" shareUuid ] )
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg_
@@ -229,7 +230,7 @@ requestShareExportLocations project url shareUuid =
         Nothing
         -- `preferred` is returned from v2.14 onwards to identify which export locations are most efficient
         [ ( "X-OpenStack-Manila-API-Version", "2.14" ) ]
-        (url ++ "/shares/" ++ shareUuid ++ "/export_locations")
+        ( url, [ "shares", shareUuid, "export_locations" ], [] )
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg_
@@ -265,6 +266,6 @@ requestDeleteShare project url shareUuid =
         Delete
         Nothing
         []
-        (url ++ "/shares/" ++ shareUuid)
+        ( url, [ "shares", shareUuid ], [] )
         Http.emptyBody
         (expectStringWithErrorBody resultToMsg_)

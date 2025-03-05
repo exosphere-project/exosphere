@@ -24,7 +24,7 @@ requestCreateServerTag project serverUuid tag =
         Put
         (Just "compute 2.26")
         []
-        (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/tags/" ++ tag)
+        ( project.endpoints.nova, [ "servers", serverUuid, "tags", tag ], [] )
         Http.emptyBody
         (expectStringWithErrorBody
             (resultToMsgErrorBody errorContext (\_ -> NoOp))
