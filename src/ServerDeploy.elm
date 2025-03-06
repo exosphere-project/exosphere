@@ -5,10 +5,13 @@ import Helpers.Multipart as Multipart
 
 exosphereBootHook : String
 exosphereBootHook =
+    {- @nonlocalized -}
     """#!/bin/bash
 
-# Ensure this hook only runs on the first boot
-cloud-init-per once exosphere-setup-starting /bin/true || exit 0
+# Ensure this hook only runs on the first boot.
+if cloud-init-per instance exosphere-setup-starting /bin/false; then
+  exit 0
+fi
 
 echo on > /proc/sys/kernel/printk_devkmsg || true  # Disable console rate limiting for distros that use kmsg
 sleep 1  # Ensures that console log output from any previous command completes before the following command begins
