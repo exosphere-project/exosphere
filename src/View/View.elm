@@ -201,7 +201,7 @@ appView windowSize outerModel context =
         , Element.spacing 0
         , Element.width Element.fill
         , Element.height <|
-            Element.px windowSize.height
+            Element.minimum windowSize.height Element.fill
         ]
         [ Element.el
             [ Border.shadow shadowDefaults
