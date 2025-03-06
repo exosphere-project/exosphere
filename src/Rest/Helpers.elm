@@ -45,8 +45,8 @@ openstackCredentialedRequest :
     HelperTypes.ProjectIdentifier
     -> HttpRequestMethod
     -> Maybe String
-    -> List ( String, String )
-    -> ( String, List String, List Url.Builder.QueryParameter )
+    -> HelperTypes.Headers
+    -> ( HelperTypes.Url, HelperTypes.UrlPath, HelperTypes.UrlParams )
     -> Http.Body
     -> Http.Expect SharedMsg
     -> Cmd SharedMsg

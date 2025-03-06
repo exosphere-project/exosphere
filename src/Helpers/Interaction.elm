@@ -18,6 +18,8 @@ import Types.Interaction as ITypes
 import Types.Project exposing (Project)
 import Types.Server exposing (Server, ServerFromExoProps, ServerOrigin(..))
 import Types.Workflow exposing (ServerCustomWorkflowStatus(..))
+import Url
+import Url.Builder
 import View.Types
 
 
@@ -242,8 +244,9 @@ customWorkflowfinteractionStatus server context currentTime tlsReverseProxyHostn
                                     proxyHostname
                                     floatingIp
                                     8888
-                                    (customWorkflow.source.path ++ "/?token=" ++ token)
-                                    False
+                                    Url.Http
+                                    [ customWorkflow.source.path ]
+                                    [ Url.Builder.string "token" token ]
 
                         ( Nothing, _ ) ->
                             ITypes.Unavailable "Cannot find TLS-terminating reverse proxy server"
@@ -400,8 +403,9 @@ serverFromExoGuacStatus server context currentTime tlsReverseProxyHostname maybe
                                         proxyHostname
                                         floatingIp
                                         guacUpstreamPort
-                                        ("/guacamole/#/client/" ++ connectionStringBase64 ++ "?token=" ++ token)
-                                        False
+                                        Url.Http
+                                        [ "guacamole", "#", "client", connectionStringBase64 ]
+                                        [ Url.Builder.string "token" token ]
 
                             ( Nothing, _ ) ->
                                 ITypes.Unavailable "Cannot find TLS-terminating reverse proxy server"

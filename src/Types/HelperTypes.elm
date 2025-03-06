@@ -8,6 +8,7 @@ module Types.HelperTypes exposing
     , FloatingIpAssignmentStatus(..)
     , FloatingIpOption(..)
     , FloatingIpReuseOption(..)
+    , Headers
     , Hostname
     , HttpRequestMethod(..)
     , IPv4AddressPublicRoutability(..)
@@ -29,6 +30,8 @@ module Types.HelperTypes exposing
     , UnscopedProviderProject
     , UnscopedProviderRegion
     , Url
+    , UrlParams
+    , UrlPath
     , UserAppProxyConfig
     , UserAppProxyHostname
     , Uuid
@@ -40,6 +43,7 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.Types as OSTypes
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput)
 import Types.Error exposing (HttpErrorWithBody)
+import Url.Builder
 
 
 
@@ -75,6 +79,18 @@ type alias ProjectIdentifier =
 
 type alias Passphrase =
     String
+
+
+type alias Headers =
+    List ( String, String )
+
+
+type alias UrlPath =
+    List String
+
+
+type alias UrlParams =
+    List Url.Builder.QueryParameter
 
 
 type HttpRequestMethod
