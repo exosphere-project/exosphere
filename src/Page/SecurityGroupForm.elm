@@ -444,45 +444,23 @@ rulesGrid context project model rules =
         )
 
 
-warningSecurityGroupAffectsServers : View.Types.Context -> Project -> SecurityGroupUuid -> Maybe ServerUuid -> Element.Element msg
-warningSecurityGroupAffectsServers context project securityGroupUuid exceptServerUuid =
-    let
-        serversAffected =
-            GetterSetters.serversForSecurityGroup project securityGroupUuid
-                |> .servers
+warningSecurityGroupAffectsServers :
+    View.Types.Context
+    -> Project
+    -> SecurityGroupUuid
+    -> Maybe ServerUuid
+    -> Element.Element msg
+warningSecurityGroupAffectsServers context project securityGroupUuid maybeServerUuid =
+    case Forms.securityGroupAffectsServersWarning context project securityGroupUuid maybeServerUuid "editing" of
+        Just warning ->
+            Element.el
+                [ Element.width Element.shrink, Element.centerX ]
+            <|
+                Validation.warningMessage context.palette <|
+                    warning
 
-        otherServersAffected =
-            case exceptServerUuid of
-                Just serverUuid ->
-                    List.filter (\s -> s.osProps.uuid /= serverUuid) serversAffected
-
-                Nothing ->
-                    serversAffected
-
-        numberOfServers =
-            List.length otherServersAffected
-    in
-    if numberOfServers == 0 then
-        Element.none
-
-    else
-        let
-            { locale } =
-                context
-        in
-        Element.el
-            [ Element.width Element.shrink, Element.centerX ]
-        <|
-            Validation.warningMessage context.palette <|
-                String.join " "
-                    [ "Editing this"
-                    , context.localization.securityGroup
-                    , "will affect"
-                    , numberOfServers
-                        |> humanCount { locale | decimals = Exact 0 }
-                    , "other"
-                    , (context.localization.virtualComputer |> pluralizeCount numberOfServers) ++ "."
-                    ]
+        Nothing ->
+            Element.none
 
 
 view : View.Types.Context -> Project -> Time.Posix -> Model -> Maybe ServerUuid -> Element.Element Msg

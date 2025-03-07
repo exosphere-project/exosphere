@@ -24,6 +24,7 @@ import Time
 import Types.Project exposing (Project)
 import Types.SecurityGroupActions as SecurityGroupActions
 import Types.SharedMsg as SharedMsg
+import View.Forms as Forms
 import View.Helpers as VH
 import View.Types
 import Widget
@@ -131,34 +132,16 @@ securityGroupRecords securityGroups =
 
 warningSecurityGroupAffectsServers : View.Types.Context -> Project -> SecurityGroupUuid -> Element.Element msg
 warningSecurityGroupAffectsServers context project securityGroupUuid =
-    let
-        serversAffected =
-            GetterSetters.serversForSecurityGroup project securityGroupUuid
-                |> .servers
+    case Forms.securityGroupAffectsServersWarning context project securityGroupUuid Nothing "deleting" of
+        Just warning ->
+            Element.el
+                [ Element.width Element.shrink, Element.alignRight ]
+            <|
+                Validation.warningText context.palette <|
+                    warning
 
-        numberOfServers =
-            List.length serversAffected
-    in
-    if numberOfServers == 0 then
-        Element.none
-
-    else
-        let
-            { locale } =
-                context
-        in
-        Element.el
-            [ Element.width Element.shrink, Element.alignRight ]
-        <|
-            Validation.warningText context.palette <|
-                String.join " "
-                    [ "Deleting this"
-                    , context.localization.securityGroup
-                    , "will affect"
-                    , numberOfServers
-                        |> humanCount { locale | decimals = Exact 0 }
-                    , (context.localization.virtualComputer |> pluralizeCount numberOfServers) ++ "."
-                    ]
+        Nothing ->
+            Element.none
 
 
 securityGroupView : View.Types.Context -> Project -> Time.Posix -> SecurityGroupRecord -> Element.Element Msg

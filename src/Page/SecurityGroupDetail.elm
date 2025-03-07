@@ -33,6 +33,7 @@ import Time
 import Types.Project exposing (Project)
 import Types.Server exposing (Server)
 import Types.SharedMsg as SharedMsg
+import View.Forms as Forms
 import View.Helpers as VH
 import View.Types
 import Widget
@@ -259,34 +260,16 @@ serversTable context project { servers, progress, currentTime } =
 
 warningSecurityGroupAffectsServers : View.Types.Context -> Project -> OSTypes.SecurityGroupUuid -> Element.Element msg
 warningSecurityGroupAffectsServers context project securityGroupUuid =
-    let
-        serversAffected =
-            GetterSetters.serversForSecurityGroup project securityGroupUuid
-                |> .servers
+    case Forms.securityGroupAffectsServersWarning context project securityGroupUuid Nothing "deleting" of
+        Just warning ->
+            Element.el
+                [ Element.width Element.shrink, Element.alignLeft ]
+            <|
+                Validation.warningMessage context.palette <|
+                    warning
 
-        numberOfServers =
-            List.length serversAffected
-    in
-    if numberOfServers == 0 then
-        Element.none
-
-    else
-        let
-            { locale } =
-                context
-        in
-        Element.el
-            [ Element.width Element.shrink, Element.alignLeft ]
-        <|
-            Validation.warningMessage context.palette <|
-                String.join " "
-                    [ "Deleting this"
-                    , context.localization.securityGroup
-                    , "will affect"
-                    , numberOfServers
-                        |> humanCount { locale | decimals = Exact 0 }
-                    , (context.localization.virtualComputer |> Helpers.String.pluralizeCount numberOfServers) ++ "."
-                    ]
+        Nothing ->
+            Element.none
 
 
 renderConfirmation : View.Types.Context -> Maybe Msg -> Maybe Msg -> String -> List (Element.Attribute Msg) -> Element.Element Msg
