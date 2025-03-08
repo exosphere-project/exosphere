@@ -27,6 +27,7 @@ import Types.Project exposing (Project)
 import Types.Server exposing (ExoSetupStatus(..), Server, ServerFromExoProps, ServerOrigin(..))
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
 import UUID
+import Url
 
 
 goalNewServer : UUID.UUID -> Time.Posix -> Project -> ( Project, Cmd SharedMsg )
@@ -564,8 +565,9 @@ stepServerGuacamoleAuth time maybeUserAppProxy project server =
                         proxyHostname
                         floatingIp
                         guacUpstreamPort
-                        "/guacamole/api/tokens"
-                        False
+                        Url.Http
+                        [ "guacamole", "api", "tokens" ]
+                        []
             in
             ( GetterSetters.projectUpdateServer project newServer
             , Rest.Guacamole.requestLoginToken

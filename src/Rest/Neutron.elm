@@ -90,7 +90,7 @@ requestNetworks project =
         Get
         Nothing
         []
-        (project.endpoints.neutron ++ "/v2.0/networks")
+        ( project.endpoints.neutron, [ "v2.0", "networks" ], [] )
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg
@@ -117,7 +117,7 @@ requestAutoAllocatedNetwork project =
         Get
         Nothing
         []
-        (project.endpoints.neutron ++ "/v2.0/auto-allocated-topology/" ++ project.auth.project.uuid)
+        ( project.endpoints.neutron, [ "v2.0", "auto-allocated-topology", project.auth.project.uuid ], [] )
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg
@@ -148,7 +148,7 @@ requestFloatingIps project =
         Get
         Nothing
         []
-        (project.endpoints.neutron ++ "/v2.0/floatingips")
+        ( project.endpoints.neutron, [ "v2.0", "floatingips" ], [] )
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg_
@@ -175,7 +175,7 @@ requestPorts project =
         Get
         Nothing
         []
-        (project.endpoints.neutron ++ "/v2.0/ports")
+        ( project.endpoints.neutron, [ "v2.0", "ports" ], [] )
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg
@@ -230,7 +230,7 @@ requestCreateFloatingIp project network maybePortServerUuid maybeIp =
         Post
         Nothing
         []
-        (project.endpoints.neutron ++ "/v2.0/floatingips")
+        ( project.endpoints.neutron, [ "v2.0", "floatingips" ], [] )
         (Http.jsonBody requestBody)
         (expectJsonWithErrorBody
             resultToMsg_
@@ -255,7 +255,7 @@ requestDeleteFloatingIp project errorContext uuid =
         Delete
         Nothing
         []
-        (project.endpoints.neutron ++ "/v2.0/floatingips/" ++ uuid)
+        ( project.endpoints.neutron, [ "v2.0", "floatingips", uuid ], [] )
         Http.emptyBody
         (expectStringWithErrorBody
             resultToMsg_
@@ -294,7 +294,7 @@ requestAssignFloatingIp project port_ floatingIpUuid =
         Put
         Nothing
         []
-        (project.endpoints.neutron ++ "/v2.0/floatingips/" ++ floatingIpUuid)
+        ( project.endpoints.neutron, [ "v2.0", "floatingips", floatingIpUuid ], [] )
         (Http.jsonBody requestBody)
         (expectJsonWithErrorBody
             resultToMsg_
@@ -334,7 +334,7 @@ requestUnassignFloatingIp project floatingIpUuid =
         Put
         Nothing
         []
-        (project.endpoints.neutron ++ "/v2.0/floatingips/" ++ floatingIpUuid)
+        ( project.endpoints.neutron, [ "v2.0", "floatingips", floatingIpUuid ], [] )
         (Http.jsonBody requestBody)
         (expectJsonWithErrorBody
             resultToMsg_
@@ -361,7 +361,7 @@ requestSecurityGroups project =
         Get
         Nothing
         []
-        (project.endpoints.neutron ++ "/v2.0/security-groups")
+        ( project.endpoints.neutron, [ "v2.0", "security-groups" ], [] )
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg
@@ -398,7 +398,7 @@ requestCreateDefaultSecurityGroup project securityGroup =
         Post
         Nothing
         []
-        (project.endpoints.neutron ++ "/v2.0/security-groups")
+        ( project.endpoints.neutron, [ "v2.0", "security-groups" ], [] )
         (Http.jsonBody requestBody)
         (expectJsonWithErrorBody
             resultToMsg
@@ -443,7 +443,7 @@ requestUpdateSecurityGroup project securityGroupUuid securityGroupUpdate =
         Put
         Nothing
         []
-        (project.endpoints.neutron ++ "/v2.0/security-groups/" ++ securityGroupUuid)
+        ( project.endpoints.neutron, [ "v2.0", "security-groups", securityGroupUuid ], [] )
         (Http.jsonBody requestBody)
         (expectJsonWithErrorBody
             resultToMsg
@@ -479,7 +479,7 @@ requestUpdateSecurityGroupTags project securityGroupUuid tags =
         Put
         Nothing
         []
-        (project.endpoints.neutron ++ "/v2.0/security-groups/" ++ securityGroupUuid ++ "/tags")
+        ( project.endpoints.neutron, [ "v2.0", "security-groups", securityGroupUuid, "tags" ], [] )
         (Http.jsonBody requestBody)
         (expectJsonWithErrorBody
             resultToMsg
@@ -508,7 +508,7 @@ requestCreateSecurityGroupRules project securityGroupUuid rules errorMessage =
                 Post
                 Nothing
                 []
-                (project.endpoints.neutron ++ "/v2.0/security-group-rules")
+                ( project.endpoints.neutron, [ "v2.0", "security-group-rules" ], [] )
                 (Http.jsonBody body)
                 (expectJsonWithErrorBody
                     resultToMsg
@@ -537,7 +537,7 @@ requestDeleteSecurityGroupRules project securityGroupUuid ruleUuids errorMessage
                 Delete
                 Nothing
                 []
-                (project.endpoints.neutron ++ "/v2.0/security-group-rules/" ++ ruleUuid)
+                ( project.endpoints.neutron, [ "v2.0", "security-group-rules", ruleUuid ], [] )
                 Http.emptyBody
                 (Http.expectWhatever
                     (\result -> ProjectMsg (GetterSetters.projectIdentifier project) <| ReceiveDeleteSecurityGroupRule errorContext ( securityGroupUuid, ruleUuid ) result)

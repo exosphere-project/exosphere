@@ -4,6 +4,7 @@ import Base64
 import OpenStack.Types as OSTypes
 import Types.HelperTypes as HelperTypes
 import Url
+import Url.Builder
 
 
 hostnameFromUrl : HelperTypes.Url -> String
@@ -20,22 +21,23 @@ hostnameFromUrl urlStr =
             "placeholder-url-unparseable"
 
 
-buildProxyUrl : HelperTypes.UserAppProxyHostname -> OSTypes.IpAddressValue -> Int -> String -> Bool -> String
-buildProxyUrl proxyHostname destinationIp port_ path https_upstream =
+buildProxyUrl : HelperTypes.UserAppProxyHostname -> OSTypes.IpAddressValue -> Int -> Url.Protocol -> HelperTypes.UrlPath -> HelperTypes.UrlParams -> String
+buildProxyUrl proxyHostname destinationIp port_ protocol =
     [ "https://"
-    , if https_upstream then
-        ""
+    , case protocol of
+        Url.Http ->
+            "http-"
 
-      else
-        "http-"
+        Url.Https ->
+            ""
     , destinationIp |> String.replace "." "-"
     , "-"
     , String.fromInt port_
     , "."
     , proxyHostname
-    , path
     ]
         |> String.concat
+        |> Url.Builder.crossOrigin
 
 
 dataUrl : String -> String -> String

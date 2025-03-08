@@ -350,7 +350,7 @@ doAction jsonBody maybeTargetStatuses requestFloatingIpIfAppropriate projectId s
                 Post
                 Nothing
                 []
-                (novaUrl ++ "/servers/" ++ server.osProps.uuid ++ "/action")
+                ( novaUrl, [ "servers", server.osProps.uuid, "action" ], [] )
                 (Http.jsonBody jsonBody)
                 (expectStringWithErrorBody
                     (resultToMsgErrorBody
