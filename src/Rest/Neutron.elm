@@ -90,7 +90,7 @@ requestNetworks project =
         Get
         Nothing
         []
-        ( project.endpoints.neutron, [ "/v2.0/networks" ], [] )
+        ( project.endpoints.neutron, [ "v2.0", "networks" ], [] )
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg
