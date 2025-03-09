@@ -16,6 +16,7 @@ module OpenStack.SecurityGroupRule exposing
     , getRemote
     , isRuleShadowed
     , matchRule
+    , matchRuleAndDescription
     , portRangeToString
     , protocolToString
     , remoteToString
