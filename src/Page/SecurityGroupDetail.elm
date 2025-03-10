@@ -601,7 +601,11 @@ render context project ( currentTime, _ ) model securityGroup =
                 { text = "Edit"
                 , icon = Icon.sizedFeatherIcon 16 FeatherIcons.edit3
                 , onPress =
-                    Just GotEditSecurityGroupForm
+                    if model.securityGroupForm == Nothing then
+                        Just GotEditSecurityGroupForm
+
+                    else
+                        Nothing
                 }
             , Element.row [ Element.alignRight, Text.fontSize Text.Body, Font.regular, Element.spacing spacer.px16 ]
                 [ securityGroupActionsDropdown context project model securityGroup { preset = preset, default = default, progress = serverLookup.progress }

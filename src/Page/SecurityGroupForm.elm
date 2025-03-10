@@ -500,6 +500,15 @@ view context project currentTime model maybeServerUuid =
             model.uuid
                 |> Maybe.andThen (\uuid -> Dict.get uuid project.securityGroupActions)
                 |> Maybe.withDefault SecurityGroupActions.initSecurityGroupAction
+
+        isUpToDate =
+            model.submitted
+                && not model.creationInProgress
+                && not action.pendingCreation
+                && action.pendingSecurityGroupChanges
+                == SecurityGroupActions.initPendingSecurityGroupChanges
+                && action.pendingRuleChanges
+                == SecurityGroupActions.initPendingRulesChanges
     in
     Element.column [ Element.spacing spacer.px24, Element.width Element.fill ]
         [ Element.column [ Element.paddingXY spacer.px8 0, Element.spacing spacer.px12, Element.width Element.fill ] <|
@@ -575,49 +584,65 @@ view context project currentTime model maybeServerUuid =
                         Button.Primary
               in
               Button.button variant context.palette { text = "Add Rule", onPress = Just GotAddRule }
-            , Element.el
-                [ Element.paddingXY spacer.px8 0, Element.width Element.shrink, Element.alignRight ]
-                (Button.button Button.DangerSecondary context.palette { text = "Cancel", onPress = Just GotCancel })
-            , let
-                variant =
-                    if List.length model.rules > 0 && model.securityGroupRuleForm == Nothing then
-                        Button.Primary
+            , -- Cancel
+              if isUpToDate then
+                Element.none
 
-                    else
-                        Button.Secondary
-              in
-              Button.button variant
-                context.palette
-                { text =
-                    let
-                        isExistingRule =
-                            model.uuid /= Nothing
-                    in
-                    String.join " "
-                        [ if isExistingRule then
-                            "Update"
+              else
+                Element.el
+                    [ Element.paddingXY spacer.px8 0, Element.width Element.shrink, Element.alignRight ]
+                    (Button.button Button.DangerSecondary context.palette { text = "Cancel", onPress = Just GotCancel })
+            , -- Done
+              if isUpToDate then
+                Button.button Button.Primary context.palette { text = "Done", onPress = Just GotCancel }
 
-                          else
-                            "Create"
-                        , context.localization.securityGroup
-                            |> Helpers.String.toTitleCase
-                        ]
-                , onPress =
-                    let
-                        isFormValid =
-                            isRuleSetValid && isNameValid
-                    in
-                    if isFormValid then
-                        case model.uuid of
-                            Just securityGroupUuid ->
-                                Just (GotRequestUpdateSecurityGroup securityGroupUuid)
+              else
+                Element.none
+            , -- Submit
+              if isUpToDate then
+                Element.none
 
-                            Nothing ->
-                                Just GotRequestCreateSecurityGroup
+              else
+                let
+                    variant =
+                        if List.length model.rules > 0 && model.securityGroupRuleForm == Nothing then
+                            Button.Primary
 
-                    else
-                        Nothing
-                }
+                        else
+                            Button.Secondary
+                in
+                Button.button variant
+                    context.palette
+                    { text =
+                        let
+                            isExistingRule =
+                                model.uuid /= Nothing
+                        in
+                        String.join " "
+                            [ if isExistingRule then
+                                "Update"
+
+                              else
+                                "Create"
+                            , context.localization.securityGroup
+                                |> Helpers.String.toTitleCase
+                            ]
+                    , onPress =
+                        let
+                            isFormValid =
+                                isRuleSetValid && isNameValid
+                        in
+                        if isFormValid then
+                            case model.uuid of
+                                Just securityGroupUuid ->
+                                    Just (GotRequestUpdateSecurityGroup securityGroupUuid)
+
+                                Nothing ->
+                                    Just GotRequestCreateSecurityGroup
+
+                        else
+                            Nothing
+                    }
             ]
         , if action.pendingCreation then
             Element.row [ Element.spacing spacer.px16, Element.centerX ]
@@ -669,15 +694,7 @@ view context project currentTime model maybeServerUuid =
 
           else
             Element.none
-        , if
-            model.submitted
-                && not model.creationInProgress
-                && not action.pendingCreation
-                && action.pendingSecurityGroupChanges
-                == SecurityGroupActions.initPendingSecurityGroupChanges
-                && action.pendingRuleChanges
-                == SecurityGroupActions.initPendingRulesChanges
-          then
+        , if isUpToDate then
             Element.el
                 [ Element.width Element.shrink, Element.centerX ]
             <|
