@@ -430,7 +430,7 @@ requestDeleteSecurityGroup project securityGroupUuid =
         Delete
         Nothing
         []
-        (project.endpoints.neutron ++ "/v2.0/security-groups/" ++ securityGroupUuid)
+        ( project.endpoints.neutron, [ "v2.0", "security-groups", securityGroupUuid ], [] )
         Http.emptyBody
         (expectStringWithErrorBody
             resultToMsg
