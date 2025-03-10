@@ -8,7 +8,7 @@ import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Cidr exposing (isValidCidr)
 import Helpers.Formatting exposing (humanCount)
 import Helpers.GetterSetters as GetterSetters
-import Helpers.String exposing (pluralizeCount)
+import Helpers.String exposing (pluralizeCount, removeEmptiness)
 import Json.Decode as Decode
 import List
 import List.Extra
@@ -102,7 +102,7 @@ initWithSecurityGroup securityGroup =
 securityGroupUpdateFromForm : Model -> SecurityGroupUpdate
 securityGroupUpdateFromForm model =
     { name = String.trim model.name
-    , description = model.description |> Maybe.map String.trim
+    , description = removeEmptiness model.description
     , rules = List.map OpenStack.SecurityGroupRule.securityGroupRuleToTemplate model.rules
     }
 
@@ -110,7 +110,7 @@ securityGroupUpdateFromForm model =
 securityGroupTemplateFromForm : Model -> SecurityGroupTemplate
 securityGroupTemplateFromForm model =
     { name = model.name
-    , description = model.description
+    , description = removeEmptiness model.description
     , regionId = Nothing
     , rules = List.map OpenStack.SecurityGroupRule.securityGroupRuleToTemplate model.rules
     }
