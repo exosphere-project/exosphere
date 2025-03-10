@@ -597,17 +597,21 @@ render context project ( currentTime, _ ) model securityGroup =
             , securityGroupNameView securityGroup
             , defaultTag
             , presetTag
-            , Widget.button
-                (SH.materialStyle context.palette).button
-                { text = "Edit"
-                , icon = Icon.sizedFeatherIcon 16 FeatherIcons.edit3
-                , onPress =
-                    if model.securityGroupForm == Nothing then
-                        Just GotEditSecurityGroupForm
+            , if default then
+                Element.none
 
-                    else
-                        Nothing
-                }
+              else
+                Widget.button
+                    (SH.materialStyle context.palette).button
+                    { text = "Edit"
+                    , icon = Icon.sizedFeatherIcon 16 FeatherIcons.edit3
+                    , onPress =
+                        if model.securityGroupForm == Nothing then
+                            Just GotEditSecurityGroupForm
+
+                        else
+                            Nothing
+                    }
             , Element.row [ Element.alignRight, Text.fontSize Text.Body, Font.regular, Element.spacing spacer.px16 ]
                 [ securityGroupActionsDropdown context project model securityGroup { preset = preset, default = default, progress = serverLookup.progress }
                 ]
