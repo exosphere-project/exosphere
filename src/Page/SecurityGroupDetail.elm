@@ -32,6 +32,7 @@ import Style.Widgets.Validation as Validation
 import Time
 import Types.Project exposing (Project)
 import Types.Server exposing (Server)
+import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
 import View.Forms as Forms
 import View.Helpers as VH
@@ -61,8 +62,8 @@ init securityGroupUuid =
     }
 
 
-update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
-update msg project model =
+update : Msg -> SharedModel -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
+update msg sharedModel project model =
     case msg of
         GotDeleteNeedsConfirm securityGroupUuid ->
             ( { model | deletePendingConfirmation = securityGroupUuid }, Cmd.none, SharedMsg.NoOp )
@@ -91,7 +92,7 @@ update msg project model =
                         Just securityGroupForm ->
                             let
                                 ( newSecurityGroupForm, securityGroupFormCmd, securityGroupFormSharedMsg ) =
-                                    SecurityGroupForm.update securityGroupFormMsg project securityGroupForm
+                                    SecurityGroupForm.update securityGroupFormMsg sharedModel project securityGroupForm
                             in
                             ( { model | securityGroupForm = Just newSecurityGroupForm }
                             , Cmd.map SecurityGroupFormMsg securityGroupFormCmd

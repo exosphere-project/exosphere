@@ -10,8 +10,10 @@ import Helpers.Cidr exposing (isValidCidr)
 import Helpers.Formatting exposing (humanCount)
 import Helpers.GetterSetters as GetterSetters
 import Helpers.String exposing (pluralizeCount)
+import Json.Decode as Decode
 import List
 import List.Extra
+import OpenStack.Error
 import OpenStack.SecurityGroupRule
     exposing
         ( SecurityGroupRule
@@ -27,6 +29,7 @@ import OpenStack.SecurityGroupRule
 import OpenStack.Types exposing (SecurityGroup, SecurityGroupTemplate, SecurityGroupUpdate, SecurityGroupUuid, ServerUuid)
 import Page.SecurityGroupRuleForm as SecurityGroupRuleForm
 import Page.SecurityGroupRulesTable as SecurityGroupRulesTable
+import Rest.Neutron
 import Style.Helpers as SH
 import Style.Widgets.Button as Button
 import Style.Widgets.Grid exposing (GridCell(..), GridRow(..), grid, scrollableCell)
@@ -37,6 +40,7 @@ import Time
 import Types.Error as Error
 import Types.Project exposing (Project)
 import Types.SecurityGroupActions as SecurityGroupActions
+import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
 import View.Forms as Forms
 import View.Helpers as VH
@@ -66,6 +70,7 @@ type alias Model =
     , securityGroupRuleForm : Maybe SecurityGroupRuleForm.Model
     , submitted : Bool
     , creationInProgress : Bool
+    , creationError : Maybe String
     }
 
 
@@ -78,6 +83,7 @@ init { name } =
     , securityGroupRuleForm = Nothing
     , submitted = False
     , creationInProgress = False
+    , creationError = Nothing
     }
 
 
@@ -90,6 +96,7 @@ initWithSecurityGroup securityGroup =
     , securityGroupRuleForm = Nothing
     , submitted = False
     , creationInProgress = False
+    , creationError = Nothing
     }
 
 
@@ -110,8 +117,8 @@ securityGroupTemplateFromForm model =
     }
 
 
-update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
-update msg project model =
+update : Msg -> SharedModel -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
+update msg { viewContext } project model =
     case msg of
         SecurityGroupRuleFormMsg ruleFormMsg ->
             case model.securityGroupRuleForm of
@@ -214,6 +221,7 @@ update msg project model =
                     { model
                         | submitted = True
                         , creationInProgress = True
+                        , creationError = Nothing
                     }
             in
             ( newModel
@@ -237,6 +245,7 @@ update msg project model =
                                     , name = securityGroup.name
                                     , description = securityGroup.description
                                     , creationInProgress = False
+                                    , creationError = Nothing
                                 }
                         in
                         ( newModel
@@ -244,9 +253,29 @@ update msg project model =
                         , SharedMsg.NoOp
                         )
 
-                    Err _ ->
-                        -- TODO: Parse the error.
-                        ( { model | creationInProgress = False }
+                    Err httpError ->
+                        let
+                            error =
+                                Decode.decodeString
+                                    (Decode.field (OpenStack.Error.fieldForErrorDomain OpenStack.Error.NeutronError) Rest.Neutron.neutronErrorDecoder)
+                                    httpError.body
+
+                            errorMessage =
+                                case error of
+                                    Ok neutronError ->
+                                        neutronError.message
+
+                                    Err _ ->
+                                        if String.isEmpty httpError.body then
+                                            "An error occurred while creating the " ++ viewContext.localization.securityGroup ++ "."
+
+                                        else
+                                            httpError.body
+                        in
+                        ( { model
+                            | creationInProgress = False
+                            , creationError = Just errorMessage
+                          }
                         , Cmd.none
                         , SharedMsg.NoOp
                         )
@@ -505,6 +534,8 @@ view context project currentTime model maybeServerUuid =
             model.submitted
                 && not model.creationInProgress
                 && not action.pendingCreation
+                && model.creationError
+                == Nothing
                 && action.pendingSecurityGroupChanges
                 == SecurityGroupActions.initPendingSecurityGroupChanges
                 && action.pendingRuleChanges
@@ -683,7 +714,15 @@ view context project currentTime model maybeServerUuid =
             Element.none
         , let
             errors =
-                action.pendingSecurityGroupChanges.errors ++ action.pendingRuleChanges.errors
+                action.pendingSecurityGroupChanges.errors
+                    ++ action.pendingRuleChanges.errors
+                    ++ (case model.creationError of
+                            Just e ->
+                                [ e ]
+
+                            Nothing ->
+                                []
+                       )
           in
           if List.length errors > 0 then
             Element.el

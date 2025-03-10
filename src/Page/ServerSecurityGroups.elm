@@ -161,7 +161,7 @@ update msg sharedModel project model =
                     )
 
                 _ ->
-                    updateUnderlyingForm project model securityGroupFormMsg
+                    updateUnderlyingForm sharedModel project model securityGroupFormMsg
 
         GotCreateSecurityGroupForm ->
             let
@@ -189,8 +189,8 @@ update msg sharedModel project model =
             )
 
 
-updateUnderlyingForm : Project -> Model -> SecurityGroupForm.Msg -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
-updateUnderlyingForm project model securityGroupFormMsg =
+updateUnderlyingForm : SharedModel -> Project -> Model -> SecurityGroupForm.Msg -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
+updateUnderlyingForm sharedModel project model securityGroupFormMsg =
     let
         ( newSecurityGroupForm, securityGroupFormCmd, securityGroupFormSharedMsg ) =
             let
@@ -203,7 +203,7 @@ updateUnderlyingForm project model securityGroupFormMsg =
                             -- If we get a message without a form, initialise one.
                             SecurityGroupForm.init { name = newSecurityGroupName project model.serverUuid }
             in
-            SecurityGroupForm.update securityGroupFormMsg project securityGroupForm
+            SecurityGroupForm.update securityGroupFormMsg sharedModel project securityGroupForm
     in
     ( { model | securityGroupForm = Just newSecurityGroupForm }
     , Cmd.map SecurityGroupFormMsg securityGroupFormCmd
