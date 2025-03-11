@@ -1,5 +1,6 @@
 module Page.SecurityGroupList exposing (Model, Msg, init, update, view)
 
+import Dict
 import Element
 import Element.Font as Font
 import FeatherIcons
@@ -8,19 +9,24 @@ import Helpers.Formatting exposing (humanCount)
 import Helpers.GetterSetters as GetterSetters exposing (LoadingProgress(..), isDefaultSecurityGroup, sortedSecurityGroups)
 import Helpers.ResourceList exposing (creationTimeFilterOptions, listItemColumnAttribs, onCreationTimeFilter)
 import Helpers.String exposing (pluralizeCount)
-import OpenStack.Types as OSTypes exposing (securityGroupExoTags, securityGroupTaggedAs)
+import OpenStack.Types as OSTypes exposing (SecurityGroup, SecurityGroupUuid, securityGroupExoTags, securityGroupTaggedAs)
 import Route
 import Style.Helpers as SH
+import Style.Types as ST
 import Style.Widgets.DataList as DataList
+import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirmContent)
 import Style.Widgets.HumanTime exposing (relativeTimeElement)
+import Style.Widgets.Popover.Popover exposing (popover)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Tag exposing (tag, tagNeutral, tagPositive)
 import Style.Widgets.Text as Text
+import Style.Widgets.Validation as Validation
 import Time
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
+import Widget
 
 
 type alias Model =
@@ -30,9 +36,10 @@ type alias Model =
 
 
 type Msg
-    = -- TODO: Delete security group (if not in use or protected).
-      DataListMsg DataList.Msg
+    = DataListMsg DataList.Msg
+    | GotDeleteConfirm SecurityGroup
     | SharedMsg SharedMsg.SharedMsg
+    | NoOp
 
 
 init : Bool -> Model
@@ -41,13 +48,23 @@ init showHeading =
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
-update msg _ model =
+update msg project model =
     case msg of
         SharedMsg sharedMsg ->
             ( model, Cmd.none, sharedMsg )
 
         DataListMsg dataListMsg ->
             ( { model | dataListModel = DataList.update dataListMsg model.dataListModel }, Cmd.none, SharedMsg.NoOp )
+
+        GotDeleteConfirm securityGroup ->
+            ( model
+            , Cmd.none
+            , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
+                SharedMsg.RequestDeleteSecurityGroup securityGroup
+            )
+
+        NoOp ->
+            ( model, Cmd.none, SharedMsg.NoOp )
 
 
 view : View.Types.Context -> Project -> Time.Posix -> Model -> Element.Element Msg
@@ -97,8 +114,6 @@ view context project currentTime model =
 type alias SecurityGroupRecord =
     DataList.DataRecord
         { securityGroup : OSTypes.SecurityGroup
-
-        -- TODO: Add protected field based on "default", "exosphere", or tags.
         }
 
 
@@ -112,6 +127,38 @@ securityGroupRecords securityGroups =
             }
         )
         securityGroups
+
+
+warningSecurityGroupAffectsServers : View.Types.Context -> Project -> SecurityGroupUuid -> Element.Element msg
+warningSecurityGroupAffectsServers context project securityGroupUuid =
+    let
+        serversAffected =
+            GetterSetters.serversForSecurityGroup project securityGroupUuid
+                |> .servers
+
+        numberOfServers =
+            List.length serversAffected
+    in
+    if numberOfServers == 0 then
+        Element.none
+
+    else
+        let
+            { locale } =
+                context
+        in
+        Element.el
+            [ Element.width Element.shrink, Element.alignRight ]
+        <|
+            Validation.warningText context.palette <|
+                String.join " "
+                    [ "Deleting this"
+                    , context.localization.securityGroup
+                    , "will affect"
+                    , numberOfServers
+                        |> humanCount { locale | decimals = Exact 0 }
+                    , (context.localization.virtualComputer |> pluralizeCount numberOfServers) ++ "."
+                    ]
 
 
 securityGroupView : View.Types.Context -> Project -> Time.Posix -> SecurityGroupRecord -> Element.Element Msg
@@ -214,7 +261,80 @@ securityGroupView context project currentTime securityGroupRecord =
             Element.el [ Font.color accentColor ]
 
         actions =
-            [ Element.none ]
+            [ case progress of
+                -- Reveal the delete option once we know how many servers might be affected.
+                Done ->
+                    let
+                        securityGroupAction =
+                            Dict.get securityGroupRecord.id project.securityGroupActions
+
+                        deletionInProgress =
+                            securityGroupAction
+                                |> Maybe.map .pendingDeletion
+                                |> Maybe.withDefault False
+                    in
+                    if deletionInProgress then
+                        Widget.circularProgressIndicator
+                            (SH.materialStyle context.palette).progressIndicator
+                            Nothing
+
+                    else
+                        let
+                            protected =
+                                securityGroupTaggedAs securityGroupExoTags.preset securityGroupRecord.securityGroup
+                                    || isDefaultSecurityGroup context project securityGroupRecord.securityGroup
+
+                            deleteBtn togglePopconfirmMsg _ =
+                                deleteIconButton
+                                    context.palette
+                                    False
+                                    ("Delete " ++ context.localization.securityGroup)
+                                    (if protected then
+                                        Nothing
+
+                                     else
+                                        Just togglePopconfirmMsg
+                                    )
+
+                            deletePopconfirmId =
+                                Helpers.String.hyphenate
+                                    [ "securityGroupListDeletePopconfirm"
+                                    , project.auth.project.uuid
+                                    , securityGroupRecord.id
+                                    ]
+                        in
+                        popover context
+                            (\deletePopconfirmId_ -> SharedMsg <| SharedMsg.TogglePopover deletePopconfirmId_)
+                            { id = deletePopconfirmId
+                            , content =
+                                \confirmEl ->
+                                    Element.column [ Element.spacing spacer.px8, Element.padding spacer.px4 ] <|
+                                        [ deletePopconfirmContent
+                                            context.palette
+                                            { confirmation =
+                                                Element.column [ Element.spacingXY spacer.px4 spacer.px12 ]
+                                                    [ Element.text <|
+                                                        "Are you sure you want to delete this "
+                                                            ++ context.localization.securityGroup
+                                                            ++ "?"
+                                                    , warningSecurityGroupAffectsServers context project securityGroupRecord.id
+                                                    ]
+                                            , buttonText = Nothing
+                                            , onCancel = Just NoOp
+                                            , onConfirm = Just <| GotDeleteConfirm securityGroupRecord.securityGroup
+                                            }
+                                            confirmEl
+                                        ]
+                            , contentStyleAttrs = []
+                            , position = ST.PositionBottomRight
+                            , distanceToTarget = Nothing
+                            , target = deleteBtn
+                            , targetStyleAttrs = []
+                            }
+
+                _ ->
+                    Element.none
+            ]
     in
     Element.column
         (listItemColumnAttribs context.palette)
@@ -232,8 +352,8 @@ securityGroupView context project currentTime securityGroupRecord =
                     , serverCount
                     ]
                 ]
-            , Element.row [ Element.spacing spacer.px4, Element.alignRight, Element.alignTop ]
-                (tags ++ actions)
+            , Element.row [ Element.spacing spacer.px16, Element.alignRight, Element.alignTop ]
+                (Element.row [ Element.spacing spacer.px4 ] tags :: actions)
             ]
         ]
 

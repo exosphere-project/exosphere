@@ -12,6 +12,7 @@ module Rest.Neutron exposing
     , requestAutoAllocatedNetwork
     , requestCreateFloatingIp
     , requestDeleteFloatingIp
+    , requestDeleteSecurityGroup
     , requestFloatingIps
     , requestNetworks
     , requestPorts
@@ -403,6 +404,36 @@ requestCreateDefaultSecurityGroup project securityGroup =
         (expectJsonWithErrorBody
             resultToMsg
             securityGroupDecoder
+        )
+
+
+requestDeleteSecurityGroup : Project -> OSTypes.SecurityGroupUuid -> Cmd SharedMsg
+requestDeleteSecurityGroup project securityGroupUuid =
+    let
+        errorContext =
+            ErrorContext
+                ("delete security group uuid " ++ securityGroupUuid ++ " in project " ++ project.auth.project.name)
+                ErrorCrit
+                Nothing
+
+        resultToMsg =
+            resultToMsgErrorBody
+                errorContext
+                (\_ ->
+                    ProjectMsg
+                        (GetterSetters.projectIdentifier project)
+                        (ReceiveDeleteSecurityGroup errorContext securityGroupUuid (Ok ()))
+                )
+    in
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Delete
+        Nothing
+        []
+        ( project.endpoints.neutron, [ "v2.0", "security-groups", securityGroupUuid ], [] )
+        Http.emptyBody
+        (expectStringWithErrorBody
+            resultToMsg
         )
 
 

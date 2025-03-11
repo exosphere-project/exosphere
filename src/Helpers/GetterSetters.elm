@@ -26,6 +26,8 @@ module Helpers.GetterSetters exposing
     , modelUpdateUnscopedProvider
     , projectAddSecurityGroupRule
     , projectDefaultSecurityGroup
+    , projectDeleteSecurityGroup
+    , projectDeleteSecurityGroupActions
     , projectDeleteSecurityGroupRule
     , projectDeleteServer
     , projectIdentifier
@@ -814,6 +816,28 @@ projectDeleteServer project serverUuid =
             { project | servers = newServersRDPP }
 
 
+projectDeleteSecurityGroup : Project -> OSTypes.SecurityGroupUuid -> Project
+projectDeleteSecurityGroup project securityGroupUuid =
+    case project.securityGroups.data of
+        RDPP.DontHave ->
+            project
+
+        RDPP.DoHave securityGroups recTime ->
+            let
+                otherSecurityGroups =
+                    List.filter
+                        (\s -> s.uuid /= securityGroupUuid)
+                        securityGroups
+
+                oldSecurityGroupsRDPP =
+                    project.securityGroups
+
+                newSecurityGroupsRDPP =
+                    { oldSecurityGroupsRDPP | data = RDPP.DoHave otherSecurityGroups recTime }
+            in
+            { project | securityGroups = newSecurityGroupsRDPP }
+
+
 projectSetSecurityGroupsLoading : Project -> Project
 projectSetSecurityGroupsLoading project =
     { project | securityGroups = RDPP.setLoading project.securityGroups }
@@ -1103,4 +1127,11 @@ projectUpdateSecurityGroupRules project securityGroupUuid onUpdateRules =
     { project
         | securityGroups =
             newSecurityGroups
+    }
+
+
+projectDeleteSecurityGroupActions : Project -> OSTypes.SecurityGroupUuid -> Project
+projectDeleteSecurityGroupActions project securityGroupUuid =
+    { project
+        | securityGroupActions = Dict.remove securityGroupUuid project.securityGroupActions
     }

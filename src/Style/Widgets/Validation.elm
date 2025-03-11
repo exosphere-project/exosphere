@@ -68,7 +68,7 @@ invalidIcon palette =
         |> featherIcon [ Font.color (palette.danger.textOnNeutralBG |> SH.toElementColor) ]
 
 
-{-| Shows a message for a form validation error.
+{-| Shows an error icon & message for a form validation error.
 -}
 invalidMessage : ExoPalette -> String -> Element.Element msg
 invalidMessage palette helperText =

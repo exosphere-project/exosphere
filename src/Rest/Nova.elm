@@ -654,11 +654,7 @@ requestUpdateServerSecurityGroup project serverUuid update =
         ( project.endpoints.nova, [ "servers", serverUuid, "action" ], [] )
         (Http.jsonBody body)
         (expectStringWithErrorBody
-            (resultToMsgErrorBody errorContext
-                (\_ ->
-                    ProjectMsg (GetterSetters.projectIdentifier project) <| ServerMsg serverUuid <| msg group
-                )
-            )
+            (\result -> ProjectMsg (GetterSetters.projectIdentifier project) <| ServerMsg serverUuid <| msg errorContext group result)
         )
 
 

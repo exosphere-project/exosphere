@@ -75,6 +75,7 @@ type ProjectSpecificMsgConstructor
     | RequestAssignFloatingIp OSTypes.Port OSTypes.IpAddressUuid
     | RequestUnassignFloatingIp OSTypes.IpAddressUuid
     | RequestDeleteImage OSTypes.ImageUuid
+    | RequestDeleteSecurityGroup OSTypes.SecurityGroup
     | RequestUpdateSecurityGroup OSTypes.SecurityGroup OSTypes.SecurityGroupUpdate
     | RequestUpdateSecurityGroupTags OSTypes.SecurityGroupUuid (List OSTypes.SecurityGroupTag)
     | ReceiveImages (List OSTypes.Image)
@@ -101,6 +102,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveCreateDefaultSecurityGroup ErrorContext (Result HttpErrorWithBody OSTypes.SecurityGroup) OSTypes.SecurityGroupTemplate
     | ReceiveCreateSecurityGroupRule ErrorContext OSTypes.SecurityGroupUuid (Result HttpErrorWithBody SecurityGroupRule.SecurityGroupRule)
     | ReceiveDeleteSecurityGroupRule ErrorContext ( OSTypes.SecurityGroupUuid, SecurityGroupRule.SecurityGroupRuleUuid ) (Result Http.Error ())
+    | ReceiveDeleteSecurityGroup ErrorContext OSTypes.SecurityGroupUuid (Result HttpErrorWithBody ())
     | ReceiveUpdateSecurityGroup ErrorContext OSTypes.SecurityGroupUuid (Result HttpErrorWithBody OSTypes.SecurityGroup)
     | ReceiveUpdateSecurityGroupTags ( OSTypes.SecurityGroupUuid, List OSTypes.SecurityGroupTag )
     | ReceiveCreateShare OSTypes.Share
@@ -139,8 +141,8 @@ type ServerSpecificMsgConstructor
     | ReceiveServerAction
     | ReceiveServerEvents ErrorContext (Result HttpErrorWithBody (List OSTypes.ServerEvent))
     | ReceiveServerSecurityGroups ErrorContext (Result HttpErrorWithBody (List OSTypes.ServerSecurityGroup))
-    | ReceiveServerAddSecurityGroup OSTypes.ServerSecurityGroup
-    | ReceiveServerRemoveSecurityGroup OSTypes.ServerSecurityGroup
+    | ReceiveServerAddSecurityGroup ErrorContext OSTypes.ServerSecurityGroup (Result HttpErrorWithBody String)
+    | ReceiveServerRemoveSecurityGroup ErrorContext OSTypes.ServerSecurityGroup (Result HttpErrorWithBody String)
     | ReceiveConsoleUrl (Result HttpErrorWithBody OSTypes.ConsoleUrl)
     | ReceiveDeleteServer
     | ReceiveCreateServerFloatingIp ErrorContext (Result HttpErrorWithBody OSTypes.FloatingIp)
