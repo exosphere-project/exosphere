@@ -27,6 +27,7 @@ module Helpers.GetterSetters exposing
     , projectAddSecurityGroupRule
     , projectDefaultSecurityGroup
     , projectDeleteSecurityGroup
+    , projectDeleteSecurityGroupActions
     , projectDeleteSecurityGroupRule
     , projectDeleteServer
     , projectIdentifier
@@ -1126,4 +1127,11 @@ projectUpdateSecurityGroupRules project securityGroupUuid onUpdateRules =
     { project
         | securityGroups =
             newSecurityGroups
+    }
+
+
+projectDeleteSecurityGroupActions : Project -> OSTypes.SecurityGroupUuid -> Project
+projectDeleteSecurityGroupActions project securityGroupUuid =
+    { project
+        | securityGroupActions = Dict.remove securityGroupUuid project.securityGroupActions
     }

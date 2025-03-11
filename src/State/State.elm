@@ -2240,9 +2240,7 @@ processProjectSpecificMsg outerModel project msg =
         ReceiveDeleteSecurityGroup errorContext securityGroupUuid result ->
             let
                 newProject =
-                    { project
-                        | securityGroupActions = Dict.remove securityGroupUuid project.securityGroupActions
-                    }
+                    GetterSetters.projectDeleteSecurityGroupActions project securityGroupUuid
             in
             case result of
                 Ok () ->
