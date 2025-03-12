@@ -2251,7 +2251,19 @@ processProjectSpecificMsg outerModel project msg =
                         newModel =
                             GetterSetters.modelUpdateProject sharedModel newerProject
                     in
-                    ( newModel, Cmd.none )
+                    ( newModel
+                    , case outerModel.viewState of
+                        ProjectView _ (SecurityGroupDetail pageModel) ->
+                            -- If we are on the security group detail page, navigate to the security groups list.
+                            if pageModel.securityGroupUuid == securityGroupUuid then
+                                Route.pushUrl sharedModel.viewContext (Route.ProjectRoute (GetterSetters.projectIdentifier project) Route.SecurityGroupList)
+
+                            else
+                                Cmd.none
+
+                        _ ->
+                            Cmd.none
+                    )
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
