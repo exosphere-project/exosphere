@@ -58,34 +58,41 @@ stepNewShareAccessRule exoClientUuid time project =
         -- Don't create a duplicate access rule from another client if they happen to load at the same time.
         |> List.filter (shareIsFromThisExoClient exoClientUuid)
         |> List.map
-            (createNewShareAccessRule project)
+            (createNewShareAccessRules project)
         |> List.foldl
             -- Accumulate the commands into a batch & the loading states into the project.
             (\( stepProject, newCmd ) ( _, cmds ) -> ( stepProject, Cmd.batch [ cmds, newCmd ] ))
             ( project, Cmd.none )
 
 
-createNewShareAccessRule : Project -> Share -> ( Project, Cmd SharedMsg )
-createNewShareAccessRule project share =
+createNewShareAccessRules : Project -> Share -> ( Project, Cmd SharedMsg )
+createNewShareAccessRules project share =
     if
         shareIsAvailable share
             && shareHasNoAccessRules project share
     then
-        -- Create a default access rule for a new share.
+        -- Create default access rules for a new share.
         case project.endpoints.manila of
             Just manilaUrl ->
-                let
-                    defaultAccessLevel =
-                        RW
-                in
                 ( GetterSetters.projectSetShareAccessRulesLoading share.uuid project
-                , Shares.requestCreateAccessRule project
-                    manilaUrl
-                    { shareUuid = share.uuid
-                    , accessLevel = defaultAccessLevel
-                    , accessType = CephX
-                    , accessTo = String.join "-" [ Maybe.withDefault share.uuid share.name, accessRuleAccessLevelToApiString defaultAccessLevel ]
-                    }
+                , Cmd.batch
+                    [ -- A read-write rule.
+                      Shares.requestCreateAccessRule project
+                        manilaUrl
+                        { shareUuid = share.uuid
+                        , accessLevel = RW
+                        , accessType = CephX
+                        , accessTo = String.join "-" [ Maybe.withDefault share.uuid share.name, accessRuleAccessLevelToApiString RW ]
+                        }
+                    , -- A read-only rule.
+                      Shares.requestCreateAccessRule project
+                        manilaUrl
+                        { shareUuid = share.uuid
+                        , accessLevel = RO
+                        , accessType = CephX
+                        , accessTo = String.join "-" [ Maybe.withDefault share.uuid share.name, accessRuleAccessLevelToApiString RO ]
+                        }
+                    ]
                 )
 
             Nothing ->
