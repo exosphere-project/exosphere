@@ -1,6 +1,5 @@
 module Page.ServerSecurityGroups exposing (DataDependent, Model, Msg(..), init, update, view)
 
-import Dict
 import Element
 import Element.Background as Background
 import Element.Border as Border
@@ -143,7 +142,7 @@ update msg sharedModel project model =
                                     | securityGroupForm =
                                         let
                                             { creations, deletions } =
-                                                Dict.get securityGroup.uuid project.securityGroupActions
+                                                GetterSetters.getSecurityGroupActions project (SecurityGroupActions.ExtantGroup securityGroup.uuid)
                                                     |> Maybe.withDefault SecurityGroupActions.initSecurityGroupAction
                                                     |> .pendingRuleChanges
 
@@ -653,7 +652,7 @@ renderSecurityGroupListAndRules context project currentTime model securityGroups
                             case securityGroupForm.uuid of
                                 Just securityGroupUuid ->
                                     ( True
-                                    , Dict.get securityGroupUuid project.securityGroupActions
+                                    , GetterSetters.getSecurityGroupActions project (SecurityGroupActions.ExtantGroup securityGroupUuid)
                                         |> Maybe.withDefault SecurityGroupActions.initSecurityGroupAction
                                     )
 

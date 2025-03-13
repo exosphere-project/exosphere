@@ -1,6 +1,5 @@
 module Page.SecurityGroupList exposing (Model, Msg, init, update, view)
 
-import Dict
 import Element
 import Element.Font as Font
 import FeatherIcons
@@ -23,6 +22,7 @@ import Style.Widgets.Text as Text
 import Style.Widgets.Validation as Validation
 import Time
 import Types.Project exposing (Project)
+import Types.SecurityGroupActions as SecurityGroupActions
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
@@ -266,7 +266,7 @@ securityGroupView context project currentTime securityGroupRecord =
                 Done ->
                     let
                         securityGroupAction =
-                            Dict.get securityGroupRecord.id project.securityGroupActions
+                            GetterSetters.getSecurityGroupActions project (SecurityGroupActions.ExtantGroup securityGroupRecord.id)
 
                         deletionInProgress =
                             securityGroupAction

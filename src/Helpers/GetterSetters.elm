@@ -7,6 +7,7 @@ module Helpers.GetterSetters exposing
     , getCatalogRegionIds
     , getExternalNetwork
     , getFloatingIpServer
+    , getSecurityGroupActions
     , getServerDnsRecordSets
     , getServerExouserPassphrase
     , getServerFixedIps
@@ -1133,18 +1134,26 @@ projectUpdateSecurityGroupRules project securityGroupUuid onUpdateRules =
     }
 
 
-projectDeleteSecurityGroupActions : Project -> OSTypes.SecurityGroupUuid -> Project
+getSecurityGroupActions : Project -> SecurityGroupActions.SecurityGroupActionId -> Maybe SecurityGroupAction
+getSecurityGroupActions project securityGroupUuid =
+    Dict.get (SecurityGroupActions.toComparableSecurityGroupActionId securityGroupUuid) project.securityGroupActions
+
+
+projectDeleteSecurityGroupActions : Project -> SecurityGroupActions.SecurityGroupActionId -> Project
 projectDeleteSecurityGroupActions project securityGroupUuid =
     { project
-        | securityGroupActions = Dict.remove securityGroupUuid project.securityGroupActions
+        | securityGroupActions =
+            Dict.remove
+                (SecurityGroupActions.toComparableSecurityGroupActionId securityGroupUuid)
+                project.securityGroupActions
     }
 
 
-projectUpsertSecurityGroupActions : Project -> OSTypes.SecurityGroupUuid -> (SecurityGroupAction -> SecurityGroupAction) -> Project
+projectUpsertSecurityGroupActions : Project -> SecurityGroupActions.SecurityGroupActionId -> (SecurityGroupAction -> SecurityGroupAction) -> Project
 projectUpsertSecurityGroupActions project securityGroupUuid onUpdateAction =
     let
         securityGroupActions =
-            Dict.update securityGroupUuid
+            Dict.update (SecurityGroupActions.toComparableSecurityGroupActionId securityGroupUuid)
                 (\actions_ ->
                     let
                         actions =
@@ -1160,11 +1169,11 @@ projectUpsertSecurityGroupActions project securityGroupUuid onUpdateAction =
     }
 
 
-projectUpdateSecurityGroupActionsIfExists : Project -> OSTypes.SecurityGroupUuid -> (SecurityGroupAction -> SecurityGroupAction) -> Project
+projectUpdateSecurityGroupActionsIfExists : Project -> SecurityGroupActions.SecurityGroupActionId -> (SecurityGroupAction -> SecurityGroupAction) -> Project
 projectUpdateSecurityGroupActionsIfExists project securityGroupUuid onUpdateActions =
     let
         securityGroupActions =
-            Dict.update securityGroupUuid
+            Dict.update (SecurityGroupActions.toComparableSecurityGroupActionId securityGroupUuid)
                 (Maybe.map onUpdateActions)
                 project.securityGroupActions
     in

@@ -2108,9 +2108,9 @@ processProjectSpecificMsg outerModel project msg =
         RequestCreateSecurityGroup securityGroupTemplate ->
             let
                 newProject =
-                    -- We should be using a uuid but we don't have one yet. Once it's created, we'll swap it out.
+                    -- We don't have a security group uuid yet. Once it's created, we'll swap it out.
                     GetterSetters.projectUpsertSecurityGroupActions project
-                        securityGroupTemplate.name
+                        (SecurityGroupActions.NewGroup securityGroupTemplate.name)
                         (\actions -> { actions | pendingCreation = True })
 
                 newModel =
@@ -2123,10 +2123,8 @@ processProjectSpecificMsg outerModel project msg =
         ReceiveCreateSecurityGroup errorContext template result ->
             let
                 newProject =
-                    { project
-                      -- Before creation we only had a security group name. Now we can swap it out for the uuid.
-                        | securityGroupActions = Dict.remove template.name project.securityGroupActions
-                    }
+                    -- Before creation we only had a security group name. Now we can swap it out for the uuid.
+                    GetterSetters.projectDeleteSecurityGroupActions project (SecurityGroupActions.NewGroup template.name)
             in
             case result of
                 Ok group ->
@@ -2143,7 +2141,7 @@ processProjectSpecificMsg outerModel project msg =
 
                         newerProject =
                             GetterSetters.projectUpsertSecurityGroupActions newProject
-                                group.uuid
+                                (SecurityGroupActions.ExtantGroup group.uuid)
                                 (\actions ->
                                     { actions
                                         | pendingRuleChanges = { creations = List.length missing, deletions = List.length extra, errors = [] }
@@ -2173,7 +2171,7 @@ processProjectSpecificMsg outerModel project msg =
                     let
                         newProject =
                             GetterSetters.projectUpdateSecurityGroupActionsIfExists project
-                                securityGroupUuid
+                                (SecurityGroupActions.ExtantGroup securityGroupUuid)
                                 (\actions ->
                                     { actions
                                         | pendingRuleChanges =
@@ -2214,7 +2212,7 @@ processProjectSpecificMsg outerModel project msg =
 
                         newProject =
                             GetterSetters.projectUpdateSecurityGroupActionsIfExists project
-                                securityGroupUuid
+                                (SecurityGroupActions.ExtantGroup securityGroupUuid)
                                 (\actions ->
                                     { actions
                                         | pendingRuleChanges =
@@ -2238,7 +2236,7 @@ processProjectSpecificMsg outerModel project msg =
                     let
                         newProject =
                             GetterSetters.projectUpdateSecurityGroupActionsIfExists project
-                                securityGroupUuid
+                                (SecurityGroupActions.ExtantGroup securityGroupUuid)
                                 (\actions ->
                                     { actions
                                         | pendingRuleChanges =
@@ -2269,7 +2267,7 @@ processProjectSpecificMsg outerModel project msg =
 
                         newProject =
                             GetterSetters.projectUpdateSecurityGroupActionsIfExists project
-                                securityGroupUuid
+                                (SecurityGroupActions.ExtantGroup securityGroupUuid)
                                 (\actions ->
                                     { actions
                                         | pendingRuleChanges =
@@ -2301,7 +2299,7 @@ processProjectSpecificMsg outerModel project msg =
 
                 newProject =
                     GetterSetters.projectUpsertSecurityGroupActions project
-                        securityGroupUuid
+                        (SecurityGroupActions.ExtantGroup securityGroupUuid)
                         (\action -> { action | pendingDeletion = True })
 
                 newModel =
@@ -2330,7 +2328,7 @@ processProjectSpecificMsg outerModel project msg =
         ReceiveDeleteSecurityGroup errorContext securityGroupUuid result ->
             let
                 newProject =
-                    GetterSetters.projectDeleteSecurityGroupActions project securityGroupUuid
+                    GetterSetters.projectDeleteSecurityGroupActions project (SecurityGroupActions.ExtantGroup securityGroupUuid)
             in
             case result of
                 Ok () ->
@@ -2380,7 +2378,7 @@ processProjectSpecificMsg outerModel project msg =
 
                 newProject =
                     GetterSetters.projectUpsertSecurityGroupActions project
-                        existingSecurityGroup.uuid
+                        (SecurityGroupActions.ExtantGroup existingSecurityGroup.uuid)
                         (\actions ->
                             { actions
                                 | pendingSecurityGroupChanges = { updates = 1, errors = [] }
@@ -2407,7 +2405,7 @@ processProjectSpecificMsg outerModel project msg =
                     let
                         newProject =
                             GetterSetters.projectUpdateSecurityGroupActionsIfExists project
-                                securityGroupUuid
+                                (SecurityGroupActions.ExtantGroup securityGroupUuid)
                                 (\actions ->
                                     { actions
                                         | pendingSecurityGroupChanges =
@@ -2446,7 +2444,7 @@ processProjectSpecificMsg outerModel project msg =
 
                         newProject =
                             GetterSetters.projectUpdateSecurityGroupActionsIfExists project
-                                securityGroupUuid
+                                (SecurityGroupActions.ExtantGroup securityGroupUuid)
                                 (\actions ->
                                     { actions
                                         | pendingSecurityGroupChanges =
@@ -3263,7 +3261,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                 -- Even if the request failed, we want to update pending security group actions.
                 updatedProject =
                     GetterSetters.projectUpdateSecurityGroupActionsIfExists project
-                        serverSecurityGroup.uuid
+                        (SecurityGroupActions.ExtantGroup serverSecurityGroup.uuid)
                         (\actions ->
                             { actions
                                 | pendingServerChanges =
@@ -3278,7 +3276,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                         )
 
                 securityGroupAction =
-                    Dict.get serverSecurityGroup.uuid updatedProject.securityGroupActions
+                    GetterSetters.getSecurityGroupActions updatedProject (SecurityGroupActions.ExtantGroup serverSecurityGroup.uuid)
                         |> Maybe.withDefault
                             SecurityGroupActions.initSecurityGroupAction
 

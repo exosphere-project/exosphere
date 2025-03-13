@@ -1,4 +1,21 @@
-module Types.SecurityGroupActions exposing (SecurityGroupAction, initPendingRulesChanges, initPendingSecurityGroupChanges, initSecurityGroupAction)
+module Types.SecurityGroupActions exposing (SecurityGroupAction, SecurityGroupActionId(..), initPendingRulesChanges, initPendingSecurityGroupChanges, initSecurityGroupAction, toComparableSecurityGroupActionId)
+
+import OpenStack.Types exposing (SecurityGroupUuid)
+
+
+type SecurityGroupActionId
+    = ExtantGroup SecurityGroupUuid
+    | NewGroup String
+
+
+toComparableSecurityGroupActionId : SecurityGroupActionId -> String
+toComparableSecurityGroupActionId actionId =
+    case actionId of
+        ExtantGroup uuid ->
+            "extant-" ++ uuid
+
+        NewGroup name ->
+            "new-" ++ name
 
 
 type alias SecurityGroupAction =
