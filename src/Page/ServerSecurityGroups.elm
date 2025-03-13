@@ -657,7 +657,10 @@ renderSecurityGroupListAndRules context project currentTime model securityGroups
                                     )
 
                                 Nothing ->
-                                    ( False, SecurityGroupActions.initSecurityGroupAction )
+                                    ( False
+                                    , GetterSetters.getSecurityGroupActions project (SecurityGroupActions.NewGroup securityGroupForm.name)
+                                        |> Maybe.withDefault SecurityGroupActions.initSecurityGroupAction
+                                    )
                     in
                     tile
                         (Just
