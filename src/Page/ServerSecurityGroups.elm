@@ -137,14 +137,17 @@ update msg sharedModel project model =
                     if form.name == template.name then
                         case result of
                             Ok securityGroup ->
+                                let
+                                    actions =
+                                        GetterSetters.getSecurityGroupActions project (SecurityGroupActions.ExtantGroup securityGroup.uuid)
+                                            |> Maybe.withDefault SecurityGroupActions.initSecurityGroupAction
+                                in
                                 ( { model
                                     -- Update the form to use the existing security group with uuid.
                                     | securityGroupForm =
                                         let
                                             { creations, deletions } =
-                                                GetterSetters.getSecurityGroupActions project (SecurityGroupActions.ExtantGroup securityGroup.uuid)
-                                                    |> Maybe.withDefault SecurityGroupActions.initSecurityGroupAction
-                                                    |> .pendingRuleChanges
+                                                actions.pendingRuleChanges
 
                                             securityGroupForm =
                                                 SecurityGroupForm.initWithSecurityGroup securityGroup
@@ -157,6 +160,19 @@ update msg sharedModel project model =
                                             -- (And we expect there to be because new security groups are created with default rules.)
                                             Just <| { securityGroupForm | rules = form.rules }
                                     , securityGroupBeingCreated = False
+                                    , selectedSecurityGroups =
+                                        case ( model.selectedSecurityGroups, actions.pendingServerLinkage ) of
+                                            ( Ready selected, Just ( serverUuid, _ ) ) ->
+                                                -- If the server is the one we're working with, select the new security group.
+                                                -- (It will already have been applied by this time.)
+                                                if serverUuid == model.serverUuid then
+                                                    Ready <| Set.insert securityGroup.uuid selected
+
+                                                else
+                                                    model.selectedSecurityGroups
+
+                                            _ ->
+                                                model.selectedSecurityGroups
                                   }
                                 , Cmd.none
                                 , SharedMsg.NoOp
@@ -216,7 +232,7 @@ update msg sharedModel project model =
                               }
                             , Cmd.none
                             , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
-                                SharedMsg.RequestCreateSecurityGroup (SecurityGroupForm.securityGroupTemplateFromForm <| form)
+                                SharedMsg.RequestCreateSecurityGroup (SecurityGroupForm.securityGroupTemplateFromForm <| form) (Just model.serverUuid)
                             )
 
                         _ ->

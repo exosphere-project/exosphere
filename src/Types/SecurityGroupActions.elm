@@ -1,6 +1,6 @@
 module Types.SecurityGroupActions exposing (SecurityGroupAction, SecurityGroupActionId(..), initPendingRulesChanges, initPendingSecurityGroupChanges, initSecurityGroupAction, toComparableSecurityGroupActionId)
 
-import OpenStack.Types exposing (SecurityGroupUuid)
+import OpenStack.Types exposing (SecurityGroupUuid, ServerUuid)
 
 
 type SecurityGroupActionId
@@ -25,6 +25,7 @@ type alias SecurityGroupAction =
         { updates : Int
         , errors : List String
         }
+    , pendingServerLinkage : Maybe ( ServerUuid, { name : String } )
     , pendingSecurityGroupChanges :
         { updates : Int
         , errors : List String
@@ -42,6 +43,7 @@ initSecurityGroupAction =
     { pendingCreation = False
     , pendingDeletion = False
     , pendingServerChanges = { updates = 0, errors = [] }
+    , pendingServerLinkage = Nothing
     , pendingSecurityGroupChanges = initPendingSecurityGroupChanges
     , pendingRuleChanges = initPendingRulesChanges
     }

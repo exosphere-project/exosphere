@@ -2105,13 +2105,25 @@ processProjectSpecificMsg outerModel project msg =
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
-        RequestCreateSecurityGroup securityGroupTemplate ->
+        RequestCreateSecurityGroup securityGroupTemplate maybeServerUuid ->
             let
                 newProject =
                     -- We don't have a security group uuid yet. Once it's created, we'll swap it out.
                     GetterSetters.projectUpsertSecurityGroupActions project
                         (SecurityGroupActions.NewGroup securityGroupTemplate.name)
-                        (\actions -> { actions | pendingCreation = True })
+                        (\actions ->
+                            { actions
+                                | pendingCreation = True
+
+                                -- Should we link this to a server once it's created?
+                                , pendingServerLinkage =
+                                    maybeServerUuid
+                                        |> Maybe.map
+                                            (\serverUuid ->
+                                                ( serverUuid, { name = securityGroupTemplate.name } )
+                                            )
+                            }
+                        )
 
                 newModel =
                     GetterSetters.modelUpdateProject sharedModel newProject
@@ -2128,7 +2140,6 @@ processProjectSpecificMsg outerModel project msg =
             in
             case result of
                 Ok group ->
-                    -- Substitute in a new `securityGroupAction` with the uuid.
                     let
                         existingRules =
                             group.rules
@@ -2139,16 +2150,47 @@ processProjectSpecificMsg outerModel project msg =
                         { missing, extra } =
                             SecurityGroupRule.compareSecurityGroupRuleLists existingRules intendedRules
 
+                        pendingServerLinkage =
+                            -- Should we link this group to a server now that it's created?
+                            -- If so, get the pending linkage from the previous project state.
+                            GetterSetters.getSecurityGroupActions project (SecurityGroupActions.NewGroup template.name)
+                                |> Maybe.andThen .pendingServerLinkage
+
                         newerProject =
+                            -- Substitute in a new `securityGroupAction` with the uuid.
                             GetterSetters.projectUpsertSecurityGroupActions newProject
                                 (SecurityGroupActions.ExtantGroup group.uuid)
                                 (\actions ->
                                     { actions
                                         | pendingRuleChanges = { creations = List.length missing, deletions = List.length extra, errors = [] }
+                                        , pendingServerLinkage =
+                                            pendingServerLinkage
                                     }
                                 )
+
+                        ( newSharedModel, newCmd ) =
+                            Rest.Neutron.receiveCreateSecurityGroupAndRequestCreateRules
+                                sharedModel
+                                newerProject
+                                template
+                                group
+
+                        newerCmd =
+                            Cmd.batch
+                                [ newCmd
+                                , pendingServerLinkage
+                                    |> Maybe.map
+                                        (\( serverUuid, { name } ) ->
+                                            Rest.Nova.requestUpdateServerSecurityGroup project serverUuid <|
+                                                OSTypes.AddServerSecurityGroup
+                                                    { uuid = group.uuid
+                                                    , name = name
+                                                    }
+                                        )
+                                    |> Maybe.withDefault Cmd.none
+                                ]
                     in
-                    Rest.Neutron.receiveCreateSecurityGroupAndRequestCreateRules sharedModel newerProject template group
+                    ( newSharedModel, newerCmd )
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
                         -- Make the page aware of the shared msg.
@@ -3218,6 +3260,27 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                         |> mapToOuterModel outerModel
 
         ReceiveServerAddSecurityGroup errorContext serverSecurityGroup result ->
+            let
+                updatedProject =
+                    GetterSetters.projectUpdateSecurityGroupActionsIfExists project
+                        (SecurityGroupActions.ExtantGroup serverSecurityGroup.uuid)
+                        (\actions ->
+                            { actions
+                                | pendingServerLinkage =
+                                    actions.pendingServerLinkage
+                                        |> Maybe.andThen
+                                            (\( serverUuid, _ ) ->
+                                                -- If this is our server, clear the pending linkage.
+                                                -- Otherwise, leave it alone.
+                                                if serverUuid == server.osProps.uuid then
+                                                    Nothing
+
+                                                else
+                                                    actions.pendingServerLinkage
+                                            )
+                            }
+                        )
+            in
             case result of
                 Ok _ ->
                     case server.securityGroups.data of
@@ -3240,7 +3303,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                                     }
 
                                 newProject =
-                                    GetterSetters.projectUpdateServer project newServer
+                                    GetterSetters.projectUpdateServer updatedProject newServer
                             in
                             ( GetterSetters.modelUpdateProject sharedModel newProject, Cmd.none )
                                 |> mapToOuterMsg
@@ -3252,7 +3315,11 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                             ( outerModel, Cmd.none )
 
                 Err httpError ->
-                    State.Error.processSynchronousApiError sharedModel errorContext httpError
+                    let
+                        updatedSharedModel =
+                            GetterSetters.modelUpdateProject sharedModel updatedProject
+                    in
+                    State.Error.processSynchronousApiError updatedSharedModel errorContext httpError
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 

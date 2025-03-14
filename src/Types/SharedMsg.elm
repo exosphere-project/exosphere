@@ -75,7 +75,7 @@ type ProjectSpecificMsgConstructor
     | RequestAssignFloatingIp OSTypes.Port OSTypes.IpAddressUuid
     | RequestUnassignFloatingIp OSTypes.IpAddressUuid
     | RequestDeleteImage OSTypes.ImageUuid
-    | RequestCreateSecurityGroup OSTypes.SecurityGroupTemplate
+    | RequestCreateSecurityGroup OSTypes.SecurityGroupTemplate (Maybe OSTypes.ServerUuid)
     | RequestDeleteSecurityGroup OSTypes.SecurityGroup
     | RequestUpdateSecurityGroup OSTypes.SecurityGroup OSTypes.SecurityGroupUpdate
     | RequestUpdateSecurityGroupTags OSTypes.SecurityGroupUuid (List OSTypes.SecurityGroupTag)
