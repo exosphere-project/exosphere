@@ -25,7 +25,7 @@ type alias SecurityGroupAction =
         { updates : Int
         , errors : List String
         }
-    , pendingServerLinkage : Maybe ( ServerUuid, { name : String } )
+    , pendingServerLinkage : Maybe ServerUuid
     , pendingSecurityGroupChanges :
         { updates : Int
         , errors : List String

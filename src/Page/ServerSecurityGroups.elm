@@ -162,7 +162,7 @@ update msg sharedModel project model =
                                     , securityGroupBeingCreated = False
                                     , selectedSecurityGroups =
                                         case ( model.selectedSecurityGroups, actions.pendingServerLinkage ) of
-                                            ( Ready selected, Just ( serverUuid, _ ) ) ->
+                                            ( Ready selected, Just serverUuid ) ->
                                                 -- If the server is the one we're working with, select the new security group.
                                                 -- (It will already have been applied by this time.)
                                                 if serverUuid == model.serverUuid then
