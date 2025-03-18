@@ -356,107 +356,84 @@ volumeView context project currentTime volumeRecord =
             in
             sizeDisplay ++ " " ++ sizeLabel
 
+        snapshotRow snapshot =
+            Element.row [ Element.spaceEvenly, Element.width <| Element.fill ]
+                [ Element.row [ Element.spacing spacer.px8 ]
+                    [ Text.body <| sizeString snapshot.sizeInGiB
+                    , Text.body "·"
+                    , let
+                        accentColor =
+                            context.palette.neutral.text.default |> SH.toElementColor
+
+                        accented =
+                            Element.el [ Font.color accentColor ]
+                      in
+                      Element.row []
+                        [ Element.text "created "
+                        , accented (relativeTimeElement currentTime volumeRecord.volume.createdAt)
+                        ]
+                    , Text.body "·"
+                    , Text.body <| VH.resourceName snapshot.name snapshot.uuid
+                    ]
+                , if not <| List.member snapshot.status [ VS.Deleted, VS.Deleting ] then
+                    let
+                        deviceLabel =
+                            context.localization.blockDevice ++ " snapshot"
+
+                        deletePopconfirmId =
+                            Helpers.String.hyphenate
+                                [ "volumeListDeleteSnapshotPopconfirm"
+                                , project.auth.project.uuid
+                                , snapshot.uuid
+                                ]
+
+                        deleteSnapshotButton =
+                            deletePopconfirm context
+                                (SharedMsg << SharedMsg.TogglePopover)
+                                deletePopconfirmId
+                                { confirmation =
+                                    Element.text <|
+                                        "Are you sure you want to delete this "
+                                            ++ deviceLabel
+                                            ++ "?"
+                                , buttonText = Nothing
+                                , onCancel = Just NoOp
+                                , onConfirm = Just <| GotDeleteSnapshotConfirm snapshot.uuid
+                                }
+                                ST.PositionBottomRight
+                                (\msg _ ->
+                                    deleteIconButton context.palette
+                                        False
+                                        ("Delete " ++ deviceLabel)
+                                        (Just msg)
+                                )
+                    in
+                    Element.row
+                        []
+                        [ deleteSnapshotButton ]
+
+                  else
+                    let
+                        label =
+                            if VS.isTransitioning snapshot then
+                                VS.statusToString snapshot.status ++ " ..."
+
+                            else
+                                VS.statusToString snapshot.status
+                    in
+                    Element.row
+                        []
+                        [ Text.text Text.Body [ Font.italic ] label ]
+                ]
+
         snapshotRows =
             case volumeRecord.snapshots of
                 [] ->
                     []
 
                 snapshots ->
-                    let
-                        neutralColor =
-                            SH.toElementColor context.palette.neutral.text.default
-
-                        renderCreationTime : VS.VolumeSnapshot -> Element.Element msg
-                        renderCreationTime { createdAt } =
-                            Element.row []
-                                [ Element.text "created "
-                                , relativeTimeElement currentTime createdAt
-                                ]
-                    in
-                    [ Element.row [ Element.spacing spacer.px8, Font.color neutralColor ] [ Element.text "Snapshots" ]
-                    , Element.table
-                        [ Element.spacing spacer.px12 ]
-                        { data = snapshots
-                        , columns =
-                            [ { header = Element.none
-                              , width = Element.shrink
-                              , view = \snapshot -> Element.text (sizeString snapshot.sizeInGiB)
-                              }
-                            , { header = Element.none
-                              , width = Element.shrink
-                              , view =
-                                    \{ name, description, uuid } ->
-                                        let
-                                            renderedName =
-                                                VH.resourceName name uuid
-                                        in
-                                        Element.column
-                                            [ Element.spacing spacer.px4 ]
-                                            [ Element.el [ Font.color neutralColor ] (Element.text renderedName)
-                                            , description
-                                                |> Maybe.map Element.text
-                                                |> Maybe.withDefault Element.none
-                                            ]
-                              }
-                            , { header = Element.none
-                              , width = Element.fill
-                              , view = renderCreationTime
-                              }
-                            , { header = Element.none
-                              , width = Element.shrink
-                              , view =
-                                    \snapshot ->
-                                        if not <| List.member snapshot.status [ VS.Deleted, VS.Deleting ] then
-                                            let
-                                                deviceLabel =
-                                                    context.localization.blockDevice ++ " snapshot"
-
-                                                deletePopconfirmId =
-                                                    Helpers.String.hyphenate
-                                                        [ "volumeListDeleteSnapshotPopconfirm"
-                                                        , project.auth.project.uuid
-                                                        , snapshot.uuid
-                                                        ]
-
-                                                deleteButton =
-                                                    deletePopconfirm context
-                                                        (SharedMsg << SharedMsg.TogglePopover)
-                                                        deletePopconfirmId
-                                                        { confirmation =
-                                                            Element.text <|
-                                                                "Are you sure you want to delete this "
-                                                                    ++ deviceLabel
-                                                                    ++ "?"
-                                                        , buttonText = Nothing
-                                                        , onCancel = Just NoOp
-                                                        , onConfirm = Just <| GotDeleteSnapshotConfirm snapshot.uuid
-                                                        }
-                                                        ST.PositionBottomRight
-                                                        (\msg _ ->
-                                                            deleteIconButton context.palette
-                                                                False
-                                                                ("Delete " ++ deviceLabel)
-                                                                (Just msg)
-                                                        )
-                                            in
-                                            Element.row
-                                                [ Element.spacing spacer.px12 ]
-                                                [ deleteButton ]
-
-                                        else
-                                            let
-                                                label =
-                                                    if VS.isTransitioning snapshot then
-                                                        VS.statusToString snapshot.status ++ " ..."
-
-                                                    else
-                                                        VS.statusToString snapshot.status
-                                            in
-                                            Element.el [ Font.italic ] (Element.text label)
-                              }
-                            ]
-                        }
-                    ]
+                    Text.text Text.Emphasized [] "Snapshots"
+                        :: List.map (\snapshot -> snapshotRow snapshot) snapshots
     in
     Element.column
         (listItemColumnAttribs context.palette)
