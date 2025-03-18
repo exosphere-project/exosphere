@@ -23,6 +23,7 @@ import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
 import Style.Widgets.HumanTime exposing (relativeTimeElement)
 import Style.Widgets.Icon exposing (featherIcon)
 import Style.Widgets.Spacer exposing (spacer)
+import Style.Widgets.StatusBadge as StatusBadge
 import Style.Widgets.Tag exposing (tag)
 import Style.Widgets.Text as Text
 import Style.Widgets.Uuid exposing (uuidLabel)
@@ -463,6 +464,7 @@ volumeView context project currentTime volumeRecord =
             (listItemColumnAttribs context.palette)
             [ Element.row [ Element.spacing spacer.px12, Element.width Element.fill ]
                 [ volumeLink
+                , VH.volumeStatusBadgeFromStatus context.palette StatusBadge.Small volumeRecord.volume.status
                 , volumeAttachment
                 ]
             , Element.row
