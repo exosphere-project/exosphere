@@ -32,6 +32,7 @@ module OpenStack.SecurityGroupRule exposing
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
 import Json.Encode as Encode
+import OpenStack.HelperTypes as HelperTypes
 import String
 
 
@@ -409,7 +410,7 @@ type alias SecurityGroupRuleUuid =
 
 
 type alias SecurityGroupUuid =
-    String
+    HelperTypes.Uuid
 
 
 type SecurityGroupRuleDirection

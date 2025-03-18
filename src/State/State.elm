@@ -17,6 +17,7 @@ import LocalStorage.LocalStorage as LocalStorage
 import Maybe
 import OpenStack.DnsRecordSet
 import OpenStack.Error
+import OpenStack.SecurityGroupRule as SecurityGroupRule
 import OpenStack.ServerPassword as OSServerPassword
 import OpenStack.ServerTags as OSServerTags
 import OpenStack.ServerVolumes as OSSvrVols
@@ -80,7 +81,7 @@ import Types.HelperTypes as HelperTypes exposing (UnscopedProviderProject)
 import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Endpoints, Project, ProjectSecret(..))
-import Types.SecurityGroupActions exposing (initSecurityGroupAction)
+import Types.SecurityGroupActions as SecurityGroupActions
 import Types.Server exposing (ExoSetupStatus(..), NewServerNetworkOptions(..), Server, ServerFromExoProps, ServerOrigin(..), currentExoServerVersion)
 import Types.ServerResourceUsage
 import Types.SharedModel exposing (SharedModel)
@@ -2104,48 +2105,133 @@ processProjectSpecificMsg outerModel project msg =
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
-        ReceiveCreateDefaultSecurityGroup errorContext result template ->
+        RequestCreateSecurityGroup securityGroupTemplate maybeServerUuid ->
+            let
+                newProject =
+                    -- We don't have a security group uuid yet. Once it's created, we'll swap it out.
+                    GetterSetters.projectUpsertSecurityGroupActions project
+                        (SecurityGroupActions.NewGroup securityGroupTemplate.name)
+                        (\actions ->
+                            { actions
+                                | pendingCreation = True
+
+                                -- Should we link this to a server once it's created?
+                                , pendingServerLinkage =
+                                    maybeServerUuid
+                            }
+                        )
+
+                newModel =
+                    GetterSetters.modelUpdateProject sharedModel newProject
+            in
+            ( newModel, Rest.Neutron.requestCreateSecurityGroup project securityGroupTemplate )
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
+        ReceiveCreateSecurityGroup errorContext template result ->
+            let
+                newProject =
+                    -- Before creation we only had a security group name. Now we can swap it out for the uuid.
+                    GetterSetters.projectDeleteSecurityGroupActions project (SecurityGroupActions.NewGroup template.name)
+            in
             case result of
                 Ok group ->
-                    Rest.Neutron.receiveCreateDefaultSecurityGroupAndRequestCreateRules sharedModel project group template
+                    let
+                        existingRules =
+                            group.rules
+
+                        intendedRules =
+                            template.rules |> List.map SecurityGroupRule.securityGroupRuleTemplateToRule
+
+                        { missing, extra } =
+                            SecurityGroupRule.compareSecurityGroupRuleLists existingRules intendedRules
+
+                        pendingServerLinkage =
+                            -- Should we link this group to a server now that it's created?
+                            -- If so, get the pending linkage from the previous project state.
+                            GetterSetters.getSecurityGroupActions project (SecurityGroupActions.NewGroup template.name)
+                                |> Maybe.andThen .pendingServerLinkage
+
+                        newerProject =
+                            -- Substitute in a new `securityGroupAction` with the uuid.
+                            GetterSetters.projectUpsertSecurityGroupActions newProject
+                                (SecurityGroupActions.ExtantGroup group.uuid)
+                                (\actions ->
+                                    { actions
+                                        | pendingRuleChanges = { creations = List.length missing, deletions = List.length extra, errors = [] }
+                                        , pendingServerLinkage =
+                                            pendingServerLinkage
+                                    }
+                                )
+
+                        ( newSharedModel, newCmd ) =
+                            Rest.Neutron.receiveCreateSecurityGroupAndRequestCreateRules
+                                sharedModel
+                                newerProject
+                                template
+                                group
+
+                        newerCmd =
+                            Cmd.batch
+                                [ newCmd
+                                , pendingServerLinkage
+                                    |> Maybe.map
+                                        (\serverUuid ->
+                                            Rest.Nova.requestUpdateServerSecurityGroup project serverUuid <|
+                                                OSTypes.AddServerSecurityGroup
+                                                    { uuid = group.uuid
+                                                    , name = group.name
+                                                    }
+                                        )
+                                    |> Maybe.withDefault Cmd.none
+                                ]
+                    in
+                    ( newSharedModel, newerCmd )
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
+                        -- Make the page aware of the shared msg.
+                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerSecurityGroupsMsg <| Page.ServerSecurityGroups.GotCreateSecurityGroupResult template result))
 
                 Err httpError ->
                     let
-                        oldSecurityGroups =
-                            project.securityGroups.data
-
-                        newProject =
-                            { project
-                                | securityGroups =
-                                    RDPP.RemoteDataPlusPlus
-                                        oldSecurityGroups
-                                        (RDPP.NotLoading (Just ( httpError, sharedModel.clientCurrentTime )))
-                            }
-
                         newModel =
                             GetterSetters.modelUpdateProject sharedModel newProject
                     in
                     State.Error.processSynchronousApiError newModel errorContext httpError
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
+                        -- Make the page aware of the shared msg.
+                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerSecurityGroupsMsg <| Page.ServerSecurityGroups.GotCreateSecurityGroupResult template result))
 
         ReceiveCreateSecurityGroupRule errorContext securityGroupUuid result ->
             case result of
                 Ok rule ->
                     let
                         newProject =
-                            GetterSetters.projectAddSecurityGroupRule project securityGroupUuid rule
+                            GetterSetters.projectUpdateSecurityGroupActionsIfExists project
+                                (SecurityGroupActions.ExtantGroup securityGroupUuid)
+                                (\actions ->
+                                    { actions
+                                        | pendingRuleChanges =
+                                            { creations = actions.pendingRuleChanges.creations - 1
+                                            , deletions = actions.pendingRuleChanges.deletions
+                                            , errors = actions.pendingRuleChanges.errors
+                                            }
+                                    }
+                                )
+
+                        newerProject =
+                            GetterSetters.projectAddSecurityGroupRule
+                                newProject
+                                securityGroupUuid
+                                rule
 
                         newModel =
-                            GetterSetters.modelUpdateProject sharedModel newProject
+                            GetterSetters.modelUpdateProject sharedModel newerProject
                     in
                     ( newModel, Cmd.none )
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
-                        -- Make the page aware of the shared msg.
-                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerSecurityGroupsMsg <| Page.ServerSecurityGroups.GotCreateSecurityGroupRuleResult securityGroupUuid (Result.Ok ())))
 
                 Err httpError ->
                     let
@@ -2161,35 +2247,81 @@ processProjectSpecificMsg outerModel project msg =
 
                                 Err _ ->
                                     httpError.body
+
+                        newProject =
+                            GetterSetters.projectUpdateSecurityGroupActionsIfExists project
+                                (SecurityGroupActions.ExtantGroup securityGroupUuid)
+                                (\actions ->
+                                    { actions
+                                        | pendingRuleChanges =
+                                            { creations = actions.pendingRuleChanges.creations - 1
+                                            , deletions = actions.pendingRuleChanges.deletions
+                                            , errors = errorMessage :: actions.pendingRuleChanges.errors
+                                            }
+                                    }
+                                )
+
+                        newModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
                     in
-                    State.Error.processSynchronousApiError sharedModel errorContext httpError
+                    State.Error.processSynchronousApiError newModel errorContext httpError
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
-                        -- Make the page aware of the shared msg.
-                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerSecurityGroupsMsg <| Page.ServerSecurityGroups.GotCreateSecurityGroupRuleResult securityGroupUuid (Result.Err errorMessage)))
 
         ReceiveDeleteSecurityGroupRule errorContext ( securityGroupUuid, ruleUuid ) result ->
             case result of
                 Ok () ->
                     let
                         newProject =
-                            GetterSetters.projectDeleteSecurityGroupRule project securityGroupUuid ruleUuid
+                            GetterSetters.projectUpdateSecurityGroupActionsIfExists project
+                                (SecurityGroupActions.ExtantGroup securityGroupUuid)
+                                (\actions ->
+                                    { actions
+                                        | pendingRuleChanges =
+                                            { creations = actions.pendingRuleChanges.creations
+                                            , deletions = actions.pendingRuleChanges.deletions - 1
+                                            , errors = actions.pendingRuleChanges.errors
+                                            }
+                                    }
+                                )
+
+                        newerProject =
+                            GetterSetters.projectDeleteSecurityGroupRule
+                                newProject
+                                securityGroupUuid
+                                ruleUuid
 
                         newModel =
-                            GetterSetters.modelUpdateProject sharedModel newProject
+                            GetterSetters.modelUpdateProject sharedModel newerProject
                     in
                     ( newModel, Cmd.none )
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
-                        -- Make the page aware of the shared msg.
-                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerSecurityGroupsMsg <| Page.ServerSecurityGroups.GotDeleteSecurityGroupRuleResult securityGroupUuid (Result.Ok ())))
 
                 Err httpError ->
-                    State.Error.processStringError sharedModel errorContext (Helpers.httpErrorToString httpError)
+                    let
+                        errorMessage =
+                            Helpers.httpErrorToString httpError
+
+                        newProject =
+                            GetterSetters.projectUpdateSecurityGroupActionsIfExists project
+                                (SecurityGroupActions.ExtantGroup securityGroupUuid)
+                                (\actions ->
+                                    { actions
+                                        | pendingRuleChanges =
+                                            { creations = actions.pendingRuleChanges.creations
+                                            , deletions = actions.pendingRuleChanges.deletions - 1
+                                            , errors = errorMessage :: actions.pendingRuleChanges.errors
+                                            }
+                                    }
+                                )
+
+                        newModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+                    in
+                    State.Error.processStringError newModel errorContext errorMessage
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
-                        -- Make the page aware of the shared msg.
-                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerSecurityGroupsMsg <| Page.ServerSecurityGroups.GotDeleteSecurityGroupRuleResult securityGroupUuid (Result.Err (Helpers.httpErrorToString httpError))))
 
         RequestDeleteSecurityGroup securityGroup ->
             let
@@ -2203,16 +2335,10 @@ processProjectSpecificMsg outerModel project msg =
                 numberOfServers =
                     List.length serversAffected
 
-                newSecurityGroupAction =
-                    { initSecurityGroupAction | pendingDeletion = True }
-
                 newProject =
-                    { project
-                        | securityGroupActions =
-                            Dict.insert securityGroupUuid
-                                newSecurityGroupAction
-                                project.securityGroupActions
-                    }
+                    GetterSetters.projectUpsertSecurityGroupActions project
+                        (SecurityGroupActions.ExtantGroup securityGroupUuid)
+                        (\action -> { action | pendingDeletion = True })
 
                 newModel =
                     GetterSetters.modelUpdateProject sharedModel newProject
@@ -2240,7 +2366,7 @@ processProjectSpecificMsg outerModel project msg =
         ReceiveDeleteSecurityGroup errorContext securityGroupUuid result ->
             let
                 newProject =
-                    GetterSetters.projectDeleteSecurityGroupActions project securityGroupUuid
+                    GetterSetters.projectDeleteSecurityGroupActions project (SecurityGroupActions.ExtantGroup securityGroupUuid)
             in
             case result of
                 Ok () ->
@@ -2278,30 +2404,66 @@ processProjectSpecificMsg outerModel project msg =
                         |> mapToOuterModel outerModel
 
         RequestUpdateSecurityGroup existingSecurityGroup securityGroupUpdate ->
-            ( outerModel
+            let
+                existingRules =
+                    existingSecurityGroup.rules
+
+                intendedRules =
+                    securityGroupUpdate.rules |> List.map SecurityGroupRule.securityGroupRuleTemplateToRule
+
+                { missing, extra } =
+                    SecurityGroupRule.compareSecurityGroupRuleLists existingRules intendedRules
+
+                newProject =
+                    GetterSetters.projectUpsertSecurityGroupActions project
+                        (SecurityGroupActions.ExtantGroup existingSecurityGroup.uuid)
+                        (\actions ->
+                            { actions
+                                | pendingSecurityGroupChanges = { updates = 1, errors = [] }
+                                , pendingRuleChanges = { creations = List.length missing, deletions = List.length extra, errors = [] }
+                            }
+                        )
+
+                newModel =
+                    GetterSetters.modelUpdateProject sharedModel newProject
+            in
+            ( newModel
             , Cmd.batch <|
                 -- Update the security group.
-                Rest.Neutron.requestUpdateSecurityGroup project existingSecurityGroup.uuid securityGroupUpdate
+                Rest.Neutron.requestUpdateSecurityGroup newProject existingSecurityGroup.uuid securityGroupUpdate
                     -- Update the security group rules.
-                    :: Rest.Neutron.requestUpdateSecurityGroupRules project existingSecurityGroup securityGroupUpdate.rules
+                    :: Rest.Neutron.requestUpdateSecurityGroupRules newProject existingSecurityGroup securityGroupUpdate.rules
             )
                 |> mapToOuterMsg
+                |> mapToOuterModel outerModel
 
         ReceiveUpdateSecurityGroup errorContext securityGroupUuid result ->
             case result of
                 Ok group ->
                     let
                         newProject =
-                            GetterSetters.projectUpdateSecurityGroup project group
+                            GetterSetters.projectUpdateSecurityGroupActionsIfExists project
+                                (SecurityGroupActions.ExtantGroup securityGroupUuid)
+                                (\actions ->
+                                    { actions
+                                        | pendingSecurityGroupChanges =
+                                            { updates = actions.pendingSecurityGroupChanges.updates - 1
+                                            , errors = actions.pendingSecurityGroupChanges.errors
+                                            }
+                                    }
+                                )
+
+                        newerProject =
+                            GetterSetters.projectUpdateSecurityGroup
+                                newProject
+                                group
 
                         newModel =
-                            GetterSetters.modelUpdateProject sharedModel newProject
+                            GetterSetters.modelUpdateProject sharedModel newerProject
                     in
                     ( newModel, Cmd.none )
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
-                        -- Make the page aware of the shared msg.
-                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerSecurityGroupsMsg <| Page.ServerSecurityGroups.GotUpdateSecurityGroupResult securityGroupUuid (Result.Ok group)))
 
                 Err httpError ->
                     let
@@ -2317,12 +2479,25 @@ processProjectSpecificMsg outerModel project msg =
 
                                 Err _ ->
                                     httpError.body
+
+                        newProject =
+                            GetterSetters.projectUpdateSecurityGroupActionsIfExists project
+                                (SecurityGroupActions.ExtantGroup securityGroupUuid)
+                                (\actions ->
+                                    { actions
+                                        | pendingSecurityGroupChanges =
+                                            { updates = actions.pendingSecurityGroupChanges.updates - 1
+                                            , errors = errorMessage :: actions.pendingSecurityGroupChanges.errors
+                                            }
+                                    }
+                                )
+
+                        newModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
                     in
-                    State.Error.processSynchronousApiError sharedModel errorContext httpError
+                    State.Error.processSynchronousApiError newModel errorContext httpError
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
-                        -- Make the page aware of the shared msg.
-                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerSecurityGroupsMsg <| Page.ServerSecurityGroups.GotUpdateSecurityGroupResult securityGroupUuid (Result.Err errorMessage)))
 
         RequestUpdateSecurityGroupTags securityGroupUuid tags ->
             ( outerModel, Rest.Neutron.requestUpdateSecurityGroupTags project securityGroupUuid tags )
@@ -3081,6 +3256,27 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                         |> mapToOuterModel outerModel
 
         ReceiveServerAddSecurityGroup errorContext serverSecurityGroup result ->
+            let
+                updatedProject =
+                    GetterSetters.projectUpdateSecurityGroupActionsIfExists project
+                        (SecurityGroupActions.ExtantGroup serverSecurityGroup.uuid)
+                        (\actions ->
+                            { actions
+                                | pendingServerLinkage =
+                                    actions.pendingServerLinkage
+                                        |> Maybe.andThen
+                                            (\serverUuid ->
+                                                -- If this is our server, clear the pending linkage.
+                                                -- Otherwise, leave it alone.
+                                                if serverUuid == server.osProps.uuid then
+                                                    Nothing
+
+                                                else
+                                                    actions.pendingServerLinkage
+                                            )
+                            }
+                        )
+            in
             case result of
                 Ok _ ->
                     case server.securityGroups.data of
@@ -3103,7 +3299,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                                     }
 
                                 newProject =
-                                    GetterSetters.projectUpdateServer project newServer
+                                    GetterSetters.projectUpdateServer updatedProject newServer
                             in
                             ( GetterSetters.modelUpdateProject sharedModel newProject, Cmd.none )
                                 |> mapToOuterMsg
@@ -3115,38 +3311,37 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                             ( outerModel, Cmd.none )
 
                 Err httpError ->
-                    State.Error.processSynchronousApiError sharedModel errorContext httpError
+                    let
+                        updatedSharedModel =
+                            GetterSetters.modelUpdateProject sharedModel updatedProject
+                    in
+                    State.Error.processSynchronousApiError updatedSharedModel errorContext httpError
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
         ReceiveServerRemoveSecurityGroup errorContext serverSecurityGroup result ->
             let
                 -- Even if the request failed, we want to update pending security group actions.
-                securityGroupActions =
-                    Dict.update serverSecurityGroup.uuid
-                        (Maybe.map
-                            (\actions ->
-                                { actions
-                                    | pendingServerChanges =
-                                        let
-                                            pendingServerChanges =
-                                                actions.pendingServerChanges
-                                        in
-                                        { pendingServerChanges
-                                            | updates = actions.pendingServerChanges.updates - 1
-                                        }
-                                }
-                            )
+                updatedProject =
+                    GetterSetters.projectUpdateSecurityGroupActionsIfExists project
+                        (SecurityGroupActions.ExtantGroup serverSecurityGroup.uuid)
+                        (\actions ->
+                            { actions
+                                | pendingServerChanges =
+                                    let
+                                        pendingServerChanges =
+                                            actions.pendingServerChanges
+                                    in
+                                    { pendingServerChanges
+                                        | updates = actions.pendingServerChanges.updates - 1
+                                    }
+                            }
                         )
-                        project.securityGroupActions
 
                 securityGroupAction =
-                    Dict.get serverSecurityGroup.uuid securityGroupActions
+                    GetterSetters.getSecurityGroupActions updatedProject (SecurityGroupActions.ExtantGroup serverSecurityGroup.uuid)
                         |> Maybe.withDefault
-                            initSecurityGroupAction
-
-                updatedProject =
-                    { project | securityGroupActions = securityGroupActions }
+                            SecurityGroupActions.initSecurityGroupAction
 
                 updatedSharedModel =
                     GetterSetters.modelUpdateProject sharedModel updatedProject

@@ -7,6 +7,7 @@ module Helpers.GetterSetters exposing
     , getCatalogRegionIds
     , getExternalNetwork
     , getFloatingIpServer
+    , getSecurityGroupActions
     , getServerDnsRecordSets
     , getServerExouserPassphrase
     , getServerFixedIps
@@ -51,7 +52,9 @@ module Helpers.GetterSetters exposing
     , projectSetVolumesLoading
     , projectUpdateKeypair
     , projectUpdateSecurityGroup
+    , projectUpdateSecurityGroupActionsIfExists
     , projectUpdateServer
+    , projectUpsertSecurityGroupActions
     , sanitizeMountpoint
     , securityGroupLookup
     , securityGroupsFromServerSecurityGroups
@@ -93,6 +96,7 @@ import Time
 import Types.Error
 import Types.HelperTypes as HelperTypes
 import Types.Project exposing (Project)
+import Types.SecurityGroupActions as SecurityGroupActions exposing (SecurityGroupAction)
 import Types.Server exposing (ExoServerVersion, Server, ServerOrigin(..))
 import Types.SharedModel exposing (SharedModel)
 import View.Types exposing (Context)
@@ -1130,8 +1134,50 @@ projectUpdateSecurityGroupRules project securityGroupUuid onUpdateRules =
     }
 
 
-projectDeleteSecurityGroupActions : Project -> OSTypes.SecurityGroupUuid -> Project
+getSecurityGroupActions : Project -> SecurityGroupActions.SecurityGroupActionId -> Maybe SecurityGroupAction
+getSecurityGroupActions project securityGroupUuid =
+    Dict.get (SecurityGroupActions.toComparableSecurityGroupActionId securityGroupUuid) project.securityGroupActions
+
+
+projectDeleteSecurityGroupActions : Project -> SecurityGroupActions.SecurityGroupActionId -> Project
 projectDeleteSecurityGroupActions project securityGroupUuid =
     { project
-        | securityGroupActions = Dict.remove securityGroupUuid project.securityGroupActions
+        | securityGroupActions =
+            Dict.remove
+                (SecurityGroupActions.toComparableSecurityGroupActionId securityGroupUuid)
+                project.securityGroupActions
+    }
+
+
+projectUpsertSecurityGroupActions : Project -> SecurityGroupActions.SecurityGroupActionId -> (SecurityGroupAction -> SecurityGroupAction) -> Project
+projectUpsertSecurityGroupActions project securityGroupUuid onUpdateAction =
+    let
+        securityGroupActions =
+            Dict.update (SecurityGroupActions.toComparableSecurityGroupActionId securityGroupUuid)
+                (\actions_ ->
+                    let
+                        actions =
+                            Maybe.withDefault SecurityGroupActions.initSecurityGroupAction actions_
+                    in
+                    Just <| onUpdateAction actions
+                )
+                project.securityGroupActions
+    in
+    { project
+        | securityGroupActions =
+            securityGroupActions
+    }
+
+
+projectUpdateSecurityGroupActionsIfExists : Project -> SecurityGroupActions.SecurityGroupActionId -> (SecurityGroupAction -> SecurityGroupAction) -> Project
+projectUpdateSecurityGroupActionsIfExists project securityGroupUuid onUpdateActions =
+    let
+        securityGroupActions =
+            Dict.update (SecurityGroupActions.toComparableSecurityGroupActionId securityGroupUuid)
+                (Maybe.map onUpdateActions)
+                project.securityGroupActions
+    in
+    { project
+        | securityGroupActions =
+            securityGroupActions
     }

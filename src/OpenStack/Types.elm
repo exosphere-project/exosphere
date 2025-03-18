@@ -123,7 +123,7 @@ import Dict
 import Helpers.RemoteDataPlusPlus as RDPP
 import Json.Encode
 import OpenStack.HelperTypes as HelperTypes
-import OpenStack.SecurityGroupRule exposing (SecurityGroupRule, SecurityGroupRuleTemplate)
+import OpenStack.SecurityGroupRule as SecurityGroupRule exposing (SecurityGroupRule, SecurityGroupRuleTemplate)
 import Time
 import Types.Error exposing (HttpErrorWithBody)
 
@@ -854,7 +854,7 @@ type ServerSecurityGroupUpdate
 
 
 type alias SecurityGroupUuid =
-    HelperTypes.Uuid
+    SecurityGroupRule.SecurityGroupUuid
 
 
 type alias SecurityGroupTag =
