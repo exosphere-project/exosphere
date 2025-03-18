@@ -17,6 +17,7 @@ import DesignSystem.Stories.Space as SpaceStories
 import DesignSystem.Stories.Text as TextStories
 import DesignSystem.Stories.Toast as ToastStories
 import DesignSystem.Stories.ToggleTip as ToggleTip
+import DesignSystem.Stories.Uuid as Uuid
 import DesignSystem.Stories.Validation as Validation
 import Element
 import Element.Background as Background
@@ -625,6 +626,7 @@ This is like the [meter](/#Molecules/Meter) but renders multiple values.
                     """ }
                       )
                     ]
+                , Uuid.stories toHtml
                 , Validation.stories toHtml (\_ -> NoOp)
                 ]
             |> category "Organisms"
