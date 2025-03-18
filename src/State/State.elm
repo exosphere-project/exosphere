@@ -2118,10 +2118,6 @@ processProjectSpecificMsg outerModel project msg =
                                 -- Should we link this to a server once it's created?
                                 , pendingServerLinkage =
                                     maybeServerUuid
-                                        |> Maybe.map
-                                            (\serverUuid ->
-                                                ( serverUuid, { name = securityGroupTemplate.name } )
-                                            )
                             }
                         )
 
@@ -2180,11 +2176,11 @@ processProjectSpecificMsg outerModel project msg =
                                 [ newCmd
                                 , pendingServerLinkage
                                     |> Maybe.map
-                                        (\( serverUuid, { name } ) ->
+                                        (\serverUuid ->
                                             Rest.Nova.requestUpdateServerSecurityGroup project serverUuid <|
                                                 OSTypes.AddServerSecurityGroup
                                                     { uuid = group.uuid
-                                                    , name = name
+                                                    , name = group.name
                                                     }
                                         )
                                     |> Maybe.withDefault Cmd.none
@@ -3269,7 +3265,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                                 | pendingServerLinkage =
                                     actions.pendingServerLinkage
                                         |> Maybe.andThen
-                                            (\( serverUuid, _ ) ->
+                                            (\serverUuid ->
                                                 -- If this is our server, clear the pending linkage.
                                                 -- Otherwise, leave it alone.
                                                 if serverUuid == server.osProps.uuid then
