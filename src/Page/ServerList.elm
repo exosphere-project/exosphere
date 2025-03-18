@@ -25,6 +25,7 @@ import Style.Widgets.Popover.Popover exposing (dropdownItemStyle, popover)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.StatusBadge as StatusBadge
 import Style.Widgets.Text as Text
+import Style.Widgets.Uuid exposing (uuidLabel)
 import Time
 import Types.Interaction as ITypes
 import Types.Project exposing (Project)
@@ -461,11 +462,7 @@ serverView context currentTime project retainFloatingIpsWhenDeleting serverRecor
                 , accented (Element.text serverRecord.creator)
                 ]
             , Element.column [ Element.spacing spacer.px16, Element.paddingXY 0 spacer.px4 ]
-                [ Text.text Text.Tiny
-                    [ Font.color (SH.toElementColor context.palette.neutral.text.subdued)
-                    , Text.fontFamily Text.Mono
-                    ]
-                    serverRecord.id
+                [ uuidLabel context.palette serverRecord.id
                 , floatingIpView
                 ]
             ]

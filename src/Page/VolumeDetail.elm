@@ -12,10 +12,10 @@ import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.Button as Button
 import Style.Widgets.Card
-import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
+import Style.Widgets.Uuid exposing (copyableUuid)
 import Types.Project exposing (Project)
 import Types.Server exposing (ExoFeature(..))
 import Types.SharedMsg as SharedMsg
@@ -148,7 +148,14 @@ volumeDetail context project model =
 
                                 Nothing ->
                                     Element.none
-                            , VH.compactKVRow "UUID:" <| copyableText context.palette [] volume.uuid
+                            , VH.compactKVRow "UUID:" <|
+                                Element.el
+                                    [ Text.fontSize Text.Small
+                                    , Font.color (SH.toElementColor context.palette.neutral.text.subdued)
+                                    , Element.paddingXY spacer.px12 0
+                                    , Text.fontFamily Text.Mono
+                                    ]
+                                    (copyableUuid context.palette volume.uuid)
                             , case volume.imageMetadata of
                                 Nothing ->
                                     Element.none
