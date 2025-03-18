@@ -420,13 +420,13 @@ serverView context currentTime project retainFloatingIpsWhenDeleting serverRecor
         floatingIpView =
             case serverRecord.floatingIpAddress of
                 Just floatingIpAddress ->
-                    Element.row [ Element.spacing spacer.px8 ]
+                    Element.row [ Element.spacing spacer.px8, Element.alignRight ]
                         [ Icon.ipAddress
                             (SH.toElementColor
                                 context.palette.neutral.icon
                             )
                             16
-                        , Element.el [] (Element.text floatingIpAddress)
+                        , Text.text Text.Small [ Text.fontFamily Text.Mono ] floatingIpAddress
                         ]
 
                 Nothing ->
@@ -441,11 +441,11 @@ serverView context currentTime project retainFloatingIpsWhenDeleting serverRecor
             , Element.el [ Element.alignRight ] deleteServerBtnWithPopconfirm
             ]
         , Element.row
-            [ Element.spacing spacer.px8
+            [ Element.spacingXY spacer.px8 0
             , Element.width Element.fill
             ]
-            [ Element.el [] (Element.text serverRecord.size)
-            , Element.text "·"
+            [ Element.el [ Element.alignTop ] (Element.text serverRecord.size)
+            , Text.text Text.Body [ Element.alignTop ] "·"
             , let
                 accentColor =
                     SH.toElementColor context.palette.neutral.text.default
@@ -454,13 +454,20 @@ serverView context currentTime project retainFloatingIpsWhenDeleting serverRecor
                 accented inner =
                     Element.el [ Font.color accentColor ] inner
               in
-              Element.paragraph []
+              Element.paragraph [ Element.alignTop ]
                 [ Element.text "created "
                 , accented (relativeTimeElement currentTime serverRecord.creationTime)
                 , Element.text " by "
                 , accented (Element.text serverRecord.creator)
                 ]
-            , floatingIpView
+            , Element.column [ Element.spacing spacer.px16, Element.paddingXY 0 spacer.px4 ]
+                [ Text.text Text.Tiny
+                    [ Font.color (SH.toElementColor context.palette.neutral.text.subdued)
+                    , Text.fontFamily Text.Mono
+                    ]
+                    serverRecord.id
+                , floatingIpView
+                ]
             ]
         ]
 

@@ -466,12 +466,13 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
             [ Icon.featherIcon [] Icons.cpu
             , Element.text "Info"
             , Element.el
-                [ Text.fontSize Text.Tiny
+                [ Text.fontSize Text.Small
                 , Font.color (SH.toElementColor context.palette.neutral.text.subdued)
-                , Element.alignBottom
+                , Element.paddingXY spacer.px12 0
+                , Text.fontFamily Text.Mono
                 ]
                 (copyableText context.palette
-                    [ Element.width (Element.shrink |> Element.minimum 240) ]
+                    [ Element.width (Element.shrink |> Element.minimum 305), Element.alignBottom ]
                     server.osProps.uuid
                 )
             ]
