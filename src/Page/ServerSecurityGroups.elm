@@ -32,6 +32,7 @@ import Style.Widgets.ToggleTip
 import Style.Widgets.Validation as Validation
 import Time
 import Types.Project exposing (Project)
+import Types.SecurityGroupActions as SecurityGroupActions
 import Types.Server exposing (Server)
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
@@ -159,6 +160,38 @@ update msg sharedModel project model =
                     , Cmd.none
                     , SharedMsg.NoOp
                     )
+
+                SecurityGroupForm.GotCreateSecurityGroupResult _ result ->
+                    -- Listen for successful creation of a security group.
+                    let
+                        ( newModel, newCmd, newSharedMsg ) =
+                            updateUnderlyingForm sharedModel project model securityGroupFormMsg
+                    in
+                    case result of
+                        Ok securityGroup ->
+                            let
+                                actions =
+                                    GetterSetters.getSecurityGroupActions project (SecurityGroupActions.ExtantGroup securityGroup.uuid)
+                                        |> Maybe.withDefault SecurityGroupActions.initSecurityGroupAction
+
+                                selectedSecurityGroups =
+                                    case ( model.selectedSecurityGroups, actions.pendingServerLinkage ) of
+                                        ( Ready selected, Just serverUuid ) ->
+                                            -- If the server is the one we're working with, select the new security group.
+                                            -- (It will already have been applied by this time.)
+                                            if serverUuid == model.serverUuid then
+                                                Ready <| Set.insert securityGroup.uuid selected
+
+                                            else
+                                                model.selectedSecurityGroups
+
+                                        _ ->
+                                            model.selectedSecurityGroups
+                            in
+                            ( { newModel | selectedSecurityGroups = selectedSecurityGroups }, newCmd, newSharedMsg )
+
+                        Err _ ->
+                            ( newModel, newCmd, newSharedMsg )
 
                 _ ->
                     updateUnderlyingForm sharedModel project model securityGroupFormMsg

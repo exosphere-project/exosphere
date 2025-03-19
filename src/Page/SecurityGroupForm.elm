@@ -1,6 +1,5 @@
 module Page.SecurityGroupForm exposing (Model, Msg(..), init, initWithSecurityGroup, securityGroupTemplateFromForm, securityGroupUpdateFromForm, update, view)
 
-import Dict
 import Element exposing (paddingEach)
 import Element.Border as Border
 import Element.Font as Font
@@ -57,7 +56,7 @@ type Msg
     | GotEditRule SecurityGroupRuleUuid
     | GotName String
     | GotCancel
-    | GotRequestCreateSecurityGroup
+    | GotRequestCreateSecurityGroup (Maybe ServerUuid)
     | GotCreateSecurityGroupResult SecurityGroupTemplate (Result Error.HttpErrorWithBody SecurityGroup)
     | GotRequestUpdateSecurityGroup SecurityGroupUuid
 
@@ -215,7 +214,7 @@ update msg { viewContext } project model =
             -- Expect the form owner to clear the form's model.
             ( model, Cmd.none, SharedMsg.NoOp )
 
-        GotRequestCreateSecurityGroup ->
+        GotRequestCreateSecurityGroup maybeServerUuid ->
             let
                 newModel =
                     { model
@@ -227,7 +226,9 @@ update msg { viewContext } project model =
             ( newModel
             , Cmd.none
             , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
-                SharedMsg.RequestCreateSecurityGroup (securityGroupTemplateFromForm <| newModel)
+                SharedMsg.RequestCreateSecurityGroup
+                    (securityGroupTemplateFromForm <| newModel)
+                    maybeServerUuid
             )
 
         GotCreateSecurityGroupResult template result ->
@@ -526,8 +527,13 @@ view context project currentTime model maybeServerUuid =
             Element.paddingEach { top = 0, right = 0, bottom = 0, left = spacer.px64 + spacer.px12 }
 
         action =
-            model.uuid
-                |> Maybe.andThen (\uuid -> Dict.get uuid project.securityGroupActions)
+            (case model.uuid of
+                Just securityGroupUuid ->
+                    GetterSetters.getSecurityGroupActions project (SecurityGroupActions.ExtantGroup securityGroupUuid)
+
+                Nothing ->
+                    GetterSetters.getSecurityGroupActions project (SecurityGroupActions.NewGroup model.name)
+            )
                 |> Maybe.withDefault SecurityGroupActions.initSecurityGroupAction
 
         isUpToDate =
@@ -669,7 +675,7 @@ view context project currentTime model maybeServerUuid =
                                     Just (GotRequestUpdateSecurityGroup securityGroupUuid)
 
                                 Nothing ->
-                                    Just GotRequestCreateSecurityGroup
+                                    Just <| GotRequestCreateSecurityGroup maybeServerUuid
 
                         else
                             Nothing
