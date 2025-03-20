@@ -14,6 +14,7 @@ module Helpers.GetterSetters exposing
     , getServerFlavorGroup
     , getServerFloatingIps
     , getServerPorts
+    , getServerUuidsByVolume
     , getServersWithVolAttached
     , getServicePublicUrl
     , getUserAppProxyFromCloudSpecificConfig
@@ -573,6 +574,14 @@ volumeIsAttachedToServer volumeUuid server =
 getServersWithVolAttached : Project -> OSTypes.Volume -> List OSTypes.ServerUuid
 getServersWithVolAttached _ volume =
     volume.attachments |> List.map .serverUuid
+
+
+getServerUuidsByVolume : Project -> OSTypes.VolumeUuid -> List OSTypes.ServerUuid
+getServerUuidsByVolume project volumeUuid =
+    project.servers
+        |> RDPP.withDefault []
+        |> List.filter (volumeIsAttachedToServer volumeUuid)
+        |> List.map (\s -> s.osProps.uuid)
 
 
 volumeDeviceRawName : Server -> OSTypes.Volume -> Maybe OSTypes.VolumeAttachmentDevice

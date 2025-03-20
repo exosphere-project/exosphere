@@ -26,6 +26,7 @@ import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.StatusBadge as StatusBadge
 import Style.Widgets.Tag exposing (tag)
 import Style.Widgets.Text as Text
+import Style.Widgets.ToggleTip
 import Style.Widgets.Uuid exposing (uuidLabel)
 import Time
 import Types.HelperTypes exposing (Uuid)
@@ -210,38 +211,85 @@ volumeView context project currentTime volumeRecord =
 
         volumeAttachment =
             let
-                serverName serverUuid =
-                    case GetterSetters.serverLookup project serverUuid of
-                        Just server ->
-                            VH.resourceName (Just server.osProps.name) server.osProps.uuid
+                maybeServerUuid =
+                    case volumeRecord.volume.status of
+                        OSTypes.Reserved ->
+                            -- Reserved volumes don't necessarily know their attachments but servers do.
+                            List.head <| GetterSetters.getServerUuidsByVolume project volumeRecord.id
 
-                        Nothing ->
-                            "unresolvable " ++ context.localization.virtualComputer ++ " name"
+                        _ ->
+                            List.head volumeRecord.volume.attachments |> Maybe.map .serverUuid
             in
             Element.row [ Element.alignRight ]
-                [ Element.text "Attached to "
-                , case List.head volumeRecord.volume.attachments of
-                    Just volumeAttachment_ ->
-                        Element.link []
-                            { url =
-                                Route.toUrl context.urlPathPrefix
-                                    (Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
-                                        Route.ServerDetail volumeAttachment_.serverUuid
-                                    )
-                            , label =
-                                Element.el
-                                    [ Font.color (SH.toElementColor context.palette.primary)
-                                    ]
-                                    (Element.text <| serverName volumeAttachment_.serverUuid)
-                            }
+                ((Element.text <|
+                    case volumeRecord.volume.status of
+                        OSTypes.Reserved ->
+                            "Reserved for "
 
-                    Nothing ->
-                        Element.el
-                            [ Font.color
-                                (SH.toElementColor context.palette.neutral.text.default)
-                            ]
-                            (Element.text <| "no " ++ context.localization.virtualComputer)
-                ]
+                        _ ->
+                            "Attached to "
+                 )
+                    :: (case maybeServerUuid of
+                            Just serverUuid_ ->
+                                let
+                                    maybeServer =
+                                        GetterSetters.serverLookup project serverUuid_
+
+                                    serverName =
+                                        case maybeServer of
+                                            Just server ->
+                                                VH.resourceName (Just server.osProps.name) server.osProps.uuid
+
+                                            Nothing ->
+                                                "unresolvable " ++ context.localization.virtualComputer ++ " name"
+
+                                    maybeServerShelved =
+                                        maybeServer
+                                            |> Maybe.map (\s -> s.osProps.details.openstackStatus)
+                                            |> Maybe.map (\status -> [ OSTypes.ServerShelved, OSTypes.ServerShelvedOffloaded ] |> List.member status)
+                                            |> Maybe.withDefault False
+                                in
+                                [ Element.link []
+                                    { url =
+                                        Route.toUrl context.urlPathPrefix
+                                            (Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
+                                                Route.ServerDetail serverUuid_
+                                            )
+                                    , label =
+                                        Element.el
+                                            [ Font.color (SH.toElementColor context.palette.primary)
+                                            ]
+                                            (Element.text <| serverName)
+                                    }
+                                , case ( volumeRecord.volume.status, maybeServerShelved ) of
+                                    ( OSTypes.Reserved, True ) ->
+                                        Style.Widgets.ToggleTip.toggleTip
+                                            context
+                                            (SharedMsg << SharedMsg.TogglePopover)
+                                            ("volumeReservedTip-" ++ volumeRecord.id)
+                                            (Text.body <| "Unshelve the attached " ++ context.localization.virtualComputer ++ " to interact with this " ++ context.localization.blockDevice ++ ".")
+                                            ST.PositionBottomRight
+
+                                    _ ->
+                                        Element.none
+                                ]
+
+                            Nothing ->
+                                [ Element.el
+                                    [ Font.color
+                                        (SH.toElementColor context.palette.neutral.text.default)
+                                    ]
+                                    (Element.text <|
+                                        case volumeRecord.volume.status of
+                                            OSTypes.Reserved ->
+                                                "unknown " ++ context.localization.virtualComputer
+
+                                            _ ->
+                                                "no " ++ context.localization.virtualComputer
+                                    )
+                                ]
+                       )
+                )
 
         volumeActions =
             let
