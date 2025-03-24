@@ -457,7 +457,7 @@ type PortRangeType
 
 
 encode : SecurityGroupUuid -> SecurityGroupRule -> Encode.Value
-encode securityGroupUuid { ethertype, direction, protocol, portRangeMin, portRangeMax, description } =
+encode securityGroupUuid { ethertype, direction, protocol, portRangeMin, portRangeMax, remoteIpPrefix, remoteGroupUuid, description } =
     Encode.object
         [ ( "security_group_rule"
           , [ ( "security_group_id", Encode.string securityGroupUuid ) ]
@@ -466,6 +466,8 @@ encode securityGroupUuid { ethertype, direction, protocol, portRangeMin, portRan
                 |> encodeProtocol protocol
                 |> encodePort portRangeMin PortRangeMin
                 |> encodePort portRangeMax PortRangeMax
+                |> encodeRemoteIpPrefix remoteIpPrefix
+                |> encodeRemoteGroupId remoteGroupUuid
                 |> encodeDescription description
                 |> Encode.object
           )
@@ -477,6 +479,26 @@ encodeDescription maybeDescription object =
     case maybeDescription of
         Just description ->
             ( "description", Encode.string description ) :: object
+
+        Nothing ->
+            object
+
+
+encodeRemoteGroupId : Maybe SecurityGroupRuleUuid -> List ( String, Encode.Value ) -> List ( String, Encode.Value )
+encodeRemoteGroupId maybeRemoteGroupId object =
+    case maybeRemoteGroupId of
+        Just remoteGroupId ->
+            ( "remote_group_id", Encode.string remoteGroupId ) :: object
+
+        Nothing ->
+            object
+
+
+encodeRemoteIpPrefix : Maybe String -> List ( String, Encode.Value ) -> List ( String, Encode.Value )
+encodeRemoteIpPrefix maybeRemoteIpPrefix object =
+    case maybeRemoteIpPrefix of
+        Just remoteIpPrefix ->
+            ( "remote_ip_prefix", Encode.string remoteIpPrefix ) :: object
 
         Nothing ->
             object
