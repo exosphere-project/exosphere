@@ -4,6 +4,7 @@ import Element
 import Element.Border as Border
 import Element.Font as Font
 import FeatherIcons as Icons
+import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting
 import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
@@ -168,6 +169,19 @@ view context project currentTime _ =
                 Route.ImageList
                 Nothing
                 (imageTileContents context project)
+            , if context.experimentalFeaturesEnabled then
+                renderTile
+                    (Icon.featherIcon [] Icons.shield)
+                    (context.localization.securityGroup
+                        |> Helpers.String.pluralize
+                        |> Helpers.String.toTitleCase
+                    )
+                    Route.SecurityGroupList
+                    Nothing
+                    (securityGroupTileContents context project)
+
+              else
+                Element.none
             , renderTile
                 (Icon.featherIcon [] Icons.terminal)
                 (context.localization.credential |> Helpers.String.pluralize |> Helpers.String.toTitleCase)
@@ -260,6 +274,54 @@ shareTileContents context project =
         VH.renderRDPP
         renderShare
         showShare
+
+
+securityGroupTileContents : View.Types.Context -> Project -> Element.Element Msg
+securityGroupTileContents context project =
+    let
+        renderSecurityGroup : OSTypes.SecurityGroup -> List (Element.Element Msg)
+        renderSecurityGroup securityGroup =
+            [ VH.extendedResourceName (Just securityGroup.name) securityGroup.uuid context.localization.securityGroup
+                |> VH.ellipsizedText
+                |> Element.el
+                    [ Element.centerY
+                    , Element.width Element.fill
+                    , Element.htmlAttribute <| Html.Attributes.style "min-width" "0"
+                    ]
+            , let
+                { locale } =
+                    context
+
+                numberOfRules =
+                    List.length securityGroup.rules
+              in
+              Element.el
+                [ context.palette.neutral.text.subdued
+                    |> SH.toElementColor
+                    |> Font.color
+                ]
+                (Element.text
+                    (String.join " "
+                        [ Helpers.Formatting.humanCount
+                            { locale | decimals = Exact 0 }
+                            numberOfRules
+                        , "rule" |> Helpers.String.pluralizeCount numberOfRules
+                        ]
+                    )
+                )
+            ]
+
+        showSecurityGroup : OSTypes.SecurityGroup -> Bool
+        showSecurityGroup =
+            always True
+    in
+    tileContents
+        context
+        project.securityGroups
+        context.localization.securityGroup
+        VH.renderRDPP
+        renderSecurityGroup
+        showSecurityGroup
 
 
 floatingIpTileContents : View.Types.Context -> Project -> Element.Element Msg
