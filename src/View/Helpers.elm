@@ -46,6 +46,7 @@ module View.Helpers exposing
     , titleFromHostname
     , toExoPalette
     , validInputAttributes
+    , volumeStatusBadgeFromStatus
     , warningInputAttributes
     )
 
@@ -79,9 +80,10 @@ import Markdown.Parser
 import Markdown.Renderer
 import OpenStack.Quotas as OSQuotas
 import OpenStack.SecurityGroupRule exposing (Remote(..), SecurityGroupRuleDirection(..), SecurityGroupRuleEthertype(..), SecurityGroupRuleProtocol(..), directionToString, etherTypeToString, protocolToString)
-import OpenStack.Types as OSTypes exposing (ShareStatus(..))
+import OpenStack.Types as OSTypes exposing (ShareStatus(..), VolumeStatus(..))
 import Regex
 import Route
+import String.Extra
 import Style.Helpers as SH
 import Style.Types as ST exposing (ExoPalette)
 import Style.Widgets.Button as Button
@@ -1653,3 +1655,80 @@ remoteToRemoteType remote =
 
         _ ->
             Any
+
+
+volumeStatusBadgeFromStatus : ExoPalette -> StatusBadgeSize -> VolumeStatus -> Element.Element msg
+volumeStatusBadgeFromStatus palette size status =
+    let
+        contents =
+            status |> OSTypes.volumeStatusToString |> String.Extra.humanize |> Helpers.String.toTitleCase |> Element.text
+    in
+    StatusBadge.statusBadgeWithSize
+        palette
+        size
+        (status |> getVolumeStatusBadgeState)
+        contents
+
+
+getVolumeStatusBadgeState : VolumeStatus -> StatusBadge.StatusBadgeState
+getVolumeStatusBadgeState status =
+    case status of
+        Creating ->
+            StatusBadge.Warning
+
+        Available ->
+            StatusBadge.ReadyGood
+
+        Reserved ->
+            StatusBadge.Muted
+
+        Attaching ->
+            StatusBadge.Warning
+
+        Detaching ->
+            StatusBadge.Warning
+
+        InUse ->
+            StatusBadge.ReadyGood
+
+        Maintenance ->
+            StatusBadge.Warning
+
+        Deleting ->
+            StatusBadge.Muted
+
+        AwaitingTransfer ->
+            StatusBadge.Warning
+
+        Error ->
+            StatusBadge.Error
+
+        ErrorDeleting ->
+            StatusBadge.Error
+
+        BackingUp ->
+            StatusBadge.Warning
+
+        RestoringBackup ->
+            StatusBadge.Warning
+
+        ErrorBackingUp ->
+            StatusBadge.Error
+
+        ErrorRestoring ->
+            StatusBadge.Error
+
+        ErrorExtending ->
+            StatusBadge.Error
+
+        Downloading ->
+            StatusBadge.Warning
+
+        Uploading ->
+            StatusBadge.Warning
+
+        Retyping ->
+            StatusBadge.Warning
+
+        Extending ->
+            StatusBadge.Warning

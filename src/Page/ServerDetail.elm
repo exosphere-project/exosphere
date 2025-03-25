@@ -37,6 +37,7 @@ import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.StatusBadge as StatusBadge
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
+import Style.Widgets.Uuid exposing (copyableUuid)
 import Time
 import Types.HelperTypes exposing (FloatingIpOption(..), ProjectIdentifier, ServerResourceQtys, UserAppProxyHostname)
 import Types.Interaction as ITypes
@@ -471,10 +472,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                 , Element.paddingXY spacer.px12 0
                 , Text.fontFamily Text.Mono
                 ]
-                (copyableText context.palette
-                    [ Element.width (Element.shrink |> Element.minimum 305), Element.alignBottom ]
-                    server.osProps.uuid
-                )
+                (copyableUuid context.palette server.osProps.uuid)
             ]
             [ VH.createdAgoByFromSize
                 context
