@@ -568,12 +568,6 @@ render context project ( currentTime, _ ) model securityGroup =
                     )
                 )
 
-        rules =
-            rulesTable
-                context
-                (GetterSetters.projectIdentifier project)
-                { rules = securityGroup.rules, securityGroupForUuid = GetterSetters.securityGroupLookup project }
-
         serverLookup =
             GetterSetters.serversForSecurityGroup project securityGroup.uuid
 
@@ -661,18 +655,30 @@ render context project ( currentTime, _ ) model securityGroup =
                 , rules = ( numberOfRulesString, rulesUnit )
                 }
             ]
-        , tile
-            [ FeatherIcons.lock
-                |> FeatherIcons.toHtml []
-                |> Element.html
-                |> Element.el []
-            , ruleWord
-                |> Helpers.String.pluralize
-                |> Helpers.String.toTitleCase
-                |> Element.text
-            ]
-            [ rules
-            ]
+        , case model.securityGroupForm of
+            Just _ ->
+                Element.none
+
+            Nothing ->
+                let
+                    rules =
+                        rulesTable
+                            context
+                            (GetterSetters.projectIdentifier project)
+                            { rules = securityGroup.rules, securityGroupForUuid = GetterSetters.securityGroupLookup project }
+                in
+                tile
+                    [ FeatherIcons.lock
+                        |> FeatherIcons.toHtml []
+                        |> Element.html
+                        |> Element.el []
+                    , ruleWord
+                        |> Helpers.String.pluralize
+                        |> Helpers.String.toTitleCase
+                        |> Element.text
+                    ]
+                    [ rules
+                    ]
         , tile
             [ FeatherIcons.server
                 |> FeatherIcons.toHtml []
