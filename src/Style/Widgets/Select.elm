@@ -1,4 +1,4 @@
-module Style.Widgets.Select exposing (Label, Value, select)
+module Style.Widgets.Select exposing (Label, Value, notes, select)
 
 import Color
 import Element
@@ -12,6 +12,17 @@ import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
 import Style.Widgets.Icon exposing (featherIcon)
 import Style.Widgets.Spacer exposing (spacer)
+
+
+notes : String
+notes =
+    """
+## Usage
+
+### Select
+
+A drop-down list of options using `Html.select` under the hood.
+"""
 
 
 select :
