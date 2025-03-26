@@ -16,6 +16,7 @@ module OpenStack.SecurityGroupRule exposing
     , getRemote
     , isRuleShadowed
     , matchRule
+    , matchRuleAndDescription
     , portRangeToString
     , protocolToString
     , remoteToString
@@ -29,6 +30,7 @@ module OpenStack.SecurityGroupRule exposing
     , stringToSecurityGroupRuleProtocol
     )
 
+import Helpers.String exposing (removeEmptiness)
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
 import Json.Encode as Encode
@@ -71,7 +73,7 @@ securityGroupRuleTemplateToRule { ethertype, direction, protocol, portRangeMin, 
     , portRangeMax = portRangeMax
     , remoteIpPrefix = remoteIpPrefix
     , remoteGroupUuid = remoteGroupUuid
-    , description = description
+    , description = removeEmptiness description
     }
 
 
@@ -84,7 +86,7 @@ securityGroupRuleToTemplate { ethertype, direction, protocol, portRangeMin, port
     , portRangeMax = portRangeMax
     , remoteIpPrefix = remoteIpPrefix
     , remoteGroupUuid = remoteGroupUuid
-    , description = description
+    , description = removeEmptiness description
     }
 
 
@@ -114,7 +116,11 @@ matchRule ruleA ruleB =
 matchRuleAndDescription : SecurityGroupRule -> SecurityGroupRule -> Bool
 matchRuleAndDescription ruleA ruleB =
     matchRule ruleA ruleB
-        && (ruleA.description == ruleB.description)
+        && ((ruleA.description == ruleB.description)
+                -- Treat `Just ""` & `Nothing` as equivalent.
+                --  (Neutron tends to return `"description": ""` when it's not specified on creation.)
+                || (removeEmptiness ruleA.description == removeEmptiness ruleB.description)
+           )
 
 
 isRuleShadowed : SecurityGroupRule -> List SecurityGroupRule -> Bool

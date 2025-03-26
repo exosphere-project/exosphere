@@ -6,6 +6,7 @@ module Helpers.String exposing
     , itemsListToString
     , pluralize
     , pluralizeCount
+    , removeEmptiness
     , toTitleCase
     )
 
@@ -130,3 +131,19 @@ itemsListToString items =
                         String.join ", " (firstItem :: intermediateItems)
                             ++ ", and "
                             ++ lastItem
+
+
+{-| Remove extraneous whitespace & prefer `Nothing` to `Just ""`.
+-}
+removeEmptiness : Maybe String -> Maybe String
+removeEmptiness description =
+    description
+        |> Maybe.map String.trim
+        |> Maybe.andThen
+            (\d ->
+                if String.isEmpty d then
+                    Nothing
+
+                else
+                    Just d
+            )
