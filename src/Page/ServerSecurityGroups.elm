@@ -31,23 +31,19 @@ import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
 import Style.Widgets.Validation as Validation
 import Time
-import Types.Error as Error
 import Types.Project exposing (Project)
-import Types.SecurityGroupActions as SecurityGroupActions exposing (initPendingRulesChanges, initPendingSecurityGroupChanges)
+import Types.SecurityGroupActions as SecurityGroupActions
 import Types.Server exposing (Server)
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
-import Widget
 
 
 type alias Model =
     { serverUuid : OSTypes.ServerUuid
     , selectedSecurityGroups : DataDependent (Set.Set OSTypes.SecurityGroupUuid)
     , securityGroupForm : Maybe SecurityGroupForm.Model
-    , securityGroupFormSubmitted : Bool
-    , securityGroupBeingCreated : Bool
     }
 
 
@@ -57,7 +53,6 @@ type Msg
     | GotEditSecurityGroupForm OSTypes.SecurityGroupUuid
     | GotDone
     | GotServerSecurityGroups OSTypes.ServerUuid
-    | GotCreateSecurityGroupResult OSTypes.SecurityGroupTemplate (Result Error.HttpErrorWithBody OSTypes.SecurityGroup)
     | ToggleSelectedGroup OSTypes.SecurityGroupUuid
     | SharedMsg SharedMsg.SharedMsg
     | SecurityGroupFormMsg SecurityGroupForm.Msg
@@ -108,8 +103,6 @@ init project serverUuid =
                 Uninitialised
     , securityGroupForm =
         Nothing
-    , securityGroupFormSubmitted = False
-    , securityGroupBeingCreated = False
     }
 
 
@@ -129,67 +122,6 @@ update msg sharedModel project model =
 
         GotDone ->
             ( model, Route.pushUrl sharedModel.viewContext (Route.ProjectRoute (GetterSetters.projectIdentifier project) (Route.ServerDetail model.serverUuid)), SharedMsg.NoOp )
-
-        GotCreateSecurityGroupResult template result ->
-            case model.securityGroupForm of
-                Just form ->
-                    -- Names ought to be unique within the project.
-                    if form.name == template.name then
-                        case result of
-                            Ok securityGroup ->
-                                let
-                                    actions =
-                                        GetterSetters.getSecurityGroupActions project (SecurityGroupActions.ExtantGroup securityGroup.uuid)
-                                            |> Maybe.withDefault SecurityGroupActions.initSecurityGroupAction
-                                in
-                                ( { model
-                                    -- Update the form to use the existing security group with uuid.
-                                    | securityGroupForm =
-                                        let
-                                            { creations, deletions } =
-                                                actions.pendingRuleChanges
-
-                                            securityGroupForm =
-                                                SecurityGroupForm.initWithSecurityGroup securityGroup
-                                        in
-                                        if creations == 0 && deletions == 0 then
-                                            Just securityGroupForm
-
-                                        else
-                                            -- Except that we retain the intended form rules if there are pending changes.
-                                            -- (And we expect there to be because new security groups are created with default rules.)
-                                            Just <| { securityGroupForm | rules = form.rules }
-                                    , securityGroupBeingCreated = False
-                                    , selectedSecurityGroups =
-                                        case ( model.selectedSecurityGroups, actions.pendingServerLinkage ) of
-                                            ( Ready selected, Just serverUuid ) ->
-                                                -- If the server is the one we're working with, select the new security group.
-                                                -- (It will already have been applied by this time.)
-                                                if serverUuid == model.serverUuid then
-                                                    Ready <| Set.insert securityGroup.uuid selected
-
-                                                else
-                                                    model.selectedSecurityGroups
-
-                                            _ ->
-                                                model.selectedSecurityGroups
-                                  }
-                                , Cmd.none
-                                , SharedMsg.NoOp
-                                )
-
-                            Err _ ->
-                                -- TODO: Parse the error.
-                                ( { model | securityGroupBeingCreated = False }
-                                , Cmd.none
-                                , SharedMsg.NoOp
-                                )
-
-                    else
-                        ( model, Cmd.none, SharedMsg.NoOp )
-
-                Nothing ->
-                    ( model, Cmd.none, SharedMsg.NoOp )
 
         GotServerSecurityGroups serverUuid ->
             -- SharedModel just updated with new security groups for this server.
@@ -223,75 +155,53 @@ update msg sharedModel project model =
 
         SecurityGroupFormMsg securityGroupFormMsg ->
             case securityGroupFormMsg of
-                SecurityGroupForm.GotRequestCreateSecurityGroup ->
-                    case model.securityGroupForm of
-                        Just form ->
-                            ( { model
-                                | securityGroupFormSubmitted = True
-                                , securityGroupBeingCreated = True
-                              }
-                            , Cmd.none
-                            , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
-                                SharedMsg.RequestCreateSecurityGroup (SecurityGroupForm.securityGroupTemplateFromForm <| form) (Just model.serverUuid)
-                            )
-
-                        _ ->
-                            ( model, Cmd.none, SharedMsg.NoOp )
-
-                SecurityGroupForm.GotRequestUpdateSecurityGroup securityGroupUuid ->
-                    case ( GetterSetters.securityGroupLookup project securityGroupUuid, model.securityGroupForm ) of
-                        ( Just existingSecurityGroup, Just form ) ->
-                            ( { model
-                                | securityGroupFormSubmitted = True
-                              }
-                            , Cmd.none
-                            , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
-                                SharedMsg.RequestUpdateSecurityGroup existingSecurityGroup (SecurityGroupForm.securityGroupUpdateFromForm <| form)
-                            )
-
-                        _ ->
-                            ( model, Cmd.none, SharedMsg.NoOp )
-
                 SecurityGroupForm.GotCancel ->
-                    ( { model
-                        | securityGroupForm = Nothing
-                        , securityGroupFormSubmitted = False
-                        , securityGroupBeingCreated = False
-                      }
+                    ( { model | securityGroupForm = Nothing }
                     , Cmd.none
                     , SharedMsg.NoOp
                     )
+
+                SecurityGroupForm.GotCreateSecurityGroupResult _ result ->
+                    -- Listen for successful creation of a security group.
+                    let
+                        ( newModel, newCmd, newSharedMsg ) =
+                            updateUnderlyingForm sharedModel project model securityGroupFormMsg
+                    in
+                    case result of
+                        Ok securityGroup ->
+                            let
+                                actions =
+                                    GetterSetters.getSecurityGroupActions project (SecurityGroupActions.ExtantGroup securityGroup.uuid)
+                                        |> Maybe.withDefault SecurityGroupActions.initSecurityGroupAction
+
+                                selectedSecurityGroups =
+                                    case ( model.selectedSecurityGroups, actions.pendingServerLinkage ) of
+                                        ( Ready selected, Just serverUuid ) ->
+                                            -- If the server is the one we're working with, select the new security group.
+                                            -- (It will already have been applied by this time.)
+                                            if serverUuid == model.serverUuid then
+                                                Ready <| Set.insert securityGroup.uuid selected
+
+                                            else
+                                                model.selectedSecurityGroups
+
+                                        _ ->
+                                            model.selectedSecurityGroups
+                            in
+                            ( { newModel | selectedSecurityGroups = selectedSecurityGroups }, newCmd, newSharedMsg )
+
+                        Err _ ->
+                            ( newModel, newCmd, newSharedMsg )
 
                 _ ->
-                    let
-                        securityGroupForm =
-                            case model.securityGroupForm of
-                                Just securityGroupForm_ ->
-                                    SecurityGroupForm.update securityGroupFormMsg securityGroupForm_ |> Tuple.first
-
-                                Nothing ->
-                                    -- If we get a message without a form, initialise one.
-                                    SecurityGroupForm.init { name = newSecurityGroupName project model.serverUuid }
-                    in
-                    ( { model
-                        | securityGroupForm = Just securityGroupForm
-                        , securityGroupFormSubmitted = False
-                        , securityGroupBeingCreated = False
-                      }
-                    , Cmd.none
-                    , SharedMsg.NoOp
-                    )
+                    updateUnderlyingForm sharedModel project model securityGroupFormMsg
 
         GotCreateSecurityGroupForm ->
             let
                 securityGroupForm =
                     SecurityGroupForm.init { name = newSecurityGroupName project model.serverUuid }
             in
-            ( { model
-                | securityGroupForm = Just <| securityGroupForm
-                , securityGroupFormSubmitted = False
-                , securityGroupBeingCreated = False
-              }
+            ( { model | securityGroupForm = Just <| securityGroupForm }
             , Cmd.none
             , SharedMsg.NoOp
             )
@@ -306,14 +216,32 @@ update msg sharedModel project model =
                         Nothing ->
                             SecurityGroupForm.init { name = newSecurityGroupName project model.serverUuid }
             in
-            ( { model
-                | securityGroupForm = Just <| securityGroupForm
-                , securityGroupFormSubmitted = False
-                , securityGroupBeingCreated = False
-              }
+            ( { model | securityGroupForm = Just <| securityGroupForm }
             , Cmd.none
             , SharedMsg.NoOp
             )
+
+
+updateUnderlyingForm : SharedModel -> Project -> Model -> SecurityGroupForm.Msg -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
+updateUnderlyingForm sharedModel project model securityGroupFormMsg =
+    let
+        ( newSecurityGroupForm, securityGroupFormCmd, securityGroupFormSharedMsg ) =
+            let
+                securityGroupForm =
+                    case model.securityGroupForm of
+                        Just securityGroupForm_ ->
+                            securityGroupForm_
+
+                        Nothing ->
+                            -- If we get a message without a form, initialise one.
+                            SecurityGroupForm.init { name = newSecurityGroupName project model.serverUuid }
+            in
+            SecurityGroupForm.update securityGroupFormMsg sharedModel project securityGroupForm
+    in
+    ( { model | securityGroupForm = Just newSecurityGroupForm }
+    , Cmd.map SecurityGroupFormMsg securityGroupFormCmd
+    , securityGroupFormSharedMsg
+    )
 
 
 newSecurityGroupName : Project -> OSTypes.ServerUuid -> String
@@ -664,19 +592,8 @@ renderSecurityGroupListAndRules context project currentTime model securityGroups
             , case model.securityGroupForm of
                 Just securityGroupForm ->
                     let
-                        ( isExistingSecurityGroup, action ) =
-                            case securityGroupForm.uuid of
-                                Just securityGroupUuid ->
-                                    ( True
-                                    , GetterSetters.getSecurityGroupActions project (SecurityGroupActions.ExtantGroup securityGroupUuid)
-                                        |> Maybe.withDefault SecurityGroupActions.initSecurityGroupAction
-                                    )
-
-                                Nothing ->
-                                    ( False
-                                    , GetterSetters.getSecurityGroupActions project (SecurityGroupActions.NewGroup securityGroupForm.name)
-                                        |> Maybe.withDefault SecurityGroupActions.initSecurityGroupAction
-                                    )
+                        isExistingSecurityGroup =
+                            securityGroupForm.uuid /= Nothing
                     in
                     tile
                         (Just
@@ -703,73 +620,6 @@ renderSecurityGroupListAndRules context project currentTime model securityGroups
                                 (Just model.serverUuid)
                                 |> Element.map SecurityGroupFormMsg
                             ]
-                        , if action.pendingCreation then
-                            Element.row [ Element.spacing spacer.px16, Element.centerX ]
-                                [ Widget.circularProgressIndicator
-                                    (SH.materialStyle context.palette).progressIndicator
-                                    Nothing
-                                , Element.text <|
-                                    String.join " "
-                                        [ "Creating"
-                                        , context.localization.securityGroup
-                                            |> Helpers.String.toTitleCase
-                                        , "..."
-                                        ]
-                                ]
-
-                          else
-                            Element.none
-                        , let
-                            updates =
-                                action.pendingSecurityGroupChanges.updates
-                                    + action.pendingRuleChanges.creations
-                                    + action.pendingRuleChanges.deletions
-                          in
-                          if updates > 0 then
-                            Element.row [ Element.spacing spacer.px16, Element.centerX ]
-                                [ Widget.circularProgressIndicator
-                                    (SH.materialStyle context.palette).progressIndicator
-                                    Nothing
-                                , Element.text <|
-                                    String.join " "
-                                        [ updates |> String.fromInt
-                                        , "update" |> Helpers.String.pluralizeCount updates
-                                        , "remaining..."
-                                        ]
-                                ]
-
-                          else
-                            Element.none
-                        , let
-                            errors =
-                                action.pendingSecurityGroupChanges.errors ++ action.pendingRuleChanges.errors
-                          in
-                          if List.length errors > 0 then
-                            Element.el
-                                [ Element.width Element.shrink, Element.centerX ]
-                            <|
-                                Validation.invalidMessage context.palette <|
-                                    String.join ", " errors
-
-                          else
-                            Element.none
-                        , if
-                            model.securityGroupFormSubmitted
-                                && not model.securityGroupBeingCreated
-                                && not action.pendingCreation
-                                && action.pendingSecurityGroupChanges
-                                == initPendingSecurityGroupChanges
-                                && action.pendingRuleChanges
-                                == initPendingRulesChanges
-                          then
-                            Element.el
-                                [ Element.width Element.shrink, Element.centerX ]
-                            <|
-                                Validation.validMessage context.palette <|
-                                    String.join " " [ Helpers.String.toTitleCase context.localization.securityGroup, "is up to date." ]
-
-                          else
-                            Element.none
                         , if isExistingSecurityGroup then
                             let
                                 selected =

@@ -9,8 +9,10 @@ import Helpers.Cidr exposing (isValidCidr)
 import Helpers.Formatting exposing (humanCount)
 import Helpers.GetterSetters as GetterSetters
 import Helpers.String exposing (pluralizeCount)
+import Json.Decode as Decode
 import List
 import List.Extra
+import OpenStack.Error
 import OpenStack.SecurityGroupRule
     exposing
         ( SecurityGroupRule
@@ -26,6 +28,7 @@ import OpenStack.SecurityGroupRule
 import OpenStack.Types exposing (SecurityGroup, SecurityGroupTemplate, SecurityGroupUpdate, SecurityGroupUuid, ServerUuid)
 import Page.SecurityGroupRuleForm as SecurityGroupRuleForm
 import Page.SecurityGroupRulesTable as SecurityGroupRulesTable
+import Rest.Neutron
 import Style.Helpers as SH
 import Style.Widgets.Button as Button
 import Style.Widgets.Grid exposing (GridCell(..), GridRow(..), grid, scrollableCell)
@@ -33,10 +36,15 @@ import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Style.Widgets.Validation as Validation
 import Time
+import Types.Error as Error
 import Types.Project exposing (Project)
+import Types.SecurityGroupActions as SecurityGroupActions
+import Types.SharedModel exposing (SharedModel)
+import Types.SharedMsg as SharedMsg
 import View.Forms as Forms
 import View.Helpers as VH
 import View.Types
+import Widget
 
 
 type Msg
@@ -48,7 +56,8 @@ type Msg
     | GotEditRule SecurityGroupRuleUuid
     | GotName String
     | GotCancel
-    | GotRequestCreateSecurityGroup
+    | GotRequestCreateSecurityGroup (Maybe ServerUuid)
+    | GotCreateSecurityGroupResult SecurityGroupTemplate (Result Error.HttpErrorWithBody SecurityGroup)
     | GotRequestUpdateSecurityGroup SecurityGroupUuid
 
 
@@ -58,6 +67,9 @@ type alias Model =
     , description : Maybe String
     , rules : List SecurityGroupRule
     , securityGroupRuleForm : Maybe SecurityGroupRuleForm.Model
+    , submitted : Bool
+    , creationInProgress : Bool
+    , creationError : Maybe String
     }
 
 
@@ -68,6 +80,9 @@ init { name } =
     , description = Nothing
     , rules = []
     , securityGroupRuleForm = Nothing
+    , submitted = False
+    , creationInProgress = False
+    , creationError = Nothing
     }
 
 
@@ -78,6 +93,9 @@ initWithSecurityGroup securityGroup =
     , description = securityGroup.description
     , rules = securityGroup.rules
     , securityGroupRuleForm = Nothing
+    , submitted = False
+    , creationInProgress = False
+    , creationError = Nothing
     }
 
 
@@ -98,8 +116,8 @@ securityGroupTemplateFromForm model =
     }
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
-update msg model =
+update : Msg -> SharedModel -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
+update msg { viewContext } project model =
     case msg of
         SecurityGroupRuleFormMsg ruleFormMsg ->
             case model.securityGroupRuleForm of
@@ -110,6 +128,7 @@ update msg model =
                     in
                     ( { model
                         | securityGroupRuleForm = Just updatedRuleForm
+                        , submitted = False
                         , rules =
                             List.map
                                 (\r ->
@@ -122,16 +141,17 @@ update msg model =
                                 model.rules
                       }
                     , Cmd.map SecurityGroupRuleFormMsg ruleFormCmd
+                    , SharedMsg.NoOp
                     )
 
                 Nothing ->
-                    ( model, Cmd.none )
+                    ( model, Cmd.none, SharedMsg.NoOp )
 
         GotName name ->
-            ( { model | name = name }, Cmd.none )
+            ( { model | name = name, submitted = False }, Cmd.none, SharedMsg.NoOp )
 
         GotDescription description ->
-            ( { model | description = description }, Cmd.none )
+            ( { model | description = description, submitted = False }, Cmd.none, SharedMsg.NoOp )
 
         GotAddRule ->
             let
@@ -141,8 +161,10 @@ update msg model =
             ( { model
                 | rules = model.rules ++ [ newRule ]
                 , securityGroupRuleForm = Just <| SecurityGroupRuleForm.init newRule
+                , submitted = False
               }
             , Cmd.none
+            , SharedMsg.NoOp
             )
 
         GotDeleteRule ruleUuid ->
@@ -155,15 +177,16 @@ update msg model =
 
                     else
                         model.securityGroupRuleForm
+                , submitted = False
               }
             , Cmd.none
+            , SharedMsg.NoOp
             )
 
         GotDoneEditingRule ->
-            ( { model
-                | securityGroupRuleForm = Nothing
-              }
+            ( { model | securityGroupRuleForm = Nothing }
             , Cmd.none
+            , SharedMsg.NoOp
             )
 
         GotEditRule ruleUuid ->
@@ -184,18 +207,98 @@ update msg model =
                                     SecurityGroupRuleForm.newBlankRule (List.length model.rules)
               }
             , Cmd.none
+            , SharedMsg.NoOp
             )
 
         GotCancel ->
-            ( model, Cmd.none )
+            -- Expect the form owner to clear the form's model.
+            ( model, Cmd.none, SharedMsg.NoOp )
 
-        GotRequestCreateSecurityGroup ->
-            -- Expect the form owner to handle this.
-            ( model, Cmd.none )
+        GotRequestCreateSecurityGroup maybeServerUuid ->
+            let
+                newModel =
+                    { model
+                        | submitted = True
+                        , creationInProgress = True
+                        , creationError = Nothing
+                    }
+            in
+            ( newModel
+            , Cmd.none
+            , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
+                SharedMsg.RequestCreateSecurityGroup
+                    (securityGroupTemplateFromForm <| newModel)
+                    maybeServerUuid
+            )
 
-        GotRequestUpdateSecurityGroup _ ->
-            -- Expect the form owner to handle this.
-            ( model, Cmd.none )
+        GotCreateSecurityGroupResult template result ->
+            -- Names ought to be unique within the project.
+            if model.name == template.name then
+                case result of
+                    Ok securityGroup ->
+                        let
+                            newModel =
+                                { model
+                                  -- Update the form to use the newly available security group uuid.
+                                  -- Retain the form state rules since those changes are probably still pending.
+                                  -- (We expect that because new security groups are created with default rules.)
+                                    | uuid = Just securityGroup.uuid
+                                    , name = securityGroup.name
+                                    , description = securityGroup.description
+                                    , creationInProgress = False
+                                    , creationError = Nothing
+                                }
+                        in
+                        ( newModel
+                        , Cmd.none
+                        , SharedMsg.NoOp
+                        )
+
+                    Err httpError ->
+                        let
+                            error =
+                                Decode.decodeString
+                                    (Decode.field (OpenStack.Error.fieldForErrorDomain OpenStack.Error.NeutronError) Rest.Neutron.neutronErrorDecoder)
+                                    httpError.body
+
+                            errorMessage =
+                                case error of
+                                    Ok neutronError ->
+                                        neutronError.message
+
+                                    Err _ ->
+                                        if String.isEmpty httpError.body then
+                                            "An error occurred while creating the " ++ viewContext.localization.securityGroup ++ "."
+
+                                        else
+                                            httpError.body
+                        in
+                        ( { model
+                            | creationInProgress = False
+                            , creationError = Just errorMessage
+                          }
+                        , Cmd.none
+                        , SharedMsg.NoOp
+                        )
+
+            else
+                ( model, Cmd.none, SharedMsg.NoOp )
+
+        GotRequestUpdateSecurityGroup securityGroupUuid ->
+            case GetterSetters.securityGroupLookup project securityGroupUuid of
+                Just existingSecurityGroup ->
+                    let
+                        newModel =
+                            { model | submitted = True }
+                    in
+                    ( newModel
+                    , Cmd.none
+                    , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
+                        SharedMsg.RequestUpdateSecurityGroup existingSecurityGroup (securityGroupUpdateFromForm <| newModel)
+                    )
+
+                _ ->
+                    ( model, Cmd.none, SharedMsg.NoOp )
 
 
 isRuleValid : SecurityGroupRule -> Bool
@@ -371,45 +474,23 @@ rulesGrid context project model rules =
         )
 
 
-warningSecurityGroupAffectsServers : View.Types.Context -> Project -> SecurityGroupUuid -> Maybe ServerUuid -> Element.Element msg
-warningSecurityGroupAffectsServers context project securityGroupUuid exceptServerUuid =
-    let
-        serversAffected =
-            GetterSetters.serversForSecurityGroup project securityGroupUuid
-                |> .servers
+warningSecurityGroupAffectsServers :
+    View.Types.Context
+    -> Project
+    -> SecurityGroupUuid
+    -> Maybe ServerUuid
+    -> Element.Element msg
+warningSecurityGroupAffectsServers context project securityGroupUuid maybeServerUuid =
+    case Forms.securityGroupAffectsServersWarning context project securityGroupUuid maybeServerUuid "editing" of
+        Just warning ->
+            Element.el
+                [ Element.width Element.shrink, Element.centerX ]
+            <|
+                Validation.warningMessage context.palette <|
+                    warning
 
-        otherServersAffected =
-            case exceptServerUuid of
-                Just serverUuid ->
-                    List.filter (\s -> s.osProps.uuid /= serverUuid) serversAffected
-
-                Nothing ->
-                    serversAffected
-
-        numberOfServers =
-            List.length otherServersAffected
-    in
-    if numberOfServers == 0 then
-        Element.none
-
-    else
-        let
-            { locale } =
-                context
-        in
-        Element.el
-            [ Element.width Element.shrink, Element.centerX ]
-        <|
-            Validation.warningMessage context.palette <|
-                String.join " "
-                    [ "Editing this"
-                    , context.localization.securityGroup
-                    , "will affect"
-                    , numberOfServers
-                        |> humanCount { locale | decimals = Exact 0 }
-                    , "other"
-                    , (context.localization.virtualComputer |> pluralizeCount numberOfServers) ++ "."
-                    ]
+        Nothing ->
+            Element.none
 
 
 view : View.Types.Context -> Project -> Time.Posix -> Model -> Maybe ServerUuid -> Element.Element Msg
@@ -444,6 +525,27 @@ view context project currentTime model maybeServerUuid =
 
         formPadding =
             Element.paddingEach { top = 0, right = 0, bottom = 0, left = spacer.px64 + spacer.px12 }
+
+        action =
+            (case model.uuid of
+                Just securityGroupUuid ->
+                    GetterSetters.getSecurityGroupActions project (SecurityGroupActions.ExtantGroup securityGroupUuid)
+
+                Nothing ->
+                    GetterSetters.getSecurityGroupActions project (SecurityGroupActions.NewGroup model.name)
+            )
+                |> Maybe.withDefault SecurityGroupActions.initSecurityGroupAction
+
+        isUpToDate =
+            model.submitted
+                && not model.creationInProgress
+                && not action.pendingCreation
+                && model.creationError
+                == Nothing
+                && action.pendingSecurityGroupChanges
+                == SecurityGroupActions.initPendingSecurityGroupChanges
+                && action.pendingRuleChanges
+                == SecurityGroupActions.initPendingRulesChanges
     in
     Element.column [ Element.spacing spacer.px24, Element.width Element.fill ]
         [ Element.column [ Element.paddingXY spacer.px8 0, Element.spacing spacer.px12, Element.width Element.fill ] <|
@@ -519,48 +621,131 @@ view context project currentTime model maybeServerUuid =
                         Button.Primary
               in
               Button.button variant context.palette { text = "Add Rule", onPress = Just GotAddRule }
-            , Element.el
-                [ Element.paddingXY spacer.px8 0, Element.width Element.shrink, Element.alignRight ]
-                (Button.button Button.DangerSecondary context.palette { text = "Cancel", onPress = Just GotCancel })
-            , let
-                variant =
-                    if List.length model.rules > 0 && model.securityGroupRuleForm == Nothing then
-                        Button.Primary
+            , -- Cancel
+              if isUpToDate then
+                Element.none
 
-                    else
-                        Button.Secondary
-              in
-              Button.button variant
-                context.palette
-                { text =
-                    let
-                        isExistingRule =
-                            model.uuid /= Nothing
-                    in
+              else
+                Element.el
+                    [ Element.paddingXY spacer.px8 0, Element.width Element.shrink, Element.alignRight ]
+                    (Button.button Button.DangerSecondary context.palette { text = "Cancel", onPress = Just GotCancel })
+            , -- Done
+              if isUpToDate then
+                Button.button Button.Primary context.palette { text = "Done", onPress = Just GotCancel }
+
+              else
+                Element.none
+            , -- Submit
+              if isUpToDate then
+                Element.none
+
+              else
+                let
+                    variant =
+                        if List.length model.rules > 0 && model.securityGroupRuleForm == Nothing then
+                            Button.Primary
+
+                        else
+                            Button.Secondary
+                in
+                Button.button variant
+                    context.palette
+                    { text =
+                        let
+                            isExistingRule =
+                                model.uuid /= Nothing
+                        in
+                        String.join " "
+                            [ if isExistingRule then
+                                "Update"
+
+                              else
+                                "Create"
+                            , context.localization.securityGroup
+                                |> Helpers.String.toTitleCase
+                            ]
+                    , onPress =
+                        let
+                            isFormValid =
+                                isRuleSetValid && isNameValid
+                        in
+                        if isFormValid then
+                            case model.uuid of
+                                Just securityGroupUuid ->
+                                    Just (GotRequestUpdateSecurityGroup securityGroupUuid)
+
+                                Nothing ->
+                                    Just <| GotRequestCreateSecurityGroup maybeServerUuid
+
+                        else
+                            Nothing
+                    }
+            ]
+        , if action.pendingCreation then
+            Element.row [ Element.spacing spacer.px16, Element.centerX ]
+                [ Widget.circularProgressIndicator
+                    (SH.materialStyle context.palette).progressIndicator
+                    Nothing
+                , Element.text <|
                     String.join " "
-                        [ if isExistingRule then
-                            "Update"
-
-                          else
-                            "Create"
+                        [ "Creating"
                         , context.localization.securityGroup
                             |> Helpers.String.toTitleCase
+                        , "..."
                         ]
-                , onPress =
-                    let
-                        isFormValid =
-                            isRuleSetValid && isNameValid
-                    in
-                    if isFormValid then
-                        case model.uuid of
-                            Just securityGroupUuid ->
-                                Just (GotRequestUpdateSecurityGroup securityGroupUuid)
+                ]
+
+          else
+            Element.none
+        , let
+            updates =
+                action.pendingSecurityGroupChanges.updates
+                    + action.pendingRuleChanges.creations
+                    + action.pendingRuleChanges.deletions
+          in
+          if updates > 0 then
+            Element.row [ Element.spacing spacer.px16, Element.centerX ]
+                [ Widget.circularProgressIndicator
+                    (SH.materialStyle context.palette).progressIndicator
+                    Nothing
+                , Element.text <|
+                    String.join " "
+                        [ updates |> String.fromInt
+                        , "update" |> Helpers.String.pluralizeCount updates
+                        , "remaining..."
+                        ]
+                ]
+
+          else
+            Element.none
+        , let
+            errors =
+                action.pendingSecurityGroupChanges.errors
+                    ++ action.pendingRuleChanges.errors
+                    ++ (case model.creationError of
+                            Just e ->
+                                [ e ]
 
                             Nothing ->
-                                Just GotRequestCreateSecurityGroup
+                                []
+                       )
+          in
+          if List.length errors > 0 then
+            Element.el
+                [ Element.width Element.shrink, Element.centerX ]
+            <|
+                Validation.invalidMessage context.palette <|
+                    String.join ", " errors
 
-                    else
-                        Nothing
-                }
-            ]
+          else
+            Element.none
+        , if isUpToDate then
+            Element.el
+                [ Element.width Element.shrink, Element.centerX ]
+            <|
+                Validation.validMessage context.palette <|
+                    String.join " " [ Helpers.String.toTitleCase context.localization.securityGroup, "is up to date." ]
+
+          else
+            Element.none
         ]

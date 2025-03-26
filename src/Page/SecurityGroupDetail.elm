@@ -12,6 +12,7 @@ import Helpers.Helpers exposing (serverCreatorName)
 import Helpers.String
 import Helpers.Time
 import OpenStack.Types as OSTypes exposing (SecurityGroup, securityGroupExoTags, securityGroupTaggedAs)
+import Page.SecurityGroupForm as SecurityGroupForm
 import Page.SecurityGroupRulesTable exposing (rulesTable)
 import Route
 import Style.Helpers as SH
@@ -31,7 +32,9 @@ import Style.Widgets.Validation as Validation
 import Time
 import Types.Project exposing (Project)
 import Types.Server exposing (Server)
+import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
+import View.Forms as Forms
 import View.Helpers as VH
 import View.Types
 import Widget
@@ -40,11 +43,14 @@ import Widget
 type alias Model =
     { deletePendingConfirmation : Maybe OSTypes.SecurityGroupUuid
     , securityGroupUuid : OSTypes.SecurityGroupUuid
+    , securityGroupForm : Maybe SecurityGroupForm.Model
     }
 
 
 type Msg
     = GotDeleteNeedsConfirm (Maybe OSTypes.SecurityGroupUuid)
+    | GotEditSecurityGroupForm
+    | SecurityGroupFormMsg SecurityGroupForm.Msg
     | SharedMsg SharedMsg.SharedMsg
 
 
@@ -52,14 +58,49 @@ init : OSTypes.SecurityGroupUuid -> Model
 init securityGroupUuid =
     { deletePendingConfirmation = Nothing
     , securityGroupUuid = securityGroupUuid
+    , securityGroupForm = Nothing
     }
 
 
-update : Msg -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
-update msg model =
+update : Msg -> SharedModel -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
+update msg sharedModel project model =
     case msg of
         GotDeleteNeedsConfirm securityGroupUuid ->
             ( { model | deletePendingConfirmation = securityGroupUuid }, Cmd.none, SharedMsg.NoOp )
+
+        GotEditSecurityGroupForm ->
+            let
+                securityGroupForm =
+                    GetterSetters.securityGroupLookup project model.securityGroupUuid
+                        |> Maybe.map SecurityGroupForm.initWithSecurityGroup
+            in
+            ( { model | securityGroupForm = securityGroupForm }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
+
+        SecurityGroupFormMsg securityGroupFormMsg ->
+            case securityGroupFormMsg of
+                SecurityGroupForm.GotCancel ->
+                    ( { model | securityGroupForm = Nothing }
+                    , Cmd.none
+                    , SharedMsg.NoOp
+                    )
+
+                _ ->
+                    case model.securityGroupForm of
+                        Just securityGroupForm ->
+                            let
+                                ( newSecurityGroupForm, securityGroupFormCmd, securityGroupFormSharedMsg ) =
+                                    SecurityGroupForm.update securityGroupFormMsg sharedModel project securityGroupForm
+                            in
+                            ( { model | securityGroupForm = Just newSecurityGroupForm }
+                            , Cmd.map SecurityGroupFormMsg securityGroupFormCmd
+                            , securityGroupFormSharedMsg
+                            )
+
+                        Nothing ->
+                            ( model, Cmd.none, SharedMsg.NoOp )
 
         SharedMsg sharedMsg ->
             ( model, Cmd.none, sharedMsg )
@@ -220,34 +261,16 @@ serversTable context project { servers, progress, currentTime } =
 
 warningSecurityGroupAffectsServers : View.Types.Context -> Project -> OSTypes.SecurityGroupUuid -> Element.Element msg
 warningSecurityGroupAffectsServers context project securityGroupUuid =
-    let
-        serversAffected =
-            GetterSetters.serversForSecurityGroup project securityGroupUuid
-                |> .servers
+    case Forms.securityGroupAffectsServersWarning context project securityGroupUuid Nothing "deleting" of
+        Just warning ->
+            Element.el
+                [ Element.width Element.shrink, Element.alignLeft ]
+            <|
+                Validation.warningMessage context.palette <|
+                    warning
 
-        numberOfServers =
-            List.length serversAffected
-    in
-    if numberOfServers == 0 then
-        Element.none
-
-    else
-        let
-            { locale } =
-                context
-        in
-        Element.el
-            [ Element.width Element.shrink, Element.alignLeft ]
-        <|
-            Validation.warningMessage context.palette <|
-                String.join " "
-                    [ "Deleting this"
-                    , context.localization.securityGroup
-                    , "will affect"
-                    , numberOfServers
-                        |> humanCount { locale | decimals = Exact 0 }
-                    , (context.localization.virtualComputer |> Helpers.String.pluralizeCount numberOfServers) ++ "."
-                    ]
+        Nothing ->
+            Element.none
 
 
 renderConfirmation : View.Types.Context -> Maybe Msg -> Maybe Msg -> String -> List (Element.Attribute Msg) -> Element.Element Msg
@@ -545,12 +568,6 @@ render context project ( currentTime, _ ) model securityGroup =
                     )
                 )
 
-        rules =
-            rulesTable
-                context
-                (GetterSetters.projectIdentifier project)
-                { rules = securityGroup.rules, securityGroupForUuid = GetterSetters.securityGroupLookup project }
-
         serverLookup =
             GetterSetters.serversForSecurityGroup project securityGroup.uuid
 
@@ -574,10 +591,50 @@ render context project ( currentTime, _ ) model securityGroup =
             , securityGroupNameView securityGroup
             , defaultTag
             , presetTag
+            , if default then
+                Element.none
+
+              else
+                Widget.button
+                    (SH.materialStyle context.palette).button
+                    { text = "Edit"
+                    , icon = Icon.sizedFeatherIcon 16 FeatherIcons.edit3
+                    , onPress =
+                        if model.securityGroupForm == Nothing then
+                            Just GotEditSecurityGroupForm
+
+                        else
+                            Nothing
+                    }
             , Element.row [ Element.alignRight, Text.fontSize Text.Body, Font.regular, Element.spacing spacer.px16 ]
                 [ securityGroupActionsDropdown context project model securityGroup { preset = preset, default = default, progress = serverLookup.progress }
                 ]
             ]
+        , case model.securityGroupForm of
+            Just securityGroupForm ->
+                tile
+                    [ Element.text
+                        (String.join " "
+                            [ "Edit"
+                            , context.localization.securityGroup
+                                |> Helpers.String.toTitleCase
+                            ]
+                        )
+                    ]
+                    [ Element.column
+                        [ Element.spacing spacer.px16, Element.width Element.fill ]
+                        [ SecurityGroupForm.view
+                            context
+                            project
+                            currentTime
+                            securityGroupForm
+                            Nothing
+                            |> Element.map SecurityGroupFormMsg
+                        ]
+                    ]
+
+            Nothing ->
+                Element.none
         , tile
             [ FeatherIcons.list |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
             , Element.text "Info"
@@ -598,18 +655,30 @@ render context project ( currentTime, _ ) model securityGroup =
                 , rules = ( numberOfRulesString, rulesUnit )
                 }
             ]
-        , tile
-            [ FeatherIcons.lock
-                |> FeatherIcons.toHtml []
-                |> Element.html
-                |> Element.el []
-            , ruleWord
-                |> Helpers.String.pluralize
-                |> Helpers.String.toTitleCase
-                |> Element.text
-            ]
-            [ rules
-            ]
+        , case model.securityGroupForm of
+            Just _ ->
+                Element.none
+
+            Nothing ->
+                let
+                    rules =
+                        rulesTable
+                            context
+                            (GetterSetters.projectIdentifier project)
+                            { rules = securityGroup.rules, securityGroupForUuid = GetterSetters.securityGroupLookup project }
+                in
+                tile
+                    [ FeatherIcons.lock
+                        |> FeatherIcons.toHtml []
+                        |> Element.html
+                        |> Element.el []
+                    , ruleWord
+                        |> Helpers.String.pluralize
+                        |> Helpers.String.toTitleCase
+                        |> Element.text
+                    ]
+                    [ rules
+                    ]
         , tile
             [ FeatherIcons.server
                 |> FeatherIcons.toHtml []
