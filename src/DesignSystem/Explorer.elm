@@ -13,6 +13,7 @@ import DesignSystem.Stories.Grid as GridStories
 import DesignSystem.Stories.IconButton as IconButtonStories
 import DesignSystem.Stories.Link as LinkStories
 import DesignSystem.Stories.Markdown as Markdown
+import DesignSystem.Stories.Select as SelectStories
 import DesignSystem.Stories.Space as SpaceStories
 import DesignSystem.Stories.Text as TextStories
 import DesignSystem.Stories.Toast as ToastStories
@@ -35,6 +36,7 @@ import Style.Widgets.Meter exposing (meter)
 import Style.Widgets.MultiMeter exposing (multiMeter)
 import Style.Widgets.Popover.Popover exposing (popover, toggleIfTargetIsOutside)
 import Style.Widgets.Popover.Types exposing (PopoverId)
+import Style.Widgets.Select as Select
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.StatusBadge as StatusBadge exposing (StatusBadgeState(..), statusBadgeWithSize)
 import Style.Widgets.Tag exposing (tag, tagInfo, tagNeutral, tagPositive, tagWarning)
@@ -121,6 +123,11 @@ type alias ChipFilterModel =
     }
 
 
+type alias SelectState =
+    { selected : Maybe Select.Value
+    }
+
+
 type alias Model =
     { popover : PopoverState
     , chips : ChipsState
@@ -128,6 +135,7 @@ type alias Model =
     , tabs : TabsPlugin.Model
     , toasties : Toasty.Stack Toast
     , dataList : Style.Widgets.DataList.Model
+    , select : SelectState
     , servers : List DesignSystem.Stories.DataList.Server
     , chipFilter : ChipFilterModel
     , predefinedNow : Time.Posix
@@ -159,6 +167,7 @@ initialModel =
         Style.Widgets.DataList.init
             (Style.Widgets.DataList.getDefaultFilterOptions (DesignSystem.Stories.DataList.filters nowTime))
     , predefinedNow = nowTime
+    , select = { selected = Nothing }
     , servers = DesignSystem.Stories.DataList.initServers nowTime
     , chipFilter =
         { selected = Set.empty
@@ -627,6 +636,7 @@ This is like the [meter](/#Molecules/Meter) but renders multiple values.
                       )
                     ]
                 , Uuid.stories toHtml
+                , SelectStories.stories toHtml (\_ -> NoOp)
                 , Validation.stories toHtml (\_ -> NoOp)
                 ]
             |> category "Organisms"
