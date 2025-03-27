@@ -210,6 +210,15 @@ update msg model =
             ( { model
                 | remoteType = remoteType
                 , remoteTypeInputInteraction = Pristine
+                , rule =
+                    let
+                        rule =
+                            model.rule
+                    in
+                    { rule
+                        | remoteIpPrefix = Nothing
+                        , remoteGroupUuid = Nothing
+                    }
               }
             , Cmd.none
             )
@@ -432,7 +441,7 @@ form context project model =
                                     Nothing ->
                                         NoOp
                         , options = remoteOptions
-                        , selected = Just (remoteTypeToString <| remoteToRemoteType <| getRemote rule)
+                        , selected = Just (remoteTypeToString <| model.remoteType)
                         }
                     ]
                 , case model.remoteType of
