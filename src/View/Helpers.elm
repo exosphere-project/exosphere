@@ -29,6 +29,7 @@ module View.Helpers exposing
     , radioLabelAttributes
     , remoteOptions
     , remoteToRemoteType
+    , remoteToStringInput
     , remoteTypeToString
     , renderMarkdown
     , renderMaybe
@@ -37,6 +38,7 @@ module View.Helpers exposing
     , renderRDPP
     , requiredLabel
     , resourceName
+    , securityGroupTypeLabel
     , serverStatusBadge
     , serverStatusBadgeFromStatus
     , shareStatusBadge
@@ -97,7 +99,7 @@ import Style.Widgets.StatusBadge as StatusBadge exposing (StatusBadgeSize)
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip as ToggleTip
 import Types.Error exposing (ErrorLevel(..), toFriendlyErrorLevel)
-import Types.HelperTypes
+import Types.HelperTypes exposing (Localization)
 import Types.Project exposing (Project)
 import Types.Server exposing (ExoSetupStatus(..), Server, ServerOrigin(..), ServerUiStatus(..))
 import Types.SharedModel exposing (LogMessage, SharedModel, Style)
@@ -1606,39 +1608,45 @@ stringToPortRangeBounds bounds =
             PortRangeAny
 
 
-remoteOptions : List ( String, String )
-remoteOptions =
+remoteOptions : Localization -> List ( String, String )
+remoteOptions localization =
     List.map
-        (\remoteType -> ( remoteTypeToString remoteType, remoteTypeToString remoteType |> toTitleCase ))
+        (\remoteType -> ( remoteTypeToString localization remoteType, remoteTypeToString localization remoteType |> toTitleCase ))
         allRemoteTypes
 
 
 allRemoteTypes : List RemoteType
 allRemoteTypes =
-    [ Any, IpPrefix, GroupId ]
+    [ Any, IpPrefix, SecurityGroup ]
 
 
-stringToRemoteType : String -> RemoteType
-stringToRemoteType remoteType =
+securityGroupTypeLabel : Localization -> String
+securityGroupTypeLabel localization =
+    localization.securityGroup |> String.Extra.toTitleCase
+
+
+stringToRemoteType : Localization -> String -> RemoteType
+stringToRemoteType localization remoteType =
     case remoteType of
         "IP Prefix" ->
             IpPrefix
 
-        "Group ID" ->
-            GroupId
-
         _ ->
-            Any
+            if remoteType == securityGroupTypeLabel localization then
+                SecurityGroup
+
+            else
+                Any
 
 
-remoteTypeToString : RemoteType -> String
-remoteTypeToString remoteType =
+remoteTypeToString : Localization -> RemoteType -> String
+remoteTypeToString localization remoteType =
     case remoteType of
         IpPrefix ->
             "IP Prefix"
 
-        GroupId ->
-            "Group ID"
+        SecurityGroup ->
+            securityGroupTypeLabel localization
 
         Any ->
             "Any"
@@ -1651,10 +1659,36 @@ remoteToRemoteType remote =
             IpPrefix
 
         Just (RemoteGroupUuid _) ->
-            GroupId
+            SecurityGroup
 
         _ ->
             Any
+
+
+remoteToString : Maybe Remote -> String
+remoteToString remote =
+    case remote of
+        Just (RemoteIpPrefix ip) ->
+            ip
+
+        Just (RemoteGroupUuid groupUuid) ->
+            groupUuid
+
+        Nothing ->
+            "Any"
+
+
+remoteToStringInput : Maybe Remote -> String
+remoteToStringInput remote =
+    remote
+        |> remoteToString
+        |> (\remoteString ->
+                if remoteString == "Any" then
+                    ""
+
+                else
+                    remoteString
+           )
 
 
 volumeStatusBadgeFromStatus : ExoPalette -> StatusBadgeSize -> VolumeStatus -> Element.Element msg

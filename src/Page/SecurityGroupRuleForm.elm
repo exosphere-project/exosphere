@@ -16,7 +16,6 @@ import OpenStack.SecurityGroupRule
         , etherTypeToString
         , getRemote
         , protocolToString
-        , remoteToStringInput
         , stringToSecurityGroupRuleDirection
         , stringToSecurityGroupRuleEthertype
         , stringToSecurityGroupRuleProtocol
@@ -28,7 +27,7 @@ import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Style.Widgets.Validation as Validation exposing (FormInteraction(..))
 import Types.Project exposing (Project)
-import View.Helpers as VH exposing (directionOptions, etherTypeOptions, portRangeBoundsOptions, portRangeBoundsToString, protocolOptions, remoteOptions, remoteToRemoteType, remoteTypeToString, stringToPortRangeBounds, stringToRemoteType)
+import View.Helpers as VH exposing (directionOptions, etherTypeOptions, portRangeBoundsOptions, portRangeBoundsToString, protocolOptions, remoteOptions, remoteToRemoteType, remoteToStringInput, remoteTypeToString, stringToPortRangeBounds, stringToRemoteType)
 import View.Types exposing (PortRangeBounds(..), RemoteType(..))
 
 
@@ -436,12 +435,13 @@ form context project model =
                             \remoteType ->
                                 case remoteType of
                                     Just remoteType_ ->
-                                        GotRemoteTypeUpdate <| stringToRemoteType remoteType_
+                                        GotRemoteTypeUpdate <| stringToRemoteType context.localization remoteType_
 
                                     Nothing ->
                                         NoOp
-                        , options = remoteOptions
-                        , selected = Just (remoteTypeToString <| model.remoteType)
+                        , options = remoteOptions context.localization
+                        , selected =
+                            Just <| remoteTypeToString context.localization <| model.remoteType
                         }
                     ]
                 , case model.remoteType of
@@ -457,7 +457,7 @@ form context project model =
                                 , onChange =
                                     \text ->
                                         GotRemote <| Just <| RemoteIpPrefix text
-                                , label = Input.labelAbove [] (VH.requiredLabel context.palette (Element.text <| remoteTypeToString <| model.remoteType))
+                                , label = Input.labelAbove [] (VH.requiredLabel context.palette (Element.text <| remoteTypeToString context.localization <| model.remoteType))
                                 }
                             , let
                                 invalidReason =
@@ -474,16 +474,16 @@ form context project model =
                               renderInvalidReason invalidReason
                             ]
 
-                    GroupId ->
+                    SecurityGroup ->
                         Element.column [ Element.spacing spacer.px12, Element.width Element.fill ]
-                            [ Text.body "Group ID"
+                            [ Text.body <| VH.securityGroupTypeLabel context.localization
                             , Style.Widgets.Select.select
                                 []
                                 context.palette
                                 { onChange = \text -> GotRemote <| Just <| RemoteGroupUuid <| Maybe.withDefault "" text
                                 , options = project.securityGroups |> RDPP.withDefault [] |> sortedSecurityGroups |> List.map (\sg -> ( sg.uuid, sg.name ))
                                 , selected = Just <| remoteToStringInput <| getRemote rule
-                                , label = "Group ID"
+                                , label = VH.securityGroupTypeLabel context.localization
                                 }
                             , let
                                 invalidReason =
@@ -492,7 +492,7 @@ form context project model =
                                         Nothing
 
                                     else if String.isEmpty <| String.trim <| (remoteToStringInput <| getRemote rule) then
-                                        Just "Group ID is required."
+                                        Just <| VH.securityGroupTypeLabel context.localization ++ " is required."
 
                                     else
                                         Nothing
