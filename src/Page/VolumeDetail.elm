@@ -1,16 +1,22 @@
 module Page.VolumeDetail exposing (Model, Msg(..), init, update, view)
 
+import DateFormat.Relative
 import Element
+import Element.Border as Border
 import Element.Font as Font
 import FeatherIcons
+import FormatNumber.Locales exposing (Decimals(..))
+import Helpers.Formatting exposing (Unit(..), humanNumber)
 import Helpers.GetterSetters as GetterSetters
-import Helpers.String
+import Helpers.String exposing (removeEmptiness)
+import Helpers.Time
 import OpenStack.Types as OSTypes exposing (Volume)
 import Route
 import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.Button as Button
 import Style.Widgets.Card
+import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.DeleteButton exposing (deletePopconfirm)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.Popover.Popover exposing (popover)
@@ -19,6 +25,7 @@ import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.StatusBadge as StatusBadge
 import Style.Widgets.Tag exposing (tag)
 import Style.Widgets.Text as Text
+import Style.Widgets.ToggleTip
 import Style.Widgets.Uuid exposing (copyableUuid)
 import Time
 import Types.Project exposing (Project)
@@ -224,6 +231,48 @@ volumeActionsDropdown context project model volume =
         }
 
 
+createdAgoByWhomEtc :
+    View.Types.Context
+    ->
+        { ago : ( String, Element.Element msg )
+        , creator : String
+        , size : String
+        , image : Maybe String
+        }
+    -> Element.Element msg
+createdAgoByWhomEtc context { ago, creator, size, image } =
+    let
+        ( agoWord, agoContents ) =
+            ago
+
+        subduedText =
+            Font.color (context.palette.neutral.text.subdued |> SH.toElementColor)
+    in
+    Element.wrappedRow
+        [ Element.width Element.fill, Element.spaceEvenly ]
+    <|
+        [ Element.row [ Element.padding spacer.px8 ]
+            [ Element.el [ subduedText ] (Element.text <| agoWord ++ " ")
+            , agoContents
+            , Element.el [ subduedText ] (Element.text <| " by ")
+            , Element.text creator
+            ]
+        , Element.row [ Element.padding spacer.px8 ]
+            [ Element.el [ subduedText ] (Element.text <| "size ")
+            , Element.text size
+            ]
+        , case image of
+            Just img ->
+                Element.row [ Element.padding spacer.px8 ]
+                    [ Element.el [ subduedText ] (Element.text <| "created from " ++ context.localization.staticRepresentationOfBlockDeviceContents ++ " ")
+                    , Element.text <| img
+                    ]
+
+            Nothing ->
+                Element.none
+        ]
+
+
 render : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> Model -> Volume -> Element.Element Msg
 render context project ( currentTime, _ ) model volume =
     let
@@ -236,6 +285,94 @@ render context project ( currentTime, _ ) model volume =
 
             else
                 Element.none
+
+        whenCreated =
+            let
+                timeDistanceStr =
+                    DateFormat.Relative.relativeTime currentTime volume.createdAt
+
+                createdTimeText =
+                    let
+                        createdTimeFormatted =
+                            Helpers.Time.humanReadableDateAndTime volume.createdAt
+                    in
+                    Element.text ("Created on: " ++ createdTimeFormatted)
+
+                toggleTipContents =
+                    Element.column [] [ createdTimeText ]
+            in
+            Element.row
+                [ Element.spacing spacer.px4 ]
+                [ Element.text timeDistanceStr
+                , Style.Widgets.ToggleTip.toggleTip
+                    context
+                    popoverMsgMapper
+                    (Helpers.String.hyphenate
+                        [ "createdTimeTip"
+                        , project.auth.project.uuid
+                        , volume.uuid
+                        ]
+                    )
+                    toggleTipContents
+                    ST.PositionBottomLeft
+                ]
+
+        creator =
+            if volume.userUuid == project.auth.user.uuid then
+                "me"
+
+            else
+                "another user"
+
+        sizeString =
+            let
+                locale =
+                    context.locale
+
+                ( sizeDisplay, sizeLabel ) =
+                    -- Volume size, in GiBs.
+                    humanNumber { locale | decimals = Exact 0 } GibiBytes volume.size
+            in
+            sizeDisplay ++ " " ++ sizeLabel
+
+        imageString =
+            volume.imageMetadata
+                |> Maybe.map
+                    (\imageMetadata ->
+                        VH.resourceName (Just imageMetadata.name) imageMetadata.uuid
+                    )
+
+        description =
+            case removeEmptiness volume.description of
+                Just str ->
+                    Element.row [ Element.padding spacer.px8 ]
+                        [ Element.paragraph [ Element.width Element.fill ] <|
+                            [ Element.text <| str ]
+                        ]
+
+                Nothing ->
+                    Element.none
+
+        tile : List (Element.Element Msg) -> List (Element.Element Msg) -> Element.Element Msg
+        tile headerContents contents =
+            Style.Widgets.Card.exoCard context.palette
+                (Element.column
+                    [ Element.width Element.fill
+                    , Element.padding spacer.px16
+                    , Element.spacing spacer.px16
+                    ]
+                    (List.concat
+                        [ [ Element.row
+                                (Text.subheadingStyleAttrs context.palette
+                                    ++ Text.typographyAttrs Text.Large
+                                    ++ [ Border.width 0 ]
+                                )
+                                headerContents
+                          ]
+                        , contents
+                        ]
+                    )
+                )
     in
     Element.column [ Element.spacing spacer.px24, Element.width Element.fill ]
         [ Element.row (Text.headingStyleAttrs context.palette)
@@ -251,6 +388,28 @@ render context project ( currentTime, _ ) model volume =
                 [ volumeStatus context volume
                 , volumeActionsDropdown context project model volume
                 ]
+            ]
+        , tile
+            [ FeatherIcons.database |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
+            , Element.text "Info"
+            , Element.el
+                [ Text.fontSize Text.Tiny
+                , Font.color (SH.toElementColor context.palette.neutral.text.subdued)
+                , Element.alignBottom
+                ]
+                (copyableText context.palette
+                    [ Element.width (Element.shrink |> Element.minimum 240) ]
+                    volume.uuid
+                )
+            ]
+            [ description
+            , createdAgoByWhomEtc
+                context
+                { ago = ( "created", whenCreated )
+                , creator = creator
+                , size = sizeString
+                , image = imageString
+                }
             ]
         ]
 
