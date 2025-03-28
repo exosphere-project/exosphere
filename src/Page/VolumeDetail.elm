@@ -2,20 +2,24 @@ module Page.VolumeDetail exposing (Model, Msg(..), init, update, view)
 
 import Element
 import Element.Font as Font
+import FeatherIcons
 import Helpers.GetterSetters as GetterSetters
 import Helpers.String
-import OpenStack.Types as OSTypes
-import OpenStack.Volumes
+import OpenStack.Types as OSTypes exposing (Volume)
 import Route
-import Set
 import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.Button as Button
 import Style.Widgets.Card
-import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
+import Style.Widgets.DeleteButton exposing (deletePopconfirm)
+import Style.Widgets.Icon as Icon
+import Style.Widgets.Popover.Popover exposing (popover)
+import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.Spacer exposing (spacer)
+import Style.Widgets.StatusBadge as StatusBadge
 import Style.Widgets.Text as Text
 import Style.Widgets.Uuid exposing (copyableUuid)
+import Time
 import Types.Project exposing (Project)
 import Types.Server exposing (ExoFeature(..))
 import Types.SharedMsg as SharedMsg
@@ -26,52 +30,32 @@ import Widget
 
 type alias Model =
     { volumeUuid : OSTypes.VolumeUuid
-    , deleteConfirmations : Set.Set OSTypes.VolumeUuid
+    , deletePendingConfirmation : Maybe OSTypes.VolumeUuid
     }
 
 
 type Msg
-    = GotDeleteNeedsConfirm
-    | GotDeleteConfirm
-    | GotDeleteCancel
+    = GotDeleteNeedsConfirm (Maybe OSTypes.VolumeUuid)
+    | GotDeleteConfirm OSTypes.VolumeUuid
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
 
 
 init : OSTypes.VolumeUuid -> Model
 init volumeId =
-    Model volumeId Set.empty
+    Model volumeId Nothing
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
 update msg project model =
     case msg of
-        GotDeleteNeedsConfirm ->
-            ( { model
-                | deleteConfirmations =
-                    Set.insert
-                        model.volumeUuid
-                        model.deleteConfirmations
-              }
-            , Cmd.none
-            , SharedMsg.NoOp
-            )
+        GotDeleteNeedsConfirm volumeUuid ->
+            ( { model | deletePendingConfirmation = volumeUuid }, Cmd.none, SharedMsg.NoOp )
 
-        GotDeleteConfirm ->
+        GotDeleteConfirm volumeUuid ->
             ( model
             , Cmd.none
-            , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <| SharedMsg.RequestDeleteVolume model.volumeUuid
-            )
-
-        GotDeleteCancel ->
-            ( { model
-                | deleteConfirmations =
-                    Set.remove
-                        model.volumeUuid
-                        model.deleteConfirmations
-              }
-            , Cmd.none
-            , SharedMsg.NoOp
+            , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <| SharedMsg.RequestDeleteVolume volumeUuid
             )
 
         SharedMsg sharedMsg ->
@@ -81,96 +65,181 @@ update msg project model =
             ( model, Cmd.none, SharedMsg.NoOp )
 
 
-view : View.Types.Context -> Project -> Model -> Element.Element Msg
-view context project model =
-    let
-        volumeName =
+view : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> Model -> Element.Element Msg
+view context project currentTimeAndZone model =
+    VH.renderRDPP context
+        project.volumes
+        context.localization.blockDevice
+        (\_ ->
+            -- Attempt to look up the resource; if found, call render.
             case GetterSetters.volumeLookup project model.volumeUuid of
-                Nothing ->
-                    model.volumeUuid
-
                 Just volume ->
-                    VH.resourceName volume.name volume.uuid
+                    render context project currentTimeAndZone model volume
+
+                Nothing ->
+                    Element.text <|
+                        String.join " "
+                            [ "No"
+                            , context.localization.blockDevice
+                            , "found"
+                            ]
+        )
+
+
+volumeNameView : Volume -> Element.Element Msg
+volumeNameView volume =
+    let
+        name_ =
+            VH.resourceName volume.name volume.uuid
     in
-    Element.column
-        (VH.contentContainer ++ [ Element.spacing spacer.px16 ])
-        [ Text.heading context.palette
-            []
-            Element.none
-            (String.join
-                " "
-                [ context.localization.blockDevice |> Helpers.String.toTitleCase, volumeName ]
-            )
-        , volumeDetail context project model
+    Element.row
+        [ Element.spacing spacer.px8 ]
+        [ Text.text Text.ExtraLarge [] name_ ]
+
+
+volumeStatus : View.Types.Context -> Volume -> Element.Element Msg
+volumeStatus context volume =
+    let
+        statusBadge =
+            VH.volumeStatusBadge context.palette StatusBadge.Normal volume
+    in
+    Element.row [ Element.spacing spacer.px16 ]
+        [ statusBadge
         ]
 
 
-volumeDetail :
-    View.Types.Context
-    -> Project
-    -> Model
-    -> Element.Element Msg
-volumeDetail context project model =
-    OpenStack.Volumes.volumeLookup project model.volumeUuid
-        |> Maybe.withDefault
-            (Element.text <|
-                String.join " "
-                    [ "No"
-                    , context.localization.blockDevice
-                    , "found"
-                    ]
-            )
-        << Maybe.map
-            (\volume ->
-                Element.column []
-                    [ Style.Widgets.Card.exoCard context.palette
-                        (Element.column
-                            [ Element.padding spacer.px8, Element.spacing spacer.px16 ]
-                            [ Text.subheading context.palette
-                                []
-                                Element.none
-                                "Status"
-                            , Element.row []
-                                [ Element.el [] (Element.text <| OSTypes.volumeStatusToString volume.status) ]
-                            , case volume.description of
-                                Just "" ->
-                                    Element.none
+renderConfirmation : View.Types.Context -> Maybe Msg -> Maybe Msg -> String -> List (Element.Attribute Msg) -> Element.Element Msg
+renderConfirmation context actionMsg cancelMsg title closeActionsAttributes =
+    Element.row
+        [ Element.spacing spacer.px12, Element.width (Element.fill |> Element.minimum 280) ]
+        [ Element.text title
+        , Element.el
+            (Element.alignRight :: closeActionsAttributes)
+          <|
+            Button.button
+                Button.Danger
+                context.palette
+                { text = "Yes"
+                , onPress = actionMsg
+                }
+        , Element.el
+            [ Element.alignRight ]
+          <|
+            Button.button
+                Button.Secondary
+                context.palette
+                { text = "No"
+                , onPress = cancelMsg
+                }
+        ]
 
-                                Just description ->
-                                    VH.compactKVRow "Description:" <|
-                                        Element.paragraph [ Element.width Element.fill ] <|
-                                            [ Element.text <| description ]
 
-                                Nothing ->
-                                    Element.none
-                            , VH.compactKVRow "UUID:" <|
-                                Element.el
-                                    [ Text.fontSize Text.Small
-                                    , Font.color (SH.toElementColor context.palette.neutral.text.subdued)
-                                    , Element.paddingXY spacer.px12 0
-                                    , Text.fontFamily Text.Mono
-                                    ]
-                                    (copyableUuid context.palette volume.uuid)
-                            , case volume.imageMetadata of
-                                Nothing ->
-                                    Element.none
+renderDeleteAction : View.Types.Context -> Model -> Maybe Msg -> Maybe (Element.Attribute Msg) -> Element.Element Msg
+renderDeleteAction context model actionMsg closeActionsDropdown =
+    case model.deletePendingConfirmation of
+        Just _ ->
+            let
+                additionalBtnAttribs =
+                    case closeActionsDropdown of
+                        Just closeActionsDropdown_ ->
+                            [ closeActionsDropdown_ ]
 
-                                Just metadata ->
-                                    VH.compactKVRow
-                                        (String.concat
-                                            [ "Created from "
-                                            , context.localization.staticRepresentationOfBlockDeviceContents
-                                            , ":"
-                                            ]
-                                        )
-                                        (Element.text (VH.resourceName (Just metadata.name) metadata.uuid))
-                            ]
-                        )
-                    , Element.row [] [ Element.el [] (Element.text " ") ]
-                    , renderAttachments context project volume
-                    , volumeActionButtons context project model volume
-                    ]
-            )
+                        Nothing ->
+                            []
+            in
+            renderConfirmation
+                context
+                actionMsg
+                (Just <|
+                    GotDeleteNeedsConfirm Nothing
+                )
+                "Are you sure?"
+                additionalBtnAttribs
+
+        Nothing ->
+            Element.row
+                [ Element.spacing spacer.px12, Element.width (Element.fill |> Element.minimum 280) ]
+                [ Element.text ("Destroy " ++ context.localization.blockDevice ++ "?")
+                , Element.el
+                    [ Element.alignRight ]
+                  <|
+                    Button.button
+                        Button.Danger
+                        context.palette
+                        { text = "Delete"
+                        , onPress = Just <| GotDeleteNeedsConfirm <| Just model.volumeUuid
+                        }
+                ]
+
+
+popoverMsgMapper : PopoverId -> Msg
+popoverMsgMapper popoverId =
+    SharedMsg <| SharedMsg.TogglePopover popoverId
+
+
+volumeActionsDropdown : View.Types.Context -> Project -> Model -> Volume -> Element.Element Msg
+volumeActionsDropdown context project model volume =
+    let
+        dropdownId =
+            [ "volumeActionsDropdown", project.auth.project.uuid, volume.uuid ]
+                |> List.intersperse "-"
+                |> String.concat
+
+        dropdownContent closeDropdown =
+            Element.column [ Element.spacing spacer.px8 ] <|
+                [ renderDeleteAction context
+                    model
+                    (Just <| GotDeleteConfirm volume.uuid)
+                    (Just closeDropdown)
+                ]
+
+        dropdownTarget toggleDropdownMsg dropdownIsShown =
+            Widget.iconButton
+                (SH.materialStyle context.palette).button
+                { text = "Actions"
+                , icon =
+                    Element.row
+                        [ Element.spacing spacer.px4 ]
+                        [ Element.text "Actions"
+                        , Icon.sizedFeatherIcon 18 <|
+                            if dropdownIsShown then
+                                FeatherIcons.chevronUp
+
+                            else
+                                FeatherIcons.chevronDown
+                        ]
+                , onPress = Just toggleDropdownMsg
+                }
+    in
+    popover context
+        popoverMsgMapper
+        { id = dropdownId
+        , content = dropdownContent
+        , contentStyleAttrs = [ Element.padding spacer.px24 ]
+        , position = ST.PositionBottomRight
+        , distanceToTarget = Nothing
+        , target = dropdownTarget
+        , targetStyleAttrs = []
+        }
+
+
+render : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> Model -> Volume -> Element.Element Msg
+render context project ( currentTime, _ ) model volume =
+    Element.column [ Element.spacing spacer.px24, Element.width Element.fill ]
+        [ Element.row (Text.headingStyleAttrs context.palette)
+            [ FeatherIcons.hardDrive |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
+            , Text.text Text.ExtraLarge
+                []
+                (context.localization.blockDevice
+                    |> Helpers.String.toTitleCase
+                )
+            , volumeNameView volume
+            , Element.row [ Element.alignRight, Text.fontSize Text.Body, Font.regular, Element.spacing spacer.px16 ]
+                [ volumeStatus context volume
+                , volumeActionsDropdown context project model volume
+                ]
+            ]
+        ]
 
 
 renderAttachment : View.Types.Context -> Project -> OSTypes.Volume -> OSTypes.VolumeAttachment -> Element.Element Msg
@@ -355,45 +424,6 @@ volumeActionButtons context project model volume =
 
                 _ ->
                     Element.none
-
-        confirmationNeeded =
-            Set.member volume.uuid model.deleteConfirmations
-
-        deleteButton =
-            case ( volume.status, confirmationNeeded ) of
-                ( OSTypes.Deleting, _ ) ->
-                    Widget.circularProgressIndicator (SH.materialStyle context.palette).progressIndicator Nothing
-
-                ( _, True ) ->
-                    Element.row [ Element.spacing spacer.px8 ]
-                        [ Element.text "Confirm delete?"
-                        , deleteIconButton
-                            context.palette
-                            False
-                            "Delete"
-                            (Just <| GotDeleteConfirm)
-                        , Button.default
-                            context.palette
-                            { text = "Cancel"
-                            , onPress =
-                                Just <| GotDeleteCancel
-                            }
-                        ]
-
-                ( _, False ) ->
-                    if volume.status == OSTypes.InUse then
-                        deleteIconButton
-                            context.palette
-                            False
-                            "Delete"
-                            Nothing
-
-                    else
-                        deleteIconButton
-                            context.palette
-                            False
-                            "Delete"
-                            (Just <| GotDeleteNeedsConfirm)
     in
     Style.Widgets.Card.exoCard
         context.palette
@@ -408,7 +438,6 @@ volumeActionButtons context project model volume =
                 , Element.spacing spacer.px12
                 ]
                 [ attachDetachButton
-                , deleteButton
                 ]
             ]
         )

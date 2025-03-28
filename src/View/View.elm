@@ -398,7 +398,7 @@ projectContentView model context p viewConstructor =
                 |> Element.map VolumeCreateMsg
 
         VolumeDetail pageModel ->
-            Page.VolumeDetail.view context p pageModel
+            Page.VolumeDetail.view context p ( model.clientCurrentTime, model.timeZone ) pageModel
                 |> Element.map VolumeDetailMsg
 
         VolumeList pageModel ->
