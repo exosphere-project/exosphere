@@ -522,7 +522,7 @@ routeToViewStateModelCmd sharedModel route =
                             )
 
                         Route.VolumeDetail volumeUuid ->
-                            ( projectViewProto <| VolumeDetail <| Page.VolumeDetail.init True volumeUuid
+                            ( projectViewProto <| VolumeDetail <| Page.VolumeDetail.init volumeUuid
                             , sharedModel
                             , Cmd.none
                             )

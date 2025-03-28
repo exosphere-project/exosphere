@@ -25,8 +25,7 @@ import Widget
 
 
 type alias Model =
-    { showHeading : Bool
-    , volumeUuid : OSTypes.VolumeUuid
+    { volumeUuid : OSTypes.VolumeUuid
     , deleteConfirmations : Set.Set OSTypes.VolumeUuid
     }
 
@@ -39,9 +38,9 @@ type Msg
     | NoOp
 
 
-init : Bool -> OSTypes.VolumeUuid -> Model
-init showHeading volumeId =
-    Model showHeading volumeId Set.empty
+init : OSTypes.VolumeUuid -> Model
+init volumeId =
+    Model volumeId Set.empty
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
@@ -84,30 +83,26 @@ update msg project model =
 
 view : View.Types.Context -> Project -> Model -> Element.Element Msg
 view context project model =
-    if model.showHeading then
-        let
-            volumeName =
-                case GetterSetters.volumeLookup project model.volumeUuid of
-                    Nothing ->
-                        model.volumeUuid
+    let
+        volumeName =
+            case GetterSetters.volumeLookup project model.volumeUuid of
+                Nothing ->
+                    model.volumeUuid
 
-                    Just volume ->
-                        VH.resourceName volume.name volume.uuid
-        in
-        Element.column
-            (VH.contentContainer ++ [ Element.spacing spacer.px16 ])
-            [ Text.heading context.palette
-                []
-                Element.none
-                (String.join
-                    " "
-                    [ context.localization.blockDevice |> Helpers.String.toTitleCase, volumeName ]
-                )
-            , volumeDetail context project model
-            ]
-
-    else
-        volumeDetail context project model
+                Just volume ->
+                    VH.resourceName volume.name volume.uuid
+    in
+    Element.column
+        (VH.contentContainer ++ [ Element.spacing spacer.px16 ])
+        [ Text.heading context.palette
+            []
+            Element.none
+            (String.join
+                " "
+                [ context.localization.blockDevice |> Helpers.String.toTitleCase, volumeName ]
+            )
+        , volumeDetail context project model
+        ]
 
 
 volumeDetail :
