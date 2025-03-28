@@ -17,6 +17,7 @@ import Style.Widgets.Popover.Popover exposing (popover)
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.StatusBadge as StatusBadge
+import Style.Widgets.Tag exposing (tag)
 import Style.Widgets.Text as Text
 import Style.Widgets.Uuid exposing (copyableUuid)
 import Time
@@ -225,6 +226,17 @@ volumeActionsDropdown context project model volume =
 
 render : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> Model -> Volume -> Element.Element Msg
 render context project ( currentTime, _ ) model volume =
+    let
+        isBootVolume =
+            GetterSetters.isBootVolume Nothing volume
+
+        bootVolumeTag =
+            if isBootVolume then
+                tag context.palette <| "boot " ++ context.localization.blockDevice
+
+            else
+                Element.none
+    in
     Element.column [ Element.spacing spacer.px24, Element.width Element.fill ]
         [ Element.row (Text.headingStyleAttrs context.palette)
             [ FeatherIcons.hardDrive |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
@@ -234,6 +246,7 @@ render context project ( currentTime, _ ) model volume =
                     |> Helpers.String.toTitleCase
                 )
             , volumeNameView volume
+            , bootVolumeTag
             , Element.row [ Element.alignRight, Text.fontSize Text.Body, Font.regular, Element.spacing spacer.px16 ]
                 [ volumeStatus context volume
                 , volumeActionsDropdown context project model volume
