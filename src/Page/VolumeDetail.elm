@@ -18,7 +18,9 @@ import Style.Widgets.Button as Button
 import Style.Widgets.Card
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.DeleteButton exposing (deletePopconfirm)
+import Style.Widgets.Grid exposing (scrollableCell)
 import Style.Widgets.Icon as Icon
+import Style.Widgets.Link as Link
 import Style.Widgets.Popover.Popover exposing (popover)
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.Spacer exposing (spacer)
@@ -26,7 +28,6 @@ import Style.Widgets.StatusBadge as StatusBadge
 import Style.Widgets.Tag exposing (tag)
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
-import Style.Widgets.Uuid exposing (copyableUuid)
 import Time
 import Types.Project exposing (Project)
 import Types.Server exposing (ExoFeature(..))
@@ -273,6 +274,165 @@ createdAgoByWhomEtc context { ago, creator, size, image } =
         ]
 
 
+header : String -> Element.Element msg
+header text =
+    Element.el [ Font.heavy ] <| Element.text text
+
+
+serverNameNotFound : View.Types.Context -> String
+serverNameNotFound context =
+    String.join " "
+        [ "(Could not resolve"
+        , context.localization.virtualComputer
+        , "name)"
+        ]
+
+
+attachmentsTable : View.Types.Context -> Project -> Volume -> Element.Element Msg
+attachmentsTable context project volume =
+    case List.length volume.attachments of
+        0 ->
+            case volume.status of
+                OSTypes.Reserved ->
+                    let
+                        maybeServerUuid =
+                            -- Reserved volumes don't necessarily know their attachments but servers do.
+                            List.head <| GetterSetters.getServerUuidsByVolume project volume.uuid
+                    in
+                    case maybeServerUuid of
+                        Just serverUuid ->
+                            Element.row []
+                                (Element.text "Reserved for "
+                                    :: (let
+                                            maybeServer =
+                                                GetterSetters.serverLookup project serverUuid
+
+                                            serverName =
+                                                case maybeServer of
+                                                    Just server ->
+                                                        VH.resourceName (Just server.osProps.name) server.osProps.uuid
+
+                                                    Nothing ->
+                                                        serverNameNotFound context
+
+                                            maybeServerShelved =
+                                                maybeServer
+                                                    |> Maybe.map (\s -> s.osProps.details.openstackStatus)
+                                                    |> Maybe.map (\status -> [ OSTypes.ServerShelved, OSTypes.ServerShelvedOffloaded ] |> List.member status)
+                                                    |> Maybe.withDefault False
+                                        in
+                                        [ Link.link
+                                            context.palette
+                                            (Route.toUrl context.urlPathPrefix <|
+                                                Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
+                                                    Route.ServerDetail serverUuid
+                                            )
+                                            serverName
+                                        , case ( volume.status, maybeServerShelved ) of
+                                            ( OSTypes.Reserved, True ) ->
+                                                Style.Widgets.ToggleTip.toggleTip
+                                                    context
+                                                    (SharedMsg << SharedMsg.TogglePopover)
+                                                    ("volumeReservedTip-" ++ volume.uuid)
+                                                    (Text.body <| "Unshelve the attached " ++ context.localization.virtualComputer ++ " to interact with this " ++ context.localization.blockDevice ++ ".")
+                                                    ST.PositionBottom
+
+                                            _ ->
+                                                Element.none
+                                        ]
+                                       )
+                                )
+
+                        Nothing ->
+                            Element.text "(none)"
+
+                _ ->
+                    Element.text "(none)"
+
+        _ ->
+            Element.table
+                [ Element.spacing spacer.px16
+                ]
+                { data = volume.attachments
+                , columns =
+                    [ { header = header (context.localization.virtualComputer |> Helpers.String.toTitleCase)
+                      , width = Element.shrink
+                      , view =
+                            \item ->
+                                let
+                                    maybeServer =
+                                        GetterSetters.serverLookup project item.serverUuid
+
+                                    serverName =
+                                        case maybeServer of
+                                            Just { osProps } ->
+                                                VH.resourceName (Just osProps.name) osProps.uuid
+
+                                            Nothing ->
+                                                serverNameNotFound context
+                                in
+                                Link.link
+                                    context.palette
+                                    (Route.toUrl context.urlPathPrefix <|
+                                        Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
+                                            Route.ServerDetail item.serverUuid
+                                    )
+                                    serverName
+                      }
+                    , { header = header "Device"
+                      , width = Element.shrink
+                      , view =
+                            \item ->
+                                let
+                                    device =
+                                        item.device
+                                in
+                                Text.mono <| device
+                      }
+                    , { header =
+                            Element.row []
+                                [ header "Mount Point"
+                                , Style.Widgets.ToggleTip.toggleTip
+                                    context
+                                    (SharedMsg << SharedMsg.TogglePopover)
+                                    ("mountPointTip-" ++ volume.uuid)
+                                    (Text.p [ Text.fontSize Text.Tiny ]
+                                        [ Element.text <|
+                                            String.join " "
+                                                [ context.localization.blockDevice
+                                                    |> Helpers.String.pluralize
+                                                    |> Helpers.String.toTitleCase
+                                                , "will only be automatically formatted/mounted on operating systems which use systemd 236 or newer (e.g. Ubuntu 18.04 or newer, Rocky Linux, or AlmaLinux)."
+                                                ]
+                                        ]
+                                    )
+                                    ST.PositionBottom
+                                ]
+                      , width = Element.fill
+                      , view =
+                            \item ->
+                                let
+                                    maybeServer =
+                                        GetterSetters.serverLookup project item.serverUuid
+
+                                    mountPoint =
+                                        maybeServer
+                                            |> Maybe.andThen
+                                                (\server ->
+                                                    if GetterSetters.serverSupportsFeature NamedMountpoints server then
+                                                        volume.name |> Maybe.andThen GetterSetters.volNameToMountpoint
+
+                                                    else
+                                                        GetterSetters.volDeviceToMountpoint item.device
+                                                )
+                                            |> Maybe.withDefault ""
+                                in
+                                scrollableCell [] <| Text.mono <| mountPoint
+                      }
+                    ]
+                }
+
+
 render : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> Model -> Volume -> Element.Element Msg
 render context project ( currentTime, _ ) model volume =
     let
@@ -373,6 +533,9 @@ render context project ( currentTime, _ ) model volume =
                         ]
                     )
                 )
+
+        attachments =
+            attachmentsTable context project volume
     in
     Element.column [ Element.spacing spacer.px24, Element.width Element.fill ]
         [ Element.row (Text.headingStyleAttrs context.palette)
@@ -411,90 +574,22 @@ render context project ( currentTime, _ ) model volume =
                 , image = imageString
                 }
             ]
+        , tile
+            [ FeatherIcons.server
+                |> FeatherIcons.toHtml []
+                |> Element.html
+                |> Element.el []
+            , "attachment"
+                |> Helpers.String.pluralize
+                |> Helpers.String.toTitleCase
+                |> Element.text
+            ]
+            [ attachments
+            ]
         ]
 
 
-renderAttachment : View.Types.Context -> Project -> OSTypes.Volume -> OSTypes.VolumeAttachment -> Element.Element Msg
-renderAttachment context project volume attachment =
-    let
-        maybeServer =
-            GetterSetters.serverLookup project attachment.serverUuid
 
-        serverName =
-            case maybeServer of
-                Just { osProps } ->
-                    VH.resourceName (Just osProps.name) osProps.uuid
-
-                Nothing ->
-                    String.join " "
-                        [ "(Could not resolve"
-                        , context.localization.virtualComputer
-                        , "name)"
-                        ]
-    in
-    Element.column
-        [ Element.spacing spacer.px12 ]
-        [ VH.compactKVRow ((context.localization.virtualComputer |> Helpers.String.toTitleCase) ++ ":") <|
-            Element.link []
-                { url =
-                    Route.toUrl context.urlPathPrefix <|
-                        Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
-                            Route.ServerDetail attachment.serverUuid
-                , label =
-                    Element.el [ Font.color (SH.toElementColor context.palette.primary) ] <| Element.text serverName
-                }
-        , VH.compactKVRow "Device:" <| Element.text <| attachment.device
-        , VH.compactKVRow "Mount point*:" <|
-            case maybeServer of
-                Just server ->
-                    (if GetterSetters.serverSupportsFeature NamedMountpoints server then
-                        volume.name |> Maybe.andThen GetterSetters.volNameToMountpoint
-
-                     else
-                        GetterSetters.volDeviceToMountpoint attachment.device
-                    )
-                        |> Maybe.withDefault ""
-                        |> Element.text
-
-                Nothing ->
-                    Element.text ""
-        , Element.el [ Text.fontSize Text.Tiny ] <|
-            Element.text <|
-                String.join " "
-                    [ "*"
-                    , context.localization.blockDevice
-                        |> Helpers.String.toTitleCase
-                    , "will only be automatically formatted/mounted on operating"
-                    ]
-        , Element.el [ Text.fontSize Text.Tiny ] <| Element.text "systems which use systemd 236 or newer (e.g. Ubuntu 18.04 or newer, Rocky Linux, or AlmaLinux)"
-        ]
-
-
-renderAttachments : View.Types.Context -> Project -> OSTypes.Volume -> Element.Element Msg
-renderAttachments context project volume =
-    case List.length volume.attachments of
-        0 ->
-            Element.none
-
-        _ ->
-            Element.column [ Element.width Element.fill ]
-                [ Style.Widgets.Card.exoCard context.palette
-                    (Element.column
-                        [ Element.padding spacer.px8, Element.spacing spacer.px16 ]
-                        [ Element.column [ Element.width Element.fill ]
-                            [ Text.subheading context.palette
-                                []
-                                Element.none
-                                "Attached to"
-                            , Element.row [ Element.paddingXY 0 spacer.px16 ]
-                                [ Element.row [ Element.spacing spacer.px12 ] <|
-                                    List.map (renderAttachment context project volume) volume.attachments
-                                ]
-                            ]
-                        ]
-                    )
-                , Element.row [] [ Element.el [] (Element.text " ") ]
-                ]
 
 
 volumeActionButtons :
