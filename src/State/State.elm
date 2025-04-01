@@ -3759,11 +3759,15 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                                 Ok consoleLog ->
                                     let
                                         ( newExoSetupStatus, newTimestamp ) =
-                                            Helpers.ExoSetupStatus.parseConsoleLogExoSetupStatus
+                                            if oldExoSetupStatus == ExoSetupComplete then
                                                 ( oldExoSetupStatus, oldTimestamp )
-                                                consoleLog
-                                                server.osProps.details.created
-                                                sharedModel.clientCurrentTime
+
+                                            else
+                                                Helpers.ExoSetupStatus.parseConsoleLogExoSetupStatus
+                                                    ( oldExoSetupStatus, oldTimestamp )
+                                                    consoleLog
+                                                    server.osProps.details.created
+                                                    sharedModel.clientCurrentTime
 
                                         cmd =
                                             if newExoSetupStatus == oldExoSetupStatus then
