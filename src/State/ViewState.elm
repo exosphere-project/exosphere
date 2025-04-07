@@ -522,9 +522,20 @@ routeToViewStateModelCmd sharedModel route =
                             )
 
                         Route.VolumeDetail volumeUuid ->
+                            let
+                                ( newSharedModel, newCmd ) =
+                                    ( sharedModel
+                                    , Cmd.batch
+                                        [ OSVolumes.requestVolumes project
+                                        , Ports.instantiateClipboardJs ()
+                                        ]
+                                    )
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestVolumeSnapshots (GetterSetters.projectIdentifier project))
+                            in
                             ( projectViewProto <| VolumeDetail <| Page.VolumeDetail.init volumeUuid
-                            , sharedModel
-                            , Cmd.none
+                            , newSharedModel
+                            , newCmd
                             )
 
                         Route.VolumeList ->
