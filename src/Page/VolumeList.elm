@@ -418,7 +418,7 @@ volumeView context project currentTime volumeRecord =
                       in
                       Element.row []
                         [ Element.text "created "
-                        , accented (relativeTimeElement currentTime volumeRecord.volume.createdAt)
+                        , accented (relativeTimeElement currentTime snapshot.createdAt)
                         ]
                     , Text.body "·"
                     , Text.body <| VH.resourceName snapshot.name snapshot.uuid
