@@ -10,14 +10,16 @@ import Helpers.Formatting exposing (Unit(..), humanNumber)
 import Helpers.GetterSetters as GetterSetters
 import Helpers.String exposing (removeEmptiness)
 import Helpers.Time
+import OpenStack.HelperTypes exposing (Uuid)
 import OpenStack.Types as OSTypes exposing (Volume)
+import OpenStack.VolumeSnapshots as VS exposing (VolumeSnapshot)
 import Route
 import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.Button as Button
 import Style.Widgets.Card
 import Style.Widgets.CopyableText exposing (copyableText)
-import Style.Widgets.DeleteButton exposing (deletePopconfirm)
+import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
 import Style.Widgets.Grid exposing (scrollableCell)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.Link as Link
@@ -46,6 +48,7 @@ type alias Model =
 type Msg
     = GotDeleteNeedsConfirm (Maybe OSTypes.VolumeUuid)
     | GotDeleteConfirm OSTypes.VolumeUuid
+    | GotDeleteSnapshotConfirm Uuid
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
 
@@ -57,6 +60,10 @@ init volumeId =
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
 update msg project model =
+    let
+        projectId =
+            GetterSetters.projectIdentifier project
+    in
     case msg of
         GotDeleteNeedsConfirm volumeUuid ->
             ( { model | deletePendingConfirmation = volumeUuid }, Cmd.none, SharedMsg.NoOp )
@@ -65,6 +72,13 @@ update msg project model =
             ( model
             , Cmd.none
             , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <| SharedMsg.RequestDeleteVolume volumeUuid
+            )
+
+        GotDeleteSnapshotConfirm snapshotUuid ->
+            ( model
+            , Cmd.none
+            , SharedMsg.ProjectMsg projectId <|
+                SharedMsg.RequestDeleteVolumeSnapshot snapshotUuid
             )
 
         SharedMsg sharedMsg ->
@@ -429,8 +443,143 @@ attachmentsTable context project volume =
                                 in
                                 scrollableCell [] <| Text.mono <| mountPoint
                       }
+                    , { header = header ""
+                      , width = Element.shrink
+                      , view =
+                            \item ->
+                                Text.mono <| "Detach"
+                      }
                     ]
                 }
+
+
+snapshotsTable : View.Types.Context -> Project -> Time.Posix -> List VolumeSnapshot -> Element.Element Msg
+snapshotsTable context project currentTime snapshots =
+    case List.length snapshots of
+        0 ->
+            Element.text "(none)"
+
+        _ ->
+            let
+                centerRow =
+                    Element.el [ Element.centerY ]
+            in
+            Element.table
+                [ Element.spacing spacer.px16
+                ]
+                { data = snapshots
+                , columns =
+                    [ { header = header "Size"
+                      , width = Element.shrink
+                      , view =
+                            \item ->
+                                let
+                                    locale =
+                                        context.locale
+
+                                    ( sizeDisplay, sizeLabel ) =
+                                        humanNumber { locale | decimals = Exact 0 } GibiBytes item.sizeInGiB
+                                in
+                                centerRow <| Text.body <| sizeDisplay ++ " " ++ sizeLabel
+                      }
+                    , { header = header "Created"
+                      , width = Element.shrink
+                      , view =
+                            \item ->
+                                centerRow <| whenCreated context project currentTime item
+                      }
+                    , { header = header "Name"
+                      , width = Element.fill
+                      , view =
+                            \item ->
+                                centerRow <| scrollableCell [ Element.width Element.fill ] <| Text.body <| VH.resourceName item.name item.uuid
+                      }
+                    , { header = header ""
+                      , width = Element.shrink
+                      , view =
+                            \item ->
+                                if not <| List.member item.status [ VS.Deleted, VS.Deleting ] then
+                                    let
+                                        deviceLabel =
+                                            context.localization.blockDevice ++ " snapshot"
+
+                                        deletePopconfirmId =
+                                            Helpers.String.hyphenate
+                                                [ "volumeDetailDeleteSnapshotPopconfirm"
+                                                , project.auth.project.uuid
+                                                , item.uuid
+                                                ]
+
+                                        deleteSnapshotButton =
+                                            deletePopconfirm context
+                                                (SharedMsg << SharedMsg.TogglePopover)
+                                                deletePopconfirmId
+                                                { confirmation =
+                                                    Element.text <|
+                                                        "Are you sure you want to delete this "
+                                                            ++ deviceLabel
+                                                            ++ "?"
+                                                , buttonText = Nothing
+                                                , onCancel = Just NoOp
+                                                , onConfirm = Just <| GotDeleteSnapshotConfirm item.uuid
+                                                }
+                                                ST.PositionBottomRight
+                                                (\msg _ ->
+                                                    deleteIconButton context.palette
+                                                        False
+                                                        ("Delete " ++ deviceLabel)
+                                                        (Just msg)
+                                                )
+                                    in
+                                    deleteSnapshotButton
+
+                                else
+                                    centerRow <| Text.body <| "Deleting..."
+                      }
+                    ]
+                }
+
+
+whenCreated :
+    View.Types.Context
+    -> Project
+    -> Time.Posix
+    ->
+        { r
+            | uuid : String
+            , createdAt : Time.Posix
+        }
+    -> Element.Element Msg
+whenCreated context project currentTime resource =
+    let
+        timeDistanceStr =
+            DateFormat.Relative.relativeTime currentTime resource.createdAt
+
+        createdTimeText =
+            let
+                createdTimeFormatted =
+                    Helpers.Time.humanReadableDateAndTime resource.createdAt
+            in
+            Element.text ("Created on: " ++ createdTimeFormatted)
+
+        toggleTipContents =
+            Element.column [] [ createdTimeText ]
+    in
+    Element.row
+        [ Element.spacing spacer.px4 ]
+        [ Element.text timeDistanceStr
+        , Style.Widgets.ToggleTip.toggleTip
+            context
+            popoverMsgMapper
+            (Helpers.String.hyphenate
+                [ "createdTimeTip"
+                , project.auth.project.uuid
+                , resource.uuid
+                ]
+            )
+            toggleTipContents
+            ST.PositionBottom
+        ]
 
 
 render : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> Model -> Volume -> Element.Element Msg
@@ -445,37 +594,6 @@ render context project ( currentTime, _ ) model volume =
 
             else
                 Element.none
-
-        whenCreated =
-            let
-                timeDistanceStr =
-                    DateFormat.Relative.relativeTime currentTime volume.createdAt
-
-                createdTimeText =
-                    let
-                        createdTimeFormatted =
-                            Helpers.Time.humanReadableDateAndTime volume.createdAt
-                    in
-                    Element.text ("Created on: " ++ createdTimeFormatted)
-
-                toggleTipContents =
-                    Element.column [] [ createdTimeText ]
-            in
-            Element.row
-                [ Element.spacing spacer.px4 ]
-                [ Element.text timeDistanceStr
-                , Style.Widgets.ToggleTip.toggleTip
-                    context
-                    popoverMsgMapper
-                    (Helpers.String.hyphenate
-                        [ "createdTimeTip"
-                        , project.auth.project.uuid
-                        , volume.uuid
-                        ]
-                    )
-                    toggleTipContents
-                    ST.PositionBottomLeft
-                ]
 
         creator =
             if volume.userUuid == project.auth.user.uuid then
@@ -536,6 +654,22 @@ render context project ( currentTime, _ ) model volume =
 
         attachments =
             attachmentsTable context project volume
+
+        snapshotWord =
+            "snapshot"
+
+        isSnapshotOfVolume : Volume -> VolumeSnapshot -> Bool
+        isSnapshotOfVolume { uuid } { volumeId } =
+            uuid == volumeId
+
+        snapshots =
+            VH.renderRDPP
+                context
+                project.volumeSnapshots
+                (snapshotWord |> Helpers.String.pluralize)
+                (List.filter (\snapshot -> isSnapshotOfVolume volume snapshot)
+                    >> snapshotsTable context project currentTime
+                )
     in
     Element.column [ Element.spacing spacer.px24, Element.width Element.fill ]
         [ Element.row (Text.headingStyleAttrs context.palette)
@@ -568,7 +702,7 @@ render context project ( currentTime, _ ) model volume =
             [ description
             , createdAgoByWhomEtc
                 context
-                { ago = ( "created", whenCreated )
+                { ago = ( "created", whenCreated context project currentTime volume )
                 , creator = creator
                 , size = sizeString
                 , image = imageString
@@ -585,6 +719,18 @@ render context project ( currentTime, _ ) model volume =
                 |> Element.text
             ]
             [ attachments
+            ]
+        , tile
+            [ FeatherIcons.archive
+                |> FeatherIcons.toHtml []
+                |> Element.html
+                |> Element.el []
+            , snapshotWord
+                |> Helpers.String.pluralize
+                |> Helpers.String.toTitleCase
+                |> Element.text
+            ]
+            [ snapshots
             ]
         ]
 
