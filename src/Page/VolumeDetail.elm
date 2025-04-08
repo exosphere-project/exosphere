@@ -4,7 +4,7 @@ import DateFormat.Relative
 import Element
 import Element.Border as Border
 import Element.Font as Font
-import FeatherIcons
+import FeatherIcons exposing (volume)
 import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (Unit(..), humanNumber)
 import Helpers.GetterSetters as GetterSetters
@@ -49,6 +49,7 @@ type Msg
     = GotDeleteNeedsConfirm (Maybe OSTypes.VolumeUuid)
     | GotDeleteConfirm OSTypes.VolumeUuid
     | GotDeleteSnapshotConfirm Uuid
+    | GotDetachVolumeConfirm OSTypes.VolumeUuid
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
 
@@ -79,6 +80,12 @@ update msg project model =
             , Cmd.none
             , SharedMsg.ProjectMsg projectId <|
                 SharedMsg.RequestDeleteVolumeSnapshot snapshotUuid
+            )
+
+        GotDetachVolumeConfirm volumeUuid ->
+            ( model
+            , Cmd.none
+            , SharedMsg.ProjectMsg projectId <| SharedMsg.RequestDetachVolume volumeUuid
             )
 
         SharedMsg sharedMsg ->
@@ -302,6 +309,11 @@ serverNameNotFound context =
         ]
 
 
+centerRow : Element.Element msg -> Element.Element msg
+centerRow =
+    Element.el [ Element.centerY ]
+
+
 attachmentsTable : View.Types.Context -> Project -> Volume -> Element.Element Msg
 attachmentsTable context project volume =
     case List.length volume.attachments of
@@ -385,13 +397,14 @@ attachmentsTable context project volume =
                                             Nothing ->
                                                 serverNameNotFound context
                                 in
-                                Link.link
-                                    context.palette
-                                    (Route.toUrl context.urlPathPrefix <|
-                                        Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
-                                            Route.ServerDetail item.serverUuid
-                                    )
-                                    serverName
+                                centerRow <|
+                                    Link.link
+                                        context.palette
+                                        (Route.toUrl context.urlPathPrefix <|
+                                            Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
+                                                Route.ServerDetail item.serverUuid
+                                        )
+                                        serverName
                       }
                     , { header = header "Device"
                       , width = Element.shrink
@@ -401,7 +414,7 @@ attachmentsTable context project volume =
                                     device =
                                         item.device
                                 in
-                                Text.mono <| device
+                                centerRow <| Text.mono <| device
                       }
                     , { header =
                             Element.row []
@@ -441,13 +454,60 @@ attachmentsTable context project volume =
                                                 )
                                             |> Maybe.withDefault ""
                                 in
-                                scrollableCell [] <| Text.mono <| mountPoint
+                                centerRow <| scrollableCell [ Element.width Element.fill ] <| Text.mono <| mountPoint
                       }
                     , { header = header ""
                       , width = Element.shrink
                       , view =
-                            \item ->
-                                Text.mono <| "Detach"
+                            \_ ->
+                                case volume.status of
+                                    OSTypes.Detaching ->
+                                        centerRow <| Text.body <| "Detaching..."
+
+                                    OSTypes.InUse ->
+                                        let
+                                            isBootVolume =
+                                                GetterSetters.isBootVolume Nothing volume
+
+                                            detachButton : msg -> Bool -> Element.Element msg
+                                            detachButton togglePopconfirm _ =
+                                                Button.default
+                                                    context.palette
+                                                    { text = "Detach"
+                                                    , onPress =
+                                                        if isBootVolume then
+                                                            Nothing
+
+                                                        else
+                                                            Just togglePopconfirm
+                                                    }
+
+                                            detachPopconfirmId =
+                                                Helpers.String.hyphenate [ "volumeDetailDetachPopconfirm", project.auth.project.uuid, volume.uuid ]
+                                        in
+                                        deletePopconfirm context
+                                            (SharedMsg << SharedMsg.TogglePopover)
+                                            detachPopconfirmId
+                                            { confirmation =
+                                                Element.column [ Element.spacing spacer.px8 ]
+                                                    [ Element.text <|
+                                                        "Detaching "
+                                                            ++ Helpers.String.indefiniteArticle context.localization.blockDevice
+                                                            ++ " "
+                                                            ++ context.localization.blockDevice
+                                                            ++ " while it is in use may cause data loss."
+                                                    , Element.text
+                                                        "Make sure to close any open files before detaching."
+                                                    ]
+                                            , buttonText = Just "Detach"
+                                            , onConfirm = Just <| GotDetachVolumeConfirm volume.uuid
+                                            , onCancel = Just NoOp
+                                            }
+                                            ST.PositionBottomRight
+                                            detachButton
+
+                                    _ ->
+                                        Element.none
                       }
                     ]
                 }
@@ -460,10 +520,6 @@ snapshotsTable context project currentTime snapshots =
             Element.text "(none)"
 
         _ ->
-            let
-                centerRow =
-                    Element.el [ Element.centerY ]
-            in
             Element.table
                 [ Element.spacing spacer.px16
                 ]
@@ -509,29 +565,26 @@ snapshotsTable context project currentTime snapshots =
                                                 , project.auth.project.uuid
                                                 , item.uuid
                                                 ]
-
-                                        deleteSnapshotButton =
-                                            deletePopconfirm context
-                                                (SharedMsg << SharedMsg.TogglePopover)
-                                                deletePopconfirmId
-                                                { confirmation =
-                                                    Element.text <|
-                                                        "Are you sure you want to delete this "
-                                                            ++ deviceLabel
-                                                            ++ "?"
-                                                , buttonText = Nothing
-                                                , onCancel = Just NoOp
-                                                , onConfirm = Just <| GotDeleteSnapshotConfirm item.uuid
-                                                }
-                                                ST.PositionBottomRight
-                                                (\msg _ ->
-                                                    deleteIconButton context.palette
-                                                        False
-                                                        ("Delete " ++ deviceLabel)
-                                                        (Just msg)
-                                                )
                                     in
-                                    deleteSnapshotButton
+                                    deletePopconfirm context
+                                        (SharedMsg << SharedMsg.TogglePopover)
+                                        deletePopconfirmId
+                                        { confirmation =
+                                            Element.text <|
+                                                "Are you sure you want to delete this "
+                                                    ++ deviceLabel
+                                                    ++ "?"
+                                        , buttonText = Nothing
+                                        , onCancel = Just NoOp
+                                        , onConfirm = Just <| GotDeleteSnapshotConfirm item.uuid
+                                        }
+                                        ST.PositionBottomRight
+                                        (\msg _ ->
+                                            deleteIconButton context.palette
+                                                False
+                                                ("Delete " ++ deviceLabel)
+                                                (Just msg)
+                                        )
 
                                 else
                                     centerRow <| Text.body <| "Deleting..."
@@ -798,11 +851,6 @@ volumeActionButtons context project model volume =
 
                     else
                         let
-                            detachMsg =
-                                SharedMsg <|
-                                    SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
-                                        SharedMsg.RequestDetachVolume model.volumeUuid
-
                             detachButton : msg -> Bool -> Element.Element msg
                             detachButton togglePopconfirm _ =
                                 Button.default
@@ -829,7 +877,7 @@ volumeActionButtons context project model volume =
                                         "Make sure to close any open files before detaching."
                                     ]
                             , buttonText = Just "Detach"
-                            , onConfirm = Just detachMsg
+                            , onConfirm = Just <| GotDetachVolumeConfirm model.volumeUuid
                             , onCancel = Just NoOp
                             }
                             ST.PositionBottom
