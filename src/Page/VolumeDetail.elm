@@ -164,8 +164,8 @@ renderConfirmation context actionMsg cancelMsg title closeActionsAttributes =
         ]
 
 
-renderDeleteAction : View.Types.Context -> Model -> Maybe Msg -> Maybe (Element.Attribute Msg) -> Element.Element Msg
-renderDeleteAction context model actionMsg closeActionsDropdown =
+renderDeleteAction : View.Types.Context -> Model -> Volume -> Maybe Msg -> Maybe (Element.Attribute Msg) -> Element.Element Msg
+renderDeleteAction context model volume actionMsg closeActionsDropdown =
     case model.deletePendingConfirmation of
         Just _ ->
             let
@@ -187,9 +187,51 @@ renderDeleteAction context model actionMsg closeActionsDropdown =
                 additionalBtnAttribs
 
         Nothing ->
+            let
+                ( isDeleteDisabled, warning ) =
+                    case ( GetterSetters.isBootVolume Nothing volume, volume.status ) of
+                        ( True, _ ) ->
+                            ( True
+                            , Text.body <|
+                                String.join " "
+                                    [ "This"
+                                    , context.localization.blockDevice
+                                    , "backs"
+                                    , Helpers.String.indefiniteArticle context.localization.virtualComputer
+                                    , context.localization.virtualComputer ++ "."
+                                    , "It cannot be deleted before the"
+                                    , context.localization.virtualComputer
+                                    , "is deleted."
+                                    ]
+                            )
+
+                        ( _, OSTypes.Reserved ) ->
+                            ( True
+                            , Text.body <|
+                                String.join " "
+                                    [ "Unshelve the attached"
+                                    , context.localization.virtualComputer
+                                    , "to interact with this"
+                                    , context.localization.blockDevice ++ "."
+                                    ]
+                            )
+
+                        ( _, OSTypes.InUse ) ->
+                            ( True
+                            , Text.body <|
+                                String.join " "
+                                    [ "This"
+                                    , context.localization.blockDevice
+                                    , "must be detached before it can be deleted."
+                                    ]
+                            )
+
+                        _ ->
+                            ( False, Text.body <| "Destroy " ++ context.localization.blockDevice ++ "?" )
+            in
             Element.row
                 [ Element.spacing spacer.px12, Element.width (Element.fill |> Element.minimum 280) ]
-                [ Element.text ("Destroy " ++ context.localization.blockDevice ++ "?")
+                [ warning
                 , Element.el
                     [ Element.alignRight ]
                   <|
@@ -197,7 +239,12 @@ renderDeleteAction context model actionMsg closeActionsDropdown =
                         Button.Danger
                         context.palette
                         { text = "Delete"
-                        , onPress = Just <| GotDeleteNeedsConfirm <| Just model.volumeUuid
+                        , onPress =
+                            if isDeleteDisabled then
+                                Nothing
+
+                            else
+                                Just <| GotDeleteNeedsConfirm <| Just model.volumeUuid
                         }
                 ]
 
@@ -219,6 +266,7 @@ volumeActionsDropdown context project model volume =
             Element.column [ Element.spacing spacer.px8 ] <|
                 [ renderDeleteAction context
                     model
+                    volume
                     (Just <| GotDeleteConfirm volume.uuid)
                     (Just closeDropdown)
                 ]
@@ -497,6 +545,13 @@ attachmentsTable context project volume =
                                             isBootVolume =
                                                 GetterSetters.isBootVolume Nothing volume
 
+                                            bootVolumeTag =
+                                                if isBootVolume then
+                                                    tag context.palette <| "boot " ++ context.localization.blockDevice
+
+                                                else
+                                                    Element.none
+
                                             detachButton : msg -> Bool -> Element.Element msg
                                             detachButton togglePopconfirm _ =
                                                 Button.default
@@ -513,26 +568,29 @@ attachmentsTable context project volume =
                                             detachPopconfirmId =
                                                 Helpers.String.hyphenate [ "volumeDetailDetachPopconfirm", project.auth.project.uuid, volume.uuid ]
                                         in
-                                        deletePopconfirm context
-                                            (SharedMsg << SharedMsg.TogglePopover)
-                                            detachPopconfirmId
-                                            { confirmation =
-                                                Element.column [ Element.spacing spacer.px8 ]
-                                                    [ Element.text <|
-                                                        "Detaching "
-                                                            ++ Helpers.String.indefiniteArticle context.localization.blockDevice
-                                                            ++ " "
-                                                            ++ context.localization.blockDevice
-                                                            ++ " while it is in use may cause data loss."
-                                                    , Element.text
-                                                        "Make sure to close any open files before detaching."
-                                                    ]
-                                            , buttonText = Just "Detach"
-                                            , onConfirm = Just <| GotDetachVolumeConfirm volume.uuid
-                                            , onCancel = Just NoOp
-                                            }
-                                            ST.PositionBottomRight
-                                            detachButton
+                                        Element.row [ Element.spacing spacer.px12 ]
+                                            [ bootVolumeTag
+                                            , deletePopconfirm context
+                                                (SharedMsg << SharedMsg.TogglePopover)
+                                                detachPopconfirmId
+                                                { confirmation =
+                                                    Element.column [ Element.spacing spacer.px8 ]
+                                                        [ Element.text <|
+                                                            "Detaching "
+                                                                ++ Helpers.String.indefiniteArticle context.localization.blockDevice
+                                                                ++ " "
+                                                                ++ context.localization.blockDevice
+                                                                ++ " while it is in use may cause data loss."
+                                                        , Element.text
+                                                            "Make sure to close any open files before detaching."
+                                                        ]
+                                                , buttonText = Just "Detach"
+                                                , onConfirm = Just <| GotDetachVolumeConfirm volume.uuid
+                                                , onCancel = Just NoOp
+                                                }
+                                                ST.PositionBottomRight
+                                                detachButton
+                                            ]
 
                                     _ ->
                                         Element.none
@@ -672,16 +730,6 @@ whenCreated context project currentTime resource =
 render : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> Model -> Volume -> Element.Element Msg
 render context project ( currentTime, _ ) model volume =
     let
-        isBootVolume =
-            GetterSetters.isBootVolume Nothing volume
-
-        bootVolumeTag =
-            if isBootVolume then
-                tag context.palette <| "boot " ++ context.localization.blockDevice
-
-            else
-                Element.none
-
         creator =
             if volume.userUuid == project.auth.user.uuid then
                 "me"
@@ -767,7 +815,6 @@ render context project ( currentTime, _ ) model volume =
                     |> Helpers.String.toTitleCase
                 )
             , volumeNameView volume
-            , bootVolumeTag
             , Element.row [ Element.alignRight, Text.fontSize Text.Body, Font.regular, Element.spacing spacer.px16 ]
                 [ volumeStatus context volume
                 , volumeActionsDropdown context project model volume
@@ -820,119 +867,3 @@ render context project ( currentTime, _ ) model volume =
             [ snapshots
             ]
         ]
-
-
-
-
-
-volumeActionButtons :
-    View.Types.Context
-    -> Project
-    -> Model
-    -> OSTypes.Volume
-    -> Element.Element Msg
-volumeActionButtons context project model volume =
-    let
-        volDetachDeleteWarning =
-            if GetterSetters.isBootVolume Nothing volume then
-                Element.text <|
-                    String.join " "
-                        [ "This"
-                        , context.localization.blockDevice
-                        , "backs"
-                        , Helpers.String.indefiniteArticle context.localization.virtualComputer
-                        , context.localization.virtualComputer ++ ";"
-                        , "it cannot be detached or deleted until the"
-                        , context.localization.virtualComputer
-                        , "is deleted."
-                        ]
-
-            else if volume.status == OSTypes.InUse then
-                Element.text <|
-                    String.join " "
-                        [ "This"
-                        , context.localization.blockDevice
-                        , "must be detached before it can be deleted."
-                        ]
-
-            else
-                Element.none
-
-        attachDetachButton =
-            case volume.status of
-                OSTypes.Available ->
-                    Element.link []
-                        { url =
-                            Route.toUrl context.urlPathPrefix
-                                (Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
-                                    Route.VolumeAttach Nothing (Just volume.uuid)
-                                )
-                        , label =
-                            Button.default
-                                context.palette
-                                { text = "Attach"
-                                , onPress = Just NoOp
-                                }
-                        }
-
-                OSTypes.InUse ->
-                    if GetterSetters.isBootVolume Nothing volume then
-                        Button.default
-                            context.palette
-                            { text = "Detach"
-                            , onPress = Nothing
-                            }
-
-                    else
-                        let
-                            detachButton : msg -> Bool -> Element.Element msg
-                            detachButton togglePopconfirm _ =
-                                Button.default
-                                    context.palette
-                                    { text = "Detach"
-                                    , onPress = Just togglePopconfirm
-                                    }
-
-                            detachPopconfirmId =
-                                Helpers.String.hyphenate [ "volumeDetailDetachPopconfirm", project.auth.project.uuid, volume.uuid ]
-                        in
-                        deletePopconfirm context
-                            (SharedMsg << SharedMsg.TogglePopover)
-                            detachPopconfirmId
-                            { confirmation =
-                                Element.column [ Element.spacing spacer.px8 ]
-                                    [ Element.text <|
-                                        "Detaching "
-                                            ++ Helpers.String.indefiniteArticle context.localization.blockDevice
-                                            ++ " "
-                                            ++ context.localization.blockDevice
-                                            ++ " while it is in use may cause data loss."
-                                    , Element.text
-                                        "Make sure to close any open files before detaching."
-                                    ]
-                            , buttonText = Just "Detach"
-                            , onConfirm = Just <| GotDetachVolumeConfirm model.volumeUuid
-                            , onCancel = Just NoOp
-                            }
-                            ST.PositionBottom
-                            detachButton
-
-                _ ->
-                    Element.none
-    in
-    Style.Widgets.Card.exoCard
-        context.palette
-        (Element.column
-            [ Element.padding spacer.px8
-            , Element.spacing spacer.px16
-            , Element.width Element.fill
-            ]
-            [ volDetachDeleteWarning
-            , Element.row
-                [ Element.alignRight
-                , Element.spacing spacer.px12
-                ]
-                [ attachDetachButton
-                ]
-            ]
-        )
