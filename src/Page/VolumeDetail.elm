@@ -4,7 +4,7 @@ import DateFormat.Relative
 import Element
 import Element.Border as Border
 import Element.Font as Font
-import FeatherIcons exposing (volume)
+import FeatherIcons
 import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (Unit(..), humanNumber)
 import Helpers.GetterSetters as GetterSetters
@@ -371,6 +371,34 @@ attachmentsTable context project volume =
 
                         Nothing ->
                             Element.text "(none)"
+
+                OSTypes.Available ->
+                    Element.row
+                        [ Element.width Element.fill
+                        , Element.spaceEvenly
+                        ]
+                        [ Text.body
+                            (String.join " "
+                                [ "This"
+                                , context.localization.blockDevice
+                                , "is not attached to any"
+                                , context.localization.virtualComputer ++ "."
+                                ]
+                            )
+                        , Element.link []
+                            { url =
+                                Route.toUrl context.urlPathPrefix
+                                    (Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
+                                        Route.VolumeAttach Nothing (Just volume.uuid)
+                                    )
+                            , label =
+                                Button.primary
+                                    context.palette
+                                    { text = "Attach"
+                                    , onPress = Just NoOp
+                                    }
+                            }
+                        ]
 
                 _ ->
                     Element.text "(none)"
