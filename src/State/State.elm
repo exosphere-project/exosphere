@@ -2815,9 +2815,8 @@ processProjectSpecificMsg outerModel project msg =
             )
 
         ReceiveDetachVolume ->
-            ( outerModel
-            , Route.pushUrl sharedModel.viewContext (Route.ProjectRoute (GetterSetters.projectIdentifier project) Route.VolumeList)
-            )
+            ( outerModel, OSVolumes.requestVolumes project )
+                |> mapToOuterMsg
 
         ReceiveAppCredential appCredential ->
             let
