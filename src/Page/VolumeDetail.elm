@@ -525,7 +525,13 @@ snapshotsTable context project currentTime snapshots =
                 ]
                 { data = snapshots
                 , columns =
-                    [ { header = header "Size"
+                    [ { header = header "Name"
+                      , width = Element.fill |> Element.maximum 360
+                      , view =
+                            \item ->
+                                centerRow <| scrollableCell [ Element.width Element.fill ] <| Text.body <| VH.resourceName item.name item.uuid
+                      }
+                    , { header = header "Size"
                       , width = Element.shrink
                       , view =
                             \item ->
@@ -544,11 +550,11 @@ snapshotsTable context project currentTime snapshots =
                             \item ->
                                 centerRow <| whenCreated context project currentTime item
                       }
-                    , { header = header "Name"
+                    , { header = header "Description"
                       , width = Element.fill
                       , view =
                             \item ->
-                                centerRow <| scrollableCell [ Element.width Element.fill ] <| Text.body <| VH.resourceName item.name item.uuid
+                                centerRow <| scrollableCell [ Element.width Element.fill ] <| Text.body <| Maybe.withDefault "-" <| removeEmptiness item.description
                       }
                     , { header = header ""
                       , width = Element.shrink
