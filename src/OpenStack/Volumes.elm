@@ -5,17 +5,14 @@ module OpenStack.Volumes exposing
     , requestUpdateVolumeName
     , requestVolumeSnapshots
     , requestVolumes
-    , volumeLookup
     )
 
 import Helpers.GetterSetters as GetterSetters
-import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.Time exposing (makeIso8601StringToPosixDecoder)
 import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
 import Json.Encode
-import List.Extra
 import OpenStack.Types as OSTypes
 import OpenStack.VolumeSnapshots exposing (volumeSnapshotDecoder)
 import Rest.Helpers
@@ -305,11 +302,3 @@ imageMetadataDecoder =
     Decode.map2 OSTypes.NameAndUuid
         (Decode.field "image_name" Decode.string)
         (Decode.field "image_id" Decode.string)
-
-
-volumeLookup : Project -> OSTypes.VolumeUuid -> Maybe OSTypes.Volume
-volumeLookup project volumeUuid =
-    {- TODO fix or justify other lookup functions being in Helpers.Helpers -}
-    project.volumes
-        |> RDPP.withDefault []
-        |> List.Extra.find (\v -> v.uuid == volumeUuid)

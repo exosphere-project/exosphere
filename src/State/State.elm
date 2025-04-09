@@ -1545,7 +1545,7 @@ processProjectSpecificMsg outerModel project msg =
         RequestDetachVolume volumeUuid ->
             let
                 maybeVolume =
-                    OSVolumes.volumeLookup project volumeUuid
+                    GetterSetters.volumeLookup project volumeUuid
 
                 maybeServer =
                     maybeVolume
