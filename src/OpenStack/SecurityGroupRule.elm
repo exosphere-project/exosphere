@@ -19,8 +19,6 @@ module OpenStack.SecurityGroupRule exposing
     , matchRuleAndDescription
     , portRangeToString
     , protocolToString
-    , remoteToString
-    , remoteToStringInput
     , securityGroupRuleDecoder
     , securityGroupRuleDiff
     , securityGroupRuleTemplateToRule
@@ -198,32 +196,6 @@ getRemote rule =
         ( Just _, Just _ ) ->
             -- Should not happen since IP & remote group are mutually exclusive.
             Nothing
-
-
-remoteToString : Maybe Remote -> String
-remoteToString remote =
-    case remote of
-        Just (RemoteIpPrefix ip) ->
-            ip
-
-        Just (RemoteGroupUuid groupUuid) ->
-            groupUuid
-
-        Nothing ->
-            "Any"
-
-
-remoteToStringInput : Maybe Remote -> String
-remoteToStringInput remote =
-    remote
-        |> remoteToString
-        |> (\remoteString ->
-                if remoteString == "Any" then
-                    ""
-
-                else
-                    remoteString
-           )
 
 
 remoteMatch : Remote -> Remote -> Bool

@@ -3,6 +3,8 @@ module Page.SecurityGroupRuleForm exposing (Model, Msg(..), PortInput, init, new
 import Element
 import Element.Input as Input
 import Helpers.Cidr exposing (isValidCidr)
+import Helpers.GetterSetters exposing (sortedSecurityGroups)
+import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.SecurityGroupRule
     exposing
         ( Remote(..)
@@ -14,7 +16,6 @@ import OpenStack.SecurityGroupRule
         , etherTypeToString
         , getRemote
         , protocolToString
-        , remoteToStringInput
         , stringToSecurityGroupRuleDirection
         , stringToSecurityGroupRuleEthertype
         , stringToSecurityGroupRuleProtocol
@@ -25,7 +26,8 @@ import Style.Widgets.Select
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Style.Widgets.Validation as Validation exposing (FormInteraction(..))
-import View.Helpers as VH exposing (directionOptions, etherTypeOptions, portRangeBoundsOptions, portRangeBoundsToString, protocolOptions, remoteOptions, remoteToRemoteType, remoteTypeToString, stringToPortRangeBounds, stringToRemoteType)
+import Types.Project exposing (Project)
+import View.Helpers as VH exposing (directionOptions, etherTypeOptions, portRangeBoundsOptions, portRangeBoundsToString, protocolOptions, remoteOptions, remoteToRemoteType, remoteToStringInput, remoteTypeToString, stringToPortRangeBounds, stringToRemoteType)
 import View.Types exposing (PortRangeBounds(..), RemoteType(..))
 
 
@@ -207,6 +209,15 @@ update msg model =
             ( { model
                 | remoteType = remoteType
                 , remoteTypeInputInteraction = Pristine
+                , rule =
+                    let
+                        rule =
+                            model.rule
+                    in
+                    { rule
+                        | remoteIpPrefix = Nothing
+                        , remoteGroupUuid = Nothing
+                    }
               }
             , Cmd.none
             )
@@ -253,9 +264,10 @@ update msg model =
 
 form :
     View.Types.Context
+    -> Project
     -> Model
     -> Element.Element Msg
-form context model =
+form context project model =
     let
         rule =
             model.rule
@@ -423,19 +435,20 @@ form context model =
                             \remoteType ->
                                 case remoteType of
                                     Just remoteType_ ->
-                                        GotRemoteTypeUpdate <| stringToRemoteType remoteType_
+                                        GotRemoteTypeUpdate <| stringToRemoteType context.localization remoteType_
 
                                     Nothing ->
                                         NoOp
-                        , options = remoteOptions
-                        , selected = Just (remoteTypeToString <| remoteToRemoteType <| getRemote rule)
+                        , options = remoteOptions context.localization
+                        , selected =
+                            Just <| remoteTypeToString context.localization <| model.remoteType
                         }
                     ]
                 , case model.remoteType of
                     Any ->
                         Element.none
 
-                    remoteType ->
+                    IpPrefix ->
                         Element.column [ Element.spacing spacer.px12, Element.width Element.fill ]
                             [ Input.text
                                 (VH.inputItemAttributes context.palette ++ [ consistentHeight ])
@@ -443,16 +456,8 @@ form context model =
                                 , placeholder = Nothing
                                 , onChange =
                                     \text ->
-                                        case remoteType of
-                                            IpPrefix ->
-                                                GotRemote <| Just <| RemoteIpPrefix text
-
-                                            GroupId ->
-                                                GotRemote <| Just <| RemoteGroupUuid text
-
-                                            Any ->
-                                                GotRemote Nothing
-                                , label = Input.labelAbove [] (VH.requiredLabel context.palette (Element.text <| remoteTypeToString <| remoteType))
+                                        GotRemote <| Just <| RemoteIpPrefix text
+                                , label = Input.labelAbove [] (VH.requiredLabel context.palette (Element.text <| remoteTypeToString context.localization <| model.remoteType))
                                 }
                             , let
                                 invalidReason =
@@ -460,24 +465,37 @@ form context model =
                                     if model.remoteTypeInputInteraction == Pristine && String.isEmpty (remoteToStringInput <| getRemote rule) then
                                         Nothing
 
+                                    else if not <| isValidCidr rule.ethertype (remoteToStringInput <| getRemote rule) then
+                                        Just <| "Invalid CIDR for " ++ etherTypeToString rule.ethertype ++ " Prefix."
+
                                     else
-                                        case remoteType of
-                                            IpPrefix ->
-                                                if not <| isValidCidr rule.ethertype (remoteToStringInput <| getRemote rule) then
-                                                    Just <| "Invalid CIDR for " ++ etherTypeToString rule.ethertype ++ " Prefix."
+                                        Nothing
+                              in
+                              renderInvalidReason invalidReason
+                            ]
 
-                                                else
-                                                    Nothing
+                    SecurityGroup ->
+                        Element.column [ Element.spacing spacer.px12, Element.width Element.fill ]
+                            [ Text.body <| VH.securityGroupTypeLabel context.localization
+                            , Style.Widgets.Select.select
+                                []
+                                context.palette
+                                { onChange = \text -> GotRemote <| Just <| RemoteGroupUuid <| Maybe.withDefault "" text
+                                , options = project.securityGroups |> RDPP.withDefault [] |> sortedSecurityGroups |> List.map (\sg -> ( sg.uuid, sg.name ))
+                                , selected = Just <| remoteToStringInput <| getRemote rule
+                                , label = VH.securityGroupTypeLabel context.localization
+                                }
+                            , let
+                                invalidReason =
+                                    -- If the input is pristine & blank, don't evaluate it.
+                                    if model.remoteTypeInputInteraction == Pristine && String.isEmpty (remoteToStringInput <| getRemote rule) then
+                                        Nothing
 
-                                            GroupId ->
-                                                if String.isEmpty <| String.trim <| (remoteToStringInput <| getRemote rule) then
-                                                    Just "Group ID is required."
+                                    else if String.isEmpty <| String.trim <| (remoteToStringInput <| getRemote rule) then
+                                        Just <| VH.securityGroupTypeLabel context.localization ++ " is required."
 
-                                                else
-                                                    Nothing
-
-                                            Any ->
-                                                Nothing
+                                    else
+                                        Nothing
                               in
                               renderInvalidReason invalidReason
                             ]
@@ -493,10 +511,11 @@ form context model =
         ]
 
 
-view : View.Types.Context -> Model -> Element.Element Msg
-view context model =
+view : View.Types.Context -> Project -> Model -> Element.Element Msg
+view context project model =
     Element.column [ Element.padding spacer.px8 ]
         [ form
             context
+            project
             model
         ]

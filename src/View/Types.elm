@@ -38,7 +38,7 @@ type alias ImageTag =
 type RemoteType
     = Any
     | IpPrefix
-    | GroupId
+    | SecurityGroup
 
 
 type PortRangeBounds

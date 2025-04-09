@@ -441,6 +441,7 @@ rulesGrid context project model rules =
                             Element.column [ Element.spacing spacer.px12 ]
                                 [ SecurityGroupRuleForm.view
                                     context
+                                    project
                                     ruleForm
                                     |> Element.map SecurityGroupRuleFormMsg
                                 , Element.el [ Element.alignRight, Element.paddingXY spacer.px12 0 ] <| Button.button Button.Primary context.palette { text = "Done", onPress = Just <| GotDoneEditingRule }
