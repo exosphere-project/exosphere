@@ -7,7 +7,7 @@ import Element.Font as Font
 import FeatherIcons
 import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (Unit(..), humanNumber)
-import Helpers.GetterSetters as GetterSetters
+import Helpers.GetterSetters as GetterSetters exposing (isSnapshotOfVolume)
 import Helpers.String exposing (removeEmptiness)
 import Helpers.Time
 import OpenStack.HelperTypes exposing (Uuid)
@@ -792,10 +792,6 @@ render context project ( currentTime, _ ) model volume =
 
         snapshotWord =
             "snapshot"
-
-        isSnapshotOfVolume : Volume -> VolumeSnapshot -> Bool
-        isSnapshotOfVolume { uuid } { volumeId } =
-            uuid == volumeId
 
         snapshots =
             VH.renderRDPP
