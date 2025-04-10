@@ -45,6 +45,7 @@ module View.Helpers exposing
     , sortProjects
     , stringToPortRangeBounds
     , stringToRemoteType
+    , tableHeader
     , titleFromHostname
     , toExoPalette
     , validInputAttributes
@@ -1437,6 +1438,11 @@ createdAgoByFromSize context ( agoWord, agoContents ) maybeWhoCreatedTuple maybe
           else
             Element.none
         ]
+
+
+tableHeader : String -> Element.Element msg
+tableHeader text =
+    Element.el [ Font.heavy ] <| Element.text text
 
 
 featuredImageNamePrefixLookup : View.Types.Context -> Project -> Maybe String

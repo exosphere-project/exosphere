@@ -282,11 +282,6 @@ shareActionsDropdown context project model share =
         }
 
 
-header : String -> Element.Element msg
-header text =
-    Element.el [ Font.heavy ] <| Element.text text
-
-
 accessRulesTable : ExoPalette -> List AccessRule -> Element.Element Msg
 accessRulesTable palette accessRules =
     case List.length accessRules of
@@ -299,25 +294,25 @@ accessRulesTable palette accessRules =
                 ]
                 { data = accessRules
                 , columns =
-                    [ { header = header "State"
+                    [ { header = VH.tableHeader "State"
                       , width = Element.shrink
                       , view =
                             \item ->
                                 Text.body <| accessRuleStateToString <| item.state
                       }
-                    , { header = header "Type"
+                    , { header = VH.tableHeader "Type"
                       , width = Element.shrink
                       , view =
                             \item ->
                                 Text.body <| accessRuleAccessTypeToString <| item.accessType
                       }
-                    , { header = header "Level"
+                    , { header = VH.tableHeader "Level"
                       , width = Element.shrink
                       , view =
                             \item ->
                                 Text.body <| accessRuleAccessLevelToHumanString <| item.accessLevel
                       }
-                    , { header = header "Access To"
+                    , { header = VH.tableHeader "Access To"
                       , width = Element.fill
                       , view =
                             \item ->
@@ -325,7 +320,7 @@ accessRulesTable palette accessRules =
                                     []
                                     (Text.body <| item.accessTo)
                       }
-                    , { header = header "Access Key"
+                    , { header = VH.tableHeader "Access Key"
                       , width = Element.fill
                       , view =
                             \item ->
@@ -513,7 +508,7 @@ exportLocationsTable palette exportLocations =
                 ]
                 { data = exportLocations
                 , columns =
-                    [ { header = header "Path"
+                    [ { header = VH.tableHeader "Path"
                       , width = Element.fill
                       , view =
                             \item ->

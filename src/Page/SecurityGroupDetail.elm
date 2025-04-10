@@ -178,11 +178,6 @@ securityGroupNameView securityGroup =
         [ Text.text Text.ExtraLarge [] name_ ]
 
 
-header : String -> Element.Element msg
-header text =
-    Element.el [ Font.heavy ] <| Element.text text
-
-
 serversTable : View.Types.Context -> Project -> { servers : List Server, progress : LoadingProgress, currentTime : Time.Posix } -> Element.Element Msg
 serversTable context project { servers, progress, currentTime } =
     let
@@ -195,7 +190,7 @@ serversTable context project { servers, progress, currentTime } =
                 ]
                 { data = servers
                 , columns =
-                    [ { header = header "Name"
+                    [ { header = VH.tableHeader "Name"
                       , width = Element.shrink
                       , view =
                             \item ->
@@ -216,19 +211,19 @@ serversTable context project { servers, progress, currentTime } =
                                             )
                                     }
                       }
-                    , { header = header "Created By"
+                    , { header = VH.tableHeader "Created By"
                       , width = Element.shrink
                       , view =
                             \item ->
                                 Text.text Text.Body [ Element.centerY ] (serverCreatorName project item)
                       }
-                    , { header = header "Created"
+                    , { header = VH.tableHeader "Created"
                       , width = Element.shrink
                       , view =
                             \item ->
                                 Text.text Text.Body [ Element.centerY ] (DateFormat.Relative.relativeTime currentTime item.osProps.details.created)
                       }
-                    , { header = header ""
+                    , { header = VH.tableHeader ""
                       , width = Element.shrink
                       , view =
                             \item ->

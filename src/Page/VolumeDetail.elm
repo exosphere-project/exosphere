@@ -343,11 +343,6 @@ createdAgoByWhomEtc context { ago, creator, size, image } =
         ]
 
 
-header : String -> Element.Element msg
-header text =
-    Element.el [ Font.heavy ] <| Element.text text
-
-
 serverNameNotFound : View.Types.Context -> String
 serverNameNotFound context =
     String.join " "
@@ -457,7 +452,7 @@ attachmentsTable context project volume =
                 ]
                 { data = volume.attachments
                 , columns =
-                    [ { header = header (context.localization.virtualComputer |> Helpers.String.toTitleCase)
+                    [ { header = VH.tableHeader (context.localization.virtualComputer |> Helpers.String.toTitleCase)
                       , width = Element.shrink
                       , view =
                             \item ->
@@ -482,7 +477,7 @@ attachmentsTable context project volume =
                                         )
                                         serverName
                       }
-                    , { header = header "Device"
+                    , { header = VH.tableHeader "Device"
                       , width = Element.shrink
                       , view =
                             \item ->
@@ -494,7 +489,7 @@ attachmentsTable context project volume =
                       }
                     , { header =
                             Element.row []
-                                [ header "Mount Point"
+                                [ VH.tableHeader "Mount Point"
                                 , Style.Widgets.ToggleTip.toggleTip
                                     context
                                     (SharedMsg << SharedMsg.TogglePopover)
@@ -532,7 +527,7 @@ attachmentsTable context project volume =
                                 in
                                 centerRow <| scrollableCell [ Element.width Element.fill ] <| Text.mono <| mountPoint
                       }
-                    , { header = header ""
+                    , { header = VH.tableHeader ""
                       , width = Element.shrink
                       , view =
                             \_ ->
@@ -611,13 +606,13 @@ snapshotsTable context project currentTime snapshots =
                 ]
                 { data = snapshots
                 , columns =
-                    [ { header = header "Name"
+                    [ { header = VH.tableHeader "Name"
                       , width = Element.fill |> Element.maximum 360
                       , view =
                             \item ->
                                 centerRow <| scrollableCell [ Element.width Element.fill ] <| Text.body <| VH.resourceName item.name item.uuid
                       }
-                    , { header = header "Size"
+                    , { header = VH.tableHeader "Size"
                       , width = Element.shrink
                       , view =
                             \item ->
@@ -630,19 +625,19 @@ snapshotsTable context project currentTime snapshots =
                                 in
                                 centerRow <| Text.body <| sizeDisplay ++ " " ++ sizeLabel
                       }
-                    , { header = header "Created"
+                    , { header = VH.tableHeader "Created"
                       , width = Element.shrink
                       , view =
                             \item ->
                                 centerRow <| whenCreated context project currentTime item
                       }
-                    , { header = header "Description"
+                    , { header = VH.tableHeader "Description"
                       , width = Element.fill
                       , view =
                             \item ->
                                 centerRow <| scrollableCell [ Element.width Element.fill ] <| Text.body <| Maybe.withDefault "-" <| removeEmptiness item.description
                       }
-                    , { header = header ""
+                    , { header = VH.tableHeader ""
                       , width = Element.shrink
                       , view =
                             \item ->
