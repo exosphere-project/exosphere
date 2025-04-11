@@ -3,7 +3,6 @@ module Page.ShareDetail exposing (Model, Msg(..), init, update, view)
 import DateFormat.Relative
 import Dict
 import Element
-import Element.Border as Border
 import Element.Font as Font
 import FeatherIcons
 import FormatNumber.Locales exposing (Decimals(..))
@@ -16,7 +15,6 @@ import OpenStack.Types as OSTypes exposing (AccessRule, AccessRuleState(..), Acc
 import Style.Helpers as SH
 import Style.Types as ST exposing (ExoPalette)
 import Style.Widgets.Button as Button
-import Style.Widgets.Card
 import Style.Widgets.CopyableText exposing (copyableScript, copyableText, copyableTextAccessory)
 import Style.Widgets.Grid exposing (scrollableCell)
 import Style.Widgets.Icon as Icon
@@ -589,27 +587,6 @@ render context project ( currentTime, _ ) model share =
                 Nothing ->
                     Element.none
 
-        tile : List (Element.Element Msg) -> List (Element.Element Msg) -> Element.Element Msg
-        tile headerContents contents =
-            Style.Widgets.Card.exoCard context.palette
-                (Element.column
-                    [ Element.width Element.fill
-                    , Element.padding spacer.px16
-                    , Element.spacing spacer.px16
-                    ]
-                    (List.concat
-                        [ [ Element.row
-                                (Text.subheadingStyleAttrs context.palette
-                                    ++ Text.typographyAttrs Text.Large
-                                    ++ [ Border.width 0 ]
-                                )
-                                headerContents
-                          ]
-                        , contents
-                        ]
-                    )
-                )
-
         accessRules =
             case Dict.get share.uuid project.shareAccessRules of
                 Just accessRulesRDPP ->
@@ -657,7 +634,8 @@ render context project ( currentTime, _ ) model share =
                 , shareActionsDropdown context project model share
                 ]
             ]
-        , tile
+        , VH.tile
+            context
             [ FeatherIcons.database |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
             , Element.text "Info"
             , Element.el
@@ -681,7 +659,8 @@ render context project ( currentTime, _ ) model share =
                 , visibility = OSTypes.shareVisibilityToString share.visibility
                 }
             ]
-        , tile
+        , VH.tile
+            context
             [ FeatherIcons.cloud
                 |> FeatherIcons.toHtml []
                 |> Element.html
@@ -693,7 +672,8 @@ render context project ( currentTime, _ ) model share =
             ]
             [ exportLocations
             ]
-        , tile
+        , VH.tile
+            context
             [ FeatherIcons.lock
                 |> FeatherIcons.toHtml []
                 |> Element.html
@@ -705,7 +685,8 @@ render context project ( currentTime, _ ) model share =
             ]
             [ accessRules
             ]
-        , tile
+        , VH.tile
+            context
             [ FeatherIcons.folder
                 |> FeatherIcons.toHtml []
                 |> Element.html

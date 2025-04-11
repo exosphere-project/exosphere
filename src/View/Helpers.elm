@@ -46,6 +46,7 @@ module View.Helpers exposing
     , stringToPortRangeBounds
     , stringToRemoteType
     , tableHeader
+    , tile
     , titleFromHostname
     , toExoPalette
     , validInputAttributes
@@ -91,6 +92,7 @@ import String.Extra
 import Style.Helpers as SH
 import Style.Types as ST exposing (ExoPalette)
 import Style.Widgets.Button as Button
+import Style.Widgets.Card
 import Style.Widgets.Code exposing (codeBlock, codeSpan)
 import Style.Widgets.CopyableText exposing (copyableTextAccessory)
 import Style.Widgets.Icon exposing (featherIcon)
@@ -1443,6 +1445,33 @@ createdAgoByFromSize context ( agoWord, agoContents ) maybeWhoCreatedTuple maybe
 tableHeader : String -> Element.Element msg
 tableHeader text =
     Element.el [ Font.heavy ] <| Element.text text
+
+
+tile : View.Types.Context -> List (Element.Element msg) -> List (Element.Element msg) -> Element.Element msg
+tile context headerContents contents =
+    Style.Widgets.Card.exoCard context.palette
+        (Element.column
+            [ Element.width Element.fill
+            , Element.padding spacer.px16
+            , Element.spacing spacer.px16
+            ]
+            (List.concat
+                [ case List.length headerContents of
+                    0 ->
+                        []
+
+                    _ ->
+                        [ Element.row
+                            (Text.subheadingStyleAttrs context.palette
+                                ++ Text.typographyAttrs Text.Large
+                                ++ [ Border.width 0 ]
+                            )
+                            headerContents
+                        ]
+                , contents
+                ]
+            )
+        )
 
 
 featuredImageNamePrefixLookup : View.Types.Context -> Project -> Maybe String

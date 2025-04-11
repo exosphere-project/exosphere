@@ -56,7 +56,7 @@ view context project currentTime _ =
             Element.link []
                 { url = Route.toUrl context.urlPathPrefix (Route.ProjectRoute (GetterSetters.projectIdentifier project) projRouteConstructor)
                 , label =
-                    tile context
+                    clickableTile context
                         [ Element.column
                             [ Element.padding spacer.px24
                             , Element.width Element.fill
@@ -507,6 +507,6 @@ tileContents context resourceWithAvailabilityMetadata resourceWord renderResourc
     renderResource context resourceWithAvailabilityMetadata (Helpers.String.pluralize resourceWord) renderItems
 
 
-tile : View.Types.Context -> List (Element.Element Msg) -> Element.Element Msg
-tile context contents =
+clickableTile : View.Types.Context -> List (Element.Element Msg) -> Element.Element Msg
+clickableTile context contents =
     Style.Widgets.Card.clickableCardFixedSize context.palette 450 350 contents

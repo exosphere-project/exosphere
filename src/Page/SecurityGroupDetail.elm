@@ -2,7 +2,6 @@ module Page.SecurityGroupDetail exposing (Model, Msg(..), init, update, view)
 
 import DateFormat.Relative
 import Element
-import Element.Border as Border
 import Element.Font as Font
 import FeatherIcons
 import FormatNumber.Locales exposing (Decimals(..))
@@ -18,7 +17,6 @@ import Route
 import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.Button as Button
-import Style.Widgets.Card
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.Popover.Popover exposing (popover)
@@ -542,27 +540,6 @@ render context project ( currentTime, _ ) model securityGroup =
             else
                 Element.none
 
-        tile : List (Element.Element Msg) -> List (Element.Element Msg) -> Element.Element Msg
-        tile headerContents contents =
-            Style.Widgets.Card.exoCard context.palette
-                (Element.column
-                    [ Element.width Element.fill
-                    , Element.padding spacer.px16
-                    , Element.spacing spacer.px16
-                    ]
-                    (List.concat
-                        [ [ Element.row
-                                (Text.subheadingStyleAttrs context.palette
-                                    ++ Text.typographyAttrs Text.Large
-                                    ++ [ Border.width 0 ]
-                                )
-                                headerContents
-                          ]
-                        , contents
-                        ]
-                    )
-                )
-
         serverLookup =
             GetterSetters.serversForSecurityGroup project securityGroup.uuid
 
@@ -607,7 +584,8 @@ render context project ( currentTime, _ ) model securityGroup =
             ]
         , case model.securityGroupForm of
             Just securityGroupForm ->
-                tile
+                VH.tile
+                    context
                     [ Element.text
                         (String.join " "
                             [ "Edit"
@@ -630,7 +608,8 @@ render context project ( currentTime, _ ) model securityGroup =
 
             Nothing ->
                 Element.none
-        , tile
+        , VH.tile
+            context
             [ FeatherIcons.list |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
             , Element.text "Info"
             , Element.el
@@ -662,7 +641,8 @@ render context project ( currentTime, _ ) model securityGroup =
                             (GetterSetters.projectIdentifier project)
                             { rules = securityGroup.rules, securityGroupForUuid = GetterSetters.securityGroupLookup project }
                 in
-                tile
+                VH.tile
+                    context
                     [ FeatherIcons.lock
                         |> FeatherIcons.toHtml []
                         |> Element.html
@@ -674,7 +654,8 @@ render context project ( currentTime, _ ) model securityGroup =
                     ]
                     [ rules
                     ]
-        , tile
+        , VH.tile
+            context
             [ FeatherIcons.server
                 |> FeatherIcons.toHtml []
                 |> Element.html

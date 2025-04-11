@@ -2,7 +2,6 @@ module Page.VolumeDetail exposing (Model, Msg(..), init, update, view)
 
 import DateFormat.Relative
 import Element
-import Element.Border as Border
 import Element.Font as Font
 import FeatherIcons
 import FormatNumber.Locales exposing (Decimals(..))
@@ -17,7 +16,6 @@ import Route
 import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.Button as Button
-import Style.Widgets.Card
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
 import Style.Widgets.Grid exposing (scrollableCell)
@@ -761,27 +759,6 @@ render context project ( currentTime, _ ) model volume =
                 Nothing ->
                     Element.none
 
-        tile : List (Element.Element Msg) -> List (Element.Element Msg) -> Element.Element Msg
-        tile headerContents contents =
-            Style.Widgets.Card.exoCard context.palette
-                (Element.column
-                    [ Element.width Element.fill
-                    , Element.padding spacer.px16
-                    , Element.spacing spacer.px16
-                    ]
-                    (List.concat
-                        [ [ Element.row
-                                (Text.subheadingStyleAttrs context.palette
-                                    ++ Text.typographyAttrs Text.Large
-                                    ++ [ Border.width 0 ]
-                                )
-                                headerContents
-                          ]
-                        , contents
-                        ]
-                    )
-                )
-
         attachments =
             attachmentsTable context project volume
 
@@ -811,7 +788,8 @@ render context project ( currentTime, _ ) model volume =
                 , volumeActionsDropdown context project model volume
                 ]
             ]
-        , tile
+        , VH.tile
+            context
             [ FeatherIcons.database |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
             , Element.text "Info"
             , Element.el
@@ -833,7 +811,8 @@ render context project ( currentTime, _ ) model volume =
                 , image = imageString
                 }
             ]
-        , tile
+        , VH.tile
+            context
             [ FeatherIcons.server
                 |> FeatherIcons.toHtml []
                 |> Element.html
@@ -845,7 +824,8 @@ render context project ( currentTime, _ ) model volume =
             ]
             [ attachments
             ]
-        , tile
+        , VH.tile
+            context
             [ FeatherIcons.archive
                 |> FeatherIcons.toHtml []
                 |> Element.html
