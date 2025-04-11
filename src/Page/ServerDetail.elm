@@ -166,15 +166,8 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
 
         whenCreated =
             let
-                timeDistanceStr =
-                    DateFormat.Relative.relativeTime currentTime details.created
-
-                createdTimeText =
-                    let
-                        createdTimeFormatted =
-                            Helpers.Time.humanReadableDateAndTime details.created
-                    in
-                    Element.text ("Created on: " ++ createdTimeFormatted)
+                { timeDistanceStr, createdTimeText } =
+                    VH.whenCreatedText { currentTime = currentTime, createdAt = details.created }
 
                 setupTimeText =
                     case server.exoProps.serverOrigin of
@@ -199,23 +192,15 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                             Element.none
 
                 toggleTipContents =
-                    Element.column [] [ createdTimeText, setupTimeText ]
+                    Element.column [ Element.spacing spacer.px4 ] [ createdTimeText, setupTimeText ]
             in
-            Element.row
-                [ Element.spacing spacer.px4 ]
-                [ Element.text timeDistanceStr
-                , Style.Widgets.ToggleTip.toggleTip
-                    context
-                    popoverMsgMapper
-                    (Helpers.String.hyphenate
-                        [ "createdTimeTip"
-                        , project.auth.project.uuid
-                        , server.osProps.uuid
-                        ]
-                    )
-                    toggleTipContents
-                    ST.PositionBottomLeft
-                ]
+            VH.whenCreatedToggleTip
+                context
+                project
+                popoverMsgMapper
+                timeDistanceStr
+                server.osProps
+                toggleTipContents
 
         creatorName =
             serverCreatorName project server

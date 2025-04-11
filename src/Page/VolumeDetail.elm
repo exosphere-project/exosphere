@@ -1,6 +1,5 @@
 module Page.VolumeDetail exposing (Model, Msg(..), init, update, view)
 
-import DateFormat.Relative
 import Element
 import Element.Font as Font
 import FeatherIcons
@@ -8,7 +7,6 @@ import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (Unit(..), humanNumber)
 import Helpers.GetterSetters as GetterSetters exposing (isSnapshotOfVolume)
 import Helpers.String exposing (removeEmptiness)
-import Helpers.Time
 import OpenStack.HelperTypes exposing (Uuid)
 import OpenStack.Types as OSTypes exposing (Volume)
 import OpenStack.VolumeSnapshots as VS exposing (VolumeSnapshot)
@@ -601,7 +599,7 @@ snapshotsTable context project currentTime snapshots =
                       , width = Element.shrink
                       , view =
                             \item ->
-                                centerRow <| whenCreated context project currentTime item
+                                centerRow <| VH.whenCreated context project popoverMsgMapper currentTime item
                       }
                     , { header = VH.tableHeader "Description"
                       , width = Element.fill
@@ -650,48 +648,6 @@ snapshotsTable context project currentTime snapshots =
                       }
                     ]
                 }
-
-
-whenCreated :
-    View.Types.Context
-    -> Project
-    -> Time.Posix
-    ->
-        { r
-            | uuid : String
-            , createdAt : Time.Posix
-        }
-    -> Element.Element Msg
-whenCreated context project currentTime resource =
-    let
-        timeDistanceStr =
-            DateFormat.Relative.relativeTime currentTime resource.createdAt
-
-        createdTimeText =
-            let
-                createdTimeFormatted =
-                    Helpers.Time.humanReadableDateAndTime resource.createdAt
-            in
-            Element.text ("Created on: " ++ createdTimeFormatted)
-
-        toggleTipContents =
-            Element.column [] [ createdTimeText ]
-    in
-    Element.row
-        [ Element.spacing spacer.px4 ]
-        [ Element.text timeDistanceStr
-        , Style.Widgets.ToggleTip.toggleTip
-            context
-            popoverMsgMapper
-            (Helpers.String.hyphenate
-                [ "createdTimeTip"
-                , project.auth.project.uuid
-                , resource.uuid
-                ]
-            )
-            toggleTipContents
-            ST.PositionBottom
-        ]
 
 
 render : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> Model -> Volume -> Element.Element Msg
@@ -779,7 +735,7 @@ render context project ( currentTime, _ ) model volume =
             [ description
             , createdAgoByWhomEtc
                 context
-                { ago = ( "created", whenCreated context project currentTime volume )
+                { ago = ( "created", VH.whenCreated context project popoverMsgMapper currentTime volume )
                 , creator = creator
                 , size = sizeString
                 , image = imageString

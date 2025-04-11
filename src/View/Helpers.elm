@@ -54,10 +54,14 @@ module View.Helpers exposing
     , volumeStatusBadge
     , volumeStatusBadgeFromStatus
     , warningInputAttributes
+    , whenCreated
+    , whenCreatedText
+    , whenCreatedToggleTip
     )
 
 import Color
 import Css
+import DateFormat.Relative
 import Dict
 import Element
 import Element.Background as Background
@@ -103,6 +107,7 @@ import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.StatusBadge as StatusBadge exposing (StatusBadgeSize)
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip as ToggleTip
+import Time
 import Types.Error exposing (ErrorLevel(..), toFriendlyErrorLevel)
 import Types.HelperTypes exposing (Localization)
 import Types.Project exposing (Project)
@@ -1441,6 +1446,86 @@ createdAgoByFromSize context ( agoWord, agoContents ) maybeWhoCreatedTuple maybe
           else
             Element.none
         ]
+
+
+whenCreatedText :
+    { currentTime : Time.Posix
+    , createdAt : Time.Posix
+    }
+    ->
+        { timeDistanceStr : String
+        , createdTimeText : Element.Element msg
+        }
+whenCreatedText { currentTime, createdAt } =
+    let
+        timeDistanceStr =
+            DateFormat.Relative.relativeTime currentTime createdAt
+
+        createdTimeText =
+            let
+                createdTimeFormatted =
+                    Helpers.Time.humanReadableDateAndTime createdAt
+            in
+            Element.text ("Created on: " ++ createdTimeFormatted)
+    in
+    { timeDistanceStr = timeDistanceStr, createdTimeText = createdTimeText }
+
+
+whenCreatedToggleTip :
+    View.Types.Context
+    -> Project
+    -> (PopoverId -> msg)
+    -> String
+    ->
+        { r
+            | uuid : String
+        }
+    -> Element.Element msg
+    -> Element.Element msg
+whenCreatedToggleTip context project popoverMsgMapper timeDistanceStr resource toggleTipContents =
+    Element.row
+        [ Element.spacing spacer.px4 ]
+        [ Element.text timeDistanceStr
+        , ToggleTip.toggleTip
+            context
+            popoverMsgMapper
+            (Helpers.String.hyphenate
+                [ "createdTimeTip"
+                , project.auth.project.uuid
+                , resource.uuid
+                ]
+            )
+            toggleTipContents
+            ST.PositionBottom
+        ]
+
+
+whenCreated :
+    View.Types.Context
+    -> Project
+    -> (PopoverId -> msg)
+    -> Time.Posix
+    ->
+        { r
+            | uuid : String
+            , createdAt : Time.Posix
+        }
+    -> Element.Element msg
+whenCreated context project popoverMsgMapper currentTime resource =
+    let
+        { timeDistanceStr, createdTimeText } =
+            whenCreatedText { currentTime = currentTime, createdAt = resource.createdAt }
+
+        toggleTipContents =
+            Element.column [] [ createdTimeText ]
+    in
+    whenCreatedToggleTip
+        context
+        project
+        popoverMsgMapper
+        timeDistanceStr
+        resource
+        toggleTipContents
 
 
 tableHeader : String -> Element.Element msg

@@ -1,6 +1,5 @@
 module Page.ShareDetail exposing (Model, Msg(..), init, update, view)
 
-import DateFormat.Relative
 import Dict
 import Element
 import Element.Font as Font
@@ -10,7 +9,6 @@ import Helpers.Formatting exposing (Unit(..), humanNumber)
 import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
-import Helpers.Time
 import OpenStack.Types as OSTypes exposing (AccessRule, AccessRuleState(..), AccessRuleUuid, ExportLocation, Share, accessRuleAccessLevelToHumanString, accessRuleAccessTypeToString, accessRuleStateToString)
 import Style.Helpers as SH
 import Style.Types as ST exposing (ExoPalette)
@@ -23,7 +21,6 @@ import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.Select as Select
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
-import Style.Widgets.ToggleTip
 import Time
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg
@@ -501,37 +498,6 @@ exportLocationsTable palette exportLocations =
 render : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> Model -> Share -> Element.Element Msg
 render context project ( currentTime, _ ) model share =
     let
-        whenCreated =
-            let
-                timeDistanceStr =
-                    DateFormat.Relative.relativeTime currentTime share.createdAt
-
-                createdTimeText =
-                    let
-                        createdTimeFormatted =
-                            Helpers.Time.humanReadableDateAndTime share.createdAt
-                    in
-                    Element.text ("Created on: " ++ createdTimeFormatted)
-
-                toggleTipContents =
-                    Element.column [] [ createdTimeText ]
-            in
-            Element.row
-                [ Element.spacing spacer.px4 ]
-                [ Element.text timeDistanceStr
-                , Style.Widgets.ToggleTip.toggleTip
-                    context
-                    popoverMsgMapper
-                    (Helpers.String.hyphenate
-                        [ "createdTimeTip"
-                        , project.auth.project.uuid
-                        , share.uuid
-                        ]
-                    )
-                    toggleTipContents
-                    ST.PositionBottomLeft
-                ]
-
         creator =
             if share.userUuid == project.auth.user.uuid then
                 "me"
@@ -625,7 +591,7 @@ render context project ( currentTime, _ ) model share =
             [ description
             , createdAgoByWhomEtc
                 context
-                { ago = ( "created", whenCreated )
+                { ago = ( "created", VH.whenCreated context project popoverMsgMapper currentTime share )
                 , creator = creator
                 , size = sizeString
                 , shareProtocol = OSTypes.shareProtocolToString share.shareProtocol

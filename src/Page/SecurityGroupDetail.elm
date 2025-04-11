@@ -9,7 +9,6 @@ import Helpers.Formatting exposing (humanCount)
 import Helpers.GetterSetters as GetterSetters exposing (LoadingProgress(..), isDefaultSecurityGroup)
 import Helpers.Helpers exposing (serverCreatorName)
 import Helpers.String
-import Helpers.Time
 import OpenStack.Types as OSTypes exposing (SecurityGroup, securityGroupExoTags, securityGroupTaggedAs)
 import Page.SecurityGroupForm as SecurityGroupForm
 import Page.SecurityGroupRulesTable exposing (rulesTable)
@@ -25,7 +24,6 @@ import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.StatusBadge as StatusBadge
 import Style.Widgets.Tag exposing (tagNeutral, tagPositive)
 import Style.Widgets.Text as Text
-import Style.Widgets.ToggleTip
 import Style.Widgets.Validation as Validation
 import Time
 import Types.Project exposing (Project)
@@ -428,37 +426,6 @@ securityGroupActionsDropdown context project model securityGroup { preset, defau
 render : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> Model -> SecurityGroup -> Element.Element Msg
 render context project ( currentTime, _ ) model securityGroup =
     let
-        whenCreated =
-            let
-                timeDistanceStr =
-                    DateFormat.Relative.relativeTime currentTime securityGroup.createdAt
-
-                createdTimeText =
-                    let
-                        createdTimeFormatted =
-                            Helpers.Time.humanReadableDateAndTime securityGroup.createdAt
-                    in
-                    Element.text ("Created on: " ++ createdTimeFormatted)
-
-                toggleTipContents =
-                    Element.column [] [ createdTimeText ]
-            in
-            Element.row
-                [ Element.spacing spacer.px4 ]
-                [ Element.text timeDistanceStr
-                , Style.Widgets.ToggleTip.toggleTip
-                    context
-                    popoverMsgMapper
-                    (Helpers.String.hyphenate
-                        [ "createdTimeTip"
-                        , project.auth.project.uuid
-                        , securityGroup.uuid
-                        ]
-                    )
-                    toggleTipContents
-                    ST.PositionBottomLeft
-                ]
-
         numberOfRulesString =
             let
                 locale =
@@ -599,7 +566,7 @@ render context project ( currentTime, _ ) model securityGroup =
             [ description
             , createdAgoEtc
                 context
-                { ago = ( "created", whenCreated )
+                { ago = ( "created", VH.whenCreated context project popoverMsgMapper currentTime securityGroup )
                 , rules = ( numberOfRulesString, rulesUnit )
                 }
             ]
