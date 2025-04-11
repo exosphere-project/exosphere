@@ -419,55 +419,17 @@ volumeView context project currentTime volumeRecord =
                     , Text.body "·"
                     , Text.body <| VH.resourceName snapshot.name snapshot.uuid
                     ]
-                , if not <| List.member snapshot.status [ VS.Deleted, VS.Deleting ] then
-                    let
-                        deviceLabel =
-                            context.localization.blockDevice ++ " snapshot"
-
-                        deletePopconfirmId =
-                            Helpers.String.hyphenate
-                                [ "volumeListDeleteSnapshotPopconfirm"
-                                , project.auth.project.uuid
-                                , snapshot.uuid
-                                ]
-
-                        deleteSnapshotButton =
-                            deletePopconfirm context
-                                (SharedMsg << SharedMsg.TogglePopover)
-                                deletePopconfirmId
-                                { confirmation =
-                                    Element.text <|
-                                        "Are you sure you want to delete this "
-                                            ++ deviceLabel
-                                            ++ "?"
-                                , buttonText = Nothing
-                                , onCancel = Just NoOp
-                                , onConfirm = Just <| GotDeleteSnapshotConfirm snapshot.uuid
-                                }
-                                ST.PositionBottomRight
-                                (\msg _ ->
-                                    deleteIconButton context.palette
-                                        False
-                                        ("Delete " ++ deviceLabel)
-                                        (Just msg)
-                                )
-                    in
-                    Element.row
-                        []
-                        [ deleteSnapshotButton ]
-
-                  else
-                    let
-                        label =
-                            if VS.isTransitioning snapshot then
-                                VS.statusToString snapshot.status ++ "..."
-
-                            else
-                                VS.statusToString snapshot.status
-                    in
-                    Element.row
-                        []
-                        [ Text.text Text.Body [ Font.italic ] label ]
+                , Element.row
+                    []
+                    [ VH.deleteVolumeSnapshotIconButton
+                        context
+                        project
+                        (SharedMsg << SharedMsg.TogglePopover)
+                        "volumeListDeleteSnapshotPopconfirm"
+                        snapshot
+                        (Just <| GotDeleteSnapshotConfirm snapshot.uuid)
+                        (Just NoOp)
+                    ]
                 ]
 
         snapshotRows =

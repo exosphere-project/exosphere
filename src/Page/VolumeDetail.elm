@@ -9,13 +9,13 @@ import Helpers.GetterSetters as GetterSetters exposing (isSnapshotOfVolume)
 import Helpers.String exposing (removeEmptiness)
 import OpenStack.HelperTypes exposing (Uuid)
 import OpenStack.Types as OSTypes exposing (Volume)
-import OpenStack.VolumeSnapshots as VS exposing (VolumeSnapshot)
+import OpenStack.VolumeSnapshots exposing (VolumeSnapshot)
 import Route
 import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.Button as Button
 import Style.Widgets.CopyableText exposing (copyableText)
-import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
+import Style.Widgets.DeleteButton exposing (deletePopconfirm)
 import Style.Widgets.Grid exposing (scrollableCell)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.Link as Link
@@ -611,40 +611,15 @@ snapshotsTable context project currentTime snapshots =
                       , width = Element.shrink
                       , view =
                             \item ->
-                                if not <| List.member item.status [ VS.Deleted, VS.Deleting ] then
-                                    let
-                                        deviceLabel =
-                                            context.localization.blockDevice ++ " snapshot"
-
-                                        deletePopconfirmId =
-                                            Helpers.String.hyphenate
-                                                [ "volumeDetailDeleteSnapshotPopconfirm"
-                                                , project.auth.project.uuid
-                                                , item.uuid
-                                                ]
-                                    in
-                                    deletePopconfirm context
-                                        (SharedMsg << SharedMsg.TogglePopover)
-                                        deletePopconfirmId
-                                        { confirmation =
-                                            Element.text <|
-                                                "Are you sure you want to delete this "
-                                                    ++ deviceLabel
-                                                    ++ "?"
-                                        , buttonText = Nothing
-                                        , onCancel = Just NoOp
-                                        , onConfirm = Just <| GotDeleteSnapshotConfirm item.uuid
-                                        }
-                                        ST.PositionBottomRight
-                                        (\msg _ ->
-                                            deleteIconButton context.palette
-                                                False
-                                                ("Delete " ++ deviceLabel)
-                                                (Just msg)
-                                        )
-
-                                else
-                                    centerRow <| Text.body <| "Deleting..."
+                                centerRow <|
+                                    VH.deleteVolumeSnapshotIconButton
+                                        context
+                                        project
+                                        popoverMsgMapper
+                                        "volumeSnapshotDeletePopconfirm"
+                                        item
+                                        (Just <| GotDeleteSnapshotConfirm item.uuid)
+                                        (Just NoOp)
                       }
                     ]
                 }

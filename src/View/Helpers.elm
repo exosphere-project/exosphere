@@ -4,6 +4,7 @@ module View.Helpers exposing
     , compactKVSubRow
     , contentContainer
     , createdAgoByFromSize
+    , deleteVolumeSnapshotIconButton
     , directionOptions
     , edges
     , ellipsizedText
@@ -91,6 +92,7 @@ import Markdown.Renderer
 import OpenStack.Quotas as OSQuotas
 import OpenStack.SecurityGroupRule exposing (Remote(..), SecurityGroupRuleDirection(..), SecurityGroupRuleEthertype(..), SecurityGroupRuleProtocol(..), directionToString, etherTypeToString, protocolToString)
 import OpenStack.Types as OSTypes exposing (ShareStatus(..), Volume, VolumeStatus(..))
+import OpenStack.VolumeSnapshots as VS exposing (VolumeSnapshot)
 import Regex
 import Route
 import String.Extra
@@ -100,6 +102,7 @@ import Style.Widgets.Button as Button
 import Style.Widgets.Card
 import Style.Widgets.Code exposing (codeBlock, codeSpan)
 import Style.Widgets.CopyableText exposing (copyableTextAccessory)
+import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
 import Style.Widgets.Icon exposing (featherIcon)
 import Style.Widgets.Link as Link
 import Style.Widgets.Popover.Types exposing (PopoverId)
@@ -1526,6 +1529,61 @@ whenCreated context project popoverMsgMapper currentTime resource =
         timeDistanceStr
         resource
         toggleTipContents
+
+
+deleteResourcePopconfirm : View.Types.Context -> Project -> (PopoverId -> msg) -> { r | uuid : String, word : String } -> String -> Maybe msg -> Maybe msg -> Element.Element msg
+deleteResourcePopconfirm context project msgMapper resource popconfirmTag onConfirm onCancel =
+    let
+        deletePopconfirmId =
+            Helpers.String.hyphenate
+                [ popconfirmTag
+                , project.auth.project.uuid
+                , resource.uuid
+                ]
+    in
+    deletePopconfirm context
+        msgMapper
+        deletePopconfirmId
+        { confirmation =
+            Element.text <|
+                "Are you sure you want to delete this "
+                    ++ resource.word
+                    ++ "?"
+        , buttonText = Nothing
+        , onCancel = onCancel
+        , onConfirm = onConfirm
+        }
+        ST.PositionBottomRight
+        (\msg _ ->
+            deleteIconButton context.palette
+                False
+                ("Delete " ++ resource.word)
+                (Just msg)
+        )
+
+
+deleteVolumeSnapshotIconButton : View.Types.Context -> Project -> (PopoverId -> msg) -> String -> VolumeSnapshot -> Maybe msg -> Maybe msg -> Element.Element msg
+deleteVolumeSnapshotIconButton context project msgMapper popconfirmTag snapshot onConfirm onCancel =
+    if not <| List.member snapshot.status [ VS.Deleted, VS.Deleting ] then
+        deleteResourcePopconfirm
+            context
+            project
+            msgMapper
+            { uuid = snapshot.uuid, word = context.localization.blockDevice ++ " snapshot" }
+            popconfirmTag
+            onConfirm
+            onCancel
+
+    else
+        let
+            label =
+                if VS.isTransitioning snapshot then
+                    VS.statusToString snapshot.status ++ "..."
+
+                else
+                    VS.statusToString snapshot.status
+        in
+        Text.body <| label
 
 
 tableHeader : String -> Element.Element msg
