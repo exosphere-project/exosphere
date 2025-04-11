@@ -31,6 +31,7 @@ module View.Helpers exposing
     , remoteToRemoteType
     , remoteToStringInput
     , remoteTypeToString
+    , renderConfirmation
     , renderMarkdown
     , renderMaybe
     , renderMessageAsElement
@@ -1472,6 +1473,32 @@ tile context headerContents contents =
                 ]
             )
         )
+
+
+renderConfirmation : View.Types.Context -> Maybe msg -> Maybe msg -> String -> List (Element.Attribute msg) -> Element.Element msg
+renderConfirmation context actionMsg cancelMsg title closeActionsAttributes =
+    Element.row
+        [ Element.spacing spacer.px12, Element.width (Element.fill |> Element.minimum 280) ]
+        [ Element.text title
+        , Element.el
+            (Element.alignRight :: closeActionsAttributes)
+          <|
+            Button.button
+                Button.Danger
+                context.palette
+                { text = "Yes"
+                , onPress = actionMsg
+                }
+        , Element.el
+            [ Element.alignRight ]
+          <|
+            Button.button
+                Button.Secondary
+                context.palette
+                { text = "No"
+                , onPress = cancelMsg
+                }
+        ]
 
 
 featuredImageNamePrefixLookup : View.Types.Context -> Project -> Maybe String

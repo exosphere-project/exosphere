@@ -266,32 +266,6 @@ warningSecurityGroupAffectsServers context project securityGroupUuid =
             Element.none
 
 
-renderConfirmation : View.Types.Context -> Maybe Msg -> Maybe Msg -> String -> List (Element.Attribute Msg) -> Element.Element Msg
-renderConfirmation context actionMsg cancelMsg title closeActionsAttributes =
-    Element.row
-        [ Element.spacing spacer.px12, Element.width (Element.fill |> Element.minimum 280) ]
-        [ Element.text title
-        , Element.el
-            (Element.alignRight :: closeActionsAttributes)
-          <|
-            Button.button
-                Button.Danger
-                context.palette
-                { text = "Yes"
-                , onPress = actionMsg
-                }
-        , Element.el
-            [ Element.alignRight ]
-          <|
-            Button.button
-                Button.Secondary
-                context.palette
-                { text = "No"
-                , onPress = cancelMsg
-                }
-        ]
-
-
 renderDeleteAction : View.Types.Context -> Project -> Model -> { preset : Bool, default : Bool, progress : LoadingProgress } -> Maybe Msg -> Maybe (Element.Attribute Msg) -> List (Element.Element Msg)
 renderDeleteAction context project model { preset, default, progress } actionMsg closeActionsDropdown =
     [ case model.deletePendingConfirmation of
@@ -305,7 +279,7 @@ renderDeleteAction context project model { preset, default, progress } actionMsg
                         Nothing ->
                             []
             in
-            renderConfirmation
+            VH.renderConfirmation
                 context
                 actionMsg
                 (Just <|

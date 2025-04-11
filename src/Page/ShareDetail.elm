@@ -165,32 +165,6 @@ shareStatus context share =
         ]
 
 
-renderConfirmation : View.Types.Context -> Maybe Msg -> Maybe Msg -> String -> List (Element.Attribute Msg) -> Element.Element Msg
-renderConfirmation context actionMsg cancelMsg title closeActionsAttributes =
-    Element.row
-        [ Element.spacing spacer.px12, Element.width (Element.fill |> Element.minimum 280) ]
-        [ Element.text title
-        , Element.el
-            (Element.alignRight :: closeActionsAttributes)
-          <|
-            Button.button
-                Button.Danger
-                context.palette
-                { text = "Yes"
-                , onPress = actionMsg
-                }
-        , Element.el
-            [ Element.alignRight ]
-          <|
-            Button.button
-                Button.Secondary
-                context.palette
-                { text = "No"
-                , onPress = cancelMsg
-                }
-        ]
-
-
 renderDeleteAction : View.Types.Context -> Model -> Maybe Msg -> Maybe (Element.Attribute Msg) -> Element.Element Msg
 renderDeleteAction context model actionMsg closeActionsDropdown =
     case model.deletePendingConfirmation of
@@ -204,7 +178,7 @@ renderDeleteAction context model actionMsg closeActionsDropdown =
                         Nothing ->
                             []
             in
-            renderConfirmation
+            VH.renderConfirmation
                 context
                 actionMsg
                 (Just <|
