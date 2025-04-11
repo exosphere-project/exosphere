@@ -13,12 +13,10 @@ import Page.QuotaUsage
 import Route
 import Set
 import Style.Helpers as SH
-import Style.Types as ST
 import Style.Widgets.Alert as Alert
 import Style.Widgets.Button as Button
 import Style.Widgets.CopyableText
 import Style.Widgets.DataList as DataList
-import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
@@ -273,35 +271,14 @@ floatingIpView context project floatingIpRecord =
                         }
 
         deleteIpBtnWithPopconfirm =
-            let
-                deleteIpButton togglePopconfirmMsg _ =
-                    deleteIconButton
-                        context.palette
-                        False
-                        ("Delete " ++ context.localization.floatingIpAddress)
-                        (Just togglePopconfirmMsg)
-
-                deletePopconfirmId =
-                    Helpers.String.hyphenate
-                        [ "floatingIpListDeletePopconfirm"
-                        , project.auth.project.uuid
-                        , floatingIpRecord.id
-                        ]
-            in
-            deletePopconfirm context
-                (\deletePopconfirmId_ -> SharedMsg <| SharedMsg.TogglePopover deletePopconfirmId_)
-                deletePopconfirmId
-                { confirmation =
-                    Element.text <|
-                        "Are you sure you want to delete this "
-                            ++ context.localization.floatingIpAddress
-                            ++ "?"
-                , buttonText = Nothing
-                , onConfirm = Just <| GotDeleteConfirm floatingIpRecord.id
-                , onCancel = Just NoOp
-                }
-                ST.PositionBottomRight
-                deleteIpButton
+            VH.deleteResourcePopconfirm
+                context
+                project
+                (SharedMsg << SharedMsg.TogglePopover)
+                { uuid = floatingIpRecord.id, word = context.localization.floatingIpAddress }
+                "floatingIpListDeletePopconfirm"
+                (Just <| GotDeleteConfirm floatingIpRecord.id)
+                (Just NoOp)
 
         ipAssignment =
             case floatingIpRecord.ip.portUuid of

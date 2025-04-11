@@ -13,11 +13,8 @@ import OpenStack.Types as OSTypes exposing (ShareStatus(..))
 import Page.QuotaUsage
 import Route
 import Style.Helpers as SH
-import Style.Types as ST
 import Style.Widgets.DataList as DataList
-import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirmContent)
 import Style.Widgets.HumanTime exposing (relativeTimeElement)
-import Style.Widgets.Popover.Popover exposing (popover)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import Time
@@ -186,46 +183,14 @@ shareView context project currentTime shareRecord =
                     Text.text Text.Body [ Font.italic ] ("Could not delete " ++ context.localization.share ++ ".")
 
                 ShareAvailable ->
-                    let
-                        deleteBtn togglePopconfirmMsg _ =
-                            deleteIconButton
-                                context.palette
-                                False
-                                ("Delete " ++ context.localization.share)
-                                (Just togglePopconfirmMsg)
-
-                        deletePopconfirmId =
-                            Helpers.String.hyphenate
-                                [ "shareListDeletePopconfirm"
-                                , project.auth.project.uuid
-                                , shareRecord.id
-                                ]
-                    in
-                    popover context
-                        (\deletePopconfirmId_ -> SharedMsg <| SharedMsg.TogglePopover deletePopconfirmId_)
-                        { id = deletePopconfirmId
-                        , content =
-                            \confirmEl ->
-                                Element.column [ Element.spacing spacer.px8, Element.padding spacer.px4 ] <|
-                                    [ deletePopconfirmContent
-                                        context.palette
-                                        { confirmation =
-                                            Element.text <|
-                                                "Are you sure you want to delete this "
-                                                    ++ context.localization.share
-                                                    ++ "?"
-                                        , buttonText = Nothing
-                                        , onCancel = Just NoOp
-                                        , onConfirm = Just <| GotDeleteConfirm shareRecord.id
-                                        }
-                                        confirmEl
-                                    ]
-                        , contentStyleAttrs = []
-                        , position = ST.PositionBottomRight
-                        , distanceToTarget = Nothing
-                        , target = deleteBtn
-                        , targetStyleAttrs = []
-                        }
+                    VH.deleteResourcePopconfirm
+                        context
+                        project
+                        (SharedMsg << SharedMsg.TogglePopover)
+                        { uuid = shareRecord.id, word = context.localization.share }
+                        "shareListDeletePopconfirm"
+                        (Just <| GotDeleteConfirm shareRecord.id)
+                        (Just NoOp)
 
                 _ ->
                     Element.none

@@ -4,6 +4,7 @@ module View.Helpers exposing
     , compactKVSubRow
     , contentContainer
     , createdAgoByFromSize
+    , deleteResourcePopconfirm
     , deleteVolumeSnapshotIconButton
     , directionOptions
     , edges
