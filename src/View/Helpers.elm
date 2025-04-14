@@ -7,6 +7,7 @@ module View.Helpers exposing
     , deleteResourcePopconfirm
     , deleteResourcePopconfirmWithDisabledHint
     , deleteVolumeSnapshotIconButton
+    , deleteVolumeWarning
     , directionOptions
     , edges
     , ellipsizedText
@@ -1562,6 +1563,43 @@ deleteResourcePopconfirmWithDisabledHint context project msgMapper resource popc
                 buttonState
                 (Just msg)
         )
+
+
+deleteVolumeWarning : View.Types.Context -> Volume -> Maybe String
+deleteVolumeWarning context volume =
+    case ( GetterSetters.isBootVolume Nothing volume, volume.status ) of
+        ( True, _ ) ->
+            Just <|
+                String.join " "
+                    [ "This"
+                    , context.localization.blockDevice
+                    , "backs"
+                    , Helpers.String.indefiniteArticle context.localization.virtualComputer
+                    , context.localization.virtualComputer ++ "."
+                    , "It cannot be deleted before the"
+                    , context.localization.virtualComputer
+                    , "is deleted."
+                    ]
+
+        ( _, OSTypes.Reserved ) ->
+            Just <|
+                String.join " "
+                    [ "Unshelve the attached"
+                    , context.localization.virtualComputer
+                    , "to interact with this"
+                    , context.localization.blockDevice ++ "."
+                    ]
+
+        ( _, OSTypes.InUse ) ->
+            Just <|
+                String.join " "
+                    [ "This"
+                    , context.localization.blockDevice
+                    , "must be detached before it can be deleted."
+                    ]
+
+        _ ->
+            Nothing
 
 
 deleteResourcePopconfirm : View.Types.Context -> Project -> (PopoverId -> msg) -> { r | uuid : String, word : String } -> String -> Maybe msg -> Maybe msg -> Element.Element msg

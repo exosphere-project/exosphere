@@ -298,17 +298,15 @@ volumeView context project currentTime volumeRecord =
                         "volumeListDeletePopconfirm"
                         (Just <| GotDeleteVolumeConfirm volumeRecord.id)
                         (Just NoOp)
-                        (if enabled then
-                            DeleteButton.Enabled ("Delete " ++ context.localization.blockDevice)
+                        (let
+                            deleteString =
+                                "Delete " ++ context.localization.blockDevice
+                         in
+                         if enabled then
+                            DeleteButton.Enabled deleteString
 
                          else
-                            DeleteButton.Disabled
-                                (String.join " "
-                                    [ "This"
-                                    , context.localization.blockDevice
-                                    , "must be detached before it can be deleted."
-                                    ]
-                                )
+                            DeleteButton.Disabled (Maybe.withDefault deleteString <| VH.deleteVolumeWarning context volumeRecord.volume)
                         )
             in
             case volumeRecord.volume.status of

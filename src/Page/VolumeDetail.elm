@@ -158,46 +158,16 @@ renderDeleteAction context model volume actionMsg closeActionsDropdown =
 
         Nothing ->
             let
-                ( isDeleteDisabled, warning ) =
-                    case ( GetterSetters.isBootVolume Nothing volume, volume.status ) of
-                        ( True, _ ) ->
-                            ( True
-                            , Text.body <|
-                                String.join " "
-                                    [ "This"
-                                    , context.localization.blockDevice
-                                    , "backs"
-                                    , Helpers.String.indefiniteArticle context.localization.virtualComputer
-                                    , context.localization.virtualComputer ++ "."
-                                    , "It cannot be deleted before the"
-                                    , context.localization.virtualComputer
-                                    , "is deleted."
-                                    ]
-                            )
+                isDeleteDisabled =
+                    GetterSetters.isBootVolume Nothing volume
 
-                        ( _, OSTypes.Reserved ) ->
-                            ( True
-                            , Text.body <|
-                                String.join " "
-                                    [ "Unshelve the attached"
-                                    , context.localization.virtualComputer
-                                    , "to interact with this"
-                                    , context.localization.blockDevice ++ "."
-                                    ]
-                            )
+                warning =
+                    case VH.deleteVolumeWarning context volume of
+                        Just warning_ ->
+                            Text.body <| warning_
 
-                        ( _, OSTypes.InUse ) ->
-                            ( True
-                            , Text.body <|
-                                String.join " "
-                                    [ "This"
-                                    , context.localization.blockDevice
-                                    , "must be detached before it can be deleted."
-                                    ]
-                            )
-
-                        _ ->
-                            ( False, Text.body <| "Destroy " ++ context.localization.blockDevice ++ "?" )
+                        Nothing ->
+                            Text.body <| "Destroy " ++ context.localization.blockDevice ++ "?"
             in
             Element.row
                 [ Element.spacing spacer.px12, Element.width (Element.fill |> Element.minimum 280) ]
