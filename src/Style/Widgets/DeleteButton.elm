@@ -1,6 +1,8 @@
 module Style.Widgets.DeleteButton exposing
-    ( PopconfirmContent
+    ( DeleteButtonState(..)
+    , PopconfirmContent
     , deleteIconButton
+    , deleteIconButtonWithDisabledHint
     , deletePopconfirm
     , deletePopconfirmContent
     )
@@ -57,6 +59,28 @@ deleteIconButton palette styleIsPrimary text onPress =
         , text = text
         , onPress = onPress
         }
+
+
+type DeleteButtonState
+    = Enabled String
+    | Disabled String
+
+
+deleteIconButtonWithDisabledHint : ExoPalette -> Bool -> DeleteButtonState -> Maybe msg -> Element.Element msg
+deleteIconButtonWithDisabledHint palette styleIsPrimary enabledDisabled onPress =
+    let
+        ( hint, action ) =
+            case enabledDisabled of
+                Enabled text ->
+                    ( text, onPress )
+
+                Disabled text ->
+                    ( text, Nothing )
+    in
+    deleteIconButton palette
+        styleIsPrimary
+        hint
+        action
 
 
 deletePopconfirmContent : ExoPalette -> PopconfirmContent msg -> Element.Attribute msg -> Element.Element msg

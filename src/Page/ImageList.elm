@@ -19,7 +19,7 @@ import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.Button as Button
 import Style.Widgets.DataList as DataList
-import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
+import Style.Widgets.DeleteButton as DeleteButton
 import Style.Widgets.Icon as Icon exposing (featherIcon, sizedFeatherIcon)
 import Style.Widgets.Popover.Popover as Popover
 import Style.Widgets.Popover.Types exposing (PopoverId)
@@ -201,28 +201,6 @@ imageView : Model -> Context -> Project -> ImageRecord -> Element.Element Msg
 imageView model context project imageRecord =
     let
         deleteImageBtn =
-            let
-                deleteBtn togglePopconfirmMsg _ =
-                    let
-                        ( deleteBtnText, deleteBtnOnPress ) =
-                            if imageRecord.image.protected then
-                                ( "Can't delete protected "
-                                    ++ context.localization.staticRepresentationOfBlockDeviceContents
-                                , Nothing
-                                )
-
-                            else
-                                ( "Delete "
-                                    ++ context.localization.staticRepresentationOfBlockDeviceContents
-                                , Just togglePopconfirmMsg
-                                )
-                    in
-                    deleteIconButton
-                        context.palette
-                        False
-                        deleteBtnText
-                        deleteBtnOnPress
-            in
             if model.showDeleteButtons && projectOwnsImage project imageRecord.image then
                 let
                     deletionAttempted =
@@ -237,28 +215,24 @@ imageView model context project imageRecord =
                         (Widget.circularProgressIndicator (SH.materialStyle context.palette).progressIndicator Nothing)
 
                 else
-                    let
-                        deletePopconfirmId =
-                            Helpers.String.hyphenate
-                                [ "ImageListDeletePopconfirm"
-                                , project.auth.project.uuid
-                                , imageRecord.id
-                                ]
-                    in
-                    deletePopconfirm context
-                        (\deletePopconfirmId_ -> SharedMsg <| SharedMsg.TogglePopover deletePopconfirmId_)
-                        deletePopconfirmId
-                        { confirmation =
-                            Element.text <|
-                                "Are you sure you want to delete this "
+                    VH.deleteResourcePopconfirmWithDisabledHint
+                        context
+                        project
+                        (SharedMsg << SharedMsg.TogglePopover)
+                        { uuid = imageRecord.id, word = context.localization.staticRepresentationOfBlockDeviceContents }
+                        "imageListDeletePopconfirm"
+                        (Just <| GotDeleteConfirm imageRecord.id)
+                        (Just NoOp)
+                        (if imageRecord.image.protected then
+                            DeleteButton.Disabled
+                                ("Can't delete protected "
                                     ++ context.localization.staticRepresentationOfBlockDeviceContents
-                                    ++ "?"
-                        , buttonText = Nothing
-                        , onConfirm = Just <| GotDeleteConfirm imageRecord.id
-                        , onCancel = Just NoOp
-                        }
-                        ST.PositionBottomRight
-                        deleteBtn
+                                    |> Helpers.String.pluralize
+                                )
+
+                         else
+                            DeleteButton.Enabled ("Delete " ++ context.localization.staticRepresentationOfBlockDeviceContents)
+                        )
 
             else
                 Element.none

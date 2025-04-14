@@ -5,6 +5,7 @@ module View.Helpers exposing
     , contentContainer
     , createdAgoByFromSize
     , deleteResourcePopconfirm
+    , deleteResourcePopconfirmWithDisabledHint
     , deleteVolumeSnapshotIconButton
     , directionOptions
     , edges
@@ -103,7 +104,7 @@ import Style.Widgets.Button as Button
 import Style.Widgets.Card
 import Style.Widgets.Code exposing (codeBlock, codeSpan)
 import Style.Widgets.CopyableText exposing (copyableTextAccessory)
-import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
+import Style.Widgets.DeleteButton as DeleteButton exposing (DeleteButtonState, deleteIconButtonWithDisabledHint, deletePopconfirm)
 import Style.Widgets.Icon exposing (featherIcon)
 import Style.Widgets.Link as Link
 import Style.Widgets.Popover.Types exposing (PopoverId)
@@ -1532,8 +1533,8 @@ whenCreated context project popoverMsgMapper currentTime resource =
         toggleTipContents
 
 
-deleteResourcePopconfirm : View.Types.Context -> Project -> (PopoverId -> msg) -> { r | uuid : String, word : String } -> String -> Maybe msg -> Maybe msg -> Element.Element msg
-deleteResourcePopconfirm context project msgMapper resource popconfirmTag onConfirm onCancel =
+deleteResourcePopconfirmWithDisabledHint : View.Types.Context -> Project -> (PopoverId -> msg) -> { r | uuid : String, word : String } -> String -> Maybe msg -> Maybe msg -> DeleteButtonState -> Element.Element msg
+deleteResourcePopconfirmWithDisabledHint context project msgMapper resource popconfirmTag onConfirm onCancel buttonState =
     let
         deletePopconfirmId =
             Helpers.String.hyphenate
@@ -1556,11 +1557,24 @@ deleteResourcePopconfirm context project msgMapper resource popconfirmTag onConf
         }
         ST.PositionBottomRight
         (\msg _ ->
-            deleteIconButton context.palette
+            deleteIconButtonWithDisabledHint context.palette
                 False
-                ("Delete " ++ resource.word)
+                buttonState
                 (Just msg)
         )
+
+
+deleteResourcePopconfirm : View.Types.Context -> Project -> (PopoverId -> msg) -> { r | uuid : String, word : String } -> String -> Maybe msg -> Maybe msg -> Element.Element msg
+deleteResourcePopconfirm context project msgMapper resource popconfirmTag onConfirm onCancel =
+    deleteResourcePopconfirmWithDisabledHint
+        context
+        project
+        msgMapper
+        resource
+        popconfirmTag
+        onConfirm
+        onCancel
+        (DeleteButton.Enabled ("Delete " ++ resource.word))
 
 
 deleteVolumeSnapshotIconButton : View.Types.Context -> Project -> (PopoverId -> msg) -> String -> VolumeSnapshot -> Maybe msg -> Maybe msg -> Element.Element msg

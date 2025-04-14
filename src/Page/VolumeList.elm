@@ -19,7 +19,7 @@ import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.Button as Button
 import Style.Widgets.DataList as DataList
-import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
+import Style.Widgets.DeleteButton as DeleteButton
 import Style.Widgets.HumanTime exposing (relativeTimeElement)
 import Style.Widgets.Icon exposing (featherIcon)
 import Style.Widgets.Spacer exposing (spacer)
@@ -289,42 +289,26 @@ volumeView context project currentTime volumeRecord =
 
         volumeActions =
             let
-                deleteVolumeBtn enabled togglePopconfirmMsg _ =
-                    deleteIconButton
-                        context.palette
-                        False
-                        ("Delete " ++ context.localization.blockDevice)
+                deleteButton enabled =
+                    VH.deleteResourcePopconfirmWithDisabledHint
+                        context
+                        project
+                        (SharedMsg << SharedMsg.TogglePopover)
+                        { uuid = volumeRecord.id, word = context.localization.blockDevice }
+                        "volumeListDeletePopconfirm"
+                        (Just <| GotDeleteVolumeConfirm volumeRecord.id)
+                        (Just NoOp)
                         (if enabled then
-                            Just togglePopconfirmMsg
+                            DeleteButton.Enabled ("Delete " ++ context.localization.blockDevice)
 
                          else
-                            Nothing
-                        )
-
-                deletePopconfirmId =
-                    Helpers.String.hyphenate
-                        [ "volumeListDeletePopconfirm"
-                        , project.auth.project.uuid
-                        , volumeRecord.id
-                        ]
-
-                deleteButton enabled =
-                    deletePopconfirm context
-                        (SharedMsg << SharedMsg.TogglePopover)
-                        deletePopconfirmId
-                        { confirmation =
-                            Element.text <|
-                                "Are you sure you want to delete this "
-                                    ++ context.localization.blockDevice
-                                    ++ "?"
-                        , buttonText = Nothing
-                        , onCancel = Just NoOp
-                        , onConfirm =
-                            Just <| GotDeleteVolumeConfirm volumeRecord.id
-                        }
-                        ST.PositionBottomRight
-                        (deleteVolumeBtn <|
-                            enabled
+                            DeleteButton.Disabled
+                                (String.join " "
+                                    [ "This"
+                                    , context.localization.blockDevice
+                                    , "must be detached before it can be deleted."
+                                    ]
+                                )
                         )
             in
             case volumeRecord.volume.status of
