@@ -43,7 +43,7 @@ type alias Model =
 
 
 type Msg
-    = DetachVolume OSTypes.VolumeUuid
+    = GotDetachVolumeConfirm OSTypes.VolumeUuid
     | GotDeleteSnapshotConfirm Uuid
     | GotDeleteVolumeConfirm OSTypes.VolumeUuid
     | SharedMsg SharedMsg.SharedMsg
@@ -64,7 +64,7 @@ update msg project model =
             GetterSetters.projectIdentifier project
     in
     case msg of
-        DetachVolume volumeUuid ->
+        GotDetachVolumeConfirm volumeUuid ->
             ( model
             , Cmd.none
             , SharedMsg.ProjectMsg projectId <|
@@ -318,18 +318,6 @@ volumeView context project currentTime volumeRecord =
 
                 OSTypes.InUse ->
                     let
-                        detachButton enabled =
-                            Button.default
-                                context.palette
-                                { text = "Detach"
-                                , onPress =
-                                    if enabled then
-                                        Just <| DetachVolume volumeRecord.id
-
-                                    else
-                                        Nothing
-                                }
-
                         isBootVolume =
                             GetterSetters.isBootVolume Nothing volumeRecord.volume
 
@@ -342,7 +330,14 @@ volumeView context project currentTime volumeRecord =
                     in
                     Element.row [ Element.spacing spacer.px12 ]
                         [ bootVolumeTag
-                        , detachButton <| not <| isBootVolume
+                        , VH.detachVolumeButton
+                            context
+                            project
+                            (SharedMsg << SharedMsg.TogglePopover)
+                            "volumeListDetachPopconfirm"
+                            volumeRecord.volume
+                            (Just <| GotDetachVolumeConfirm volumeRecord.id)
+                            (Just NoOp)
                         , deleteButton False
                         ]
 

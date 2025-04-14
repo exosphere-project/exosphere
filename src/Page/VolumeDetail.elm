@@ -15,7 +15,6 @@ import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.Button as Button
 import Style.Widgets.CopyableText exposing (copyableText)
-import Style.Widgets.DeleteButton exposing (deletePopconfirm)
 import Style.Widgets.Grid exposing (scrollableCell)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.Link as Link
@@ -486,45 +485,17 @@ attachmentsTable context project volume =
 
                                                 else
                                                     Element.none
-
-                                            detachButton : msg -> Bool -> Element.Element msg
-                                            detachButton togglePopconfirm _ =
-                                                Button.default
-                                                    context.palette
-                                                    { text = "Detach"
-                                                    , onPress =
-                                                        if isBootVolume then
-                                                            Nothing
-
-                                                        else
-                                                            Just togglePopconfirm
-                                                    }
-
-                                            detachPopconfirmId =
-                                                Helpers.String.hyphenate [ "volumeDetailDetachPopconfirm", project.auth.project.uuid, volume.uuid ]
                                         in
                                         Element.row [ Element.spacing spacer.px12 ]
                                             [ bootVolumeTag
-                                            , deletePopconfirm context
+                                            , VH.detachVolumeButton
+                                                context
+                                                project
                                                 (SharedMsg << SharedMsg.TogglePopover)
-                                                detachPopconfirmId
-                                                { confirmation =
-                                                    Element.column [ Element.spacing spacer.px8 ]
-                                                        [ Element.text <|
-                                                            "Detaching "
-                                                                ++ Helpers.String.indefiniteArticle context.localization.blockDevice
-                                                                ++ " "
-                                                                ++ context.localization.blockDevice
-                                                                ++ " while it is in use may cause data loss."
-                                                        , Element.text
-                                                            "Make sure to close any open files before detaching."
-                                                        ]
-                                                , buttonText = Just "Detach"
-                                                , onConfirm = Just <| GotDetachVolumeConfirm volume.uuid
-                                                , onCancel = Just NoOp
-                                                }
-                                                ST.PositionBottomRight
-                                                detachButton
+                                                "volumeDetailDetachPopconfirm"
+                                                volume
+                                                (Just <| GotDetachVolumeConfirm volume.uuid)
+                                                (Just NoOp)
                                             ]
 
                                     _ ->

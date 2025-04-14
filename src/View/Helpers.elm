@@ -8,6 +8,7 @@ module View.Helpers exposing
     , deleteResourcePopconfirmWithDisabledHint
     , deleteVolumeSnapshotIconButton
     , deleteVolumeWarning
+    , detachVolumeButton
     , directionOptions
     , edges
     , ellipsizedText
@@ -1637,6 +1638,50 @@ deleteVolumeSnapshotIconButton context project msgMapper popconfirmTag snapshot 
                     VS.statusToString snapshot.status
         in
         Text.body <| label
+
+
+detachVolumeButton : View.Types.Context -> Project -> (PopoverId -> msg) -> String -> Volume -> Maybe msg -> Maybe msg -> Element.Element msg
+detachVolumeButton context project msgMapper popconfirmTag volume onConfirm onCancel =
+    let
+        isBootVolume =
+            GetterSetters.isBootVolume Nothing volume
+
+        detachButton : msg -> Bool -> Element.Element msg
+        detachButton togglePopconfirm _ =
+            Button.default
+                context.palette
+                { text = "Detach"
+                , onPress =
+                    if isBootVolume then
+                        Nothing
+
+                    else
+                        Just togglePopconfirm
+                }
+
+        detachPopconfirmId =
+            Helpers.String.hyphenate [ popconfirmTag, project.auth.project.uuid, volume.uuid ]
+    in
+    deletePopconfirm context
+        msgMapper
+        detachPopconfirmId
+        { confirmation =
+            Element.column [ Element.spacing spacer.px8 ]
+                [ Element.text <|
+                    "Detaching "
+                        ++ Helpers.String.indefiniteArticle context.localization.blockDevice
+                        ++ " "
+                        ++ context.localization.blockDevice
+                        ++ " while it is in use may cause data loss."
+                , Element.text
+                    "Make sure to close any open files before detaching."
+                ]
+        , buttonText = Just "Detach"
+        , onConfirm = onConfirm
+        , onCancel = onCancel
+        }
+        ST.PositionBottomRight
+        detachButton
 
 
 tableHeader : String -> Element.Element msg
