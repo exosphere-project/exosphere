@@ -137,13 +137,27 @@ var cloud_configs = {
         },
         {
           matchOn: "g3.(small|medium|large)",
-          title: "Partial GPU",
+          title: "Partial GPU (NVIDIA A100)",
           description: "These have a graphics processing unit.",
           disallowedActions: ["Suspend"],
         },
         {
           matchOn: "g3.\\d?xl",
-          title: "Full GPU",
+          title: "Full GPU (NVIDIA A100)",
+          description:
+            "Full-GPU instances cannot resize to partial-GPU after creation.",
+          disallowedActions: ["Suspend", "Resize"],
+        },
+        {
+          matchOn: "g4.\\d?xl",
+          title: "Full GPU (NVIDIA L40S)",
+          description:
+            "Full-GPU instances cannot resize to partial-GPU after creation.",
+          disallowedActions: ["Suspend", "Resize"],
+        },
+        {
+          matchOn: "g5.\\d?xl",
+          title: "Full GPU (NVIDIA H100)",
           description:
             "Full-GPU instances cannot resize to partial-GPU after creation.",
           disallowedActions: ["Suspend", "Resize"],
