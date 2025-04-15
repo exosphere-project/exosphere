@@ -1220,7 +1220,10 @@ processTick outerModel interval time =
                                                 Cmd.none
 
                                         60 ->
-                                            OSVolumes.requestVolumes project
+                                            Cmd.batch
+                                                [ OSVolumes.requestVolumes project
+                                                , OSVolumes.requestVolumeSnapshots project
+                                                ]
 
                                         _ ->
                                             Cmd.none
@@ -1272,7 +1275,10 @@ processTick outerModel interval time =
                                                         Cmd.none
 
                                         60 ->
-                                            OSVolumes.requestVolumes project
+                                            Cmd.batch
+                                                [ OSVolumes.requestVolumes project
+                                                , OSVolumes.requestVolumeSnapshots project
+                                                ]
 
                                         _ ->
                                             Cmd.none
