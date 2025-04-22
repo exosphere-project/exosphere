@@ -9,6 +9,7 @@ module Helpers.GetterSetters exposing
     , getFloatingIpServer
     , getSecurityGroupActions
     , getServerDnsRecordSets
+    , getServerEvents
     , getServerExouserPassphrase
     , getServerFixedIps
     , getServerFlavorGroup
@@ -96,7 +97,7 @@ import OpenStack.Types as OSTypes
 import OpenStack.VolumeSnapshots as VS
 import Regex
 import Time
-import Types.Error
+import Types.Error exposing (HttpErrorWithBody)
 import Types.HelperTypes as HelperTypes
 import Types.Project exposing (Project)
 import Types.SecurityGroupActions as SecurityGroupActions exposing (SecurityGroupAction)
@@ -904,18 +905,20 @@ projectSetServerLoading serverUuid project =
 
 
 projectSetServerEventsLoading : OSTypes.ServerUuid -> Project -> Project
-projectSetServerEventsLoading serverUuid project =
-    case serverLookup project serverUuid of
-        Nothing ->
-            -- We can't do anything lol
-            project
+projectSetServerEventsLoading serverId project =
+    { project
+        | serverEvents =
+            Dict.update serverId
+                (\entry ->
+                    case entry of
+                        Just serverEvents ->
+                            Just (RDPP.setLoading serverEvents)
 
-        Just server ->
-            let
-                newServer =
-                    { server | events = RDPP.setLoading server.events }
-            in
-            projectUpdateServer project newServer
+                        Nothing ->
+                            Just (RDPP.setLoading RDPP.empty)
+                )
+                project.serverEvents
+    }
 
 
 projectSetServerSecurityGroupsLoading : OSTypes.ServerUuid -> Project -> Project
@@ -1209,3 +1212,9 @@ projectUpdateSecurityGroupActionsIfExists project securityGroupUuid onUpdateActi
         | securityGroupActions =
             securityGroupActions
     }
+
+
+getServerEvents : Project -> OSTypes.ServerUuid -> RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.ServerEvent)
+getServerEvents project serverId =
+    Dict.get serverId project.serverEvents
+        |> Maybe.withDefault RDPP.empty

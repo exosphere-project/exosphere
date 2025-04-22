@@ -393,7 +393,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                 [ Icon.history (SH.toElementColor context.palette.neutral.text.default) 20
                 , Element.text "Action History"
                 ]
-                [ serverEventHistory
+                [ renderServerEventHistory
                     context
                     project
                     server
@@ -1064,109 +1064,118 @@ serverActionsDropdown context project model server =
             Element.none
 
 
-serverEventHistory :
+renderServerEventHistory :
     View.Types.Context
     -> Project
     -> Server
     -> Time.Posix
     -> Element.Element Msg
-serverEventHistory context project server currentTime =
-    case server.events.data of
-        RDPP.DoHave serverEvents _ ->
-            let
-                serverSetupStatus : Maybe ( String, Maybe Time.Posix )
-                serverSetupStatus =
-                    case server.exoProps.serverOrigin of
-                        ServerNotFromExo ->
+renderServerEventHistory context project server currentTime =
+    VH.renderRDPP context
+        (GetterSetters.getServerEvents project server.osProps.uuid)
+        "Action History"
+        (serverEventHistoryTable context project server currentTime)
+
+
+serverEventHistoryTable :
+    View.Types.Context
+    -> Project
+    -> Server
+    -> Time.Posix
+    -> List OSTypes.ServerEvent
+    -> Element.Element Msg
+serverEventHistoryTable context project server currentTime serverEvents =
+    let
+        serverSetupStatus : Maybe ( String, Maybe Time.Posix )
+        serverSetupStatus =
+            case server.exoProps.serverOrigin of
+                ServerNotFromExo ->
+                    Nothing
+
+                ServerFromExo exoOriginProps ->
+                    case exoOriginProps.exoSetupStatus.data of
+                        RDPP.DoHave ( exoSetupStatus, timestamp ) _ ->
+                            Just
+                                ( Types.Server.exoSetupStatusToString exoSetupStatus
+                                , timestamp
+                                )
+
+                        RDPP.DontHave ->
                             Nothing
 
-                        ServerFromExo exoOriginProps ->
-                            case exoOriginProps.exoSetupStatus.data of
-                                RDPP.DoHave ( exoSetupStatus, timestamp ) _ ->
-                                    Just
-                                        ( Types.Server.exoSetupStatusToString exoSetupStatus
-                                        , timestamp
-                                        )
+        columns : List (Element.Column { action : String, startTime : Time.Posix } Msg)
+        columns =
+            [ { header = Text.strong "Action"
+              , width = Element.px 180
+              , view =
+                    \event ->
+                        let
+                            actionStr =
+                                event.action
+                                    |> String.replace "_" " "
+                        in
+                        Element.paragraph [] [ Element.text actionStr ]
+              }
+            , { header = Text.strong "Time"
+              , width = Element.px 180
+              , view =
+                    \event ->
+                        let
+                            relativeTime =
+                                DateFormat.Relative.relativeTime currentTime event.startTime
 
-                                RDPP.DontHave ->
-                                    Nothing
-
-                columns : List (Element.Column { action : String, startTime : Time.Posix } Msg)
-                columns =
-                    [ { header = Text.strong "Action"
-                      , width = Element.px 180
-                      , view =
-                            \event ->
+                            absoluteTime =
                                 let
-                                    actionStr =
-                                        event.action
-                                            |> String.replace "_" " "
+                                    toggleTipId =
+                                        Helpers.String.hyphenate
+                                            [ "serverEventTimeTip"
+                                            , project.auth.project.uuid
+                                            , server.osProps.uuid
+                                            , event.startTime |> Time.posixToMillis |> String.fromInt
+                                            ]
                                 in
-                                Element.paragraph [] [ Element.text actionStr ]
-                      }
-                    , { header = Text.strong "Time"
-                      , width = Element.px 180
-                      , view =
-                            \event ->
-                                let
-                                    relativeTime =
-                                        DateFormat.Relative.relativeTime currentTime event.startTime
+                                Style.Widgets.ToggleTip.toggleTip
+                                    context
+                                    popoverMsgMapper
+                                    toggleTipId
+                                    (Element.text (Helpers.Time.humanReadableDateAndTime event.startTime))
+                                    ST.PositionBottomRight
+                        in
+                        Element.row []
+                            [ Element.text relativeTime
+                            , absoluteTime
+                            ]
+              }
+            ]
 
-                                    absoluteTime =
-                                        let
-                                            toggleTipId =
-                                                Helpers.String.hyphenate
-                                                    [ "serverEventTimeTip"
-                                                    , project.auth.project.uuid
-                                                    , server.osProps.uuid
-                                                    , event.startTime |> Time.posixToMillis |> String.fromInt
-                                                    ]
-                                        in
-                                        Style.Widgets.ToggleTip.toggleTip
-                                            context
-                                            popoverMsgMapper
-                                            toggleTipId
-                                            (Element.text (Helpers.Time.humanReadableDateAndTime event.startTime))
-                                            ST.PositionBottomRight
-                                in
-                                Element.row []
-                                    [ Element.text relativeTime
-                                    , absoluteTime
-                                    ]
+        serverEventsWithActionAndStartTime =
+            serverEvents
+                |> List.map (\{ action, startTime } -> { action = action, startTime = startTime })
+
+        serverSetupStatusInfo =
+            case serverSetupStatus of
+                Just ( status, Just timestamp ) ->
+                    [ { action = "Setup " ++ status
+                      , startTime = timestamp
                       }
                     ]
 
-                serverEventsWithActionAndStartTime =
-                    serverEvents
-                        |> List.map (\{ action, startTime } -> { action = action, startTime = startTime })
+                Just ( _, Nothing ) ->
+                    []
 
-                serverSetupStatusInfo =
-                    case serverSetupStatus of
-                        Just ( status, Just timestamp ) ->
-                            [ { action = "Setup " ++ status
-                              , startTime = timestamp
-                              }
-                            ]
-
-                        Just ( _, Nothing ) ->
-                            []
-
-                        Nothing ->
-                            []
-            in
-            Element.table
-                [ Element.spacingXY 0 spacer.px8
-                , Element.width Element.fill
-                ]
-                { data =
-                    (serverEventsWithActionAndStartTime ++ serverSetupStatusInfo)
-                        |> List.sortBy (\{ startTime } -> startTime |> Time.posixToMillis)
-                        |> List.reverse
-                , columns = columns
-                }
-
-        _ ->
-            Element.none
+                Nothing ->
+                    []
+    in
+    Element.table
+        [ Element.spacingXY 0 spacer.px8
+        , Element.width Element.fill
+        ]
+        { data =
+            (serverEventsWithActionAndStartTime ++ serverSetupStatusInfo)
+                |> List.sortBy (\{ startTime } -> startTime |> Time.posixToMillis)
+                |> List.reverse
+        , columns = columns
+        }
 
 
 securityGroupsTable :

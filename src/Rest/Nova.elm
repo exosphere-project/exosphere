@@ -125,8 +125,7 @@ requestServerEvents project serverUuid =
 
         resultToMsg result =
             ProjectMsg (GetterSetters.projectIdentifier project) <|
-                ServerMsg serverUuid <|
-                    ReceiveServerEvents errorContext result
+                ReceiveServerEvents serverUuid errorContext result
     in
     openstackCredentialedRequest
         (GetterSetters.projectIdentifier project)
@@ -954,7 +953,7 @@ initOrUpdateServer project osServer =
                         Nothing
                         False
             in
-            Server osServer defaultExoProps RDPP.empty RDPP.empty
+            Server osServer defaultExoProps RDPP.empty
 
         Just exoServer ->
             let
