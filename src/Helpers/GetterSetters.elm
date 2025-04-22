@@ -86,7 +86,7 @@ module Helpers.GetterSetters exposing
 
 import Dict
 import Helpers.List exposing (multiSortBy)
-import Helpers.RemoteDataPlusPlus as RDPP
+import Helpers.RemoteDataPlusPlus as RDPP exposing (RemoteDataPlusPlus)
 import Helpers.String exposing (toTitleCase)
 import Helpers.Url as UrlHelpers
 import List.Extra
@@ -774,11 +774,23 @@ modelUpdateProject model newProject =
 
 projectUpdateServer : Project -> Server -> Project
 projectUpdateServer project server =
-    case project.servers.data of
+    let
+        { data, refreshStatus } =
+            project.servers
+    in
+    case data of
         RDPP.DontHave ->
-            -- We don't do anything if we don't already have servers. Is this a silent failure that should be
-            -- handled differently?
-            project
+            -- To prevent dropping server data on the floor (e.g. if we requested a particular server before all servers),
+            -- we initialise just one in the list & take received time as the start of the epoch.
+            let
+                newData =
+                    RDPP.DoHave [ server ] (Time.millisToPosix 0)
+
+                servers =
+                    -- Preserve the current loading state.
+                    RemoteDataPlusPlus newData refreshStatus
+            in
+            { project | servers = servers }
 
         RDPP.DoHave servers recTime ->
             let

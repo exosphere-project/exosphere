@@ -890,18 +890,7 @@ receiveServer model project osServer =
             { newServer | exoProps = newExoProps }
 
         newProject =
-            case project.servers.data of
-                RDPP.DoHave _ _ ->
-                    GetterSetters.projectUpdateServer project newServerUpdatedSomeExoProps
-
-                RDPP.DontHave ->
-                    let
-                        newServersRDPP =
-                            RDPP.RemoteDataPlusPlus
-                                (RDPP.DoHave [ newServerUpdatedSomeExoProps ] model.clientCurrentTime)
-                                (RDPP.NotLoading Nothing)
-                    in
-                    { project | servers = newServersRDPP }
+            GetterSetters.projectUpdateServer project newServerUpdatedSomeExoProps
     in
     ( GetterSetters.modelUpdateProject model newProject
     , cmd
