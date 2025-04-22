@@ -14,6 +14,7 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import Helpers.Time
 import Helpers.Validation as Validation
+import List.Extra
 import OpenStack.DnsRecordSet
 import OpenStack.ServerActions as ServerActions
 import OpenStack.ServerNameValidator exposing (serverNameValidator)
@@ -143,18 +144,28 @@ popoverMsgMapper popoverId =
 
 view : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> Model -> Element.Element Msg
 view context project currentTimeAndZone model =
-    {- Attempt to look up a given server UUID; if a Server type is found, call rendering function serverDetail_ -}
-    case GetterSetters.serverLookup project model.serverUuid of
-        Just server ->
-            serverDetail_ context project currentTimeAndZone model server
+    let
+        renderHasServers servers =
+            let
+                maybeServer =
+                    servers |> List.Extra.find (\s -> s.osProps.uuid == model.serverUuid)
+            in
+            case maybeServer of
+                Just server ->
+                    serverDetail_ context project currentTimeAndZone model server
 
-        Nothing ->
-            Element.text <|
-                String.join " "
-                    [ "No"
-                    , context.localization.virtualComputer
-                    , "found"
-                    ]
+                Nothing ->
+                    Element.text <|
+                        String.join " "
+                            [ "No"
+                            , context.localization.virtualComputer
+                            , "found"
+                            ]
+    in
+    VH.renderRDPP context
+        project.servers
+        context.localization.virtualComputer
+        renderHasServers
 
 
 serverDetail_ : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> Model -> Server -> Element.Element Msg
