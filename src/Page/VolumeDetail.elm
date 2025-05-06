@@ -1,21 +1,36 @@
 module Page.VolumeDetail exposing (Model, Msg(..), init, update, view)
 
+import DateFormat.Relative
 import Element
+import Element.Border as Border
 import Element.Font as Font
-import Helpers.GetterSetters as GetterSetters
-import Helpers.String
-import OpenStack.Types as OSTypes
-import OpenStack.Volumes
+import FeatherIcons
+import FormatNumber.Locales exposing (Decimals(..))
+import Helpers.Formatting exposing (Unit(..), humanNumber)
+import Helpers.GetterSetters as GetterSetters exposing (isSnapshotOfVolume)
+import Helpers.String exposing (removeEmptiness)
+import Helpers.Time
+import OpenStack.HelperTypes exposing (Uuid)
+import OpenStack.Types as OSTypes exposing (Volume)
+import OpenStack.VolumeSnapshots as VS exposing (VolumeSnapshot)
 import Route
-import Set
 import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.Button as Button
 import Style.Widgets.Card
+import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
+import Style.Widgets.Grid exposing (scrollableCell)
+import Style.Widgets.Icon as Icon
+import Style.Widgets.Link as Link
+import Style.Widgets.Popover.Popover exposing (popover)
+import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.Spacer exposing (spacer)
+import Style.Widgets.StatusBadge as StatusBadge
+import Style.Widgets.Tag exposing (tag)
 import Style.Widgets.Text as Text
-import Style.Widgets.Uuid exposing (copyableUuid)
+import Style.Widgets.ToggleTip
+import Time
 import Types.Project exposing (Project)
 import Types.Server exposing (ExoFeature(..))
 import Types.SharedMsg as SharedMsg
@@ -25,54 +40,52 @@ import Widget
 
 
 type alias Model =
-    { showHeading : Bool
-    , volumeUuid : OSTypes.VolumeUuid
-    , deleteConfirmations : Set.Set OSTypes.VolumeUuid
+    { volumeUuid : OSTypes.VolumeUuid
+    , deletePendingConfirmation : Maybe OSTypes.VolumeUuid
     }
 
 
 type Msg
-    = GotDeleteNeedsConfirm
-    | GotDeleteConfirm
-    | GotDeleteCancel
+    = GotDeleteNeedsConfirm (Maybe OSTypes.VolumeUuid)
+    | GotDeleteConfirm OSTypes.VolumeUuid
+    | GotDeleteSnapshotConfirm Uuid
+    | GotDetachVolumeConfirm OSTypes.VolumeUuid
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
 
 
-init : Bool -> OSTypes.VolumeUuid -> Model
-init showHeading volumeId =
-    Model showHeading volumeId Set.empty
+init : OSTypes.VolumeUuid -> Model
+init volumeId =
+    Model volumeId Nothing
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
 update msg project model =
+    let
+        projectId =
+            GetterSetters.projectIdentifier project
+    in
     case msg of
-        GotDeleteNeedsConfirm ->
-            ( { model
-                | deleteConfirmations =
-                    Set.insert
-                        model.volumeUuid
-                        model.deleteConfirmations
-              }
-            , Cmd.none
-            , SharedMsg.NoOp
-            )
+        GotDeleteNeedsConfirm volumeUuid ->
+            ( { model | deletePendingConfirmation = volumeUuid }, Cmd.none, SharedMsg.NoOp )
 
-        GotDeleteConfirm ->
+        GotDeleteConfirm volumeUuid ->
             ( model
             , Cmd.none
-            , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <| SharedMsg.RequestDeleteVolume model.volumeUuid
+            , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <| SharedMsg.RequestDeleteVolume volumeUuid
             )
 
-        GotDeleteCancel ->
-            ( { model
-                | deleteConfirmations =
-                    Set.remove
-                        model.volumeUuid
-                        model.deleteConfirmations
-              }
+        GotDeleteSnapshotConfirm snapshotUuid ->
+            ( model
             , Cmd.none
-            , SharedMsg.NoOp
+            , SharedMsg.ProjectMsg projectId <|
+                SharedMsg.RequestDeleteVolumeSnapshot snapshotUuid
+            )
+
+        GotDetachVolumeConfirm volumeUuid ->
+            ( model
+            , Cmd.none
+            , SharedMsg.ProjectMsg projectId <| SharedMsg.RequestDetachVolume volumeUuid
             )
 
         SharedMsg sharedMsg ->
@@ -82,338 +95,771 @@ update msg project model =
             ( model, Cmd.none, SharedMsg.NoOp )
 
 
-view : View.Types.Context -> Project -> Model -> Element.Element Msg
-view context project model =
-    if model.showHeading then
-        let
-            volumeName =
-                case GetterSetters.volumeLookup project model.volumeUuid of
-                    Nothing ->
-                        model.volumeUuid
+view : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> Model -> Element.Element Msg
+view context project currentTimeAndZone model =
+    VH.renderRDPP context
+        project.volumes
+        context.localization.blockDevice
+        (\_ ->
+            -- Attempt to look up the resource; if found, call render.
+            case GetterSetters.volumeLookup project model.volumeUuid of
+                Just volume ->
+                    render context project currentTimeAndZone model volume
 
-                    Just volume ->
-                        VH.resourceName volume.name volume.uuid
-        in
-        Element.column
-            (VH.contentContainer ++ [ Element.spacing spacer.px16 ])
-            [ Text.heading context.palette
-                []
-                Element.none
-                (String.join
-                    " "
-                    [ context.localization.blockDevice |> Helpers.String.toTitleCase, volumeName ]
-                )
-            , volumeDetail context project model
-            ]
-
-    else
-        volumeDetail context project model
-
-
-volumeDetail :
-    View.Types.Context
-    -> Project
-    -> Model
-    -> Element.Element Msg
-volumeDetail context project model =
-    OpenStack.Volumes.volumeLookup project model.volumeUuid
-        |> Maybe.withDefault
-            (Element.text <|
-                String.join " "
-                    [ "No"
-                    , context.localization.blockDevice
-                    , "found"
-                    ]
-            )
-        << Maybe.map
-            (\volume ->
-                Element.column []
-                    [ Style.Widgets.Card.exoCard context.palette
-                        (Element.column
-                            [ Element.padding spacer.px8, Element.spacing spacer.px16 ]
-                            [ Text.subheading context.palette
-                                []
-                                Element.none
-                                "Status"
-                            , Element.row []
-                                [ Element.el [] (Element.text <| OSTypes.volumeStatusToString volume.status) ]
-                            , case volume.description of
-                                Just "" ->
-                                    Element.none
-
-                                Just description ->
-                                    VH.compactKVRow "Description:" <|
-                                        Element.paragraph [ Element.width Element.fill ] <|
-                                            [ Element.text <| description ]
-
-                                Nothing ->
-                                    Element.none
-                            , VH.compactKVRow "UUID:" <|
-                                Element.el
-                                    [ Text.fontSize Text.Small
-                                    , Font.color (SH.toElementColor context.palette.neutral.text.subdued)
-                                    , Element.paddingXY spacer.px12 0
-                                    , Text.fontFamily Text.Mono
-                                    ]
-                                    (copyableUuid context.palette volume.uuid)
-                            , case volume.imageMetadata of
-                                Nothing ->
-                                    Element.none
-
-                                Just metadata ->
-                                    VH.compactKVRow
-                                        (String.concat
-                                            [ "Created from "
-                                            , context.localization.staticRepresentationOfBlockDeviceContents
-                                            , ":"
-                                            ]
-                                        )
-                                        (Element.text (VH.resourceName (Just metadata.name) metadata.uuid))
+                Nothing ->
+                    Element.text <|
+                        String.join " "
+                            [ "No"
+                            , context.localization.blockDevice
+                            , "found"
                             ]
-                        )
-                    , Element.row [] [ Element.el [] (Element.text " ") ]
-                    , renderAttachments context project volume
-                    , volumeActionButtons context project model volume
-                    ]
-            )
+        )
 
 
-renderAttachment : View.Types.Context -> Project -> OSTypes.Volume -> OSTypes.VolumeAttachment -> Element.Element Msg
-renderAttachment context project volume attachment =
+volumeNameView : Volume -> Element.Element Msg
+volumeNameView volume =
     let
-        maybeServer =
-            GetterSetters.serverLookup project attachment.serverUuid
-
-        serverName =
-            case maybeServer of
-                Just { osProps } ->
-                    VH.resourceName (Just osProps.name) osProps.uuid
-
-                Nothing ->
-                    String.join " "
-                        [ "(Could not resolve"
-                        , context.localization.virtualComputer
-                        , "name)"
-                        ]
+        name_ =
+            VH.resourceName volume.name volume.uuid
     in
-    Element.column
-        [ Element.spacing spacer.px12 ]
-        [ VH.compactKVRow ((context.localization.virtualComputer |> Helpers.String.toTitleCase) ++ ":") <|
-            Element.link []
-                { url =
-                    Route.toUrl context.urlPathPrefix <|
-                        Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
-                            Route.ServerDetail attachment.serverUuid
-                , label =
-                    Element.el [ Font.color (SH.toElementColor context.palette.primary) ] <| Element.text serverName
-                }
-        , VH.compactKVRow "Device:" <| Element.text <| attachment.device
-        , VH.compactKVRow "Mount point*:" <|
-            case maybeServer of
-                Just server ->
-                    (if GetterSetters.serverSupportsFeature NamedMountpoints server then
-                        volume.name |> Maybe.andThen GetterSetters.volNameToMountpoint
+    Element.row
+        [ Element.spacing spacer.px8 ]
+        [ Text.text Text.ExtraLarge [] name_ ]
 
-                     else
-                        GetterSetters.volDeviceToMountpoint attachment.device
-                    )
-                        |> Maybe.withDefault ""
-                        |> Element.text
 
-                Nothing ->
-                    Element.text ""
-        , Element.el [ Text.fontSize Text.Tiny ] <|
-            Element.text <|
-                String.join " "
-                    [ "*"
-                    , context.localization.blockDevice
-                        |> Helpers.String.toTitleCase
-                    , "will only be automatically formatted/mounted on operating"
-                    ]
-        , Element.el [ Text.fontSize Text.Tiny ] <| Element.text "systems which use systemd 236 or newer (e.g. Ubuntu 18.04 or newer, Rocky Linux, or AlmaLinux)"
+volumeStatus : View.Types.Context -> Volume -> Element.Element Msg
+volumeStatus context volume =
+    let
+        statusBadge =
+            VH.volumeStatusBadge context.palette StatusBadge.Normal volume
+    in
+    Element.row [ Element.spacing spacer.px16 ]
+        [ statusBadge
         ]
 
 
-renderAttachments : View.Types.Context -> Project -> OSTypes.Volume -> Element.Element Msg
-renderAttachments context project volume =
+renderConfirmation : View.Types.Context -> Maybe Msg -> Maybe Msg -> String -> List (Element.Attribute Msg) -> Element.Element Msg
+renderConfirmation context actionMsg cancelMsg title closeActionsAttributes =
+    Element.row
+        [ Element.spacing spacer.px12, Element.width (Element.fill |> Element.minimum 280) ]
+        [ Element.text title
+        , Element.el
+            (Element.alignRight :: closeActionsAttributes)
+          <|
+            Button.button
+                Button.Danger
+                context.palette
+                { text = "Yes"
+                , onPress = actionMsg
+                }
+        , Element.el
+            [ Element.alignRight ]
+          <|
+            Button.button
+                Button.Secondary
+                context.palette
+                { text = "No"
+                , onPress = cancelMsg
+                }
+        ]
+
+
+renderDeleteAction : View.Types.Context -> Model -> Volume -> Maybe Msg -> Maybe (Element.Attribute Msg) -> Element.Element Msg
+renderDeleteAction context model volume actionMsg closeActionsDropdown =
+    case model.deletePendingConfirmation of
+        Just _ ->
+            let
+                additionalBtnAttribs =
+                    case closeActionsDropdown of
+                        Just closeActionsDropdown_ ->
+                            [ closeActionsDropdown_ ]
+
+                        Nothing ->
+                            []
+            in
+            renderConfirmation
+                context
+                actionMsg
+                (Just <|
+                    GotDeleteNeedsConfirm Nothing
+                )
+                "Are you sure?"
+                additionalBtnAttribs
+
+        Nothing ->
+            let
+                ( isDeleteDisabled, warning ) =
+                    case ( GetterSetters.isBootVolume Nothing volume, volume.status ) of
+                        ( True, _ ) ->
+                            ( True
+                            , Text.body <|
+                                String.join " "
+                                    [ "This"
+                                    , context.localization.blockDevice
+                                    , "backs"
+                                    , Helpers.String.indefiniteArticle context.localization.virtualComputer
+                                    , context.localization.virtualComputer ++ "."
+                                    , "It cannot be deleted before the"
+                                    , context.localization.virtualComputer
+                                    , "is deleted."
+                                    ]
+                            )
+
+                        ( _, OSTypes.Reserved ) ->
+                            ( True
+                            , Text.body <|
+                                String.join " "
+                                    [ "Unshelve the attached"
+                                    , context.localization.virtualComputer
+                                    , "to interact with this"
+                                    , context.localization.blockDevice ++ "."
+                                    ]
+                            )
+
+                        ( _, OSTypes.InUse ) ->
+                            ( True
+                            , Text.body <|
+                                String.join " "
+                                    [ "This"
+                                    , context.localization.blockDevice
+                                    , "must be detached before it can be deleted."
+                                    ]
+                            )
+
+                        _ ->
+                            ( False, Text.body <| "Destroy " ++ context.localization.blockDevice ++ "?" )
+            in
+            Element.row
+                [ Element.spacing spacer.px12, Element.width (Element.fill |> Element.minimum 280) ]
+                [ warning
+                , Element.el
+                    [ Element.alignRight ]
+                  <|
+                    Button.button
+                        Button.Danger
+                        context.palette
+                        { text = "Delete"
+                        , onPress =
+                            if isDeleteDisabled then
+                                Nothing
+
+                            else
+                                Just <| GotDeleteNeedsConfirm <| Just model.volumeUuid
+                        }
+                ]
+
+
+popoverMsgMapper : PopoverId -> Msg
+popoverMsgMapper popoverId =
+    SharedMsg <| SharedMsg.TogglePopover popoverId
+
+
+volumeActionsDropdown : View.Types.Context -> Project -> Model -> Volume -> Element.Element Msg
+volumeActionsDropdown context project model volume =
+    let
+        dropdownId =
+            [ "volumeActionsDropdown", project.auth.project.uuid, volume.uuid ]
+                |> List.intersperse "-"
+                |> String.concat
+
+        dropdownContent closeDropdown =
+            Element.column [ Element.spacing spacer.px8 ] <|
+                [ renderDeleteAction context
+                    model
+                    volume
+                    (Just <| GotDeleteConfirm volume.uuid)
+                    (Just closeDropdown)
+                ]
+
+        dropdownTarget toggleDropdownMsg dropdownIsShown =
+            Widget.iconButton
+                (SH.materialStyle context.palette).button
+                { text = "Actions"
+                , icon =
+                    Element.row
+                        [ Element.spacing spacer.px4 ]
+                        [ Element.text "Actions"
+                        , Icon.sizedFeatherIcon 18 <|
+                            if dropdownIsShown then
+                                FeatherIcons.chevronUp
+
+                            else
+                                FeatherIcons.chevronDown
+                        ]
+                , onPress = Just toggleDropdownMsg
+                }
+    in
+    popover context
+        popoverMsgMapper
+        { id = dropdownId
+        , content = dropdownContent
+        , contentStyleAttrs = [ Element.padding spacer.px24 ]
+        , position = ST.PositionBottomRight
+        , distanceToTarget = Nothing
+        , target = dropdownTarget
+        , targetStyleAttrs = []
+        }
+
+
+createdAgoByWhomEtc :
+    View.Types.Context
+    ->
+        { ago : ( String, Element.Element msg )
+        , creator : String
+        , size : String
+        , image : Maybe String
+        }
+    -> Element.Element msg
+createdAgoByWhomEtc context { ago, creator, size, image } =
+    let
+        ( agoWord, agoContents ) =
+            ago
+
+        subduedText =
+            Font.color (context.palette.neutral.text.subdued |> SH.toElementColor)
+    in
+    Element.wrappedRow
+        [ Element.width Element.fill, Element.spaceEvenly ]
+    <|
+        [ Element.row [ Element.padding spacer.px8 ]
+            [ Element.el [ subduedText ] (Element.text <| agoWord ++ " ")
+            , agoContents
+            , Element.el [ subduedText ] (Element.text <| " by ")
+            , Element.text creator
+            ]
+        , Element.row [ Element.padding spacer.px8 ]
+            [ Element.el [ subduedText ] (Element.text <| "size ")
+            , Element.text size
+            ]
+        , case image of
+            Just img ->
+                Element.row [ Element.padding spacer.px8 ]
+                    [ Element.el [ subduedText ] (Element.text <| "created from " ++ context.localization.staticRepresentationOfBlockDeviceContents ++ " ")
+                    , Element.text <| img
+                    ]
+
+            Nothing ->
+                Element.none
+        ]
+
+
+header : String -> Element.Element msg
+header text =
+    Element.el [ Font.heavy ] <| Element.text text
+
+
+serverNameNotFound : View.Types.Context -> String
+serverNameNotFound context =
+    String.join " "
+        [ "(Could not resolve"
+        , context.localization.virtualComputer
+        , "name)"
+        ]
+
+
+centerRow : Element.Element msg -> Element.Element msg
+centerRow =
+    Element.el [ Element.centerY ]
+
+
+attachmentsTable : View.Types.Context -> Project -> Volume -> Element.Element Msg
+attachmentsTable context project volume =
     case List.length volume.attachments of
         0 ->
-            Element.none
-
-        _ ->
-            Element.column [ Element.width Element.fill ]
-                [ Style.Widgets.Card.exoCard context.palette
-                    (Element.column
-                        [ Element.padding spacer.px8, Element.spacing spacer.px16 ]
-                        [ Element.column [ Element.width Element.fill ]
-                            [ Text.subheading context.palette
-                                []
-                                Element.none
-                                "Attached to"
-                            , Element.row [ Element.paddingXY 0 spacer.px16 ]
-                                [ Element.row [ Element.spacing spacer.px12 ] <|
-                                    List.map (renderAttachment context project volume) volume.attachments
-                                ]
-                            ]
-                        ]
-                    )
-                , Element.row [] [ Element.el [] (Element.text " ") ]
-                ]
-
-
-volumeActionButtons :
-    View.Types.Context
-    -> Project
-    -> Model
-    -> OSTypes.Volume
-    -> Element.Element Msg
-volumeActionButtons context project model volume =
-    let
-        volDetachDeleteWarning =
-            if GetterSetters.isBootVolume Nothing volume then
-                Element.text <|
-                    String.join " "
-                        [ "This"
-                        , context.localization.blockDevice
-                        , "backs"
-                        , Helpers.String.indefiniteArticle context.localization.virtualComputer
-                        , context.localization.virtualComputer ++ ";"
-                        , "it cannot be detached or deleted until the"
-                        , context.localization.virtualComputer
-                        , "is deleted."
-                        ]
-
-            else if volume.status == OSTypes.InUse then
-                Element.text <|
-                    String.join " "
-                        [ "This"
-                        , context.localization.blockDevice
-                        , "must be detached before it can be deleted."
-                        ]
-
-            else
-                Element.none
-
-        attachDetachButton =
             case volume.status of
-                OSTypes.Available ->
-                    Element.link []
-                        { url =
-                            Route.toUrl context.urlPathPrefix
-                                (Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
-                                    Route.VolumeAttach Nothing (Just volume.uuid)
+                OSTypes.Reserved ->
+                    let
+                        maybeServerUuid =
+                            -- Reserved volumes don't necessarily know their attachments but servers do.
+                            List.head <| GetterSetters.getServerUuidsByVolume project volume.uuid
+                    in
+                    case maybeServerUuid of
+                        Just serverUuid ->
+                            Element.row []
+                                (Element.text "Reserved for "
+                                    :: (let
+                                            maybeServer =
+                                                GetterSetters.serverLookup project serverUuid
+
+                                            serverName =
+                                                case maybeServer of
+                                                    Just server ->
+                                                        VH.resourceName (Just server.osProps.name) server.osProps.uuid
+
+                                                    Nothing ->
+                                                        serverNameNotFound context
+
+                                            maybeServerShelved =
+                                                maybeServer
+                                                    |> Maybe.map (\s -> s.osProps.details.openstackStatus)
+                                                    |> Maybe.map (\status -> [ OSTypes.ServerShelved, OSTypes.ServerShelvedOffloaded ] |> List.member status)
+                                                    |> Maybe.withDefault False
+                                        in
+                                        [ Link.link
+                                            context.palette
+                                            (Route.toUrl context.urlPathPrefix <|
+                                                Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
+                                                    Route.ServerDetail serverUuid
+                                            )
+                                            serverName
+                                        , case ( volume.status, maybeServerShelved ) of
+                                            ( OSTypes.Reserved, True ) ->
+                                                Style.Widgets.ToggleTip.toggleTip
+                                                    context
+                                                    (SharedMsg << SharedMsg.TogglePopover)
+                                                    ("volumeReservedTip-" ++ volume.uuid)
+                                                    (Text.body <| "Unshelve the attached " ++ context.localization.virtualComputer ++ " to interact with this " ++ context.localization.blockDevice ++ ".")
+                                                    ST.PositionBottom
+
+                                            _ ->
+                                                Element.none
+                                        ]
+                                       )
                                 )
-                        , label =
-                            Button.default
-                                context.palette
-                                { text = "Attach"
-                                , onPress = Just NoOp
-                                }
-                        }
 
-                OSTypes.InUse ->
-                    if GetterSetters.isBootVolume Nothing volume then
-                        Button.default
-                            context.palette
-                            { text = "Detach"
-                            , onPress = Nothing
-                            }
+                        Nothing ->
+                            Element.text "(none)"
 
-                    else
-                        let
-                            detachMsg =
-                                SharedMsg <|
-                                    SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
-                                        SharedMsg.RequestDetachVolume model.volumeUuid
-
-                            detachButton : msg -> Bool -> Element.Element msg
-                            detachButton togglePopconfirm _ =
-                                Button.default
+                OSTypes.Available ->
+                    Element.row
+                        [ Element.width Element.fill
+                        , Element.spaceEvenly
+                        ]
+                        [ Text.body
+                            (String.join " "
+                                [ "This"
+                                , context.localization.blockDevice
+                                , "is not attached to any"
+                                , context.localization.virtualComputer ++ "."
+                                ]
+                            )
+                        , Element.link []
+                            { url =
+                                Route.toUrl context.urlPathPrefix
+                                    (Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
+                                        Route.VolumeAttach Nothing (Just volume.uuid)
+                                    )
+                            , label =
+                                Button.primary
                                     context.palette
-                                    { text = "Detach"
-                                    , onPress = Just togglePopconfirm
+                                    { text = "Attach"
+                                    , onPress = Just NoOp
                                     }
-
-                            detachPopconfirmId =
-                                Helpers.String.hyphenate [ "volumeDetailDetachPopconfirm", project.auth.project.uuid, volume.uuid ]
-                        in
-                        deletePopconfirm context
-                            (SharedMsg << SharedMsg.TogglePopover)
-                            detachPopconfirmId
-                            { confirmation =
-                                Element.column [ Element.spacing spacer.px8 ]
-                                    [ Element.text <|
-                                        "Detaching "
-                                            ++ Helpers.String.indefiniteArticle context.localization.blockDevice
-                                            ++ " "
-                                            ++ context.localization.blockDevice
-                                            ++ " while it is in use may cause data loss."
-                                    , Element.text
-                                        "Make sure to close any open files before detaching."
-                                    ]
-                            , buttonText = Just "Detach"
-                            , onConfirm = Just detachMsg
-                            , onCancel = Just NoOp
                             }
-                            ST.PositionBottom
-                            detachButton
+                        ]
 
                 _ ->
-                    Element.none
+                    Element.text "(none)"
 
-        confirmationNeeded =
-            Set.member volume.uuid model.deleteConfirmations
+        _ ->
+            Element.table
+                [ Element.spacing spacer.px16
+                ]
+                { data = volume.attachments
+                , columns =
+                    [ { header = header (context.localization.virtualComputer |> Helpers.String.toTitleCase)
+                      , width = Element.shrink
+                      , view =
+                            \item ->
+                                let
+                                    maybeServer =
+                                        GetterSetters.serverLookup project item.serverUuid
 
-        deleteButton =
-            case ( volume.status, confirmationNeeded ) of
-                ( OSTypes.Deleting, _ ) ->
-                    Widget.circularProgressIndicator (SH.materialStyle context.palette).progressIndicator Nothing
+                                    serverName =
+                                        case maybeServer of
+                                            Just { osProps } ->
+                                                VH.resourceName (Just osProps.name) osProps.uuid
 
-                ( _, True ) ->
-                    Element.row [ Element.spacing spacer.px8 ]
-                        [ Element.text "Confirm delete?"
-                        , deleteIconButton
-                            context.palette
-                            False
-                            "Delete"
-                            (Just <| GotDeleteConfirm)
-                        , Button.default
-                            context.palette
-                            { text = "Cancel"
-                            , onPress =
-                                Just <| GotDeleteCancel
-                            }
+                                            Nothing ->
+                                                serverNameNotFound context
+                                in
+                                centerRow <|
+                                    Link.link
+                                        context.palette
+                                        (Route.toUrl context.urlPathPrefix <|
+                                            Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
+                                                Route.ServerDetail item.serverUuid
+                                        )
+                                        serverName
+                      }
+                    , { header = header "Device"
+                      , width = Element.shrink
+                      , view =
+                            \item ->
+                                let
+                                    device =
+                                        item.device
+                                in
+                                centerRow <| Text.mono <| device
+                      }
+                    , { header =
+                            Element.row []
+                                [ header "Mount Point"
+                                , Style.Widgets.ToggleTip.toggleTip
+                                    context
+                                    (SharedMsg << SharedMsg.TogglePopover)
+                                    ("mountPointTip-" ++ volume.uuid)
+                                    (Text.p [ Text.fontSize Text.Tiny ]
+                                        [ Element.text <|
+                                            String.join " "
+                                                [ context.localization.blockDevice
+                                                    |> Helpers.String.pluralize
+                                                    |> Helpers.String.toTitleCase
+                                                , "will only be automatically formatted/mounted on operating systems which use systemd 236 or newer (e.g. Ubuntu 18.04 or newer, Rocky Linux, or AlmaLinux)."
+                                                ]
+                                        ]
+                                    )
+                                    ST.PositionBottom
+                                ]
+                      , width = Element.fill
+                      , view =
+                            \item ->
+                                let
+                                    maybeServer =
+                                        GetterSetters.serverLookup project item.serverUuid
+
+                                    mountPoint =
+                                        maybeServer
+                                            |> Maybe.andThen
+                                                (\server ->
+                                                    if GetterSetters.serverSupportsFeature NamedMountpoints server then
+                                                        volume.name |> Maybe.andThen GetterSetters.volNameToMountpoint
+
+                                                    else
+                                                        GetterSetters.volDeviceToMountpoint item.device
+                                                )
+                                            |> Maybe.withDefault ""
+                                in
+                                centerRow <| scrollableCell [ Element.width Element.fill ] <| Text.mono <| mountPoint
+                      }
+                    , { header = header ""
+                      , width = Element.shrink
+                      , view =
+                            \_ ->
+                                case volume.status of
+                                    OSTypes.Detaching ->
+                                        centerRow <| Text.body <| "Detaching..."
+
+                                    OSTypes.InUse ->
+                                        let
+                                            isBootVolume =
+                                                GetterSetters.isBootVolume Nothing volume
+
+                                            bootVolumeTag =
+                                                if isBootVolume then
+                                                    tag context.palette <| "boot " ++ context.localization.blockDevice
+
+                                                else
+                                                    Element.none
+
+                                            detachButton : msg -> Bool -> Element.Element msg
+                                            detachButton togglePopconfirm _ =
+                                                Button.default
+                                                    context.palette
+                                                    { text = "Detach"
+                                                    , onPress =
+                                                        if isBootVolume then
+                                                            Nothing
+
+                                                        else
+                                                            Just togglePopconfirm
+                                                    }
+
+                                            detachPopconfirmId =
+                                                Helpers.String.hyphenate [ "volumeDetailDetachPopconfirm", project.auth.project.uuid, volume.uuid ]
+                                        in
+                                        Element.row [ Element.spacing spacer.px12 ]
+                                            [ bootVolumeTag
+                                            , deletePopconfirm context
+                                                (SharedMsg << SharedMsg.TogglePopover)
+                                                detachPopconfirmId
+                                                { confirmation =
+                                                    Element.column [ Element.spacing spacer.px8 ]
+                                                        [ Element.text <|
+                                                            "Detaching "
+                                                                ++ Helpers.String.indefiniteArticle context.localization.blockDevice
+                                                                ++ " "
+                                                                ++ context.localization.blockDevice
+                                                                ++ " while it is in use may cause data loss."
+                                                        , Element.text
+                                                            "Make sure to close any open files before detaching."
+                                                        ]
+                                                , buttonText = Just "Detach"
+                                                , onConfirm = Just <| GotDetachVolumeConfirm volume.uuid
+                                                , onCancel = Just NoOp
+                                                }
+                                                ST.PositionBottomRight
+                                                detachButton
+                                            ]
+
+                                    _ ->
+                                        Element.none
+                      }
+                    ]
+                }
+
+
+snapshotsTable : View.Types.Context -> Project -> Time.Posix -> List VolumeSnapshot -> Element.Element Msg
+snapshotsTable context project currentTime snapshots =
+    case List.length snapshots of
+        0 ->
+            Element.text "(none)"
+
+        _ ->
+            Element.table
+                [ Element.spacing spacer.px16
+                ]
+                { data = snapshots
+                , columns =
+                    [ { header = header "Name"
+                      , width = Element.fill |> Element.maximum 360
+                      , view =
+                            \item ->
+                                centerRow <| scrollableCell [ Element.width Element.fill ] <| Text.body <| VH.resourceName item.name item.uuid
+                      }
+                    , { header = header "Size"
+                      , width = Element.shrink
+                      , view =
+                            \item ->
+                                let
+                                    locale =
+                                        context.locale
+
+                                    ( sizeDisplay, sizeLabel ) =
+                                        humanNumber { locale | decimals = Exact 0 } GibiBytes item.sizeInGiB
+                                in
+                                centerRow <| Text.body <| sizeDisplay ++ " " ++ sizeLabel
+                      }
+                    , { header = header "Created"
+                      , width = Element.shrink
+                      , view =
+                            \item ->
+                                centerRow <| whenCreated context project currentTime item
+                      }
+                    , { header = header "Description"
+                      , width = Element.fill
+                      , view =
+                            \item ->
+                                centerRow <| scrollableCell [ Element.width Element.fill ] <| Text.body <| Maybe.withDefault "-" <| removeEmptiness item.description
+                      }
+                    , { header = header ""
+                      , width = Element.shrink
+                      , view =
+                            \item ->
+                                if not <| List.member item.status [ VS.Deleted, VS.Deleting ] then
+                                    let
+                                        deviceLabel =
+                                            context.localization.blockDevice ++ " snapshot"
+
+                                        deletePopconfirmId =
+                                            Helpers.String.hyphenate
+                                                [ "volumeDetailDeleteSnapshotPopconfirm"
+                                                , project.auth.project.uuid
+                                                , item.uuid
+                                                ]
+                                    in
+                                    deletePopconfirm context
+                                        (SharedMsg << SharedMsg.TogglePopover)
+                                        deletePopconfirmId
+                                        { confirmation =
+                                            Element.text <|
+                                                "Are you sure you want to delete this "
+                                                    ++ deviceLabel
+                                                    ++ "?"
+                                        , buttonText = Nothing
+                                        , onCancel = Just NoOp
+                                        , onConfirm = Just <| GotDeleteSnapshotConfirm item.uuid
+                                        }
+                                        ST.PositionBottomRight
+                                        (\msg _ ->
+                                            deleteIconButton context.palette
+                                                False
+                                                ("Delete " ++ deviceLabel)
+                                                (Just msg)
+                                        )
+
+                                else
+                                    centerRow <| Text.body <| "Deleting..."
+                      }
+                    ]
+                }
+
+
+whenCreated :
+    View.Types.Context
+    -> Project
+    -> Time.Posix
+    ->
+        { r
+            | uuid : String
+            , createdAt : Time.Posix
+        }
+    -> Element.Element Msg
+whenCreated context project currentTime resource =
+    let
+        timeDistanceStr =
+            DateFormat.Relative.relativeTime currentTime resource.createdAt
+
+        createdTimeText =
+            let
+                createdTimeFormatted =
+                    Helpers.Time.humanReadableDateAndTime resource.createdAt
+            in
+            Element.text ("Created on: " ++ createdTimeFormatted)
+
+        toggleTipContents =
+            Element.column [] [ createdTimeText ]
+    in
+    Element.row
+        [ Element.spacing spacer.px4 ]
+        [ Element.text timeDistanceStr
+        , Style.Widgets.ToggleTip.toggleTip
+            context
+            popoverMsgMapper
+            (Helpers.String.hyphenate
+                [ "createdTimeTip"
+                , project.auth.project.uuid
+                , resource.uuid
+                ]
+            )
+            toggleTipContents
+            ST.PositionBottom
+        ]
+
+
+render : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> Model -> Volume -> Element.Element Msg
+render context project ( currentTime, _ ) model volume =
+    let
+        creator =
+            if volume.userUuid == project.auth.user.uuid then
+                "me"
+
+            else
+                "another user"
+
+        sizeString =
+            let
+                locale =
+                    context.locale
+
+                ( sizeDisplay, sizeLabel ) =
+                    -- Volume size, in GiBs.
+                    humanNumber { locale | decimals = Exact 0 } GibiBytes volume.size
+            in
+            sizeDisplay ++ " " ++ sizeLabel
+
+        imageString =
+            volume.imageMetadata
+                |> Maybe.map
+                    (\imageMetadata ->
+                        VH.resourceName (Just imageMetadata.name) imageMetadata.uuid
+                    )
+
+        description =
+            case removeEmptiness volume.description of
+                Just str ->
+                    Element.row [ Element.padding spacer.px8 ]
+                        [ Element.paragraph [ Element.width Element.fill ] <|
+                            [ Element.text <| str ]
                         ]
 
-                ( _, False ) ->
-                    if volume.status == OSTypes.InUse then
-                        deleteIconButton
-                            context.palette
-                            False
-                            "Delete"
-                            Nothing
+                Nothing ->
+                    Element.none
 
-                    else
-                        deleteIconButton
-                            context.palette
-                            False
-                            "Delete"
-                            (Just <| GotDeleteNeedsConfirm)
+        tile : List (Element.Element Msg) -> List (Element.Element Msg) -> Element.Element Msg
+        tile headerContents contents =
+            Style.Widgets.Card.exoCard context.palette
+                (Element.column
+                    [ Element.width Element.fill
+                    , Element.padding spacer.px16
+                    , Element.spacing spacer.px16
+                    ]
+                    (List.concat
+                        [ [ Element.row
+                                (Text.subheadingStyleAttrs context.palette
+                                    ++ Text.typographyAttrs Text.Large
+                                    ++ [ Border.width 0 ]
+                                )
+                                headerContents
+                          ]
+                        , contents
+                        ]
+                    )
+                )
+
+        attachments =
+            attachmentsTable context project volume
+
+        snapshotWord =
+            "snapshot"
+
+        snapshots =
+            VH.renderRDPP
+                context
+                project.volumeSnapshots
+                (snapshotWord |> Helpers.String.pluralize)
+                (List.filter (\snapshot -> isSnapshotOfVolume volume snapshot)
+                    >> snapshotsTable context project currentTime
+                )
     in
-    Style.Widgets.Card.exoCard
-        context.palette
-        (Element.column
-            [ Element.padding spacer.px8
-            , Element.spacing spacer.px16
-            , Element.width Element.fill
-            ]
-            [ volDetachDeleteWarning
-            , Element.row
-                [ Element.alignRight
-                , Element.spacing spacer.px12
-                ]
-                [ attachDetachButton
-                , deleteButton
+    Element.column [ Element.spacing spacer.px24, Element.width Element.fill ]
+        [ Element.row (Text.headingStyleAttrs context.palette)
+            [ FeatherIcons.hardDrive |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
+            , Text.text Text.ExtraLarge
+                []
+                (context.localization.blockDevice
+                    |> Helpers.String.toTitleCase
+                )
+            , volumeNameView volume
+            , Element.row [ Element.alignRight, Text.fontSize Text.Body, Font.regular, Element.spacing spacer.px16 ]
+                [ volumeStatus context volume
+                , volumeActionsDropdown context project model volume
                 ]
             ]
-        )
+        , tile
+            [ FeatherIcons.database |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
+            , Element.text "Info"
+            , Element.el
+                [ Text.fontSize Text.Tiny
+                , Font.color (SH.toElementColor context.palette.neutral.text.subdued)
+                , Element.alignBottom
+                ]
+                (copyableText context.palette
+                    [ Element.width (Element.shrink |> Element.minimum 240) ]
+                    volume.uuid
+                )
+            ]
+            [ description
+            , createdAgoByWhomEtc
+                context
+                { ago = ( "created", whenCreated context project currentTime volume )
+                , creator = creator
+                , size = sizeString
+                , image = imageString
+                }
+            ]
+        , tile
+            [ FeatherIcons.server
+                |> FeatherIcons.toHtml []
+                |> Element.html
+                |> Element.el []
+            , "attachment"
+                |> Helpers.String.pluralize
+                |> Helpers.String.toTitleCase
+                |> Element.text
+            ]
+            [ attachments
+            ]
+        , tile
+            [ FeatherIcons.archive
+                |> FeatherIcons.toHtml []
+                |> Element.html
+                |> Element.el []
+            , snapshotWord
+                |> Helpers.String.pluralize
+                |> Helpers.String.toTitleCase
+                |> Element.text
+            ]
+            [ snapshots
+            ]
+        ]

@@ -48,6 +48,7 @@ module View.Helpers exposing
     , titleFromHostname
     , toExoPalette
     , validInputAttributes
+    , volumeStatusBadge
     , volumeStatusBadgeFromStatus
     , warningInputAttributes
     )
@@ -82,7 +83,7 @@ import Markdown.Parser
 import Markdown.Renderer
 import OpenStack.Quotas as OSQuotas
 import OpenStack.SecurityGroupRule exposing (Remote(..), SecurityGroupRuleDirection(..), SecurityGroupRuleEthertype(..), SecurityGroupRuleProtocol(..), directionToString, etherTypeToString, protocolToString)
-import OpenStack.Types as OSTypes exposing (ShareStatus(..), VolumeStatus(..))
+import OpenStack.Types as OSTypes exposing (ShareStatus(..), Volume, VolumeStatus(..))
 import Regex
 import Route
 import String.Extra
@@ -1689,6 +1690,11 @@ remoteToStringInput remote =
                 else
                     remoteString
            )
+
+
+volumeStatusBadge : ExoPalette -> StatusBadgeSize -> Volume -> Element.Element msg
+volumeStatusBadge palette size volume =
+    volumeStatusBadgeFromStatus palette size volume.status
 
 
 volumeStatusBadgeFromStatus : ExoPalette -> StatusBadgeSize -> VolumeStatus -> Element.Element msg

@@ -24,6 +24,7 @@ module Helpers.GetterSetters exposing
     , imageLookup
     , isBootVolume
     , isDefaultSecurityGroup
+    , isSnapshotOfVolume
     , modelUpdateProject
     , modelUpdateUnscopedProvider
     , projectAddSecurityGroupRule
@@ -92,6 +93,7 @@ import List.Extra
 import OpenStack.DnsRecordSet
 import OpenStack.SecurityGroupRule as SecurityGroupRule
 import OpenStack.Types as OSTypes
+import OpenStack.VolumeSnapshots as VS
 import Regex
 import Time
 import Types.Error
@@ -314,6 +316,11 @@ volumeLookup project volumeUuid =
     project.volumes
         |> RDPP.withDefault []
         |> List.Extra.find (\v -> v.uuid == volumeUuid)
+
+
+isSnapshotOfVolume : OSTypes.Volume -> VS.VolumeSnapshot -> Bool
+isSnapshotOfVolume { uuid } { volumeId } =
+    uuid == volumeId
 
 
 floatingIpLookup : Project -> OSTypes.IpAddressUuid -> Maybe OSTypes.FloatingIp

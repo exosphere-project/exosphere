@@ -5,7 +5,7 @@ import Element.Font as Font
 import FeatherIcons as Icons
 import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (Unit(..), humanNumber)
-import Helpers.GetterSetters as GetterSetters
+import Helpers.GetterSetters as GetterSetters exposing (isSnapshotOfVolume)
 import Helpers.Helpers exposing (lookupUsername)
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.ResourceList exposing (creationTimeFilterOptions, creatorFilterOptions, listItemColumnAttribs, onCreationTimeFilter)
@@ -163,10 +163,6 @@ volumeRecords project ( volumes, snapshots ) =
         creator volume =
             lookupUsername project volume.userUuid
                 |> Maybe.withDefault "unknown user"
-
-        isSnapshotOfVolume : OSTypes.Volume -> VS.VolumeSnapshot -> Bool
-        isSnapshotOfVolume { uuid } { volumeId } =
-            uuid == volumeId
 
         volumeSnapshots volume =
             List.filter (\snapshot -> isSnapshotOfVolume volume snapshot) snapshots
@@ -418,7 +414,7 @@ volumeView context project currentTime volumeRecord =
                       in
                       Element.row []
                         [ Element.text "created "
-                        , accented (relativeTimeElement currentTime volumeRecord.volume.createdAt)
+                        , accented (relativeTimeElement currentTime snapshot.createdAt)
                         ]
                     , Text.body "·"
                     , Text.body <| VH.resourceName snapshot.name snapshot.uuid
@@ -464,7 +460,7 @@ volumeView context project currentTime volumeRecord =
                     let
                         label =
                             if VS.isTransitioning snapshot then
-                                VS.statusToString snapshot.status ++ " ..."
+                                VS.statusToString snapshot.status ++ "..."
 
                             else
                                 VS.statusToString snapshot.status

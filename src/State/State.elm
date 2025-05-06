@@ -1545,7 +1545,7 @@ processProjectSpecificMsg outerModel project msg =
         RequestDetachVolume volumeUuid ->
             let
                 maybeVolume =
-                    OSVolumes.volumeLookup project volumeUuid
+                    GetterSetters.volumeLookup project volumeUuid
 
                 maybeServer =
                     maybeVolume
@@ -2815,9 +2815,8 @@ processProjectSpecificMsg outerModel project msg =
             )
 
         ReceiveDetachVolume ->
-            ( outerModel
-            , Route.pushUrl sharedModel.viewContext (Route.ProjectRoute (GetterSetters.projectIdentifier project) Route.VolumeList)
-            )
+            ( outerModel, OSVolumes.requestVolumes project )
+                |> mapToOuterMsg
 
         ReceiveAppCredential appCredential ->
             let
