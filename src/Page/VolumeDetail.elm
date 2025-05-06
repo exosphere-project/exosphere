@@ -1,25 +1,20 @@
 module Page.VolumeDetail exposing (Model, Msg(..), init, update, view)
 
-import DateFormat.Relative
 import Element
-import Element.Border as Border
 import Element.Font as Font
 import FeatherIcons
 import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (Unit(..), humanNumber)
 import Helpers.GetterSetters as GetterSetters exposing (isSnapshotOfVolume)
 import Helpers.String exposing (removeEmptiness)
-import Helpers.Time
 import OpenStack.HelperTypes exposing (Uuid)
 import OpenStack.Types as OSTypes exposing (Volume)
-import OpenStack.VolumeSnapshots as VS exposing (VolumeSnapshot)
+import OpenStack.VolumeSnapshots exposing (VolumeSnapshot)
 import Route
 import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.Button as Button
-import Style.Widgets.Card
 import Style.Widgets.CopyableText exposing (copyableText)
-import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
 import Style.Widgets.Grid exposing (scrollableCell)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.Link as Link
@@ -138,32 +133,6 @@ volumeStatus context volume =
         ]
 
 
-renderConfirmation : View.Types.Context -> Maybe Msg -> Maybe Msg -> String -> List (Element.Attribute Msg) -> Element.Element Msg
-renderConfirmation context actionMsg cancelMsg title closeActionsAttributes =
-    Element.row
-        [ Element.spacing spacer.px12, Element.width (Element.fill |> Element.minimum 280) ]
-        [ Element.text title
-        , Element.el
-            (Element.alignRight :: closeActionsAttributes)
-          <|
-            Button.button
-                Button.Danger
-                context.palette
-                { text = "Yes"
-                , onPress = actionMsg
-                }
-        , Element.el
-            [ Element.alignRight ]
-          <|
-            Button.button
-                Button.Secondary
-                context.palette
-                { text = "No"
-                , onPress = cancelMsg
-                }
-        ]
-
-
 renderDeleteAction : View.Types.Context -> Model -> Volume -> Maybe Msg -> Maybe (Element.Attribute Msg) -> Element.Element Msg
 renderDeleteAction context model volume actionMsg closeActionsDropdown =
     case model.deletePendingConfirmation of
@@ -177,7 +146,7 @@ renderDeleteAction context model volume actionMsg closeActionsDropdown =
                         Nothing ->
                             []
             in
-            renderConfirmation
+            VH.renderConfirmation
                 context
                 actionMsg
                 (Just <|
@@ -188,46 +157,16 @@ renderDeleteAction context model volume actionMsg closeActionsDropdown =
 
         Nothing ->
             let
-                ( isDeleteDisabled, warning ) =
-                    case ( GetterSetters.isBootVolume Nothing volume, volume.status ) of
-                        ( True, _ ) ->
-                            ( True
-                            , Text.body <|
-                                String.join " "
-                                    [ "This"
-                                    , context.localization.blockDevice
-                                    , "backs"
-                                    , Helpers.String.indefiniteArticle context.localization.virtualComputer
-                                    , context.localization.virtualComputer ++ "."
-                                    , "It cannot be deleted before the"
-                                    , context.localization.virtualComputer
-                                    , "is deleted."
-                                    ]
-                            )
+                isDeleteDisabled =
+                    GetterSetters.isBootVolume Nothing volume
 
-                        ( _, OSTypes.Reserved ) ->
-                            ( True
-                            , Text.body <|
-                                String.join " "
-                                    [ "Unshelve the attached"
-                                    , context.localization.virtualComputer
-                                    , "to interact with this"
-                                    , context.localization.blockDevice ++ "."
-                                    ]
-                            )
+                warning =
+                    case VH.deleteVolumeWarning context volume of
+                        Just warning_ ->
+                            Text.body <| warning_
 
-                        ( _, OSTypes.InUse ) ->
-                            ( True
-                            , Text.body <|
-                                String.join " "
-                                    [ "This"
-                                    , context.localization.blockDevice
-                                    , "must be detached before it can be deleted."
-                                    ]
-                            )
-
-                        _ ->
-                            ( False, Text.body <| "Destroy " ++ context.localization.blockDevice ++ "?" )
+                        Nothing ->
+                            Text.body <| "Destroy " ++ context.localization.blockDevice ++ "?"
             in
             Element.row
                 [ Element.spacing spacer.px12, Element.width (Element.fill |> Element.minimum 280) ]
@@ -343,11 +282,6 @@ createdAgoByWhomEtc context { ago, creator, size, image } =
         ]
 
 
-header : String -> Element.Element msg
-header text =
-    Element.el [ Font.heavy ] <| Element.text text
-
-
 serverNameNotFound : View.Types.Context -> String
 serverNameNotFound context =
     String.join " "
@@ -457,7 +391,7 @@ attachmentsTable context project volume =
                 ]
                 { data = volume.attachments
                 , columns =
-                    [ { header = header (context.localization.virtualComputer |> Helpers.String.toTitleCase)
+                    [ { header = VH.tableHeader (context.localization.virtualComputer |> Helpers.String.toTitleCase)
                       , width = Element.shrink
                       , view =
                             \item ->
@@ -482,7 +416,7 @@ attachmentsTable context project volume =
                                         )
                                         serverName
                       }
-                    , { header = header "Device"
+                    , { header = VH.tableHeader "Device"
                       , width = Element.shrink
                       , view =
                             \item ->
@@ -494,7 +428,7 @@ attachmentsTable context project volume =
                       }
                     , { header =
                             Element.row []
-                                [ header "Mount Point"
+                                [ VH.tableHeader "Mount Point"
                                 , Style.Widgets.ToggleTip.toggleTip
                                     context
                                     (SharedMsg << SharedMsg.TogglePopover)
@@ -532,7 +466,7 @@ attachmentsTable context project volume =
                                 in
                                 centerRow <| scrollableCell [ Element.width Element.fill ] <| Text.mono <| mountPoint
                       }
-                    , { header = header ""
+                    , { header = VH.tableHeader ""
                       , width = Element.shrink
                       , view =
                             \_ ->
@@ -551,45 +485,17 @@ attachmentsTable context project volume =
 
                                                 else
                                                     Element.none
-
-                                            detachButton : msg -> Bool -> Element.Element msg
-                                            detachButton togglePopconfirm _ =
-                                                Button.default
-                                                    context.palette
-                                                    { text = "Detach"
-                                                    , onPress =
-                                                        if isBootVolume then
-                                                            Nothing
-
-                                                        else
-                                                            Just togglePopconfirm
-                                                    }
-
-                                            detachPopconfirmId =
-                                                Helpers.String.hyphenate [ "volumeDetailDetachPopconfirm", project.auth.project.uuid, volume.uuid ]
                                         in
                                         Element.row [ Element.spacing spacer.px12 ]
                                             [ bootVolumeTag
-                                            , deletePopconfirm context
+                                            , VH.detachVolumeButton
+                                                context
+                                                project
                                                 (SharedMsg << SharedMsg.TogglePopover)
-                                                detachPopconfirmId
-                                                { confirmation =
-                                                    Element.column [ Element.spacing spacer.px8 ]
-                                                        [ Element.text <|
-                                                            "Detaching "
-                                                                ++ Helpers.String.indefiniteArticle context.localization.blockDevice
-                                                                ++ " "
-                                                                ++ context.localization.blockDevice
-                                                                ++ " while it is in use may cause data loss."
-                                                        , Element.text
-                                                            "Make sure to close any open files before detaching."
-                                                        ]
-                                                , buttonText = Just "Detach"
-                                                , onConfirm = Just <| GotDetachVolumeConfirm volume.uuid
-                                                , onCancel = Just NoOp
-                                                }
-                                                ST.PositionBottomRight
-                                                detachButton
+                                                "volumeDetailDetachPopconfirm"
+                                                volume
+                                                (Just <| GotDetachVolumeConfirm volume.uuid)
+                                                (Just NoOp)
                                             ]
 
                                     _ ->
@@ -611,13 +517,13 @@ snapshotsTable context project currentTime snapshots =
                 ]
                 { data = snapshots
                 , columns =
-                    [ { header = header "Name"
+                    [ { header = VH.tableHeader "Name"
                       , width = Element.fill |> Element.maximum 360
                       , view =
                             \item ->
                                 centerRow <| scrollableCell [ Element.width Element.fill ] <| Text.body <| VH.resourceName item.name item.uuid
                       }
-                    , { header = header "Size"
+                    , { header = VH.tableHeader "Size"
                       , width = Element.shrink
                       , view =
                             \item ->
@@ -630,101 +536,34 @@ snapshotsTable context project currentTime snapshots =
                                 in
                                 centerRow <| Text.body <| sizeDisplay ++ " " ++ sizeLabel
                       }
-                    , { header = header "Created"
+                    , { header = VH.tableHeader "Created"
                       , width = Element.shrink
                       , view =
                             \item ->
-                                centerRow <| whenCreated context project currentTime item
+                                centerRow <| VH.whenCreated context project popoverMsgMapper currentTime item
                       }
-                    , { header = header "Description"
+                    , { header = VH.tableHeader "Description"
                       , width = Element.fill
                       , view =
                             \item ->
                                 centerRow <| scrollableCell [ Element.width Element.fill ] <| Text.body <| Maybe.withDefault "-" <| removeEmptiness item.description
                       }
-                    , { header = header ""
+                    , { header = VH.tableHeader ""
                       , width = Element.shrink
                       , view =
                             \item ->
-                                if not <| List.member item.status [ VS.Deleted, VS.Deleting ] then
-                                    let
-                                        deviceLabel =
-                                            context.localization.blockDevice ++ " snapshot"
-
-                                        deletePopconfirmId =
-                                            Helpers.String.hyphenate
-                                                [ "volumeDetailDeleteSnapshotPopconfirm"
-                                                , project.auth.project.uuid
-                                                , item.uuid
-                                                ]
-                                    in
-                                    deletePopconfirm context
-                                        (SharedMsg << SharedMsg.TogglePopover)
-                                        deletePopconfirmId
-                                        { confirmation =
-                                            Element.text <|
-                                                "Are you sure you want to delete this "
-                                                    ++ deviceLabel
-                                                    ++ "?"
-                                        , buttonText = Nothing
-                                        , onCancel = Just NoOp
-                                        , onConfirm = Just <| GotDeleteSnapshotConfirm item.uuid
-                                        }
-                                        ST.PositionBottomRight
-                                        (\msg _ ->
-                                            deleteIconButton context.palette
-                                                False
-                                                ("Delete " ++ deviceLabel)
-                                                (Just msg)
-                                        )
-
-                                else
-                                    centerRow <| Text.body <| "Deleting..."
+                                centerRow <|
+                                    VH.deleteVolumeSnapshotIconButton
+                                        context
+                                        project
+                                        popoverMsgMapper
+                                        "volumeSnapshotDeletePopconfirm"
+                                        item
+                                        (Just <| GotDeleteSnapshotConfirm item.uuid)
+                                        (Just NoOp)
                       }
                     ]
                 }
-
-
-whenCreated :
-    View.Types.Context
-    -> Project
-    -> Time.Posix
-    ->
-        { r
-            | uuid : String
-            , createdAt : Time.Posix
-        }
-    -> Element.Element Msg
-whenCreated context project currentTime resource =
-    let
-        timeDistanceStr =
-            DateFormat.Relative.relativeTime currentTime resource.createdAt
-
-        createdTimeText =
-            let
-                createdTimeFormatted =
-                    Helpers.Time.humanReadableDateAndTime resource.createdAt
-            in
-            Element.text ("Created on: " ++ createdTimeFormatted)
-
-        toggleTipContents =
-            Element.column [] [ createdTimeText ]
-    in
-    Element.row
-        [ Element.spacing spacer.px4 ]
-        [ Element.text timeDistanceStr
-        , Style.Widgets.ToggleTip.toggleTip
-            context
-            popoverMsgMapper
-            (Helpers.String.hyphenate
-                [ "createdTimeTip"
-                , project.auth.project.uuid
-                , resource.uuid
-                ]
-            )
-            toggleTipContents
-            ST.PositionBottom
-        ]
 
 
 render : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> Model -> Volume -> Element.Element Msg
@@ -766,27 +605,6 @@ render context project ( currentTime, _ ) model volume =
                 Nothing ->
                     Element.none
 
-        tile : List (Element.Element Msg) -> List (Element.Element Msg) -> Element.Element Msg
-        tile headerContents contents =
-            Style.Widgets.Card.exoCard context.palette
-                (Element.column
-                    [ Element.width Element.fill
-                    , Element.padding spacer.px16
-                    , Element.spacing spacer.px16
-                    ]
-                    (List.concat
-                        [ [ Element.row
-                                (Text.subheadingStyleAttrs context.palette
-                                    ++ Text.typographyAttrs Text.Large
-                                    ++ [ Border.width 0 ]
-                                )
-                                headerContents
-                          ]
-                        , contents
-                        ]
-                    )
-                )
-
         attachments =
             attachmentsTable context project volume
 
@@ -816,7 +634,8 @@ render context project ( currentTime, _ ) model volume =
                 , volumeActionsDropdown context project model volume
                 ]
             ]
-        , tile
+        , VH.tile
+            context
             [ FeatherIcons.database |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
             , Element.text "Info"
             , Element.el
@@ -832,13 +651,14 @@ render context project ( currentTime, _ ) model volume =
             [ description
             , createdAgoByWhomEtc
                 context
-                { ago = ( "created", whenCreated context project currentTime volume )
+                { ago = ( "created", VH.whenCreated context project popoverMsgMapper currentTime volume )
                 , creator = creator
                 , size = sizeString
                 , image = imageString
                 }
             ]
-        , tile
+        , VH.tile
+            context
             [ FeatherIcons.server
                 |> FeatherIcons.toHtml []
                 |> Element.html
@@ -850,7 +670,8 @@ render context project ( currentTime, _ ) model volume =
             ]
             [ attachments
             ]
-        , tile
+        , VH.tile
+            context
             [ FeatherIcons.archive
                 |> FeatherIcons.toHtml []
                 |> Element.html

@@ -19,7 +19,7 @@ import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.Button as Button
 import Style.Widgets.DataList as DataList
-import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
+import Style.Widgets.DeleteButton as DeleteButton
 import Style.Widgets.HumanTime exposing (relativeTimeElement)
 import Style.Widgets.Icon exposing (featherIcon)
 import Style.Widgets.Spacer exposing (spacer)
@@ -43,7 +43,7 @@ type alias Model =
 
 
 type Msg
-    = DetachVolume OSTypes.VolumeUuid
+    = GotDetachVolumeConfirm OSTypes.VolumeUuid
     | GotDeleteSnapshotConfirm Uuid
     | GotDeleteVolumeConfirm OSTypes.VolumeUuid
     | SharedMsg SharedMsg.SharedMsg
@@ -64,7 +64,7 @@ update msg project model =
             GetterSetters.projectIdentifier project
     in
     case msg of
-        DetachVolume volumeUuid ->
+        GotDetachVolumeConfirm volumeUuid ->
             ( model
             , Cmd.none
             , SharedMsg.ProjectMsg projectId <|
@@ -289,42 +289,24 @@ volumeView context project currentTime volumeRecord =
 
         volumeActions =
             let
-                deleteVolumeBtn enabled togglePopconfirmMsg _ =
-                    deleteIconButton
-                        context.palette
-                        False
-                        ("Delete " ++ context.localization.blockDevice)
-                        (if enabled then
-                            Just togglePopconfirmMsg
+                deleteButton enabled =
+                    VH.deleteResourcePopconfirmWithDisabledHint
+                        context
+                        project
+                        (SharedMsg << SharedMsg.TogglePopover)
+                        { uuid = volumeRecord.id, word = context.localization.blockDevice }
+                        "volumeListDeletePopconfirm"
+                        (Just <| GotDeleteVolumeConfirm volumeRecord.id)
+                        (Just NoOp)
+                        (let
+                            deleteString =
+                                "Delete " ++ context.localization.blockDevice
+                         in
+                         if enabled then
+                            DeleteButton.Enabled deleteString
 
                          else
-                            Nothing
-                        )
-
-                deletePopconfirmId =
-                    Helpers.String.hyphenate
-                        [ "volumeListDeletePopconfirm"
-                        , project.auth.project.uuid
-                        , volumeRecord.id
-                        ]
-
-                deleteButton enabled =
-                    deletePopconfirm context
-                        (SharedMsg << SharedMsg.TogglePopover)
-                        deletePopconfirmId
-                        { confirmation =
-                            Element.text <|
-                                "Are you sure you want to delete this "
-                                    ++ context.localization.blockDevice
-                                    ++ "?"
-                        , buttonText = Nothing
-                        , onCancel = Just NoOp
-                        , onConfirm =
-                            Just <| GotDeleteVolumeConfirm volumeRecord.id
-                        }
-                        ST.PositionBottomRight
-                        (deleteVolumeBtn <|
-                            enabled
+                            DeleteButton.Disabled (Maybe.withDefault deleteString <| VH.deleteVolumeWarning context volumeRecord.volume)
                         )
             in
             case volumeRecord.volume.status of
@@ -336,18 +318,6 @@ volumeView context project currentTime volumeRecord =
 
                 OSTypes.InUse ->
                     let
-                        detachButton enabled =
-                            Button.default
-                                context.palette
-                                { text = "Detach"
-                                , onPress =
-                                    if enabled then
-                                        Just <| DetachVolume volumeRecord.id
-
-                                    else
-                                        Nothing
-                                }
-
                         isBootVolume =
                             GetterSetters.isBootVolume Nothing volumeRecord.volume
 
@@ -360,7 +330,14 @@ volumeView context project currentTime volumeRecord =
                     in
                     Element.row [ Element.spacing spacer.px12 ]
                         [ bootVolumeTag
-                        , detachButton <| not <| isBootVolume
+                        , VH.detachVolumeButton
+                            context
+                            project
+                            (SharedMsg << SharedMsg.TogglePopover)
+                            "volumeListDetachPopconfirm"
+                            volumeRecord.volume
+                            (Just <| GotDetachVolumeConfirm volumeRecord.id)
+                            (Just NoOp)
                         , deleteButton False
                         ]
 
@@ -419,55 +396,17 @@ volumeView context project currentTime volumeRecord =
                     , Text.body "·"
                     , Text.body <| VH.resourceName snapshot.name snapshot.uuid
                     ]
-                , if not <| List.member snapshot.status [ VS.Deleted, VS.Deleting ] then
-                    let
-                        deviceLabel =
-                            context.localization.blockDevice ++ " snapshot"
-
-                        deletePopconfirmId =
-                            Helpers.String.hyphenate
-                                [ "volumeListDeleteSnapshotPopconfirm"
-                                , project.auth.project.uuid
-                                , snapshot.uuid
-                                ]
-
-                        deleteSnapshotButton =
-                            deletePopconfirm context
-                                (SharedMsg << SharedMsg.TogglePopover)
-                                deletePopconfirmId
-                                { confirmation =
-                                    Element.text <|
-                                        "Are you sure you want to delete this "
-                                            ++ deviceLabel
-                                            ++ "?"
-                                , buttonText = Nothing
-                                , onCancel = Just NoOp
-                                , onConfirm = Just <| GotDeleteSnapshotConfirm snapshot.uuid
-                                }
-                                ST.PositionBottomRight
-                                (\msg _ ->
-                                    deleteIconButton context.palette
-                                        False
-                                        ("Delete " ++ deviceLabel)
-                                        (Just msg)
-                                )
-                    in
-                    Element.row
-                        []
-                        [ deleteSnapshotButton ]
-
-                  else
-                    let
-                        label =
-                            if VS.isTransitioning snapshot then
-                                VS.statusToString snapshot.status ++ "..."
-
-                            else
-                                VS.statusToString snapshot.status
-                    in
-                    Element.row
-                        []
-                        [ Text.text Text.Body [ Font.italic ] label ]
+                , Element.row
+                    []
+                    [ VH.deleteVolumeSnapshotIconButton
+                        context
+                        project
+                        (SharedMsg << SharedMsg.TogglePopover)
+                        "volumeListDeleteSnapshotPopconfirm"
+                        snapshot
+                        (Just <| GotDeleteSnapshotConfirm snapshot.uuid)
+                        (Just NoOp)
+                    ]
                 ]
 
         snapshotRows =

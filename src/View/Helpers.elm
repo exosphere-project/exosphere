@@ -4,6 +4,11 @@ module View.Helpers exposing
     , compactKVSubRow
     , contentContainer
     , createdAgoByFromSize
+    , deleteResourcePopconfirm
+    , deleteResourcePopconfirmWithDisabledHint
+    , deleteVolumeSnapshotIconButton
+    , deleteVolumeWarning
+    , detachVolumeButton
     , directionOptions
     , edges
     , ellipsizedText
@@ -31,6 +36,7 @@ module View.Helpers exposing
     , remoteToRemoteType
     , remoteToStringInput
     , remoteTypeToString
+    , renderConfirmation
     , renderMarkdown
     , renderMaybe
     , renderMessageAsElement
@@ -45,16 +51,22 @@ module View.Helpers exposing
     , sortProjects
     , stringToPortRangeBounds
     , stringToRemoteType
+    , tableHeader
+    , tile
     , titleFromHostname
     , toExoPalette
     , validInputAttributes
     , volumeStatusBadge
     , volumeStatusBadgeFromStatus
     , warningInputAttributes
+    , whenCreated
+    , whenCreatedText
+    , whenCreatedToggleTip
     )
 
 import Color
 import Css
+import DateFormat.Relative
 import Dict
 import Element
 import Element.Background as Background
@@ -84,14 +96,17 @@ import Markdown.Renderer
 import OpenStack.Quotas as OSQuotas
 import OpenStack.SecurityGroupRule exposing (Remote(..), SecurityGroupRuleDirection(..), SecurityGroupRuleEthertype(..), SecurityGroupRuleProtocol(..), directionToString, etherTypeToString, protocolToString)
 import OpenStack.Types as OSTypes exposing (ShareStatus(..), Volume, VolumeStatus(..))
+import OpenStack.VolumeSnapshots as VS exposing (VolumeSnapshot)
 import Regex
 import Route
 import String.Extra
 import Style.Helpers as SH
 import Style.Types as ST exposing (ExoPalette)
 import Style.Widgets.Button as Button
+import Style.Widgets.Card
 import Style.Widgets.Code exposing (codeBlock, codeSpan)
 import Style.Widgets.CopyableText exposing (copyableTextAccessory)
+import Style.Widgets.DeleteButton as DeleteButton exposing (DeleteButtonState, deleteIconButtonWithDisabledHint, deletePopconfirm)
 import Style.Widgets.Icon exposing (featherIcon)
 import Style.Widgets.Link as Link
 import Style.Widgets.Popover.Types exposing (PopoverId)
@@ -99,6 +114,7 @@ import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.StatusBadge as StatusBadge exposing (StatusBadgeSize)
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip as ToggleTip
+import Time
 import Types.Error exposing (ErrorLevel(..), toFriendlyErrorLevel)
 import Types.HelperTypes exposing (Localization)
 import Types.Project exposing (Project)
@@ -1436,6 +1452,293 @@ createdAgoByFromSize context ( agoWord, agoContents ) maybeWhoCreatedTuple maybe
 
           else
             Element.none
+        ]
+
+
+whenCreatedText :
+    { currentTime : Time.Posix
+    , createdAt : Time.Posix
+    }
+    ->
+        { timeDistanceStr : String
+        , createdTimeText : Element.Element msg
+        }
+whenCreatedText { currentTime, createdAt } =
+    let
+        timeDistanceStr =
+            DateFormat.Relative.relativeTime currentTime createdAt
+
+        createdTimeText =
+            let
+                createdTimeFormatted =
+                    Helpers.Time.humanReadableDateAndTime createdAt
+            in
+            Element.text ("Created on: " ++ createdTimeFormatted)
+    in
+    { timeDistanceStr = timeDistanceStr, createdTimeText = createdTimeText }
+
+
+whenCreatedToggleTip :
+    View.Types.Context
+    -> Project
+    -> (PopoverId -> msg)
+    -> String
+    ->
+        { r
+            | uuid : String
+        }
+    -> Element.Element msg
+    -> Element.Element msg
+whenCreatedToggleTip context project popoverMsgMapper timeDistanceStr resource toggleTipContents =
+    Element.row
+        [ Element.spacing spacer.px4 ]
+        [ Element.text timeDistanceStr
+        , ToggleTip.toggleTip
+            context
+            popoverMsgMapper
+            (Helpers.String.hyphenate
+                [ "createdTimeTip"
+                , project.auth.project.uuid
+                , resource.uuid
+                ]
+            )
+            toggleTipContents
+            ST.PositionBottom
+        ]
+
+
+whenCreated :
+    View.Types.Context
+    -> Project
+    -> (PopoverId -> msg)
+    -> Time.Posix
+    ->
+        { r
+            | uuid : String
+            , createdAt : Time.Posix
+        }
+    -> Element.Element msg
+whenCreated context project popoverMsgMapper currentTime resource =
+    let
+        { timeDistanceStr, createdTimeText } =
+            whenCreatedText { currentTime = currentTime, createdAt = resource.createdAt }
+
+        toggleTipContents =
+            Element.column [] [ createdTimeText ]
+    in
+    whenCreatedToggleTip
+        context
+        project
+        popoverMsgMapper
+        timeDistanceStr
+        resource
+        toggleTipContents
+
+
+deleteResourcePopconfirmWithDisabledHint : View.Types.Context -> Project -> (PopoverId -> msg) -> { r | uuid : String, word : String } -> String -> Maybe msg -> Maybe msg -> DeleteButtonState -> Element.Element msg
+deleteResourcePopconfirmWithDisabledHint context project msgMapper resource popconfirmTag onConfirm onCancel buttonState =
+    let
+        deletePopconfirmId =
+            Helpers.String.hyphenate
+                [ popconfirmTag
+                , project.auth.project.uuid
+                , resource.uuid
+                ]
+    in
+    deletePopconfirm context
+        msgMapper
+        deletePopconfirmId
+        { confirmation =
+            Element.text <|
+                "Are you sure you want to delete this "
+                    ++ resource.word
+                    ++ "?"
+        , buttonText = Nothing
+        , onCancel = onCancel
+        , onConfirm = onConfirm
+        }
+        ST.PositionBottomRight
+        (\msg _ ->
+            deleteIconButtonWithDisabledHint context.palette
+                False
+                buttonState
+                (Just msg)
+        )
+
+
+deleteVolumeWarning : View.Types.Context -> Volume -> Maybe String
+deleteVolumeWarning context volume =
+    case ( GetterSetters.isBootVolume Nothing volume, volume.status ) of
+        ( True, _ ) ->
+            Just <|
+                String.join " "
+                    [ "This"
+                    , context.localization.blockDevice
+                    , "backs"
+                    , Helpers.String.indefiniteArticle context.localization.virtualComputer
+                    , context.localization.virtualComputer ++ "."
+                    , "It cannot be deleted before the"
+                    , context.localization.virtualComputer
+                    , "is deleted."
+                    ]
+
+        ( _, OSTypes.Reserved ) ->
+            Just <|
+                String.join " "
+                    [ "Unshelve the attached"
+                    , context.localization.virtualComputer
+                    , "to interact with this"
+                    , context.localization.blockDevice ++ "."
+                    ]
+
+        ( _, OSTypes.InUse ) ->
+            Just <|
+                String.join " "
+                    [ "This"
+                    , context.localization.blockDevice
+                    , "must be detached before it can be deleted."
+                    ]
+
+        _ ->
+            Nothing
+
+
+deleteResourcePopconfirm : View.Types.Context -> Project -> (PopoverId -> msg) -> { r | uuid : String, word : String } -> String -> Maybe msg -> Maybe msg -> Element.Element msg
+deleteResourcePopconfirm context project msgMapper resource popconfirmTag onConfirm onCancel =
+    deleteResourcePopconfirmWithDisabledHint
+        context
+        project
+        msgMapper
+        resource
+        popconfirmTag
+        onConfirm
+        onCancel
+        (DeleteButton.Enabled ("Delete " ++ resource.word))
+
+
+deleteVolumeSnapshotIconButton : View.Types.Context -> Project -> (PopoverId -> msg) -> String -> VolumeSnapshot -> Maybe msg -> Maybe msg -> Element.Element msg
+deleteVolumeSnapshotIconButton context project msgMapper popconfirmTag snapshot onConfirm onCancel =
+    if not <| List.member snapshot.status [ VS.Deleted, VS.Deleting ] then
+        deleteResourcePopconfirm
+            context
+            project
+            msgMapper
+            { uuid = snapshot.uuid, word = context.localization.blockDevice ++ " snapshot" }
+            popconfirmTag
+            onConfirm
+            onCancel
+
+    else
+        let
+            label =
+                if VS.isTransitioning snapshot then
+                    VS.statusToString snapshot.status ++ "..."
+
+                else
+                    VS.statusToString snapshot.status
+        in
+        Text.body <| label
+
+
+detachVolumeButton : View.Types.Context -> Project -> (PopoverId -> msg) -> String -> Volume -> Maybe msg -> Maybe msg -> Element.Element msg
+detachVolumeButton context project msgMapper popconfirmTag volume onConfirm onCancel =
+    let
+        isBootVolume =
+            GetterSetters.isBootVolume Nothing volume
+
+        detachButton : msg -> Bool -> Element.Element msg
+        detachButton togglePopconfirm _ =
+            Button.default
+                context.palette
+                { text = "Detach"
+                , onPress =
+                    if isBootVolume then
+                        Nothing
+
+                    else
+                        Just togglePopconfirm
+                }
+
+        detachPopconfirmId =
+            Helpers.String.hyphenate [ popconfirmTag, project.auth.project.uuid, volume.uuid ]
+    in
+    deletePopconfirm context
+        msgMapper
+        detachPopconfirmId
+        { confirmation =
+            Element.column [ Element.spacing spacer.px8 ]
+                [ Element.text <|
+                    "Detaching "
+                        ++ Helpers.String.indefiniteArticle context.localization.blockDevice
+                        ++ " "
+                        ++ context.localization.blockDevice
+                        ++ " while it is in use may cause data loss."
+                , Element.text
+                    "Make sure to close any open files before detaching."
+                ]
+        , buttonText = Just "Detach"
+        , onConfirm = onConfirm
+        , onCancel = onCancel
+        }
+        ST.PositionBottomRight
+        detachButton
+
+
+tableHeader : String -> Element.Element msg
+tableHeader text =
+    Element.el [ Font.heavy ] <| Element.text text
+
+
+tile : View.Types.Context -> List (Element.Element msg) -> List (Element.Element msg) -> Element.Element msg
+tile context headerContents contents =
+    Style.Widgets.Card.exoCard context.palette
+        (Element.column
+            [ Element.width Element.fill
+            , Element.padding spacer.px16
+            , Element.spacing spacer.px16
+            ]
+            (List.concat
+                [ case List.length headerContents of
+                    0 ->
+                        []
+
+                    _ ->
+                        [ Element.row
+                            (Text.subheadingStyleAttrs context.palette
+                                ++ Text.typographyAttrs Text.Large
+                                ++ [ Border.width 0 ]
+                            )
+                            headerContents
+                        ]
+                , contents
+                ]
+            )
+        )
+
+
+renderConfirmation : View.Types.Context -> Maybe msg -> Maybe msg -> String -> List (Element.Attribute msg) -> Element.Element msg
+renderConfirmation context actionMsg cancelMsg title closeActionsAttributes =
+    Element.row
+        [ Element.spacing spacer.px12, Element.width (Element.fill |> Element.minimum 280) ]
+        [ Element.text title
+        , Element.el
+            (Element.alignRight :: closeActionsAttributes)
+          <|
+            Button.button
+                Button.Danger
+                context.palette
+                { text = "Yes"
+                , onPress = actionMsg
+                }
+        , Element.el
+            [ Element.alignRight ]
+          <|
+            Button.button
+                Button.Secondary
+                context.palette
+                { text = "No"
+                , onPress = cancelMsg
+                }
         ]
 
 

@@ -1,9 +1,7 @@
 module Page.ShareDetail exposing (Model, Msg(..), init, update, view)
 
-import DateFormat.Relative
 import Dict
 import Element
-import Element.Border as Border
 import Element.Font as Font
 import FeatherIcons
 import FormatNumber.Locales exposing (Decimals(..))
@@ -11,12 +9,10 @@ import Helpers.Formatting exposing (Unit(..), humanNumber)
 import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
-import Helpers.Time
 import OpenStack.Types as OSTypes exposing (AccessRule, AccessRuleState(..), AccessRuleUuid, ExportLocation, Share, accessRuleAccessLevelToHumanString, accessRuleAccessTypeToString, accessRuleStateToString)
 import Style.Helpers as SH
 import Style.Types as ST exposing (ExoPalette)
 import Style.Widgets.Button as Button
-import Style.Widgets.Card
 import Style.Widgets.CopyableText exposing (copyableScript, copyableText, copyableTextAccessory)
 import Style.Widgets.Grid exposing (scrollableCell)
 import Style.Widgets.Icon as Icon
@@ -25,7 +21,6 @@ import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.Select as Select
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
-import Style.Widgets.ToggleTip
 import Time
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg
@@ -167,32 +162,6 @@ shareStatus context share =
         ]
 
 
-renderConfirmation : View.Types.Context -> Maybe Msg -> Maybe Msg -> String -> List (Element.Attribute Msg) -> Element.Element Msg
-renderConfirmation context actionMsg cancelMsg title closeActionsAttributes =
-    Element.row
-        [ Element.spacing spacer.px12, Element.width (Element.fill |> Element.minimum 280) ]
-        [ Element.text title
-        , Element.el
-            (Element.alignRight :: closeActionsAttributes)
-          <|
-            Button.button
-                Button.Danger
-                context.palette
-                { text = "Yes"
-                , onPress = actionMsg
-                }
-        , Element.el
-            [ Element.alignRight ]
-          <|
-            Button.button
-                Button.Secondary
-                context.palette
-                { text = "No"
-                , onPress = cancelMsg
-                }
-        ]
-
-
 renderDeleteAction : View.Types.Context -> Model -> Maybe Msg -> Maybe (Element.Attribute Msg) -> Element.Element Msg
 renderDeleteAction context model actionMsg closeActionsDropdown =
     case model.deletePendingConfirmation of
@@ -206,7 +175,7 @@ renderDeleteAction context model actionMsg closeActionsDropdown =
                         Nothing ->
                             []
             in
-            renderConfirmation
+            VH.renderConfirmation
                 context
                 actionMsg
                 (Just <|
@@ -282,11 +251,6 @@ shareActionsDropdown context project model share =
         }
 
 
-header : String -> Element.Element msg
-header text =
-    Element.el [ Font.heavy ] <| Element.text text
-
-
 accessRulesTable : ExoPalette -> List AccessRule -> Element.Element Msg
 accessRulesTable palette accessRules =
     case List.length accessRules of
@@ -299,25 +263,25 @@ accessRulesTable palette accessRules =
                 ]
                 { data = accessRules
                 , columns =
-                    [ { header = header "State"
+                    [ { header = VH.tableHeader "State"
                       , width = Element.shrink
                       , view =
                             \item ->
                                 Text.body <| accessRuleStateToString <| item.state
                       }
-                    , { header = header "Type"
+                    , { header = VH.tableHeader "Type"
                       , width = Element.shrink
                       , view =
                             \item ->
                                 Text.body <| accessRuleAccessTypeToString <| item.accessType
                       }
-                    , { header = header "Level"
+                    , { header = VH.tableHeader "Level"
                       , width = Element.shrink
                       , view =
                             \item ->
                                 Text.body <| accessRuleAccessLevelToHumanString <| item.accessLevel
                       }
-                    , { header = header "Access To"
+                    , { header = VH.tableHeader "Access To"
                       , width = Element.fill
                       , view =
                             \item ->
@@ -325,7 +289,7 @@ accessRulesTable palette accessRules =
                                     []
                                     (Text.body <| item.accessTo)
                       }
-                    , { header = header "Access Key"
+                    , { header = VH.tableHeader "Access Key"
                       , width = Element.fill
                       , view =
                             \item ->
@@ -513,7 +477,7 @@ exportLocationsTable palette exportLocations =
                 ]
                 { data = exportLocations
                 , columns =
-                    [ { header = header "Path"
+                    [ { header = VH.tableHeader "Path"
                       , width = Element.fill
                       , view =
                             \item ->
@@ -534,37 +498,6 @@ exportLocationsTable palette exportLocations =
 render : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> Model -> Share -> Element.Element Msg
 render context project ( currentTime, _ ) model share =
     let
-        whenCreated =
-            let
-                timeDistanceStr =
-                    DateFormat.Relative.relativeTime currentTime share.createdAt
-
-                createdTimeText =
-                    let
-                        createdTimeFormatted =
-                            Helpers.Time.humanReadableDateAndTime share.createdAt
-                    in
-                    Element.text ("Created on: " ++ createdTimeFormatted)
-
-                toggleTipContents =
-                    Element.column [] [ createdTimeText ]
-            in
-            Element.row
-                [ Element.spacing spacer.px4 ]
-                [ Element.text timeDistanceStr
-                , Style.Widgets.ToggleTip.toggleTip
-                    context
-                    popoverMsgMapper
-                    (Helpers.String.hyphenate
-                        [ "createdTimeTip"
-                        , project.auth.project.uuid
-                        , share.uuid
-                        ]
-                    )
-                    toggleTipContents
-                    ST.PositionBottomLeft
-                ]
-
         creator =
             if share.userUuid == project.auth.user.uuid then
                 "me"
@@ -593,27 +526,6 @@ render context project ( currentTime, _ ) model share =
 
                 Nothing ->
                     Element.none
-
-        tile : List (Element.Element Msg) -> List (Element.Element Msg) -> Element.Element Msg
-        tile headerContents contents =
-            Style.Widgets.Card.exoCard context.palette
-                (Element.column
-                    [ Element.width Element.fill
-                    , Element.padding spacer.px16
-                    , Element.spacing spacer.px16
-                    ]
-                    (List.concat
-                        [ [ Element.row
-                                (Text.subheadingStyleAttrs context.palette
-                                    ++ Text.typographyAttrs Text.Large
-                                    ++ [ Border.width 0 ]
-                                )
-                                headerContents
-                          ]
-                        , contents
-                        ]
-                    )
-                )
 
         accessRules =
             case Dict.get share.uuid project.shareAccessRules of
@@ -662,7 +574,8 @@ render context project ( currentTime, _ ) model share =
                 , shareActionsDropdown context project model share
                 ]
             ]
-        , tile
+        , VH.tile
+            context
             [ FeatherIcons.database |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
             , Element.text "Info"
             , Element.el
@@ -678,7 +591,7 @@ render context project ( currentTime, _ ) model share =
             [ description
             , createdAgoByWhomEtc
                 context
-                { ago = ( "created", whenCreated )
+                { ago = ( "created", VH.whenCreated context project popoverMsgMapper currentTime share )
                 , creator = creator
                 , size = sizeString
                 , shareProtocol = OSTypes.shareProtocolToString share.shareProtocol
@@ -686,7 +599,8 @@ render context project ( currentTime, _ ) model share =
                 , visibility = OSTypes.shareVisibilityToString share.visibility
                 }
             ]
-        , tile
+        , VH.tile
+            context
             [ FeatherIcons.cloud
                 |> FeatherIcons.toHtml []
                 |> Element.html
@@ -698,7 +612,8 @@ render context project ( currentTime, _ ) model share =
             ]
             [ exportLocations
             ]
-        , tile
+        , VH.tile
+            context
             [ FeatherIcons.lock
                 |> FeatherIcons.toHtml []
                 |> Element.html
@@ -710,7 +625,8 @@ render context project ( currentTime, _ ) model share =
             ]
             [ accessRules
             ]
-        , tile
+        , VH.tile
+            context
             [ FeatherIcons.folder
                 |> FeatherIcons.toHtml []
                 |> Element.html

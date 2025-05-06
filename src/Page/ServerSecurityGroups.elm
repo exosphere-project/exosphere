@@ -22,7 +22,6 @@ import Set.Extra
 import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.Button as Button
-import Style.Widgets.Card
 import Style.Widgets.Icon
 import Style.Widgets.IconButton exposing (clickableIcon)
 import Style.Widgets.Spacer exposing (spacer)
@@ -476,47 +475,19 @@ renderSelectableSecurityGroupsList context project model securityGroups =
 
 renderSecurityGroupListAndRules : View.Types.Context -> Project -> Time.Posix -> Model -> List OSTypes.SecurityGroup -> Element.Element Msg
 renderSecurityGroupListAndRules context project currentTime model securityGroups =
-    let
-        tile : Maybe (List (Element.Element Msg)) -> List (Element.Element Msg) -> Element.Element Msg
-        tile headerContents contents =
-            Style.Widgets.Card.exoCard context.palette
-                (Element.column
-                    [ Element.width Element.fill
-                    , Element.padding spacer.px16
-                    , Element.spacing spacer.px16
-                    ]
-                    (List.concat
-                        [ case headerContents of
-                            Just header ->
-                                [ Element.row
-                                    (Text.subheadingStyleAttrs context.palette
-                                        ++ Text.typographyAttrs Text.Large
-                                        ++ [ Border.width 0 ]
-                                    )
-                                    header
-                                ]
-
-                            Nothing ->
-                                []
-                        , contents
-                        ]
-                    )
-                )
-    in
     Element.wrappedRow [ Element.spacing spacer.px24 ]
         [ renderSelectableSecurityGroupsList context project model securityGroups
         , Element.column [ Element.alignTop, Element.spacing spacer.px24, Element.width Element.fill ]
-            [ tile
-                (Just
-                    [ Element.text
-                        (String.join " "
-                            [ "Consolidated"
-                            , context.localization.securityGroup
-                                |> Helpers.String.toTitleCase
-                            ]
-                        )
-                    ]
-                )
+            [ VH.tile
+                context
+                [ Element.text
+                    (String.join " "
+                        [ "Consolidated"
+                        , context.localization.securityGroup
+                            |> Helpers.String.toTitleCase
+                        ]
+                    )
+                ]
                 [ let
                     appliedSecurityGroupUuidsSet =
                         appliedSecurityGroupsUuids project model.serverUuid
@@ -595,21 +566,20 @@ renderSecurityGroupListAndRules context project currentTime model securityGroups
                         isExistingSecurityGroup =
                             securityGroupForm.uuid /= Nothing
                     in
-                    tile
-                        (Just
-                            [ Element.text
-                                (String.join " "
-                                    [ if isExistingSecurityGroup then
-                                        "Edit"
+                    VH.tile
+                        context
+                        [ Element.text
+                            (String.join " "
+                                [ if isExistingSecurityGroup then
+                                    "Edit"
 
-                                      else
-                                        "New"
-                                    , context.localization.securityGroup
-                                        |> Helpers.String.toTitleCase
-                                    ]
-                                )
-                            ]
-                        )
+                                  else
+                                    "New"
+                                , context.localization.securityGroup
+                                    |> Helpers.String.toTitleCase
+                                ]
+                            )
+                        ]
                         [ Element.column
                             [ Element.spacing spacer.px16, Element.width Element.fill ]
                             [ SecurityGroupForm.view
@@ -657,8 +627,9 @@ renderSecurityGroupListAndRules context project currentTime model securityGroups
                         ]
 
                 Nothing ->
-                    tile
-                        Nothing
+                    VH.tile
+                        context
+                        []
                         [ Element.row
                             [ Element.spaceEvenly, Element.spacing spacer.px12, Element.width Element.fill ]
                             [ Text.p [] [ Text.body <| "You can create a " ++ context.localization.securityGroup ++ " for this " ++ context.localization.virtualComputer ++ " to capture additional rules." ]

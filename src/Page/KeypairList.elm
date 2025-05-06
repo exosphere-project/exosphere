@@ -14,10 +14,8 @@ import Page.QuotaUsage
 import Route
 import Set
 import Style.Helpers as SH
-import Style.Types as ST
 import Style.Widgets.CopyableText exposing (copyableText, copyableTextAccessory)
 import Style.Widgets.DataList as DataList
-import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
 import Style.Widgets.Icon exposing (featherIcon)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
@@ -190,36 +188,21 @@ keypairView model context project keypairRecord =
         keypairId =
             ( keypairRecord.keypair.name, keypairRecord.keypair.fingerprint )
 
-        deletePopconfirmId =
+        pseudoUuid =
             Helpers.String.hyphenate
-                [ "keypairListDeletePopconfirm"
-                , project.auth.project.uuid
-                , keypairRecord.keypair.name
+                [ keypairRecord.keypair.name
                 , keypairRecord.keypair.fingerprint
                 ]
 
-        deleteKeypairButton togglePopconfirmMsg _ =
-            deleteIconButton
-                context.palette
-                False
-                ("Delete " ++ context.localization.pkiPublicKeyForSsh)
-                (Just togglePopconfirmMsg)
-
         deleteKeypairBtnWithPopconfirm =
-            deletePopconfirm context
-                (\deletePopconfirmId_ -> SharedMsg <| SharedMsg.TogglePopover deletePopconfirmId_)
-                deletePopconfirmId
-                { confirmation =
-                    Element.text <|
-                        "Are you sure you want to delete this "
-                            ++ context.localization.pkiPublicKeyForSsh
-                            ++ "?"
-                , buttonText = Nothing
-                , onConfirm = Just <| GotDeleteConfirm keypairId
-                , onCancel = Just NoOp
-                }
-                ST.PositionBottomRight
-                deleteKeypairButton
+            VH.deleteResourcePopconfirm
+                context
+                project
+                (SharedMsg << SharedMsg.TogglePopover)
+                { uuid = pseudoUuid, word = context.localization.pkiPublicKeyForSsh }
+                "keypairListDeletePopconfirm"
+                (Just <| GotDeleteConfirm keypairId)
+                (Just NoOp)
 
         ( publicKeyLabelStyle, publicKeyValue ) =
             if Set.member keypairId model.expandedPublicKeys then

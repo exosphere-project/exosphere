@@ -26,7 +26,6 @@ import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.Alert as Alert
 import Style.Widgets.Button
-import Style.Widgets.Card
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton
@@ -167,15 +166,8 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
 
         whenCreated =
             let
-                timeDistanceStr =
-                    DateFormat.Relative.relativeTime currentTime details.created
-
-                createdTimeText =
-                    let
-                        createdTimeFormatted =
-                            Helpers.Time.humanReadableDateAndTime details.created
-                    in
-                    Element.text ("Created on: " ++ createdTimeFormatted)
+                { timeDistanceStr, createdTimeText } =
+                    VH.whenCreatedText { currentTime = currentTime, createdAt = details.created }
 
                 setupTimeText =
                     case server.exoProps.serverOrigin of
@@ -200,23 +192,15 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                             Element.none
 
                 toggleTipContents =
-                    Element.column [] [ createdTimeText, setupTimeText ]
+                    Element.column [ Element.spacing spacer.px4 ] [ createdTimeText, setupTimeText ]
             in
-            Element.row
-                [ Element.spacing spacer.px4 ]
-                [ Element.text timeDistanceStr
-                , Style.Widgets.ToggleTip.toggleTip
-                    context
-                    popoverMsgMapper
-                    (Helpers.String.hyphenate
-                        [ "createdTimeTip"
-                        , project.auth.project.uuid
-                        , server.osProps.uuid
-                        ]
-                    )
-                    toggleTipContents
-                    ST.PositionBottomLeft
-                ]
+            VH.whenCreatedToggleTip
+                context
+                project
+                popoverMsgMapper
+                timeDistanceStr
+                server.osProps
+                toggleTipContents
 
         creatorName =
             serverCreatorName project server
@@ -296,27 +280,6 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                         |> Maybe.map (\data -> VH.resourceName (Just data.name) data.uuid)
                         |> Maybe.withDefault "N/A"
 
-        tile : List (Element.Element Msg) -> List (Element.Element Msg) -> Element.Element Msg
-        tile headerContents contents =
-            Style.Widgets.Card.exoCard context.palette
-                (Element.column
-                    [ Element.width Element.fill
-                    , Element.padding spacer.px16
-                    , Element.spacing spacer.px16
-                    ]
-                    (List.concat
-                        [ [ Element.row
-                                (Text.subheadingStyleAttrs context.palette
-                                    ++ Text.typographyAttrs Text.Large
-                                    ++ [ Border.width 0 ]
-                                )
-                                headerContents
-                          ]
-                        , contents
-                        ]
-                    )
-                )
-
         serverDetailTiles =
             let
                 usernameView =
@@ -353,7 +316,8 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                     else
                         Element.none
             in
-            [ tile
+            [ VH.tile
+                context
                 [ Icon.featherIcon [] Icons.monitor
                 , Element.text "Interactions"
                 ]
@@ -364,7 +328,8 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                     currentTime
                     (GetterSetters.getUserAppProxyFromContext project context)
                 ]
-            , tile
+            , VH.tile
+                context
                 [ Icon.featherIcon [] Icons.key
                 , Element.text (context.localization.credential |> Helpers.String.pluralize |> Helpers.String.toTitleCase)
                 ]
@@ -385,7 +350,8 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                     )
                     (Element.text (Maybe.withDefault "(none)" details.keypairName))
                 ]
-            , tile
+            , VH.tile
+                context
                 [ Icon.featherIcon [] Icons.hardDrive
                 , context.localization.blockDevice
                     |> Helpers.String.pluralize
@@ -396,7 +362,8 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                 , Element.el [ Element.centerX ] attachButton
                 ]
             , if context.experimentalFeaturesEnabled then
-                tile
+                VH.tile
+                    context
                     [ Icon.featherIcon [] Icons.shield
                     , context.localization.securityGroup
                         |> Helpers.String.pluralize
@@ -421,7 +388,8 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
 
               else
                 Element.none
-            , tile
+            , VH.tile
+                context
                 [ Icon.history (SH.toElementColor context.palette.neutral.text.default) 20
                 , Element.text "Action History"
                 ]
@@ -463,7 +431,8 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                 , serverActionsDropdown context project model server
                 ]
             ]
-        , tile
+        , VH.tile
+            context
             [ Icon.featherIcon [] Icons.cpu
             , Element.text "Info"
             , Element.el
@@ -486,7 +455,8 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
             ]
         , serverFaultView
         , if List.member details.openstackStatus [ OSTypes.ServerActive, OSTypes.ServerVerifyResize ] then
-            tile
+            VH.tile
+                context
                 [ Icon.featherIcon [] Icons.activity
                 , Element.text "Resource Usage"
                 ]

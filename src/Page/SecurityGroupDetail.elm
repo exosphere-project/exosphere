@@ -2,7 +2,6 @@ module Page.SecurityGroupDetail exposing (Model, Msg(..), init, update, view)
 
 import DateFormat.Relative
 import Element
-import Element.Border as Border
 import Element.Font as Font
 import FeatherIcons
 import FormatNumber.Locales exposing (Decimals(..))
@@ -10,7 +9,6 @@ import Helpers.Formatting exposing (humanCount)
 import Helpers.GetterSetters as GetterSetters exposing (LoadingProgress(..), isDefaultSecurityGroup)
 import Helpers.Helpers exposing (serverCreatorName)
 import Helpers.String
-import Helpers.Time
 import OpenStack.Types as OSTypes exposing (SecurityGroup, securityGroupExoTags, securityGroupTaggedAs)
 import Page.SecurityGroupForm as SecurityGroupForm
 import Page.SecurityGroupRulesTable exposing (rulesTable)
@@ -18,7 +16,6 @@ import Route
 import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.Button as Button
-import Style.Widgets.Card
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.Popover.Popover exposing (popover)
@@ -27,7 +24,6 @@ import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.StatusBadge as StatusBadge
 import Style.Widgets.Tag exposing (tagNeutral, tagPositive)
 import Style.Widgets.Text as Text
-import Style.Widgets.ToggleTip
 import Style.Widgets.Validation as Validation
 import Time
 import Types.Project exposing (Project)
@@ -178,11 +174,6 @@ securityGroupNameView securityGroup =
         [ Text.text Text.ExtraLarge [] name_ ]
 
 
-header : String -> Element.Element msg
-header text =
-    Element.el [ Font.heavy ] <| Element.text text
-
-
 serversTable : View.Types.Context -> Project -> { servers : List Server, progress : LoadingProgress, currentTime : Time.Posix } -> Element.Element Msg
 serversTable context project { servers, progress, currentTime } =
     let
@@ -195,7 +186,7 @@ serversTable context project { servers, progress, currentTime } =
                 ]
                 { data = servers
                 , columns =
-                    [ { header = header "Name"
+                    [ { header = VH.tableHeader "Name"
                       , width = Element.shrink
                       , view =
                             \item ->
@@ -216,19 +207,19 @@ serversTable context project { servers, progress, currentTime } =
                                             )
                                     }
                       }
-                    , { header = header "Created By"
+                    , { header = VH.tableHeader "Created By"
                       , width = Element.shrink
                       , view =
                             \item ->
                                 Text.text Text.Body [ Element.centerY ] (serverCreatorName project item)
                       }
-                    , { header = header "Created"
+                    , { header = VH.tableHeader "Created"
                       , width = Element.shrink
                       , view =
                             \item ->
                                 Text.text Text.Body [ Element.centerY ] (DateFormat.Relative.relativeTime currentTime item.osProps.details.created)
                       }
-                    , { header = header ""
+                    , { header = VH.tableHeader ""
                       , width = Element.shrink
                       , view =
                             \item ->
@@ -273,32 +264,6 @@ warningSecurityGroupAffectsServers context project securityGroupUuid =
             Element.none
 
 
-renderConfirmation : View.Types.Context -> Maybe Msg -> Maybe Msg -> String -> List (Element.Attribute Msg) -> Element.Element Msg
-renderConfirmation context actionMsg cancelMsg title closeActionsAttributes =
-    Element.row
-        [ Element.spacing spacer.px12, Element.width (Element.fill |> Element.minimum 280) ]
-        [ Element.text title
-        , Element.el
-            (Element.alignRight :: closeActionsAttributes)
-          <|
-            Button.button
-                Button.Danger
-                context.palette
-                { text = "Yes"
-                , onPress = actionMsg
-                }
-        , Element.el
-            [ Element.alignRight ]
-          <|
-            Button.button
-                Button.Secondary
-                context.palette
-                { text = "No"
-                , onPress = cancelMsg
-                }
-        ]
-
-
 renderDeleteAction : View.Types.Context -> Project -> Model -> { preset : Bool, default : Bool, progress : LoadingProgress } -> Maybe Msg -> Maybe (Element.Attribute Msg) -> List (Element.Element Msg)
 renderDeleteAction context project model { preset, default, progress } actionMsg closeActionsDropdown =
     [ case model.deletePendingConfirmation of
@@ -312,7 +277,7 @@ renderDeleteAction context project model { preset, default, progress } actionMsg
                         Nothing ->
                             []
             in
-            renderConfirmation
+            VH.renderConfirmation
                 context
                 actionMsg
                 (Just <|
@@ -461,37 +426,6 @@ securityGroupActionsDropdown context project model securityGroup { preset, defau
 render : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> Model -> SecurityGroup -> Element.Element Msg
 render context project ( currentTime, _ ) model securityGroup =
     let
-        whenCreated =
-            let
-                timeDistanceStr =
-                    DateFormat.Relative.relativeTime currentTime securityGroup.createdAt
-
-                createdTimeText =
-                    let
-                        createdTimeFormatted =
-                            Helpers.Time.humanReadableDateAndTime securityGroup.createdAt
-                    in
-                    Element.text ("Created on: " ++ createdTimeFormatted)
-
-                toggleTipContents =
-                    Element.column [] [ createdTimeText ]
-            in
-            Element.row
-                [ Element.spacing spacer.px4 ]
-                [ Element.text timeDistanceStr
-                , Style.Widgets.ToggleTip.toggleTip
-                    context
-                    popoverMsgMapper
-                    (Helpers.String.hyphenate
-                        [ "createdTimeTip"
-                        , project.auth.project.uuid
-                        , securityGroup.uuid
-                        ]
-                    )
-                    toggleTipContents
-                    ST.PositionBottomLeft
-                ]
-
         numberOfRulesString =
             let
                 locale =
@@ -547,27 +481,6 @@ render context project ( currentTime, _ ) model securityGroup =
             else
                 Element.none
 
-        tile : List (Element.Element Msg) -> List (Element.Element Msg) -> Element.Element Msg
-        tile headerContents contents =
-            Style.Widgets.Card.exoCard context.palette
-                (Element.column
-                    [ Element.width Element.fill
-                    , Element.padding spacer.px16
-                    , Element.spacing spacer.px16
-                    ]
-                    (List.concat
-                        [ [ Element.row
-                                (Text.subheadingStyleAttrs context.palette
-                                    ++ Text.typographyAttrs Text.Large
-                                    ++ [ Border.width 0 ]
-                                )
-                                headerContents
-                          ]
-                        , contents
-                        ]
-                    )
-                )
-
         serverLookup =
             GetterSetters.serversForSecurityGroup project securityGroup.uuid
 
@@ -612,7 +525,8 @@ render context project ( currentTime, _ ) model securityGroup =
             ]
         , case model.securityGroupForm of
             Just securityGroupForm ->
-                tile
+                VH.tile
+                    context
                     [ Element.text
                         (String.join " "
                             [ "Edit"
@@ -635,7 +549,8 @@ render context project ( currentTime, _ ) model securityGroup =
 
             Nothing ->
                 Element.none
-        , tile
+        , VH.tile
+            context
             [ FeatherIcons.list |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
             , Element.text "Info"
             , Element.el
@@ -651,7 +566,7 @@ render context project ( currentTime, _ ) model securityGroup =
             [ description
             , createdAgoEtc
                 context
-                { ago = ( "created", whenCreated )
+                { ago = ( "created", VH.whenCreated context project popoverMsgMapper currentTime securityGroup )
                 , rules = ( numberOfRulesString, rulesUnit )
                 }
             ]
@@ -667,7 +582,8 @@ render context project ( currentTime, _ ) model securityGroup =
                             (GetterSetters.projectIdentifier project)
                             { rules = securityGroup.rules, securityGroupForUuid = GetterSetters.securityGroupLookup project }
                 in
-                tile
+                VH.tile
+                    context
                     [ FeatherIcons.lock
                         |> FeatherIcons.toHtml []
                         |> Element.html
@@ -679,7 +595,8 @@ render context project ( currentTime, _ ) model securityGroup =
                     ]
                     [ rules
                     ]
-        , tile
+        , VH.tile
+            context
             [ FeatherIcons.server
                 |> FeatherIcons.toHtml []
                 |> Element.html
