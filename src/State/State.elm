@@ -1171,10 +1171,10 @@ processTick outerModel interval time =
         serverVolsNeedFrequentPoll : Project -> Server -> Bool
         serverVolsNeedFrequentPoll project server =
             GetterSetters.getVolsAttachedToServer project server
-                |> List.any volNeedsFrequentPoll
+                |> List.any (volNeedsFrequentPoll project)
 
-        volNeedsFrequentPoll volume =
-            not <|
+        volNeedsFrequentPoll project volume =
+            (not <|
                 List.member
                     volume.status
                     [ OSTypes.Available
@@ -1186,6 +1186,8 @@ processTick outerModel interval time =
                     , OSTypes.ErrorRestoring
                     , OSTypes.ErrorExtending
                     ]
+            )
+                && (not <| GetterSetters.isVolumeReservedForShelvedInstance project volume)
 
         viewIndependentCmd =
             if interval == 5 then
@@ -1213,7 +1215,7 @@ processTick outerModel interval time =
                                     ( outerModel.sharedModel
                                     , case interval of
                                         5 ->
-                                            if List.any volNeedsFrequentPoll (RDPP.withDefault [] project.volumes) then
+                                            if List.any (volNeedsFrequentPoll project) (RDPP.withDefault [] project.volumes) then
                                                 OSVolumes.requestVolumes project
 
                                             else
@@ -1268,7 +1270,7 @@ processTick outerModel interval time =
                                                     Cmd.none
 
                                                 Just volume ->
-                                                    if volNeedsFrequentPoll volume then
+                                                    if volNeedsFrequentPoll project volume then
                                                         OSVolumes.requestVolumes project
 
                                                     else

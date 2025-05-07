@@ -25,6 +25,7 @@ module Helpers.GetterSetters exposing
     , isBootVolume
     , isDefaultSecurityGroup
     , isSnapshotOfVolume
+    , isVolumeReservedForShelvedInstance
     , modelUpdateProject
     , modelUpdateUnscopedProvider
     , projectAddSecurityGroupRule
@@ -625,6 +626,27 @@ getBootVolume : List OSTypes.Volume -> OSTypes.ServerUuid -> Maybe OSTypes.Volum
 getBootVolume vols serverUuid =
     vols
         |> List.Extra.find (isBootVolume <| Just serverUuid)
+
+
+isVolumeReservedForShelvedInstance : Project -> OSTypes.Volume -> Bool
+isVolumeReservedForShelvedInstance project volume =
+    case volume.status of
+        OSTypes.Reserved ->
+            let
+                maybeServerUuid =
+                    -- Reserved volumes don't necessarily know their attachments but servers do.
+                    List.head <| getServerUuidsByVolume project volume.uuid
+
+                maybeServer =
+                    maybeServerUuid |> Maybe.andThen (serverLookup project)
+            in
+            maybeServer
+                |> Maybe.map (\s -> s.osProps.details.openstackStatus)
+                |> Maybe.map (\status -> [ OSTypes.ServerShelved, OSTypes.ServerShelvedOffloaded ] |> List.member status)
+                |> Maybe.withDefault False
+
+        _ ->
+            False
 
 
 sanitizeMountpoint : String -> String
