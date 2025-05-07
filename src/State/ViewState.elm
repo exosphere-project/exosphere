@@ -402,6 +402,8 @@ routeToViewStateModelCmd sharedModel route =
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestFlavors (GetterSetters.projectIdentifier project))
                                         |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestServerEvents (GetterSetters.projectIdentifier project) serverId)
+                                        |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestServerSecurityGroups (GetterSetters.projectIdentifier project) serverId)
                             in
                             ( projectViewProto <| ServerDetail (Page.ServerDetail.init serverId)

@@ -46,6 +46,7 @@ interactionStatus project server interaction context currentTime tlsReverseProxy
 
                 ServerFromExo exoOriginProps ->
                     serverFromExoGuacStatus
+                        project
                         server
                         context
                         currentTime
@@ -104,7 +105,7 @@ interactionStatus project server interaction context currentTime tlsReverseProxy
                                         ]
 
                             ServerFromExo exoOriginProps ->
-                                customWorkflowfinteractionStatus server context currentTime tlsReverseProxyHostname exoOriginProps maybeFloatingIpAddress
+                                customWorkflowfInteractionStatus project server context currentTime tlsReverseProxyHostname exoOriginProps maybeFloatingIpAddress
 
                     else
                         ITypes.Hidden
@@ -220,15 +221,53 @@ interactionDetails interaction context =
                 ITypes.UrlInteraction
 
 
-customWorkflowfinteractionStatus :
-    Server
+mostRecentServerEvent : Project -> Server -> Maybe OSTypes.ServerEvent
+mostRecentServerEvent project server =
+    GetterSetters.getServerEvents project server.osProps.uuid
+        |> RDPP.withDefault []
+        -- Ignore server events which don't cause a power cycle
+        |> List.filter
+            (\event ->
+                [ "lock", "unlock", {- @nonlocalized -} "image" ]
+                    |> List.map (\action -> action == event.action)
+                    |> List.any identity
+                    |> not
+            )
+        -- Look for the most recent server event
+        |> List.sortBy (\event -> Time.posixToMillis event.startTime)
+        |> List.reverse
+        |> List.head
+
+
+isServerEventAfterThreshold : Time.Posix -> Int -> OSTypes.ServerEvent -> Bool
+isServerEventAfterThreshold currentTime thresholdMilli event =
+    Time.posixToMillis event.startTime > (Time.posixToMillis currentTime - thresholdMilli)
+
+
+hasRecentServerEvent : Project -> Server -> Time.Posix -> Bool
+hasRecentServerEvent project server currentTime =
+    let
+        fortyMinMillis =
+            1000 * 60 * 40
+
+        newServer =
+            Helpers.serverLessThanThisOld server currentTime fortyMinMillis
+    in
+    mostRecentServerEvent project server
+        |> Maybe.map (isServerEventAfterThreshold currentTime fortyMinMillis)
+        |> Maybe.withDefault newServer
+
+
+customWorkflowfInteractionStatus :
+    Project
+    -> Server
     -> View.Types.Context
     -> Time.Posix
     -> Maybe UserAppProxyHostname
     -> ServerFromExoProps
     -> Maybe OSTypes.IpAddressValue
     -> ITypes.InteractionStatus
-customWorkflowfinteractionStatus server context currentTime tlsReverseProxyHostname exoOriginProps maybeFloatingIpAddress =
+customWorkflowfInteractionStatus project server context currentTime tlsReverseProxyHostname exoOriginProps maybeFloatingIpAddress =
     case exoOriginProps.customWorkflowStatus of
         NotLaunchedWithCustomWorkflow ->
             -- Either exoOriginProps.exoServerVersion < 3, or instance was deployed without a workflow
@@ -262,38 +301,7 @@ customWorkflowfinteractionStatus server context currentTime tlsReverseProxyHostn
                                     ]
 
                 RDPP.DontHave ->
-                    let
-                        fortyMinMillis =
-                            1000 * 60 * 40
-
-                        newServer =
-                            Helpers.serverLessThanThisOld server currentTime fortyMinMillis
-
-                        recentServerEvent =
-                            server.events
-                                |> RDPP.withDefault []
-                                -- Ignore server events which don't cause a power cycle
-                                |> List.filter
-                                    (\event ->
-                                        [ "lock", "unlock", {- @nonlocalized -} "image" ]
-                                            |> List.map (\action -> action == event.action)
-                                            |> List.any identity
-                                            |> not
-                                    )
-                                -- Look for the most recent server event
-                                |> List.map .startTime
-                                |> List.map Time.posixToMillis
-                                |> List.sort
-                                |> List.reverse
-                                |> List.head
-                                -- See if most recent event is recent enough
-                                |> Maybe.map
-                                    (\eventTime ->
-                                        eventTime > (Time.posixToMillis currentTime - fortyMinMillis)
-                                    )
-                                |> Maybe.withDefault newServer
-                    in
-                    if recentServerEvent then
+                    if hasRecentServerEvent project server currentTime then
                         ITypes.Unavailable <|
                             String.join " "
                                 [ context.localization.virtualComputer
@@ -339,7 +347,8 @@ customWorkflowfinteractionStatus server context currentTime tlsReverseProxyHostn
 
 
 serverFromExoGuacStatus :
-    Server
+    Project
+    -> Server
     -> View.Types.Context
     -> Time.Posix
     -> Maybe UserAppProxyHostname
@@ -347,7 +356,7 @@ serverFromExoGuacStatus :
     -> ServerFromExoProps
     -> GuacType
     -> ITypes.InteractionStatus
-serverFromExoGuacStatus server context currentTime tlsReverseProxyHostname maybeFloatingIpAddress exoOriginProps guacType =
+serverFromExoGuacStatus project server context currentTime tlsReverseProxyHostname maybeFloatingIpAddress exoOriginProps guacType =
     case exoOriginProps.guacamoleStatus of
         GuacTypes.NotLaunchedWithGuacamole ->
             if exoOriginProps.exoServerVersion < 3 then
@@ -421,38 +430,7 @@ serverFromExoGuacStatus server context currentTime tlsReverseProxyHostname maybe
                                         ]
 
                     RDPP.DontHave ->
-                        let
-                            fortyMinMillis =
-                                1000 * 60 * 40
-
-                            newServer =
-                                Helpers.serverLessThanThisOld server currentTime fortyMinMillis
-
-                            recentServerEvent =
-                                server.events
-                                    |> RDPP.withDefault []
-                                    -- Ignore server events which don't cause a power cycle
-                                    |> List.filter
-                                        (\event ->
-                                            [ "lock", "unlock", {- @nonlocalized -} "image" ]
-                                                |> List.map (\action -> action == event.action)
-                                                |> List.any identity
-                                                |> not
-                                        )
-                                    -- Look for the most recent server event
-                                    |> List.map .startTime
-                                    |> List.map Time.posixToMillis
-                                    |> List.sort
-                                    |> List.reverse
-                                    |> List.head
-                                    -- See if most recent event is recent enough
-                                    |> Maybe.map
-                                        (\eventTime ->
-                                            eventTime > (Time.posixToMillis currentTime - fortyMinMillis)
-                                        )
-                                    |> Maybe.withDefault newServer
-                        in
-                        if recentServerEvent then
+                        if hasRecentServerEvent project server currentTime then
                             ITypes.Unavailable <|
                                 String.join " "
                                     [ context.localization.virtualComputer

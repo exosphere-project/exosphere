@@ -9,6 +9,7 @@ module Helpers.GetterSetters exposing
     , getFloatingIpServer
     , getSecurityGroupActions
     , getServerDnsRecordSets
+    , getServerEvents
     , getServerExouserPassphrase
     , getServerFixedIps
     , getServerFlavorGroup
@@ -87,7 +88,7 @@ module Helpers.GetterSetters exposing
 
 import Dict
 import Helpers.List exposing (multiSortBy)
-import Helpers.RemoteDataPlusPlus as RDPP
+import Helpers.RemoteDataPlusPlus as RDPP exposing (RemoteDataPlusPlus)
 import Helpers.String exposing (toTitleCase)
 import Helpers.Url as UrlHelpers
 import List.Extra
@@ -97,7 +98,7 @@ import OpenStack.Types as OSTypes
 import OpenStack.VolumeSnapshots as VS
 import Regex
 import Time
-import Types.Error
+import Types.Error exposing (HttpErrorWithBody)
 import Types.HelperTypes as HelperTypes
 import Types.Project exposing (Project)
 import Types.SecurityGroupActions as SecurityGroupActions exposing (SecurityGroupAction)
@@ -796,11 +797,23 @@ modelUpdateProject model newProject =
 
 projectUpdateServer : Project -> Server -> Project
 projectUpdateServer project server =
-    case project.servers.data of
+    let
+        { data, refreshStatus } =
+            project.servers
+    in
+    case data of
         RDPP.DontHave ->
-            -- We don't do anything if we don't already have servers. Is this a silent failure that should be
-            -- handled differently?
-            project
+            -- To prevent dropping server data on the floor (e.g. if we requested a particular server before all servers),
+            -- we initialise just one in the list & take received time as the start of the epoch.
+            let
+                newData =
+                    RDPP.DoHave [ server ] (Time.millisToPosix 0)
+
+                servers =
+                    -- Preserve the current loading state.
+                    RemoteDataPlusPlus newData refreshStatus
+            in
+            { project | servers = servers }
 
         RDPP.DoHave servers recTime ->
             let
@@ -914,18 +927,20 @@ projectSetServerLoading serverUuid project =
 
 
 projectSetServerEventsLoading : OSTypes.ServerUuid -> Project -> Project
-projectSetServerEventsLoading serverUuid project =
-    case serverLookup project serverUuid of
-        Nothing ->
-            -- We can't do anything lol
-            project
+projectSetServerEventsLoading serverId project =
+    { project
+        | serverEvents =
+            Dict.update serverId
+                (\entry ->
+                    case entry of
+                        Just serverEvents ->
+                            Just (RDPP.setLoading serverEvents)
 
-        Just server ->
-            let
-                newServer =
-                    { server | events = RDPP.setLoading server.events }
-            in
-            projectUpdateServer project newServer
+                        Nothing ->
+                            Just (RDPP.setLoading RDPP.empty)
+                )
+                project.serverEvents
+    }
 
 
 projectSetServerSecurityGroupsLoading : OSTypes.ServerUuid -> Project -> Project
@@ -1219,3 +1234,9 @@ projectUpdateSecurityGroupActionsIfExists project securityGroupUuid onUpdateActi
         | securityGroupActions =
             securityGroupActions
     }
+
+
+getServerEvents : Project -> OSTypes.ServerUuid -> RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.ServerEvent)
+getServerEvents project serverId =
+    Dict.get serverId project.serverEvents
+        |> Maybe.withDefault RDPP.empty

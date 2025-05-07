@@ -1792,6 +1792,38 @@ processProjectSpecificMsg outerModel project msg =
                         _ ->
                             non404
 
+        ReceiveServerEvents serverId errorContext result ->
+            case result of
+                Ok serverEvents ->
+                    let
+                        newProject =
+                            { project
+                                | serverEvents =
+                                    Dict.update serverId
+                                        (\_ ->
+                                            Just
+                                                (RDPP.RemoteDataPlusPlus
+                                                    (RDPP.DoHave serverEvents sharedModel.clientCurrentTime)
+                                                    (RDPP.NotLoading Nothing)
+                                                )
+                                        )
+                                        project.serverEvents
+                            }
+                    in
+                    ( GetterSetters.modelUpdateProject sharedModel newProject
+                    , Cmd.none
+                    )
+                        |> mapToOuterModel outerModel
+
+                Err httpErrorWithBody ->
+                    let
+                        newErrorContext =
+                            { errorContext | level = ErrorDebug }
+                    in
+                    State.Error.processSynchronousApiError sharedModel newErrorContext httpErrorWithBody
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
         ReceiveFlavors flavors ->
             Rest.Nova.receiveFlavors sharedModel project flavors
                 |> mapToOuterMsg
@@ -3087,7 +3119,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                     server.exoProps
 
                 newServer =
-                    Server server.osProps { oldExoProps | targetOpenstackStatus = Just [ OSTypes.ServerResize ] } server.events server.securityGroups
+                    Server server.osProps { oldExoProps | targetOpenstackStatus = Just [ OSTypes.ServerResize ] } server.securityGroups
 
                 newProject =
                     GetterSetters.projectUpdateServer project newServer
@@ -3206,35 +3238,6 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                 |> Helpers.pipelineCmd (ApiModelHelpers.requestServerEvents (GetterSetters.projectIdentifier project) server.osProps.uuid)
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
-
-        ReceiveServerEvents errorContext result ->
-            case result of
-                Ok serverEvents ->
-                    let
-                        newServer =
-                            { server
-                                | events =
-                                    RDPP.RemoteDataPlusPlus
-                                        (RDPP.DoHave serverEvents sharedModel.clientCurrentTime)
-                                        (RDPP.NotLoading Nothing)
-                            }
-
-                        newProject =
-                            GetterSetters.projectUpdateServer project newServer
-                    in
-                    ( GetterSetters.modelUpdateProject sharedModel newProject
-                    , Cmd.none
-                    )
-                        |> mapToOuterModel outerModel
-
-                Err httpErrorWithBody ->
-                    let
-                        newErrorContext =
-                            { errorContext | level = ErrorDebug }
-                    in
-                    State.Error.processSynchronousApiError sharedModel newErrorContext httpErrorWithBody
-                        |> mapToOuterMsg
-                        |> mapToOuterModel outerModel
 
         ReceiveServerSecurityGroups errorContext result ->
             case result of
@@ -3719,7 +3722,6 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                             | targetOpenstackStatus = targetStatuses
                             , floatingIpCreationOption = newFloatingIpOption
                         }
-                        server.events
                         server.securityGroups
 
                 newProject =
@@ -4038,6 +4040,7 @@ createProject_ outerModel description authToken region endpoints =
             , description = description
             , images = RDPP.RemoteDataPlusPlus RDPP.DontHave RDPP.Loading
             , servers = RDPP.RemoteDataPlusPlus RDPP.DontHave RDPP.Loading
+            , serverEvents = Dict.empty
             , serverImages = []
             , flavors = RDPP.empty
             , keypairs = RDPP.empty

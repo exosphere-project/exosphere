@@ -82,6 +82,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveImages (List OSTypes.Image)
     | ReceiveServerImage (Maybe OSTypes.Image)
     | ReceiveServer OSTypes.ServerUuid ErrorContext (Result HttpErrorWithBody OSTypes.Server)
+    | ReceiveServerEvents OSTypes.ServerUuid ErrorContext (Result HttpErrorWithBody (List OSTypes.ServerEvent))
     | ReceiveServers ErrorContext (Result HttpErrorWithBody (List OSTypes.Server))
     | ReceiveCreateServer ErrorContext (Result HttpErrorWithBody OSTypes.ServerUuid)
     | ReceiveFlavors (List OSTypes.Flavor)
@@ -140,7 +141,6 @@ type ServerSpecificMsgConstructor
     | RequestServerSecurityGroupUpdates (List OSTypes.ServerSecurityGroupUpdate)
     | RequestCreateServerFloatingIp (Maybe OSTypes.IpAddressValue)
     | ReceiveServerAction
-    | ReceiveServerEvents ErrorContext (Result HttpErrorWithBody (List OSTypes.ServerEvent))
     | ReceiveServerSecurityGroups ErrorContext (Result HttpErrorWithBody (List OSTypes.ServerSecurityGroup))
     | ReceiveServerAddSecurityGroup ErrorContext OSTypes.ServerSecurityGroup (Result HttpErrorWithBody String)
     | ReceiveServerRemoveSecurityGroup ErrorContext OSTypes.ServerSecurityGroup (Result HttpErrorWithBody String)

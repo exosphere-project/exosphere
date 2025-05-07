@@ -123,7 +123,10 @@ stepServerPoll time project server =
                 newProject =
                     GetterSetters.projectUpdateServer project newServer
             in
-            ( newProject, Rest.Nova.requestServer project newServer.osProps.uuid )
+            ( newProject
+              -- , Cmd.none
+            , Rest.Nova.requestServer project newServer.osProps.uuid
+            )
 
 
 stepServerRequestNetworks : Time.Posix -> Project -> Server -> ( Project, Cmd SharedMsg )
@@ -459,20 +462,20 @@ stepServerPollEvents time project server =
 
         doPollEvents =
             let
-                newServer =
-                    { server | events = RDPP.setLoading server.events }
-
                 newProject =
-                    GetterSetters.projectUpdateServer project newServer
+                    GetterSetters.projectSetServerEventsLoading server.osProps.uuid project
             in
             ( newProject, Rest.Nova.requestServerEvents newProject server.osProps.uuid )
+
+        serverEvents =
+            GetterSetters.getServerEvents project server.osProps.uuid
     in
-    case server.events.refreshStatus of
+    case serverEvents.refreshStatus of
         RDPP.Loading ->
             doNothing project
 
         RDPP.NotLoading maybeErrorTimeTuple ->
-            case server.events.data of
+            case serverEvents.data of
                 RDPP.DoHave _ receivedTime ->
                     pollIfIntervalExceeded receivedTime
 

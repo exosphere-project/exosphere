@@ -125,8 +125,7 @@ requestServerEvents project serverUuid =
 
         resultToMsg result =
             ProjectMsg (GetterSetters.projectIdentifier project) <|
-                ServerMsg serverUuid <|
-                    ReceiveServerEvents errorContext result
+                ReceiveServerEvents serverUuid errorContext result
     in
     openstackCredentialedRequest
         (GetterSetters.projectIdentifier project)
@@ -890,18 +889,7 @@ receiveServer model project osServer =
             { newServer | exoProps = newExoProps }
 
         newProject =
-            case project.servers.data of
-                RDPP.DoHave _ _ ->
-                    GetterSetters.projectUpdateServer project newServerUpdatedSomeExoProps
-
-                RDPP.DontHave ->
-                    let
-                        newServersRDPP =
-                            RDPP.RemoteDataPlusPlus
-                                (RDPP.DoHave [ newServerUpdatedSomeExoProps ] model.clientCurrentTime)
-                                (RDPP.NotLoading Nothing)
-                    in
-                    { project | servers = newServersRDPP }
+            GetterSetters.projectUpdateServer project newServerUpdatedSomeExoProps
     in
     ( GetterSetters.modelUpdateProject model newProject
     , cmd
@@ -913,87 +901,7 @@ receiveServer_ project osServer =
     let
         newServer : Server
         newServer =
-            case GetterSetters.serverLookup project osServer.uuid of
-                Nothing ->
-                    let
-                        defaultExoProps =
-                            ExoServerProps
-                                (Helpers.decodeFloatingIpOption osServer.details)
-                                False
-                                Nothing
-                                (Helpers.serverOrigin osServer.details)
-                                Nothing
-                                False
-                    in
-                    Server osServer defaultExoProps RDPP.empty RDPP.empty
-
-                Just exoServer ->
-                    let
-                        floatingIpCreationOption =
-                            Helpers.getNewFloatingIpOption
-                                project
-                                osServer
-                                exoServer.exoProps.floatingIpCreationOption
-
-                        oldOSProps =
-                            exoServer.osProps
-
-                        oldExoProps =
-                            exoServer.exoProps
-
-                        newTargetOpenstackStatus =
-                            case oldExoProps.targetOpenstackStatus of
-                                Nothing ->
-                                    Nothing
-
-                                Just statuses ->
-                                    if List.member osServer.details.openstackStatus statuses then
-                                        Nothing
-
-                                    else
-                                        Just statuses
-
-                        -- If server is not active, then forget Guacamole token
-                        newServerOrigin =
-                            let
-                                guacPropsForgetToken : GuacTypes.LaunchedWithGuacProps -> GuacTypes.LaunchedWithGuacProps
-                                guacPropsForgetToken oldGuacProps =
-                                    { oldGuacProps | authToken = RDPP.empty }
-                            in
-                            case oldExoProps.serverOrigin of
-                                ServerNotFromExo ->
-                                    ServerNotFromExo
-
-                                ServerFromExo exoOriginProps ->
-                                    case exoOriginProps.guacamoleStatus of
-                                        GuacTypes.NotLaunchedWithGuacamole ->
-                                            oldExoProps.serverOrigin
-
-                                        GuacTypes.LaunchedWithGuacamole guacProps ->
-                                            case osServer.details.openstackStatus of
-                                                OSTypes.ServerActive ->
-                                                    oldExoProps.serverOrigin
-
-                                                _ ->
-                                                    let
-                                                        newOriginProps =
-                                                            { exoOriginProps
-                                                                | guacamoleStatus =
-                                                                    GuacTypes.LaunchedWithGuacamole
-                                                                        (guacPropsForgetToken guacProps)
-                                                            }
-                                                    in
-                                                    ServerFromExo newOriginProps
-                    in
-                    { exoServer
-                        | osProps = { oldOSProps | details = osServer.details }
-                        , exoProps =
-                            { oldExoProps
-                                | floatingIpCreationOption = floatingIpCreationOption
-                                , targetOpenstackStatus = newTargetOpenstackStatus
-                                , serverOrigin = newServerOrigin
-                            }
-                    }
+            initOrUpdateServer project osServer
 
         consoleUrlCmd =
             requestConsoleUrlIfRequestable project newServer
@@ -1029,6 +937,91 @@ receiveServer_ project osServer =
                 |> Cmd.batch
     in
     ( newServer, allCmds )
+
+
+initOrUpdateServer : Project -> OSTypes.Server -> Server
+initOrUpdateServer project osServer =
+    case GetterSetters.serverLookup project osServer.uuid of
+        Nothing ->
+            let
+                defaultExoProps =
+                    ExoServerProps
+                        (Helpers.decodeFloatingIpOption osServer.details)
+                        False
+                        Nothing
+                        (Helpers.serverOrigin osServer.details)
+                        Nothing
+                        False
+            in
+            Server osServer defaultExoProps RDPP.empty
+
+        Just exoServer ->
+            let
+                floatingIpCreationOption =
+                    Helpers.getNewFloatingIpOption
+                        project
+                        osServer
+                        exoServer.exoProps.floatingIpCreationOption
+
+                oldOSProps =
+                    exoServer.osProps
+
+                oldExoProps =
+                    exoServer.exoProps
+
+                newTargetOpenstackStatus =
+                    case oldExoProps.targetOpenstackStatus of
+                        Nothing ->
+                            Nothing
+
+                        Just statuses ->
+                            if List.member osServer.details.openstackStatus statuses then
+                                Nothing
+
+                            else
+                                Just statuses
+
+                -- If server is not active, then forget Guacamole token
+                newServerOrigin =
+                    let
+                        guacPropsForgetToken : GuacTypes.LaunchedWithGuacProps -> GuacTypes.LaunchedWithGuacProps
+                        guacPropsForgetToken oldGuacProps =
+                            { oldGuacProps | authToken = RDPP.empty }
+                    in
+                    case oldExoProps.serverOrigin of
+                        ServerNotFromExo ->
+                            ServerNotFromExo
+
+                        ServerFromExo exoOriginProps ->
+                            case exoOriginProps.guacamoleStatus of
+                                GuacTypes.NotLaunchedWithGuacamole ->
+                                    oldExoProps.serverOrigin
+
+                                GuacTypes.LaunchedWithGuacamole guacProps ->
+                                    case osServer.details.openstackStatus of
+                                        OSTypes.ServerActive ->
+                                            oldExoProps.serverOrigin
+
+                                        _ ->
+                                            let
+                                                newOriginProps =
+                                                    { exoOriginProps
+                                                        | guacamoleStatus =
+                                                            GuacTypes.LaunchedWithGuacamole
+                                                                (guacPropsForgetToken guacProps)
+                                                    }
+                                            in
+                                            ServerFromExo newOriginProps
+            in
+            { exoServer
+                | osProps = { oldOSProps | details = osServer.details }
+                , exoProps =
+                    { oldExoProps
+                        | floatingIpCreationOption = floatingIpCreationOption
+                        , targetOpenstackStatus = newTargetOpenstackStatus
+                        , serverOrigin = newServerOrigin
+                    }
+            }
 
 
 receiveConsoleUrl : SharedModel -> Project -> Server -> Result HttpErrorWithBody OSTypes.ConsoleUrl -> ( SharedModel, Cmd SharedMsg )
