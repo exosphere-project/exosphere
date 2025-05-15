@@ -602,6 +602,7 @@ type alias Volume =
     , status : VolumeStatus
     , size : VolumeSize
     , description : Maybe VolumeDescription
+    , bootable : Bool
     , attachments : List VolumeAttachment
     , imageMetadata : Maybe NameAndUuid
     , createdAt : Time.Posix

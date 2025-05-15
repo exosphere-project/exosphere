@@ -208,6 +208,23 @@ requestUpdateVolumeName project volumeUuid name =
         (expectStringWithErrorBody resultToMsg_)
 
 
+booleanStringDecoder : Decode.Decoder Bool
+booleanStringDecoder =
+    Decode.string
+        |> Decode.andThen
+            (\str ->
+                case String.toLower str of
+                    "true" ->
+                        Decode.succeed True
+
+                    "false" ->
+                        Decode.succeed False
+
+                    _ ->
+                        Decode.fail "Expecting a BOOL"
+            )
+
+
 volumeDecoder : Decode.Decoder OSTypes.Volume
 volumeDecoder =
     Decode.succeed OSTypes.Volume
@@ -216,6 +233,8 @@ volumeDecoder =
         |> Pipeline.required "status" (Decode.string |> Decode.andThen volumeStatusDecoder)
         |> Pipeline.required "size" Decode.int
         |> Pipeline.required "description" (Decode.nullable Decode.string)
+        -- The "bootable" field is a boolean string rather than a boolean value.
+        |> Pipeline.required "bootable" booleanStringDecoder
         |> Pipeline.required "attachments" (Decode.list cinderVolumeAttachmentDecoder)
         |> Pipeline.optional "volume_image_metadata" (imageMetadataDecoder |> Decode.map Maybe.Just) Nothing
         |> Pipeline.required "created_at" (Decode.string |> Decode.andThen makeIso8601StringToPosixDecoder)
