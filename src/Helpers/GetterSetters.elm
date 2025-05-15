@@ -24,9 +24,10 @@ module Helpers.GetterSetters exposing
     , getVolsAttachedToServer
     , imageGetDesktopMessage
     , imageLookup
-    , isBootVolume
+    , isBootableVolume
     , isDefaultSecurityGroup
     , isSnapshotOfVolume
+    , isVolumeCurrentlyBackingServer
     , isVolumeReservedForShelvedInstance
     , modelUpdateProject
     , modelUpdateUnscopedProvider
@@ -609,9 +610,11 @@ volumeDeviceRawName server volume =
         |> Maybe.map .device
 
 
-isBootVolume : Maybe OSTypes.ServerUuid -> OSTypes.Volume -> Bool
-isBootVolume maybeServerUuid volume =
-    -- If a serverUuid is passed, determines whether volume backs that server; otherwise just determines whether volume backs any server
+{-| If a `serverUuid` is passed, determines whether volume backs that server;
+otherwise just determines whether volume is backing any server.
+-}
+isVolumeCurrentlyBackingServer : Maybe OSTypes.ServerUuid -> OSTypes.Volume -> Bool
+isVolumeCurrentlyBackingServer maybeServerUuid volume =
     volume.attachments
         |> List.filter
             (\a ->
@@ -632,10 +635,15 @@ isBootVolume maybeServerUuid volume =
         |> not
 
 
+isBootableVolume : OSTypes.Volume -> Bool
+isBootableVolume volume =
+    volume.bootable
+
+
 getBootVolume : List OSTypes.Volume -> OSTypes.ServerUuid -> Maybe OSTypes.Volume
 getBootVolume vols serverUuid =
     vols
-        |> List.Extra.find (isBootVolume <| Just serverUuid)
+        |> List.Extra.find (isVolumeCurrentlyBackingServer <| Just serverUuid)
 
 
 isVolumeReservedForShelvedInstance : Project -> OSTypes.Volume -> Bool

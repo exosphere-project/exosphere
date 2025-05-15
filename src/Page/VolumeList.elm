@@ -308,6 +308,13 @@ volumeView context project currentTime volumeRecord =
                          else
                             DeleteButton.Disabled (Maybe.withDefault deleteString <| VH.deleteVolumeWarning context volumeRecord.volume)
                         )
+
+                bootVolumeTag =
+                    if GetterSetters.isBootableVolume volumeRecord.volume then
+                        tag context.palette <| "boot " ++ context.localization.blockDevice
+
+                    else
+                        Element.none
             in
             case volumeRecord.volume.status of
                 OSTypes.Detaching ->
@@ -317,17 +324,20 @@ volumeView context project currentTime volumeRecord =
                     Element.el [ Font.italic ] (Element.text "Deleting ...")
 
                 OSTypes.InUse ->
-                    let
-                        isBootVolume =
-                            GetterSetters.isBootVolume Nothing volumeRecord.volume
+                    Element.row [ Element.spacing spacer.px12 ]
+                        [ bootVolumeTag
+                        , VH.detachVolumeButton
+                            context
+                            project
+                            (SharedMsg << SharedMsg.TogglePopover)
+                            "volumeListDetachPopconfirm"
+                            volumeRecord.volume
+                            (Just <| GotDetachVolumeConfirm volumeRecord.id)
+                            (Just NoOp)
+                        , deleteButton False
+                        ]
 
-                        bootVolumeTag =
-                            if isBootVolume then
-                                tag context.palette <| "boot " ++ context.localization.blockDevice
-
-                            else
-                                Element.none
-                    in
+                OSTypes.Reserved ->
                     Element.row [ Element.spacing spacer.px12 ]
                         [ bootVolumeTag
                         , VH.detachVolumeButton
@@ -365,7 +375,9 @@ volumeView context project currentTime volumeRecord =
                         ]
 
                 _ ->
-                    Element.none
+                    Element.row [ Element.spacing spacer.px12 ]
+                        [ bootVolumeTag
+                        ]
 
         sizeString bytes =
             let

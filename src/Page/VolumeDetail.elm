@@ -158,7 +158,7 @@ renderDeleteAction context model volume actionMsg closeActionsDropdown =
         Nothing ->
             let
                 isDeleteDisabled =
-                    GetterSetters.isBootVolume Nothing volume
+                    GetterSetters.isVolumeCurrentlyBackingServer Nothing volume
 
                 warning =
                     case VH.deleteVolumeWarning context volume of
@@ -477,7 +477,7 @@ attachmentsTable context project volume =
                                     OSTypes.InUse ->
                                         let
                                             isBootVolume =
-                                                GetterSetters.isBootVolume Nothing volume
+                                                GetterSetters.isVolumeCurrentlyBackingServer Nothing volume
 
                                             bootVolumeTag =
                                                 if isBootVolume then

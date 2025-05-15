@@ -1780,7 +1780,7 @@ serverVolumes context projectId server volumes =
                 volumeRow v =
                     let
                         ( device, mountpoint ) =
-                            if GetterSetters.isBootVolume (Just server.osProps.uuid) v then
+                            if GetterSetters.isVolumeCurrentlyBackingServer (Just server.osProps.uuid) v then
                                 ( String.join " "
                                     [ "Boot"
                                     , context.localization.blockDevice
