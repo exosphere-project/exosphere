@@ -5,7 +5,7 @@ import Element.Font as Font
 import FeatherIcons
 import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (Unit(..), humanNumber)
-import Helpers.GetterSetters as GetterSetters exposing (isSnapshotOfVolume)
+import Helpers.GetterSetters as GetterSetters
 import Helpers.String exposing (removeEmptiness)
 import OpenStack.HelperTypes exposing (Uuid)
 import OpenStack.Types as OSTypes exposing (Volume)
@@ -296,6 +296,46 @@ centerRow =
     Element.el [ Element.centerY ]
 
 
+detachButton : View.Types.Context -> Project -> Volume -> Element.Element Msg
+detachButton context project volume =
+    let
+        isBootVolume =
+            GetterSetters.isVolumeCurrentlyBackingServer Nothing volume
+
+        bootVolumeTag =
+            if isBootVolume then
+                tag context.palette <| "boot " ++ context.localization.blockDevice
+
+            else
+                Element.none
+
+        controls =
+            Element.row [ Element.spacing spacer.px12 ]
+                [ bootVolumeTag
+                , VH.detachVolumeButton
+                    context
+                    project
+                    (SharedMsg << SharedMsg.TogglePopover)
+                    "volumeDetailDetachPopconfirm"
+                    volume
+                    (Just <| GotDetachVolumeConfirm volume.uuid)
+                    (Just NoOp)
+                ]
+    in
+    case volume.status of
+        OSTypes.Detaching ->
+            centerRow <| Text.body <| "Detaching..."
+
+        OSTypes.InUse ->
+            controls
+
+        OSTypes.Reserved ->
+            controls
+
+        _ ->
+            Element.none
+
+
 attachmentsTable : View.Types.Context -> Project -> Volume -> Element.Element Msg
 attachmentsTable context project volume =
     case List.length volume.attachments of
@@ -309,7 +349,7 @@ attachmentsTable context project volume =
                     in
                     case maybeServerUuid of
                         Just serverUuid ->
-                            Element.row []
+                            Element.row [ Element.width Element.fill ]
                                 (Element.text "Reserved for "
                                     :: (let
                                             maybeServer =
@@ -323,7 +363,7 @@ attachmentsTable context project volume =
                                                     Nothing ->
                                                         serverNameNotFound context
 
-                                            maybeServerShelved =
+                                            isServerShelved =
                                                 maybeServer
                                                     |> Maybe.map (\s -> s.osProps.details.openstackStatus)
                                                     |> Maybe.map (\status -> [ OSTypes.ServerShelved, OSTypes.ServerShelvedOffloaded ] |> List.member status)
@@ -336,17 +376,22 @@ attachmentsTable context project volume =
                                                     Route.ServerDetail serverUuid
                                             )
                                             serverName
-                                        , case ( volume.status, maybeServerShelved ) of
-                                            ( OSTypes.Reserved, True ) ->
-                                                Style.Widgets.ToggleTip.toggleTip
-                                                    context
-                                                    (SharedMsg << SharedMsg.TogglePopover)
-                                                    ("volumeReservedTip-" ++ volume.uuid)
-                                                    (Text.body <| "Unshelve the attached " ++ context.localization.virtualComputer ++ " to interact with this " ++ context.localization.blockDevice ++ ".")
-                                                    ST.PositionBottom
+                                        , if isServerShelved && GetterSetters.isBootableVolume volume then
+                                            Style.Widgets.ToggleTip.toggleTip
+                                                context
+                                                (SharedMsg << SharedMsg.TogglePopover)
+                                                ("volumeReservedTip-" ++ volume.uuid)
+                                                (Text.body <| "Unshelve the attached " ++ context.localization.virtualComputer ++ " to interact with this " ++ context.localization.blockDevice ++ ".")
+                                                ST.PositionBottom
 
-                                            _ ->
-                                                Element.none
+                                          else
+                                            -- If the volume was attached when the server was shelved,
+                                            -- it would be reserved but detachable.
+                                            Element.row
+                                                [ Element.width Element.fill ]
+                                                [ Element.el [ Element.width Element.fill ] Element.none
+                                                , detachButton context project volume
+                                                ]
                                         ]
                                        )
                                 )
@@ -470,36 +515,7 @@ attachmentsTable context project volume =
                       , width = Element.shrink
                       , view =
                             \_ ->
-                                case volume.status of
-                                    OSTypes.Detaching ->
-                                        centerRow <| Text.body <| "Detaching..."
-
-                                    OSTypes.InUse ->
-                                        let
-                                            isBootVolume =
-                                                GetterSetters.isVolumeCurrentlyBackingServer Nothing volume
-
-                                            bootVolumeTag =
-                                                if isBootVolume then
-                                                    tag context.palette <| "boot " ++ context.localization.blockDevice
-
-                                                else
-                                                    Element.none
-                                        in
-                                        Element.row [ Element.spacing spacer.px12 ]
-                                            [ bootVolumeTag
-                                            , VH.detachVolumeButton
-                                                context
-                                                project
-                                                (SharedMsg << SharedMsg.TogglePopover)
-                                                "volumeDetailDetachPopconfirm"
-                                                volume
-                                                (Just <| GotDetachVolumeConfirm volume.uuid)
-                                                (Just NoOp)
-                                            ]
-
-                                    _ ->
-                                        Element.none
+                                detachButton context project volume
                       }
                     ]
                 }
@@ -616,7 +632,7 @@ render context project ( currentTime, _ ) model volume =
                 context
                 project.volumeSnapshots
                 (snapshotWord |> Helpers.String.pluralize)
-                (List.filter (\snapshot -> isSnapshotOfVolume volume snapshot)
+                (List.filter (\snapshot -> GetterSetters.isSnapshotOfVolume volume snapshot)
                     >> snapshotsTable context project currentTime
                 )
     in

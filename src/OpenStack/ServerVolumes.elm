@@ -81,7 +81,8 @@ requestDetachVolume project serverUuid volumeUuid =
         (GetterSetters.projectIdentifier project)
         Delete
         Nothing
-        []
+        -- From v2.20, detaching a volume from an instance in SHELVED or SHELVED_OFFLOADED state is allowed.
+        [ ( "X-OpenStack-Nova-API-Version", "2.20" ) ]
         ( project.endpoints.nova, [ "servers", serverUuid, "os-volume_attachments", volumeUuid ], [] )
         Http.emptyBody
         (expectStringWithErrorBody

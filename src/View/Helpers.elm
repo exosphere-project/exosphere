@@ -1599,8 +1599,8 @@ deleteResourcePopconfirmWithDisabledHint context project msgMapper resource popc
 
 deleteVolumeWarning : View.Types.Context -> Volume -> Maybe String
 deleteVolumeWarning context volume =
-    case ( GetterSetters.isVolumeCurrentlyBackingServer Nothing volume, volume.status ) of
-        ( True, _ ) ->
+    case ( GetterSetters.isVolumeCurrentlyBackingServer Nothing volume, GetterSetters.isBootableVolume volume, volume.status ) of
+        ( True, _, _ ) ->
             Just <|
                 String.join " "
                     [ "This"
@@ -1613,7 +1613,7 @@ deleteVolumeWarning context volume =
                     , "is deleted."
                     ]
 
-        ( _, OSTypes.Reserved ) ->
+        ( _, True, OSTypes.Reserved ) ->
             Just <|
                 String.join " "
                     [ "Unshelve the attached"
@@ -1622,7 +1622,15 @@ deleteVolumeWarning context volume =
                     , context.localization.blockDevice ++ "."
                     ]
 
-        ( _, OSTypes.InUse ) ->
+        ( _, False, OSTypes.Reserved ) ->
+            Just <|
+                String.join " "
+                    [ "This"
+                    , context.localization.blockDevice
+                    , "must be detached before it can be deleted."
+                    ]
+
+        ( _, _, OSTypes.InUse ) ->
             Just <|
                 String.join " "
                     [ "This"

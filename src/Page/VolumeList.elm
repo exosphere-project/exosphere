@@ -239,7 +239,7 @@ volumeView context project currentTime volumeRecord =
                                             Nothing ->
                                                 "unresolvable " ++ context.localization.virtualComputer ++ " name"
 
-                                    maybeServerShelved =
+                                    isServerShelved =
                                         maybeServer
                                             |> Maybe.map (\s -> s.osProps.details.openstackStatus)
                                             |> Maybe.map (\status -> [ OSTypes.ServerShelved, OSTypes.ServerShelvedOffloaded ] |> List.member status)
@@ -257,7 +257,7 @@ volumeView context project currentTime volumeRecord =
                                             ]
                                             (Element.text <| serverName)
                                     }
-                                , case ( volumeRecord.volume.status, maybeServerShelved ) of
+                                , case ( volumeRecord.volume.status, isServerShelved && GetterSetters.isBootableVolume volumeRecord.volume ) of
                                     ( OSTypes.Reserved, True ) ->
                                         Style.Widgets.ToggleTip.toggleTip
                                             context

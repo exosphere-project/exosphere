@@ -1557,7 +1557,8 @@ processProjectSpecificMsg outerModel project msg =
 
                 maybeServer =
                     maybeVolume
-                        |> Maybe.map (GetterSetters.getServersWithVolAttached project)
+                        |> Maybe.map .uuid
+                        |> Maybe.map (GetterSetters.getServerUuidsByVolume project)
                         |> Maybe.andThen List.head
                         |> Maybe.andThen (GetterSetters.serverLookup project)
             in
@@ -1570,7 +1571,13 @@ processProjectSpecificMsg outerModel project msg =
                     ( outerModel
                     , Cmd.batch
                         [ OSSvrVols.requestDetachVolume project server.osProps.uuid volumeUuid
-                        , if serverHasVolumeMetadata then
+                        , if
+                            serverHasVolumeMetadata
+                                && -- You can't update metadata when the server is `shelved_offloaded`.
+                                   (server.osProps.details.openstackStatus
+                                        /= OSTypes.ServerShelvedOffloaded
+                                   )
+                          then
                             Rest.Nova.requestDeleteServerMetadata project server.osProps.uuid ("exoVolumes::" ++ volumeUuid)
 
                           else
