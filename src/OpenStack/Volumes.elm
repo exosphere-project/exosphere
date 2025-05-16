@@ -313,7 +313,8 @@ cinderVolumeAttachmentDecoder =
     Decode.map3 OSTypes.VolumeAttachment
         (Decode.field "server_id" Decode.string)
         (Decode.field "attachment_id" Decode.string)
-        (Decode.field "device" Decode.string)
+        -- Device can be null when attachment is made to a shelved instance.
+        (Decode.field "device" <| Decode.nullable Decode.string)
 
 
 imageMetadataDecoder : Decode.Decoder OSTypes.NameAndUuid

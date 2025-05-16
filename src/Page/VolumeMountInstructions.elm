@@ -81,7 +81,11 @@ view context project model =
 
                 Nothing ->
                     Element.none
-            , Element.text ("Device: " ++ model.device)
+            , Element.text
+                ("Device: "
+                    -- TODO: In practice, this won't be empty until attaching volumes to shelved servers is allowed.
+                    ++ Maybe.withDefault "-" model.device
+                )
             , case maybeMountpoint of
                 Just mountpoint ->
                     Element.text ("Mount point: " ++ mountpoint)

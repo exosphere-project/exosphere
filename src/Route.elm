@@ -378,8 +378,14 @@ toUrl maybePathPrefix route =
                             ( [ "attachvolinstructions" ]
                             , [ UB.string "serveruuid" attachment.serverUuid
                               , UB.string "attachmentuuid" attachment.attachmentUuid
-                              , UB.string "device" attachment.device
                               ]
+                                ++ (case attachment.device of
+                                        Just device ->
+                                            [ UB.string "device" device ]
+
+                                        Nothing ->
+                                            []
+                                   )
                             )
             in
             buildUrlFunc (projectIdentifierPath ++ projectSpecificPath) projectSpecificQuery
@@ -759,9 +765,7 @@ projectRouteParsers =
                     (Query.string "attachmentuuid"
                         |> Query.map (Maybe.withDefault "")
                     )
-                    (Query.string "device"
-                        |> Query.map (Maybe.withDefault "")
-                    )
+                    (Query.string "device")
          in
          s "attachvolinstructions" <?> queryParser
         )

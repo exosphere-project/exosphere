@@ -95,7 +95,8 @@ novaVolumeAttachmentDecoder =
     Decode.map3 OSTypes.VolumeAttachment
         (Decode.field "serverId" Decode.string)
         (Decode.field "id" Decode.string)
-        (Decode.field "device" Decode.string)
+        -- Device can be null when attachment is made to a shelved instance.
+        (Decode.field "device" <| Decode.nullable Decode.string)
 
 
 serversCanHaveVolumeAttached : List Server -> List Server

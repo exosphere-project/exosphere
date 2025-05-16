@@ -628,7 +628,7 @@ isVolumeCurrentlyBackingServer maybeServerUuid volume =
         |> List.filter
             (\a ->
                 List.member
-                    a.device
+                    (Maybe.withDefault "" a.device)
                     [ "/dev/sda", "/dev/vda" ]
             )
         |> List.isEmpty
@@ -683,10 +683,14 @@ volDeviceToMountpoint : OSTypes.VolumeAttachmentDevice -> Maybe String
 volDeviceToMountpoint device =
     -- Converts e.g. "/dev/sdc" to "/media/volume/sdc", for exoServerVersion < 5
     device
-        |> String.split "/"
-        |> List.reverse
-        |> List.head
-        |> Maybe.map (String.append "/media/volume/")
+        |> Maybe.andThen
+            (\d ->
+                d
+                    |> String.split "/"
+                    |> List.reverse
+                    |> List.head
+                    |> Maybe.map (String.append "/media/volume/")
+            )
 
 
 serverPresentNotDeleting : SharedModel -> OSTypes.ServerUuid -> Bool

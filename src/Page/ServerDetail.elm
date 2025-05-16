@@ -1791,7 +1791,7 @@ serverVolumes context projectId server volumes =
                             else
                                 case GetterSetters.volumeDeviceRawName server v of
                                     Just device_ ->
-                                        ( device_
+                                        ( Maybe.withDefault "Could not determine" <| device_
                                         , Maybe.withDefault "Could not determine" <|
                                             if GetterSetters.serverSupportsFeature NamedMountpoints server then
                                                 v.name |> Maybe.andThen GetterSetters.volNameToMountpoint

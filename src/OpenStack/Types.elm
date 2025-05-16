@@ -731,7 +731,7 @@ type alias AttachmentUuid =
 
 
 type alias VolumeAttachmentDevice =
-    String
+    Maybe String
 
 
 type alias VolumeQuota =

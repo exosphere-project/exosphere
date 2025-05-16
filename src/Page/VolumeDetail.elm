@@ -467,7 +467,7 @@ attachmentsTable context project volume =
                             \item ->
                                 let
                                     device =
-                                        item.device
+                                        item.device |> Maybe.withDefault "-"
                                 in
                                 centerRow <| Text.mono <| device
                       }
