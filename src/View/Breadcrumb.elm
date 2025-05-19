@@ -347,7 +347,15 @@ breadcrumb_ outerModel context =
                                     ]
 
                                 VolumeAttach _ ->
-                                    [ { route = Nothing
+                                    [ { route = Just <| Route.ProjectRoute projectId <| Route.VolumeList
+                                      , label =
+                                            String.join " "
+                                                [ context.localization.blockDevice
+                                                    |> Helpers.String.pluralize
+                                                    |> Helpers.String.toTitleCase
+                                                ]
+                                      }
+                                    , { route = Nothing
                                       , label =
                                             String.join " "
                                                 [ "Attach"
@@ -399,7 +407,15 @@ breadcrumb_ outerModel context =
                                     ]
 
                                 VolumeMountInstructions _ ->
-                                    [ { route = Nothing
+                                    [ { route = Just <| Route.ProjectRoute projectId <| Route.VolumeList
+                                      , label =
+                                            String.join " "
+                                                [ context.localization.blockDevice
+                                                    |> Helpers.String.pluralize
+                                                    |> Helpers.String.toTitleCase
+                                                ]
+                                      }
+                                    , { route = Nothing
                                       , label =
                                             String.join " "
                                                 [ "Mount"
