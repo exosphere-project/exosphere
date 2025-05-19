@@ -36,7 +36,7 @@ server {
     add_header Access-Control-Allow-Origin $cors_origin_header always;
     add_header Access-Control-Allow-Credentials $cors_cred;
     add_header "Access-Control-Allow-Methods" "GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD";
-    add_header "Access-Control-Allow-Headers" "Authorization, Origin, X-Requested-With, Content-Type, Accept, exo-proxy-orig-host, exo-proxy-orig-port, X-Auth-Token, Openstack-API-Version, X-OpenStack-Manila-API-Version";
+    add_header "Access-Control-Allow-Headers" "Authorization, Origin, X-Requested-With, Content-Type, Accept, exo-proxy-orig-host, exo-proxy-orig-port, X-Auth-Token, Openstack-API-Version, X-OpenStack-Manila-API-Version, X-OpenStack-Nova-API-Version";
     add_header "Access-Control-Expose-Headers" "X-Subject-Token";
 
     charset utf-8;
