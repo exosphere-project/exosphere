@@ -1,8 +1,9 @@
-module Types.Banner exposing (Banner, BannerLevel(..), BannerModel, Banners, decodeBanners, empty)
+module Types.Banner exposing (Banner, BannerLevel(..), BannerModel, Banners, decodeBanners, empty, bannerId)
 
 import ISO8601
 import Json.Decode as Decode
 import Json.Decode.Pipeline exposing (optional, required)
+import Set exposing (Set)
 import Time
 
 
@@ -29,6 +30,7 @@ type alias Banners =
 type alias BannerModel =
     { url : String
     , banners : Banners
+    , dismissedBanners : Set String
     }
 
 
@@ -36,7 +38,13 @@ empty : String -> BannerModel
 empty url =
     { url = url
     , banners = []
+    , dismissedBanners = Set.empty
     }
+
+
+bannerId : Banner -> String
+bannerId banner =
+    banner.message
 
 
 stringToBannerLevel : String -> Maybe BannerLevel

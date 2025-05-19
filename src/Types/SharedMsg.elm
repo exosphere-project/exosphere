@@ -37,6 +37,7 @@ type SharedMsg
     | RequestProjectScopedToken OSTypes.KeystoneUrl (List HelperTypes.UnscopedProviderProject)
     | CreateProjectsFromRegionSelections OSTypes.KeystoneUrl OSTypes.ProjectUuid (List OSTypes.RegionId)
     | RequestBanners
+    | DismissBanner String
     | ReceiveBanners ErrorContext (Result HttpErrorWithBody BannerTypes.Banners)
     | ProjectMsg HelperTypes.ProjectIdentifier ProjectSpecificMsgConstructor
     | OpenNewWindow String

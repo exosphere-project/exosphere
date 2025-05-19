@@ -156,7 +156,7 @@ appView windowSize outerModel context =
                 , Element.height Element.fill
                 , Element.scrollbars
                 ]
-                [ Banner.view context.palette outerModel.sharedModel.clientCurrentTime outerModel.sharedModel.banners
+                [ Banner.view context.palette (SharedMsg << DismissBanner) outerModel.sharedModel.clientCurrentTime outerModel.sharedModel.banners
                 , case header of
                     Just header_ ->
                         let

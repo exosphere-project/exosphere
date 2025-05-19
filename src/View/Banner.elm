@@ -1,16 +1,18 @@
 module View.Banner exposing (view)
 
 import Element
+import Element.Events as Events
 import Element.Background as Background
 import Element.Font as Font
 import FeatherIcons as Icons
+import Set exposing (Set)
 import Style.Helpers as SH
 import Style.Types exposing (ExoPalette, UIStateColors)
 import Style.Widgets.Icon exposing (featherIcon)
 import Style.Widgets.Spacer exposing (spacer)
 import Time
 import Time.Extra
-import Types.Banner exposing (Banner, BannerLevel(..), BannerModel)
+import Types.Banner exposing (Banner, BannerLevel(..), BannerModel, bannerId)
 import View.Helpers as VH
 
 
@@ -52,8 +54,8 @@ bannerLevelToColors palette bannerLevel =
             palette.danger
 
 
-renderBanner : ExoPalette -> Banner -> Element.Element msg
-renderBanner palette banner =
+renderBanner : ExoPalette -> (Banner -> msg) -> Banner -> Element.Element msg
+renderBanner palette toMsg banner =
     let
         uiColors =
             bannerLevelToColors palette banner.level
@@ -69,11 +71,13 @@ renderBanner palette banner =
             bannerLevelToIcon banner.level
         , Element.column [ Element.width Element.fill ] <|
             VH.renderMarkdown palette banner.message
+        , Element.el [ Element.alignRight, Events.onClick (toMsg banner) ]
+            (featherIcon [] Icons.x)
         ]
 
 
-view : ExoPalette -> Time.Posix -> BannerModel -> Element.Element msg
-view palette clientCurrentTime model =
+view : ExoPalette -> (String -> msg) -> Time.Posix -> BannerModel -> Element.Element msg
+view palette onDismiss clientCurrentTime model =
     Element.column
         [ Element.width Element.fill
         , Element.spacing spacer.px4
@@ -92,8 +96,8 @@ view palette clientCurrentTime model =
                                 |> Maybe.map (\v -> Time.Extra.compare clientCurrentTime v == GT)
                                 |> Maybe.withDefault False
                     in
-                    if started && not ended then
-                        Just <| renderBanner palette b
+                    if started && not ended && not (Set.member (bannerId b) model.dismissedBanners) then
+                        Just <| renderBanner palette (onDismiss << bannerId) b
 
                     else
                         Nothing
