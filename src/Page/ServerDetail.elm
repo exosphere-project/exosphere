@@ -28,8 +28,8 @@ import Style.Types as ST
 import Style.Widgets.Alert as Alert
 import Style.Widgets.Button
 import Style.Widgets.CopyableText exposing (copyableText)
+import Style.Widgets.Grid exposing (scrollableCell)
 import Style.Widgets.Icon as Icon
-import Style.Widgets.IconButton
 import Style.Widgets.Link as Link
 import Style.Widgets.Popover.Popover exposing (popover, popoverStyleDefaults)
 import Style.Widgets.Popover.Types exposing (PopoverId)
@@ -369,7 +369,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                     |> Helpers.String.toTitleCase
                     |> Element.text
                 ]
-                [ serverVolumes context project server
+                [ renderServerVolumes context project server
                 , Element.el [ Element.centerX ] attachButton
                 ]
             , if context.experimentalFeaturesEnabled then
@@ -1765,28 +1765,14 @@ renderIpAddresses context project server model =
                 (floatingIpAddressRows ++ [ ipButton icon "IP Details" IpDetails ])
 
 
-serverVolumes : View.Types.Context -> Project -> Server -> Element.Element Msg
-serverVolumes context project server =
-    let
-        vols =
-            GetterSetters.getVolsAttachedToServer project server
-    in
-    case List.length vols of
+serverVolumes : View.Types.Context -> ProjectIdentifier -> Server -> List OSTypes.Volume -> Element.Element Msg
+serverVolumes context projectId server volumes =
+    case List.length volumes of
         0 ->
             Element.text "(none)"
 
         _ ->
             let
-                volDetailsButton v =
-                    Element.link []
-                        { url =
-                            Route.toUrl context.urlPathPrefix <|
-                                Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
-                                    Route.VolumeDetail v.uuid
-                        , label =
-                            Style.Widgets.IconButton.goToButton context.palette (Just NoOp)
-                        }
-
                 volumeRow v =
                     let
                         ( device, mountpoint ) =
@@ -1814,44 +1800,69 @@ serverVolumes context project server =
                                         ( "Could not determine", "" )
                     in
                     { name = VH.resourceName v.name v.uuid
+                    , uuid = v.uuid
                     , device = device
                     , mountpoint = mountpoint
-                    , toButton = volDetailsButton v
                     }
 
                 columns =
                     List.concat
-                        [ [ { header = Element.el [ Font.heavy ] <| Element.text "Name"
-                            , width = Element.fill
-                            , view = \v -> Element.text v.name
+                        [ [ { header = Text.strong "Name"
+                            , width = Element.shrink
+                            , view =
+                                \v ->
+                                    Element.link []
+                                        { url =
+                                            Route.toUrl context.urlPathPrefix
+                                                (Route.ProjectRoute projectId <|
+                                                    Route.VolumeDetail v.uuid
+                                                )
+                                        , label =
+                                            Element.el
+                                                [ Font.color (SH.toElementColor context.palette.primary), Element.width (Element.px 180) ]
+                                                (VH.ellipsizedText <| v.name)
+                                        }
                             }
                           ]
                         , if GetterSetters.serverSupportsFeature NamedMountpoints server then
                             []
 
                           else
-                            [ { header = Element.el [ Font.heavy ] <| Element.text "Device"
+                            [ { header = Text.strong "Device"
                               , width = Element.fill
                               , view = \v -> Element.text v.device
                               }
                             ]
-                        , [ { header = Element.el [ Font.heavy ] <| Element.text "Mount point"
+                        , [ { header = Text.strong "Mount point"
                             , width = Element.fill
-                            , view = \v -> Element.text v.mountpoint
-                            }
-                          , { header = Element.none
-                            , width = Element.px 22
-                            , view = \v -> v.toButton
+                            , view = \v -> scrollableCell [ Element.width Element.fill ] <| Text.mono <| v.mountpoint
                             }
                           ]
                         ]
             in
             Element.table
-                []
+                [ Element.spacing spacer.px16
+                ]
                 { data =
-                    vols
+                    volumes
                         |> List.map volumeRow
                         |> List.sortBy .device
                 , columns =
                     columns
                 }
+
+
+renderServerVolumes : View.Types.Context -> Project -> Server -> Element.Element Msg
+renderServerVolumes context project server =
+    let
+        renderTable volumes =
+            serverVolumes
+                context
+                (GetterSetters.projectIdentifier project)
+                server
+                (volumes |> List.filter (\v -> List.member v.uuid server.osProps.details.volumesAttached))
+    in
+    VH.renderRDPP context
+        project.volumes
+        (context.localization.blockDevice |> Helpers.String.pluralize)
+        renderTable
