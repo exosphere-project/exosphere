@@ -300,7 +300,7 @@ detachButton : View.Types.Context -> Project -> Volume -> Element.Element Msg
 detachButton context project volume =
     let
         isBootVolume =
-            GetterSetters.isVolumeCurrentlyBackingServer Nothing volume
+            GetterSetters.isVolumeCurrentlyBackingServer Nothing volume || GetterSetters.isBootableVolume volume
 
         bootVolumeTag =
             if isBootVolume then
@@ -385,13 +385,14 @@ attachmentsTable context project volume =
                                                 ST.PositionBottom
 
                                           else
-                                            -- If the volume was attached when the server was shelved,
-                                            -- it would be reserved but detachable.
-                                            Element.row
-                                                [ Element.width Element.fill ]
-                                                [ Element.el [ Element.width Element.fill ] Element.none
-                                                , detachButton context project volume
-                                                ]
+                                            Element.none
+                                        , -- If the volume was attached when the server was shelved,
+                                          -- it would be reserved but detachable.
+                                          Element.row
+                                            [ Element.width Element.fill ]
+                                            [ Element.el [ Element.width Element.fill ] Element.none
+                                            , detachButton context project volume
+                                            ]
                                         ]
                                        )
                                 )
