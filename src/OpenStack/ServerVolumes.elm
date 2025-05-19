@@ -45,14 +45,15 @@ requestVolumeAttachments project serverUuid =
         )
 
 
-requestAttachVolume : Project -> OSTypes.ServerUuid -> OSTypes.VolumeUuid -> Cmd SharedMsg
-requestAttachVolume project serverUuid volumeUuid =
+requestAttachVolume : Project -> OSTypes.ServerUuid -> OSTypes.VolumeUuid -> OSTypes.MetadataValue -> Cmd SharedMsg
+requestAttachVolume project serverUuid volumeUuid metadata =
     let
         body =
             Json.Encode.object
                 [ ( "volumeAttachment"
                   , Json.Encode.object
                         [ ( "volumeId", Json.Encode.string volumeUuid )
+                        , ( "tag", Json.Encode.string <| OSTypes.volumeExoTags.deviceMetadata ++ metadata )
                         ]
                   )
                 ]
@@ -76,7 +77,9 @@ requestAttachVolume project serverUuid volumeUuid =
         (GetterSetters.projectIdentifier project)
         Post
         Nothing
-        []
+        -- From v2.20, attaching a volume from an instance in SHELVED or SHELVED_OFFLOADED state is allowed.
+        -- From v2.49, device tagging is allowed. The guest OS can access hardware metadata about the tagged devices.
+        [ ( "X-OpenStack-Nova-API-Version", "2.49" ) ]
         ( project.endpoints.nova, [ "servers", serverUuid, "os-volume_attachments" ], [] )
         (Http.jsonBody body)
         (expectJsonWithErrorBody
