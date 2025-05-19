@@ -495,20 +495,22 @@ attachmentsTable context project volume =
                       , view =
                             \item ->
                                 let
-                                    maybeServer =
-                                        GetterSetters.serverLookup project item.serverUuid
-
                                     mountPoint =
-                                        maybeServer
-                                            |> Maybe.andThen
-                                                (\server ->
-                                                    if GetterSetters.serverSupportsFeature NamedMountpoints server then
-                                                        volume.name |> Maybe.andThen GetterSetters.volNameToMountpoint
+                                        if GetterSetters.isVolumeCurrentlyBackingServer (Just item.serverUuid) volume then
+                                            -- Boot volumes don't use a media mount path.
+                                            "-"
 
-                                                    else
-                                                        GetterSetters.volDeviceToMountpoint item.device
-                                                )
-                                            |> Maybe.withDefault ""
+                                        else
+                                            GetterSetters.serverLookup project item.serverUuid
+                                                |> Maybe.andThen
+                                                    (\server ->
+                                                        if GetterSetters.serverSupportsFeature NamedMountpoints server then
+                                                            volume.name |> Maybe.andThen GetterSetters.volNameToMountpoint
+
+                                                        else
+                                                            GetterSetters.volDeviceToMountpoint item.device
+                                                    )
+                                                |> Maybe.withDefault ""
                                 in
                                 centerRow <| scrollableCell [ Element.width Element.fill ] <| Text.mono <| mountPoint
                       }
