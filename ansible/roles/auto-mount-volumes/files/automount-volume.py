@@ -53,14 +53,39 @@ def get_openstack_metadata():
         return json.load(response)
 
 
-def get_all_volume_metadata():
-    metadata = get_openstack_metadata()
+def get_all_volume_metadata_v5(metadata):
     volumes = {}
     for k, v in metadata["meta"].items():
         if k.startswith("exoVolumes::"):
             uuid = k.split("::", maxsplit=1)[1]
             volumes[uuid] = json.loads(v)
     return volumes
+
+def get_all_volume_metadata_v6(metadata):
+    volumes = {}
+    for d in metadata["devices"]:
+        uuid = d["serial"]
+        for tag in d["tags"]:
+            if tag.startswith("exoVolume::"):
+                volumes[uuid] = json.loads(tag.split("::", maxsplit=1)[1])
+    return volumes
+
+def get_all_volume_metadata():
+    metadata = get_openstack_metadata()
+    v5 = {}
+    v6 = {}
+    
+    try:
+        v5 = get_all_volume_metadata_v5(metadata)
+    except Exception:
+        pass
+
+    try:
+        v6 = get_all_volume_metadata_v6(metadata)
+    except Exception:
+        pass
+
+    return {**v5, **v6}
 
 
 def get_volume_name(uuid, *, retries=0, default=None):
