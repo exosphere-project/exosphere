@@ -3,13 +3,12 @@ module View.Banner exposing (view)
 import Element
 import Element.Background as Background
 import Element.Font as Font
-import Element.Input
 import FeatherIcons as Icons
-import Html.Attributes
 import Set
 import Style.Helpers as SH
 import Style.Types exposing (ExoPalette, UIStateColors)
 import Style.Widgets.Icon exposing (featherIcon)
+import Style.Widgets.IconButton exposing (clickableIcon)
 import Style.Widgets.Spacer exposing (spacer)
 import Time
 import Time.Extra
@@ -56,7 +55,7 @@ bannerLevelToColors palette bannerLevel =
 
 
 renderBanner : ExoPalette -> (Banner -> msg) -> Banner -> Element.Element msg
-renderBanner palette toDismissMsg banner =
+renderBanner palette toMsg banner =
     let
         uiColors =
             bannerLevelToColors palette banner.level
@@ -72,14 +71,12 @@ renderBanner palette toDismissMsg banner =
             bannerLevelToIcon banner.level
         , Element.column [ Element.width Element.fill ] <|
             VH.renderMarkdown palette banner.message
-        , Element.Input.button
-            [ Element.alignRight
-            , Element.htmlAttribute (Html.Attributes.attribute "aria-label" "Dismiss notification")
-            , Element.htmlAttribute (Html.Attributes.title "Dismiss")
-            , Element.htmlAttribute (Html.Attributes.attribute "role" "button")
-            ]
-            { onPress = Just (toDismissMsg banner)
-            , label = featherIcon [] Icons.x
+        , clickableIcon []
+            { icon = Icons.delete
+            , accessibilityLabel = "Dismiss notification"
+            , onClick = Just (toMsg banner)
+            , color = palette.neutral.icon |> SH.toElementColor
+            , hoverColor = palette.neutral.text.default |> SH.toElementColor
             }
         ]
 
