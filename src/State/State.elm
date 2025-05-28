@@ -719,12 +719,14 @@ processSharedMsg sharedMsg outerModel =
 
         DismissBanner bannerId ->
             let
-                oldBanners = sharedModel.banners
+                oldBanners =
+                    sharedModel.banners
 
                 newBanners =
                     { oldBanners | dismissedBanners = Set.insert bannerId sharedModel.banners.dismissedBanners }
 
-                newSharedModel = { sharedModel | banners = newBanners }
+                newSharedModel =
+                    { sharedModel | banners = newBanners }
             in
             ( { outerModel | sharedModel = newSharedModel }, Cmd.none )
 

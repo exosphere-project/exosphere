@@ -3,6 +3,7 @@ module View.Banner exposing (view)
 import Element
 import Element.Background as Background
 import Element.Font as Font
+import Element.Input
 import FeatherIcons as Icons
 import Html.Attributes
 import Set
@@ -14,7 +15,6 @@ import Time
 import Time.Extra
 import Types.Banner exposing (Banner, BannerLevel(..), BannerModel, bannerId)
 import View.Helpers as VH
-import Element.Input
 
 
 bannerLevelToIcon : BannerLevel -> Icons.Icon

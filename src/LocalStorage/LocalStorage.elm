@@ -5,7 +5,6 @@ module LocalStorage.LocalStorage exposing
     )
 
 import Dict
-import Set exposing (Set)
 import Helpers.Helpers as Helpers
 import Helpers.Json exposing (resultToDecoder)
 import Helpers.RemoteDataPlusPlus as RDPP
@@ -13,6 +12,7 @@ import Json.Decode as Decode
 import Json.Encode as Encode
 import LocalStorage.Types exposing (StoredProject, StoredProject2, StoredProject3, StoredProject4, StoredState)
 import OpenStack.Types as OSTypes
+import Set exposing (Set)
 import Style.Types as ST
 import Time
 import Types.Project
@@ -78,11 +78,13 @@ hydrateModelFromStoredState emptyModel newClientUuid storedState =
         viewContext =
             model.viewContext
 
-        oldBanners = model.banners
+        oldBanners =
+            model.banners
 
-        newBanners = { oldBanners
-            | dismissedBanners = storedState.dismissedBanners
-         }
+        newBanners =
+            { oldBanners
+                | dismissedBanners = storedState.dismissedBanners
+            }
     in
     { model
         | projects = projects
@@ -384,7 +386,8 @@ storedStateDecoder =
             Decode.maybe
                 (Decode.at
                     [ "8", "dismissedBanners" ]
-                    (Decode.map Set.fromList <| Decode.list Decode.string))
+                    (Decode.map Set.fromList <| Decode.list Decode.string)
+                )
                 |> Decode.map (Maybe.withDefault Set.empty)
     in
     Decode.map5 StoredState projects clientUuid styleMode experimentalFeaturesEnabled dismissedBanners
