@@ -2,7 +2,6 @@ module Style.Widgets.IconButton exposing (FlowOrder(..), clickableIcon, goToButt
 
 import Element exposing (Element)
 import Element.Border as Border
-import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons as Icons exposing (withSize)
@@ -60,30 +59,32 @@ goToButton palette onPress =
 
 clickableIcon : List (Element.Attribute msg) -> { icon : Icons.Icon, accessibilityLabel : String, onClick : Maybe msg, color : Element.Color, hoverColor : Element.Color } -> Element.Element msg
 clickableIcon attributes { icon, accessibilityLabel, onClick, color, hoverColor } =
-    featherIcon
-        ([ Element.paddingXY spacer.px4 0
-         , Font.color color
-         , Element.mouseOver
-            [ -- darken the icon color
-              Font.color hoverColor
-            ]
-         , Element.htmlAttribute (attribute "aria-label" accessibilityLabel)
-         , Element.htmlAttribute (attribute "role" "button")
-         ]
-            ++ (case onClick of
-                    Just msg ->
-                        [ Element.pointer
-                        , Events.onClick msg
-                        ]
+    Input.button []
+        { onPress = onClick
+        , label =
+            featherIcon
+                ([ Element.paddingXY spacer.px4 0
+                 , Font.color color
+                 , Element.mouseOver
+                    [ -- darken the icon color
+                      Font.color hoverColor
+                    ]
+                 , Element.htmlAttribute (attribute "aria-label" accessibilityLabel)
+                 , Element.htmlAttribute (attribute "title" accessibilityLabel)
+                 , Element.htmlAttribute (attribute "role" "button")
+                 ]
+                    ++ (if onClick == Nothing then
+                            [ Element.htmlAttribute (style "cursor" "not-allowed")
+                            , Element.alpha 0.6
+                            ]
 
-                    Nothing ->
-                        [ Element.htmlAttribute (style "cursor" "not-allowed")
-                        , Element.alpha 0.6
-                        ]
-               )
-            ++ attributes
-        )
-        (icon |> withSize 20)
+                        else
+                            []
+                       )
+                    ++ attributes
+                )
+                (icon |> withSize 22)
+        }
 
 
 navIconButton : ExoPalette -> List (Element.Attribute msg) -> { icon : Icon, iconPlacement : FlowOrder, label : String, onClick : Maybe msg } -> Element.Element msg
