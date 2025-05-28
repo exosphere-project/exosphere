@@ -56,7 +56,7 @@ bannerLevelToColors palette bannerLevel =
 
 
 renderBanner : ExoPalette -> (Banner -> msg) -> Banner -> Element.Element msg
-renderBanner palette toMsg banner =
+renderBanner palette toDismissMsg banner =
     let
         uiColors =
             bannerLevelToColors palette banner.level
@@ -78,7 +78,7 @@ renderBanner palette toMsg banner =
             , Element.htmlAttribute (Html.Attributes.title "Dismiss")
             , Element.htmlAttribute (Html.Attributes.attribute "role" "button")
             ]
-            { onPress = Just (toMsg banner)
+            { onPress = Just (toDismissMsg banner)
             , label = featherIcon [] Icons.x
             }
         ]
