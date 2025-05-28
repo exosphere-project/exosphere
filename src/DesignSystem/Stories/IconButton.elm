@@ -7,7 +7,7 @@ import Element.Font as Font
 import FeatherIcons exposing (edit2, logOut)
 import Style.Helpers as SH exposing (toElementColor)
 import Style.Widgets.Icon as Icon exposing (sizedFeatherIcon)
-import Style.Widgets.IconButton exposing (FlowOrder(..), clickableIcon, goToButton, navIconButton, notes)
+import Style.Widgets.IconButton exposing (FlowOrder(..), clickableIcon, navIconButton, notes)
 import Style.Widgets.Spacer exposing (spacer)
 import UIExplorer exposing (storiesOf)
 import Widget
@@ -19,25 +19,23 @@ stories :
     -> UIExplorer.UI (ThemeModel model) msg Plugins
 stories renderer onPress =
     storiesOf "Icon Buttons" <|
-        [ ( "icon button"
-          , \m ->
-                renderer (palettize m) <|
-                    -- TODO: Refactor this commonly-used icon button with label into a component.
-                    Widget.iconButton
-                        (SH.materialStyle (palettize m)).button
-                        { icon =
-                            Element.row [ Element.spacing spacer.px8 ]
-                                [ Element.text "Remove Project"
-                                , sizedFeatherIcon 18 logOut
-                                ]
-                        , text = "Remove Project"
-                        , onPress = onPress
-                        }
-          , { note = notes }
-          )
-        , ( "go to button", \m -> renderer (palettize m) <| goToButton (palettize m) Nothing, { note = notes } )
-        ]
-            ++ List.map
+        ( "icon button"
+        , \m ->
+            renderer (palettize m) <|
+                -- TODO: Refactor this commonly-used icon button with label into a component.
+                Widget.iconButton
+                    (SH.materialStyle (palettize m)).button
+                    { icon =
+                        Element.row [ Element.spacing spacer.px8 ]
+                            [ Element.text "Remove Project"
+                            , sizedFeatherIcon 18 logOut
+                            ]
+                    , text = "Remove Project"
+                    , onPress = onPress
+                    }
+        , { note = notes }
+        )
+            :: List.map
                 (\( enabled, text ) ->
                     ( "clickable icon: " ++ text
                     , \m ->

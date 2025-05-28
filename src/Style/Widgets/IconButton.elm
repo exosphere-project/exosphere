@@ -1,14 +1,12 @@
-module Style.Widgets.IconButton exposing (FlowOrder(..), clickableIcon, goToButton, navIconButton, notes)
+module Style.Widgets.IconButton exposing (FlowOrder(..), clickableIcon, navIconButton, notes)
 
-import Element exposing (Element)
-import Element.Border as Border
+import Element
 import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons as Icons exposing (withSize)
 import Html.Attributes exposing (attribute, style)
-import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
-import Style.Widgets.Icon exposing (Icon, featherIcon, iconEl, sizedFeatherIcon)
+import Style.Widgets.Icon exposing (Icon, featherIcon, iconEl)
 import Style.Widgets.Spacer exposing (spacer)
 
 
@@ -22,10 +20,6 @@ Icon buttons are are clickable elements which communicate their function through
 ### Icon Button
 
 An elm-ui `Widget.iconButton` with an icon & label using `SH.materialStyle palette` button styles.
-
-### Go To Button
-
-A button with a chevron that indicates a navigate to detail action.
 
 ### Clickable Icon
 
@@ -42,19 +36,6 @@ At the moment, the icon uses `palette.menu.textOrIcon` for color, if needed that
 type FlowOrder
     = Before
     | After
-
-
-goToButton : ExoPalette -> Maybe msg -> Element msg
-goToButton palette onPress =
-    Input.button
-        [ Border.width 1
-        , Border.rounded 6
-        , Border.color (SH.toElementColor palette.neutral.border)
-        , Element.padding spacer.px4
-        ]
-        { onPress = onPress
-        , label = sizedFeatherIcon 14 Icons.chevronRight
-        }
 
 
 clickableIcon : List (Element.Attribute msg) -> { icon : Icons.Icon, accessibilityLabel : String, onClick : Maybe msg, color : Element.Color, hoverColor : Element.Color } -> Element.Element msg
