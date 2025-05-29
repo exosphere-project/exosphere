@@ -1255,13 +1255,22 @@ renderSecurityGroups : View.Types.Context -> Project -> Server -> Element.Elemen
 renderSecurityGroups context project server =
     let
         renderTable serverSecurityGroups =
-            securityGroupsTable
-                context
-                (GetterSetters.projectIdentifier project)
-                (GetterSetters.securityGroupsFromServerSecurityGroups project serverSecurityGroups)
+            -- Wait for security groups to load so cross-referencing has a loading state.
+            VH.renderRDPP context
+                project.securityGroups
+                (context.localization.securityGroup |> Helpers.String.pluralize)
+                (\_ ->
+                    securityGroupsTable
+                        context
+                        (GetterSetters.projectIdentifier project)
+                        (GetterSetters.securityGroupsFromServerSecurityGroups project serverSecurityGroups)
+                )
+
+        serverSecurityGroupsRdpp =
+            GetterSetters.getServerSecurityGroups project server.osProps.uuid
     in
     VH.renderRDPP context
-        server.securityGroups
+        serverSecurityGroupsRdpp
         (context.localization.securityGroup |> Helpers.String.pluralize)
         renderTable
 

@@ -15,6 +15,7 @@ module Helpers.GetterSetters exposing
     , getServerFlavorGroup
     , getServerFloatingIps
     , getServerPorts
+    , getServerSecurityGroups
     , getServerUuidsByVolume
     , getServersWithVolAttached
     , getServicePublicUrl
@@ -59,6 +60,7 @@ module Helpers.GetterSetters exposing
     , projectUpdateSecurityGroupActionsIfExists
     , projectUpdateServer
     , projectUpsertSecurityGroupActions
+    , projectUpsertServerSecurityGroups
     , sanitizeMountpoint
     , securityGroupLookup
     , securityGroupsFromServerSecurityGroups
@@ -199,6 +201,12 @@ type LoadingProgress
     | Done
 
 
+getServerSecurityGroups : Project -> OSTypes.ServerUuid -> RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.ServerSecurityGroup)
+getServerSecurityGroups project serverUuid =
+    Dict.get serverUuid project.serverSecurityGroups
+        |> Maybe.withDefault RDPP.empty
+
+
 serversForSecurityGroup : Project -> OSTypes.SecurityGroupUuid -> { servers : List Server, progress : LoadingProgress }
 serversForSecurityGroup project securityGroupUuid =
     case project.servers.data of
@@ -207,7 +215,7 @@ serversForSecurityGroup project securityGroupUuid =
                 -- It may take a moment for all the server security groups to load.
                 -- Wait until all the data is available before reporting the list.
                 progress =
-                    if servers |> List.all (\server -> server.securityGroups.data /= RDPP.DontHave) then
+                    if Dict.values project.serverSecurityGroups |> List.all (\rdpp -> rdpp.data /= RDPP.DontHave) then
                         Done
 
                     else
@@ -219,7 +227,8 @@ serversForSecurityGroup project securityGroupUuid =
                             (\server ->
                                 let
                                     serverSecurityGroups =
-                                        RDPP.withDefault [] server.securityGroups
+                                        getServerSecurityGroups project server.osProps.uuid
+                                            |> RDPP.withDefault []
 
                                     hasSecurityGroup sgs uuid =
                                         sgs
@@ -944,18 +953,20 @@ projectSetServerEventsLoading serverId project =
 
 
 projectSetServerSecurityGroupsLoading : OSTypes.ServerUuid -> Project -> Project
-projectSetServerSecurityGroupsLoading serverUuid project =
-    case serverLookup project serverUuid of
-        Nothing ->
-            -- We can't do anything lol
-            project
+projectSetServerSecurityGroupsLoading serverId project =
+    { project
+        | serverSecurityGroups =
+            Dict.update serverId
+                (\entry ->
+                    case entry of
+                        Just serverSecurityGroups ->
+                            Just (RDPP.setLoading serverSecurityGroups)
 
-        Just server ->
-            let
-                newServer =
-                    { server | securityGroups = RDPP.setLoading server.securityGroups }
-            in
-            projectUpdateServer project newServer
+                        Nothing ->
+                            Just (RDPP.setLoading RDPP.empty)
+                )
+                project.serverSecurityGroups
+    }
 
 
 projectSetSharesLoading : Project -> Project
@@ -1095,6 +1106,16 @@ projectUpdateKeypair sharedModel project keypair =
             RDPP.setData
                 (RDPP.DoHave keypairs sharedModel.clientCurrentTime)
                 project.keypairs
+    }
+
+
+projectUpsertServerSecurityGroups : Project -> OSTypes.ServerUuid -> RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.ServerSecurityGroup) -> Project
+projectUpsertServerSecurityGroups project serverUuid serverSecurityGroups =
+    { project
+        | serverSecurityGroups =
+            Dict.insert serverUuid
+                serverSecurityGroups
+                project.serverSecurityGroups
     }
 
 

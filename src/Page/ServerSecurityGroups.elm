@@ -65,18 +65,13 @@ type DataDependent a
 init : Project -> OSTypes.ServerUuid -> Model
 init project serverUuid =
     let
-        maybeServer =
-            GetterSetters.serverLookup project serverUuid
+        serverSecurityGroupsRdpp =
+            GetterSetters.getServerSecurityGroups project serverUuid
 
         serverSecurityGroups =
-            case maybeServer of
-                Just server ->
-                    case server.securityGroups.data of
-                        RDPP.DoHave serverSecurityGroups_ _ ->
-                            Just serverSecurityGroups_
-
-                        _ ->
-                            Nothing
+            case serverSecurityGroupsRdpp.data of
+                RDPP.DoHave serverSecurityGroups_ _ ->
+                    Just serverSecurityGroups_
 
                 _ ->
                     Nothing
@@ -252,18 +247,13 @@ newSecurityGroupName project serverUuid =
 appliedSecurityGroupsUuids : Project -> OSTypes.ServerUuid -> Set.Set OSTypes.SecurityGroupUuid
 appliedSecurityGroupsUuids project serverUuid =
     let
-        maybeServer =
-            GetterSetters.serverLookup project serverUuid
+        serverSecurityGroupsRdpp =
+            GetterSetters.getServerSecurityGroups project serverUuid
 
         serverSecurityGroups =
-            case maybeServer of
-                Just server ->
-                    case server.securityGroups.data of
-                        RDPP.DoHave serverSecurityGroups_ _ ->
-                            Just serverSecurityGroups_
-
-                        _ ->
-                            Nothing
+            case serverSecurityGroupsRdpp.data of
+                RDPP.DoHave serverSecurityGroups_ _ ->
+                    Just serverSecurityGroups_
 
                 _ ->
                     Nothing
@@ -651,8 +641,12 @@ renderSecurityGroupListAndRules context project currentTime model securityGroups
 
 renderSecurityGroupsList : View.Types.Context -> Project -> Time.Posix -> Model -> Server -> List OSTypes.SecurityGroup -> Element.Element Msg
 renderSecurityGroupsList context project currentTime model server securityGroups =
+    let
+        serverSecurityGroups =
+            GetterSetters.getServerSecurityGroups project server.osProps.uuid
+    in
     VH.renderRDPP context
-        server.securityGroups
+        serverSecurityGroups
         (context.localization.securityGroup
             |> Helpers.String.pluralize
         )

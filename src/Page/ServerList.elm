@@ -240,6 +240,11 @@ serverRecords context currentTime project servers =
                                 context
                         }
                     )
+
+        serverSecurityGroupIds server =
+            GetterSetters.getServerSecurityGroups project server.osProps.uuid
+                |> RDPP.withDefault []
+                |> List.map .uuid
     in
     List.map
         (\server ->
@@ -252,7 +257,7 @@ serverRecords context currentTime project servers =
             , creationTime = server.osProps.details.created
             , creator = serverCreatorName project server
             , interactions = interactions server
-            , securityGroupIds = server.securityGroups |> RDPP.withDefault [] |> List.map .uuid
+            , securityGroupIds = serverSecurityGroupIds server
             }
         )
         servers

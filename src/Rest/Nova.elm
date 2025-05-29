@@ -953,7 +953,7 @@ initOrUpdateServer project osServer =
                         Nothing
                         False
             in
-            Server osServer defaultExoProps RDPP.empty
+            Server osServer defaultExoProps
 
         Just exoServer ->
             let

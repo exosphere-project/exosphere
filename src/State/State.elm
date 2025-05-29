@@ -3119,7 +3119,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                     server.exoProps
 
                 newServer =
-                    Server server.osProps { oldExoProps | targetOpenstackStatus = Just [ OSTypes.ServerResize ] } server.securityGroups
+                    Server server.osProps { oldExoProps | targetOpenstackStatus = Just [ OSTypes.ServerResize ] }
 
                 newProject =
                     GetterSetters.projectUpdateServer project newServer
@@ -3243,16 +3243,13 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
             case result of
                 Ok serverSecurityGroups ->
                     let
-                        newServer =
-                            { server
-                                | securityGroups =
-                                    RDPP.RemoteDataPlusPlus
-                                        (RDPP.DoHave serverSecurityGroups sharedModel.clientCurrentTime)
-                                        (RDPP.NotLoading Nothing)
-                            }
+                        securityGroups =
+                            RDPP.RemoteDataPlusPlus
+                                (RDPP.DoHave serverSecurityGroups sharedModel.clientCurrentTime)
+                                (RDPP.NotLoading Nothing)
 
                         newProject =
-                            GetterSetters.projectUpdateServer project newServer
+                            GetterSetters.projectUpsertServerSecurityGroups project server.osProps.uuid securityGroups
                     in
                     ( GetterSetters.modelUpdateProject sharedModel newProject
                     , Cmd.none
@@ -3290,7 +3287,11 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
             in
             case result of
                 Ok _ ->
-                    case server.securityGroups.data of
+                    let
+                        serverSecurityGroupsRdpp =
+                            GetterSetters.getServerSecurityGroups updatedProject server.osProps.uuid
+                    in
+                    case serverSecurityGroupsRdpp.data of
                         RDPP.DoHave serverSecurityGroups receivedTime ->
                             let
                                 newServerSecurityGroups =
@@ -3300,17 +3301,14 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                                     else
                                         serverSecurityGroup :: serverSecurityGroups
 
-                                newServer =
-                                    { server
-                                        | securityGroups =
-                                            RDPP.RemoteDataPlusPlus
-                                                (RDPP.DoHave newServerSecurityGroups receivedTime)
-                                                -- don't interfere with any loading in progress
-                                                server.securityGroups.refreshStatus
-                                    }
+                                securityGroups =
+                                    RDPP.RemoteDataPlusPlus
+                                        (RDPP.DoHave newServerSecurityGroups receivedTime)
+                                        -- don't interfere with any loading in progress
+                                        serverSecurityGroupsRdpp.refreshStatus
 
                                 newProject =
-                                    GetterSetters.projectUpdateServer updatedProject newServer
+                                    GetterSetters.projectUpsertServerSecurityGroups updatedProject server.osProps.uuid securityGroups
                             in
                             ( GetterSetters.modelUpdateProject sharedModel newProject, Cmd.none )
                                 |> mapToOuterMsg
@@ -3367,23 +3365,24 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
             in
             case result of
                 Ok _ ->
-                    case server.securityGroups.data of
+                    let
+                        serverSecurityGroupsRdpp =
+                            GetterSetters.getServerSecurityGroups updatedProject server.osProps.uuid
+                    in
+                    case serverSecurityGroupsRdpp.data of
                         RDPP.DoHave serverSecurityGroups receivedTime ->
                             let
                                 newServerSecurityGroups =
                                     List.filter (\sg -> sg /= serverSecurityGroup) serverSecurityGroups
 
-                                newServer =
-                                    { server
-                                        | securityGroups =
-                                            RDPP.RemoteDataPlusPlus
-                                                (RDPP.DoHave newServerSecurityGroups receivedTime)
-                                                -- don't interfere with any loading in progress
-                                                server.securityGroups.refreshStatus
-                                    }
+                                securityGroups =
+                                    RDPP.RemoteDataPlusPlus
+                                        (RDPP.DoHave newServerSecurityGroups receivedTime)
+                                        -- don't interfere with any loading in progress
+                                        serverSecurityGroupsRdpp.refreshStatus
 
                                 newProject =
-                                    GetterSetters.projectUpdateServer updatedProject newServer
+                                    GetterSetters.projectUpsertServerSecurityGroups updatedProject server.osProps.uuid securityGroups
                             in
                             ( GetterSetters.modelUpdateProject updatedSharedModel newProject, deleteCmd )
                                 |> mapToOuterMsg
@@ -3722,7 +3721,6 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                             | targetOpenstackStatus = targetStatuses
                             , floatingIpCreationOption = newFloatingIpOption
                         }
-                        server.securityGroups
 
                 newProject =
                     GetterSetters.projectUpdateServer project newServer
@@ -4041,6 +4039,7 @@ createProject_ outerModel description authToken region endpoints =
             , images = RDPP.RemoteDataPlusPlus RDPP.DontHave RDPP.Loading
             , servers = RDPP.RemoteDataPlusPlus RDPP.DontHave RDPP.Loading
             , serverEvents = Dict.empty
+            , serverSecurityGroups = Dict.empty
             , serverImages = []
             , flavors = RDPP.empty
             , keypairs = RDPP.empty
