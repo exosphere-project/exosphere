@@ -83,6 +83,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveServerImage (Maybe OSTypes.Image)
     | ReceiveServer OSTypes.ServerUuid ErrorContext (Result HttpErrorWithBody OSTypes.Server)
     | ReceiveServerEvents OSTypes.ServerUuid ErrorContext (Result HttpErrorWithBody (List OSTypes.ServerEvent))
+    | ReceiveServerSecurityGroups OSTypes.ServerUuid ErrorContext (Result HttpErrorWithBody (List OSTypes.ServerSecurityGroup))
     | ReceiveServers ErrorContext (Result HttpErrorWithBody (List OSTypes.Server))
     | ReceiveCreateServer ErrorContext (Result HttpErrorWithBody OSTypes.ServerUuid)
     | ReceiveFlavors (List OSTypes.Flavor)
@@ -107,6 +108,8 @@ type ProjectSpecificMsgConstructor
     | ReceiveDeleteSecurityGroup ErrorContext OSTypes.SecurityGroupUuid (Result HttpErrorWithBody ())
     | ReceiveUpdateSecurityGroup ErrorContext OSTypes.SecurityGroupUuid (Result HttpErrorWithBody OSTypes.SecurityGroup)
     | ReceiveUpdateSecurityGroupTags ( OSTypes.SecurityGroupUuid, List OSTypes.SecurityGroupTag )
+    | ReceiveServerAddSecurityGroup OSTypes.ServerUuid ErrorContext OSTypes.ServerSecurityGroup (Result HttpErrorWithBody String)
+    | ReceiveServerRemoveSecurityGroup OSTypes.ServerUuid ErrorContext OSTypes.ServerSecurityGroup (Result HttpErrorWithBody String)
     | ReceiveCreateShare OSTypes.Share
     | ReceiveCreateAccessRule ( OSTypes.ShareUuid, OSTypes.AccessRule )
     | ReceiveShareAccessRules ( OSTypes.ShareUuid, List OSTypes.AccessRule )
@@ -141,9 +144,6 @@ type ServerSpecificMsgConstructor
     | RequestServerSecurityGroupUpdates (List OSTypes.ServerSecurityGroupUpdate)
     | RequestCreateServerFloatingIp (Maybe OSTypes.IpAddressValue)
     | ReceiveServerAction
-    | ReceiveServerSecurityGroups ErrorContext (Result HttpErrorWithBody (List OSTypes.ServerSecurityGroup))
-    | ReceiveServerAddSecurityGroup ErrorContext OSTypes.ServerSecurityGroup (Result HttpErrorWithBody String)
-    | ReceiveServerRemoveSecurityGroup ErrorContext OSTypes.ServerSecurityGroup (Result HttpErrorWithBody String)
     | ReceiveConsoleUrl (Result HttpErrorWithBody OSTypes.ConsoleUrl)
     | ReceiveDeleteServer
     | ReceiveCreateServerFloatingIp ErrorContext (Result HttpErrorWithBody OSTypes.FloatingIp)
