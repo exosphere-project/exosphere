@@ -17,6 +17,7 @@ module Helpers.GetterSetters exposing
     , getServerPorts
     , getServerSecurityGroups
     , getServerUuidsByVolume
+    , getServerVolumeAttachments
     , getServersWithVolAttached
     , getServicePublicUrl
     , getUserAppProxyFromCloudSpecificConfig
@@ -50,6 +51,7 @@ module Helpers.GetterSetters exposing
     , projectSetServerEventsLoading
     , projectSetServerLoading
     , projectSetServerSecurityGroupsLoading
+    , projectSetServerVolumeAttachmentsLoading
     , projectSetServersLoading
     , projectSetShareAccessRulesLoading
     , projectSetShareExportLocationsLoading
@@ -62,6 +64,7 @@ module Helpers.GetterSetters exposing
     , projectUpdateServer
     , projectUpsertSecurityGroupActions
     , projectUpsertServerSecurityGroups
+    , projectUpsertServerVolumeAttachments
     , sanitizeMountpoint
     , securityGroupLookup
     , securityGroupsFromServerSecurityGroups
@@ -981,6 +984,23 @@ projectSetServerSecurityGroupsLoading serverId project =
     }
 
 
+projectSetServerVolumeAttachmentsLoading : OSTypes.ServerUuid -> Project -> Project
+projectSetServerVolumeAttachmentsLoading serverId project =
+    { project
+        | serverVolumeAttachments =
+            Dict.update serverId
+                (\entry ->
+                    case entry of
+                        Just serverVolumeAttachments ->
+                            Just (RDPP.setLoading serverVolumeAttachments)
+
+                        Nothing ->
+                            Just (RDPP.setLoading RDPP.empty)
+                )
+                project.serverVolumeAttachments
+    }
+
+
 projectSetSharesLoading : Project -> Project
 projectSetSharesLoading project =
     { project | shares = RDPP.setLoading project.shares }
@@ -1272,4 +1292,20 @@ projectUpdateSecurityGroupActionsIfExists project securityGroupUuid onUpdateActi
 getServerEvents : Project -> OSTypes.ServerUuid -> RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.ServerEvent)
 getServerEvents project serverId =
     Dict.get serverId project.serverEvents
+        |> Maybe.withDefault RDPP.empty
+
+
+projectUpsertServerVolumeAttachments : Project -> OSTypes.ServerUuid -> RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.VolumeAttachment) -> Project
+projectUpsertServerVolumeAttachments project serverId serverVolumeAttachments =
+    { project
+        | serverVolumeAttachments =
+            Dict.insert serverId
+                serverVolumeAttachments
+                project.serverVolumeAttachments
+    }
+
+
+getServerVolumeAttachments : Project -> OSTypes.ServerUuid -> RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.VolumeAttachment)
+getServerVolumeAttachments project serverId =
+    Dict.get serverId project.serverVolumeAttachments
         |> Maybe.withDefault RDPP.empty

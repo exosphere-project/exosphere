@@ -1,4 +1,4 @@
-module OpenStack.ServerVolumes exposing (requestAttachVolume, requestDetachVolume, serverCanHaveVolumeAttached, serversCanHaveVolumeAttached)
+module OpenStack.ServerVolumes exposing (requestAttachVolume, requestDetachVolume, requestVolumeAttachments, serverCanHaveVolumeAttached, serversCanHaveVolumeAttached)
 
 import Helpers.GetterSetters as GetterSetters
 import Http
@@ -17,6 +17,32 @@ import Types.HelperTypes exposing (HttpRequestMethod(..))
 import Types.Project exposing (Project)
 import Types.Server exposing (Server)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
+
+
+requestVolumeAttachments : Project -> OSTypes.ServerUuid -> Cmd SharedMsg
+requestVolumeAttachments project serverUuid =
+    let
+        errorContext =
+            ErrorContext
+                ("get volume attachments for server " ++ serverUuid)
+                ErrorCrit
+                Nothing
+
+        resultToMsg result =
+            ProjectMsg (GetterSetters.projectIdentifier project) <|
+                ReceiveServerVolumeAttachments serverUuid errorContext result
+    in
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Get
+        Nothing
+        []
+        ( project.endpoints.nova, [ "servers", serverUuid, "os-volume_attachments" ], [] )
+        Http.emptyBody
+        (expectJsonWithErrorBody
+            resultToMsg
+            (Decode.field "volumeAttachments" <| Decode.list novaVolumeAttachmentDecoder)
+        )
 
 
 requestAttachVolume : Project -> OSTypes.ServerUuid -> OSTypes.VolumeUuid -> Cmd SharedMsg

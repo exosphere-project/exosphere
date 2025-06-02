@@ -1855,6 +1855,32 @@ processProjectSpecificMsg outerModel project msg =
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
+        ReceiveServerVolumeAttachments serverId errorContext result ->
+            case result of
+                Ok serverVolumeAttachments ->
+                    let
+                        newProject =
+                            GetterSetters.projectUpsertServerVolumeAttachments project
+                                serverId
+                                (RDPP.RemoteDataPlusPlus
+                                    (RDPP.DoHave serverVolumeAttachments sharedModel.clientCurrentTime)
+                                    (RDPP.NotLoading Nothing)
+                                )
+                    in
+                    ( GetterSetters.modelUpdateProject sharedModel newProject
+                    , Cmd.none
+                    )
+                        |> mapToOuterModel outerModel
+
+                Err httpErrorWithBody ->
+                    let
+                        newErrorContext =
+                            { errorContext | level = ErrorDebug }
+                    in
+                    State.Error.processSynchronousApiError sharedModel newErrorContext httpErrorWithBody
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
         ReceiveFlavors flavors ->
             Rest.Nova.receiveFlavors sharedModel project flavors
                 |> mapToOuterMsg
@@ -4047,6 +4073,7 @@ createProject_ outerModel description authToken region endpoints =
             , servers = RDPP.RemoteDataPlusPlus RDPP.DontHave RDPP.Loading
             , serverEvents = Dict.empty
             , serverSecurityGroups = Dict.empty
+            , serverVolumeAttachments = Dict.empty
             , serverImages = []
             , flavors = RDPP.empty
             , keypairs = RDPP.empty
