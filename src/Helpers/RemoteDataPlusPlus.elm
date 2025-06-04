@@ -6,6 +6,8 @@ module Helpers.RemoteDataPlusPlus exposing
     , RequestedTime
     , andMap
     , empty
+    , gotData
+    , isLoading
     , isPollableWithInterval
     , map
     , map2
@@ -107,9 +109,29 @@ setRefreshStatus refreshStatus rdpp =
     { rdpp | refreshStatus = refreshStatus }
 
 
+gotData : RemoteDataPlusPlus error data -> Bool
+gotData rdpp =
+    case rdpp.data of
+        DoHave _ _ ->
+            True
+
+        DontHave ->
+            False
+
+
 setData : Haveness data -> RemoteDataPlusPlus error data -> RemoteDataPlusPlus error data
 setData haveness rdpp =
     RemoteDataPlusPlus haveness rdpp.refreshStatus
+
+
+isLoading : RemoteDataPlusPlus error data -> Bool
+isLoading rdpp =
+    case rdpp.refreshStatus of
+        Loading ->
+            True
+
+        NotLoading _ ->
+            False
 
 
 setLoading : RemoteDataPlusPlus error data -> RemoteDataPlusPlus error data

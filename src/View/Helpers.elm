@@ -42,6 +42,7 @@ module View.Helpers exposing
     , renderMessageAsElement
     , renderMessageAsString
     , renderRDPP
+    , renderRDPPWithDependencies
     , requiredLabel
     , resourceName
     , securityGroupTypeLabel
@@ -415,25 +416,55 @@ loadingStuff context resourceWord =
 
 renderRDPP : View.Types.Context -> RDPP.RemoteDataPlusPlus Types.Error.HttpErrorWithBody a -> String -> (a -> Element.Element msg) -> Element.Element msg
 renderRDPP context remoteData resourceWord renderSuccessCase =
-    case remoteData.data of
-        RDPP.DoHave data _ ->
+    renderRDPPWithDependencies context remoteData resourceWord [] renderSuccessCase
+
+
+{-| Render an RDPP that depends on other RDPPs having data. If any dependencies don't have data, indicate that they are loading or have errored.
+
+    renderRDPPWithDependencies context users "users" [ userEvents ] renderUsers
+
+-}
+renderRDPPWithDependencies :
+    View.Types.Context
+    -> RDPP.RemoteDataPlusPlus Types.Error.HttpErrorWithBody a
+    -> String
+    -> List (RDPP.RemoteDataPlusPlus b c)
+    -> (a -> Element.Element msg)
+    -> Element.Element msg
+renderRDPPWithDependencies context remoteData resourceWord dependencyRDPPs renderSuccessCase =
+    let
+        gotDepData =
+            List.all RDPP.gotData dependencyRDPPs
+
+        renderError e =
+            Element.text <|
+                String.join " "
+                    [ "Could not load"
+                    , resourceWord
+                    , "because:"
+                    , e
+                    ]
+    in
+    case ( gotDepData, remoteData.data ) of
+        ( False, _ ) ->
+            if List.any RDPP.isLoading dependencyRDPPs then
+                loadingStuff context resourceWord
+
+            else
+                renderError "error loading dependency data"
+
+        ( True, RDPP.DoHave data _ ) ->
             renderSuccessCase data
 
-        RDPP.DontHave ->
+        ( True, RDPP.DontHave ) ->
             case remoteData.refreshStatus of
                 RDPP.Loading ->
                     loadingStuff context resourceWord
 
                 RDPP.NotLoading maybeErrorTuple ->
                     case maybeErrorTuple of
-                        Just ( error, _ ) ->
-                            Element.text <|
-                                String.join " "
-                                    [ "Could not load"
-                                    , resourceWord
-                                    , "because:"
-                                    , Helpers.httpErrorWithBodyToString error
-                                    ]
+                        Just ( e, _ ) ->
+                            renderError (Helpers.httpErrorWithBodyToString e)
 
                         Nothing ->
                             loadingStuff context resourceWord
