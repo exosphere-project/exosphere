@@ -1259,10 +1259,14 @@ renderSecurityGroups context project server =
                 context
                 (GetterSetters.projectIdentifier project)
                 (GetterSetters.securityGroupsFromServerSecurityGroups project serverSecurityGroups)
+
+        serverSecurityGroupsRdpp =
+            GetterSetters.getServerSecurityGroups project server.osProps.uuid
     in
-    VH.renderRDPP context
-        server.securityGroups
+    VH.renderRDPPWithDependencies context
+        serverSecurityGroupsRdpp
         (context.localization.securityGroup |> Helpers.String.pluralize)
+        [ project.securityGroups ]
         renderTable
 
 

@@ -27,7 +27,6 @@ import Types.Workflow as WorkflowTypes
 type alias Server =
     { osProps : OSTypes.Server
     , exoProps : ExoServerProps
-    , securityGroups : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.ServerSecurityGroup)
     }
 
 

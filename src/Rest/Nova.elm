@@ -151,8 +151,7 @@ requestServerSecurityGroups project serverUuid =
 
         resultToMsg result =
             ProjectMsg (GetterSetters.projectIdentifier project) <|
-                ServerMsg serverUuid <|
-                    ReceiveServerSecurityGroups errorContext result
+                ReceiveServerSecurityGroups serverUuid errorContext result
     in
     openstackCredentialedRequest
         (GetterSetters.projectIdentifier project)
@@ -653,7 +652,7 @@ requestUpdateServerSecurityGroup project serverUuid update =
         ( project.endpoints.nova, [ "servers", serverUuid, "action" ], [] )
         (Http.jsonBody body)
         (expectStringWithErrorBody
-            (\result -> ProjectMsg (GetterSetters.projectIdentifier project) <| ServerMsg serverUuid <| msg errorContext group result)
+            (\result -> ProjectMsg (GetterSetters.projectIdentifier project) <| msg serverUuid errorContext group result)
         )
 
 
@@ -953,7 +952,7 @@ initOrUpdateServer project osServer =
                         Nothing
                         False
             in
-            Server osServer defaultExoProps RDPP.empty
+            Server osServer defaultExoProps
 
         Just exoServer ->
             let

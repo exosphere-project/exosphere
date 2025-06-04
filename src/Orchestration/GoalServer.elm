@@ -491,6 +491,9 @@ stepServerPollEvents time project server =
 stepServerPollSecurityGroups : Time.Posix -> Project -> Server -> ( Project, Cmd SharedMsg )
 stepServerPollSecurityGroups time project server =
     let
+        serverId =
+            server.osProps.uuid
+
         pollIntervalMillis =
             pollIntervalToMs Seldom
 
@@ -507,20 +510,20 @@ stepServerPollSecurityGroups time project server =
 
         doPollSecurityGroups =
             let
-                newServer =
-                    { server | securityGroups = RDPP.setLoading server.securityGroups }
-
                 newProject =
-                    GetterSetters.projectUpdateServer project newServer
+                    GetterSetters.projectSetServerSecurityGroupsLoading serverId project
             in
-            ( newProject, Rest.Nova.requestServerSecurityGroups newProject server.osProps.uuid )
+            ( newProject, Rest.Nova.requestServerSecurityGroups newProject serverId )
+
+        serverSecurityGroups =
+            GetterSetters.getServerSecurityGroups project serverId
     in
-    case server.securityGroups.refreshStatus of
+    case serverSecurityGroups.refreshStatus of
         RDPP.Loading ->
             doNothing project
 
         RDPP.NotLoading maybeErrorTimeTuple ->
-            case server.securityGroups.data of
+            case serverSecurityGroups.data of
                 RDPP.DoHave _ receivedTime ->
                     pollIfIntervalExceeded receivedTime
 

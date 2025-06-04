@@ -1824,6 +1824,30 @@ processProjectSpecificMsg outerModel project msg =
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
+        ReceiveServerSecurityGroups serverId errorContext result ->
+            case result of
+                Ok serverSecurityGroups ->
+                    let
+                        securityGroups =
+                            RDPP.RemoteDataPlusPlus
+                                (RDPP.DoHave serverSecurityGroups sharedModel.clientCurrentTime)
+                                (RDPP.NotLoading Nothing)
+
+                        newProject =
+                            GetterSetters.projectUpsertServerSecurityGroups project serverId securityGroups
+                    in
+                    ( GetterSetters.modelUpdateProject sharedModel newProject
+                    , Cmd.none
+                    )
+                        |> mapToOuterModel outerModel
+                        -- Make the page aware of the shared msg.
+                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerSecurityGroupsMsg <| Page.ServerSecurityGroups.GotServerSecurityGroups serverId))
+
+                Err httpErrorWithBody ->
+                    State.Error.processSynchronousApiError sharedModel errorContext httpErrorWithBody
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
         ReceiveFlavors flavors ->
             Rest.Nova.receiveFlavors sharedModel project flavors
                 |> mapToOuterMsg
@@ -2585,6 +2609,147 @@ processProjectSpecificMsg outerModel project msg =
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
+        ReceiveServerAddSecurityGroup serverId errorContext serverSecurityGroup result ->
+            let
+                updatedProject =
+                    GetterSetters.projectUpdateSecurityGroupActionsIfExists project
+                        (SecurityGroupActions.ExtantGroup serverSecurityGroup.uuid)
+                        (\actions ->
+                            { actions
+                                | pendingServerLinkage =
+                                    actions.pendingServerLinkage
+                                        |> Maybe.andThen
+                                            (\serverUuid ->
+                                                -- If this is our server, clear the pending linkage.
+                                                -- Otherwise, leave it alone.
+                                                if serverUuid == serverId then
+                                                    Nothing
+
+                                                else
+                                                    actions.pendingServerLinkage
+                                            )
+                            }
+                        )
+            in
+            case result of
+                Ok _ ->
+                    let
+                        serverSecurityGroupsRdpp =
+                            GetterSetters.getServerSecurityGroups updatedProject serverId
+                    in
+                    case serverSecurityGroupsRdpp.data of
+                        RDPP.DoHave serverSecurityGroups receivedTime ->
+                            let
+                                newServerSecurityGroups =
+                                    if List.member serverSecurityGroup serverSecurityGroups then
+                                        serverSecurityGroups
+
+                                    else
+                                        serverSecurityGroup :: serverSecurityGroups
+
+                                securityGroups =
+                                    RDPP.RemoteDataPlusPlus
+                                        (RDPP.DoHave newServerSecurityGroups receivedTime)
+                                        -- don't interfere with any loading in progress
+                                        serverSecurityGroupsRdpp.refreshStatus
+
+                                newProject =
+                                    GetterSetters.projectUpsertServerSecurityGroups updatedProject serverId securityGroups
+                            in
+                            ( GetterSetters.modelUpdateProject sharedModel newProject, Cmd.none )
+                                |> mapToOuterMsg
+                                |> mapToOuterModel outerModel
+                                -- Make the page aware of the shared msg.
+                                |> pipelineCmdOuterModelMsg (updateUnderlying (ServerSecurityGroupsMsg <| Page.ServerSecurityGroups.GotServerSecurityGroups serverId))
+
+                        _ ->
+                            ( outerModel, Cmd.none )
+
+                Err httpError ->
+                    let
+                        updatedSharedModel =
+                            GetterSetters.modelUpdateProject sharedModel updatedProject
+                    in
+                    State.Error.processSynchronousApiError updatedSharedModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+        ReceiveServerRemoveSecurityGroup serverId errorContext serverSecurityGroup result ->
+            let
+                -- Even if the request failed, we want to update pending security group actions.
+                updatedProject =
+                    GetterSetters.projectUpdateSecurityGroupActionsIfExists project
+                        (SecurityGroupActions.ExtantGroup serverSecurityGroup.uuid)
+                        (\actions ->
+                            { actions
+                                | pendingServerChanges =
+                                    let
+                                        pendingServerChanges =
+                                            actions.pendingServerChanges
+                                    in
+                                    { pendingServerChanges
+                                        | updates = actions.pendingServerChanges.updates - 1
+                                    }
+                            }
+                        )
+
+                securityGroupAction =
+                    GetterSetters.getSecurityGroupActions updatedProject (SecurityGroupActions.ExtantGroup serverSecurityGroup.uuid)
+                        |> Maybe.withDefault
+                            SecurityGroupActions.initSecurityGroupAction
+
+                updatedSharedModel =
+                    GetterSetters.modelUpdateProject sharedModel updatedProject
+
+                deleteCmd =
+                    -- If we wanted to delete this group & all the server-security group links have been removed, we can go ahead.
+                    if securityGroupAction.pendingDeletion && securityGroupAction.pendingServerChanges.updates <= 0 then
+                        Rest.Neutron.requestDeleteSecurityGroup updatedProject serverSecurityGroup.uuid
+
+                    else
+                        Cmd.none
+            in
+            case result of
+                Ok _ ->
+                    let
+                        serverSecurityGroupsRdpp =
+                            GetterSetters.getServerSecurityGroups updatedProject serverId
+                    in
+                    case serverSecurityGroupsRdpp.data of
+                        RDPP.DoHave serverSecurityGroups receivedTime ->
+                            let
+                                newServerSecurityGroups =
+                                    List.filter (\sg -> sg /= serverSecurityGroup) serverSecurityGroups
+
+                                securityGroups =
+                                    RDPP.RemoteDataPlusPlus
+                                        (RDPP.DoHave newServerSecurityGroups receivedTime)
+                                        -- don't interfere with any loading in progress
+                                        serverSecurityGroupsRdpp.refreshStatus
+
+                                newProject =
+                                    GetterSetters.projectUpsertServerSecurityGroups updatedProject serverId securityGroups
+                            in
+                            ( GetterSetters.modelUpdateProject updatedSharedModel newProject, deleteCmd )
+                                |> mapToOuterMsg
+                                |> mapToOuterModel outerModel
+                                -- Make the page aware of the shared msg.
+                                |> pipelineCmdOuterModelMsg (updateUnderlying (ServerSecurityGroupsMsg <| Page.ServerSecurityGroups.GotServerSecurityGroups serverId))
+
+                        _ ->
+                            ( updatedSharedModel, deleteCmd )
+                                |> mapToOuterMsg
+                                |> mapToOuterModel outerModel
+
+                Err httpError ->
+                    let
+                        ( newSharedModel, errCmd ) =
+                            State.Error.processSynchronousApiError updatedSharedModel errorContext httpError
+                    in
+                    ( newSharedModel, Cmd.batch [ errCmd, deleteCmd ] )
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
         ReceiveCreateShare share ->
             ( outerModel
             , Cmd.batch
@@ -3119,7 +3284,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                     server.exoProps
 
                 newServer =
-                    Server server.osProps { oldExoProps | targetOpenstackStatus = Just [ OSTypes.ServerResize ] } server.securityGroups
+                    Server server.osProps { oldExoProps | targetOpenstackStatus = Just [ OSTypes.ServerResize ] }
 
                 newProject =
                     GetterSetters.projectUpdateServer project newServer
@@ -3238,172 +3403,6 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                 |> Helpers.pipelineCmd (ApiModelHelpers.requestServerEvents (GetterSetters.projectIdentifier project) server.osProps.uuid)
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
-
-        ReceiveServerSecurityGroups errorContext result ->
-            case result of
-                Ok serverSecurityGroups ->
-                    let
-                        newServer =
-                            { server
-                                | securityGroups =
-                                    RDPP.RemoteDataPlusPlus
-                                        (RDPP.DoHave serverSecurityGroups sharedModel.clientCurrentTime)
-                                        (RDPP.NotLoading Nothing)
-                            }
-
-                        newProject =
-                            GetterSetters.projectUpdateServer project newServer
-                    in
-                    ( GetterSetters.modelUpdateProject sharedModel newProject
-                    , Cmd.none
-                    )
-                        |> mapToOuterModel outerModel
-                        -- Make the page aware of the shared msg.
-                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerSecurityGroupsMsg <| Page.ServerSecurityGroups.GotServerSecurityGroups server.osProps.uuid))
-
-                Err httpErrorWithBody ->
-                    State.Error.processSynchronousApiError sharedModel errorContext httpErrorWithBody
-                        |> mapToOuterMsg
-                        |> mapToOuterModel outerModel
-
-        ReceiveServerAddSecurityGroup errorContext serverSecurityGroup result ->
-            let
-                updatedProject =
-                    GetterSetters.projectUpdateSecurityGroupActionsIfExists project
-                        (SecurityGroupActions.ExtantGroup serverSecurityGroup.uuid)
-                        (\actions ->
-                            { actions
-                                | pendingServerLinkage =
-                                    actions.pendingServerLinkage
-                                        |> Maybe.andThen
-                                            (\serverUuid ->
-                                                -- If this is our server, clear the pending linkage.
-                                                -- Otherwise, leave it alone.
-                                                if serverUuid == server.osProps.uuid then
-                                                    Nothing
-
-                                                else
-                                                    actions.pendingServerLinkage
-                                            )
-                            }
-                        )
-            in
-            case result of
-                Ok _ ->
-                    case server.securityGroups.data of
-                        RDPP.DoHave serverSecurityGroups receivedTime ->
-                            let
-                                newServerSecurityGroups =
-                                    if List.member serverSecurityGroup serverSecurityGroups then
-                                        serverSecurityGroups
-
-                                    else
-                                        serverSecurityGroup :: serverSecurityGroups
-
-                                newServer =
-                                    { server
-                                        | securityGroups =
-                                            RDPP.RemoteDataPlusPlus
-                                                (RDPP.DoHave newServerSecurityGroups receivedTime)
-                                                -- don't interfere with any loading in progress
-                                                server.securityGroups.refreshStatus
-                                    }
-
-                                newProject =
-                                    GetterSetters.projectUpdateServer updatedProject newServer
-                            in
-                            ( GetterSetters.modelUpdateProject sharedModel newProject, Cmd.none )
-                                |> mapToOuterMsg
-                                |> mapToOuterModel outerModel
-                                -- Make the page aware of the shared msg.
-                                |> pipelineCmdOuterModelMsg (updateUnderlying (ServerSecurityGroupsMsg <| Page.ServerSecurityGroups.GotServerSecurityGroups server.osProps.uuid))
-
-                        _ ->
-                            ( outerModel, Cmd.none )
-
-                Err httpError ->
-                    let
-                        updatedSharedModel =
-                            GetterSetters.modelUpdateProject sharedModel updatedProject
-                    in
-                    State.Error.processSynchronousApiError updatedSharedModel errorContext httpError
-                        |> mapToOuterMsg
-                        |> mapToOuterModel outerModel
-
-        ReceiveServerRemoveSecurityGroup errorContext serverSecurityGroup result ->
-            let
-                -- Even if the request failed, we want to update pending security group actions.
-                updatedProject =
-                    GetterSetters.projectUpdateSecurityGroupActionsIfExists project
-                        (SecurityGroupActions.ExtantGroup serverSecurityGroup.uuid)
-                        (\actions ->
-                            { actions
-                                | pendingServerChanges =
-                                    let
-                                        pendingServerChanges =
-                                            actions.pendingServerChanges
-                                    in
-                                    { pendingServerChanges
-                                        | updates = actions.pendingServerChanges.updates - 1
-                                    }
-                            }
-                        )
-
-                securityGroupAction =
-                    GetterSetters.getSecurityGroupActions updatedProject (SecurityGroupActions.ExtantGroup serverSecurityGroup.uuid)
-                        |> Maybe.withDefault
-                            SecurityGroupActions.initSecurityGroupAction
-
-                updatedSharedModel =
-                    GetterSetters.modelUpdateProject sharedModel updatedProject
-
-                deleteCmd =
-                    -- If we wanted to delete this group & all the server-security group links have been removed, we can go ahead.
-                    if securityGroupAction.pendingDeletion && securityGroupAction.pendingServerChanges.updates <= 0 then
-                        Rest.Neutron.requestDeleteSecurityGroup updatedProject serverSecurityGroup.uuid
-
-                    else
-                        Cmd.none
-            in
-            case result of
-                Ok _ ->
-                    case server.securityGroups.data of
-                        RDPP.DoHave serverSecurityGroups receivedTime ->
-                            let
-                                newServerSecurityGroups =
-                                    List.filter (\sg -> sg /= serverSecurityGroup) serverSecurityGroups
-
-                                newServer =
-                                    { server
-                                        | securityGroups =
-                                            RDPP.RemoteDataPlusPlus
-                                                (RDPP.DoHave newServerSecurityGroups receivedTime)
-                                                -- don't interfere with any loading in progress
-                                                server.securityGroups.refreshStatus
-                                    }
-
-                                newProject =
-                                    GetterSetters.projectUpdateServer updatedProject newServer
-                            in
-                            ( GetterSetters.modelUpdateProject updatedSharedModel newProject, deleteCmd )
-                                |> mapToOuterMsg
-                                |> mapToOuterModel outerModel
-                                -- Make the page aware of the shared msg.
-                                |> pipelineCmdOuterModelMsg (updateUnderlying (ServerSecurityGroupsMsg <| Page.ServerSecurityGroups.GotServerSecurityGroups server.osProps.uuid))
-
-                        _ ->
-                            ( updatedSharedModel, deleteCmd )
-                                |> mapToOuterMsg
-                                |> mapToOuterModel outerModel
-
-                Err httpError ->
-                    let
-                        ( newSharedModel, errCmd ) =
-                            State.Error.processSynchronousApiError updatedSharedModel errorContext httpError
-                    in
-                    ( newSharedModel, Cmd.batch [ errCmd, deleteCmd ] )
-                        |> mapToOuterMsg
-                        |> mapToOuterModel outerModel
 
         ReceiveConsoleUrl url ->
             Rest.Nova.receiveConsoleUrl sharedModel project server url
@@ -3722,7 +3721,6 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                             | targetOpenstackStatus = targetStatuses
                             , floatingIpCreationOption = newFloatingIpOption
                         }
-                        server.securityGroups
 
                 newProject =
                     GetterSetters.projectUpdateServer project newServer
@@ -4041,6 +4039,7 @@ createProject_ outerModel description authToken region endpoints =
             , images = RDPP.RemoteDataPlusPlus RDPP.DontHave RDPP.Loading
             , servers = RDPP.RemoteDataPlusPlus RDPP.DontHave RDPP.Loading
             , serverEvents = Dict.empty
+            , serverSecurityGroups = Dict.empty
             , serverImages = []
             , flavors = RDPP.empty
             , keypairs = RDPP.empty
