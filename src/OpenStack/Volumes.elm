@@ -310,7 +310,8 @@ volumeStatusDecoder status =
 
 cinderVolumeAttachmentDecoder : Decode.Decoder OSTypes.VolumeAttachment
 cinderVolumeAttachmentDecoder =
-    Decode.map3 OSTypes.VolumeAttachment
+    Decode.map4 OSTypes.VolumeAttachment
+        (Decode.field "volume_id" Decode.string)
         (Decode.field "server_id" Decode.string)
         (Decode.field "attachment_id" Decode.string)
         -- Device can be null when attachment is made to a shelved instance.

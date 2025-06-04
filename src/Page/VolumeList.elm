@@ -208,13 +208,8 @@ volumeView context project currentTime volumeRecord =
         volumeAttachment =
             let
                 maybeServerUuid =
-                    case volumeRecord.volume.status of
-                        OSTypes.Reserved ->
-                            -- Reserved volumes don't necessarily know their attachments but servers do.
-                            List.head <| GetterSetters.getServerUuidsByVolume project volumeRecord.id
-
-                        _ ->
-                            List.head volumeRecord.volume.attachments |> Maybe.map .serverUuid
+                    GetterSetters.getServerUuidsByVolumeAttached project volumeRecord.volume.uuid
+                        |> List.head
             in
             Element.row [ Element.alignRight ]
                 ((Element.text <|
@@ -306,7 +301,7 @@ volumeView context project currentTime volumeRecord =
                             DeleteButton.Enabled deleteString
 
                          else
-                            DeleteButton.Disabled (Maybe.withDefault deleteString <| VH.deleteVolumeWarning context volumeRecord.volume)
+                            DeleteButton.Disabled (Maybe.withDefault deleteString <| VH.deleteVolumeWarning context project volumeRecord.volume)
                         )
 
                 bootVolumeTag =

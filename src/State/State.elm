@@ -1558,7 +1558,7 @@ processProjectSpecificMsg outerModel project msg =
                 maybeServer =
                     maybeVolume
                         |> Maybe.map .uuid
-                        |> Maybe.map (GetterSetters.getServerUuidsByVolume project)
+                        |> Maybe.map (GetterSetters.getServerUuidsByVolumeAttached project)
                         |> Maybe.andThen List.head
                         |> Maybe.andThen (GetterSetters.serverLookup project)
             in
@@ -2926,9 +2926,7 @@ processProjectSpecificMsg outerModel project msg =
                                 |> List.map
                                     (\s ->
                                         ( s
-                                        , GetterSetters.getBootVolume
-                                            (RDPP.withDefault [] project.volumes)
-                                            s.osProps.uuid
+                                        , GetterSetters.getBootVolume project s.osProps.uuid
                                         )
                                     )
                                 -- We only care about servers created by exosphere

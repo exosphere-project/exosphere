@@ -118,7 +118,8 @@ requestDetachVolume project serverUuid volumeUuid =
 
 novaVolumeAttachmentDecoder : Decode.Decoder OSTypes.VolumeAttachment
 novaVolumeAttachmentDecoder =
-    Decode.map3 OSTypes.VolumeAttachment
+    Decode.map4 OSTypes.VolumeAttachment
+        (Decode.field "volumeId" Decode.string)
         (Decode.field "serverId" Decode.string)
         (Decode.field "id" Decode.string)
         -- Device can be null when attachment is made to a shelved instance.

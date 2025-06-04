@@ -376,7 +376,8 @@ toUrl maybePathPrefix route =
 
                         VolumeMountInstructions attachment ->
                             ( [ "attachvolinstructions" ]
-                            , [ UB.string "serveruuid" attachment.serverUuid
+                            , [ UB.string "voluuid" attachment.volumeUuid
+                              , UB.string "serveruuid" attachment.serverUuid
                               , UB.string "attachmentuuid" attachment.attachmentUuid
                               ]
                                 ++ (case attachment.device of
@@ -757,8 +758,11 @@ projectRouteParsers =
         VolumeMountInstructions
         (let
             queryParser =
-                Query.map3
+                Query.map4
                     OSTypes.VolumeAttachment
+                    (Query.string "voluuid"
+                        |> Query.map (Maybe.withDefault "")
+                    )
                     (Query.string "serveruuid"
                         |> Query.map (Maybe.withDefault "")
                     )

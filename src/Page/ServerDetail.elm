@@ -286,7 +286,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                     name
 
                 Nothing ->
-                    GetterSetters.getBootVolume (RDPP.withDefault [] project.volumes) server.osProps.uuid
+                    GetterSetters.getBootVolume project server.osProps.uuid
                         |> Maybe.andThen .imageMetadata
                         |> Maybe.map (\data -> VH.resourceName (Just data.name) data.uuid)
                         |> Maybe.withDefault "N/A"
@@ -1769,8 +1769,8 @@ renderIpAddresses context project server model =
                 (floatingIpAddressRows ++ [ ipButton icon "IP Details" IpDetails ])
 
 
-serverVolumes : View.Types.Context -> ProjectIdentifier -> Server -> List OSTypes.Volume -> Element.Element Msg
-serverVolumes context projectId server volumes =
+serverVolumes : View.Types.Context -> Project -> Server -> List OSTypes.Volume -> Element.Element Msg
+serverVolumes context project server volumes =
     case List.length volumes of
         0 ->
             Element.text "(none)"
@@ -1780,7 +1780,7 @@ serverVolumes context projectId server volumes =
                 volumeRow v =
                     let
                         ( device, mountpoint ) =
-                            if GetterSetters.isVolumeCurrentlyBackingServer (Just server.osProps.uuid) v then
+                            if GetterSetters.isVolumeCurrentlyBackingServer project (Just server.osProps.uuid) v then
                                 ( String.join " "
                                     [ "Boot"
                                     , context.localization.blockDevice
@@ -1789,15 +1789,15 @@ serverVolumes context projectId server volumes =
                                 )
 
                             else
-                                case GetterSetters.volumeDeviceRawName server v of
+                                case GetterSetters.volumeDeviceRawName project v.uuid server.osProps.uuid of
                                     Just device_ ->
-                                        ( Maybe.withDefault "Could not determine" <| device_
+                                        ( device_
                                         , Maybe.withDefault "Could not determine" <|
                                             if GetterSetters.serverSupportsFeature NamedMountpoints server then
                                                 v.name |> Maybe.andThen GetterSetters.volNameToMountpoint
 
                                             else
-                                                GetterSetters.volDeviceToMountpoint device_
+                                                GetterSetters.volDeviceToMountpoint (Just device_)
                                         )
 
                                     Nothing ->
@@ -1818,7 +1818,7 @@ serverVolumes context projectId server volumes =
                                     Element.link []
                                         { url =
                                             Route.toUrl context.urlPathPrefix
-                                                (Route.ProjectRoute projectId <|
+                                                (Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
                                                     Route.VolumeDetail v.uuid
                                                 )
                                         , label =
@@ -1862,7 +1862,7 @@ renderServerVolumes context project server =
         renderTable volumes =
             serverVolumes
                 context
-                (GetterSetters.projectIdentifier project)
+                project
                 server
                 (volumes |> List.filter (\v -> List.member v.uuid server.osProps.details.volumesAttached))
     in

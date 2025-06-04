@@ -1597,9 +1597,9 @@ deleteResourcePopconfirmWithDisabledHint context project msgMapper resource popc
         )
 
 
-deleteVolumeWarning : View.Types.Context -> Volume -> Maybe String
-deleteVolumeWarning context volume =
-    case ( GetterSetters.isVolumeCurrentlyBackingServer Nothing volume, GetterSetters.isBootableVolume volume, volume.status ) of
+deleteVolumeWarning : View.Types.Context -> Project -> Volume -> Maybe String
+deleteVolumeWarning context project volume =
+    case ( GetterSetters.isVolumeCurrentlyBackingServer project Nothing volume, GetterSetters.isBootableVolume volume, volume.status ) of
         ( True, _, _ ) ->
             Just <|
                 String.join " "
@@ -1683,7 +1683,7 @@ detachVolumeButton : View.Types.Context -> Project -> (PopoverId -> msg) -> Stri
 detachVolumeButton context project msgMapper popconfirmTag volume onConfirm onCancel =
     let
         isBootVolume =
-            GetterSetters.isVolumeCurrentlyBackingServer Nothing volume || GetterSetters.isBootableVolume volume
+            GetterSetters.isVolumeCurrentlyBackingServer project Nothing volume || GetterSetters.isBootableVolume volume
 
         detachButton : msg -> Bool -> Element.Element msg
         detachButton togglePopconfirm _ =

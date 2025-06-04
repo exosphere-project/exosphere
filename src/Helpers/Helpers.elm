@@ -751,11 +751,7 @@ serverResourceQtys project flavor server =
             |> Maybe.andThen String.toInt
     , ramGb = flavor.ram_mb // 1024
     , rootDiskGb =
-        case
-            GetterSetters.getBootVolume
-                (RDPP.withDefault [] project.volumes)
-                server.osProps.uuid
-        of
+        case GetterSetters.getBootVolume project server.osProps.uuid of
             Just backingVolume ->
                 Just backingVolume.size
 

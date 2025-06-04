@@ -133,8 +133,8 @@ volumeStatus context volume =
         ]
 
 
-renderDeleteAction : View.Types.Context -> Model -> Volume -> Maybe Msg -> Maybe (Element.Attribute Msg) -> Element.Element Msg
-renderDeleteAction context model volume actionMsg closeActionsDropdown =
+renderDeleteAction : View.Types.Context -> Project -> Model -> Volume -> Maybe Msg -> Maybe (Element.Attribute Msg) -> Element.Element Msg
+renderDeleteAction context project model volume actionMsg closeActionsDropdown =
     case model.deletePendingConfirmation of
         Just _ ->
             let
@@ -158,10 +158,10 @@ renderDeleteAction context model volume actionMsg closeActionsDropdown =
         Nothing ->
             let
                 isDeleteDisabled =
-                    GetterSetters.isVolumeCurrentlyBackingServer Nothing volume
+                    GetterSetters.isVolumeCurrentlyBackingServer project Nothing volume
 
                 warning =
-                    case VH.deleteVolumeWarning context volume of
+                    case VH.deleteVolumeWarning context project volume of
                         Just warning_ ->
                             Text.body <| warning_
 
@@ -204,6 +204,7 @@ volumeActionsDropdown context project model volume =
         dropdownContent closeDropdown =
             Element.column [ Element.spacing spacer.px8 ] <|
                 [ renderDeleteAction context
+                    project
                     model
                     volume
                     (Just <| GotDeleteConfirm volume.uuid)
@@ -300,7 +301,7 @@ detachButton : View.Types.Context -> Project -> Volume -> Element.Element Msg
 detachButton context project volume =
     let
         isBootVolume =
-            GetterSetters.isVolumeCurrentlyBackingServer Nothing volume || GetterSetters.isBootableVolume volume
+            GetterSetters.isVolumeCurrentlyBackingServer project Nothing volume || GetterSetters.isBootableVolume volume
 
         bootVolumeTag =
             if isBootVolume then
@@ -338,14 +339,18 @@ detachButton context project volume =
 
 attachmentsTable : View.Types.Context -> Project -> Volume -> Element.Element Msg
 attachmentsTable context project volume =
-    case List.length volume.attachments of
+    let
+        attachments =
+            GetterSetters.getVolumeAttachments project volume.uuid
+    in
+    case List.length attachments of
         0 ->
             case volume.status of
                 OSTypes.Reserved ->
                     let
                         maybeServerUuid =
                             -- Reserved volumes don't necessarily know their attachments but servers do.
-                            List.head <| GetterSetters.getServerUuidsByVolume project volume.uuid
+                            List.head <| GetterSetters.getServerUuidsByVolumeAttached project volume.uuid
                     in
                     case maybeServerUuid of
                         Just serverUuid ->
@@ -435,7 +440,7 @@ attachmentsTable context project volume =
             Element.table
                 [ Element.spacing spacer.px16
                 ]
-                { data = volume.attachments
+                { data = attachments
                 , columns =
                     [ { header = VH.tableHeader (context.localization.virtualComputer |> Helpers.String.toTitleCase)
                       , width = Element.shrink
@@ -496,7 +501,7 @@ attachmentsTable context project volume =
                             \item ->
                                 let
                                     mountPoint =
-                                        if GetterSetters.isVolumeCurrentlyBackingServer (Just item.serverUuid) volume then
+                                        if GetterSetters.isVolumeCurrentlyBackingServer project (Just item.serverUuid) volume then
                                             -- Boot volumes don't use a media mount path.
                                             "-"
 

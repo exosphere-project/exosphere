@@ -603,6 +603,8 @@ type alias Volume =
     , size : VolumeSize
     , description : Maybe VolumeDescription
     , bootable : Bool
+
+    -- Expect Cinder to return an empty list of attachments for shelved servers.
     , attachments : List VolumeAttachment
     , imageMetadata : Maybe NameAndUuid
     , createdAt : Time.Posix
@@ -704,7 +706,8 @@ volumeStatusToString volumeStatus =
 
 
 type alias VolumeAttachment =
-    { serverUuid : ServerUuid
+    { volumeUuid : VolumeUuid
+    , serverUuid : ServerUuid
     , attachmentUuid : AttachmentUuid
     , device : VolumeAttachmentDevice
     }

@@ -16,13 +16,13 @@ module Helpers.GetterSetters exposing
     , getServerFloatingIps
     , getServerPorts
     , getServerSecurityGroups
-    , getServerUuidsByVolume
+    , getServerUuidsByVolumeAttached
     , getServerVolumeAttachments
-    , getServersWithVolAttached
     , getServicePublicUrl
     , getUserAppProxyFromCloudSpecificConfig
     , getUserAppProxyFromContext
     , getVolsAttachedToServer
+    , getVolumeAttachments
     , imageGetDesktopMessage
     , imageLookup
     , isBootableVolume
@@ -587,53 +587,57 @@ getVolsAttachedToServer project server =
         |> List.filter (\v -> List.member v.uuid server.osProps.details.volumesAttached)
 
 
+getVolumeAttachments : Project -> OSTypes.VolumeUuid -> List OSTypes.VolumeAttachment
+getVolumeAttachments project volumeUuid =
+    project.serverVolumeAttachments
+        |> Dict.values
+        |> List.concatMap (RDPP.withDefault [])
+        |> List.filter (\a -> a.volumeUuid == volumeUuid)
+
+
 volumeIsAttachedToServer : OSTypes.VolumeUuid -> Server -> Bool
 volumeIsAttachedToServer volumeUuid server =
     server.osProps.details.volumesAttached
         |> List.member volumeUuid
 
 
-getServersWithVolAttached : Project -> OSTypes.Volume -> List OSTypes.ServerUuid
-getServersWithVolAttached _ volume =
-    volume.attachments |> List.map .serverUuid
+getServerUuidsByVolumeAttached : Project -> OSTypes.VolumeUuid -> List OSTypes.ServerUuid
+getServerUuidsByVolumeAttached project volumeUuid =
+    getVolumeAttachments project volumeUuid
+        |> List.map .serverUuid
+        |> List.Extra.unique
 
 
-getServerUuidsByVolume : Project -> OSTypes.VolumeUuid -> List OSTypes.ServerUuid
-getServerUuidsByVolume project volumeUuid =
-    project.servers
+volumeDeviceRawName : Project -> OSTypes.VolumeUuid -> OSTypes.ServerUuid -> OSTypes.VolumeAttachmentDevice
+volumeDeviceRawName project volumeUuid serverId =
+    getServerVolumeAttachments project serverId
         |> RDPP.withDefault []
-        |> List.filter (volumeIsAttachedToServer volumeUuid)
-        |> List.map (\s -> s.osProps.uuid)
-
-
-volumeDeviceRawName : Server -> OSTypes.Volume -> Maybe OSTypes.VolumeAttachmentDevice
-volumeDeviceRawName server volume =
-    volume.attachments
-        |> List.Extra.find (\a -> a.serverUuid == server.osProps.uuid)
+        |> List.Extra.find (\a -> a.volumeUuid == volumeUuid)
         |> Maybe.map .device
+        |> Maybe.withDefault Nothing
 
 
 {-| If a `serverUuid` is passed, determines whether volume backs that server;
 otherwise just determines whether volume is backing any server.
 -}
-isVolumeCurrentlyBackingServer : Maybe OSTypes.ServerUuid -> OSTypes.Volume -> Bool
-isVolumeCurrentlyBackingServer maybeServerUuid volume =
-    volume.attachments
-        |> List.filter
-            (\a ->
-                case maybeServerUuid of
-                    Just serverUuid ->
-                        a.serverUuid == serverUuid
-
-                    Nothing ->
-                        True
+isVolumeCurrentlyBackingServer : Project -> Maybe OSTypes.ServerUuid -> OSTypes.Volume -> Bool
+isVolumeCurrentlyBackingServer project maybeServerUuid volume =
+    project.serverVolumeAttachments
+        |> Dict.filter
+            (\serverId _ ->
+                maybeServerUuid
+                    |> Maybe.map (\s -> s == serverId)
+                    |> Maybe.withDefault True
             )
-        |> List.filter
-            (\a ->
-                List.member
-                    (Maybe.withDefault "" a.device)
-                    [ "/dev/sda", "/dev/vda" ]
+        |> Dict.filter
+            (\_ rdpp ->
+                RDPP.withDefault [] rdpp
+                    |> List.Extra.find (\a -> a.volumeUuid == volume.uuid)
+                    |> Maybe.andThen .device
+                    |> Maybe.withDefault ""
+                    |> (\device -> List.member device [ "/dev/sda", "/dev/vda" ])
             )
+        |> Dict.keys
         |> List.isEmpty
         |> not
 
@@ -643,10 +647,11 @@ isBootableVolume volume =
     volume.bootable
 
 
-getBootVolume : List OSTypes.Volume -> OSTypes.ServerUuid -> Maybe OSTypes.Volume
-getBootVolume vols serverUuid =
-    vols
-        |> List.Extra.find (isVolumeCurrentlyBackingServer <| Just serverUuid)
+getBootVolume : Project -> OSTypes.ServerUuid -> Maybe OSTypes.Volume
+getBootVolume project serverUuid =
+    project.volumes
+        |> RDPP.withDefault []
+        |> List.Extra.find (isVolumeCurrentlyBackingServer project <| Just serverUuid)
 
 
 isVolumeReservedForShelvedInstance : Project -> OSTypes.Volume -> Bool
@@ -656,7 +661,7 @@ isVolumeReservedForShelvedInstance project volume =
             let
                 maybeServerUuid =
                     -- Reserved volumes don't necessarily know their attachments but servers do.
-                    List.head <| getServerUuidsByVolume project volume.uuid
+                    List.head <| getServerUuidsByVolumeAttached project volume.uuid
 
                 maybeServer =
                     maybeServerUuid |> Maybe.andThen (serverLookup project)
