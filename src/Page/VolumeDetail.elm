@@ -301,7 +301,7 @@ detachButton : View.Types.Context -> Project -> Volume -> Element.Element Msg
 detachButton context project volume =
     let
         isBootVolume =
-            GetterSetters.isVolumeCurrentlyBackingServer project Nothing volume || GetterSetters.isBootableVolume volume
+            GetterSetters.isVolumeCurrentlyBackingServer project Nothing volume
 
         bootVolumeTag =
             if isBootVolume then
@@ -373,6 +373,9 @@ attachmentsTable context project volume =
                                                     |> Maybe.map (\s -> s.osProps.details.openstackStatus)
                                                     |> Maybe.map (\status -> [ OSTypes.ServerShelved, OSTypes.ServerShelvedOffloaded ] |> List.member status)
                                                     |> Maybe.withDefault False
+
+                                            isBootVolume =
+                                                GetterSetters.isVolumeCurrentlyBackingServer project Nothing volume
                                         in
                                         [ Link.link
                                             context.palette
@@ -381,7 +384,7 @@ attachmentsTable context project volume =
                                                     Route.ServerDetail serverUuid
                                             )
                                             serverName
-                                        , if isServerShelved && GetterSetters.isBootableVolume volume then
+                                        , if isServerShelved && isBootVolume then
                                             Style.Widgets.ToggleTip.toggleTip
                                                 context
                                                 (SharedMsg << SharedMsg.TogglePopover)

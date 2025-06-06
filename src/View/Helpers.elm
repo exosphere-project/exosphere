@@ -1599,8 +1599,17 @@ deleteResourcePopconfirmWithDisabledHint context project msgMapper resource popc
 
 deleteVolumeWarning : View.Types.Context -> Project -> Volume -> Maybe String
 deleteVolumeWarning context project volume =
-    case ( GetterSetters.isVolumeCurrentlyBackingServer project Nothing volume, GetterSetters.isBootableVolume volume, volume.status ) of
-        ( True, _, _ ) ->
+    case ( GetterSetters.isVolumeCurrentlyBackingServer project Nothing volume, volume.status ) of
+        ( True, OSTypes.Reserved ) ->
+            Just <|
+                String.join " "
+                    [ "Unshelve the attached"
+                    , context.localization.virtualComputer
+                    , "to interact with this"
+                    , context.localization.blockDevice ++ "."
+                    ]
+
+        ( True, _ ) ->
             Just <|
                 String.join " "
                     [ "This"
@@ -1613,16 +1622,7 @@ deleteVolumeWarning context project volume =
                     , "is deleted."
                     ]
 
-        ( _, True, OSTypes.Reserved ) ->
-            Just <|
-                String.join " "
-                    [ "Unshelve the attached"
-                    , context.localization.virtualComputer
-                    , "to interact with this"
-                    , context.localization.blockDevice ++ "."
-                    ]
-
-        ( _, False, OSTypes.Reserved ) ->
+        ( _, OSTypes.Reserved ) ->
             Just <|
                 String.join " "
                     [ "This"
@@ -1630,7 +1630,7 @@ deleteVolumeWarning context project volume =
                     , "must be detached before it can be deleted."
                     ]
 
-        ( _, _, OSTypes.InUse ) ->
+        ( _, OSTypes.InUse ) ->
             Just <|
                 String.join " "
                     [ "This"
@@ -1683,7 +1683,7 @@ detachVolumeButton : View.Types.Context -> Project -> (PopoverId -> msg) -> Stri
 detachVolumeButton context project msgMapper popconfirmTag volume onConfirm onCancel =
     let
         isBootVolume =
-            GetterSetters.isVolumeCurrentlyBackingServer project Nothing volume || GetterSetters.isBootableVolume volume
+            GetterSetters.isVolumeCurrentlyBackingServer project Nothing volume
 
         detachButton : msg -> Bool -> Element.Element msg
         detachButton togglePopconfirm _ =

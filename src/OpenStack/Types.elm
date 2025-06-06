@@ -602,7 +602,6 @@ type alias Volume =
     , status : VolumeStatus
     , size : VolumeSize
     , description : Maybe VolumeDescription
-    , bootable : Bool
 
     -- Expect Cinder to return an empty list of attachments for shelved servers.
     , attachments : List VolumeAttachment

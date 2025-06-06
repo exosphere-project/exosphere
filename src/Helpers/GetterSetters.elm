@@ -25,7 +25,6 @@ module Helpers.GetterSetters exposing
     , getVolumeAttachments
     , imageGetDesktopMessage
     , imageLookup
-    , isBootableVolume
     , isDefaultSecurityGroup
     , isSnapshotOfVolume
     , isVolumeCurrentlyBackingServer
@@ -640,11 +639,6 @@ isVolumeCurrentlyBackingServer project maybeServerUuid volume =
         |> Dict.keys
         |> List.isEmpty
         |> not
-
-
-isBootableVolume : OSTypes.Volume -> Bool
-isBootableVolume volume =
-    volume.bootable
 
 
 getBootVolume : Project -> OSTypes.ServerUuid -> Maybe OSTypes.Volume

@@ -239,6 +239,9 @@ volumeView context project currentTime volumeRecord =
                                             |> Maybe.map (\s -> s.osProps.details.openstackStatus)
                                             |> Maybe.map (\status -> [ OSTypes.ServerShelved, OSTypes.ServerShelvedOffloaded ] |> List.member status)
                                             |> Maybe.withDefault False
+
+                                    isBootVolume =
+                                        GetterSetters.isVolumeCurrentlyBackingServer project Nothing volumeRecord.volume
                                 in
                                 [ Element.link []
                                     { url =
@@ -252,7 +255,7 @@ volumeView context project currentTime volumeRecord =
                                             ]
                                             (Element.text <| serverName)
                                     }
-                                , case ( volumeRecord.volume.status, isServerShelved && GetterSetters.isBootableVolume volumeRecord.volume ) of
+                                , case ( volumeRecord.volume.status, isServerShelved && isBootVolume ) of
                                     ( OSTypes.Reserved, True ) ->
                                         Style.Widgets.ToggleTip.toggleTip
                                             context
@@ -305,7 +308,7 @@ volumeView context project currentTime volumeRecord =
                         )
 
                 bootVolumeTag =
-                    if GetterSetters.isBootableVolume volumeRecord.volume then
+                    if GetterSetters.isVolumeCurrentlyBackingServer project Nothing volumeRecord.volume then
                         tag context.palette <| "boot " ++ context.localization.blockDevice
 
                     else
