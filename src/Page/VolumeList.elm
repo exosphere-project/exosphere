@@ -313,69 +313,68 @@ volumeView context project currentTime volumeRecord =
 
                     else
                         Element.none
-            in
-            case volumeRecord.volume.status of
-                OSTypes.Detaching ->
-                    Element.el [ Font.italic ] (Element.text "Detaching ...")
 
-                OSTypes.Deleting ->
-                    Element.el [ Font.italic ] (Element.text "Deleting ...")
+                controls =
+                    case volumeRecord.volume.status of
+                        OSTypes.Detaching ->
+                            [ Element.el [ Font.italic ] (Element.text "Detaching...") ]
 
-                OSTypes.InUse ->
-                    Element.row [ Element.spacing spacer.px12 ]
-                        [ bootVolumeTag
-                        , VH.detachVolumeButton
-                            context
-                            project
-                            (SharedMsg << SharedMsg.TogglePopover)
-                            "volumeListDetachPopconfirm"
-                            volumeRecord.volume
-                            (Just <| GotDetachVolumeConfirm volumeRecord.id)
-                            (Just NoOp)
-                        , deleteButton False
-                        ]
+                        OSTypes.Deleting ->
+                            [ Element.el [ Font.italic ] (Element.text "Deleting...") ]
 
-                OSTypes.Reserved ->
-                    Element.row [ Element.spacing spacer.px12 ]
-                        [ bootVolumeTag
-                        , VH.detachVolumeButton
-                            context
-                            project
-                            (SharedMsg << SharedMsg.TogglePopover)
-                            "volumeListDetachPopconfirm"
-                            volumeRecord.volume
-                            (Just <| GotDetachVolumeConfirm volumeRecord.id)
-                            (Just NoOp)
-                        , deleteButton False
-                        ]
+                        OSTypes.InUse ->
+                            [ VH.detachVolumeButton
+                                context
+                                project
+                                (SharedMsg << SharedMsg.TogglePopover)
+                                "volumeListDetachPopconfirm"
+                                volumeRecord.volume
+                                (Just <| GotDetachVolumeConfirm volumeRecord.id)
+                                (Just NoOp)
+                            , deleteButton False
+                            ]
 
-                OSTypes.Available ->
-                    -- Volume can be either deleted or attached
-                    let
-                        attachButton =
-                            Element.link []
-                                { url =
-                                    Route.toUrl context.urlPathPrefix
-                                        (Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
-                                            Route.VolumeAttach Nothing (Just volumeRecord.id)
-                                        )
-                                , label =
-                                    Button.default
-                                        context.palette
-                                        { text = "Attach"
-                                        , onPress = Just NoOp
+                        OSTypes.Reserved ->
+                            [ VH.detachVolumeButton
+                                context
+                                project
+                                (SharedMsg << SharedMsg.TogglePopover)
+                                "volumeListDetachPopconfirm"
+                                volumeRecord.volume
+                                (Just <| GotDetachVolumeConfirm volumeRecord.id)
+                                (Just NoOp)
+                            , deleteButton False
+                            ]
+
+                        OSTypes.Available ->
+                            -- Volume can be either deleted or attached
+                            let
+                                attachButton =
+                                    Element.link []
+                                        { url =
+                                            Route.toUrl context.urlPathPrefix
+                                                (Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
+                                                    Route.VolumeAttach Nothing (Just volumeRecord.id)
+                                                )
+                                        , label =
+                                            Button.default
+                                                context.palette
+                                                { text = "Attach"
+                                                , onPress = Just NoOp
+                                                }
                                         }
-                                }
-                    in
-                    Element.row [ Element.spacing spacer.px12 ]
-                        [ attachButton
-                        , deleteButton True
-                        ]
+                            in
+                            [ attachButton
+                            , deleteButton True
+                            ]
 
-                _ ->
-                    Element.row [ Element.spacing spacer.px12 ]
-                        [ bootVolumeTag
-                        ]
+                        _ ->
+                            []
+            in
+            Element.row [ Element.spacing spacer.px12 ]
+                (bootVolumeTag
+                    :: controls
+                )
 
         sizeString bytes =
             let

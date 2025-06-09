@@ -310,31 +310,40 @@ detachButton context project volume =
             else
                 Element.none
 
+        detach =
+            VH.detachVolumeButton
+                context
+                project
+                (SharedMsg << SharedMsg.TogglePopover)
+                "volumeDetailDetachPopconfirm"
+                volume
+                (Just <| GotDetachVolumeConfirm volume.uuid)
+                (Just NoOp)
+
         controls =
-            Element.row [ Element.spacing spacer.px12 ]
-                [ bootVolumeTag
-                , VH.detachVolumeButton
-                    context
-                    project
-                    (SharedMsg << SharedMsg.TogglePopover)
-                    "volumeDetailDetachPopconfirm"
-                    volume
-                    (Just <| GotDetachVolumeConfirm volume.uuid)
-                    (Just NoOp)
-                ]
+            case volume.status of
+                OSTypes.Deleting ->
+                    centerRow <| Text.body <| "Deleting..."
+
+                OSTypes.Detaching ->
+                    centerRow <| Text.body <| "Detaching..."
+
+                OSTypes.InUse ->
+                    detach
+
+                OSTypes.Reserved ->
+                    detach
+
+                OSTypes.Available ->
+                    detach
+
+                _ ->
+                    Element.none
     in
-    case volume.status of
-        OSTypes.Detaching ->
-            centerRow <| Text.body <| "Detaching..."
-
-        OSTypes.InUse ->
-            controls
-
-        OSTypes.Reserved ->
-            controls
-
-        _ ->
-            Element.none
+    Element.row [ Element.spacing spacer.px12 ]
+        [ bootVolumeTag
+        , controls
+        ]
 
 
 attachmentsTable : View.Types.Context -> Project -> Volume -> Element.Element Msg
