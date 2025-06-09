@@ -67,6 +67,7 @@ module Helpers.GetterSetters exposing
     , sanitizeMountpoint
     , securityGroupLookup
     , securityGroupsFromServerSecurityGroups
+    , serverAttachmentsForVolume
     , serverCreatedByCurrentUser
     , serverExoServerVersion
     , serverLookup
@@ -218,7 +219,7 @@ serversForSecurityGroup project securityGroupUuid =
                 -- It may take a moment for all the server security groups to load.
                 -- Wait until all the data is available before reporting the list.
                 progress =
-                    if Dict.values project.serverSecurityGroups |> List.all (\rdpp -> rdpp.data /= RDPP.DontHave) then
+                    if Dict.values project.serverSecurityGroups |> List.all RDPP.gotData then
                         Done
 
                     else
@@ -592,6 +593,25 @@ getVolumeAttachments project volumeUuid =
         |> Dict.values
         |> List.concatMap (RDPP.withDefault [])
         |> List.filter (\a -> a.volumeUuid == volumeUuid)
+
+
+serverAttachmentsForVolume : Project -> OSTypes.VolumeUuid -> { attachments : List OSTypes.VolumeAttachment, progress : LoadingProgress }
+serverAttachmentsForVolume project volumeUuid =
+    let
+        progress =
+            if Dict.values project.serverVolumeAttachments |> List.all RDPP.gotData then
+                Done
+
+            else
+                Loading
+
+        attached =
+            project.serverVolumeAttachments
+                |> Dict.values
+                |> List.concatMap (RDPP.withDefault [])
+                |> List.filter (\a -> a.volumeUuid == volumeUuid)
+    in
+    { attachments = attached, progress = progress }
 
 
 volumeIsAttachedToServer : OSTypes.VolumeUuid -> Server -> Bool

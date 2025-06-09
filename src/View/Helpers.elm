@@ -41,6 +41,7 @@ module View.Helpers exposing
     , renderMaybe
     , renderMessageAsElement
     , renderMessageAsString
+    , renderProgress
     , renderRDPP
     , renderRDPPWithDependencies
     , requiredLabel
@@ -79,7 +80,7 @@ import FeatherIcons as Icons
 import FormatNumber
 import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (humanCount)
-import Helpers.GetterSetters as GetterSetters
+import Helpers.GetterSetters as GetterSetters exposing (LoadingProgress(..))
 import Helpers.Helpers as Helpers
 import Helpers.Jetstream2
 import Helpers.RemoteDataPlusPlus as RDPP
@@ -412,6 +413,27 @@ loadingStuff context resourceWord =
                 , "..."
                 ]
         ]
+
+
+renderProgress : { items : List a, progress : LoadingProgress } -> Element.Element msg -> Element.Element msg
+renderProgress { items, progress } renderer =
+    case ( progress, List.length items ) of
+        ( NotSure, _ ) ->
+            Element.text "Loading..."
+
+        ( Loading, 0 ) ->
+            Element.text "Loading..."
+
+        ( Loading, _ ) ->
+            Element.column [ Element.width Element.fill ]
+                [ renderer
+                , Element.row [ Element.paddingXY 0 spacer.px16 ]
+                    [ Element.text "Loading..."
+                    ]
+                ]
+
+        ( Done, _ ) ->
+            renderer
 
 
 renderRDPP : View.Types.Context -> RDPP.RemoteDataPlusPlus Types.Error.HttpErrorWithBody a -> String -> (a -> Element.Element msg) -> Element.Element msg
