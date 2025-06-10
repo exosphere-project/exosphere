@@ -1189,6 +1189,13 @@ processTick outerModel interval time =
             )
                 && (not <| GetterSetters.isVolumeReservedForShelvedInstance project volume)
 
+        volAttachmentNeedsFrequentPoll volume =
+            List.member
+                volume.status
+                [ OSTypes.Attaching
+                , OSTypes.Detaching
+                ]
+
         viewIndependentCmd =
             if interval == 5 then
                 Task.perform DoOrchestration Time.now
@@ -1216,7 +1223,18 @@ processTick outerModel interval time =
                                     , case interval of
                                         5 ->
                                             if List.any (volNeedsFrequentPoll project) (RDPP.withDefault [] project.volumes) then
-                                                OSVolumes.requestVolumes project
+                                                Cmd.batch
+                                                    [ OSVolumes.requestVolumes project
+                                                    , if List.any volAttachmentNeedsFrequentPoll (RDPP.withDefault [] project.volumes) then
+                                                        project.servers
+                                                            |> RDPP.withDefault []
+                                                            |> List.map (\server -> server.osProps.uuid)
+                                                            |> List.map (OSSvrVols.requestVolumeAttachments project)
+                                                            |> Cmd.batch
+
+                                                      else
+                                                        Cmd.none
+                                                    ]
 
                                             else
                                                 Cmd.none
@@ -1238,7 +1256,10 @@ processTick outerModel interval time =
                                 ServerDetail model ->
                                     let
                                         volCmd =
-                                            OSVolumes.requestVolumes project
+                                            Cmd.batch
+                                                [ OSVolumes.requestVolumes project
+                                                , OSSvrVols.requestVolumeAttachments project model.serverUuid
+                                                ]
                                     in
                                     case interval of
                                         5 ->
@@ -1271,7 +1292,19 @@ processTick outerModel interval time =
 
                                                 Just volume ->
                                                     if volNeedsFrequentPoll project volume then
-                                                        OSVolumes.requestVolumes project
+                                                        Cmd.batch
+                                                            [ OSVolumes.requestVolumes project
+                                                            , if volAttachmentNeedsFrequentPoll volume then
+                                                                -- TODO: Optimise fetching volume attachments by tracking expected attach/detach server targets.
+                                                                project.servers
+                                                                    |> RDPP.withDefault []
+                                                                    |> List.map (\server -> server.osProps.uuid)
+                                                                    |> List.map (OSSvrVols.requestVolumeAttachments project)
+                                                                    |> Cmd.batch
+
+                                                              else
+                                                                Cmd.none
+                                                            ]
 
                                                     else
                                                         Cmd.none
