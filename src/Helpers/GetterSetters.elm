@@ -599,7 +599,13 @@ serverAttachmentsForVolume : Project -> OSTypes.VolumeUuid -> { attachments : Li
 serverAttachmentsForVolume project volumeUuid =
     let
         progress =
-            if Dict.values project.serverVolumeAttachments |> List.all RDPP.gotData then
+            -- Attachment fetching depends on the servers list.
+            if project.servers.data == RDPP.DontHave then
+                NotSure
+
+            else if Dict.values project.serverVolumeAttachments |> List.all RDPP.gotData then
+                -- If all server volume attachments have data, then we're done.
+                -- Otherwise, we're still loading.
                 Done
 
             else
