@@ -58,6 +58,7 @@ Accepted
 - Move the current repositories under this new group
   - [exosphere/guest-utilities/guest-agent](https://gitlab.com/exosphere/guest-utilities/guest-agent)
   - [exosphere/guest-utilities/client-elm](https://gitlab.com/exosphere/guest-utilities/client-elm)
+- For issues related to the guest utilities, use Exosphere's [main issue tracking system](https://gitlab.com/exosphere/exosphere/-/issues) (and a "guest-utilities" issue label). Disable the issue trackers in the guest utilities sub-projects.
 
 - Delegate ADRs specific to the Guest Agent to the Agent repository
   - Create the documentation structure within the main guest-agent repository, with the README.md linking to the relevant ADRs in the Exosphere repository.
