@@ -120,7 +120,7 @@ requestServerEvents project serverUuid =
         errorContext =
             ErrorContext
                 ("get events for server with UUID \"" ++ serverUuid ++ "\"")
-                ErrorCrit
+                ErrorDebug
                 Nothing
 
         resultToMsg result =

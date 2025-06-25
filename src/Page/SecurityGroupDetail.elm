@@ -177,77 +177,60 @@ securityGroupNameView securityGroup =
 serversTable : View.Types.Context -> Project -> { servers : List Server, progress : LoadingProgress, currentTime : Time.Posix } -> Element.Element Msg
 serversTable context project { servers, progress, currentTime } =
     let
-        projectId =
-            GetterSetters.projectIdentifier project
-
         table =
-            Element.table
-                [ Element.spacing spacer.px16
-                ]
-                { data = servers
-                , columns =
-                    [ { header = VH.tableHeader "Name"
-                      , width = Element.shrink
-                      , view =
-                            \item ->
-                                Element.link [ Element.centerY ]
-                                    { url =
-                                        Route.toUrl context.urlPathPrefix
-                                            (Route.ProjectRoute projectId <|
-                                                Route.ServerDetail item.osProps.uuid
-                                            )
-                                    , label =
-                                        Element.el
-                                            [ Font.color (SH.toElementColor context.palette.primary), Element.width (Element.px 220) ]
-                                            (VH.ellipsizedText <|
-                                                VH.extendedResourceName
-                                                    (Just item.osProps.name)
-                                                    item.osProps.uuid
-                                                    context.localization.virtualComputer
-                                            )
-                                    }
-                      }
-                    , { header = VH.tableHeader "Created By"
-                      , width = Element.shrink
-                      , view =
-                            \item ->
-                                Text.text Text.Body [ Element.centerY ] (serverCreatorName project item)
-                      }
-                    , { header = VH.tableHeader "Created"
-                      , width = Element.shrink
-                      , view =
-                            \item ->
-                                Text.text Text.Body [ Element.centerY ] (DateFormat.Relative.relativeTime currentTime item.osProps.details.created)
-                      }
-                    , { header = VH.tableHeader ""
-                      , width = Element.shrink
-                      , view =
-                            \item ->
-                                VH.serverStatusBadge context.palette StatusBadge.Small item
-                      }
-                    ]
-                }
+            case List.length servers of
+                0 ->
+                    Element.text "(none)"
+
+                _ ->
+                    Element.table
+                        [ Element.spacing spacer.px16
+                        ]
+                        { data = servers
+                        , columns =
+                            [ { header = VH.tableHeader "Name"
+                              , width = Element.shrink
+                              , view =
+                                    \item ->
+                                        Element.link [ Element.centerY ]
+                                            { url =
+                                                Route.toUrl context.urlPathPrefix
+                                                    (Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
+                                                        Route.ServerDetail item.osProps.uuid
+                                                    )
+                                            , label =
+                                                Element.el
+                                                    [ Font.color (SH.toElementColor context.palette.primary), Element.width (Element.px 220) ]
+                                                    (VH.ellipsizedText <|
+                                                        VH.extendedResourceName
+                                                            (Just item.osProps.name)
+                                                            item.osProps.uuid
+                                                            context.localization.virtualComputer
+                                                    )
+                                            }
+                              }
+                            , { header = VH.tableHeader "Created By"
+                              , width = Element.shrink
+                              , view =
+                                    \item ->
+                                        Text.text Text.Body [ Element.centerY ] (serverCreatorName project item)
+                              }
+                            , { header = VH.tableHeader "Created"
+                              , width = Element.shrink
+                              , view =
+                                    \item ->
+                                        Text.text Text.Body [ Element.centerY ] (DateFormat.Relative.relativeTime currentTime item.osProps.details.created)
+                              }
+                            , { header = VH.tableHeader ""
+                              , width = Element.shrink
+                              , view =
+                                    \item ->
+                                        VH.serverStatusBadge context.palette StatusBadge.Small item
+                              }
+                            ]
+                        }
     in
-    case ( progress, List.length servers ) of
-        ( NotSure, _ ) ->
-            Element.text "Loading..."
-
-        ( Loading, 0 ) ->
-            Element.text "Loading..."
-
-        ( Loading, _ ) ->
-            Element.column []
-                [ table
-                , Element.row [ Element.paddingXY 0 spacer.px16 ]
-                    [ Element.text "Loading..."
-                    ]
-                ]
-
-        ( Done, 0 ) ->
-            Element.text "(none)"
-
-        ( Done, _ ) ->
-            table
+    VH.renderProgress { progress = progress, items = servers } table
 
 
 warningSecurityGroupAffectsServers : View.Types.Context -> Project -> OSTypes.SecurityGroupUuid -> Element.Element msg

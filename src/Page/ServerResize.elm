@@ -81,7 +81,7 @@ view_ context project model computeQuota =
         restrictFlavorIds_ server =
             let
                 minRootDiskSize =
-                    case GetterSetters.getBootVolume (RDPP.withDefault [] project.volumes) model.serverUuid of
+                    case GetterSetters.getBootVolume project model.serverUuid of
                         Just _ ->
                             -- Server is volume-backed, so root disk size of flavor does not matter
                             0

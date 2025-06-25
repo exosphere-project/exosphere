@@ -16,17 +16,18 @@ module Helpers.GetterSetters exposing
     , getServerFloatingIps
     , getServerPorts
     , getServerSecurityGroups
-    , getServerUuidsByVolume
-    , getServersWithVolAttached
+    , getServerUuidsByVolumeAttached
+    , getServerVolumeAttachments
     , getServicePublicUrl
     , getUserAppProxyFromCloudSpecificConfig
     , getUserAppProxyFromContext
     , getVolsAttachedToServer
+    , getVolumeAttachments
     , imageGetDesktopMessage
     , imageLookup
-    , isBootVolume
     , isDefaultSecurityGroup
     , isSnapshotOfVolume
+    , isVolumeCurrentlyBackingServer
     , isVolumeReservedForShelvedInstance
     , modelUpdateProject
     , modelUpdateUnscopedProvider
@@ -49,6 +50,7 @@ module Helpers.GetterSetters exposing
     , projectSetServerEventsLoading
     , projectSetServerLoading
     , projectSetServerSecurityGroupsLoading
+    , projectSetServerVolumeAttachmentsLoading
     , projectSetServersLoading
     , projectSetShareAccessRulesLoading
     , projectSetShareExportLocationsLoading
@@ -61,9 +63,11 @@ module Helpers.GetterSetters exposing
     , projectUpdateServer
     , projectUpsertSecurityGroupActions
     , projectUpsertServerSecurityGroups
+    , projectUpsertServerVolumeAttachments
     , sanitizeMountpoint
     , securityGroupLookup
     , securityGroupsFromServerSecurityGroups
+    , serverAttachmentsForVolume
     , serverCreatedByCurrentUser
     , serverExoServerVersion
     , serverLookup
@@ -215,7 +219,7 @@ serversForSecurityGroup project securityGroupUuid =
                 -- It may take a moment for all the server security groups to load.
                 -- Wait until all the data is available before reporting the list.
                 progress =
-                    if Dict.values project.serverSecurityGroups |> List.all (\rdpp -> rdpp.data /= RDPP.DontHave) then
+                    if Dict.values project.serverSecurityGroups |> List.all RDPP.gotData then
                         Done
 
                     else
@@ -583,59 +587,91 @@ getVolsAttachedToServer project server =
         |> List.filter (\v -> List.member v.uuid server.osProps.details.volumesAttached)
 
 
+getVolumeAttachments : Project -> OSTypes.VolumeUuid -> List OSTypes.VolumeAttachment
+getVolumeAttachments project volumeUuid =
+    project.serverVolumeAttachments
+        |> Dict.values
+        |> List.concatMap (RDPP.withDefault [])
+        |> List.filter (\a -> a.volumeUuid == volumeUuid)
+
+
+serverAttachmentsForVolume : Project -> OSTypes.VolumeUuid -> { attachments : List OSTypes.VolumeAttachment, progress : LoadingProgress }
+serverAttachmentsForVolume project volumeUuid =
+    let
+        progress =
+            -- Attachment fetching depends on the servers list.
+            if project.servers.data == RDPP.DontHave then
+                NotSure
+
+            else if Dict.values project.serverVolumeAttachments |> List.all RDPP.gotData then
+                -- If all server volume attachments have data, then we're done.
+                -- Otherwise, we're still loading.
+                Done
+
+            else
+                Loading
+
+        attached =
+            project.serverVolumeAttachments
+                |> Dict.values
+                |> List.concatMap (RDPP.withDefault [])
+                |> List.filter (\a -> a.volumeUuid == volumeUuid)
+    in
+    { attachments = attached, progress = progress }
+
+
 volumeIsAttachedToServer : OSTypes.VolumeUuid -> Server -> Bool
 volumeIsAttachedToServer volumeUuid server =
     server.osProps.details.volumesAttached
         |> List.member volumeUuid
 
 
-getServersWithVolAttached : Project -> OSTypes.Volume -> List OSTypes.ServerUuid
-getServersWithVolAttached _ volume =
-    volume.attachments |> List.map .serverUuid
+getServerUuidsByVolumeAttached : Project -> OSTypes.VolumeUuid -> List OSTypes.ServerUuid
+getServerUuidsByVolumeAttached project volumeUuid =
+    getVolumeAttachments project volumeUuid
+        |> List.map .serverUuid
+        |> List.Extra.unique
 
 
-getServerUuidsByVolume : Project -> OSTypes.VolumeUuid -> List OSTypes.ServerUuid
-getServerUuidsByVolume project volumeUuid =
-    project.servers
+volumeDeviceRawName : Project -> Server -> OSTypes.VolumeUuid -> OSTypes.VolumeAttachmentDevice
+volumeDeviceRawName project server volumeUuid =
+    getServerVolumeAttachments project server.osProps.uuid
         |> RDPP.withDefault []
-        |> List.filter (volumeIsAttachedToServer volumeUuid)
-        |> List.map (\s -> s.osProps.uuid)
-
-
-volumeDeviceRawName : Server -> OSTypes.Volume -> Maybe OSTypes.VolumeAttachmentDevice
-volumeDeviceRawName server volume =
-    volume.attachments
-        |> List.Extra.find (\a -> a.serverUuid == server.osProps.uuid)
+        |> List.Extra.find (\a -> a.volumeUuid == volumeUuid)
         |> Maybe.map .device
+        |> Maybe.withDefault Nothing
 
 
-isBootVolume : Maybe OSTypes.ServerUuid -> OSTypes.Volume -> Bool
-isBootVolume maybeServerUuid volume =
-    -- If a serverUuid is passed, determines whether volume backs that server; otherwise just determines whether volume backs any server
-    volume.attachments
-        |> List.filter
-            (\a ->
-                case maybeServerUuid of
-                    Just serverUuid ->
-                        a.serverUuid == serverUuid
-
-                    Nothing ->
-                        True
+{-| If a `serverUuid` is passed, determines whether volume backs that server;
+otherwise just determines whether volume is backing any server.
+-}
+isVolumeCurrentlyBackingServer : Project -> Maybe OSTypes.ServerUuid -> OSTypes.Volume -> Bool
+isVolumeCurrentlyBackingServer project maybeServerUuid volume =
+    project.serverVolumeAttachments
+        |> Dict.filter
+            (\serverId _ ->
+                maybeServerUuid
+                    |> Maybe.map (\s -> s == serverId)
+                    |> Maybe.withDefault True
             )
-        |> List.filter
-            (\a ->
-                List.member
-                    a.device
-                    [ "/dev/sda", "/dev/vda" ]
+        |> Dict.filter
+            (\_ rdpp ->
+                RDPP.withDefault [] rdpp
+                    |> List.Extra.find (\a -> a.volumeUuid == volume.uuid)
+                    |> Maybe.andThen .device
+                    |> Maybe.withDefault ""
+                    |> (\device -> List.member device [ "/dev/sda", "/dev/vda" ])
             )
+        |> Dict.keys
         |> List.isEmpty
         |> not
 
 
-getBootVolume : List OSTypes.Volume -> OSTypes.ServerUuid -> Maybe OSTypes.Volume
-getBootVolume vols serverUuid =
-    vols
-        |> List.Extra.find (isBootVolume <| Just serverUuid)
+getBootVolume : Project -> OSTypes.ServerUuid -> Maybe OSTypes.Volume
+getBootVolume project serverUuid =
+    project.volumes
+        |> RDPP.withDefault []
+        |> List.Extra.find (isVolumeCurrentlyBackingServer project <| Just serverUuid)
 
 
 isVolumeReservedForShelvedInstance : Project -> OSTypes.Volume -> Bool
@@ -645,7 +681,7 @@ isVolumeReservedForShelvedInstance project volume =
             let
                 maybeServerUuid =
                     -- Reserved volumes don't necessarily know their attachments but servers do.
-                    List.head <| getServerUuidsByVolume project volume.uuid
+                    List.head <| getServerUuidsByVolumeAttached project volume.uuid
 
                 maybeServer =
                     maybeServerUuid |> Maybe.andThen (serverLookup project)
@@ -675,10 +711,14 @@ volDeviceToMountpoint : OSTypes.VolumeAttachmentDevice -> Maybe String
 volDeviceToMountpoint device =
     -- Converts e.g. "/dev/sdc" to "/media/volume/sdc", for exoServerVersion < 5
     device
-        |> String.split "/"
-        |> List.reverse
-        |> List.head
-        |> Maybe.map (String.append "/media/volume/")
+        |> Maybe.andThen
+            (\d ->
+                d
+                    |> String.split "/"
+                    |> List.reverse
+                    |> List.head
+                    |> Maybe.map (String.append "/media/volume/")
+            )
 
 
 serverPresentNotDeleting : SharedModel -> OSTypes.ServerUuid -> Bool
@@ -966,6 +1006,23 @@ projectSetServerSecurityGroupsLoading serverId project =
                             Just (RDPP.setLoading RDPP.empty)
                 )
                 project.serverSecurityGroups
+    }
+
+
+projectSetServerVolumeAttachmentsLoading : OSTypes.ServerUuid -> Project -> Project
+projectSetServerVolumeAttachmentsLoading serverId project =
+    { project
+        | serverVolumeAttachments =
+            Dict.update serverId
+                (\entry ->
+                    case entry of
+                        Just serverVolumeAttachments ->
+                            Just (RDPP.setLoading serverVolumeAttachments)
+
+                        Nothing ->
+                            Just (RDPP.setLoading RDPP.empty)
+                )
+                project.serverVolumeAttachments
     }
 
 
@@ -1260,4 +1317,20 @@ projectUpdateSecurityGroupActionsIfExists project securityGroupUuid onUpdateActi
 getServerEvents : Project -> OSTypes.ServerUuid -> RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.ServerEvent)
 getServerEvents project serverId =
     Dict.get serverId project.serverEvents
+        |> Maybe.withDefault RDPP.empty
+
+
+projectUpsertServerVolumeAttachments : Project -> OSTypes.ServerUuid -> RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.VolumeAttachment) -> Project
+projectUpsertServerVolumeAttachments project serverId serverVolumeAttachments =
+    { project
+        | serverVolumeAttachments =
+            Dict.insert serverId
+                serverVolumeAttachments
+                project.serverVolumeAttachments
+    }
+
+
+getServerVolumeAttachments : Project -> OSTypes.ServerUuid -> RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.VolumeAttachment)
+getServerVolumeAttachments project serverId =
+    Dict.get serverId project.serverVolumeAttachments
         |> Maybe.withDefault RDPP.empty

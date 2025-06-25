@@ -1189,6 +1189,13 @@ processTick outerModel interval time =
             )
                 && (not <| GetterSetters.isVolumeReservedForShelvedInstance project volume)
 
+        volAttachmentNeedsFrequentPoll volume =
+            List.member
+                volume.status
+                [ OSTypes.Attaching
+                , OSTypes.Detaching
+                ]
+
         viewIndependentCmd =
             if interval == 5 then
                 Task.perform DoOrchestration Time.now
@@ -1216,7 +1223,18 @@ processTick outerModel interval time =
                                     , case interval of
                                         5 ->
                                             if List.any (volNeedsFrequentPoll project) (RDPP.withDefault [] project.volumes) then
-                                                OSVolumes.requestVolumes project
+                                                Cmd.batch
+                                                    [ OSVolumes.requestVolumes project
+                                                    , if List.any volAttachmentNeedsFrequentPoll (RDPP.withDefault [] project.volumes) then
+                                                        project.servers
+                                                            |> RDPP.withDefault []
+                                                            |> List.map (\server -> server.osProps.uuid)
+                                                            |> List.map (OSSvrVols.requestVolumeAttachments project)
+                                                            |> Cmd.batch
+
+                                                      else
+                                                        Cmd.none
+                                                    ]
 
                                             else
                                                 Cmd.none
@@ -1238,7 +1256,10 @@ processTick outerModel interval time =
                                 ServerDetail model ->
                                     let
                                         volCmd =
-                                            OSVolumes.requestVolumes project
+                                            Cmd.batch
+                                                [ OSVolumes.requestVolumes project
+                                                , OSSvrVols.requestVolumeAttachments project model.serverUuid
+                                                ]
                                     in
                                     case interval of
                                         5 ->
@@ -1271,7 +1292,19 @@ processTick outerModel interval time =
 
                                                 Just volume ->
                                                     if volNeedsFrequentPoll project volume then
-                                                        OSVolumes.requestVolumes project
+                                                        Cmd.batch
+                                                            [ OSVolumes.requestVolumes project
+                                                            , if volAttachmentNeedsFrequentPoll volume then
+                                                                -- TODO: Optimise fetching volume attachments by tracking expected attach/detach server targets.
+                                                                project.servers
+                                                                    |> RDPP.withDefault []
+                                                                    |> List.map (\server -> server.osProps.uuid)
+                                                                    |> List.map (OSSvrVols.requestVolumeAttachments project)
+                                                                    |> Cmd.batch
+
+                                                              else
+                                                                Cmd.none
+                                                            ]
 
                                                     else
                                                         Cmd.none
@@ -1557,7 +1590,8 @@ processProjectSpecificMsg outerModel project msg =
 
                 maybeServer =
                     maybeVolume
-                        |> Maybe.map (GetterSetters.getServersWithVolAttached project)
+                        |> Maybe.map .uuid
+                        |> Maybe.map (GetterSetters.getServerUuidsByVolumeAttached project)
                         |> Maybe.andThen List.head
                         |> Maybe.andThen (GetterSetters.serverLookup project)
             in
@@ -1570,7 +1604,13 @@ processProjectSpecificMsg outerModel project msg =
                     ( outerModel
                     , Cmd.batch
                         [ OSSvrVols.requestDetachVolume project server.osProps.uuid volumeUuid
-                        , if serverHasVolumeMetadata then
+                        , if
+                            serverHasVolumeMetadata
+                                && -- You can't update metadata when the server is `shelved_offloaded`.
+                                   (server.osProps.details.openstackStatus
+                                        /= OSTypes.ServerShelvedOffloaded
+                                   )
+                          then
                             Rest.Nova.requestDeleteServerMetadata project server.osProps.uuid ("exoVolumes::" ++ volumeUuid)
 
                           else
@@ -1816,11 +1856,7 @@ processProjectSpecificMsg outerModel project msg =
                         |> mapToOuterModel outerModel
 
                 Err httpErrorWithBody ->
-                    let
-                        newErrorContext =
-                            { errorContext | level = ErrorDebug }
-                    in
-                    State.Error.processSynchronousApiError sharedModel newErrorContext httpErrorWithBody
+                    State.Error.processSynchronousApiError sharedModel errorContext httpErrorWithBody
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
@@ -1842,6 +1878,28 @@ processProjectSpecificMsg outerModel project msg =
                         |> mapToOuterModel outerModel
                         -- Make the page aware of the shared msg.
                         |> pipelineCmdOuterModelMsg (updateUnderlying (ServerSecurityGroupsMsg <| Page.ServerSecurityGroups.GotServerSecurityGroups serverId))
+
+                Err httpErrorWithBody ->
+                    State.Error.processSynchronousApiError sharedModel errorContext httpErrorWithBody
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+        ReceiveServerVolumeAttachments serverId errorContext result ->
+            case result of
+                Ok serverVolumeAttachments ->
+                    let
+                        newProject =
+                            GetterSetters.projectUpsertServerVolumeAttachments project
+                                serverId
+                                (RDPP.RemoteDataPlusPlus
+                                    (RDPP.DoHave serverVolumeAttachments sharedModel.clientCurrentTime)
+                                    (RDPP.NotLoading Nothing)
+                                )
+                    in
+                    ( GetterSetters.modelUpdateProject sharedModel newProject
+                    , Cmd.none
+                    )
+                        |> mapToOuterModel outerModel
 
                 Err httpErrorWithBody ->
                     State.Error.processSynchronousApiError sharedModel errorContext httpErrorWithBody
@@ -2893,9 +2951,7 @@ processProjectSpecificMsg outerModel project msg =
                                 |> List.map
                                     (\s ->
                                         ( s
-                                        , GetterSetters.getBootVolume
-                                            (RDPP.withDefault [] project.volumes)
-                                            s.osProps.uuid
+                                        , GetterSetters.getBootVolume project s.osProps.uuid
                                         )
                                     )
                                 -- We only care about servers created by exosphere
@@ -4040,6 +4096,7 @@ createProject_ outerModel description authToken region endpoints =
             , servers = RDPP.RemoteDataPlusPlus RDPP.DontHave RDPP.Loading
             , serverEvents = Dict.empty
             , serverSecurityGroups = Dict.empty
+            , serverVolumeAttachments = Dict.empty
             , serverImages = []
             , flavors = RDPP.empty
             , keypairs = RDPP.empty

@@ -1,4 +1,4 @@
-module OpenStack.ServerVolumes exposing (requestAttachVolume, requestDetachVolume, serverCanHaveVolumeAttached, serversCanHaveVolumeAttached)
+module OpenStack.ServerVolumes exposing (requestAttachVolume, requestDetachVolume, requestVolumeAttachments, serverCanHaveVolumeAttached, serversCanHaveVolumeAttached)
 
 import Helpers.GetterSetters as GetterSetters
 import Http
@@ -17,6 +17,32 @@ import Types.HelperTypes exposing (HttpRequestMethod(..))
 import Types.Project exposing (Project)
 import Types.Server exposing (Server)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
+
+
+requestVolumeAttachments : Project -> OSTypes.ServerUuid -> Cmd SharedMsg
+requestVolumeAttachments project serverUuid =
+    let
+        errorContext =
+            ErrorContext
+                ("get volume attachments for server " ++ serverUuid)
+                ErrorDebug
+                Nothing
+
+        resultToMsg result =
+            ProjectMsg (GetterSetters.projectIdentifier project) <|
+                ReceiveServerVolumeAttachments serverUuid errorContext result
+    in
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Get
+        Nothing
+        []
+        ( project.endpoints.nova, [ "servers", serverUuid, "os-volume_attachments" ], [] )
+        Http.emptyBody
+        (expectJsonWithErrorBody
+            resultToMsg
+            (Decode.field "volumeAttachments" <| Decode.list novaVolumeAttachmentDecoder)
+        )
 
 
 requestAttachVolume : Project -> OSTypes.ServerUuid -> OSTypes.VolumeUuid -> Cmd SharedMsg
@@ -81,7 +107,8 @@ requestDetachVolume project serverUuid volumeUuid =
         (GetterSetters.projectIdentifier project)
         Delete
         Nothing
-        []
+        -- From v2.20, detaching a volume from an instance in SHELVED or SHELVED_OFFLOADED state is allowed.
+        [ ( "X-OpenStack-Nova-API-Version", "2.20" ) ]
         ( project.endpoints.nova, [ "servers", serverUuid, "os-volume_attachments", volumeUuid ], [] )
         Http.emptyBody
         (expectStringWithErrorBody
@@ -91,10 +118,12 @@ requestDetachVolume project serverUuid volumeUuid =
 
 novaVolumeAttachmentDecoder : Decode.Decoder OSTypes.VolumeAttachment
 novaVolumeAttachmentDecoder =
-    Decode.map3 OSTypes.VolumeAttachment
+    Decode.map4 OSTypes.VolumeAttachment
+        (Decode.field "volumeId" Decode.string)
         (Decode.field "serverId" Decode.string)
         (Decode.field "id" Decode.string)
-        (Decode.field "device" Decode.string)
+        -- Device can be null when attachment is made to a shelved instance.
+        (Decode.field "device" <| Decode.nullable Decode.string)
 
 
 serversCanHaveVolumeAttached : List Server -> List Server

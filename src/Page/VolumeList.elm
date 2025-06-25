@@ -5,7 +5,7 @@ import Element.Font as Font
 import FeatherIcons as Icons
 import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (Unit(..), humanNumber)
-import Helpers.GetterSetters as GetterSetters exposing (isSnapshotOfVolume)
+import Helpers.GetterSetters as GetterSetters exposing (LoadingProgress(..), isSnapshotOfVolume)
 import Helpers.Helpers exposing (lookupUsername)
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.ResourceList exposing (creationTimeFilterOptions, creatorFilterOptions, listItemColumnAttribs, onCreationTimeFilter)
@@ -205,87 +205,107 @@ volumeView context project currentTime volumeRecord =
                         )
                 }
 
-        volumeAttachment =
+        { progress, attachments } =
+            GetterSetters.serverAttachmentsForVolume project volumeRecord.volume.uuid
+
+        volumeAttachmentLoading =
             let
+                loading =
+                    Element.row [ Element.alignRight ]
+                        [ Element.el [ Font.italic ] (Element.text "Loading attachments...") ]
+
                 maybeServerUuid =
-                    case volumeRecord.volume.status of
-                        OSTypes.Reserved ->
-                            -- Reserved volumes don't necessarily know their attachments but servers do.
-                            List.head <| GetterSetters.getServerUuidsByVolume project volumeRecord.id
+                    GetterSetters.getServerUuidsByVolumeAttached project volumeRecord.volume.uuid
+                        |> List.head
 
-                        _ ->
-                            List.head volumeRecord.volume.attachments |> Maybe.map .serverUuid
-            in
-            Element.row [ Element.alignRight ]
-                ((Element.text <|
-                    case volumeRecord.volume.status of
-                        OSTypes.Reserved ->
-                            "Reserved for "
+                volumeAttachment =
+                    Element.row [ Element.alignRight ]
+                        ((Element.text <|
+                            case volumeRecord.volume.status of
+                                OSTypes.Reserved ->
+                                    "Reserved for "
 
-                        _ ->
-                            "Attached to "
-                 )
-                    :: (case maybeServerUuid of
-                            Just serverUuid_ ->
-                                let
-                                    maybeServer =
-                                        GetterSetters.serverLookup project serverUuid_
+                                _ ->
+                                    "Attached to "
+                         )
+                            :: (case maybeServerUuid of
+                                    Just serverUuid_ ->
+                                        let
+                                            maybeServer =
+                                                GetterSetters.serverLookup project serverUuid_
 
-                                    serverName =
-                                        case maybeServer of
-                                            Just server ->
-                                                VH.resourceName (Just server.osProps.name) server.osProps.uuid
+                                            serverName =
+                                                case maybeServer of
+                                                    Just server ->
+                                                        VH.resourceName (Just server.osProps.name) server.osProps.uuid
 
-                                            Nothing ->
-                                                "unresolvable " ++ context.localization.virtualComputer ++ " name"
+                                                    Nothing ->
+                                                        "unresolvable " ++ context.localization.virtualComputer ++ " name"
 
-                                    maybeServerShelved =
-                                        maybeServer
-                                            |> Maybe.map (\s -> s.osProps.details.openstackStatus)
-                                            |> Maybe.map (\status -> [ OSTypes.ServerShelved, OSTypes.ServerShelvedOffloaded ] |> List.member status)
-                                            |> Maybe.withDefault False
-                                in
-                                [ Element.link []
-                                    { url =
-                                        Route.toUrl context.urlPathPrefix
-                                            (Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
-                                                Route.ServerDetail serverUuid_
-                                            )
-                                    , label =
-                                        Element.el
-                                            [ Font.color (SH.toElementColor context.palette.primary)
-                                            ]
-                                            (Element.text <| serverName)
-                                    }
-                                , case ( volumeRecord.volume.status, maybeServerShelved ) of
-                                    ( OSTypes.Reserved, True ) ->
-                                        Style.Widgets.ToggleTip.toggleTip
-                                            context
-                                            (SharedMsg << SharedMsg.TogglePopover)
-                                            ("volumeReservedTip-" ++ volumeRecord.id)
-                                            (Text.body <| "Unshelve the attached " ++ context.localization.virtualComputer ++ " to interact with this " ++ context.localization.blockDevice ++ ".")
-                                            ST.PositionBottomRight
+                                            isServerShelved =
+                                                maybeServer
+                                                    |> Maybe.map (\s -> s.osProps.details.openstackStatus)
+                                                    |> Maybe.map (\status -> [ OSTypes.ServerShelved, OSTypes.ServerShelvedOffloaded ] |> List.member status)
+                                                    |> Maybe.withDefault False
 
-                                    _ ->
-                                        Element.none
-                                ]
-
-                            Nothing ->
-                                [ Element.el
-                                    [ Font.color
-                                        (SH.toElementColor context.palette.neutral.text.default)
-                                    ]
-                                    (Element.text <|
-                                        case volumeRecord.volume.status of
-                                            OSTypes.Reserved ->
-                                                "unknown " ++ context.localization.virtualComputer
+                                            isBootVolume =
+                                                GetterSetters.isVolumeCurrentlyBackingServer project Nothing volumeRecord.volume
+                                        in
+                                        [ Element.link []
+                                            { url =
+                                                Route.toUrl context.urlPathPrefix
+                                                    (Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
+                                                        Route.ServerDetail serverUuid_
+                                                    )
+                                            , label =
+                                                Element.el
+                                                    [ Font.color (SH.toElementColor context.palette.primary)
+                                                    ]
+                                                    (Element.text <| serverName)
+                                            }
+                                        , case ( volumeRecord.volume.status, isServerShelved && isBootVolume ) of
+                                            ( OSTypes.Reserved, True ) ->
+                                                Style.Widgets.ToggleTip.toggleTip
+                                                    context
+                                                    (SharedMsg << SharedMsg.TogglePopover)
+                                                    ("volumeReservedTip-" ++ volumeRecord.id)
+                                                    (Text.body <| "Unshelve the attached " ++ context.localization.virtualComputer ++ " to interact with this " ++ context.localization.blockDevice ++ ".")
+                                                    ST.PositionBottomRight
 
                                             _ ->
-                                                "no " ++ context.localization.virtualComputer
-                                    )
-                                ]
-                       )
-                )
+                                                Element.none
+                                        ]
+
+                                    Nothing ->
+                                        [ Element.el
+                                            [ Font.color
+                                                (SH.toElementColor context.palette.neutral.text.default)
+                                            ]
+                                            (Element.text <|
+                                                case volumeRecord.volume.status of
+                                                    OSTypes.Reserved ->
+                                                        "unknown " ++ context.localization.virtualComputer
+
+                                                    _ ->
+                                                        "no " ++ context.localization.virtualComputer
+                                            )
+                                        ]
+                               )
+                        )
+            in
+            case ( progress, attachments ) of
+                ( Done, _ ) ->
+                    volumeAttachment
+
+                ( Loading, [] ) ->
+                    loading
+
+                ( Loading, _ ) ->
+                    -- As soon as we have an attachment, we can render it.
+                    volumeAttachment
+
+                _ ->
+                    loading
 
         volumeActions =
             let
@@ -306,66 +326,77 @@ volumeView context project currentTime volumeRecord =
                             DeleteButton.Enabled deleteString
 
                          else
-                            DeleteButton.Disabled (Maybe.withDefault deleteString <| VH.deleteVolumeWarning context volumeRecord.volume)
+                            DeleteButton.Disabled (Maybe.withDefault deleteString <| VH.deleteVolumeWarning context project volumeRecord.volume)
                         )
-            in
-            case volumeRecord.volume.status of
-                OSTypes.Detaching ->
-                    Element.el [ Font.italic ] (Element.text "Detaching ...")
 
-                OSTypes.Deleting ->
-                    Element.el [ Font.italic ] (Element.text "Deleting ...")
+                bootVolumeTag =
+                    if GetterSetters.isVolumeCurrentlyBackingServer project Nothing volumeRecord.volume then
+                        tag context.palette <| "boot " ++ context.localization.blockDevice
 
-                OSTypes.InUse ->
-                    let
-                        isBootVolume =
-                            GetterSetters.isBootVolume Nothing volumeRecord.volume
+                    else
+                        Element.none
 
-                        bootVolumeTag =
-                            if isBootVolume then
-                                tag context.palette <| "boot " ++ context.localization.blockDevice
+                controls =
+                    case volumeRecord.volume.status of
+                        OSTypes.Detaching ->
+                            [ Element.el [ Font.italic ] (Element.text "Detaching...") ]
 
-                            else
-                                Element.none
-                    in
-                    Element.row [ Element.spacing spacer.px12 ]
-                        [ bootVolumeTag
-                        , VH.detachVolumeButton
-                            context
-                            project
-                            (SharedMsg << SharedMsg.TogglePopover)
-                            "volumeListDetachPopconfirm"
-                            volumeRecord.volume
-                            (Just <| GotDetachVolumeConfirm volumeRecord.id)
-                            (Just NoOp)
-                        , deleteButton False
-                        ]
+                        OSTypes.Deleting ->
+                            [ Element.el [ Font.italic ] (Element.text "Deleting...") ]
 
-                OSTypes.Available ->
-                    -- Volume can be either deleted or attached
-                    let
-                        attachButton =
-                            Element.link []
-                                { url =
-                                    Route.toUrl context.urlPathPrefix
-                                        (Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
-                                            Route.VolumeAttach Nothing (Just volumeRecord.id)
-                                        )
-                                , label =
-                                    Button.default
-                                        context.palette
-                                        { text = "Attach"
-                                        , onPress = Just NoOp
+                        OSTypes.InUse ->
+                            [ VH.detachVolumeButton
+                                context
+                                project
+                                (SharedMsg << SharedMsg.TogglePopover)
+                                "volumeListDetachPopconfirm"
+                                volumeRecord.volume
+                                (Just <| GotDetachVolumeConfirm volumeRecord.id)
+                                (Just NoOp)
+                            , deleteButton False
+                            ]
+
+                        OSTypes.Reserved ->
+                            [ VH.detachVolumeButton
+                                context
+                                project
+                                (SharedMsg << SharedMsg.TogglePopover)
+                                "volumeListDetachPopconfirm"
+                                volumeRecord.volume
+                                (Just <| GotDetachVolumeConfirm volumeRecord.id)
+                                (Just NoOp)
+                            , deleteButton False
+                            ]
+
+                        OSTypes.Available ->
+                            -- Volume can be either deleted or attached
+                            let
+                                attachButton =
+                                    Element.link []
+                                        { url =
+                                            Route.toUrl context.urlPathPrefix
+                                                (Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
+                                                    Route.VolumeAttach Nothing (Just volumeRecord.id)
+                                                )
+                                        , label =
+                                            Button.default
+                                                context.palette
+                                                { text = "Attach"
+                                                , onPress = Just NoOp
+                                                }
                                         }
-                                }
-                    in
-                    Element.row [ Element.spacing spacer.px12 ]
-                        [ attachButton
-                        , deleteButton True
-                        ]
+                            in
+                            [ attachButton
+                            , deleteButton True
+                            ]
 
-                _ ->
-                    Element.none
+                        _ ->
+                            []
+            in
+            Element.row [ Element.spacing spacer.px12 ]
+                (bootVolumeTag
+                    :: controls
+                )
 
         sizeString bytes =
             let
@@ -425,7 +456,7 @@ volumeView context project currentTime volumeRecord =
             [ Element.row [ Element.spacing spacer.px12, Element.width Element.fill ]
                 [ volumeLink
                 , VH.volumeStatusBadgeFromStatus context.palette StatusBadge.Small volumeRecord.volume.status
-                , volumeAttachment
+                , volumeAttachmentLoading
                 ]
             , Element.row
                 [ Element.spacing spacer.px8, Element.width Element.fill ]

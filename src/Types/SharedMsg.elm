@@ -84,6 +84,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveServer OSTypes.ServerUuid ErrorContext (Result HttpErrorWithBody OSTypes.Server)
     | ReceiveServerEvents OSTypes.ServerUuid ErrorContext (Result HttpErrorWithBody (List OSTypes.ServerEvent))
     | ReceiveServerSecurityGroups OSTypes.ServerUuid ErrorContext (Result HttpErrorWithBody (List OSTypes.ServerSecurityGroup))
+    | ReceiveServerVolumeAttachments OSTypes.ServerUuid ErrorContext (Result HttpErrorWithBody (List OSTypes.VolumeAttachment))
     | ReceiveServers ErrorContext (Result HttpErrorWithBody (List OSTypes.Server))
     | ReceiveCreateServer ErrorContext (Result HttpErrorWithBody OSTypes.ServerUuid)
     | ReceiveFlavors (List OSTypes.Flavor)

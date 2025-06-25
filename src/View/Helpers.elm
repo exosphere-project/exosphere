@@ -41,6 +41,7 @@ module View.Helpers exposing
     , renderMaybe
     , renderMessageAsElement
     , renderMessageAsString
+    , renderProgress
     , renderRDPP
     , renderRDPPWithDependencies
     , requiredLabel
@@ -79,7 +80,7 @@ import FeatherIcons as Icons
 import FormatNumber
 import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (humanCount)
-import Helpers.GetterSetters as GetterSetters
+import Helpers.GetterSetters as GetterSetters exposing (LoadingProgress(..))
 import Helpers.Helpers as Helpers
 import Helpers.Jetstream2
 import Helpers.RemoteDataPlusPlus as RDPP
@@ -412,6 +413,27 @@ loadingStuff context resourceWord =
                 , "..."
                 ]
         ]
+
+
+renderProgress : { items : List a, progress : LoadingProgress } -> Element.Element msg -> Element.Element msg
+renderProgress { items, progress } renderer =
+    case ( progress, List.length items ) of
+        ( NotSure, _ ) ->
+            Element.text "Loading..."
+
+        ( Loading, 0 ) ->
+            Element.text "Loading..."
+
+        ( Loading, _ ) ->
+            Element.column [ Element.width Element.fill ]
+                [ renderer
+                , Element.row [ Element.paddingXY 0 spacer.px16 ]
+                    [ Element.text "Loading..."
+                    ]
+                ]
+
+        ( Done, _ ) ->
+            renderer
 
 
 renderRDPP : View.Types.Context -> RDPP.RemoteDataPlusPlus Types.Error.HttpErrorWithBody a -> String -> (a -> Element.Element msg) -> Element.Element msg
@@ -1597,9 +1619,18 @@ deleteResourcePopconfirmWithDisabledHint context project msgMapper resource popc
         )
 
 
-deleteVolumeWarning : View.Types.Context -> Volume -> Maybe String
-deleteVolumeWarning context volume =
-    case ( GetterSetters.isBootVolume Nothing volume, volume.status ) of
+deleteVolumeWarning : View.Types.Context -> Project -> Volume -> Maybe String
+deleteVolumeWarning context project volume =
+    case ( GetterSetters.isVolumeCurrentlyBackingServer project Nothing volume, volume.status ) of
+        ( True, OSTypes.Reserved ) ->
+            Just <|
+                String.join " "
+                    [ "Unshelve the attached"
+                    , context.localization.virtualComputer
+                    , "to interact with this"
+                    , context.localization.blockDevice ++ "."
+                    ]
+
         ( True, _ ) ->
             Just <|
                 String.join " "
@@ -1616,10 +1647,9 @@ deleteVolumeWarning context volume =
         ( _, OSTypes.Reserved ) ->
             Just <|
                 String.join " "
-                    [ "Unshelve the attached"
-                    , context.localization.virtualComputer
-                    , "to interact with this"
-                    , context.localization.blockDevice ++ "."
+                    [ "This"
+                    , context.localization.blockDevice
+                    , "must be detached before it can be deleted."
                     ]
 
         ( _, OSTypes.InUse ) ->
@@ -1675,7 +1705,7 @@ detachVolumeButton : View.Types.Context -> Project -> (PopoverId -> msg) -> Stri
 detachVolumeButton context project msgMapper popconfirmTag volume onConfirm onCancel =
     let
         isBootVolume =
-            GetterSetters.isBootVolume Nothing volume
+            GetterSetters.isVolumeCurrentlyBackingServer project Nothing volume
 
         detachButton : msg -> Bool -> Element.Element msg
         detachButton togglePopconfirm _ =

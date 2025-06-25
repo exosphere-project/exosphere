@@ -14,6 +14,7 @@ module Rest.ApiModelHelpers exposing
     , requestServerEvents
     , requestServerImageIfNotFound
     , requestServerSecurityGroups
+    , requestServerVolumeAttachments
     , requestServers
     , requestShareAccessRules
     , requestShareExportLocations
@@ -27,6 +28,7 @@ module Rest.ApiModelHelpers exposing
 import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.Quotas
+import OpenStack.ServerVolumes
 import OpenStack.Shares
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes
@@ -141,6 +143,20 @@ requestServerEvents projectId serverUuid model =
                 |> GetterSetters.projectSetServerEventsLoading serverUuid
                 |> GetterSetters.modelUpdateProject model
             , Rest.Nova.requestServerEvents project serverUuid
+            )
+
+        Nothing ->
+            ( model, Cmd.none )
+
+
+requestServerVolumeAttachments : ProjectIdentifier -> OSTypes.ServerUuid -> SharedModel -> ( SharedModel, Cmd SharedMsg )
+requestServerVolumeAttachments projectId serverUuid model =
+    case GetterSetters.projectLookup model projectId of
+        Just project ->
+            ( project
+                |> GetterSetters.projectSetServerVolumeAttachmentsLoading serverUuid
+                |> GetterSetters.modelUpdateProject model
+            , OpenStack.ServerVolumes.requestVolumeAttachments project serverUuid
             )
 
         Nothing ->

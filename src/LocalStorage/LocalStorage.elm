@@ -99,6 +99,7 @@ hydrateProjectFromStoredProject storedProject =
     , servers = RDPP.empty
     , serverEvents = Dict.empty
     , serverSecurityGroups = Dict.empty
+    , serverVolumeAttachments = Dict.empty
     , serverImages = []
     , flavors = RDPP.empty
     , keypairs = RDPP.empty
