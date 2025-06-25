@@ -25,7 +25,7 @@ requestVolumeAttachments project serverUuid =
         errorContext =
             ErrorContext
                 ("get volume attachments for server " ++ serverUuid)
-                ErrorCrit
+                ErrorDebug
                 Nothing
 
         resultToMsg result =

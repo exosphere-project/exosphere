@@ -1856,11 +1856,7 @@ processProjectSpecificMsg outerModel project msg =
                         |> mapToOuterModel outerModel
 
                 Err httpErrorWithBody ->
-                    let
-                        newErrorContext =
-                            { errorContext | level = ErrorDebug }
-                    in
-                    State.Error.processSynchronousApiError sharedModel newErrorContext httpErrorWithBody
+                    State.Error.processSynchronousApiError sharedModel errorContext httpErrorWithBody
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
@@ -1906,11 +1902,7 @@ processProjectSpecificMsg outerModel project msg =
                         |> mapToOuterModel outerModel
 
                 Err httpErrorWithBody ->
-                    let
-                        newErrorContext =
-                            { errorContext | level = ErrorDebug }
-                    in
-                    State.Error.processSynchronousApiError sharedModel newErrorContext httpErrorWithBody
+                    State.Error.processSynchronousApiError sharedModel errorContext httpErrorWithBody
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
