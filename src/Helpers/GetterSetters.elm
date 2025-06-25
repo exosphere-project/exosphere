@@ -633,9 +633,9 @@ getServerUuidsByVolumeAttached project volumeUuid =
         |> List.Extra.unique
 
 
-volumeDeviceRawName : Project -> OSTypes.VolumeUuid -> OSTypes.ServerUuid -> OSTypes.VolumeAttachmentDevice
-volumeDeviceRawName project volumeUuid serverId =
-    getServerVolumeAttachments project serverId
+volumeDeviceRawName : Project -> Server -> OSTypes.VolumeUuid -> OSTypes.VolumeAttachmentDevice
+volumeDeviceRawName project server volumeUuid =
+    getServerVolumeAttachments project server.osProps.uuid
         |> RDPP.withDefault []
         |> List.Extra.find (\a -> a.volumeUuid == volumeUuid)
         |> Maybe.map .device

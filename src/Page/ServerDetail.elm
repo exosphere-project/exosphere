@@ -1789,7 +1789,7 @@ serverVolumes context project server volumes =
                                 )
 
                             else
-                                case GetterSetters.volumeDeviceRawName project v.uuid server.osProps.uuid of
+                                case GetterSetters.volumeDeviceRawName project server v.uuid of
                                     Just device_ ->
                                         ( device_
                                         , Maybe.withDefault "Could not determine" <|
