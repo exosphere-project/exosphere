@@ -1,23 +1,26 @@
 module Orchestration.GoalProject exposing (goalPollProject)
 
+import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
+import List
 import OpenStack.Quotas exposing (requestVolumeQuota)
+import OpenStack.Types as OSTypes
 import OpenStack.VolumeSnapshots
-import OpenStack.Volumes exposing (requestVolumeSnapshots)
-import Orchestration.Helpers exposing (applyProjectStep, pollIntervalToMs)
+import OpenStack.Volumes as OSVolumes exposing (requestVolumeSnapshots)
+import Orchestration.Helpers exposing (applyProjectStep, pollIntervalToMs, pollRDPP)
 import Orchestration.Types exposing (PollInterval(..))
 import Time
 import Types.Project exposing (Project)
 import Types.SharedMsg exposing (SharedMsg)
+import Types.View exposing (ProjectViewConstructor(..), ViewState(..))
 
 
-goalPollProject : Time.Posix -> Project -> ( Project, Cmd SharedMsg )
-goalPollProject time project =
+goalPollProject : Time.Posix -> ViewState -> Project -> ( Project, Cmd SharedMsg )
+goalPollProject time viewState project =
     let
         steps =
             [ stepSnapshotPoll time
-
-            -- add stepVolumePoll here
+            , stepVolumePoll time viewState
             ]
     in
     List.foldl
@@ -52,6 +55,83 @@ stepSnapshotPoll time project =
     if shouldPoll then
         ( { project | volumeSnapshots = RDPP.setLoading project.volumeSnapshots }
         , Cmd.batch [ requestVolumeSnapshots project, requestVolumeQuota project ]
+        )
+
+    else
+        ( project, Cmd.none )
+
+
+stepVolumePoll : Time.Posix -> ViewState -> Project -> ( Project, Cmd SharedMsg )
+stepVolumePoll time viewState project =
+    let
+        pollInterval =
+            case viewState of
+                ProjectView _ projectViewState ->
+                    let
+                        volumeNeedsFrequentPoll volume =
+                            OSTypes.isVolumeTransitioning volume
+                                -- Reserved is a transition state except for shelved instances.
+                                && (not <| GetterSetters.isVolumeReservedForShelvedInstance project volume)
+
+                        anyVolumeNeedsFrequentPoll =
+                            List.any volumeNeedsFrequentPoll (RDPP.withDefault [] project.volumes)
+
+                        serverVolumeNeedsFrequentPoll server =
+                            GetterSetters.getVolsAttachedToServer project server
+                                |> List.any volumeNeedsFrequentPoll
+                    in
+                    case projectViewState of
+                        ProjectOverview _ ->
+                            if anyVolumeNeedsFrequentPoll then
+                                Rapid
+
+                            else
+                                Regular
+
+                        VolumeList _ ->
+                            if anyVolumeNeedsFrequentPoll then
+                                Rapid
+
+                            else
+                                Regular
+
+                        VolumeDetail pageModel ->
+                            case GetterSetters.volumeLookup project pageModel.volumeUuid of
+                                Just volume ->
+                                    if volumeNeedsFrequentPoll volume then
+                                        Rapid
+
+                                    else
+                                        Regular
+
+                                Nothing ->
+                                    Regular
+
+                        ServerDetail pageModel ->
+                            case GetterSetters.serverLookup project pageModel.serverUuid of
+                                Just server ->
+                                    if serverVolumeNeedsFrequentPoll server then
+                                        Rapid
+
+                                    else
+                                        Regular
+
+                                Nothing ->
+                                    Seldom
+
+                        _ ->
+                            Seldom
+
+                _ ->
+                    Seldom
+    in
+    if pollRDPP project.volumes time (pollIntervalToMs pollInterval) then
+        let
+            newProject =
+                GetterSetters.projectSetVolumesLoading project
+        in
+        ( newProject
+        , OSVolumes.requestVolumes newProject
         )
 
     else

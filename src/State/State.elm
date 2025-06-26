@@ -758,7 +758,7 @@ processSharedMsg sharedMsg outerModel =
                 |> mapToOuterModel outerModel
 
         DoOrchestration posixTime ->
-            Orchestration.orchModel sharedModel posixTime
+            Orchestration.orchModel outerModel.viewState sharedModel posixTime
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
