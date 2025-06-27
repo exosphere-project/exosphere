@@ -32,29 +32,28 @@ goalPollProject time viewState project =
 stepSnapshotPoll : Time.Posix -> Project -> ( Project, Cmd SharedMsg )
 stepSnapshotPoll time project =
     let
-        snapshots =
-            project.volumeSnapshots
+        anyTransitioning =
+            List.any OpenStack.VolumeSnapshots.isTransitioning (RDPP.withDefault [] project.volumeSnapshots)
 
-        onlyTransitioning =
-            List.filter OpenStack.VolumeSnapshots.isTransitioning
+        pollInterval =
+            if anyTransitioning then
+                Rapid
 
-        shouldPoll =
-            case ( .data <| RDPP.map onlyTransitioning snapshots, snapshots.refreshStatus ) of
-                -- No snapshots means nothing to update
-                ( RDPP.DontHave, _ ) ->
-                    False
-
-                -- If no snapshots are currently transitioning we don't need to proactively poll.
-                ( RDPP.DoHave [] _, _ ) ->
-                    False
-
-                -- Only poll if it's been a few seconds since the last one.
-                ( RDPP.DoHave _ _, _ ) ->
-                    RDPP.isPollableWithInterval snapshots time (pollIntervalToMs Rapid)
+            else
+                Seldom
     in
-    if shouldPoll then
-        ( { project | volumeSnapshots = RDPP.setLoading project.volumeSnapshots }
-        , Cmd.batch [ requestVolumeSnapshots project, requestVolumeQuota project ]
+    if pollRDPP project.volumeSnapshots time (pollIntervalToMs pollInterval) then
+        let
+            newProject =
+                GetterSetters.projectSetVolumeSnapshotsLoading project
+        in
+        ( newProject
+        , Cmd.batch
+            [ requestVolumeSnapshots newProject
+
+            -- TODO: Do volume quota requests for transitioning volumes & not just volume snapshots.
+            , requestVolumeQuota newProject
+            ]
         )
 
     else
