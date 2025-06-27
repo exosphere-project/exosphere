@@ -19,7 +19,7 @@ goalPollProject : Time.Posix -> ViewState -> Project -> ( Project, Cmd SharedMsg
 goalPollProject time viewState project =
     let
         steps =
-            [ stepSnapshotPoll time
+            [ stepSnapshotPoll time viewState
             , stepVolumePoll time viewState
             ]
     in
@@ -29,18 +29,48 @@ goalPollProject time viewState project =
         steps
 
 
-stepSnapshotPoll : Time.Posix -> Project -> ( Project, Cmd SharedMsg )
-stepSnapshotPoll time project =
+stepSnapshotPoll : Time.Posix -> ViewState -> Project -> ( Project, Cmd SharedMsg )
+stepSnapshotPoll time viewState project =
     let
-        anyTransitioning =
-            List.any OpenStack.VolumeSnapshots.isTransitioning (RDPP.withDefault [] project.volumeSnapshots)
-
         pollInterval =
-            if anyTransitioning then
-                Rapid
+            case viewState of
+                ProjectView _ projectViewState ->
+                    case projectViewState of
+                        VolumeList _ ->
+                            let
+                                anyVolumeSnapshotTransitioning =
+                                    List.any OpenStack.VolumeSnapshots.isTransitioning (RDPP.withDefault [] project.volumeSnapshots)
+                            in
+                            if anyVolumeSnapshotTransitioning then
+                                Rapid
 
-            else
-                Seldom
+                            else
+                                Regular
+
+                        VolumeDetail pageModel ->
+                            case GetterSetters.volumeLookup project pageModel.volumeUuid of
+                                Just volume ->
+                                    let
+                                        isAssociatedVolumeSnapshotTransitioning =
+                                            project.volumeSnapshots
+                                                |> RDPP.withDefault []
+                                                |> List.filter (\snapshot -> GetterSetters.isSnapshotOfVolume volume snapshot)
+                                                |> List.any OpenStack.VolumeSnapshots.isTransitioning
+                                    in
+                                    if isAssociatedVolumeSnapshotTransitioning then
+                                        Rapid
+
+                                    else
+                                        Regular
+
+                                Nothing ->
+                                    Regular
+
+                        _ ->
+                            Seldom
+
+                _ ->
+                    Seldom
     in
     if pollRDPP project.volumeSnapshots time (pollIntervalToMs pollInterval) then
         let
@@ -52,6 +82,7 @@ stepSnapshotPoll time project =
             [ requestVolumeSnapshots newProject
 
             -- TODO: Do volume quota requests for transitioning volumes & not just volume snapshots.
+            -- TODO: Handle volume quota loading state.
             , requestVolumeQuota newProject
             ]
         )
