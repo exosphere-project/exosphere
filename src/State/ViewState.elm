@@ -554,6 +554,8 @@ routeToViewStateModelCmd sharedModel route =
                                             (ApiModelHelpers.requestVolumes (GetterSetters.projectIdentifier project))
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestVolumeSnapshots (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestAllServerVolumeAttachments (GetterSetters.projectIdentifier project))
                             in
                             ( projectViewProto <| VolumeList <| Page.VolumeList.init project True
                             , newSharedModel
