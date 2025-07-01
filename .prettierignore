@@ -35,3 +35,6 @@ deploy/prod/main-server/data
 
 # Ignore common editor files
 /.vscode/
+
+# Ignore performance test outputs
+performance-tests/*/**
