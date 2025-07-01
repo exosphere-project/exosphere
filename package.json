@@ -47,6 +47,12 @@
     "terser": "^5.43.1",
     "typescript": "^5.3.3"
   },
+  "optionalDependencies": {
+    "dotenv": "^17.0.0",
+    "lighthouse": "^12.6.0",
+    "playwright": "^1.52.0",
+    "rimraf": "^6.0.1"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://gitlab.com/exosphere/exosphere.git"
