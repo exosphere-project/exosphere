@@ -10,6 +10,7 @@ import Types.HelperTypes as HelperTypes
 import Types.Jetstream2Accounting
 import Types.SecurityGroupActions exposing (SecurityGroupAction)
 import Types.Server exposing (Server)
+import Types.ServerVolumeActions exposing (ServerVolumeActionRequest)
 
 
 
@@ -27,6 +28,7 @@ type alias Project =
     , serverEvents : Dict OSTypes.ServerUuid (RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.ServerEvent))
     , serverSecurityGroups : Dict OSTypes.ServerUuid (RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.ServerSecurityGroup))
     , serverVolumeAttachments : Dict OSTypes.ServerUuid (RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.VolumeAttachment))
+    , serverVolumeActions : Dict OSTypes.ServerUuid (List ServerVolumeActionRequest)
     , shares : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Share)
     , shareAccessRules : Dict OSTypes.ShareUuid (RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.AccessRule))
     , shareExportLocations : Dict OSTypes.ShareUuid (RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.ExportLocation))

@@ -85,6 +85,7 @@ import Types.Project exposing (Endpoints, Project, ProjectSecret(..))
 import Types.SecurityGroupActions as SecurityGroupActions
 import Types.Server exposing (ExoSetupStatus(..), NewServerNetworkOptions(..), Server, ServerFromExoProps, ServerOrigin(..), currentExoServerVersion)
 import Types.ServerResourceUsage
+import Types.ServerVolumeActions as ServerVolumeActions
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..), TickInterval)
 import Types.View
@@ -1449,10 +1450,20 @@ processProjectSpecificMsg outerModel project msg =
                     let
                         serverHasVolumeMetadata =
                             List.any (\{ key } -> key == OSTypes.volumeExoTags.serverMetadata ++ volumeUuid) server.osProps.details.metadata
+
+                        newProject =
+                            GetterSetters.projectUpsertServerVolumeAction project
+                                server.osProps.uuid
+                                { action = ServerVolumeActions.DetachVolume volumeUuid
+                                , status = ServerVolumeActions.Pending
+                                }
+
+                        _ =
+                            Debug.log "RequestDetachVolume" ( volumeUuid, "Pending" )
                     in
-                    ( outerModel
+                    ( GetterSetters.modelUpdateProject sharedModel newProject
                     , Cmd.batch
-                        [ OSSvrVols.requestDetachVolume project server.osProps.uuid volumeUuid
+                        [ OSSvrVols.requestDetachVolume newProject server.osProps.uuid volumeUuid
                         , if
                             serverHasVolumeMetadata
                                 && -- You can't update metadata when the server is `shelved_offloaded`.
@@ -1460,13 +1471,14 @@ processProjectSpecificMsg outerModel project msg =
                                         /= OSTypes.ServerShelvedOffloaded
                                    )
                           then
-                            Rest.Nova.requestDeleteServerMetadata project server.osProps.uuid (OSTypes.volumeExoTags.serverMetadata ++ volumeUuid)
+                            Rest.Nova.requestDeleteServerMetadata newProject server.osProps.uuid (OSTypes.volumeExoTags.serverMetadata ++ volumeUuid)
 
                           else
                             Cmd.none
                         ]
                     )
                         |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
 
                 Nothing ->
                     State.Error.processStringError
@@ -1744,8 +1756,49 @@ processProjectSpecificMsg outerModel project msg =
                                     (RDPP.DoHave serverVolumeAttachments sharedModel.clientCurrentTime)
                                     (RDPP.NotLoading Nothing)
                                 )
+
+                        -- Get the server's pending actions.
+                        pendingServerVolumeActions =
+                            GetterSetters.getServerVolumeActions newProject serverId
+
+                        -- For each server action, check whether it can be resolved.
+                        resolvedServerActions =
+                            pendingServerVolumeActions
+                                |> List.filterMap
+                                    (\action ->
+                                        case action.action of
+                                            ServerVolumeActions.AttachVolume volumeUuid ->
+                                                -- A volume we expected to attach is now present.
+                                                if List.any (\attachment -> attachment.volumeUuid == volumeUuid) serverVolumeAttachments then
+                                                    Just action
+
+                                                else
+                                                    -- TODO: Check whether the volume is in a transition state. If not, clean this up.
+                                                    Nothing
+
+                                            ServerVolumeActions.DetachVolume volumeUuid ->
+                                                -- A volume we expected to detach is now gone.
+                                                if not (List.any (\attachment -> attachment.volumeUuid == volumeUuid) serverVolumeAttachments) then
+                                                    Just action
+
+                                                else
+                                                    -- TODO: Check whether the volume is in a transition state. If not, clean this up.
+                                                    Nothing
+                                    )
+
+                        _ =
+                            Debug.log "Resolved server actions" resolvedServerActions
+
+                        -- Clear the resolved server actions.
+                        newerProject =
+                            List.foldl
+                                (\action accProject ->
+                                    GetterSetters.projectDeleteServerVolumeAction accProject serverId action
+                                )
+                                newProject
+                                resolvedServerActions
                     in
-                    ( GetterSetters.modelUpdateProject sharedModel newProject
+                    ( GetterSetters.modelUpdateProject sharedModel newerProject
                     , Cmd.none
                     )
                         |> mapToOuterModel outerModel
@@ -2920,13 +2973,43 @@ processProjectSpecificMsg outerModel project msg =
                 |> mapToOuterMsg
 
         ReceiveAttachVolume attachment ->
-            ( outerModel
+            let
+                newProject =
+                    GetterSetters.projectUpsertServerVolumeAction project
+                        attachment.serverUuid
+                        { action = ServerVolumeActions.AttachVolume attachment.volumeUuid
+
+                        -- FIXME: Handle the rejected attach volume request flow.
+                        , status = ServerVolumeActions.Accepted
+                        }
+
+                _ =
+                    Debug.log "ReceiveAttachVolume" ( attachment.volumeUuid, "Accepted" )
+            in
+            ( GetterSetters.modelUpdateProject sharedModel newProject
             , Route.pushUrl sharedModel.viewContext (Route.ProjectRoute (GetterSetters.projectIdentifier project) <| Route.VolumeMountInstructions attachment)
             )
+                |> mapToOuterModel outerModel
 
-        ReceiveDetachVolume ->
-            ( outerModel, OSVolumes.requestVolumes project )
+        ReceiveDetachVolume serverUuid volumeUuid ->
+            let
+                newProject =
+                    GetterSetters.projectUpsertServerVolumeAction project
+                        serverUuid
+                        { action = ServerVolumeActions.DetachVolume volumeUuid
+
+                        -- FIXME: Handle the rejected attach volume request flow.
+                        , status = ServerVolumeActions.Accepted
+                        }
+
+                _ =
+                    Debug.log "ReceiveDetachVolume" ( volumeUuid, "Accepted" )
+            in
+            ( GetterSetters.modelUpdateProject sharedModel newProject
+            , OSVolumes.requestVolumes project
+            )
                 |> mapToOuterMsg
+                |> mapToOuterModel outerModel
 
         ReceiveAppCredential appCredential ->
             let
@@ -3145,19 +3228,30 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                                   )
                                 ]
                     }
+
+                newProject =
+                    GetterSetters.projectUpsertServerVolumeAction project
+                        server.osProps.uuid
+                        { action = ServerVolumeActions.AttachVolume volumeUuid
+                        , status = ServerVolumeActions.Pending
+                        }
+
+                _ =
+                    Debug.log "RequestAttachVolume" ( volumeUuid, "Pending" )
             in
-            ( outerModel
+            ( GetterSetters.modelUpdateProject sharedModel newProject
             , Cmd.batch
-                [ OSSvrVols.requestAttachVolume project server.osProps.uuid volumeUuid volumeMetadata.value
+                [ OSSvrVols.requestAttachVolume newProject server.osProps.uuid volumeUuid volumeMetadata.value
                 , if GetterSetters.serverExoServerVersion server == Just 5 then
                     -- On this version, we need server metadata for `NamedMountpoints`.
-                    Rest.Nova.requestSetServerMetadata project server.osProps.uuid volumeMetadata
+                    Rest.Nova.requestSetServerMetadata newProject server.osProps.uuid volumeMetadata
 
                   else
                     Cmd.none
                 ]
             )
                 |> mapToOuterMsg
+                |> mapToOuterModel outerModel
 
         RequestCreateServerImage imageName ->
             let
@@ -3951,6 +4045,7 @@ createProject_ outerModel description authToken region endpoints =
             , serverEvents = Dict.empty
             , serverSecurityGroups = Dict.empty
             , serverVolumeAttachments = Dict.empty
+            , serverVolumeActions = Dict.empty
             , serverImages = []
             , flavors = RDPP.empty
             , keypairs = RDPP.empty

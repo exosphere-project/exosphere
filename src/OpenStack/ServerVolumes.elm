@@ -103,7 +103,7 @@ requestDetachVolume project serverUuid volumeUuid =
                 (\_ ->
                     ProjectMsg
                         (GetterSetters.projectIdentifier project)
-                        ReceiveDetachVolume
+                        (ReceiveDetachVolume serverUuid volumeUuid)
                 )
     in
     openstackCredentialedRequest
