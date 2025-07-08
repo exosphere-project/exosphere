@@ -1457,9 +1457,6 @@ processProjectSpecificMsg outerModel project msg =
                                 { action = ServerVolumeActions.DetachVolume volumeUuid
                                 , status = ServerVolumeActions.Pending
                                 }
-
-                        _ =
-                            Debug.log "RequestDetachVolume" ( volumeUuid, "Pending" )
                     in
                     ( GetterSetters.modelUpdateProject sharedModel newProject
                     , Cmd.batch
@@ -1785,9 +1782,6 @@ processProjectSpecificMsg outerModel project msg =
                                                     -- TODO: Check whether the volume is in a transition state. If not, clean this up.
                                                     Nothing
                                     )
-
-                        _ =
-                            Debug.log "Resolved server actions" resolvedServerActions
 
                         -- Clear the resolved server actions.
                         newerProject =
@@ -2972,44 +2966,78 @@ processProjectSpecificMsg outerModel project msg =
             ( outerModel, OSVolumes.requestVolumes project )
                 |> mapToOuterMsg
 
-        ReceiveAttachVolume attachment ->
-            let
-                newProject =
-                    GetterSetters.projectUpsertServerVolumeAction project
-                        attachment.serverUuid
-                        { action = ServerVolumeActions.AttachVolume attachment.volumeUuid
+        ReceiveAttachVolume errorContext ( serverUuid, volumeUuid ) result ->
+            case result of
+                Ok attachment ->
+                    let
+                        newProject =
+                            GetterSetters.projectUpsertServerVolumeAction project
+                                attachment.serverUuid
+                                { action = ServerVolumeActions.AttachVolume attachment.volumeUuid
+                                , status = ServerVolumeActions.Accepted
+                                }
+                    in
+                    ( GetterSetters.modelUpdateProject sharedModel newProject
+                    , Route.pushUrl sharedModel.viewContext (Route.ProjectRoute (GetterSetters.projectIdentifier project) <| Route.VolumeMountInstructions attachment)
+                    )
+                        |> mapToOuterModel outerModel
 
-                        -- FIXME: Handle the rejected attach volume request flow.
-                        , status = ServerVolumeActions.Accepted
-                        }
+                Err httpError ->
+                    let
+                        -- Remove the failed pending action.
+                        newProject =
+                            GetterSetters.projectDeleteServerVolumeAction project
+                                serverUuid
+                                { action = ServerVolumeActions.AttachVolume volumeUuid
+                                , status = ServerVolumeActions.Pending
+                                }
 
-                _ =
-                    Debug.log "ReceiveAttachVolume" ( attachment.volumeUuid, "Accepted" )
-            in
-            ( GetterSetters.modelUpdateProject sharedModel newProject
-            , Route.pushUrl sharedModel.viewContext (Route.ProjectRoute (GetterSetters.projectIdentifier project) <| Route.VolumeMountInstructions attachment)
-            )
-                |> mapToOuterModel outerModel
+                        updatedSharedModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
 
-        ReceiveDetachVolume serverUuid volumeUuid ->
-            let
-                newProject =
-                    GetterSetters.projectUpsertServerVolumeAction project
-                        serverUuid
-                        { action = ServerVolumeActions.DetachVolume volumeUuid
+                        ( newSharedModel, errCmd ) =
+                            State.Error.processSynchronousApiError updatedSharedModel errorContext httpError
+                    in
+                    ( newSharedModel, errCmd )
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
 
-                        -- FIXME: Handle the rejected attach volume request flow.
-                        , status = ServerVolumeActions.Accepted
-                        }
+        ReceiveDetachVolume errorContext ( serverUuid, volumeUuid ) result ->
+            case result of
+                Ok () ->
+                    let
+                        newProject =
+                            GetterSetters.projectUpsertServerVolumeAction project
+                                serverUuid
+                                { action = ServerVolumeActions.DetachVolume volumeUuid
+                                , status = ServerVolumeActions.Accepted
+                                }
+                    in
+                    ( GetterSetters.modelUpdateProject sharedModel newProject
+                    , OSVolumes.requestVolumes project
+                    )
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
 
-                _ =
-                    Debug.log "ReceiveDetachVolume" ( volumeUuid, "Accepted" )
-            in
-            ( GetterSetters.modelUpdateProject sharedModel newProject
-            , OSVolumes.requestVolumes project
-            )
-                |> mapToOuterMsg
-                |> mapToOuterModel outerModel
+                Err httpError ->
+                    let
+                        -- Remove the failed pending action.
+                        newProject =
+                            GetterSetters.projectDeleteServerVolumeAction project
+                                serverUuid
+                                { action = ServerVolumeActions.DetachVolume volumeUuid
+                                , status = ServerVolumeActions.Pending
+                                }
+
+                        updatedSharedModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+
+                        ( newSharedModel, errCmd ) =
+                            State.Error.processSynchronousApiError updatedSharedModel errorContext httpError
+                    in
+                    ( newSharedModel, errCmd )
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
 
         ReceiveAppCredential appCredential ->
             let
@@ -3235,9 +3263,6 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                         { action = ServerVolumeActions.AttachVolume volumeUuid
                         , status = ServerVolumeActions.Pending
                         }
-
-                _ =
-                    Debug.log "RequestAttachVolume" ( volumeUuid, "Pending" )
             in
             ( GetterSetters.modelUpdateProject sharedModel newProject
             , Cmd.batch

@@ -64,14 +64,10 @@ requestAttachVolume project serverUuid volumeUuid metadata =
                 ErrorCrit
                 Nothing
 
-        resultToMsg_ =
-            resultToMsgErrorBody
-                errorContext
-                (\attachment ->
-                    ProjectMsg
-                        (GetterSetters.projectIdentifier project)
-                        (ReceiveAttachVolume attachment)
-                )
+        resultToMsg result =
+            ProjectMsg
+                (GetterSetters.projectIdentifier project)
+                (ReceiveAttachVolume errorContext ( serverUuid, volumeUuid ) result)
     in
     openstackCredentialedRequest
         (GetterSetters.projectIdentifier project)
@@ -83,7 +79,7 @@ requestAttachVolume project serverUuid volumeUuid metadata =
         ( project.endpoints.nova, [ "servers", serverUuid, "os-volume_attachments" ], [] )
         (Http.jsonBody body)
         (expectJsonWithErrorBody
-            resultToMsg_
+            resultToMsg
             (Decode.field "volumeAttachment" <| novaVolumeAttachmentDecoder)
         )
 
@@ -103,7 +99,7 @@ requestDetachVolume project serverUuid volumeUuid =
                 (\_ ->
                     ProjectMsg
                         (GetterSetters.projectIdentifier project)
-                        (ReceiveDetachVolume serverUuid volumeUuid)
+                        (ReceiveDetachVolume errorContext ( serverUuid, volumeUuid ) (Ok ()))
                 )
     in
     openstackCredentialedRequest
