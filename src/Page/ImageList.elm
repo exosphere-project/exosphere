@@ -211,9 +211,7 @@ imageView model context project imageRecord =
                         imageRecord.image.status == OSTypes.ImagePendingDelete
                 in
                 if deletionAttempted || deletionPending then
-                    -- FIXME: Constraint progressIndicator svg's height to 36 px also
-                    Element.el [ Element.height <| Element.px 36 ]
-                        (Spinner.medium context.palette)
+                    Spinner.small context.palette
 
                 else
                     VH.deleteResourcePopconfirmWithDisabledHint
