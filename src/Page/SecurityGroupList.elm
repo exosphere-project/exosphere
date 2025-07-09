@@ -17,6 +17,7 @@ import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirmCo
 import Style.Widgets.HumanTime exposing (relativeTimeElement)
 import Style.Widgets.Popover.Popover exposing (popover)
 import Style.Widgets.Spacer exposing (spacer)
+import Style.Widgets.Spinner as Spinner
 import Style.Widgets.Tag exposing (tag, tagNeutral, tagPositive)
 import Style.Widgets.Text as Text
 import Style.Widgets.Validation as Validation
@@ -27,7 +28,6 @@ import Types.SharedMsg as SharedMsg
 import View.Forms as Forms
 import View.Helpers as VH
 import View.Types
-import Widget
 
 
 type alias Model =
@@ -257,9 +257,7 @@ securityGroupView context project currentTime securityGroupRecord =
                                 |> Maybe.withDefault False
                     in
                     if deletionInProgress then
-                        Widget.circularProgressIndicator
-                            (SH.materialStyle context.palette).progressIndicator
-                            Nothing
+                        Spinner.medium context.palette
 
                     else
                         let

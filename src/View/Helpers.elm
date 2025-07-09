@@ -113,6 +113,7 @@ import Style.Widgets.Icon exposing (featherIcon)
 import Style.Widgets.Link as Link
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.Spacer exposing (spacer)
+import Style.Widgets.Spinner as Spinner
 import Style.Widgets.StatusBadge as StatusBadge exposing (StatusBadgeSize)
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip as ToggleTip
@@ -124,7 +125,6 @@ import Types.Server exposing (ExoSetupStatus(..), Server, ServerOrigin(..), Serv
 import Types.SharedModel exposing (LogMessage, SharedModel, Style)
 import Types.SharedMsg as SharedMsg
 import View.Types exposing (PortRangeBounds(..), RemoteType(..))
-import Widget
 
 
 toExoPalette : Style -> ExoPalette
@@ -403,9 +403,7 @@ titleFromHostname hostname =
 loadingStuff : View.Types.Context -> String -> Element.Element msg
 loadingStuff context resourceWord =
     Element.row [ Element.spacing spacer.px16 ]
-        [ Widget.circularProgressIndicator
-            (SH.materialStyle context.palette).progressIndicator
-            Nothing
+        [ Spinner.medium context.palette
         , Element.text <|
             String.concat
                 [ "Loading "

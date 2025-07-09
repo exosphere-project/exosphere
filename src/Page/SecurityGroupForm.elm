@@ -33,6 +33,7 @@ import Style.Helpers as SH
 import Style.Widgets.Button as Button
 import Style.Widgets.Grid exposing (GridCell(..), GridRow(..), grid, scrollableCell)
 import Style.Widgets.Spacer exposing (spacer)
+import Style.Widgets.Spinner as Spinner
 import Style.Widgets.Text as Text
 import Style.Widgets.Validation as Validation
 import Time
@@ -44,7 +45,6 @@ import Types.SharedMsg as SharedMsg
 import View.Forms as Forms
 import View.Helpers as VH
 import View.Types
-import Widget
 
 
 type Msg
@@ -684,9 +684,7 @@ view context project currentTime model maybeServerUuid =
             ]
         , if action.pendingCreation then
             Element.row [ Element.spacing spacer.px16, Element.centerX ]
-                [ Widget.circularProgressIndicator
-                    (SH.materialStyle context.palette).progressIndicator
-                    Nothing
+                [ Spinner.medium context.palette
                 , Element.text <|
                     String.join " "
                         [ "Creating"
@@ -706,9 +704,7 @@ view context project currentTime model maybeServerUuid =
           in
           if updates > 0 then
             Element.row [ Element.spacing spacer.px16, Element.centerX ]
-                [ Widget.circularProgressIndicator
-                    (SH.materialStyle context.palette).progressIndicator
-                    Nothing
+                [ Spinner.medium context.palette
                 , Element.text <|
                     String.join " "
                         [ updates |> String.fromInt
