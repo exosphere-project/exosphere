@@ -1599,7 +1599,7 @@ processProjectSpecificMsg outerModel project msg =
                 Just server ->
                     let
                         serverHasVolumeMetadata =
-                            List.any (\{ key } -> key == "exoVolumes::" ++ volumeUuid) server.osProps.details.metadata
+                            List.any (\{ key } -> key == OSTypes.volumeExoTags.serverMetadata ++ volumeUuid) server.osProps.details.metadata
                     in
                     ( outerModel
                     , Cmd.batch
@@ -1611,7 +1611,7 @@ processProjectSpecificMsg outerModel project msg =
                                         /= OSTypes.ServerShelvedOffloaded
                                    )
                           then
-                            Rest.Nova.requestDeleteServerMetadata project server.osProps.uuid ("exoVolumes::" ++ volumeUuid)
+                            Rest.Nova.requestDeleteServerMetadata project server.osProps.uuid (OSTypes.volumeExoTags.serverMetadata ++ volumeUuid)
 
                           else
                             Cmd.none
@@ -3285,7 +3285,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                         |> Maybe.andThen .name
 
                 volumeMetadata =
-                    { key = "exoVolumes::" ++ volumeUuid
+                    { key = OSTypes.volumeExoTags.serverMetadata ++ volumeUuid
                     , value =
                         Json.Encode.encode 0 <|
                             Json.Encode.object
@@ -3299,8 +3299,13 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
             in
             ( outerModel
             , Cmd.batch
-                [ OSSvrVols.requestAttachVolume project server.osProps.uuid volumeUuid
-                , Rest.Nova.requestSetServerMetadata project server.osProps.uuid volumeMetadata
+                [ OSSvrVols.requestAttachVolume project server.osProps.uuid volumeUuid volumeMetadata.value
+                , if GetterSetters.serverExoServerVersion server == Just 5 then
+                    -- On this version, we need server metadata for `NamedMountpoints`.
+                    Rest.Nova.requestSetServerMetadata project server.osProps.uuid volumeMetadata
+
+                  else
+                    Cmd.none
                 ]
             )
                 |> mapToOuterMsg

@@ -96,6 +96,7 @@ module OpenStack.Types exposing
     , VolumeQuota
     , VolumeSize
     , VolumeStatus(..)
+    , VolumeTag
     , VolumeUuid
     , accessRuleAccessLevelToApiString
     , accessRuleAccessLevelToHumanString
@@ -116,6 +117,7 @@ module OpenStack.Types exposing
     , stringToAccessRuleState
     , stringToShareProtocol
     , stringToShareStatus
+    , volumeExoTags
     , volumeStatusToString
     )
 
@@ -617,6 +619,18 @@ type alias CreateVolumeRequest =
     }
 
 
+{-|
+
+    Tags for volumes providing Exosphere features.
+
+-}
+volumeExoTags : { serverMetadata : VolumeTag, deviceMetadata : VolumeTag }
+volumeExoTags =
+    { serverMetadata = "exoVolumes::"
+    , deviceMetadata = "exoVolume::"
+    }
+
+
 type VolumeStatus
     = Creating
     | Available
@@ -726,6 +740,10 @@ type alias VolumeName =
 
 type alias VolumeSize =
     Int
+
+
+type alias VolumeTag =
+    String
 
 
 type alias AttachmentUuid =
