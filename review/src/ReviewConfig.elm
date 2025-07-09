@@ -15,7 +15,6 @@ import NoConfusingPrefixOperator
 import NoDebug.Log
 import NoDebug.TodoOrToString
 import NoDeprecated
-import NoElementFontSize
 import NoExposingEverything
 import NoHardcodedLocalizedStrings
 import NoImportingEverything
@@ -30,6 +29,7 @@ import NoUnused.Parameters
 import NoUnused.Variables
 import Review.Rule as Rule exposing (Rule)
 import Simplify
+import UseInstead
 
 
 inPaths : List String -> String -> Bool
@@ -49,7 +49,10 @@ config =
     [ NoDebug.Log.rule
     , NoDebug.TodoOrToString.rule
     , NoDeprecated.rule NoDeprecated.defaults
-    , NoElementFontSize.rule
+    , UseInstead.rule
+        ( [ "Element", "Font" ], "size" )
+        ( [ "Style", "Widgets", "Text" ], "fontSize" )
+        "see https://gitlab.com/exosphere/exosphere/-/issues/878"
         |> Rule.filterErrorsForFiles ((/=) "src/Style/Widgets/Text.elm")
     , NoConfusingPrefixOperator.rule
     , NoHardcodedLocalizedStrings.rule NoHardcodedLocalizedStrings.exosphereLocalizedStrings
