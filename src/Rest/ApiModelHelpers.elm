@@ -176,6 +176,15 @@ requestAllServerVolumeAttachments projectId model =
 
                 newProject =
                     serverUuids
+                        |> List.filterMap
+                            (\serverUuid ->
+                                -- If the server is already loading, we don't need to request it again.
+                                if GetterSetters.getServerVolumeAttachments project serverUuid |> RDPP.isLoading then
+                                    Nothing
+
+                                else
+                                    Just serverUuid
+                            )
                         |> List.foldl
                             (\serverUuid accModel ->
                                 accModel
