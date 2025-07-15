@@ -1,4 +1,4 @@
-FROM node:current-buster AS compile
+FROM node:current-bookworm AS compile
 
 # Note: This docker build is intended for building a standalone container,
 # including a local CCP (Cloud CORS Proxy).
