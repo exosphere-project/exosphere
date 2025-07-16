@@ -84,6 +84,7 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
             , clientUuid = Nothing
             , styleMode = Nothing
             , experimentalFeaturesEnabled = Nothing
+            , dismissedBanners = Set.empty
             }
 
         deployerColors =

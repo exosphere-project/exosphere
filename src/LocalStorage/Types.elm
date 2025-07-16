@@ -7,6 +7,7 @@ module LocalStorage.Types exposing
     )
 
 import OpenStack.Types as OSTypes
+import Set exposing (Set)
 import Style.Types
 import Types.Project
 import UUID
@@ -47,4 +48,5 @@ type alias StoredState =
     , clientUuid : Maybe UUID.UUID
     , styleMode : Maybe Style.Types.StyleMode
     , experimentalFeaturesEnabled : Maybe Bool
+    , dismissedBanners : Set String
     }

@@ -76,6 +76,7 @@ import Style.Widgets.NumericTextInput.NumericTextInput
 import Style.Widgets.Toast as Toast
 import Task
 import Time
+import Types.Banner exposing (bannerId)
 import Types.Error as Error exposing (AppError, ErrorContext, ErrorLevel(..))
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes as HelperTypes exposing (UnscopedProviderProject)
@@ -716,6 +717,19 @@ processSharedMsg sharedMsg outerModel =
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
+        DismissBanner bannerId ->
+            let
+                oldBanners =
+                    sharedModel.banners
+
+                newBanners =
+                    { oldBanners | dismissedBanners = Set.insert bannerId sharedModel.banners.dismissedBanners }
+
+                newSharedModel =
+                    { sharedModel | banners = newBanners }
+            in
+            ( { outerModel | sharedModel = newSharedModel }, Cmd.none )
+
         ReceiveBanners errorContext res ->
             (case res of
                 Ok banners ->
@@ -724,8 +738,17 @@ processSharedMsg sharedMsg outerModel =
                             receiveBanners
                                 sharedModel.banners
                                 banners
+
+                        newDismissedBanners =
+                            let
+                                newBannerIds =
+                                    newBanners.banners
+                                        |> List.map bannerId
+                                        |> Set.fromList
+                            in
+                            { newBanners | dismissedBanners = Set.intersect newBannerIds newBanners.dismissedBanners }
                     in
-                    ( { sharedModel | banners = newBanners }, cmd )
+                    ( { sharedModel | banners = newDismissedBanners }, cmd )
 
                 Err err ->
                     State.Error.processSynchronousApiError sharedModel errorContext err
