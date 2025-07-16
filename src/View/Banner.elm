@@ -72,7 +72,7 @@ renderBanner palette toMsg banner =
         , Element.column [ Element.width Element.fill ] <|
             VH.renderMarkdown palette banner.message
         , clickableIcon []
-            { icon = Icons.delete
+            { icon = Icons.xCircle
             , accessibilityLabel = "Dismiss notification"
             , onClick = Just (toMsg banner)
             , color = palette.neutral.icon |> SH.toElementColor
