@@ -1,4 +1,4 @@
-image: node:current-buster
+image: node:current-bookworm
 
 # Run a branch pipeline when a merge request is not open for the branch; otherwise run a merge request pipeline
 # https://docs.gitlab.com/ee/ci/yaml/workflow.html#switch-between-branch-pipelines-and-merge-request-pipelines
