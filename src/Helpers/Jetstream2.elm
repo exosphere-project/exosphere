@@ -46,6 +46,12 @@ resourceMultiplier resource =
         "g3" ->
             Just 2.0
 
+        "g4" ->
+            Just 7.0
+
+        "g5" ->
+            Just 6.4
+
         "r3" ->
             Just 2.0
 
