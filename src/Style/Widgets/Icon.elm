@@ -30,7 +30,6 @@ type Icon
     | HelpCircle
     | Info
     | Settings
-    | DismissMark
 
 
 {-| Creates an Elm-UI Element for a given FeatherIcons icon.
@@ -96,9 +95,6 @@ iconEl attributes icon size color =
 
                 Settings ->
                     fromFeather FeatherIcons.settings
-
-                DismissMark ->
-                    fromFeather FeatherIcons.xOctagon
     in
     toEl attributes (svg (SH.toElementColor color) size)
 

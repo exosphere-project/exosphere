@@ -1,4 +1,4 @@
-module Types.Banner exposing (Banner, BannerLevel(..), BannerModel, Banners, decodeBanners, empty, bannerId)
+module Types.Banner exposing (Banner, BannerLevel(..), BannerModel, Banners, bannerId, decodeBanners, empty)
 
 import ISO8601
 import Json.Decode as Decode

@@ -3,6 +3,7 @@ module View.Banner exposing (view)
 import Element
 import Element.Background as Background
 import Element.Font as Font
+import Element.Input
 import FeatherIcons as Icons
 import Html.Attributes
 import Set
@@ -14,7 +15,6 @@ import Time
 import Time.Extra
 import Types.Banner exposing (Banner, BannerLevel(..), BannerModel, bannerId)
 import View.Helpers as VH
-import Element.Input
 
 
 bannerLevelToIcon : BannerLevel -> Icons.Icon
@@ -56,7 +56,7 @@ bannerLevelToColors palette bannerLevel =
 
 
 renderBanner : ExoPalette -> (Banner -> msg) -> Banner -> Element.Element msg
-renderBanner palette toMsg banner =
+renderBanner palette toDismissMsg banner =
     let
         uiColors =
             bannerLevelToColors palette banner.level
@@ -78,7 +78,7 @@ renderBanner palette toMsg banner =
             , Element.htmlAttribute (Html.Attributes.title "Dismiss")
             , Element.htmlAttribute (Html.Attributes.attribute "role" "button")
             ]
-            { onPress = Just (toMsg banner)
+            { onPress = Just (toDismissMsg banner)
             , label = featherIcon [] Icons.x
             }
         ]
