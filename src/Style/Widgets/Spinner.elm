@@ -1,4 +1,4 @@
-module Style.Widgets.Spinner exposing (Size(..), circularProgressIndicator, medium, notes, small, withSize)
+module Style.Widgets.Spinner exposing (medium, notes, small)
 
 import Color
 import Element exposing (Attribute, Element)
