@@ -23,6 +23,7 @@ import Style.Widgets.HumanTime exposing (relativeTimeElement)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.Popover.Popover exposing (dropdownItemStyle, popover)
 import Style.Widgets.Spacer exposing (spacer)
+import Style.Widgets.Spinner as Spinner
 import Style.Widgets.StatusBadge as StatusBadge
 import Style.Widgets.Text as Text
 import Style.Widgets.Uuid exposing (uuidLabel)
@@ -106,9 +107,7 @@ view context project currentTime model =
             case ( project.servers.data, project.servers.refreshStatus ) of
                 ( RDPP.DontHave, RDPP.NotLoading Nothing ) ->
                     Element.row [ Element.spacing spacer.px16 ]
-                        [ Widget.circularProgressIndicator
-                            (SH.materialStyle context.palette).progressIndicator
-                            Nothing
+                        [ Spinner.medium context.palette
                         , Element.text "Please wait..."
                         ]
 
@@ -126,9 +125,7 @@ view context project currentTime model =
 
                 ( RDPP.DontHave, RDPP.Loading ) ->
                     Element.row [ Element.spacing spacer.px16 ]
-                        [ Widget.circularProgressIndicator
-                            (SH.materialStyle context.palette).progressIndicator
-                            Nothing
+                        [ Spinner.medium context.palette
                         , Element.text "Loading..."
                         ]
 

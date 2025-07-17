@@ -39,6 +39,7 @@ import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInpu
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Style.Widgets.Select
 import Style.Widgets.Spacer exposing (spacer)
+import Style.Widgets.Spinner as Spinner
 import Style.Widgets.Tag as Tag
 import Style.Widgets.Text as Text exposing (TextVariant(..))
 import Style.Widgets.ToggleTip
@@ -860,9 +861,7 @@ view context project currentTime model =
 
         loading message =
             Element.row [ Element.spacing spacer.px16 ]
-                [ Widget.circularProgressIndicator
-                    (SH.materialStyle context.palette).progressIndicator
-                    Nothing
+                [ Spinner.medium context.palette
                 , Element.text message
                 ]
     in

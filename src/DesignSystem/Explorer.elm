@@ -15,6 +15,7 @@ import DesignSystem.Stories.Link as LinkStories
 import DesignSystem.Stories.Markdown as Markdown
 import DesignSystem.Stories.Select as SelectStories
 import DesignSystem.Stories.Space as SpaceStories
+import DesignSystem.Stories.Spinner as SpinnerStories
 import DesignSystem.Stories.Text as TextStories
 import DesignSystem.Stories.Toast as ToastStories
 import DesignSystem.Stories.ToggleTip as ToggleTip
@@ -582,6 +583,7 @@ To display a read-only label which clearly shows the current status of a resourc
                         , { name = "small", size = StatusBadge.Small, variant = ReadyGood, text = Element.text "Ready" }
                         ]
                     )
+                , SpinnerStories.stories toHtml
                 ]
             |> category "Molecules"
                 [ AlertStories.stories toHtml

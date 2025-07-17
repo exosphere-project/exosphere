@@ -24,6 +24,7 @@ import Style.Widgets.Icon as Icon exposing (featherIcon, sizedFeatherIcon)
 import Style.Widgets.Popover.Popover as Popover
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.Spacer exposing (spacer)
+import Style.Widgets.Spinner as Spinner
 import Style.Widgets.Tag as Tag
 import Style.Widgets.Text as Text
 import Types.Defaults
@@ -210,9 +211,7 @@ imageView model context project imageRecord =
                         imageRecord.image.status == OSTypes.ImagePendingDelete
                 in
                 if deletionAttempted || deletionPending then
-                    -- FIXME: Constraint progressIndicator svg's height to 36 px also
-                    Element.el [ Element.height <| Element.px 36 ]
-                        (Widget.circularProgressIndicator (SH.materialStyle context.palette).progressIndicator Nothing)
+                    Spinner.small context.palette
 
                 else
                     VH.deleteResourcePopconfirmWithDisabledHint
