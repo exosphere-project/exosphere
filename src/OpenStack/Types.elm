@@ -663,6 +663,7 @@ isVolumeTransitioning { status } =
             [ Available
             , Maintenance
             , InUse
+            , AwaitingTransfer
             , Error
             , ErrorDeleting
             , ErrorBackingUp
