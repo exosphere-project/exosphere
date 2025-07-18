@@ -168,25 +168,24 @@ requestServerSecurityGroups project serverUuid =
 
 requestConsoleUrls : Project -> OSTypes.ServerUuid -> Cmd SharedMsg
 requestConsoleUrls project serverUuid =
-    -- This is a deprecated call, will eventually need to be updated
-    -- See https://gitlab.com/exosphere/exosphere/issues/183
     let
-        reqParams =
-            [ { objectName = "os-getVNCConsole"
+        consoles =
+            [ { consoleProtocol = "vnc"
               , consoleType = "novnc"
               }
-            , { objectName = "os-getSPICEConsole"
+            , { consoleProtocol = "spice"
               , consoleType = "spice-html5"
               }
             ]
 
         buildReq params =
             let
-                reqBody =
+                body =
                     Encode.object
-                        [ ( params.objectName
+                        [ ( "remote_console"
                           , Encode.object
-                                [ ( "type", Encode.string params.consoleType )
+                                [ ( "protocol", Encode.string params.consoleProtocol )
+                                , ( "type", Encode.string params.consoleType )
                                 ]
                           )
                         ]
@@ -194,10 +193,10 @@ requestConsoleUrls project serverUuid =
             openstackCredentialedRequest
                 (GetterSetters.projectIdentifier project)
                 Post
-                Nothing
+                (Just "compute 2.6")
                 []
-                ( project.endpoints.nova, [ "servers", serverUuid, "action" ], [] )
-                (Http.jsonBody reqBody)
+                ( project.endpoints.nova, [ "servers", serverUuid, "remote-consoles" ], [] )
+                (Http.jsonBody body)
                 (expectJsonWithErrorBody
                     (\result ->
                         ProjectMsg (GetterSetters.projectIdentifier project) <|
@@ -207,7 +206,7 @@ requestConsoleUrls project serverUuid =
                     consoleUrlDecoder
                 )
     in
-    List.map buildReq reqParams
+    List.map buildReq consoles
         |> Cmd.batch
 
 
@@ -1279,7 +1278,7 @@ serverEventDecoder =
 
 consoleUrlDecoder : Decode.Decoder OSTypes.ConsoleUrl
 consoleUrlDecoder =
-    Decode.at [ "console", "url" ] Decode.string
+    Decode.at [ "remote_console", "url" ] Decode.string
 
 
 flavorsDecoder : Decode.Decoder (List OSTypes.Flavor)
