@@ -1,6 +1,7 @@
 module Rest.Helpers exposing
     ( expectJsonWithErrorBody
     , expectStringWithErrorBody
+    , expectVoidWithErrorBody
     , httpResponseStringToResult
     , idOrName
     , keystoneUrlWithVersion
@@ -186,6 +187,16 @@ expectStringWithErrorBody toMsg =
     -- so that we can show the response body as an error message in the app.
     Http.expectStringResponse toMsg <|
         httpResponseStringToResult Ok
+
+
+{-| Used when the response we expect is an http code & no particular body content,
+but we care about the response body in case of an error.
+-}
+expectVoidWithErrorBody : (Result HttpErrorWithBody () -> msg) -> Http.Expect msg
+expectVoidWithErrorBody toMsg =
+    Http.expectStringResponse toMsg <|
+        httpResponseStringToResult
+            (\_ -> Ok ())
 
 
 expectJsonWithErrorBody : (Result HttpErrorWithBody a -> msg) -> Decode.Decoder a -> Http.Expect msg
