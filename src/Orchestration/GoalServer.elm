@@ -575,8 +575,13 @@ stepServerPollVolumeAttachments time viewState project server =
                                 serverVolumeActions
                     in
                     case projectViewState of
-                        ServerDetail _ ->
-                            if isServerVolumeAttachingDetaching Nothing then
+                        ServerDetail pageModel ->
+                            if
+                                -- Are we on the detail page for this server?
+                                pageModel.serverUuid
+                                    == server.osProps.uuid
+                                    && isServerVolumeAttachingDetaching Nothing
+                            then
                                 Rapid
 
                             else
@@ -590,6 +595,7 @@ stepServerPollVolumeAttachments time viewState project server =
                                 Regular
 
                         VolumeDetail pageModel ->
+                            -- Are we attaching/detaching the volume for this detail page?
                             if isServerVolumeAttachingDetaching (Just pageModel.volumeUuid) then
                                 Rapid
 
