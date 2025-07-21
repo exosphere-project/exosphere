@@ -8,9 +8,8 @@ import OpenStack.Types as OSTypes
 import Rest.Helpers
     exposing
         ( expectJsonWithErrorBody
-        , expectStringWithErrorBody
+        , expectVoidWithErrorBody
         , openstackCredentialedRequest
-        , resultToMsgErrorBody
         )
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.HelperTypes exposing (HttpRequestMethod(..))
@@ -93,14 +92,11 @@ requestDetachVolume project serverUuid volumeUuid =
                 ErrorCrit
                 Nothing
 
-        resultToMsg_ =
-            resultToMsgErrorBody
-                errorContext
-                (\_ ->
-                    ProjectMsg
-                        (GetterSetters.projectIdentifier project)
-                        (ReceiveDetachVolume errorContext ( serverUuid, volumeUuid ) (Ok ()))
-                )
+        resultToMsg =
+            \result ->
+                ProjectMsg
+                    (GetterSetters.projectIdentifier project)
+                    (ReceiveDetachVolume errorContext ( serverUuid, volumeUuid ) result)
     in
     openstackCredentialedRequest
         (GetterSetters.projectIdentifier project)
@@ -110,8 +106,8 @@ requestDetachVolume project serverUuid volumeUuid =
         [ ( "X-OpenStack-Nova-API-Version", "2.20" ) ]
         ( project.endpoints.nova, [ "servers", serverUuid, "os-volume_attachments", volumeUuid ], [] )
         Http.emptyBody
-        (expectStringWithErrorBody
-            resultToMsg_
+        (expectVoidWithErrorBody
+            resultToMsg
         )
 
 
