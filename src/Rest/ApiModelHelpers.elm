@@ -178,7 +178,7 @@ requestAllServerVolumeAttachments projectId model =
                     serverUuids
                         |> List.filterMap
                             (\serverUuid ->
-                                -- If the server is already loading, we don't need to request it again.
+                                -- If the server volume attachment is already loading, we don't need to request it again.
                                 if GetterSetters.getServerVolumeAttachments project serverUuid |> RDPP.isLoading then
                                     Nothing
 

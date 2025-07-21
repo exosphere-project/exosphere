@@ -1758,8 +1758,8 @@ processProjectSpecificMsg outerModel project msg =
                         pendingServerVolumeActions =
                             GetterSetters.getServerVolumeActions newProject serverId
 
-                        -- For each server action, check whether it can be resolved.
-                        resolvedServerActions =
+                        -- For each server volume action, check whether it can be resolved.
+                        resolvedServerVolumeActions =
                             pendingServerVolumeActions
                                 |> List.filterMap
                                     (\action ->
@@ -1783,14 +1783,14 @@ processProjectSpecificMsg outerModel project msg =
                                                     Nothing
                                     )
 
-                        -- Clear the resolved server actions.
+                        -- Clear the resolved server volume actions.
                         newerProject =
                             List.foldl
                                 (\action accProject ->
                                     GetterSetters.projectDeleteServerVolumeAction accProject serverId action
                                 )
                                 newProject
-                                resolvedServerActions
+                                resolvedServerVolumeActions
                     in
                     ( GetterSetters.modelUpdateProject sharedModel newerProject
                     , Cmd.none
