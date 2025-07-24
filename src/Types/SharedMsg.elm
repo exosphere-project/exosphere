@@ -125,8 +125,8 @@ type ProjectSpecificMsgConstructor
     | ReceiveDeleteVolume
     | ReceiveUpdateVolumeName
     | ReceiveDeleteVolumeSnapshot
-    | ReceiveAttachVolume OSTypes.VolumeAttachment
-    | ReceiveDetachVolume
+    | ReceiveAttachVolume ErrorContext ( OSTypes.ServerUuid, OSTypes.VolumeUuid ) (Result HttpErrorWithBody OSTypes.VolumeAttachment)
+    | ReceiveDetachVolume ErrorContext ( OSTypes.ServerUuid, OSTypes.VolumeUuid ) (Result HttpErrorWithBody ())
     | ReceiveComputeQuota ErrorContext (Result HttpErrorWithBody OSTypes.ComputeQuota)
     | ReceiveVolumeQuota ErrorContext (Result HttpErrorWithBody OSTypes.VolumeQuota)
     | ReceiveNetworkQuota ErrorContext (Result HttpErrorWithBody OSTypes.NetworkQuota)

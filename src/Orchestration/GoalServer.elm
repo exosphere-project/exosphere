@@ -26,6 +26,7 @@ import Types.HelperTypes
         )
 import Types.Project exposing (Project)
 import Types.Server exposing (ExoSetupStatus(..), Server, ServerFromExoProps, ServerOrigin(..))
+import Types.ServerVolumeActions as ServerVolumeActions
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
 import Types.View exposing (ProjectViewConstructor(..), ViewState(..))
 import UUID
@@ -549,49 +550,57 @@ stepServerPollVolumeAttachments time viewState project server =
             case viewState of
                 ProjectView _ projectViewState ->
                     let
-                        -- TODO: Optimise fetching volume attachments by tracking expected attach/detach server targets.
-                        volumeAttachmentNeedsFrequentPoll volume =
-                            List.member
-                                volume.status
-                                [ OSTypes.Attaching
-                                , OSTypes.Detaching
-                                ]
+                        serverVolumeActions =
+                            GetterSetters.getServerVolumeActions project server.osProps.uuid
+
+                        isServerVolumeAttachingDetaching maybeVolumeUuid =
+                            List.any
+                                (\action ->
+                                    let
+                                        isSpecificVolumeMatch volumeUuid =
+                                            maybeVolumeUuid
+                                                |> Maybe.map (\vUuid -> vUuid == volumeUuid)
+                                                |> Maybe.withDefault True
+                                    in
+                                    case ( action.action, action.status ) of
+                                        ( ServerVolumeActions.AttachVolume volumeUuid, ServerVolumeActions.Accepted ) ->
+                                            isSpecificVolumeMatch volumeUuid
+
+                                        ( ServerVolumeActions.DetachVolume volumeUuid, ServerVolumeActions.Accepted ) ->
+                                            isSpecificVolumeMatch volumeUuid
+
+                                        _ ->
+                                            False
+                                )
+                                serverVolumeActions
                     in
                     case projectViewState of
-                        ServerDetail _ ->
-                            let
-                                serverVolumesNeedFrequentPoll =
-                                    GetterSetters.getVolsAttachedToServer project server
-                                        |> List.any volumeAttachmentNeedsFrequentPoll
-                            in
-                            if serverVolumesNeedFrequentPoll then
+                        ServerDetail pageModel ->
+                            if
+                                -- Are we on the detail page for this server?
+                                pageModel.serverUuid
+                                    == server.osProps.uuid
+                                    && isServerVolumeAttachingDetaching Nothing
+                            then
                                 Rapid
 
                             else
                                 Regular
 
                         VolumeList _ ->
-                            let
-                                anyVolumeAttachmentNeedsFrequentPoll =
-                                    List.any volumeAttachmentNeedsFrequentPoll (RDPP.withDefault [] project.volumes)
-                            in
-                            if anyVolumeAttachmentNeedsFrequentPoll then
+                            if isServerVolumeAttachingDetaching Nothing then
                                 Rapid
 
                             else
                                 Regular
 
                         VolumeDetail pageModel ->
-                            case GetterSetters.volumeLookup project pageModel.volumeUuid of
-                                Just volume ->
-                                    if volumeAttachmentNeedsFrequentPoll volume then
-                                        Rapid
+                            -- Are we attaching/detaching the volume for this detail page?
+                            if isServerVolumeAttachingDetaching (Just pageModel.volumeUuid) then
+                                Rapid
 
-                                    else
-                                        Regular
-
-                                Nothing ->
-                                    Regular
+                            else
+                                Regular
 
                         _ ->
                             Seldom

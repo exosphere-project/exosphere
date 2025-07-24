@@ -8,9 +8,8 @@ import OpenStack.Types as OSTypes
 import Rest.Helpers
     exposing
         ( expectJsonWithErrorBody
-        , expectStringWithErrorBody
+        , expectVoidWithErrorBody
         , openstackCredentialedRequest
-        , resultToMsgErrorBody
         )
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.HelperTypes exposing (HttpRequestMethod(..))
@@ -64,14 +63,10 @@ requestAttachVolume project serverUuid volumeUuid metadata =
                 ErrorCrit
                 Nothing
 
-        resultToMsg_ =
-            resultToMsgErrorBody
-                errorContext
-                (\attachment ->
-                    ProjectMsg
-                        (GetterSetters.projectIdentifier project)
-                        (ReceiveAttachVolume attachment)
-                )
+        resultToMsg result =
+            ProjectMsg
+                (GetterSetters.projectIdentifier project)
+                (ReceiveAttachVolume errorContext ( serverUuid, volumeUuid ) result)
     in
     openstackCredentialedRequest
         (GetterSetters.projectIdentifier project)
@@ -83,7 +78,7 @@ requestAttachVolume project serverUuid volumeUuid metadata =
         ( project.endpoints.nova, [ "servers", serverUuid, "os-volume_attachments" ], [] )
         (Http.jsonBody body)
         (expectJsonWithErrorBody
-            resultToMsg_
+            resultToMsg
             (Decode.field "volumeAttachment" <| novaVolumeAttachmentDecoder)
         )
 
@@ -97,14 +92,11 @@ requestDetachVolume project serverUuid volumeUuid =
                 ErrorCrit
                 Nothing
 
-        resultToMsg_ =
-            resultToMsgErrorBody
-                errorContext
-                (\_ ->
-                    ProjectMsg
-                        (GetterSetters.projectIdentifier project)
-                        ReceiveDetachVolume
-                )
+        resultToMsg =
+            \result ->
+                ProjectMsg
+                    (GetterSetters.projectIdentifier project)
+                    (ReceiveDetachVolume errorContext ( serverUuid, volumeUuid ) result)
     in
     openstackCredentialedRequest
         (GetterSetters.projectIdentifier project)
@@ -114,8 +106,8 @@ requestDetachVolume project serverUuid volumeUuid =
         [ ( "X-OpenStack-Nova-API-Version", "2.20" ) ]
         ( project.endpoints.nova, [ "servers", serverUuid, "os-volume_attachments", volumeUuid ], [] )
         Http.emptyBody
-        (expectStringWithErrorBody
-            resultToMsg_
+        (expectVoidWithErrorBody
+            resultToMsg
         )
 
 

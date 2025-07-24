@@ -17,6 +17,7 @@ module Helpers.GetterSetters exposing
     , getServerPorts
     , getServerSecurityGroups
     , getServerUuidsByVolumeAttached
+    , getServerVolumeActions
     , getServerVolumeAttachments
     , getServicePublicUrl
     , getUserAppProxyFromCloudSpecificConfig
@@ -37,6 +38,7 @@ module Helpers.GetterSetters exposing
     , projectDeleteSecurityGroupActions
     , projectDeleteSecurityGroupRule
     , projectDeleteServer
+    , projectDeleteServerVolumeAction
     , projectIdentifier
     , projectLookup
     , projectSetAutoAllocatedNetworkUuidLoading
@@ -63,6 +65,7 @@ module Helpers.GetterSetters exposing
     , projectUpdateServer
     , projectUpsertSecurityGroupActions
     , projectUpsertServerSecurityGroups
+    , projectUpsertServerVolumeAction
     , projectUpsertServerVolumeAttachments
     , sanitizeMountpoint
     , securityGroupLookup
@@ -109,6 +112,7 @@ import Types.HelperTypes as HelperTypes
 import Types.Project exposing (Project)
 import Types.SecurityGroupActions as SecurityGroupActions exposing (SecurityGroupAction)
 import Types.Server exposing (ExoServerVersion, Server, ServerOrigin(..))
+import Types.ServerVolumeActions exposing (ServerVolumeActionRequest)
 import Types.SharedModel exposing (SharedModel)
 import View.Types exposing (Context)
 
@@ -203,6 +207,12 @@ type LoadingProgress
     = NotSure
     | Loading
     | Done
+
+
+getServerVolumeActions : Project -> OSTypes.ServerUuid -> List ServerVolumeActionRequest
+getServerVolumeActions project serverUuid =
+    Dict.get serverUuid project.serverVolumeActions
+        |> Maybe.withDefault []
 
 
 getServerSecurityGroups : Project -> OSTypes.ServerUuid -> RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.ServerSecurityGroup)
@@ -1318,6 +1328,40 @@ getServerEvents : Project -> OSTypes.ServerUuid -> RDPP.RemoteDataPlusPlus HttpE
 getServerEvents project serverId =
     Dict.get serverId project.serverEvents
         |> Maybe.withDefault RDPP.empty
+
+
+projectUpsertServerVolumeAction : Project -> OSTypes.ServerUuid -> ServerVolumeActionRequest -> Project
+projectUpsertServerVolumeAction project serverId action =
+    let
+        serverVolumeActions =
+            Dict.update serverId
+                (\actions ->
+                    -- Update the pending action if it exists, otherwise append it.
+                    Maybe.withDefault [] actions
+                        |> List.filter (\a -> a.action /= action.action)
+                        |> List.append [ action ]
+                        |> Just
+                )
+                project.serverVolumeActions
+    in
+    { project
+        | serverVolumeActions =
+            serverVolumeActions
+    }
+
+
+projectDeleteServerVolumeAction : Project -> OSTypes.ServerUuid -> ServerVolumeActionRequest -> Project
+projectDeleteServerVolumeAction project serverId action =
+    let
+        serverVolumeActions =
+            Dict.update serverId
+                (Maybe.map (List.filter (\a -> a.action /= action.action)))
+                project.serverVolumeActions
+    in
+    { project
+        | serverVolumeActions =
+            serverVolumeActions
+    }
 
 
 projectUpsertServerVolumeAttachments : Project -> OSTypes.ServerUuid -> RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.VolumeAttachment) -> Project
