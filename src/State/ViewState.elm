@@ -8,7 +8,6 @@ import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.Quotas as OSQuotas
 import OpenStack.Types as OSTypes
-import OpenStack.Volumes as OSVolumes
 import Page.Credentials
 import Page.FloatingIpAssign
 import Page.FloatingIpCreate
@@ -208,8 +207,7 @@ routeToViewStateModelCmd sharedModel route =
                                 ( newSharedModel, newCmd ) =
                                     ( sharedModel
                                     , Cmd.batch
-                                        [ OSVolumes.requestVolumes project
-                                        , Rest.Nova.requestKeypairs project
+                                        [ Rest.Nova.requestKeypairs project
                                         , OSQuotas.requestComputeQuota project
                                         , OSQuotas.requestVolumeQuota project
                                         , OSQuotas.requestNetworkQuota project
@@ -220,6 +218,8 @@ routeToViewStateModelCmd sharedModel route =
                                             (ApiModelHelpers.requestShares (GetterSetters.projectIdentifier project))
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestShareQuotas (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestVolumes (GetterSetters.projectIdentifier project))
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestVolumeSnapshots (GetterSetters.projectIdentifier project))
                                         |> Helpers.pipelineCmd
@@ -385,10 +385,7 @@ routeToViewStateModelCmd sharedModel route =
                                         |> GetterSetters.modelUpdateProject sharedModel
 
                                 cmd =
-                                    Cmd.batch
-                                        [ OSVolumes.requestVolumes project
-                                        , Ports.instantiateClipboardJs ()
-                                        ]
+                                    Ports.instantiateClipboardJs ()
 
                                 ( newNewSharedModel, newCmd ) =
                                     ( newSharedModel, cmd )
@@ -407,6 +404,8 @@ routeToViewStateModelCmd sharedModel route =
                                             (ApiModelHelpers.requestServerVolumeAttachments (GetterSetters.projectIdentifier project) serverId)
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestServerSecurityGroups (GetterSetters.projectIdentifier project) serverId)
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestVolumes (GetterSetters.projectIdentifier project))
                             in
                             ( projectViewProto <| ServerDetail (Page.ServerDetail.init serverId)
                             , newNewSharedModel
@@ -499,8 +498,9 @@ routeToViewStateModelCmd sharedModel route =
                         Route.VolumeAttach maybeServerUuid maybeVolumeUuid ->
                             let
                                 ( newSharedModel, newCmd ) =
-                                    ( sharedModel, OSVolumes.requestVolumes project )
+                                    ( sharedModel, Cmd.none )
                                         |> Helpers.pipelineCmd (ApiModelHelpers.requestServers (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd (ApiModelHelpers.requestVolumes (GetterSetters.projectIdentifier project))
                             in
                             ( projectViewProto <|
                                 VolumeAttach (Page.VolumeAttach.init maybeServerUuid maybeVolumeUuid)
@@ -529,11 +529,10 @@ routeToViewStateModelCmd sharedModel route =
                             let
                                 ( newSharedModel, newCmd ) =
                                     ( sharedModel
-                                    , Cmd.batch
-                                        [ OSVolumes.requestVolumes project
-                                        , Ports.instantiateClipboardJs ()
-                                        ]
+                                    , Ports.instantiateClipboardJs ()
                                     )
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestVolumes (GetterSetters.projectIdentifier project))
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestVolumeSnapshots (GetterSetters.projectIdentifier project))
                             in
@@ -547,13 +546,16 @@ routeToViewStateModelCmd sharedModel route =
                                 ( newSharedModel, newCmd ) =
                                     ( sharedModel
                                     , Cmd.batch
-                                        [ OSVolumes.requestVolumes project
-                                        , Ports.instantiateClipboardJs ()
+                                        [ Ports.instantiateClipboardJs ()
                                         , OSQuotas.requestVolumeQuota project
                                         ]
                                     )
                                         |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestVolumes (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestVolumeSnapshots (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestAllServerVolumeAttachments (GetterSetters.projectIdentifier project))
                             in
                             ( projectViewProto <| VolumeList <| Page.VolumeList.init project True
                             , newSharedModel

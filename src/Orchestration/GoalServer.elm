@@ -8,7 +8,7 @@ import OpenStack.ConsoleLog
 import OpenStack.DnsRecordSet
 import OpenStack.ServerVolumes
 import OpenStack.Types as OSTypes
-import Orchestration.Helpers exposing (applyStepToAllServers, pollIntervalToMs, serverPollIntervalMs)
+import Orchestration.Helpers exposing (applyStepToAllServers, pollIntervalToMs, pollRDPP, serverPollIntervalMs)
 import Orchestration.Types exposing (PollInterval(..))
 import Rest.Designate
 import Rest.Guacamole
@@ -27,6 +27,7 @@ import Types.HelperTypes
 import Types.Project exposing (Project)
 import Types.Server exposing (ExoSetupStatus(..), Server, ServerFromExoProps, ServerOrigin(..))
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
+import Types.View exposing (ProjectViewConstructor(..), ViewState(..))
 import UUID
 import Url
 
@@ -47,8 +48,8 @@ goalNewServer exoClientUuid time project =
         steps
 
 
-goalPollServers : Time.Posix -> Maybe CloudSpecificConfig -> Project -> ( Project, Cmd SharedMsg )
-goalPollServers time maybeCloudSpecificConfig project =
+goalPollServers : Time.Posix -> Maybe CloudSpecificConfig -> ViewState -> Project -> ( Project, Cmd SharedMsg )
+goalPollServers time maybeCloudSpecificConfig viewState project =
     let
         userAppProxy =
             maybeCloudSpecificConfig
@@ -58,7 +59,7 @@ goalPollServers time maybeCloudSpecificConfig project =
             [ stepServerPoll time
             , stepServerPollConsoleLog time
             , stepServerPollEvents time
-            , stepServerPollVolumeAttachments time
+            , stepServerPollVolumeAttachments time viewState
             , stepServerPollSecurityGroups time
             , stepServerGuacamoleAuth time userAppProxy
             ]
@@ -538,49 +539,75 @@ stepServerPollSecurityGroups time project server =
                             pollIfIntervalExceeded receivedTime
 
 
-stepServerPollVolumeAttachments : Time.Posix -> Project -> Server -> ( Project, Cmd SharedMsg )
-stepServerPollVolumeAttachments time project server =
+stepServerPollVolumeAttachments : Time.Posix -> ViewState -> Project -> Server -> ( Project, Cmd SharedMsg )
+stepServerPollVolumeAttachments time viewState project server =
     let
-        pollIntervalMillis =
-            pollIntervalToMs Seldom
-
-        curTimeMillis =
-            Time.posixToMillis time
-
-        pollIfIntervalExceeded : Time.Posix -> ( Project, Cmd SharedMsg )
-        pollIfIntervalExceeded receivedTime =
-            if Time.posixToMillis receivedTime + pollIntervalMillis < curTimeMillis then
-                doPollVolumeAttachments
-
-            else
-                doNothing project
-
-        doPollVolumeAttachments =
-            let
-                newProject =
-                    GetterSetters.projectSetServerVolumeAttachmentsLoading server.osProps.uuid project
-            in
-            ( newProject, OpenStack.ServerVolumes.requestVolumeAttachments newProject server.osProps.uuid )
-
         serverVolumeAttachments =
             GetterSetters.getServerVolumeAttachments project server.osProps.uuid
+
+        pollInterval =
+            case viewState of
+                ProjectView _ projectViewState ->
+                    let
+                        -- TODO: Optimise fetching volume attachments by tracking expected attach/detach server targets.
+                        volumeAttachmentNeedsFrequentPoll volume =
+                            List.member
+                                volume.status
+                                [ OSTypes.Attaching
+                                , OSTypes.Detaching
+                                ]
+                    in
+                    case projectViewState of
+                        ServerDetail _ ->
+                            let
+                                serverVolumesNeedFrequentPoll =
+                                    GetterSetters.getVolsAttachedToServer project server
+                                        |> List.any volumeAttachmentNeedsFrequentPoll
+                            in
+                            if serverVolumesNeedFrequentPoll then
+                                Rapid
+
+                            else
+                                Regular
+
+                        VolumeList _ ->
+                            let
+                                anyVolumeAttachmentNeedsFrequentPoll =
+                                    List.any volumeAttachmentNeedsFrequentPoll (RDPP.withDefault [] project.volumes)
+                            in
+                            if anyVolumeAttachmentNeedsFrequentPoll then
+                                Rapid
+
+                            else
+                                Regular
+
+                        VolumeDetail pageModel ->
+                            case GetterSetters.volumeLookup project pageModel.volumeUuid of
+                                Just volume ->
+                                    if volumeAttachmentNeedsFrequentPoll volume then
+                                        Rapid
+
+                                    else
+                                        Regular
+
+                                Nothing ->
+                                    Regular
+
+                        _ ->
+                            Seldom
+
+                _ ->
+                    Seldom
     in
-    case serverVolumeAttachments.refreshStatus of
-        RDPP.Loading ->
-            doNothing project
+    if pollRDPP serverVolumeAttachments time (pollIntervalToMs pollInterval) then
+        let
+            newProject =
+                GetterSetters.projectSetServerVolumeAttachmentsLoading server.osProps.uuid project
+        in
+        ( newProject, OpenStack.ServerVolumes.requestVolumeAttachments newProject server.osProps.uuid )
 
-        RDPP.NotLoading maybeErrorTimeTuple ->
-            case serverVolumeAttachments.data of
-                RDPP.DoHave _ receivedTime ->
-                    pollIfIntervalExceeded receivedTime
-
-                RDPP.DontHave ->
-                    case maybeErrorTimeTuple of
-                        Nothing ->
-                            doPollVolumeAttachments
-
-                        Just ( _, receivedTime ) ->
-                            pollIfIntervalExceeded receivedTime
+    else
+        ( project, Cmd.none )
 
 
 stepServerGuacamoleAuth : Time.Posix -> Maybe UserAppProxyHostname -> Project -> Server -> ( Project, Cmd SharedMsg )

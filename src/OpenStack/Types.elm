@@ -105,6 +105,7 @@ module OpenStack.Types exposing
     , boolToShareVisibility
     , defaultShareTypeNameForProtocol
     , imageVisibilityToString
+    , isVolumeTransitioning
     , securityGroupExoTags
     , securityGroupTaggedAs
     , serverPowerStateToString
@@ -652,6 +653,23 @@ type VolumeStatus
     | Uploading
     | Retyping
     | Extending
+
+
+isVolumeTransitioning : Volume -> Bool
+isVolumeTransitioning { status } =
+    not <|
+        List.member
+            status
+            [ Available
+            , Maintenance
+            , InUse
+            , AwaitingTransfer
+            , Error
+            , ErrorDeleting
+            , ErrorBackingUp
+            , ErrorRestoring
+            , ErrorExtending
+            ]
 
 
 volumeStatusToString : VolumeStatus -> String

@@ -781,7 +781,7 @@ processSharedMsg sharedMsg outerModel =
                 |> mapToOuterModel outerModel
 
         DoOrchestration posixTime ->
-            Orchestration.orchModel sharedModel posixTime
+            Orchestration.orchModel outerModel.viewState sharedModel posixTime
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
@@ -1191,169 +1191,18 @@ processSharedMsg sharedMsg outerModel =
 processTick : OuterModel -> TickInterval -> Time.Posix -> ( SharedModel, Cmd OuterMsg )
 processTick outerModel interval time =
     let
-        serverVolsNeedFrequentPoll : Project -> Server -> Bool
-        serverVolsNeedFrequentPoll project server =
-            GetterSetters.getVolsAttachedToServer project server
-                |> List.any (volNeedsFrequentPoll project)
-
-        volNeedsFrequentPoll project volume =
-            (not <|
-                List.member
-                    volume.status
-                    [ OSTypes.Available
-                    , OSTypes.Maintenance
-                    , OSTypes.InUse
-                    , OSTypes.Error
-                    , OSTypes.ErrorDeleting
-                    , OSTypes.ErrorBackingUp
-                    , OSTypes.ErrorRestoring
-                    , OSTypes.ErrorExtending
-                    ]
-            )
-                && (not <| GetterSetters.isVolumeReservedForShelvedInstance project volume)
-
-        volAttachmentNeedsFrequentPoll volume =
-            List.member
-                volume.status
-                [ OSTypes.Attaching
-                , OSTypes.Detaching
-                ]
-
-        viewIndependentCmd =
+        orchestrationCmd =
             if interval == 5 then
                 Task.perform DoOrchestration Time.now
 
             else
                 Cmd.none
 
-        ( viewDependentModel, viewDependentCmd ) =
-            {- TODO move some of this to Orchestration? -}
-            case outerModel.viewState of
-                NonProjectView _ ->
-                    ( outerModel.sharedModel, Cmd.none )
-
-                ProjectView projectName projectViewState ->
-                    case GetterSetters.projectLookup outerModel.sharedModel projectName of
-                        Nothing ->
-                            {- Should this throw an error? -}
-                            ( outerModel.sharedModel, Cmd.none )
-
-                        Just project ->
-                            let
-                                pollVolumes : ( SharedModel, Cmd SharedMsg )
-                                pollVolumes =
-                                    ( outerModel.sharedModel
-                                    , case interval of
-                                        5 ->
-                                            if List.any (volNeedsFrequentPoll project) (RDPP.withDefault [] project.volumes) then
-                                                Cmd.batch
-                                                    [ OSVolumes.requestVolumes project
-                                                    , if List.any volAttachmentNeedsFrequentPoll (RDPP.withDefault [] project.volumes) then
-                                                        project.servers
-                                                            |> RDPP.withDefault []
-                                                            |> List.map (\server -> server.osProps.uuid)
-                                                            |> List.map (OSSvrVols.requestVolumeAttachments project)
-                                                            |> Cmd.batch
-
-                                                      else
-                                                        Cmd.none
-                                                    ]
-
-                                            else
-                                                Cmd.none
-
-                                        60 ->
-                                            Cmd.batch
-                                                [ OSVolumes.requestVolumes project
-                                                , OSVolumes.requestVolumeSnapshots project
-                                                ]
-
-                                        _ ->
-                                            Cmd.none
-                                    )
-                            in
-                            case projectViewState of
-                                ProjectOverview _ ->
-                                    pollVolumes
-
-                                ServerDetail model ->
-                                    let
-                                        volCmd =
-                                            Cmd.batch
-                                                [ OSVolumes.requestVolumes project
-                                                , OSSvrVols.requestVolumeAttachments project model.serverUuid
-                                                ]
-                                    in
-                                    case interval of
-                                        5 ->
-                                            case GetterSetters.serverLookup project model.serverUuid of
-                                                Just server ->
-                                                    ( outerModel.sharedModel
-                                                    , if serverVolsNeedFrequentPoll project server then
-                                                        volCmd
-
-                                                      else
-                                                        Cmd.none
-                                                    )
-
-                                                Nothing ->
-                                                    ( outerModel.sharedModel, Cmd.none )
-
-                                        300 ->
-                                            ( outerModel.sharedModel, volCmd )
-
-                                        _ ->
-                                            ( outerModel.sharedModel, Cmd.none )
-
-                                VolumeDetail pageModel ->
-                                    ( outerModel.sharedModel
-                                    , case interval of
-                                        5 ->
-                                            case GetterSetters.volumeLookup project pageModel.volumeUuid of
-                                                Nothing ->
-                                                    Cmd.none
-
-                                                Just volume ->
-                                                    if volNeedsFrequentPoll project volume then
-                                                        Cmd.batch
-                                                            [ OSVolumes.requestVolumes project
-                                                            , if volAttachmentNeedsFrequentPoll volume then
-                                                                -- TODO: Optimise fetching volume attachments by tracking expected attach/detach server targets.
-                                                                project.servers
-                                                                    |> RDPP.withDefault []
-                                                                    |> List.map (\server -> server.osProps.uuid)
-                                                                    |> List.map (OSSvrVols.requestVolumeAttachments project)
-                                                                    |> Cmd.batch
-
-                                                              else
-                                                                Cmd.none
-                                                            ]
-
-                                                    else
-                                                        Cmd.none
-
-                                        60 ->
-                                            Cmd.batch
-                                                [ OSVolumes.requestVolumes project
-                                                , OSVolumes.requestVolumeSnapshots project
-                                                ]
-
-                                        _ ->
-                                            Cmd.none
-                                    )
-
-                                VolumeList _ ->
-                                    pollVolumes
-
-                                _ ->
-                                    ( outerModel.sharedModel, Cmd.none )
+        sharedModel =
+            outerModel.sharedModel
     in
-    ( { viewDependentModel | clientCurrentTime = time }
-    , Cmd.batch
-        [ viewDependentCmd
-        , viewIndependentCmd
-        ]
-        |> Cmd.map SharedMsg
+    ( { sharedModel | clientCurrentTime = time }
+    , orchestrationCmd |> Cmd.map SharedMsg
     )
 
 

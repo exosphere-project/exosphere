@@ -1,5 +1,6 @@
 module Rest.ApiModelHelpers exposing
-    ( requestAutoAllocatedNetwork
+    ( requestAllServerVolumeAttachments
+    , requestAutoAllocatedNetwork
     , requestComputeQuota
     , requestFlavors
     , requestFloatingIps
@@ -157,6 +158,38 @@ requestServerVolumeAttachments projectId serverUuid model =
                 |> GetterSetters.projectSetServerVolumeAttachmentsLoading serverUuid
                 |> GetterSetters.modelUpdateProject model
             , OpenStack.ServerVolumes.requestVolumeAttachments project serverUuid
+            )
+
+        Nothing ->
+            ( model, Cmd.none )
+
+
+requestAllServerVolumeAttachments : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd SharedMsg )
+requestAllServerVolumeAttachments projectId model =
+    case GetterSetters.projectLookup model projectId of
+        Just project ->
+            let
+                serverUuids =
+                    project.servers
+                        |> RDPP.withDefault []
+                        |> List.map (\server -> server.osProps.uuid)
+
+                newProject =
+                    serverUuids
+                        |> List.foldl
+                            (\serverUuid accModel ->
+                                accModel
+                                    |> GetterSetters.projectSetServerVolumeAttachmentsLoading serverUuid
+                            )
+                            project
+
+                newCmd =
+                    serverUuids
+                        |> List.map (OpenStack.ServerVolumes.requestVolumeAttachments newProject)
+                        |> Cmd.batch
+            in
+            ( newProject |> GetterSetters.modelUpdateProject model
+            , newCmd
             )
 
         Nothing ->
