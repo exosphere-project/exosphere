@@ -7,6 +7,13 @@ module OpenStack.SecurityGroupRule exposing
     , SecurityGroupRuleTemplate
     , SecurityGroupRuleUuid
     , SecurityGroupUuid
+    , buildRuleAllowAllOutgoingIPv4
+    , buildRuleGuacamole
+    , buildRuleIcmp
+    , buildRuleMosh
+    , buildRuleSSH
+    , buildRuleTcpEgress
+    , buildRuleTcpIngress
     , compareSecurityGroupRuleLists
     , decodeDirection
     , defaultRules
@@ -17,8 +24,12 @@ module OpenStack.SecurityGroupRule exposing
     , isRuleShadowed
     , matchRule
     , matchRuleAndDescription
+    , portRangeSubsumedBy
     , portRangeToString
+    , protocolSubsumedBy
     , protocolToString
+    , remoteMatch
+    , remoteSubsumedBy
     , securityGroupRuleDecoder
     , securityGroupRuleDiff
     , securityGroupRuleTemplateToRule
@@ -43,8 +54,8 @@ type alias SecurityGroupRule =
     , protocol : Maybe SecurityGroupRuleProtocol
     , portRangeMin : Maybe Int
     , portRangeMax : Maybe Int
-    , remoteIpPrefix : Maybe String -- TODO: Encode remote IP prefix in requests.
-    , remoteGroupUuid : Maybe SecurityGroupRuleUuid -- TODO: Encode remote security group in requests.
+    , remoteIpPrefix : Maybe String
+    , remoteGroupUuid : Maybe SecurityGroupRuleUuid
     , description : Maybe String
     }
 
@@ -121,11 +132,18 @@ matchRuleAndDescription ruleA ruleB =
            )
 
 
+{-| Is the scope of this rule already covered by any of the given rules?
+-}
 isRuleShadowed : SecurityGroupRule -> List SecurityGroupRule -> Bool
 isRuleShadowed rule rules =
     List.any (\r -> isSubsumedBy rule r) rules
 
 
+{-| Is the scope of rule A distinctly covered by rule B?
+
+e.g. Rule A allows TCP ingress on port 80; rule B allows TCP ingress on all ports.
+
+-}
 isSubsumedBy : SecurityGroupRule -> SecurityGroupRule -> Bool
 isSubsumedBy ruleA ruleB =
     ruleA.uuid
@@ -237,10 +255,23 @@ remoteSubsumedBy ruleA ruleB =
             False
 
 
-buildRuleTCP : Int -> String -> SecurityGroupRuleTemplate
-buildRuleTCP portNumber description =
+buildRuleTcpIngress : Int -> String -> SecurityGroupRuleTemplate
+buildRuleTcpIngress portNumber description =
     { ethertype = Ipv4
     , direction = Ingress
+    , protocol = Just ProtocolTcp
+    , portRangeMin = Just portNumber
+    , portRangeMax = Just portNumber
+    , remoteIpPrefix = Nothing
+    , remoteGroupUuid = Nothing
+    , description = Just description
+    }
+
+
+buildRuleTcpEgress : Int -> String -> SecurityGroupRuleTemplate
+buildRuleTcpEgress portNumber description =
+    { ethertype = Ipv4
+    , direction = Egress
     , protocol = Just ProtocolTcp
     , portRangeMin = Just portNumber
     , portRangeMax = Just portNumber
@@ -278,6 +309,7 @@ buildRuleIcmpIPv6 =
 
 buildRuleMosh : SecurityGroupRuleTemplate
 buildRuleMosh =
+    -- TODO: Remove Mosh from the default rules.
     { ethertype = Ipv4
     , direction = Ingress
     , protocol = Just ProtocolUdp
@@ -328,9 +360,19 @@ buildRuleAllowAllOutgoingIPv6 =
     }
 
 
+buildRuleSSH : SecurityGroupRuleTemplate
+buildRuleSSH =
+    buildRuleTcpIngress 22 "SSH"
+
+
+buildRuleGuacamole : SecurityGroupRuleTemplate
+buildRuleGuacamole =
+    buildRuleTcpIngress 49528 "Guacamole"
+
+
 defaultRules : List SecurityGroupRuleTemplate
 defaultRules =
-    [ buildRuleTCP 22 "SSH"
+    [ buildRuleSSH
     , buildRuleIcmp
     , buildRuleIcmpIPv6
     , buildRuleMosh
