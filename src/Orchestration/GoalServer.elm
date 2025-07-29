@@ -239,7 +239,7 @@ stepServerRequestHostname time project server =
         not server.exoProps.deletionAttempted
             && serverIsNew server time
             -- If not requested in last few seconds
-            && RDPP.isPollableWithInterval project.dnsRecordSets time (pollIntervalToMs Rapid)
+            && pollRDPP project.dnsRecordSets time (pollIntervalToMs Rapid)
             && (-- If any server ip is without hostname then request records
                 GetterSetters.getServerFloatingIps project server.osProps.uuid
                     |> List.any
@@ -351,7 +351,7 @@ stepServerPollConsoleLog time project server =
                             if
                                 serverIsActiveEnough server
                                     && (exoOriginProps.exoServerVersion >= 4)
-                                    && RDPP.isPollableWithInterval exoOriginProps.exoSetupStatus time pollInterval
+                                    && pollRDPP exoOriginProps.exoSetupStatus time pollInterval
                             then
                                 Just Nothing
 
@@ -363,7 +363,7 @@ stepServerPollConsoleLog time project server =
                             if
                                 serverIsActiveEnough server
                                     && (exoOriginProps.exoServerVersion >= 2)
-                                    && RDPP.isPollableWithInterval exoOriginProps.resourceUsage time (pollIntervalToMs Regular)
+                                    && pollRDPP exoOriginProps.resourceUsage time (pollIntervalToMs Regular)
                             then
                                 Just <|
                                     case exoOriginProps.resourceUsage.data of
