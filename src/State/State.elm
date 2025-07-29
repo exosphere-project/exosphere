@@ -2380,7 +2380,14 @@ processProjectSpecificMsg outerModel project msg =
                 newProject =
                     GetterSetters.projectUpsertSecurityGroupActions project
                         (SecurityGroupActions.ExtantGroup securityGroupUuid)
-                        (\action -> { action | pendingDeletion = True })
+                        (\action ->
+                            { action
+                                | pendingDeletion = True
+
+                                -- Track the number of servers to unlink.
+                                , pendingServerChanges = { updates = numberOfServers, errors = [] }
+                            }
+                        )
 
                 newModel =
                     GetterSetters.modelUpdateProject sharedModel newProject
