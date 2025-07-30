@@ -29,6 +29,7 @@ type SharedMsg
     | DoOrchestration Time.Posix
     | HandleApiErrorWithBody ErrorContext HttpErrorWithBody
     | Logout
+    | Batch (List SharedMsg)
     | RequestUnscopedToken OSTypes.OpenstackLogin
     | ReceiveProjectScopedToken OSTypes.KeystoneUrl ( Http.Metadata, String )
     | ReceiveUnscopedAuthToken OSTypes.KeystoneUrl ( Http.Metadata, String )

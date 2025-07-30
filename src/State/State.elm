@@ -708,6 +708,18 @@ processSharedMsg sharedMsg outerModel =
         Logout ->
             ( outerModel, Ports.logout () )
 
+        Batch sharedMsgs ->
+            List.foldl
+                (\msg ( model, cmd ) ->
+                    let
+                        ( newModel, newCmd ) =
+                            processSharedMsg msg model
+                    in
+                    ( newModel, Cmd.batch [ cmd, newCmd ] )
+                )
+                ( outerModel, Cmd.none )
+                sharedMsgs
+
         ToastMsg subMsg ->
             Toast.update ToastMsg subMsg outerModel.sharedModel
                 |> mapToOuterMsg
