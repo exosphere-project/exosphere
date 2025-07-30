@@ -8,6 +8,7 @@ module Helpers.GetterSetters exposing
     , getExternalNetwork
     , getFloatingIpServer
     , getSecurityGroupActions
+    , getServerActionRequestQueue
     , getServerDnsRecordSets
     , getServerEvents
     , getServerExouserPassphrase
@@ -112,6 +113,7 @@ import Types.HelperTypes as HelperTypes
 import Types.Project exposing (Project)
 import Types.SecurityGroupActions as SecurityGroupActions exposing (SecurityGroupAction)
 import Types.Server exposing (ExoServerVersion, Server, ServerOrigin(..))
+import Types.ServerActionRequestQueue exposing (ServerActionRequestJob)
 import Types.ServerVolumeActions exposing (ServerVolumeActionRequest)
 import Types.SharedModel exposing (SharedModel)
 import View.Types exposing (Context)
@@ -1378,3 +1380,9 @@ getServerVolumeAttachments : Project -> OSTypes.ServerUuid -> RDPP.RemoteDataPlu
 getServerVolumeAttachments project serverId =
     Dict.get serverId project.serverVolumeAttachments
         |> Maybe.withDefault RDPP.empty
+
+
+getServerActionRequestQueue : Project -> OSTypes.ServerUuid -> List ServerActionRequestJob
+getServerActionRequestQueue project serverId =
+    Dict.get serverId project.serverActionRequestQueue
+        |> Maybe.withDefault []

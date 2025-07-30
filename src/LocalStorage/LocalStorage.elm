@@ -111,6 +111,7 @@ hydrateProjectFromStoredProject storedProject =
     , serverSecurityGroups = Dict.empty
     , serverVolumeAttachments = Dict.empty
     , serverVolumeActions = Dict.empty
+    , serverActionRequestQueue = Dict.empty
     , serverImages = []
     , flavors = RDPP.empty
     , keypairs = RDPP.empty

@@ -10,6 +10,7 @@ import Types.HelperTypes as HelperTypes
 import Types.Jetstream2Accounting
 import Types.SecurityGroupActions exposing (ComparableSecurityGroupActionId, SecurityGroupAction)
 import Types.Server exposing (Server)
+import Types.ServerActionRequestQueue exposing (ServerActionRequestJob)
 import Types.ServerVolumeActions exposing (ServerVolumeActionRequest)
 
 
@@ -29,6 +30,9 @@ type alias Project =
     , serverSecurityGroups : Dict OSTypes.ServerUuid (RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.ServerSecurityGroup))
     , serverVolumeAttachments : Dict OSTypes.ServerUuid (RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.VolumeAttachment))
     , serverVolumeActions : Dict OSTypes.ServerUuid (List ServerVolumeActionRequest)
+
+    -- TODO: Queued server security group removals (#1069) is a workaround for https://bugs.launchpad.net/nova/+bug/2115798 & might be removed in the future.
+    , serverActionRequestQueue : Dict OSTypes.ServerUuid (List ServerActionRequestJob)
     , shares : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Share)
     , shareAccessRules : Dict OSTypes.ShareUuid (RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.AccessRule))
     , shareExportLocations : Dict OSTypes.ShareUuid (RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.ExportLocation))

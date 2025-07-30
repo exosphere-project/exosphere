@@ -6,6 +6,7 @@ import Dict
 import Helpers.ExoSetupStatus
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
+import Helpers.Queue
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.ServerResourceUsage
 import Helpers.String exposing (pluralize, toTitleCase)
@@ -85,6 +86,7 @@ import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Endpoints, Project, ProjectSecret(..))
 import Types.SecurityGroupActions as SecurityGroupActions
 import Types.Server exposing (ExoSetupStatus(..), NewServerNetworkOptions(..), Server, ServerFromExoProps, ServerOrigin(..), currentExoServerVersion)
+import Types.ServerActionRequestQueue as ServerActionRequestQueue
 import Types.ServerResourceUsage
 import Types.ServerVolumeActions as ServerVolumeActions
 import Types.SharedModel exposing (SharedModel)
@@ -2399,11 +2401,19 @@ processProjectSpecificMsg outerModel project msg =
                     serversAffected
                         |> List.map
                             (\server ->
-                                Rest.Nova.requestUpdateServerSecurityGroup project server.osProps.uuid <|
-                                    OSTypes.RemoveServerSecurityGroup
-                                        { uuid = securityGroup.uuid
-                                        , name = securityGroup.name
-                                        }
+                                -- Emit a message for each server to unlink the security group.
+                                Task.perform
+                                    (\_ ->
+                                        ProjectMsg (GetterSetters.projectIdentifier project) <|
+                                            ServerMsg server.osProps.uuid <|
+                                                RequestServerSecurityGroupUpdates
+                                                    [ OSTypes.RemoveServerSecurityGroup
+                                                        { uuid = securityGroup.uuid
+                                                        , name = securityGroup.name
+                                                        }
+                                                    ]
+                                    )
+                                    Time.now
                             )
 
                 else
@@ -2660,9 +2670,38 @@ processProjectSpecificMsg outerModel project msg =
 
         ReceiveServerRemoveSecurityGroup serverId errorContext serverSecurityGroup result ->
             let
+                -- Remove the job from the queue if it exists.
+                updatedQueue =
+                    Dict.update serverId
+                        (\maybeQueue ->
+                            maybeQueue
+                                |> Maybe.map
+                                    (Helpers.Queue.removeJobFromQueue
+                                        { job = ServerActionRequestQueue.RemoveServerSecurityGroup serverSecurityGroup
+                                        , status = Helpers.Queue.Processing
+                                        }
+                                    )
+                        )
+                        project.serverActionRequestQueue
+
+                queueUpdatedProject =
+                    { project
+                        | serverActionRequestQueue = updatedQueue
+                    }
+
+                checkQueueCmd =
+                    -- Now that this removal is complete, emit a message to prompt checking this server's queue.
+                    Task.perform
+                        (\_ ->
+                            ProjectMsg (GetterSetters.projectIdentifier project) <|
+                                ServerMsg serverId <|
+                                    RequestServerSecurityGroupUpdates []
+                        )
+                        Time.now
+
                 -- Even if the request failed, we want to update pending security group actions.
                 updatedProject =
-                    GetterSetters.projectUpdateSecurityGroupActionsIfExists project
+                    GetterSetters.projectUpdateSecurityGroupActionsIfExists queueUpdatedProject
                         (SecurityGroupActions.ExtantGroup serverSecurityGroup.uuid)
                         (\actions ->
                             { actions
@@ -2714,14 +2753,14 @@ processProjectSpecificMsg outerModel project msg =
                                 newProject =
                                     GetterSetters.projectUpsertServerSecurityGroups updatedProject serverId securityGroups
                             in
-                            ( GetterSetters.modelUpdateProject updatedSharedModel newProject, deleteCmd )
+                            ( GetterSetters.modelUpdateProject updatedSharedModel newProject, Cmd.batch [ deleteCmd, checkQueueCmd ] )
                                 |> mapToOuterMsg
                                 |> mapToOuterModel outerModel
                                 -- Make the page aware of the shared msg.
                                 |> pipelineCmdOuterModelMsg (updateUnderlying (ServerSecurityGroupsMsg <| Page.ServerSecurityGroups.GotServerSecurityGroups serverId))
 
                         _ ->
-                            ( updatedSharedModel, deleteCmd )
+                            ( updatedSharedModel, Cmd.batch [ deleteCmd, checkQueueCmd ] )
                                 |> mapToOuterMsg
                                 |> mapToOuterModel outerModel
 
@@ -2730,7 +2769,7 @@ processProjectSpecificMsg outerModel project msg =
                         ( newSharedModel, errCmd ) =
                             State.Error.processSynchronousApiError updatedSharedModel errorContext httpError
                     in
-                    ( newSharedModel, Cmd.batch [ errCmd, deleteCmd ] )
+                    ( newSharedModel, Cmd.batch [ errCmd, deleteCmd, checkQueueCmd ] )
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
@@ -3327,13 +3366,81 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
 
         RequestServerSecurityGroupUpdates serverSecurityGroupUpdates ->
             let
-                requests =
+                queue =
+                    GetterSetters.getServerActionRequestQueue project server.osProps.uuid
+
+                -- Add new removal requests to a queue.
+                removalRequests =
                     serverSecurityGroupUpdates
-                        |> List.map
-                            (Rest.Nova.requestUpdateServerSecurityGroup project server.osProps.uuid)
+                        |> List.filterMap
+                            (\sgUpdate ->
+                                case sgUpdate of
+                                    OSTypes.RemoveServerSecurityGroup serverSecurityGroup ->
+                                        Just <| ServerActionRequestQueue.RemoveServerSecurityGroup serverSecurityGroup
+
+                                    _ ->
+                                        Nothing
+                            )
+
+                updatedQueue =
+                    case removalRequests of
+                        [] ->
+                            queue
+
+                        _ ->
+                            queue
+                                |> List.append (removalRequests |> List.map (\req -> { job = req, status = Helpers.Queue.Waiting }))
+
+                ( nextJobs, newQueue ) =
+                    Helpers.Queue.marshalQueue updatedQueue
+
+                newServerActionRequestQueue =
+                    Dict.insert
+                        server.osProps.uuid
+                        newQueue
+                        project.serverActionRequestQueue
+
+                newProject =
+                    { project
+                        | serverActionRequestQueue = newServerActionRequestQueue
+                    }
+
+                -- If we have jobs to process, we can execute them.
+                removeRequests =
+                    if List.isEmpty nextJobs then
+                        []
+
+                    else
+                        nextJobs
+                            |> List.map
+                                (\job ->
+                                    case job.job of
+                                        ServerActionRequestQueue.RemoveServerSecurityGroup serverSecurityGroup ->
+                                            Rest.Nova.requestUpdateServerSecurityGroup newProject server.osProps.uuid <|
+                                                OSTypes.RemoveServerSecurityGroup
+                                                    { uuid = serverSecurityGroup.uuid
+                                                    , name = serverSecurityGroup.name
+                                                    }
+                                )
+
+                -- Requests to add server security groups can be concurrent.
+                addRequests =
+                    serverSecurityGroupUpdates
+                        |> List.filterMap
+                            (\sgUpdate ->
+                                case sgUpdate of
+                                    OSTypes.AddServerSecurityGroup _ ->
+                                        Just <| Rest.Nova.requestUpdateServerSecurityGroup newProject server.osProps.uuid <| sgUpdate
+
+                                    OSTypes.RemoveServerSecurityGroup _ ->
+                                        Nothing
+                            )
+
+                newSharedModel =
+                    GetterSetters.modelUpdateProject sharedModel newProject
             in
-            ( outerModel
-            , Cmd.batch requests
+            ( { outerModel | sharedModel = newSharedModel }
+            , Cmd.batch <| addRequests ++ removeRequests
             )
                 |> mapToOuterMsg
 
@@ -4101,6 +4208,7 @@ createProject_ outerModel description authToken region endpoints =
             , serverSecurityGroups = Dict.empty
             , serverVolumeAttachments = Dict.empty
             , serverVolumeActions = Dict.empty
+            , serverActionRequestQueue = Dict.empty
             , serverImages = []
             , flavors = RDPP.empty
             , keypairs = RDPP.empty

@@ -29,22 +29,8 @@ isQueueBusy queue =
         |> (\count -> count >= concurrency)
 
 
-
--- getJobsWithStatus : JobStatus -> List (Job a) -> List (Job a)
--- getJobsWithStatus status queue =
---     queue
---         |> List.filter (\job -> job.status == status)
--- getWaitingJobs : List (Job a) -> List (Job a)
--- getWaitingJobs queue =
---     getJobsWithStatus Waiting queue
--- updateJobInQueue : List (Job a) -> (Job a -> Job a) -> List (Job a)
--- updateJobInQueue queue updateFn =
---     queue
---         |> List.map (\job -> updateFn job)
-
-
-removeJobFromQueue : List (Job a) -> Job a -> List (Job a)
-removeJobFromQueue queue jobToRemove =
+removeJobFromQueue : Job a -> List (Job a) -> List (Job a)
+removeJobFromQueue jobToRemove queue =
     queue
         |> List.filter (\job -> job /= jobToRemove)
 
