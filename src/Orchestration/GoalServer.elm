@@ -24,6 +24,7 @@ import Types.HelperTypes
         , FloatingIpReuseOption(..)
         , UserAppProxyHostname
         )
+import Types.Interactivity exposing (InteractionLevel(..), interactionIsWanted)
 import Types.Project exposing (Project)
 import Types.Server exposing (ExoSetupStatus(..), Server, ServerFromExoProps, ServerOrigin(..))
 import Types.ServerVolumeActions as ServerVolumeActions
@@ -62,6 +63,7 @@ goalPollServers time maybeCloudSpecificConfig viewState project =
             , stepServerPollEvents time
             , stepServerPollVolumeAttachments time viewState
             , stepServerPollSecurityGroups time
+            , stepServerNeedsConsoleUrl
             , stepServerGuacamoleAuth time userAppProxy
             ]
     in
@@ -619,6 +621,28 @@ stepServerPollVolumeAttachments time viewState project server =
         ( project, Cmd.none )
 
 
+stepServerNeedsConsoleUrl : Project -> Server -> ( Project, Cmd SharedMsg )
+stepServerNeedsConsoleUrl project server =
+    if
+        (server.osProps.consoleUrl == RDPP.empty)
+            && interactionIsWanted LowInteraction server.interaction
+            && serverIsActiveEnough server
+    then
+        let
+            osProps =
+                server.osProps
+        in
+        ( GetterSetters.projectUpdateServer project
+            { server
+                | osProps = { osProps | consoleUrl = RDPP.setLoading server.osProps.consoleUrl }
+            }
+        , Rest.Nova.requestConsoleUrls project server.osProps.uuid
+        )
+
+    else
+        doNothing project
+
+
 stepServerGuacamoleAuth : Time.Posix -> Maybe UserAppProxyHostname -> Project -> Server -> ( Project, Cmd SharedMsg )
 stepServerGuacamoleAuth time maybeUserAppProxy project server =
     let
@@ -673,9 +697,10 @@ stepServerGuacamoleAuth time maybeUserAppProxy project server =
     case
         ( server.exoProps.serverOrigin
         , serverIsActiveEnough server
+        , interactionIsWanted LowInteraction server.interaction
         )
     of
-        ( ServerFromExo exoOriginProps, True ) ->
+        ( ServerFromExo exoOriginProps, True, True ) ->
             case exoOriginProps.guacamoleStatus of
                 GuacTypes.NotLaunchedWithGuacamole ->
                     doNothing project

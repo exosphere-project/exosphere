@@ -4,6 +4,7 @@ module Rest.Nova exposing
     , receiveKeypairs
     , receiveServer
     , receiveServers
+    , requestConsoleUrls
     , requestCreateKeypair
     , requestCreateServer
     , requestCreateServerImage
@@ -504,23 +505,6 @@ requestShelveServer projectId novaUrl serverId =
         (expectStringWithErrorBody resultToMsg_)
 
 
-requestConsoleUrlIfRequestable : Project -> Server -> Cmd SharedMsg
-requestConsoleUrlIfRequestable project server =
-    case server.osProps.consoleUrl.data of
-        RDPP.DoHave _ _ ->
-            Cmd.none
-
-        _ ->
-            if
-                List.member server.osProps.details.openstackStatus
-                    [ OSTypes.ServerActive, OSTypes.ServerPassword, OSTypes.ServerRescue, OSTypes.ServerVerifyResize ]
-            then
-                requestConsoleUrls project server.osProps.uuid
-
-            else
-                Cmd.none
-
-
 requestPassphraseIfRequestable : Project -> Server -> Cmd SharedMsg
 requestPassphraseIfRequestable project server =
     case server.exoProps.serverOrigin of
@@ -902,9 +886,6 @@ receiveServer_ project osServer =
         newServer =
             initOrUpdateServer project osServer
 
-        consoleUrlCmd =
-            requestConsoleUrlIfRequestable project newServer
-
         passphraseCmd =
             requestPassphraseIfRequestable project newServer
 
@@ -932,7 +913,7 @@ receiveServer_ project osServer =
                     Cmd.none
 
         allCmds =
-            [ consoleUrlCmd, passphraseCmd, deleteFloatingIpMetadataOptionCmd ]
+            [ passphraseCmd, deleteFloatingIpMetadataOptionCmd ]
                 |> Cmd.batch
     in
     ( newServer, allCmds )
