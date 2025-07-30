@@ -80,6 +80,7 @@ import Types.Banner exposing (bannerId)
 import Types.Error as Error exposing (AppError, ErrorContext, ErrorLevel(..))
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes as HelperTypes exposing (UnscopedProviderProject)
+import Types.Interactivity as Interactivity
 import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Endpoints, Project, ProjectSecret(..))
@@ -3348,7 +3349,10 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                     server.exoProps
 
                 newServer =
-                    Server server.osProps { oldExoProps | targetOpenstackStatus = Just [ OSTypes.ServerResize ] }
+                    { server
+                        | exoProps =
+                            { oldExoProps | targetOpenstackStatus = Just [ OSTypes.ServerResize ] }
+                    }
 
                 newProject =
                     GetterSetters.projectUpdateServer project newServer
@@ -3785,6 +3789,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                             | targetOpenstackStatus = targetStatuses
                             , floatingIpCreationOption = newFloatingIpOption
                         }
+                        server.interaction
 
                 newProject =
                     GetterSetters.projectUpdateServer project newServer
@@ -3949,6 +3954,17 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                             ( newSharedModel, exoSetupStatusMetadataCmd )
                                 |> mapToOuterMsg
                                 |> mapToOuterModel outerModel
+
+        SetMinimumServerInteractivity interactivity ->
+            let
+                newProject =
+                    GetterSetters.projectUpdateServer project { server | interaction = Interactivity.maximum interactivity server.interaction }
+
+                newSharedModel =
+                    GetterSetters.modelUpdateProject sharedModel newProject
+            in
+            ( newSharedModel, Cmd.none )
+                |> mapToOuterModel outerModel
 
 
 processNewFloatingIp : Time.Posix -> Project -> OSTypes.FloatingIp -> Project

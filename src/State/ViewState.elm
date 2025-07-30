@@ -5,6 +5,7 @@ module State.ViewState exposing
 
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
+import Helpers.Interactivity as Interactivity
 import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.Quotas as OSQuotas
 import OpenStack.Types as OSTypes
@@ -48,6 +49,7 @@ import Rest.Nova
 import Route
 import Time
 import Types.HelperTypes as HelperTypes
+import Types.Interactivity exposing (InteractionLevel(..))
 import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.SharedModel exposing (SharedModel)
@@ -391,6 +393,8 @@ routeToViewStateModelCmd sharedModel route =
                                     ( newSharedModel, cmd )
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestServer (GetterSetters.projectIdentifier project) serverId)
+                                        |> Helpers.pipelineCmd
+                                            (Interactivity.updateServerInteractivity HighInteraction (GetterSetters.projectIdentifier project) serverId)
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestImages (GetterSetters.projectIdentifier project))
                                         |> Helpers.pipelineCmd (ApiModelHelpers.requestServerImageIfNotFound project serverId)

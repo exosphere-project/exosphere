@@ -19,6 +19,7 @@ import Types.Banner as BannerTypes
 import Types.Error exposing (ErrorContext, HttpErrorWithBody, Toast)
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes as HelperTypes
+import Types.Interactivity exposing (InteractionLevel)
 import Types.Jetstream2Accounting
 import Url
 
@@ -157,3 +158,4 @@ type ServerSpecificMsgConstructor
     | ReceiveGuacamoleAuthToken (Result Http.Error GuacTypes.GuacamoleAuthToken)
     | RequestServerAction (HelperTypes.Url -> Cmd SharedMsg) (Maybe (List OSTypes.ServerStatus)) Bool
     | ReceiveConsoleLog ErrorContext (Result HttpErrorWithBody String)
+    | SetMinimumServerInteractivity InteractionLevel

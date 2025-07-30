@@ -20,6 +20,7 @@ import Time
 import Types.Error exposing (HttpErrorWithBody)
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes as HelperTypes
+import Types.Interactivity exposing (InteractionLevel)
 import Types.ServerResourceUsage
 import Types.Workflow as WorkflowTypes
 
@@ -27,6 +28,7 @@ import Types.Workflow as WorkflowTypes
 type alias Server =
     { osProps : OSTypes.Server
     , exoProps : ExoServerProps
+    , interaction : InteractionLevel
     }
 
 

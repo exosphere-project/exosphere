@@ -49,6 +49,7 @@ import Rest.Naming
 import Types.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes exposing (HttpRequestMethod(..), ProjectIdentifier, Url)
+import Types.Interactivity as Interactivity exposing (InteractionLevel(..))
 import Types.Project exposing (Project)
 import Types.Server exposing (ExoServerProps, ExoSetupStatus(..), Server, ServerOrigin(..))
 import Types.SharedModel exposing (SharedModel)
@@ -939,6 +940,14 @@ receiveServer_ project osServer =
 
 initOrUpdateServer : Project -> OSTypes.Server -> Server
 initOrUpdateServer project osServer =
+    let
+        defaultInteractionLevel =
+            if osServer.details.userUuid == project.auth.user.uuid then
+                LowInteraction
+
+            else
+                NoInteraction
+    in
     case GetterSetters.serverLookup project osServer.uuid of
         Nothing ->
             let
@@ -951,7 +960,7 @@ initOrUpdateServer project osServer =
                         Nothing
                         False
             in
-            Server osServer defaultExoProps
+            Server osServer defaultExoProps defaultInteractionLevel
 
         Just exoServer ->
             let
@@ -1019,6 +1028,7 @@ initOrUpdateServer project osServer =
                         , targetOpenstackStatus = newTargetOpenstackStatus
                         , serverOrigin = newServerOrigin
                     }
+                , interaction = Interactivity.maximum defaultInteractionLevel exoServer.interaction
             }
 
 
