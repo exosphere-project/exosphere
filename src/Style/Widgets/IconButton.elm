@@ -56,6 +56,7 @@ clickableIcon attributes { icon, accessibilityLabel, onClick, color, hoverColor 
                  ]
                     ++ (if onClick == Nothing then
                             [ Element.htmlAttribute (style "cursor" "not-allowed")
+                            , Element.htmlAttribute (attribute "aria-disabled" "true")
                             , Element.alpha 0.6
                             ]
 
