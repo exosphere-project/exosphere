@@ -89,8 +89,8 @@ requestServers project =
         )
 
 
-requestServer : Project -> OSTypes.ServerUuid -> Cmd SharedMsg
-requestServer project serverUuid =
+requestServer : Project -> InteractionLevel -> OSTypes.ServerUuid -> Cmd SharedMsg
+requestServer project interactionLevel serverUuid =
     let
         errorContext =
             ErrorContext
@@ -101,7 +101,7 @@ requestServer project serverUuid =
         resultToMsg result =
             ProjectMsg
                 (GetterSetters.projectIdentifier project)
-                (ReceiveServer serverUuid errorContext result)
+                (ReceiveServer interactionLevel serverUuid errorContext result)
     in
     openstackCredentialedRequest
         (GetterSetters.projectIdentifier project)
@@ -789,7 +789,7 @@ receiveServers model project osServers =
     let
         ( newExoServers, cmds ) =
             osServers
-                |> List.map (receiveServer_ project)
+                |> List.map (receiveServer_ project NoInteraction)
                 |> List.unzip
 
         newExoServersClearSomeExoProps =
@@ -852,11 +852,11 @@ receiveServers model project osServers =
     )
 
 
-receiveServer : SharedModel -> Project -> OSTypes.Server -> ( SharedModel, Cmd SharedMsg )
-receiveServer model project osServer =
+receiveServer : SharedModel -> Project -> InteractionLevel -> OSTypes.Server -> ( SharedModel, Cmd SharedMsg )
+receiveServer model project interactionLevel osServer =
     let
         ( newServer, cmd ) =
-            receiveServer_ project osServer
+            receiveServer_ project interactionLevel osServer
 
         newServerUpdatedSomeExoProps =
             let
@@ -879,12 +879,12 @@ receiveServer model project osServer =
     )
 
 
-receiveServer_ : Project -> OSTypes.Server -> ( Server, Cmd SharedMsg )
-receiveServer_ project osServer =
+receiveServer_ : Project -> InteractionLevel -> OSTypes.Server -> ( Server, Cmd SharedMsg )
+receiveServer_ project interactionLevel osServer =
     let
         newServer : Server
         newServer =
-            initOrUpdateServer project osServer
+            initOrUpdateServer project interactionLevel osServer
 
         passphraseCmd =
             requestPassphraseIfRequestable project newServer
@@ -919,15 +919,16 @@ receiveServer_ project osServer =
     ( newServer, allCmds )
 
 
-initOrUpdateServer : Project -> OSTypes.Server -> Server
-initOrUpdateServer project osServer =
+initOrUpdateServer : Project -> InteractionLevel -> OSTypes.Server -> Server
+initOrUpdateServer project interactionLevel osServer =
     let
         defaultInteractionLevel =
-            if osServer.details.userUuid == project.auth.user.uuid then
-                LowInteraction
+            Interactivity.maximum interactionLevel <|
+                if osServer.details.userUuid == project.auth.user.uuid then
+                    LowInteraction
 
-            else
-                NoInteraction
+                else
+                    NoInteraction
     in
     case GetterSetters.serverLookup project osServer.uuid of
         Nothing ->

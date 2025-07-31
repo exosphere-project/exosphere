@@ -131,7 +131,7 @@ stepServerPoll time project server =
             in
             ( newProject
               -- , Cmd.none
-            , Rest.Nova.requestServer project newServer.osProps.uuid
+            , Rest.Nova.requestServer project newServer.interaction newServer.osProps.uuid
             )
 
 

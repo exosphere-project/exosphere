@@ -80,7 +80,7 @@ import Types.Banner exposing (bannerId)
 import Types.Error as Error exposing (AppError, ErrorContext, ErrorLevel(..))
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes as HelperTypes exposing (UnscopedProviderProject)
-import Types.Interactivity as Interactivity
+import Types.Interactivity as Interactivity exposing (InteractionLevel(..))
 import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Endpoints, Project, ProjectSecret(..))
@@ -1655,10 +1655,10 @@ processProjectSpecificMsg outerModel project msg =
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
-        ReceiveServer serverUuid errorContext result ->
+        ReceiveServer interactionLevel serverUuid errorContext result ->
             case result of
                 Ok server ->
-                    Rest.Nova.receiveServer sharedModel project server
+                    Rest.Nova.receiveServer sharedModel project interactionLevel server
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
@@ -3467,7 +3467,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                 |> mapToOuterMsg
 
         ReceiveServerAction ->
-            ApiModelHelpers.requestServer (GetterSetters.projectIdentifier project) server.osProps.uuid sharedModel
+            ApiModelHelpers.requestServer (GetterSetters.projectIdentifier project) NoInteraction server.osProps.uuid sharedModel
                 |> Helpers.pipelineCmd (ApiModelHelpers.requestServerEvents (GetterSetters.projectIdentifier project) server.osProps.uuid)
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel

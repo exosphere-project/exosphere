@@ -5,7 +5,6 @@ module State.ViewState exposing
 
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
-import Helpers.Interactivity as Interactivity
 import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.Quotas as OSQuotas
 import OpenStack.Types as OSTypes
@@ -392,9 +391,7 @@ routeToViewStateModelCmd sharedModel route =
                                 ( newNewSharedModel, newCmd ) =
                                     ( newSharedModel, cmd )
                                         |> Helpers.pipelineCmd
-                                            (ApiModelHelpers.requestServer (GetterSetters.projectIdentifier project) serverId)
-                                        |> Helpers.pipelineCmd
-                                            (Interactivity.updateServerInteractivity HighInteraction (GetterSetters.projectIdentifier project) serverId)
+                                            (ApiModelHelpers.requestServer (GetterSetters.projectIdentifier project) HighInteraction serverId)
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestImages (GetterSetters.projectIdentifier project))
                                         |> Helpers.pipelineCmd (ApiModelHelpers.requestServerImageIfNotFound project serverId)
@@ -457,7 +454,7 @@ routeToViewStateModelCmd sharedModel route =
                                     , Ports.instantiateClipboardJs ()
                                     )
                                         |> Helpers.pipelineCmd
-                                            (ApiModelHelpers.requestServer (GetterSetters.projectIdentifier project) serverId)
+                                            (ApiModelHelpers.requestServer (GetterSetters.projectIdentifier project) HighInteraction serverId)
                                         |> Helpers.pipelineCmd (ApiModelHelpers.requestSecurityGroups (GetterSetters.projectIdentifier project))
                             in
                             ( projectViewProto <| ServerSecurityGroups (Page.ServerSecurityGroups.init project serverId)
