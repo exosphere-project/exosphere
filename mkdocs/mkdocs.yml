@@ -43,6 +43,7 @@ nav:
       - 'docs/adr/README.md'
       - 'Exosphere Tests': 'tests/README.md'
       - 'Browser Integration Tests': 'integration-tests/README.md'
+      - 'Performance Tests': 'performance-tests/README.md'
       - 'docs/mkdocs-site.md'
       - 'docs/code-of-conduct.md'
   - For Exosphere Project Maintainers:

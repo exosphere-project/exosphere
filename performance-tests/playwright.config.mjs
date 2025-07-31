@@ -7,6 +7,7 @@ dotenv.config();
 export default defineConfig({
   outputDir: "results",
   webServer: {
+    // TODO: Serve the production build instead of the development server for more accurate performance testing.
     command: "npm run start",
     url: "http://app.exosphere.localhost:8000/",
     reuseExistingServer: true,
