@@ -293,7 +293,13 @@ serverView context currentTime project retainFloatingIpsWhenDeleting serverRecor
                                 { text = interactionDetails.name
                                 , icon =
                                     Element.el []
-                                        (interactionDetails.icon (SH.toElementColor context.palette.primary) 18)
+                                        (case interactionStatus of
+                                            ITypes.Loading ->
+                                                Spinner.sized 18 context.palette
+
+                                            _ ->
+                                                interactionDetails.icon (SH.toElementColor context.palette.primary) 18
+                                        )
                                 , onPress =
                                     case interactionStatus of
                                         ITypes.Ready url ->
