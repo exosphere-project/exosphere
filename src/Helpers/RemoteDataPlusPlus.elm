@@ -8,7 +8,6 @@ module Helpers.RemoteDataPlusPlus exposing
     , empty
     , gotData
     , isLoading
-    , isPollableWithInterval
     , map
     , map2
     , setData
@@ -152,32 +151,3 @@ toMaybe rdpp =
 
         _ ->
             Nothing
-
-
-isPollableWithInterval : RemoteDataPlusPlus x y -> Time.Posix -> Int -> Bool
-isPollableWithInterval rdpp currentTime pollIntervalMillis =
-    let
-        timeTooRecent : Time.Posix -> Bool
-        timeTooRecent time =
-            Time.posixToMillis currentTime - Time.posixToMillis time < pollIntervalMillis
-
-        receivedTimeTooRecent =
-            case rdpp.data of
-                DontHave ->
-                    False
-
-                DoHave _ receivedTime ->
-                    timeTooRecent receivedTime
-
-        errorTooRecentOrLoading =
-            case rdpp.refreshStatus of
-                NotLoading Nothing ->
-                    False
-
-                NotLoading (Just ( _, receivedTime )) ->
-                    timeTooRecent receivedTime
-
-                Loading ->
-                    True
-    in
-    not (receivedTimeTooRecent || errorTooRecentOrLoading)
