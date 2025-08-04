@@ -1,4 +1,4 @@
-module Types.SecurityGroupActions exposing (SecurityGroupAction, SecurityGroupActionId(..), initPendingRulesChanges, initPendingSecurityGroupChanges, initSecurityGroupAction, toComparableSecurityGroupActionId)
+module Types.SecurityGroupActions exposing (ComparableSecurityGroupActionId, SecurityGroupAction, SecurityGroupActionId(..), fromComparableSecurityGroupActionId, initPendingRulesChanges, initPendingSecurityGroupChanges, initSecurityGroupAction, toComparableSecurityGroupActionId)
 
 import OpenStack.Types exposing (SecurityGroupUuid, ServerUuid)
 
@@ -8,14 +8,35 @@ type SecurityGroupActionId
     | NewGroup String
 
 
-toComparableSecurityGroupActionId : SecurityGroupActionId -> String
+type alias ComparableSecurityGroupActionId =
+    String
+
+
+toComparableSecurityGroupActionId : SecurityGroupActionId -> ComparableSecurityGroupActionId
 toComparableSecurityGroupActionId actionId =
     case actionId of
         ExtantGroup uuid ->
-            "extant-" ++ uuid
+            "extant::" ++ uuid
 
         NewGroup name ->
-            "new-" ++ name
+            "new::" ++ name
+
+
+fromComparableSecurityGroupActionId : ComparableSecurityGroupActionId -> SecurityGroupActionId
+fromComparableSecurityGroupActionId comparableId =
+    comparableId
+        |> String.split "::"
+        |> (\segments ->
+                case segments of
+                    "extant" :: uuid :: [] ->
+                        ExtantGroup uuid
+
+                    "new" :: name :: [] ->
+                        NewGroup name
+
+                    _ ->
+                        ExtantGroup "unknown"
+           )
 
 
 type alias SecurityGroupAction =
