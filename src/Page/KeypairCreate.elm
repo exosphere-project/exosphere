@@ -124,7 +124,10 @@ view context project currentTime model =
                 }
              , renderInvalidReason invalidNameReason
              ]
-                ++ Forms.resourceNameAlreadyExists context project currentTime { resource = Keypair model.name, onSuggestionPressed = \suggestion -> GotName suggestion }
+                ++ Forms.resourceNameAlreadyExists context
+                    project
+                    currentTime
+                    { resource = Keypair model.name, onSuggestionPressed = \suggestion -> GotName suggestion, errorLevel = Validation.Warning }
             )
         , Input.multiline
             (VH.inputItemAttributes context.palette

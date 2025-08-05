@@ -43,7 +43,7 @@ import Style.Widgets.Spinner as Spinner
 import Style.Widgets.Tag as Tag
 import Style.Widgets.Text as Text exposing (TextVariant(..))
 import Style.Widgets.ToggleTip
-import Style.Widgets.Validation exposing (invalidMessage)
+import Style.Widgets.Validation exposing (FormErrorLevel(..), invalidMessage)
 import Time
 import Types.Error exposing (HttpErrorWithBody)
 import Types.HelperTypes as HelperTypes
@@ -739,7 +739,7 @@ view context project currentTime model =
                         }
                     ]
                     :: renderInvalidNameReasons
-                    ++ Forms.resourceNameAlreadyExists context project currentTime { resource = Compute model.serverName, onSuggestionPressed = \suggestion -> GotServerName suggestion }
+                    ++ Forms.resourceNameAlreadyExists context project currentTime { resource = Compute model.serverName, onSuggestionPressed = \suggestion -> GotServerName suggestion, errorLevel = Warning }
                 )
             , Element.row [ Element.spacing spacer.px8 ]
                 [ Text.strong <|

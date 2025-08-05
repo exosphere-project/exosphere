@@ -123,7 +123,7 @@ view context project currentTime model =
                     }
                  , renderInvalidReason invalidReason
                  ]
-                    ++ Forms.resourceNameAlreadyExists context project currentTime { resource = Share model.name, onSuggestionPressed = \suggestion -> GotName suggestion }
+                    ++ Forms.resourceNameAlreadyExists context project currentTime { resource = Share model.name, onSuggestionPressed = \suggestion -> GotName suggestion, errorLevel = Validation.Warning }
                     ++ [ Element.text <|
                             String.join " "
                                 [ "(Note:"

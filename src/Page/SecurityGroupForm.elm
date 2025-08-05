@@ -572,7 +572,7 @@ view context project currentTime model maybeServerUuid =
                                 , "require a unique name.)"
                                 ]
                         )
-                            :: Forms.resourceNameAlreadyExists context project currentTime { resource = Forms.SecurityGroup model.name, onSuggestionPressed = \suggestion -> GotName suggestion }
+                            :: Forms.resourceNameAlreadyExists context project currentTime { resource = Forms.SecurityGroup model.name, onSuggestionPressed = \suggestion -> GotName suggestion, errorLevel = Validation.Error }
                    )
                 ++ [ Element.el [ formPadding ] <| renderInvalidReason invalidReason
                    , Input.text
