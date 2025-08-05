@@ -9,6 +9,7 @@ import Helpers.Cidr exposing (isValidCidr)
 import Helpers.Formatting exposing (humanCount)
 import Helpers.GetterSetters as GetterSetters
 import Helpers.String exposing (pluralizeCount, removeEmptiness)
+import Helpers.Validation exposing (securityGroupNameExists)
 import Json.Decode as Decode
 import List
 import List.Extra
@@ -667,8 +668,11 @@ view context project currentTime model maybeServerUuid =
                             ]
                     , onPress =
                         let
+                            isNameConflicted =
+                                existingSecurityGroupName /= Just (String.trim model.name) && securityGroupNameExists project model.name
+
                             isFormValid =
-                                isRuleSetValid && isNameValid
+                                isRuleSetValid && isNameValid && not isNameConflicted
                         in
                         if isFormValid then
                             case model.uuid of
