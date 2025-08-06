@@ -51,7 +51,6 @@ retry() {
   return 1
 }
 
-{create-cluster-command}
 (which apt-get && retry apt-get install -y python3-venv) # Install python3-venv on Debian-based platforms
 (which yum     && retry yum install -y python3)      # Install python3 on RHEL-based platforms
 python3 -m venv /opt/ansible-venv
@@ -88,7 +87,7 @@ ssh_pwauth: true
 package_update: true
 package_upgrade: {install-os-updates}
 packages:
-  - git{write-files}
+  - git
 """
 
 

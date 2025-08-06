@@ -328,7 +328,6 @@ type alias CreateServerPageModel =
     , workflowInputReference : String
     , workflowInputPath : String
     , workflowInputIsValid : Maybe Bool
-    , createCluster : Bool
     , showFormInvalidToggleTip : Bool
     , createServerAttempted : Bool
     , randomServerName : String

@@ -92,7 +92,6 @@ type Msg
     | GotWorkflowReference String
     | GotWorkflowPath String
     | GotWorkflowInputLoseFocus
-    | GotCreateCluster Bool
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
 
@@ -129,7 +128,6 @@ init context project imageUuid imageName restrictFlavorIds deployGuacamole =
     , workflowInputReference = ""
     , workflowInputPath = ""
     , workflowInputIsValid = Nothing
-    , createCluster = False
     , showFormInvalidToggleTip = False
     , createServerAttempted = False
     , randomServerName = ""
@@ -386,14 +384,6 @@ update msg { viewContext } project model =
         GotWorkflowPath path ->
             ( { model
                 | workflowInputPath = path
-              }
-            , Cmd.none
-            , SharedMsg.NoOp
-            )
-
-        GotCreateCluster createCluster ->
-            ( { model
-                | createCluster = createCluster
               }
             , Cmd.none
             , SharedMsg.NoOp
@@ -842,7 +832,6 @@ view context project currentTime model =
 
                               else
                                 keypairPicker context project model
-                            , clusterInput context model
                             , userDataInput context model
                             ]
                        )
@@ -1410,76 +1399,6 @@ customWorkflowInputExperimental context project model =
                     [ Element.none ]
                )
         )
-
-
-clusterInput : View.Types.Context -> Model -> Element.Element Msg
-clusterInput context model =
-    if context.experimentalFeaturesEnabled then
-        clusterInputExperimental context model
-
-    else
-        Element.none
-
-
-clusterInputExperimental : View.Types.Context -> Model -> Element.Element Msg
-clusterInputExperimental context model =
-    let
-        experimentalTag =
-            Tag.tag context.palette "Experimental"
-    in
-    Element.column
-        [ Element.width Element.fill
-        , Element.spacing spacer.px12
-        ]
-        [ Input.radioRow [ Element.spacing spacer.px32 ]
-            { label =
-                Input.labelAbove VH.radioLabelAttributes
-                    (Element.wrappedRow [ Element.spacing spacer.px8 ]
-                        [ Text.text Text.Emphasized [] ("Create your own SLURM cluster with this " ++ context.localization.virtualComputer ++ " as the head node")
-                        , experimentalTag
-                        ]
-                    )
-            , onChange = GotCreateCluster
-            , options =
-                [ Input.option False (Element.text "No")
-                , Input.option True (Element.text "Yes")
-
-                {- -}
-                ]
-            , selected = Just model.createCluster
-            }
-        , if model.createCluster then
-            let
-                warnings =
-                    [ Element.text {- @nonlocalized -} "Warning: This will only work on Jetstream Cloud, and can take 30 minutes or longer to set up a cluster."
-                    , Element.text <|
-                        String.concat
-                            [ "This feature currently only supports "
-                            , context.localization.staticRepresentationOfBlockDeviceContents
-                                |> Helpers.String.pluralize
-                            , " based on Rocky Linux 8. If you choose "
-                            , context.localization.staticRepresentationOfBlockDeviceContents
-                                |> Helpers.String.indefiniteArticle
-                            , " "
-                            , context.localization.staticRepresentationOfBlockDeviceContents
-                            , " based on a different operating system it is unlikely to work."
-                            ]
-                    ]
-            in
-            Alert.alert []
-                context.palette
-                { state = Alert.Warning
-                , showIcon = False
-                , showContainer = True
-                , content =
-                    Element.column
-                        [ Element.spacing spacer.px12, Element.width Element.fill ]
-                        (List.map (\warning -> Element.paragraph [] [ warning ]) warnings)
-                }
-
-          else
-            Element.none
-        ]
 
 
 desktopEnvironmentPicker : View.Types.Context -> Project -> Model -> Element.Element Msg
