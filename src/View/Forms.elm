@@ -41,9 +41,9 @@ resourceNameAlreadyExists :
     { context | localization : Types.HelperTypes.Localization, palette : ExoPalette }
     -> Project
     -> Time.Posix
-    -> { resource : Resource, onSuggestionPressed : String -> msg }
+    -> { resource : Resource, onSuggestionPressed : String -> msg, errorLevel : Style.Widgets.Validation.FormErrorLevel }
     -> List (Element msg)
-resourceNameAlreadyExists context project currentTime { resource, onSuggestionPressed } =
+resourceNameAlreadyExists context project currentTime { resource, onSuggestionPressed, errorLevel } =
     let
         ( name, checkNameExists, localizedResourceType ) =
             case resource of
@@ -74,6 +74,7 @@ resourceNameAlreadyExists context project currentTime { resource, onSuggestionPr
         , message = resourceNameExistsMessage localizedResourceType context.localization.unitOfTenancy
         , suggestions = suggestedNames
         , onSuggestionPressed = onSuggestionPressed
+        , errorLevel = errorLevel
         }
 
 

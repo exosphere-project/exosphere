@@ -117,7 +117,7 @@ view context project currentTime model =
                     }
                  , renderInvalidReason invalidReason
                  ]
-                    ++ Forms.resourceNameAlreadyExists context project currentTime { resource = Volume model.name, onSuggestionPressed = \suggestion -> GotName suggestion }
+                    ++ Forms.resourceNameAlreadyExists context project currentTime { resource = Volume model.name, onSuggestionPressed = \suggestion -> GotName suggestion, errorLevel = Validation.Warning }
                     ++ [ Element.text <|
                             String.join " "
                                 [ "(Suggestion: choose a good name that describes what the"
