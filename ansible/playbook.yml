@@ -26,7 +26,7 @@
     - role: 'vnc-server'
       tags:
         - 'vnc-server'
-      when: 'gui_enabled | default(false) == true'
+      when: '(gui_enabled | default(false) == true) and (guac_enabled | default(false) == true)'
     - role: 'guacamole'
       tags:
         - 'guacamole'
