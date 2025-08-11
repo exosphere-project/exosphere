@@ -16,20 +16,20 @@
     - 'system-load-logging'
     - 'cloud-init-tweaks'
     - role: 'docker'
-      when: '(guac_enabled is defined and guac_enabled == true) or (workflow_source_repository is defined)'
+      when: '(guac_enabled | default(false) == true) or (workflow_source_repository is defined)'
     - role: 'desktop-setup'
-      when: 'gui_enabled is defined and gui_enabled == true'
+      when: 'gui_enabled | default(false) == true'
     # Docker restarts services, and then the automount service doesn't come back up
     - 'auto-mount-volumes'
     # VNC service must run after Docker service because it listens on Docker network interface
     - role: 'vnc-server'
       tags:
         - 'vnc-server'
-      when: 'gui_enabled is defined and gui_enabled == true'
+      when: 'gui_enabled | default(false) == true'
     - role: 'guacamole'
       tags:
         - 'guacamole'
-      when: 'guac_enabled is defined and guac_enabled == true'
+      when: 'guac_enabled | default(false) == true'
     - role: 'workflow'
       tags:
         - 'workflow'
