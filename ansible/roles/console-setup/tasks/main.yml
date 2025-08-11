@@ -1,0 +1,23 @@
+---
+
+- name: 'getty@tty1.service.d created'
+  file:
+    path: '/etc/systemd/system/getty@tty1.service.d'
+    state: 'directory'
+
+- name: 'Enable automatic login for tty1'
+  copy:
+    src: 'autologin.conf'
+    dest: '/etc/systemd/system/getty@tty1.service.d/autologin.conf'
+
+- name: 'Force systemd to reload configuration'
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+
+
+
+- name: 'Restart getty@tty1.service with the changes'
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+    name: getty@tty1.service
+    state: restarted

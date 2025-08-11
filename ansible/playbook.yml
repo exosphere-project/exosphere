@@ -15,6 +15,7 @@
     - 'base-setup'
     - 'system-load-logging'
     - 'cloud-init-tweaks'
+    - 'console-setup'
     - role: 'docker'
       when: '(guac_enabled | default(false) == true) or (workflow_source_repository is defined)'
     - role: 'desktop-setup'
