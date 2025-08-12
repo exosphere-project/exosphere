@@ -1,6 +1,6 @@
 module Types.ServerActionRequestQueue exposing (ServerActionRequest(..), ServerActionRequestJob)
 
-import Helpers.Queue exposing (JobStatus)
+import Helpers.Queue exposing (Job)
 import OpenStack.Types exposing (ServerSecurityGroup)
 
 
@@ -11,6 +11,4 @@ type ServerActionRequest
 
 
 type alias ServerActionRequestJob =
-    { job : ServerActionRequest
-    , status : JobStatus
-    }
+    Job ServerActionRequest

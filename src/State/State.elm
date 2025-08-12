@@ -2676,11 +2676,7 @@ processProjectSpecificMsg outerModel project msg =
                         (\maybeQueue ->
                             maybeQueue
                                 |> Maybe.map
-                                    (Helpers.Queue.removeJobFromQueue
-                                        { job = ServerActionRequestQueue.RemoveServerSecurityGroup serverSecurityGroup
-                                        , status = Helpers.Queue.Processing
-                                        }
-                                    )
+                                    (Helpers.Queue.removeJobFromQueue (ServerActionRequestQueue.RemoveServerSecurityGroup serverSecurityGroup))
                         )
                         project.serverActionRequestQueue
 

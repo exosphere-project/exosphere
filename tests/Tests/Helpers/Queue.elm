@@ -1,8 +1,5 @@
 module Tests.Helpers.Queue exposing (queueSuite)
 
--- Test related Modules
--- Exosphere Modules Under Test
-
 import Expect
 import Helpers.Queue
 import Test exposing (Test, describe, test)
@@ -68,7 +65,7 @@ queueSuite =
                 ]
 
             finishedJob =
-                { status = Helpers.Queue.Processing, job = "1" }
+                "1"
 
             expectedQueue =
                 [ { status = Helpers.Queue.Waiting, job = "2" }

@@ -11,8 +11,8 @@ type JobStatus
 
 
 type alias Job a =
-    { a
-        | status : JobStatus
+    { job : a
+    , status : JobStatus
     }
 
 
@@ -29,10 +29,10 @@ isQueueBusy queue =
         |> (\count -> count >= concurrency)
 
 
-removeJobFromQueue : Job a -> List (Job a) -> List (Job a)
+removeJobFromQueue : a -> List (Job a) -> List (Job a)
 removeJobFromQueue jobToRemove queue =
     queue
-        |> List.filter (\job -> job /= jobToRemove)
+        |> List.filter (\job -> job.job /= jobToRemove)
 
 
 {-| From the current queue, return
