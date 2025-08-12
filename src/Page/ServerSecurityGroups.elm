@@ -542,26 +542,22 @@ renderSecurityGroupListAndRules context project currentTime model securityGroups
                             editing =
                                 case model.securityGroupForm of
                                     Just securityGroupForm ->
-                                        let
-                                            isOneOfTheFormRules =
+                                        case securityGroupForm.uuid of
+                                            Just uuid ->
+                                                -- This is an existing security group.
+                                                -- If the rule belongs to a group that is selected or already applied, show the rule as being edited.
+                                                (appliedSecurityGroups
+                                                    ++ selectedSecurityGroups
+                                                )
+                                                    |> List.Extra.find (\sg -> sg.uuid == uuid)
+                                                    |> Maybe.map (\sg -> List.any (\r -> matchRule r rule) sg.rules)
+                                                    |> Maybe.withDefault False
+
+                                            Nothing ->
+                                                -- This is a new security group.
+                                                -- If a rule is in the form, show it as being edited since it will be applied later.
                                                 securityGroupForm.rules
                                                     |> List.any (\r -> matchRule r rule)
-
-                                            -- Also show an existing rule deleted from the form as under edit.
-                                            isAlreadyAppled =
-                                                case securityGroupForm.uuid of
-                                                    Just uuid ->
-                                                        applied
-                                                            && (appliedSecurityGroups
-                                                                    |> List.Extra.find (\sg -> sg.uuid == uuid)
-                                                                    |> Maybe.map (\sg -> List.any (\r -> matchRule r rule) sg.rules)
-                                                                    |> Maybe.withDefault False
-                                                               )
-
-                                                    Nothing ->
-                                                        False
-                                        in
-                                        isOneOfTheFormRules || isAlreadyAppled
 
                                     Nothing ->
                                         False
