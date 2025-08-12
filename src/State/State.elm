@@ -3379,13 +3379,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                             )
 
                 updatedQueue =
-                    case removalRequests of
-                        [] ->
-                            queue
-
-                        _ ->
-                            queue
-                                |> List.append (removalRequests |> List.map (\req -> { job = req, status = Helpers.Queue.Waiting }))
+                    Helpers.Queue.addJobsToQueue removalRequests queue
 
                 ( nextJobs, newQueue ) =
                     Helpers.Queue.marshalQueue updatedQueue
@@ -3403,21 +3397,17 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
 
                 -- If we have jobs to process, we can execute them.
                 removeRequests =
-                    if List.isEmpty nextJobs then
-                        []
-
-                    else
-                        nextJobs
-                            |> List.map
-                                (\job ->
-                                    case job.job of
-                                        ServerActionRequestQueue.RemoveServerSecurityGroup serverSecurityGroup ->
-                                            Rest.Nova.requestUpdateServerSecurityGroup newProject server.osProps.uuid <|
-                                                OSTypes.RemoveServerSecurityGroup
-                                                    { uuid = serverSecurityGroup.uuid
-                                                    , name = serverSecurityGroup.name
-                                                    }
-                                )
+                    nextJobs
+                        |> List.map
+                            (\job ->
+                                case job.job of
+                                    ServerActionRequestQueue.RemoveServerSecurityGroup serverSecurityGroup ->
+                                        Rest.Nova.requestUpdateServerSecurityGroup newProject server.osProps.uuid <|
+                                            OSTypes.RemoveServerSecurityGroup
+                                                { uuid = serverSecurityGroup.uuid
+                                                , name = serverSecurityGroup.name
+                                                }
+                            )
 
                 -- Requests to add server security groups can be concurrent.
                 addRequests =

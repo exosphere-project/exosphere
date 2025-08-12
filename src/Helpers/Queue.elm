@@ -1,4 +1,4 @@
-module Helpers.Queue exposing (Job, JobStatus(..), isQueueBusy, marshalQueue, removeJobFromQueue)
+module Helpers.Queue exposing (Job, JobStatus(..), addJobsToQueue, isQueueBusy, marshalQueue, removeJobFromQueue)
 
 import List.Extra
 
@@ -27,6 +27,12 @@ isQueueBusy queue =
         |> List.filter (\job -> job.status == Processing)
         |> List.length
         |> (\count -> count >= concurrency)
+
+
+addJobsToQueue : List a -> List (Job a) -> List (Job a)
+addJobsToQueue jobs queue =
+    queue
+        ++ List.map (\job -> { job = job, status = Waiting }) jobs
 
 
 removeJobFromQueue : a -> List (Job a) -> List (Job a)

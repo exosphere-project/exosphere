@@ -61,6 +61,35 @@ queueSuite =
             queue =
                 [ { status = Helpers.Queue.Processing, job = "1" }
                 , { status = Helpers.Queue.Waiting, job = "2" }
+                ]
+
+            newJobs =
+                [ "3", "4" ]
+
+            expectedQueue =
+                [ { status = Helpers.Queue.Processing, job = "1" }
+                , { status = Helpers.Queue.Waiting, job = "2" }
+                , { status = Helpers.Queue.Waiting, job = "3" }
+                , { status = Helpers.Queue.Waiting, job = "4" }
+                ]
+
+            updatedQueue =
+                Helpers.Queue.addJobsToQueue newJobs queue
+          in
+          describe "addJobsToQueue" <|
+            [ test "Adds the specified jobs to the queue" <|
+                \_ ->
+                    Expect.equal updatedQueue expectedQueue
+            , test "Appends them without changing the order" <|
+                \_ ->
+                    Expect.equal
+                        (List.map .job updatedQueue)
+                        [ "1", "2", "3", "4" ]
+            ]
+        , let
+            queue =
+                [ { status = Helpers.Queue.Processing, job = "1" }
+                , { status = Helpers.Queue.Waiting, job = "2" }
                 , { status = Helpers.Queue.Waiting, job = "3" }
                 ]
 
