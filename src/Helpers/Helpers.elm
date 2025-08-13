@@ -28,7 +28,6 @@ module Helpers.Helpers exposing
 -- Getter/setter functions that remain here are too "smart" (too much business logic) for GetterSetters.elm.
 
 import Dict
-import Helpers.Credentials as Credentials
 import Helpers.ExoSetupStatus
 import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
@@ -337,29 +336,6 @@ ipv4AddressInRfc1918Space ipValue =
             Err "Could not parse IPv4 address, it may be IPv6?"
 
 
-getVirtClusterWriteFilesYaml : Project -> String
-getVirtClusterWriteFilesYaml project =
-    let
-        openrcFileYamlTemplate : String
-        openrcFileYamlTemplate =
-            """
-- path: /home/rocky/openrc.sh
-  content: |
-    export OS_AUTH_TYPE=v3applicationcredential
-    export OS_AUTH_URL={os-auth-url}
-    export OS_IDENTITY_API_VERSION=3
-    export OS_REGION_NAME="{os-region}"
-    export OS_INTERFACE=public
-    export OS_APPLICATION_CREDENTIAL_ID="{os-ac-id}"
-    export OS_APPLICATION_CREDENTIAL_SECRET="{os-ac-secret}"
-  owner: rocky:rocky
-  permissions: '0400'
-  defer: true"""
-    in
-    Credentials.getOpenRcVariables project
-        |> formatStringTemplate openrcFileYamlTemplate
-
-
 renderUserDataTemplate :
     Project
     -> String
@@ -370,9 +346,8 @@ renderUserDataTemplate :
     -> Bool
     -> String
     -> String
-    -> Bool
     -> String
-renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole deployDesktopEnvironment maybeCustomWorkflowSource installOperatingSystemUpdates instanceConfigMgtRepoUrl instanceConfigMgtRepoCheckout createCluster =
+renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole deployDesktopEnvironment maybeCustomWorkflowSource installOperatingSystemUpdates instanceConfigMgtRepoUrl instanceConfigMgtRepoCheckout =
     -- Configure cloud-init user data based on user's choice for SSH keypair and Guacamole
     let
         getPublicKeyFromKeypairName : String -> Maybe String
@@ -433,25 +408,12 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
 
             else
                 "false"
-
-        ( createClusterYaml, writeFilesYaml ) =
-            if createCluster then
-                ( """su - rocky -c "git clone --branch rocky-linux --single-branch --depth 1 https://github.com/XSEDE/CRI_Jetstream_Cluster.git; cd CRI_Jetstream_Cluster; ./cluster_create_local.sh -d 2>&1 | tee local_create.log" """
-                , "\nwrite_files:" ++ getVirtClusterWriteFilesYaml project
-                )
-
-            else
-                ( """echo "Not creating a cluster, moving along..." """
-                , ""
-                )
     in
     [ ( "{ssh-authorized-keys}\n", authorizedKeysYaml )
     , ( "{ansible-extra-vars}", ansibleExtraVars )
     , ( "{install-os-updates}", installOperatingSystemUpatesYaml )
     , ( "{instance-config-mgt-repo-url}", instanceConfigMgtRepoUrl )
     , ( "{instance-config-mgt-repo-checkout}", instanceConfigMgtRepoCheckout )
-    , ( "{create-cluster-command}", createClusterYaml )
-    , ( "{write-files}", writeFilesYaml )
     ]
         |> formatStringTemplate userDataTemplate
 
