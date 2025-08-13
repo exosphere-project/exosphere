@@ -1,8 +1,5 @@
 module Tests.Helpers.Helpers exposing (hostnameSuite, stringIsUuidOrDefaultSuite)
 
--- Test related Modules
--- Exosphere Modules Under Test
-
 import Expect
 import Helpers.Helpers as Helpers
 import Test exposing (Test, describe, test)

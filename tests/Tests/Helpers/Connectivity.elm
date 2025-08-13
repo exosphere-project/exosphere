@@ -1,8 +1,5 @@
 module Tests.Helpers.Connectivity exposing (connectivitySuite)
 
--- Test related Modules
--- Exosphere Modules Under Test
-
 import Expect
 import Helpers.Connectivity exposing (ConnectionPorts(..), ConnectionRemote(..), isConnectionPermitted)
 import OpenStack.SecurityGroupRule exposing (SecurityGroupRuleDirection(..), SecurityGroupRuleEthertype(..), SecurityGroupRuleProtocol(..), buildRuleAllowAllOutgoingIPv4, buildRuleSSH, securityGroupRuleTemplateToRule)

@@ -4,9 +4,6 @@ module Tests.OpenStack.Quotas exposing
     , volumeQuotasAndLimitsSuite
     )
 
--- Test related Modules
--- Exosphere Modules Under Test
-
 import Expect
 import Json.Decode as Decode
 import OpenStack.Quotas

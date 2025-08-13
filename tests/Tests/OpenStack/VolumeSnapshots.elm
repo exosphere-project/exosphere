@@ -1,8 +1,5 @@
 module Tests.OpenStack.VolumeSnapshots exposing (volumeSnapshotsSuite)
 
--- Test related Modules
--- Exosphere Modules Under Test
-
 import Expect
 import Json.Decode as Decode
 import OpenStack.VolumeSnapshots exposing (Status(..), volumeSnapshotDecoder)

@@ -1,8 +1,5 @@
 module Tests.OpenStack.SecurityGroupRule exposing (securityGroupRuleSuite)
 
--- Test related Modules
--- Exosphere Modules Under Test
-
 import Expect
 import OpenStack.SecurityGroupRule exposing (SecurityGroupRuleDirection(..), SecurityGroupRuleEthertype(..), SecurityGroupRuleProtocol(..), buildRuleAllowAllOutgoingIPv4, isRuleShadowed, matchRuleAndDescription, remoteSubsumedBy, securityGroupRuleTemplateToRule)
 import Test exposing (Test, describe, test)

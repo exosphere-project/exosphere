@@ -1,8 +1,5 @@
 module Tests.Helpers.String exposing (indefiniteArticlesSuite)
 
--- Test related Modules
--- Exosphere Modules Under Test
-
 import Expect
 import Helpers.String
 import Test exposing (Test, describe, test)

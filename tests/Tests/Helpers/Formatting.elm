@@ -1,8 +1,5 @@
 module Tests.Helpers.Formatting exposing (unitsSuite)
 
--- Test related Modules
--- Exosphere Modules Under Test
-
 import Expect
 import FormatNumber.Locales
 import Helpers.Formatting
