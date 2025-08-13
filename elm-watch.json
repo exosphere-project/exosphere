@@ -1,0 +1,14 @@
+{
+  "serve": ".",
+  "port": 8000,
+  "targets": {
+    "Exosphere": {
+      "inputs": ["src/Exosphere.elm"],
+      "output": "elm-web.js"
+    },
+    "DesignSystem": {
+      "inputs": ["src/DesignSystem/Explorer.elm"],
+      "output": "explorer.js"
+    }
+  }
+}
