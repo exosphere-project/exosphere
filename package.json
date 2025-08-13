@@ -7,7 +7,7 @@
   "scripts": {
     "build:prod": "npx elm make --optimize src/Exosphere.elm --output elm-web.js",
     "minify": "npx terser elm-web.js --mangle --compress 'pure_funcs=[F2,F3,F4,F5,F6,F7,F8,F9,A2,A3,A4,A5,A6,A7,A8,A9],pure_getters,keep_fargs=false,unsafe_comps,unsafe' --output elm-web.js",
-    "postinstall": "npm run elm:git",
+    "postinstall": "npm run elm:sideload && npm run elm:git",
     "start": "npm run live",
     "elm": "npx elm make src/Exosphere.elm --output=elm-web.js || true",
     "live": "npx elm-live src/Exosphere.elm --host app.exosphere.localhost --open --pushstate true --verbose --start-page index.html --hot true -- --output=elm-web.js",
@@ -20,6 +20,7 @@
     "elm:analyse": "npx elm-analyse",
     "elm:review": "npx elm-review",
     "elm:git": "npx elm-git-install",
+    "elm:sideload": "elm-sideload install --always",
     "prepare": "command -v pre-commit && pre-commit install || echo 'pre-commit is not installed, see contributing.md'"
   },
   "author": {
@@ -40,6 +41,7 @@
     "elm-json": "^0.2.13",
     "elm-live": "^4.0.2",
     "elm-review": "^2.10.2",
+    "elm-sideload": "^1.0.0",
     "elm-test-rs": "^3.0.1-0",
     "prettier": "^3.5.3",
     "terser": "^5.43.1",
