@@ -42,6 +42,7 @@ module Helpers.GetterSetters exposing
     , projectDeleteServerVolumeAction
     , projectIdentifier
     , projectLookup
+    , projectRemoveServerActionRequestJob
     , projectSetAutoAllocatedNetworkUuidLoading
     , projectSetDnsRecordSetsLoading
     , projectSetFloatingIpsLoading
@@ -98,6 +99,7 @@ module Helpers.GetterSetters exposing
 
 import Dict
 import Helpers.List exposing (multiSortBy)
+import Helpers.Queue
 import Helpers.RemoteDataPlusPlus as RDPP exposing (RemoteDataPlusPlus)
 import Helpers.String exposing (toTitleCase)
 import Helpers.Url as UrlHelpers
@@ -113,7 +115,7 @@ import Types.HelperTypes as HelperTypes
 import Types.Project exposing (Project)
 import Types.SecurityGroupActions as SecurityGroupActions exposing (SecurityGroupAction)
 import Types.Server exposing (ExoServerVersion, Server, ServerOrigin(..))
-import Types.ServerActionRequestQueue exposing (ServerActionRequestJob)
+import Types.ServerActionRequestQueue exposing (ServerActionRequest, ServerActionRequestJob)
 import Types.ServerVolumeActions exposing (ServerVolumeActionRequest)
 import Types.SharedModel exposing (SharedModel)
 import View.Types exposing (Context)
@@ -1386,3 +1388,20 @@ getServerActionRequestQueue : Project -> OSTypes.ServerUuid -> List ServerAction
 getServerActionRequestQueue project serverId =
     Dict.get serverId project.serverActionRequestQueue
         |> Maybe.withDefault []
+
+
+projectRemoveServerActionRequestJob : Project -> OSTypes.ServerUuid -> ServerActionRequest -> Project
+projectRemoveServerActionRequestJob project serverId job =
+    let
+        updatedQueue =
+            Dict.update serverId
+                (\maybeQueue ->
+                    maybeQueue
+                        |> Maybe.map
+                            (Helpers.Queue.removeJobFromQueue job)
+                )
+                project.serverActionRequestQueue
+    in
+    { project
+        | serverActionRequestQueue = updatedQueue
+    }
