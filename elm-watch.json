@@ -1,6 +1,7 @@
 {
   "serve": ".",
   "port": 8000,
+  "postprocess": ["elm-watch-node", "postprocess.ts"],
   "targets": {
     "Exosphere": {
       "inputs": ["src/Exosphere.elm"],

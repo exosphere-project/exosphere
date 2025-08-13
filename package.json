@@ -6,7 +6,6 @@
   "main": "elm-web.js",
   "scripts": {
     "build:prod": "elm-watch make --optimize",
-    "minify": "npx terser elm-web.js --mangle --compress 'pure_funcs=[F2,F3,F4,F5,F6,F7,F8,F9,A2,A3,A4,A5,A6,A7,A8,A9],pure_getters,keep_fargs=false,unsafe_comps,unsafe' --output elm-web.js",
     "postinstall": "npm run elm:sideload && npm run elm:git",
     "start": "npm run live",
     "elm": "npx elm-watch make",

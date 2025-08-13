@@ -129,29 +129,6 @@ elm_make:
       - public
 
 
-minify:
-  stage: build
-  needs:
-    - elm_make
-  before_script:
-    - 'which rsync || ( apt-get update -y && apt-get install rsync -y )'
-    - if [ -d home/.elm ]; then echo "Restoring ~/.elm"; rsync -a home/.elm ~/; fi
-    - if [ -d home/.npm ]; then echo "Restoring ~/.npm"; rsync -a home/.npm ~/; fi
-    - npm install
-  script:
-    - cp --force public/elm-web.js elm-web.js
-    - npm run minify
-    - cp --force elm-web.js public/elm-web.js
-  after_script:
-    - mkdir -p home && rsync -a ~/.elm home
-    - mkdir -p home && rsync -a ~/.npm home
-  artifacts:
-    paths:
-      - public
-  only:
-    - master
-    - dev
-
 static_analysis:
   stage: test
   needs:
@@ -199,7 +176,6 @@ deploy_prod:
   resource_group: deploy_prod
   dependencies:
     - elm_make
-    - minify
   before_script:
     # See https://docs.gitlab.com/ee/ci/ssh_keys/
     - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
@@ -229,7 +205,6 @@ deploy_jetstream2:
   resource_group: deploy_jetstream2
   dependencies:
     - elm_make
-    - minify
   before_script:
     # See https://docs.gitlab.com/ee/ci/ssh_keys/README.html
     - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
@@ -259,7 +234,6 @@ deploy_rescloud:
   resource_group: deploy_rescloud
   dependencies:
     - elm_make
-    - minify
   before_script:
     # See https://docs.gitlab.com/ee/ci/ssh_keys/README.html
     - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
@@ -289,7 +263,6 @@ deploy_dev:
   resource_group: deploy_dev
   needs:
     - elm_make
-    - minify
   before_script:
     # See https://docs.gitlab.com/ee/ci/ssh_keys/README.html
     - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
