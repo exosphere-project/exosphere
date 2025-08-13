@@ -27,6 +27,10 @@
     mode: '600'
     owner: '{{ vnc_server_user }}'
 
+# Fix getting a black screen on the web desktop when the console session was enabled
+- name: 'Set the default target to multi-user'
+  command: systemctl set-default multi-user.target
+
 - name: 'operating system specific tasks imported'
   include_tasks: "{{ item }}"
   with_first_found:

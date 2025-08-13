@@ -17,17 +17,9 @@
     state: 'present'
   loop: '{{ desktop_environment_package_names }}'
 
-- name: 'graphical environment started on boot'
-  systemd:
-    name: 'graphical.target'
-    enabled: 'yes'
-
-- name: 'graphical environment set as default systemd target'
-  command: 'systemctl set-default graphical.target'
-
-- name: 'graphical environment isolated'
-  command: 'systemctl isolate graphical.target'
-
+# https://askubuntu.com/questions/1048774/disabling-lock-screen-18-04
+# https://people.gnome.org/~pmkovar/system-admin-guide/screen-locking.html
+# https://askubuntu.com/questions/967842/how-to-remove-phone-style-gnome-swipe-to-unlock/1159085#1159085
 - name: 'Automatic login enabled in GDM custom config'
   blockinfile:
     path: '{{ gdm_custom_conf_location }}'
@@ -36,9 +28,19 @@
       AutomaticLogin = {{ desktop_user }}
     insertafter: '\[daemon\]'
 
-# https://askubuntu.com/questions/1048774/disabling-lock-screen-18-04
-# https://people.gnome.org/~pmkovar/system-admin-guide/screen-locking.html
-# https://askubuntu.com/questions/967842/how-to-remove-phone-style-gnome-swipe-to-unlock/1159085#1159085
+- when: guac_enabled | default(false) == false
+  name: Configure GDM on the console session
+  block:
+    - name: 'graphical environment started on boot'
+      systemd:
+        name: 'graphical.target'
+        enabled: 'yes'
+
+    - name: 'graphical environment set as default systemd target'
+      command: 'systemctl set-default graphical.target'
+
+    - name: 'graphical environment isolated'
+      command: 'systemctl isolate graphical.target'
 
 - name: 'User dconf profile created'
   lineinfile:
