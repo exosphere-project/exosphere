@@ -6,7 +6,7 @@
   "main": "elm-web.js",
   "scripts": {
     "build:prod": "npx elm make --optimize src/Exosphere.elm --output elm-web.js",
-    "minify": "npx uglifyjs elm-web.js --compress 'pure_funcs=[F2,F3,F4,F5,F6,F7,F8,F9,A2,A3,A4,A5,A6,A7,A8,A9],pure_getters,keep_fargs=false,unsafe_comps,unsafe' | npx uglifyjs --mangle --output elm-web.js",
+    "minify": "npx terser elm-web.js --mangle --compress 'pure_funcs=[F2,F3,F4,F5,F6,F7,F8,F9,A2,A3,A4,A5,A6,A7,A8,A9],pure_getters,keep_fargs=false,unsafe_comps,unsafe' --output elm-web.js",
     "postinstall": "elm-tooling install && npm run elm:git",
     "start": "npm run live",
     "elm": "npx elm make src/Exosphere.elm --output=elm-web.js || true",
@@ -39,8 +39,8 @@
     "elm-review": "^2.10.2",
     "elm-tooling": "^1.14.0",
     "prettier": "^3.5.3",
-    "typescript": "^5.3.3",
-    "uglify-js": "^3.17.4"
+    "terser": "^5.43.1",
+    "typescript": "^5.3.3"
   },
   "repository": {
     "type": "git",
