@@ -1,8 +1,5 @@
 module Tests.Helpers.Image exposing (imageOSDetectionSuite)
 
--- Test related Modules
--- Exosphere Modules Under Test
-
 import Expect
 import Helpers.Image exposing (detectOperatingSystem)
 import Test exposing (Test, describe, test)

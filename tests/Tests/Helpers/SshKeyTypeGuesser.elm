@@ -1,8 +1,5 @@
 module Tests.Helpers.SshKeyTypeGuesser exposing (sshKeySuite)
 
--- Test related Modules
--- Exosphere Modules Under Test
-
 import Expect
 import Helpers.SshKeyTypeGuesser
 import Test exposing (Test, describe, test)

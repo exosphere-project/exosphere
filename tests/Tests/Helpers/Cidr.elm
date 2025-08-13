@@ -1,8 +1,5 @@
 module Tests.Helpers.Cidr exposing (cidrSuite)
 
--- Test related Modules
--- Exosphere Modules Under Test
-
 import Expect
 import Helpers.Cidr exposing (expandIPv6, isValidCidr)
 import OpenStack.SecurityGroupRule exposing (SecurityGroupRuleEthertype(..))

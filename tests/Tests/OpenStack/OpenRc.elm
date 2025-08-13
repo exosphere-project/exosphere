@@ -1,8 +1,5 @@
 module Tests.OpenStack.OpenRc exposing (processOpenRcSuite)
 
--- Test related Modules
--- Exosphere Modules Under Test
-
 import Expect
 import OpenStack.OpenRc
 import OpenStack.Types exposing (OpenstackLogin)
