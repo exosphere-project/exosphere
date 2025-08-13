@@ -12,6 +12,7 @@ import Helpers.List exposing (uniqueBy)
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.ResourceList exposing (listItemColumnAttribs)
 import Helpers.String
+import List.Extra
 import OpenStack.SecurityGroupRule exposing (isRuleShadowed, matchRule)
 import OpenStack.Types as OSTypes exposing (securityGroupExoTags, securityGroupTaggedAs)
 import Page.SecurityGroupForm as SecurityGroupForm
@@ -491,11 +492,43 @@ renderSecurityGroupListAndRules context project currentTime model securityGroups
                         securityGroups
                             |> List.filter (\securityGroup -> isSecurityGroupSelected model securityGroup.uuid)
 
+                    ( newRules, nextGroups ) =
+                        case model.securityGroupForm of
+                            -- With an active form, we have WIP rules.
+                            Just securityGroupForm ->
+                                case securityGroupForm.uuid of
+                                    -- An existing security group being edited.
+                                    Just uuid ->
+                                        if isSecurityGroupSelected model uuid then
+                                            -- If the security group is selected, use the rules from the form.
+                                            ( securityGroupForm.rules
+                                            , selectedSecurityGroups |> List.filter (\sg -> sg.uuid /= uuid)
+                                            )
+
+                                        else
+                                            -- If not, the edits don't matter.
+                                            ( []
+                                            , selectedSecurityGroups
+                                            )
+
+                                    -- This is a new security group, which will be applied when created.
+                                    Nothing ->
+                                        ( securityGroupForm.rules
+                                        , selectedSecurityGroups
+                                        )
+
+                            Nothing ->
+                                ( []
+                                , selectedSecurityGroups
+                                )
+
                     customiser : SecurityGroupRulesTable.RulesTableRowCustomiser Msg
                     customiser rule =
                         let
                             selectedRules =
-                                List.concatMap .rules selectedSecurityGroups |> uniqueBy matchRule
+                                List.concatMap .rules nextGroups
+                                    |> List.append newRules
+                                    |> uniqueBy matchRule
 
                             selected =
                                 selectedRules
@@ -505,6 +538,29 @@ renderSecurityGroupListAndRules context project currentTime model securityGroups
                                 List.concatMap .rules appliedSecurityGroups
                                     |> uniqueBy matchRule
                                     |> List.any (\r -> matchRule r rule)
+
+                            editing =
+                                case model.securityGroupForm of
+                                    Just securityGroupForm ->
+                                        case securityGroupForm.uuid of
+                                            Just uuid ->
+                                                -- This is an existing security group.
+                                                -- If the rule belongs to a group that is selected or already applied, show the rule as being edited.
+                                                (appliedSecurityGroups
+                                                    ++ selectedSecurityGroups
+                                                )
+                                                    |> List.Extra.find (\sg -> sg.uuid == uuid)
+                                                    |> Maybe.map (\sg -> List.any (\r -> matchRule r rule) sg.rules)
+                                                    |> Maybe.withDefault False
+
+                                            Nothing ->
+                                                -- This is a new security group.
+                                                -- If a rule is in the form, show it as being edited since it will be applied later.
+                                                securityGroupForm.rules
+                                                    |> List.any (\r -> matchRule r rule)
+
+                                    Nothing ->
+                                        False
 
                             highlight =
                                 case ( selected, applied ) of
@@ -535,14 +591,24 @@ renderSecurityGroupListAndRules context project currentTime model securityGroups
                                     _ ->
                                         -- Chosen for consistent spacing when no icon is present.
                                         Just <| Element.el [ Element.width <| Element.px 18 ] (Element.text "")
+
+                            editingTag =
+                                if editing then
+                                    Just <| tagInfo context.palette "editing"
+
+                                else
+                                    -- Chosen for consistent spacing when no tag is present.
+                                    Just <| Element.el [ Element.width <| Element.px 18 ] (Element.text "")
                         in
                         { leftElementForRow = icon
-                        , rightElementForRow = Nothing
-                        , styleForRow = SecurityGroupRulesTable.defaultRowStyle ++ highlight ++ shadowed
+                        , rightElementForRow = editingTag
+                        , styleForRow = SecurityGroupRulesTable.defaultRowStyle ++ highlight ++ shadowed ++ [ Element.height Element.fill ]
                         }
 
                     rules =
-                        List.concatMap .rules (appliedSecurityGroups ++ selectedSecurityGroups) |> uniqueBy matchRule
+                        List.concatMap .rules (appliedSecurityGroups ++ nextGroups)
+                            |> List.append newRules
+                            |> uniqueBy matchRule
                   in
                   SecurityGroupRulesTable.rulesTableWithRowCustomiser
                     context
