@@ -26,4 +26,8 @@ stories renderer =
                         palettize m
           , { note = Spinner.notes }
           )
+        , ( "sized"
+          , \m -> renderer (palettize m) <| Spinner.sized 18 <| palettize m
+          , { note = Spinner.notes }
+          )
         ]

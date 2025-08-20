@@ -29,6 +29,7 @@ import Style.Widgets.Text as Text
 import Style.Widgets.Uuid exposing (uuidLabel)
 import Time
 import Types.Interaction as ITypes
+import Types.Interactivity exposing (InteractionLevel(..))
 import Types.Project exposing (Project)
 import Types.Server exposing (Server, ServerUiStatus)
 import Types.SharedMsg as SharedMsg
@@ -292,7 +293,13 @@ serverView context currentTime project retainFloatingIpsWhenDeleting serverRecor
                                 { text = interactionDetails.name
                                 , icon =
                                     Element.el []
-                                        (interactionDetails.icon (SH.toElementColor context.palette.primary) 18)
+                                        (case interactionStatus of
+                                            ITypes.Loading ->
+                                                Spinner.sized 18 context.palette
+
+                                            _ ->
+                                                interactionDetails.icon (SH.toElementColor context.palette.primary) 18
+                                        )
                                 , onPress =
                                     case interactionStatus of
                                         ITypes.Ready url ->
@@ -336,7 +343,15 @@ serverView context currentTime project retainFloatingIpsWhenDeleting serverRecor
                         ]
             in
             popover context
-                (\interactionPopoverId_ -> SharedMsg <| SharedMsg.TogglePopover interactionPopoverId_)
+                (\interactionPopoverId_ ->
+                    SharedMsg <|
+                        SharedMsg.Batch
+                            [ SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
+                                SharedMsg.ServerMsg serverRecord.id <|
+                                    SharedMsg.SetMinimumServerInteractivity LowInteraction
+                            , SharedMsg.TogglePopover interactionPopoverId_
+                            ]
+                )
                 { id = interactionPopoverId
                 , content = interactionPopover
                 , contentStyleAttrs = []

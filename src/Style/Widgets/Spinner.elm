@@ -1,4 +1,4 @@
-module Style.Widgets.Spinner exposing (medium, notes, small)
+module Style.Widgets.Spinner exposing (medium, notes, sized, small)
 
 import Color
 import Element exposing (Attribute, Element)
@@ -17,6 +17,7 @@ notes =
 A circular indeterminate spinner with predefined sizes used to indicate loading or processing states.
 
     Spinner.medium context.palette
+    Spinner.sized 18 context.palette
 
 (Based on the `circularProgressIndicator` from [elm-ui-widgets](https://package.elm-lang.org/packages/Orasund/elm-ui-widgets/latest/Widget#ProgressIndicator) but with flexible width and height.)
 """
@@ -25,6 +26,7 @@ A circular indeterminate spinner with predefined sizes used to indicate loading 
 type Size
     = Small
     | Medium
+    | Sized Int
 
 
 {-| A small circular indeterminate activity indicator.
@@ -39,6 +41,13 @@ small palette =
 medium : ExoPalette -> Element msg
 medium palette =
     withSize Medium palette.primary
+
+
+{-| A custom-sized circular indeterminate activity indicator.
+-}
+sized : Int -> ExoPalette -> Element msg
+sized px palette =
+    withSize (Sized px) palette.primary
 
 
 {-| A circular indeterminate activity indicator with a predefined size.
@@ -61,6 +70,9 @@ withSize size color =
 
             Medium ->
                 spacer.px48
+
+            Sized px ->
+                px
         )
         color
         accessibility

@@ -19,6 +19,7 @@ import Types.Banner as BannerTypes
 import Types.Error exposing (ErrorContext, HttpErrorWithBody, Toast)
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes as HelperTypes
+import Types.Interactivity exposing (InteractionLevel)
 import Types.Jetstream2Accounting
 import Url
 
@@ -29,6 +30,7 @@ type SharedMsg
     | DoOrchestration Time.Posix
     | HandleApiErrorWithBody ErrorContext HttpErrorWithBody
     | Logout
+    | Batch (List SharedMsg)
     | RequestUnscopedToken OSTypes.OpenstackLogin
     | ReceiveProjectScopedToken OSTypes.KeystoneUrl ( Http.Metadata, String )
     | ReceiveUnscopedAuthToken OSTypes.KeystoneUrl ( Http.Metadata, String )
@@ -82,7 +84,7 @@ type ProjectSpecificMsgConstructor
     | RequestUpdateSecurityGroupTags OSTypes.SecurityGroupUuid (List OSTypes.SecurityGroupTag)
     | ReceiveImages (List OSTypes.Image)
     | ReceiveServerImage (Maybe OSTypes.Image)
-    | ReceiveServer OSTypes.ServerUuid ErrorContext (Result HttpErrorWithBody OSTypes.Server)
+    | ReceiveServer InteractionLevel OSTypes.ServerUuid ErrorContext (Result HttpErrorWithBody OSTypes.Server)
     | ReceiveServerEvents OSTypes.ServerUuid ErrorContext (Result HttpErrorWithBody (List OSTypes.ServerEvent))
     | ReceiveServerSecurityGroups OSTypes.ServerUuid ErrorContext (Result HttpErrorWithBody (List OSTypes.ServerSecurityGroup))
     | ReceiveServerVolumeAttachments OSTypes.ServerUuid ErrorContext (Result HttpErrorWithBody (List OSTypes.VolumeAttachment))
@@ -156,3 +158,4 @@ type ServerSpecificMsgConstructor
     | ReceiveGuacamoleAuthToken (Result Http.Error GuacTypes.GuacamoleAuthToken)
     | RequestServerAction (HelperTypes.Url -> Cmd SharedMsg) (Maybe (List OSTypes.ServerStatus)) Bool
     | ReceiveConsoleLog ErrorContext (Result HttpErrorWithBody String)
+    | SetMinimumServerInteractivity InteractionLevel

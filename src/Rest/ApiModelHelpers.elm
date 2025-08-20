@@ -40,6 +40,7 @@ import Rest.Neutron
 import Rest.Nova
 import Types.Error
 import Types.HelperTypes exposing (ProjectIdentifier)
+import Types.Interactivity exposing (InteractionLevel)
 import Types.Project
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg exposing (SharedMsg)
@@ -97,14 +98,14 @@ requestServers projectUuid model =
             ( model, Cmd.none )
 
 
-requestServer : ProjectIdentifier -> OSTypes.ServerUuid -> SharedModel -> ( SharedModel, Cmd SharedMsg )
-requestServer projectUuid serverUuid model =
+requestServer : ProjectIdentifier -> InteractionLevel -> OSTypes.ServerUuid -> SharedModel -> ( SharedModel, Cmd SharedMsg )
+requestServer projectUuid interactionLevel serverUuid model =
     case GetterSetters.projectLookup model projectUuid of
         Just project ->
             ( project
                 |> GetterSetters.projectSetServerLoading serverUuid
                 |> GetterSetters.modelUpdateProject model
-            , Rest.Nova.requestServer project serverUuid
+            , Rest.Nova.requestServer project interactionLevel serverUuid
             )
 
         Nothing ->

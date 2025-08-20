@@ -48,6 +48,7 @@ import Rest.Nova
 import Route
 import Time
 import Types.HelperTypes as HelperTypes
+import Types.Interactivity exposing (InteractionLevel(..))
 import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.SharedModel exposing (SharedModel)
@@ -390,7 +391,7 @@ routeToViewStateModelCmd sharedModel route =
                                 ( newNewSharedModel, newCmd ) =
                                     ( newSharedModel, cmd )
                                         |> Helpers.pipelineCmd
-                                            (ApiModelHelpers.requestServer (GetterSetters.projectIdentifier project) serverId)
+                                            (ApiModelHelpers.requestServer (GetterSetters.projectIdentifier project) HighInteraction serverId)
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestImages (GetterSetters.projectIdentifier project))
                                         |> Helpers.pipelineCmd (ApiModelHelpers.requestServerImageIfNotFound project serverId)
@@ -453,7 +454,7 @@ routeToViewStateModelCmd sharedModel route =
                                     , Ports.instantiateClipboardJs ()
                                     )
                                         |> Helpers.pipelineCmd
-                                            (ApiModelHelpers.requestServer (GetterSetters.projectIdentifier project) serverId)
+                                            (ApiModelHelpers.requestServer (GetterSetters.projectIdentifier project) HighInteraction serverId)
                                         |> Helpers.pipelineCmd (ApiModelHelpers.requestSecurityGroups (GetterSetters.projectIdentifier project))
                             in
                             ( projectViewProto <| ServerSecurityGroups (Page.ServerSecurityGroups.init project serverId)

@@ -4,6 +4,7 @@ module Rest.Nova exposing
     , receiveKeypairs
     , receiveServer
     , receiveServers
+    , requestConsoleUrls
     , requestCreateKeypair
     , requestCreateServer
     , requestCreateServerImage
@@ -49,6 +50,7 @@ import Rest.Naming
 import Types.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes exposing (HttpRequestMethod(..), ProjectIdentifier, Url)
+import Types.Interactivity as Interactivity exposing (InteractionLevel(..))
 import Types.Project exposing (Project)
 import Types.Server exposing (ExoServerProps, ExoSetupStatus(..), Server, ServerOrigin(..))
 import Types.SharedModel exposing (SharedModel)
@@ -87,8 +89,8 @@ requestServers project =
         )
 
 
-requestServer : Project -> OSTypes.ServerUuid -> Cmd SharedMsg
-requestServer project serverUuid =
+requestServer : Project -> InteractionLevel -> OSTypes.ServerUuid -> Cmd SharedMsg
+requestServer project interactionLevel serverUuid =
     let
         errorContext =
             ErrorContext
@@ -99,7 +101,7 @@ requestServer project serverUuid =
         resultToMsg result =
             ProjectMsg
                 (GetterSetters.projectIdentifier project)
-                (ReceiveServer serverUuid errorContext result)
+                (ReceiveServer interactionLevel serverUuid errorContext result)
     in
     openstackCredentialedRequest
         (GetterSetters.projectIdentifier project)
@@ -503,23 +505,6 @@ requestShelveServer projectId novaUrl serverId =
         (expectStringWithErrorBody resultToMsg_)
 
 
-requestConsoleUrlIfRequestable : Project -> Server -> Cmd SharedMsg
-requestConsoleUrlIfRequestable project server =
-    case server.osProps.consoleUrl.data of
-        RDPP.DoHave _ _ ->
-            Cmd.none
-
-        _ ->
-            if
-                List.member server.osProps.details.openstackStatus
-                    [ OSTypes.ServerActive, OSTypes.ServerPassword, OSTypes.ServerRescue, OSTypes.ServerVerifyResize ]
-            then
-                requestConsoleUrls project server.osProps.uuid
-
-            else
-                Cmd.none
-
-
 requestPassphraseIfRequestable : Project -> Server -> Cmd SharedMsg
 requestPassphraseIfRequestable project server =
     case server.exoProps.serverOrigin of
@@ -804,7 +789,7 @@ receiveServers model project osServers =
     let
         ( newExoServers, cmds ) =
             osServers
-                |> List.map (receiveServer_ project)
+                |> List.map (receiveServer_ project NoInteraction)
                 |> List.unzip
 
         newExoServersClearSomeExoProps =
@@ -867,11 +852,11 @@ receiveServers model project osServers =
     )
 
 
-receiveServer : SharedModel -> Project -> OSTypes.Server -> ( SharedModel, Cmd SharedMsg )
-receiveServer model project osServer =
+receiveServer : SharedModel -> Project -> InteractionLevel -> OSTypes.Server -> ( SharedModel, Cmd SharedMsg )
+receiveServer model project interactionLevel osServer =
     let
         ( newServer, cmd ) =
-            receiveServer_ project osServer
+            receiveServer_ project interactionLevel osServer
 
         newServerUpdatedSomeExoProps =
             let
@@ -894,15 +879,12 @@ receiveServer model project osServer =
     )
 
 
-receiveServer_ : Project -> OSTypes.Server -> ( Server, Cmd SharedMsg )
-receiveServer_ project osServer =
+receiveServer_ : Project -> InteractionLevel -> OSTypes.Server -> ( Server, Cmd SharedMsg )
+receiveServer_ project interactionLevel osServer =
     let
         newServer : Server
         newServer =
-            initOrUpdateServer project osServer
-
-        consoleUrlCmd =
-            requestConsoleUrlIfRequestable project newServer
+            initOrUpdateServer project interactionLevel osServer
 
         passphraseCmd =
             requestPassphraseIfRequestable project newServer
@@ -931,14 +913,23 @@ receiveServer_ project osServer =
                     Cmd.none
 
         allCmds =
-            [ consoleUrlCmd, passphraseCmd, deleteFloatingIpMetadataOptionCmd ]
+            [ passphraseCmd, deleteFloatingIpMetadataOptionCmd ]
                 |> Cmd.batch
     in
     ( newServer, allCmds )
 
 
-initOrUpdateServer : Project -> OSTypes.Server -> Server
-initOrUpdateServer project osServer =
+initOrUpdateServer : Project -> InteractionLevel -> OSTypes.Server -> Server
+initOrUpdateServer project interactionLevel osServer =
+    let
+        defaultInteractionLevel =
+            Interactivity.maximum interactionLevel <|
+                if osServer.details.userUuid == project.auth.user.uuid then
+                    LowInteraction
+
+                else
+                    NoInteraction
+    in
     case GetterSetters.serverLookup project osServer.uuid of
         Nothing ->
             let
@@ -951,7 +942,7 @@ initOrUpdateServer project osServer =
                         Nothing
                         False
             in
-            Server osServer defaultExoProps
+            Server osServer defaultExoProps defaultInteractionLevel
 
         Just exoServer ->
             let
@@ -1019,6 +1010,7 @@ initOrUpdateServer project osServer =
                         , targetOpenstackStatus = newTargetOpenstackStatus
                         , serverOrigin = newServerOrigin
                     }
+                , interaction = Interactivity.maximum defaultInteractionLevel exoServer.interaction
             }
 
 
