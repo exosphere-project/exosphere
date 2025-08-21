@@ -298,7 +298,7 @@ serverView context currentTime project retainFloatingIpsWhenDeleting serverRecor
                                                 Spinner.sized 18 context.palette
 
                                             _ ->
-                                                interactionDetails.icon (SH.toElementColor context.palette.primary) 18
+                                                interactionDetails.icon 18
                                         )
                                 , onPress =
                                     case interactionStatus of

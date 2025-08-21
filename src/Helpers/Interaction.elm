@@ -175,7 +175,7 @@ interactionDetails interaction context =
                     , "window to show a graphical file upload/download tool!"
                     ]
                 )
-                (\_ _ -> Icon.sizedFeatherIcon 18 Icons.terminal)
+                (\size -> Icon.sizedFeatherIcon (toFloat size) Icons.terminal)
                 ITypes.UrlInteraction
 
         ITypes.GuacDesktop ->
@@ -187,14 +187,14 @@ interactionDetails interaction context =
                     , "'s desktop environment"
                     ]
                 )
-                (\_ _ -> Icon.sizedFeatherIcon 18 Icons.monitor)
+                (\size -> Icon.sizedFeatherIcon (toFloat size) Icons.monitor)
                 ITypes.UrlInteraction
 
         ITypes.NativeSSH ->
             ITypes.InteractionDetails
                 "Native SSH"
                 "Advanced feature: use your computer's native SSH client to get a command-line session with extra capabilities"
-                (\_ _ -> Icon.sizedFeatherIcon 18 Icons.terminal)
+                (\size -> Icon.sizedFeatherIcon (toFloat size) Icons.terminal)
                 ITypes.TextInteraction
 
         ITypes.Console ->
@@ -217,7 +217,7 @@ interactionDetails interaction context =
                     , context.localization.virtualComputer
                     ]
                 )
-                (\_ _ -> Icon.sizedFeatherIcon 18 Icons.codesandbox)
+                (\size -> Icon.sizedFeatherIcon (toFloat size) Icons.codesandbox)
                 ITypes.UrlInteraction
 
 

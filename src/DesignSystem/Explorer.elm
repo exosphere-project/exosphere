@@ -486,7 +486,7 @@ For everything else, use [FeatherIcons](https://package.elm-lang.org/packages/16
                             )
                         )
                         [ ( "bell", bell )
-                        , ( "console", console )
+                        , ( "console", \_ -> console )
                         , ( "copyToClipboard", copyToClipboard )
                         , ( "history", history )
                         , ( "ipAddress", ipAddress )
