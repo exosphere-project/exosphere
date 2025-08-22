@@ -7,6 +7,7 @@ import Helpers.ExoSetupStatus
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
+import Helpers.ServerActionRequestQueue exposing (marshalServerActionRequestQueue)
 import Helpers.ServerResourceUsage
 import Helpers.String exposing (pluralize, toTitleCase)
 import Http
@@ -86,6 +87,7 @@ import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Endpoints, Project, ProjectSecret(..))
 import Types.SecurityGroupActions as SecurityGroupActions
 import Types.Server exposing (ExoSetupStatus(..), NewServerNetworkOptions(..), Server, ServerFromExoProps, ServerOrigin(..), currentExoServerVersion)
+import Types.ServerActionRequestQueue as ServerActionRequestQueue
 import Types.ServerResourceUsage
 import Types.ServerVolumeActions as ServerVolumeActions
 import Types.SharedModel exposing (SharedModel)
@@ -2389,7 +2391,7 @@ processProjectSpecificMsg outerModel project msg =
                 numberOfServers =
                     List.length serversAffected
 
-                newProject =
+                updatedProject =
                     GetterSetters.projectUpsertSecurityGroupActions project
                         (SecurityGroupActions.ExtantGroup securityGroupUuid)
                         (\action ->
@@ -2401,25 +2403,39 @@ processProjectSpecificMsg outerModel project msg =
                             }
                         )
 
+                ( newProject, newCmds ) =
+                    -- First unlink any servers from the security group we want to delete.
+                    serversAffected
+                        |> List.foldl
+                            (\server ( proj, cmds ) ->
+                                let
+                                    ( nextProject, nextCmd ) =
+                                        marshalServerActionRequestQueue
+                                            proj
+                                            server.osProps.uuid
+                                            [ OSTypes.RemoveServerSecurityGroup
+                                                { uuid = securityGroup.uuid
+                                                , name = securityGroup.name
+                                                }
+                                            ]
+                                in
+                                ( nextProject, cmds ++ [ nextCmd ] )
+                            )
+                            ( updatedProject, [] )
+
                 newModel =
                     GetterSetters.modelUpdateProject sharedModel newProject
             in
             ( newModel
             , Cmd.batch <|
-                if numberOfServers > 0 then
-                    -- First unlink any servers from this security group.
-                    serversAffected
-                        |> List.map
-                            (\server ->
-                                Rest.Nova.requestUpdateServerSecurityGroup project server.osProps.uuid <|
-                                    OSTypes.RemoveServerSecurityGroup
-                                        { uuid = securityGroup.uuid
-                                        , name = securityGroup.name
-                                        }
-                            )
+                newCmds
+                    ++ (if numberOfServers == 0 then
+                            -- We don't have any servers to unlink, so we can delete the security group immediately.
+                            [ Rest.Neutron.requestDeleteSecurityGroup project securityGroup.uuid ]
 
-                else
-                    [ Rest.Neutron.requestDeleteSecurityGroup project securityGroup.uuid ]
+                        else
+                            [ Cmd.none ]
+                       )
             )
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
@@ -2672,9 +2688,23 @@ processProjectSpecificMsg outerModel project msg =
 
         ReceiveServerRemoveSecurityGroup serverId errorContext serverSecurityGroup result ->
             let
+                -- Remove the job from the queue if it exists.
+                updatedQueueProject_ =
+                    GetterSetters.projectRemoveServerActionRequestJob
+                        project
+                        serverId
+                        (ServerActionRequestQueue.RemoveServerSecurityGroup serverSecurityGroup)
+
+                -- With that job removed, is there another one to process?
+                ( updatedQueueProject, queueCmd ) =
+                    marshalServerActionRequestQueue
+                        updatedQueueProject_
+                        serverId
+                        []
+
                 -- Even if the request failed, we want to update pending security group actions.
                 updatedProject =
-                    GetterSetters.projectUpdateSecurityGroupActionsIfExists project
+                    GetterSetters.projectUpdateSecurityGroupActionsIfExists updatedQueueProject
                         (SecurityGroupActions.ExtantGroup serverSecurityGroup.uuid)
                         (\actions ->
                             { actions
@@ -2726,14 +2756,14 @@ processProjectSpecificMsg outerModel project msg =
                                 newProject =
                                     GetterSetters.projectUpsertServerSecurityGroups updatedProject serverId securityGroups
                             in
-                            ( GetterSetters.modelUpdateProject updatedSharedModel newProject, deleteCmd )
+                            ( GetterSetters.modelUpdateProject updatedSharedModel newProject, Cmd.batch [ deleteCmd, queueCmd ] )
                                 |> mapToOuterMsg
                                 |> mapToOuterModel outerModel
                                 -- Make the page aware of the shared msg.
                                 |> pipelineCmdOuterModelMsg (updateUnderlying (ServerSecurityGroupsMsg <| Page.ServerSecurityGroups.GotServerSecurityGroups serverId))
 
                         _ ->
-                            ( updatedSharedModel, deleteCmd )
+                            ( updatedSharedModel, Cmd.batch [ deleteCmd, queueCmd ] )
                                 |> mapToOuterMsg
                                 |> mapToOuterModel outerModel
 
@@ -2742,7 +2772,7 @@ processProjectSpecificMsg outerModel project msg =
                         ( newSharedModel, errCmd ) =
                             State.Error.processSynchronousApiError updatedSharedModel errorContext httpError
                     in
-                    ( newSharedModel, Cmd.batch [ errCmd, deleteCmd ] )
+                    ( newSharedModel, Cmd.batch [ errCmd, deleteCmd, queueCmd ] )
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
@@ -3339,13 +3369,17 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
 
         RequestServerSecurityGroupUpdates serverSecurityGroupUpdates ->
             let
-                requests =
-                    serverSecurityGroupUpdates
-                        |> List.map
-                            (Rest.Nova.requestUpdateServerSecurityGroup project server.osProps.uuid)
+                ( newProject, newCmd ) =
+                    marshalServerActionRequestQueue
+                        project
+                        server.osProps.uuid
+                        serverSecurityGroupUpdates
+
+                newSharedModel =
+                    GetterSetters.modelUpdateProject sharedModel newProject
             in
-            ( outerModel
-            , Cmd.batch requests
+            ( { outerModel | sharedModel = newSharedModel }
+            , newCmd
             )
                 |> mapToOuterMsg
 
@@ -4128,6 +4162,7 @@ createProject_ outerModel description authToken region endpoints =
             , serverSecurityGroups = Dict.empty
             , serverVolumeAttachments = Dict.empty
             , serverVolumeActions = Dict.empty
+            , serverActionRequestQueue = Dict.empty
             , serverImages = []
             , flavors = RDPP.empty
             , keypairs = RDPP.empty
