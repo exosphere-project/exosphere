@@ -880,7 +880,7 @@ interactions context project server currentTime tlsReverseProxyHostname =
                                                 , bottom = 0
                                                 }
                                             ]
-                                            (interactionDetails.icon (SH.toElementColor context.palette.primary) 18)
+                                            (interactionDetails.icon 18)
                                     , onPress =
                                         case interactionStatus of
                                             ITypes.Ready url ->
@@ -913,7 +913,7 @@ interactions context project server currentTime tlsReverseProxyHostname =
                                     ]
                                     [ Element.el
                                         [ Font.color iconColor ]
-                                        (interactionDetails.icon iconColor 22)
+                                        (interactionDetails.icon 22)
                                     , Element.text interactionDetails.name
                                     , case interactionStatus of
                                         ITypes.Ready text ->

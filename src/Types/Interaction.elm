@@ -38,6 +38,6 @@ type InteractionType
 type alias InteractionDetails msg =
     { name : String
     , description : String
-    , icon : Element.Color -> Int -> Element.Element msg
+    , icon : Int -> Element.Element msg
     , type_ : InteractionType
     }
