@@ -10,6 +10,7 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.ServerActionRequestQueue exposing (marshalServerActionRequestQueue)
 import Helpers.ServerResourceUsage
 import Helpers.String exposing (pluralize, toTitleCase)
+import Helpers.WebLock exposing (WebLock(..), webLockToResourceId)
 import Http
 import Json.Decode as Decode
 import Json.Encode
@@ -780,6 +781,28 @@ processSharedMsg sharedMsg outerModel =
             State.Error.processConnectivityError nextSharedModel online
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
+
+        ReceiveWebLock ( resource, granted ) ->
+            let
+                webLock =
+                    Helpers.WebLock.resourceIdToWebLock resource
+
+                _ =
+                    Debug.log "Web lock" ( resource, granted, webLock )
+            in
+            case webLock of
+                Just (EnsureDefaultSecurityGroup projectIdentifier) ->
+                    if granted then
+                        -- TODO: We have the lock, so ensure the default security group is up to date for this project.
+                        ( outerModel, Cmd.none )
+
+                    else
+                        -- We were denied the lock, do nothing.
+                        ( outerModel, Cmd.none )
+
+                _ ->
+                    -- Unrecognized web lock resource id.
+                    ( outerModel, Cmd.none )
 
         MsgChangeWindowSize x y ->
             ( { sharedModel

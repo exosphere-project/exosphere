@@ -147,3 +147,44 @@ window.addEventListener("offline", (event) => {
 window.addEventListener("online", (event) => {
   app.ports.updateNetworkConnectivity.send(true);
 });
+
+const weblockResolvers = {};
+// Request an exclusive web lock to synchronise resource access across tabs.
+//  https://developer.mozilla.org/en-US/docs/Web/API/Web_Locks_API
+app.ports.requestWebLock.subscribe((resource) => {
+  // Request the lock.
+  console.log("Requesting lock", resource);
+  navigator.locks.request(
+    resource,
+    {
+      // Don't wait if the lock is not available.
+      ifAvailable: true,
+      mode: "exclusive",
+    },
+    // Lock acquired.
+    (lock) => {
+      // Signal that we have the lock request result.
+      app.ports.receiveWebLock.send([resource, !!lock]);
+
+      // Was the lock acquired?
+      if (!lock) {
+        console.log("Could not lock resource", resource);
+        return;
+      }
+
+      // If the lock was granted, we hold the lock until the promise resolves.
+      return new Promise((resolve) => {
+        console.log("Lock result for resource", resource, lock);
+        weblockResolvers[resource] = resolve;
+      });
+    }
+  );
+});
+
+app.ports.releaseWebLock.subscribe((resource) => {
+  // Resolve the promise to release the lock.
+  if (weblockResolvers[resource]) {
+    weblockResolvers[resource]();
+    delete weblockResolvers[resource];
+  }
+});
