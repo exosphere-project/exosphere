@@ -1,12 +1,12 @@
 module Rest.Neutron exposing
     ( NeutronError
+    , ensureDefaultSecurityGroup
     , neutronErrorDecoder
     , receiveCreateFloatingIp
     , receiveCreateSecurityGroupAndRequestCreateRules
     , receiveDeleteFloatingIp
     , receiveFloatingIps
     , receiveNetworks
-    , receiveSecurityGroupsAndEnsureDefaultGroup
     , reconcileSecurityGroupRules
     , requestAssignFloatingIp
     , requestAutoAllocatedNetwork
@@ -47,6 +47,7 @@ import Types.Project exposing (Project)
 import Types.Server exposing (Server)
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
+import View.Types exposing (Context)
 
 
 
@@ -701,37 +702,23 @@ receiveDeleteFloatingIp model project uuid =
             ( model, Cmd.none )
 
 
-receiveSecurityGroupsAndEnsureDefaultGroup : SharedModel -> Project -> List OSTypes.SecurityGroup -> ( SharedModel, Cmd SharedMsg )
-receiveSecurityGroupsAndEnsureDefaultGroup model project securityGroups =
+ensureDefaultSecurityGroup : Context -> Project -> List OSTypes.SecurityGroup -> List (Cmd SharedMsg)
+ensureDefaultSecurityGroup context project securityGroups =
     {- Create a default security group unless one already exists -}
     let
-        newSecurityGroups =
-            RDPP.RemoteDataPlusPlus
-                (RDPP.DoHave securityGroups model.clientCurrentTime)
-                (RDPP.NotLoading Nothing)
-
-        newProject =
-            { project | securityGroups = newSecurityGroups }
-
         defaultSecurityGroup : OSTypes.SecurityGroupTemplate
         defaultSecurityGroup =
-            GetterSetters.projectDefaultSecurityGroup model.viewContext project
-
-        newModel =
-            GetterSetters.modelUpdateProject model newProject
-
-        cmds =
-            case List.Extra.find (\a -> a.name == defaultSecurityGroup.name) securityGroups of
-                Just defaultGroup ->
-                    requestUpdateSecurityGroupRules
-                        newProject
-                        defaultGroup
-                        defaultSecurityGroup.rules
-
-                Nothing ->
-                    [ requestCreateDefaultSecurityGroup newProject defaultSecurityGroup ]
+            GetterSetters.projectDefaultSecurityGroup context project
     in
-    ( newModel, Cmd.batch cmds )
+    case List.Extra.find (\a -> a.name == defaultSecurityGroup.name) securityGroups of
+        Just defaultGroup ->
+            requestUpdateSecurityGroupRules
+                project
+                defaultGroup
+                defaultSecurityGroup.rules
+
+        Nothing ->
+            [ requestCreateDefaultSecurityGroup project defaultSecurityGroup ]
 
 
 {-| Ensure rules are in sync & none are missing compared to the target rules template.

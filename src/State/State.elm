@@ -10,7 +10,7 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.ServerActionRequestQueue exposing (marshalServerActionRequestQueue)
 import Helpers.ServerResourceUsage
 import Helpers.String exposing (pluralize, toTitleCase)
-import Helpers.WebLock exposing (WebLock(..), webLockToResourceId)
+import Helpers.WebLock exposing (WebLock(..))
 import Http
 import Json.Decode as Decode
 import Json.Encode
@@ -787,14 +787,34 @@ processSharedMsg sharedMsg outerModel =
                 webLock =
                     Helpers.WebLock.resourceIdToWebLock resource
 
-                _ =
-                    Debug.log "Web lock" ( resource, granted, webLock )
+                -- _ =
+                --     Debug.log "Web lock" ( resource, granted, webLock )
             in
             case webLock of
                 Just (EnsureDefaultSecurityGroup projectIdentifier) ->
                     if granted then
-                        -- TODO: We have the lock, so ensure the default security group is up to date for this project.
-                        ( outerModel, Cmd.none )
+                        -- We have the lock, so ensure the default security group is up to date for this project.
+                        let
+                            project =
+                                GetterSetters.projectLookup sharedModel projectIdentifier
+
+                            maybeSecurityGroups =
+                                project
+                                    |> Maybe.map (\p -> p.securityGroups)
+                                    -- Using `withDefault []` would be dangerous here because then we would recreate the default group.
+                                    -- We ought to proceed only when we know the list.
+                                    |> Maybe.andThen (\rdpp -> RDPP.toMaybe rdpp)
+
+                            prospectiveCmds =
+                                case ( project, maybeSecurityGroups ) of
+                                    ( Just p, Just groups ) ->
+                                        Rest.Neutron.ensureDefaultSecurityGroup sharedModel.viewContext p groups
+
+                                    _ ->
+                                        []
+                        in
+                        ( outerModel, Cmd.batch prospectiveCmds )
+                            |> mapToOuterMsg
 
                     else
                         -- We were denied the lock, do nothing.
@@ -2163,7 +2183,32 @@ processProjectSpecificMsg outerModel project msg =
         ReceiveSecurityGroups errorContext result ->
             case result of
                 Ok groups ->
-                    Rest.Neutron.receiveSecurityGroupsAndEnsureDefaultGroup sharedModel project groups
+                    let
+                        newProject =
+                            { project
+                                | securityGroups =
+                                    RDPP.RemoteDataPlusPlus
+                                        (RDPP.DoHave groups sharedModel.clientCurrentTime)
+                                        (RDPP.NotLoading Nothing)
+                            }
+
+                        newSharedModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+
+                        -- Are there updates to the default security group?
+                        prospectiveCmds =
+                            Rest.Neutron.ensureDefaultSecurityGroup newSharedModel.viewContext newProject groups
+
+                        -- Before we make updates, get a resource lock so that no other tabs or threads can make them at the same time.
+                        requestWebLockCmd =
+                            -- TODO: Uncomment after testing.
+                            if List.isEmpty prospectiveCmds then
+                                Cmd.none
+
+                            else
+                                Ports.requestWebLock <| Helpers.WebLock.webLockToResourceId <| EnsureDefaultSecurityGroup <| GetterSetters.projectIdentifier project
+                    in
+                    ( newSharedModel, requestWebLockCmd )
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
                         -- Make the page aware of the shared msg.
