@@ -795,26 +795,36 @@ processSharedMsg sharedMsg outerModel =
                     if granted then
                         -- We have the lock, so ensure the default security group is up to date for this project.
                         let
-                            project =
+                            maybeProject =
                                 GetterSetters.projectLookup sharedModel projectIdentifier
-
-                            maybeSecurityGroups =
-                                project
-                                    |> Maybe.map (\p -> p.securityGroups)
-                                    -- Using `withDefault []` would be dangerous here because then we would recreate the default group.
-                                    -- We ought to proceed only when we know the list.
-                                    |> Maybe.andThen (\rdpp -> RDPP.toMaybe rdpp)
-
-                            prospectiveCmds =
-                                case ( project, maybeSecurityGroups ) of
-                                    ( Just p, Just groups ) ->
-                                        Rest.Neutron.ensureDefaultSecurityGroup sharedModel.viewContext p groups
-
-                                    _ ->
-                                        []
                         in
-                        ( outerModel, Cmd.batch prospectiveCmds )
-                            |> mapToOuterMsg
+                        case maybeProject of
+                            Just project ->
+                                let
+                                    maybeSecurityGroups =
+                                        project.securityGroups
+                                            -- Using `withDefault []` would be dangerous here because then we would recreate the default group.
+                                            -- We ought to proceed only when we know the list.
+                                            |> RDPP.toMaybe
+
+                                    ( newProject, cmds ) =
+                                        case maybeSecurityGroups of
+                                            Just groups ->
+                                                Rest.Neutron.ensureDefaultSecurityGroup sharedModel.viewContext project groups
+
+                                            _ ->
+                                                ( project, [] )
+
+                                    newSharedModel =
+                                        GetterSetters.modelUpdateProject sharedModel newProject
+                                in
+                                ( newSharedModel, Cmd.batch cmds )
+                                    |> mapToOuterMsg
+                                    |> mapToOuterModel outerModel
+
+                            Nothing ->
+                                -- We couldn't find the project.
+                                ( outerModel, Cmd.none )
 
                     else
                         -- We were denied the lock, do nothing.
@@ -2192,12 +2202,12 @@ processProjectSpecificMsg outerModel project msg =
                                         (RDPP.NotLoading Nothing)
                             }
 
-                        newSharedModel =
-                            GetterSetters.modelUpdateProject sharedModel newProject
-
                         -- Are there updates to the default security group?
-                        prospectiveCmds =
-                            Rest.Neutron.ensureDefaultSecurityGroup newSharedModel.viewContext newProject groups
+                        ( newerProject, prospectiveCmds ) =
+                            Rest.Neutron.ensureDefaultSecurityGroup sharedModel.viewContext newProject groups
+
+                        newSharedModel =
+                            GetterSetters.modelUpdateProject sharedModel newerProject
 
                         -- Before we make updates, get a resource lock so that no other tabs or threads can make them at the same time.
                         requestWebLockCmd =
@@ -2550,34 +2560,21 @@ processProjectSpecificMsg outerModel project msg =
 
         RequestUpdateSecurityGroup existingSecurityGroup securityGroupUpdate ->
             let
-                existingRules =
-                    existingSecurityGroup.rules
+                ( newProject, updateRuleCmds ) =
+                    Rest.Neutron.requestUpdateSecurityGroupRules project existingSecurityGroup securityGroupUpdate.rules
 
-                intendedRules =
-                    securityGroupUpdate.rules |> List.map SecurityGroupRule.securityGroupRuleTemplateToRule
-
-                { missing, extra } =
-                    SecurityGroupRule.compareSecurityGroupRuleLists existingRules intendedRules
-
-                newProject =
-                    GetterSetters.projectUpsertSecurityGroupActions project
-                        (SecurityGroupActions.ExtantGroup existingSecurityGroup.uuid)
-                        (\actions ->
-                            { actions
-                                | pendingSecurityGroupChanges = { updates = 1, errors = [] }
-                                , pendingRuleChanges = { creations = List.length missing, deletions = List.length extra, errors = [] }
-                            }
-                        )
+                ( newerProject, updateSecurityGroupCmd ) =
+                    Rest.Neutron.requestUpdateSecurityGroup newProject existingSecurityGroup.uuid securityGroupUpdate
 
                 newModel =
-                    GetterSetters.modelUpdateProject sharedModel newProject
+                    GetterSetters.modelUpdateProject sharedModel newerProject
             in
             ( newModel
             , Cmd.batch <|
                 -- Update the security group.
-                Rest.Neutron.requestUpdateSecurityGroup newProject existingSecurityGroup.uuid securityGroupUpdate
+                updateSecurityGroupCmd
                     -- Update the security group rules.
-                    :: Rest.Neutron.requestUpdateSecurityGroupRules newProject existingSecurityGroup securityGroupUpdate.rules
+                    :: updateRuleCmds
             )
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
