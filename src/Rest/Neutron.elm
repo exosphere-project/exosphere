@@ -33,11 +33,12 @@ import Json.Decode as Decode
 import Json.Encode as Encode
 import List.Extra
 import OpenStack.SecurityGroupRule as SecurityGroupRule exposing (SecurityGroupRule, SecurityGroupRuleUuid, securityGroupRuleDecoder)
-import OpenStack.Types as OSTypes
+import OpenStack.Types as OSTypes exposing (SecurityGroupTag, SecurityGroupTagUpdate)
 import Rest.Helpers
     exposing
         ( expectJsonWithErrorBody
         , expectStringWithErrorBody
+        , expectVoidWithErrorBody
         , openstackCredentialedRequest
         , resultToMsgErrorBody
         )
@@ -521,8 +522,18 @@ requestUpdateSecurityGroup project securityGroupUuid securityGroupUpdate =
     ( newProject, requestCmd )
 
 
-requestUpdateSecurityGroupTags : Project -> OSTypes.SecurityGroupUuid -> List OSTypes.SecurityGroupTag -> Cmd SharedMsg
-requestUpdateSecurityGroupTags project securityGroupUuid tags =
+requestUpdateSecurityGroupTags : Project -> OSTypes.SecurityGroupUuid -> SecurityGroupTagUpdate -> Cmd SharedMsg
+requestUpdateSecurityGroupTags project securityGroupUuid tagUpdate =
+    case tagUpdate of
+        OSTypes.AddSecurityGroupTags tags ->
+            requestCreateSecurityGroupTags project securityGroupUuid tags
+
+        OSTypes.RemoveSecurityGroupTag tag ->
+            requestDeleteSecurityGroupTag project securityGroupUuid tag
+
+
+requestCreateSecurityGroupTags : Project -> OSTypes.SecurityGroupUuid -> List SecurityGroupTag -> Cmd SharedMsg
+requestCreateSecurityGroupTags project securityGroupUuid tags =
     let
         requestBody =
             Encode.object
@@ -531,7 +542,7 @@ requestUpdateSecurityGroupTags project securityGroupUuid tags =
 
         errorContext =
             ErrorContext
-                ("update tags for security group uuid " ++ securityGroupUuid ++ " in project " ++ project.auth.project.name)
+                ("create tags for security group uuid " ++ securityGroupUuid ++ " in project " ++ project.auth.project.name)
                 ErrorCrit
                 Nothing
 
@@ -541,12 +552,12 @@ requestUpdateSecurityGroupTags project securityGroupUuid tags =
                 (\t ->
                     ProjectMsg
                         (GetterSetters.projectIdentifier project)
-                        (ReceiveUpdateSecurityGroupTags ( securityGroupUuid, t ))
+                        (ReceiveUpdateSecurityGroupTags ( securityGroupUuid, OSTypes.AddSecurityGroupTags t ))
                 )
     in
     openstackCredentialedRequest
         (GetterSetters.projectIdentifier project)
-        Put
+        Post
         Nothing
         []
         ( project.endpoints.neutron, [ "v2.0", "security-groups", securityGroupUuid, "tags" ], [] )
@@ -554,6 +565,36 @@ requestUpdateSecurityGroupTags project securityGroupUuid tags =
         (expectJsonWithErrorBody
             resultToMsg
             tagDecoder
+        )
+
+
+requestDeleteSecurityGroupTag : Project -> OSTypes.SecurityGroupUuid -> SecurityGroupTag -> Cmd SharedMsg
+requestDeleteSecurityGroupTag project securityGroupUuid tag =
+    let
+        errorContext =
+            ErrorContext
+                ("delete tag for security group uuid " ++ securityGroupUuid ++ " in project " ++ project.auth.project.name)
+                ErrorCrit
+                Nothing
+
+        resultToMsg =
+            resultToMsgErrorBody
+                errorContext
+                (\_ ->
+                    ProjectMsg
+                        (GetterSetters.projectIdentifier project)
+                        (ReceiveUpdateSecurityGroupTags ( securityGroupUuid, OSTypes.RemoveSecurityGroupTag tag ))
+                )
+    in
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Delete
+        Nothing
+        []
+        ( project.endpoints.neutron, [ "v2.0", "security-groups", securityGroupUuid, "tags", tag ], [] )
+        Http.emptyBody
+        (expectVoidWithErrorBody
+            resultToMsg
         )
 
 

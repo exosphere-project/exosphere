@@ -9,7 +9,7 @@ import Helpers.Formatting exposing (humanCount)
 import Helpers.GetterSetters as GetterSetters exposing (LoadingProgress(..), isDefaultSecurityGroup)
 import Helpers.Helpers exposing (serverCreatorName)
 import Helpers.String
-import OpenStack.Types as OSTypes exposing (SecurityGroup, securityGroupExoTags, securityGroupTaggedAs)
+import OpenStack.Types as OSTypes exposing (SecurityGroup, SecurityGroupTagUpdate(..), securityGroupExoTags, securityGroupTaggedAs)
 import Page.SecurityGroupForm as SecurityGroupForm
 import Page.SecurityGroupRulesTable exposing (rulesTable)
 import Route
@@ -355,11 +355,10 @@ securityGroupActionsDropdown context project model securityGroup { preset, defau
                                             (SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
                                                 SharedMsg.RequestUpdateSecurityGroupTags securityGroup.uuid
                                                     (if preset then
-                                                        securityGroup.tags
-                                                            |> List.filter (\tag -> tag /= securityGroupExoTags.preset)
+                                                        RemoveSecurityGroupTag securityGroupExoTags.preset
 
                                                      else
-                                                        securityGroup.tags ++ [ securityGroupExoTags.preset ]
+                                                        AddSecurityGroupTags [ securityGroupExoTags.preset ]
                                                     )
                                             )
                                 }

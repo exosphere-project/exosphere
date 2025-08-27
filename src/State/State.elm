@@ -2709,11 +2709,11 @@ processProjectSpecificMsg outerModel project msg =
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
-        RequestUpdateSecurityGroupTags securityGroupUuid tags ->
-            ( outerModel, Rest.Neutron.requestUpdateSecurityGroupTags project securityGroupUuid tags )
+        RequestUpdateSecurityGroupTags securityGroupUuid tagUpdate ->
+            ( outerModel, Rest.Neutron.requestUpdateSecurityGroupTags project securityGroupUuid tagUpdate )
                 |> mapToOuterMsg
 
-        ReceiveUpdateSecurityGroupTags ( securityGroupUuid, tags ) ->
+        ReceiveUpdateSecurityGroupTags ( securityGroupUuid, tagUpdate ) ->
             let
                 { data, refreshStatus } =
                     project.securityGroups
@@ -2727,7 +2727,24 @@ processProjectSpecificMsg outerModel project msg =
                                     (List.map
                                         (\sg ->
                                             if sg.uuid == securityGroupUuid then
-                                                { sg | tags = tags }
+                                                { sg
+                                                    | tags =
+                                                        case tagUpdate of
+                                                            OSTypes.AddSecurityGroupTags newTags ->
+                                                                List.foldl
+                                                                    (\newTag tags ->
+                                                                        if List.member newTag tags then
+                                                                            tags
+
+                                                                        else
+                                                                            newTag :: tags
+                                                                    )
+                                                                    sg.tags
+                                                                    newTags
+
+                                                            OSTypes.RemoveSecurityGroupTag tagToRemove ->
+                                                                List.filter (\t -> t /= tagToRemove) sg.tags
+                                                }
 
                                             else
                                                 sg

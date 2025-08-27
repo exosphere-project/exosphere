@@ -82,7 +82,7 @@ type ProjectSpecificMsgConstructor
     | RequestCreateSecurityGroup OSTypes.SecurityGroupTemplate (Maybe OSTypes.ServerUuid)
     | RequestDeleteSecurityGroup OSTypes.SecurityGroup
     | RequestUpdateSecurityGroup OSTypes.SecurityGroup OSTypes.SecurityGroupUpdate
-    | RequestUpdateSecurityGroupTags OSTypes.SecurityGroupUuid (List OSTypes.SecurityGroupTag)
+    | RequestUpdateSecurityGroupTags OSTypes.SecurityGroupUuid OSTypes.SecurityGroupTagUpdate
     | ReceiveImages (List OSTypes.Image)
     | ReceiveServerImage (Maybe OSTypes.Image)
     | ReceiveServer InteractionLevel OSTypes.ServerUuid ErrorContext (Result HttpErrorWithBody OSTypes.Server)
@@ -112,7 +112,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveDeleteSecurityGroupRule ErrorContext ( OSTypes.SecurityGroupUuid, SecurityGroupRule.SecurityGroupRuleUuid ) (Result Http.Error ())
     | ReceiveDeleteSecurityGroup ErrorContext OSTypes.SecurityGroupUuid (Result HttpErrorWithBody ())
     | ReceiveUpdateSecurityGroup ErrorContext OSTypes.SecurityGroupUuid (Result HttpErrorWithBody OSTypes.SecurityGroup)
-    | ReceiveUpdateSecurityGroupTags ( OSTypes.SecurityGroupUuid, List OSTypes.SecurityGroupTag )
+    | ReceiveUpdateSecurityGroupTags ( OSTypes.SecurityGroupUuid, OSTypes.SecurityGroupTagUpdate )
     | ReceiveServerAddSecurityGroup OSTypes.ServerUuid ErrorContext OSTypes.ServerSecurityGroup (Result HttpErrorWithBody String)
     | ReceiveServerRemoveSecurityGroup OSTypes.ServerUuid ErrorContext OSTypes.ServerSecurityGroup (Result HttpErrorWithBody String)
     | ReceiveCreateShare OSTypes.Share

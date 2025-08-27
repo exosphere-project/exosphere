@@ -58,6 +58,7 @@ module OpenStack.Types exposing
     , ScopedAuthToken
     , SecurityGroup
     , SecurityGroupTag
+    , SecurityGroupTagUpdate(..)
     , SecurityGroupTemplate
     , SecurityGroupUpdate
     , SecurityGroupUuid
@@ -857,14 +858,20 @@ type alias SecurityGroupUpdate =
     }
 
 
+type SecurityGroupTagUpdate
+    = AddSecurityGroupTags (List SecurityGroupTag)
+    | RemoveSecurityGroupTag SecurityGroupTag
+
+
 {-|
 
     Tags for security groups that provide special Exosphere functionality.
 
 -}
-securityGroupExoTags : { preset : SecurityGroupTag }
+securityGroupExoTags : { preset : SecurityGroupTag, creatorUsernamePrefix : SecurityGroupTag }
 securityGroupExoTags =
     { preset = "exo:preset"
+    , creatorUsernamePrefix = "exo:creatorUsername::"
     }
 
 
