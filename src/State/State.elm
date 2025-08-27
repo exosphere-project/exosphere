@@ -2296,6 +2296,9 @@ processProjectSpecificMsg outerModel project msg =
                                 -- We still have rules to create or delete. Hold the lock until those are done.
                                 Cmd.none
 
+                        tagCreatorCmd =
+                            Rest.Neutron.requestUpdateSecurityGroupTags project group.uuid (OSTypes.AddSecurityGroupTags [ OSTypes.securityGroupExoTags.creatorUsernamePrefix ++ project.auth.user.name ])
+
                         pendingServerLinkage =
                             -- Should we link this group to a server now that it's created?
                             -- If so, get the pending linkage from the previous project state.
@@ -2335,6 +2338,7 @@ processProjectSpecificMsg outerModel project msg =
                                         )
                                     |> Maybe.withDefault Cmd.none
                                 , releaseWebLockOrWaitCmd
+                                , tagCreatorCmd
                                 ]
                     in
                     ( newSharedModel, newerCmd )
