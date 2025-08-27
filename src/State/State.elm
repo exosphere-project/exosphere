@@ -786,9 +786,6 @@ processSharedMsg sharedMsg outerModel =
             let
                 webLock =
                     Helpers.WebLock.resourceIdToWebLock resource
-
-                -- _ =
-                --     Debug.log "Web lock" ( resource, granted, webLock )
             in
             case webLock of
                 Just (EnsureDefaultSecurityGroup projectIdentifier) ->
@@ -2211,7 +2208,6 @@ processProjectSpecificMsg outerModel project msg =
 
                         -- Before we make updates, get a resource lock so that no other tabs or threads can make them at the same time.
                         requestWebLockCmd =
-                            -- TODO: Uncomment after testing.
                             if List.isEmpty prospectiveCmds then
                                 Cmd.none
 

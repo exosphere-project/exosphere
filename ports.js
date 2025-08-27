@@ -153,7 +153,6 @@ const weblockResolvers = {};
 //  https://developer.mozilla.org/en-US/docs/Web/API/Web_Locks_API
 app.ports.requestWebLock.subscribe((resource) => {
   // Request the lock.
-  console.log("Requesting lock", resource);
   navigator.locks.request(
     resource,
     {
@@ -168,13 +167,11 @@ app.ports.requestWebLock.subscribe((resource) => {
 
       // Was the lock acquired?
       if (!lock) {
-        console.log("Could not lock resource", resource);
         return;
       }
 
       // If the lock was granted, we hold the lock until the promise resolves.
       return new Promise((resolve) => {
-        console.log("Lock result for resource", resource, lock);
         weblockResolvers[resource] = resolve;
       });
     }
