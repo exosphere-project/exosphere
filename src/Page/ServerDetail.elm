@@ -1674,32 +1674,48 @@ renderIpAddresses context project server model =
                                     OpenStack.DnsRecordSet.lookupRecordsByAddress (RDPP.withDefault [] project.dnsRecordSets) ipAddress.address
                             in
                             Element.column [ Element.spacing spacer.px12 ]
-                                ((records
-                                    |> List.indexedMap
-                                        (\i r ->
-                                            VH.compactKVSubRow
-                                                (if i == 0 then
-                                                    if List.length records > 1 then
-                                                        context.localization.hostname |> Helpers.String.pluralize |> Helpers.String.toTitleCase
+                                ((case records of
+                                    [] ->
+                                        [ VH.compactKVSubRow
+                                            (context.localization.hostname |> Helpers.String.toTitleCase)
+                                            (Element.row [ Element.spacing spacer.px16 ]
+                                                [ Button.default
+                                                    context.palette
+                                                    { text =
+                                                        "Create"
+                                                    , onPress =
+                                                        GetterSetters.getDefaultZone project
+                                                            |> Maybe.map
+                                                                -- TODO: Create DNS record set in default zone.
+                                                                (\_ -> NoOp)
+                                                    }
+                                                ]
+                                            )
+                                        ]
 
-                                                    else
-                                                        context.localization.hostname |> Helpers.String.toTitleCase
-
-                                                 else
-                                                    ""
-                                                )
-                                                (Element.row [ Element.spacing spacer.px16 ]
-                                                    [ copyableText context.palette
-                                                        []
-                                                        (if String.endsWith "." r.name then
-                                                            String.dropRight 1 r.name
+                                    _ ->
+                                        records
+                                            |> List.indexedMap
+                                                (\i r ->
+                                                    VH.compactKVSubRow
+                                                        (if i == 0 then
+                                                            Helpers.String.pluralizeCount (List.length records) (context.localization.hostname |> Helpers.String.toTitleCase)
 
                                                          else
-                                                            r.name
+                                                            ""
                                                         )
-                                                    ]
+                                                        (Element.row [ Element.spacing spacer.px16 ]
+                                                            [ copyableText context.palette
+                                                                []
+                                                                (if String.endsWith "." r.name then
+                                                                    String.dropRight 1 r.name
+
+                                                                 else
+                                                                    r.name
+                                                                )
+                                                            ]
+                                                        )
                                                 )
-                                        )
                                  )
                                     ++ [ VH.compactKVSubRow
                                             (Helpers.String.toTitleCase context.localization.floatingIpAddress)
