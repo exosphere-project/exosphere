@@ -4462,7 +4462,7 @@ requestShelveServer project server deleteFloatingIps =
         shelveCmd =
             Rest.Nova.requestShelveServer (GetterSetters.projectIdentifier newProject) newProject.endpoints.nova newServer.osProps.uuid
 
-        deleteFloatingIpCmds =
+        cleanUpFloatingIpCmds =
             if deleteFloatingIps then
                 let
                     errorContext : OSTypes.IpAddressUuid -> ErrorContext
@@ -4471,13 +4471,26 @@ requestShelveServer project server deleteFloatingIps =
                             ("delete floating IP address with UUID " ++ ipUuid)
                             ErrorDebug
                             Nothing
+
+                    deleteFloatingIpCmds =
+                        GetterSetters.getServerFloatingIps project server.osProps.uuid
+                            |> List.map .uuid
+                            |> List.map
+                                (\ipUuid ->
+                                    Rest.Neutron.requestDeleteFloatingIp project (errorContext ipUuid) ipUuid
+                                )
+
+                    deletRecordSetsCmds =
+                        Helpers.sanitizeHostname server.osProps.name
+                            |> Maybe.map
+                                (\hostname ->
+                                    GetterSetters.getServerDnsRecordSets project server.osProps.uuid
+                                        |> List.filter (\{ name, zone_name } -> hostname ++ "." ++ zone_name == name)
+                                )
+                            |> Maybe.withDefault []
+                            |> List.map (Rest.Designate.requestDeleteRecordSet ErrorDebug project)
                 in
-                GetterSetters.getServerFloatingIps project server.osProps.uuid
-                    |> List.map .uuid
-                    |> List.map
-                        (\ipUuid ->
-                            Rest.Neutron.requestDeleteFloatingIp project (errorContext ipUuid) ipUuid
-                        )
+                deleteFloatingIpCmds ++ deletRecordSetsCmds
 
             else
                 []
@@ -4485,7 +4498,7 @@ requestShelveServer project server deleteFloatingIps =
     ( newProject
     , Cmd.batch
         [ shelveCmd
-        , Cmd.batch deleteFloatingIpCmds
+        , Cmd.batch cleanUpFloatingIpCmds
         ]
     )
 
