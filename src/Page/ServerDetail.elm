@@ -26,7 +26,7 @@ import Route
 import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.Alert as Alert
-import Style.Widgets.Button
+import Style.Widgets.Button as Button
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Grid exposing (scrollableCell)
 import Style.Widgets.Icon as Icon
@@ -546,7 +546,7 @@ serverNameEditView context project currentTime model server =
                                 :: List.map
                                     (\name ->
                                         Element.row [ Element.paddingEach { edges | top = spacer.px12 } ]
-                                            [ Style.Widgets.Button.default
+                                            [ Button.default
                                                 context.palette
                                                 { text = name
                                                 , onPress = Just <| GotServerNamePendingConfirmation (Just name)
@@ -1705,8 +1705,8 @@ renderIpAddresses context project server model =
                                             (Helpers.String.toTitleCase context.localization.floatingIpAddress)
                                             (Element.row [ Element.spacing spacer.px16 ]
                                                 [ copyableText context.palette [] ipAddress.address
-                                                , Widget.textButton
-                                                    (SH.materialStyle context.palette).button
+                                                , Button.default
+                                                    context.palette
                                                     { text =
                                                         "Unassign"
                                                     , onPress =
