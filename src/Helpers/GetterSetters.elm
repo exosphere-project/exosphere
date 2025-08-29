@@ -106,7 +106,6 @@ import Helpers.String exposing (toTitleCase)
 import Helpers.Url as UrlHelpers
 import List.Extra
 import OpenStack.DnsRecordSet
-import OpenStack.HelperTypes
 import OpenStack.SecurityGroupRule as SecurityGroupRule
 import OpenStack.Types as OSTypes
 import OpenStack.VolumeSnapshots as VS
@@ -493,7 +492,7 @@ getServerDnsRecordSets project uuid =
             )
 
 
-getDefaultZone : Project -> Maybe { zone_id : OpenStack.HelperTypes.Uuid, zone_name : String }
+getDefaultZone : Project -> Maybe OpenStack.DnsRecordSet.DnsZone
 getDefaultZone project =
     -- TODO: Get the default zone from cloud-specific config (or another source).
     project.dnsRecordSets

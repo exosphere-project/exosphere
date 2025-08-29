@@ -148,6 +148,7 @@ type ServerSpecificMsgConstructor
     | RequestResizeServer OSTypes.FlavorId
     | RequestServerSecurityGroupUpdates (List OSTypes.ServerSecurityGroupUpdate)
     | RequestCreateServerFloatingIp (Maybe OSTypes.IpAddressValue)
+    | RequestCreateServerHostname ( OpenStack.DnsRecordSet.DnsZone, OSTypes.IpAddressValue )
     | ReceiveServerAction
     | ReceiveConsoleUrl (Result HttpErrorWithBody OSTypes.ConsoleUrl)
     | ReceiveDeleteServer

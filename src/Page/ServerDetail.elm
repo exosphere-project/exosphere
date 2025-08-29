@@ -1686,8 +1686,12 @@ renderIpAddresses context project server model =
                                                     , onPress =
                                                         GetterSetters.getDefaultZone project
                                                             |> Maybe.map
-                                                                -- TODO: Create DNS record set in default zone.
-                                                                (\_ -> NoOp)
+                                                                (\zone ->
+                                                                    SharedMsg <|
+                                                                        SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
+                                                                            SharedMsg.ServerMsg model.serverUuid <|
+                                                                                SharedMsg.RequestCreateServerHostname ( zone, ipAddress.address )
+                                                                )
                                                     }
                                                 ]
                                             )

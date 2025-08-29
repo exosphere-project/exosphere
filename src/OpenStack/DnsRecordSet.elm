@@ -1,6 +1,7 @@
 module OpenStack.DnsRecordSet exposing
     ( DnsRecordSet
-    , RecordType
+    , DnsZone
+    , RecordType(..)
     , fromStringToRecordType
     , lookupRecordsByAddress
     , recordTypeToString
@@ -18,6 +19,12 @@ type alias DnsRecordSet =
     , type_ : RecordType
     , ttl : Maybe Int
     , records : Set.Set String
+    }
+
+
+type alias DnsZone =
+    { zone_id : OpenStack.HelperTypes.Uuid
+    , zone_name : String
     }
 
 

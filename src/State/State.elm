@@ -3660,6 +3660,51 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
             )
                 |> mapToOuterMsg
 
+        RequestCreateServerHostname ( zone, ipAddress ) ->
+            let
+                hostname_ =
+                    Helpers.sanitizeHostname server.osProps.name
+            in
+            case hostname_ of
+                Just hostname ->
+                    ( outerModel
+                    , Rest.Designate.requestCreateRecordSet project
+                        { zone_id = zone.zone_id
+                        , name = hostname ++ "." ++ zone.zone_name
+                        , type_ = OpenStack.DnsRecordSet.ARecord
+                        , records = Set.singleton ipAddress
+                        , description =
+                            String.join " "
+                                [ "Created for"
+                                , sharedModel.viewContext.localization.virtualComputer
+                                , server.osProps.name
+                                ]
+                        , ttl = Nothing
+                        }
+                    )
+                        |> mapToOuterMsg
+
+                Nothing ->
+                    let
+                        errMsg =
+                            "Could not determine a valid "
+                                ++ sharedModel.viewContext.localization.hostname
+                                ++ " for "
+                                ++ sharedModel.viewContext.localization.virtualComputer
+                                ++ " named '"
+                                ++ server.osProps.name
+                                ++ "'."
+
+                        errorContext =
+                            ErrorContext
+                                ("create DNS record in zone " ++ zone.zone_name)
+                                ErrorCrit
+                                Nothing
+                    in
+                    State.Error.processStringError sharedModel errorContext errMsg
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
         ReceiveServerAction ->
             ApiModelHelpers.requestServer (GetterSetters.projectIdentifier project) NoInteraction server.osProps.uuid sharedModel
                 |> Helpers.pipelineCmd (ApiModelHelpers.requestServerEvents (GetterSetters.projectIdentifier project) server.osProps.uuid)
