@@ -1638,7 +1638,24 @@ processProjectSpecificMsg outerModel project msg =
             )
 
         RequestUnassignFloatingIp floatingIpUuid ->
-            ( outerModel, Rest.Neutron.requestUnassignFloatingIp project floatingIpUuid )
+            let
+                -- Remove any application-provisioned DNS record sets for the server's floating IP association. (#1081)
+                deleteRecordSetCmds =
+                    GetterSetters.floatingIpLookup project floatingIpUuid
+                        |> Maybe.andThen (GetterSetters.getFloatingIpServer project)
+                        |> Maybe.andThen
+                            (\server ->
+                                Helpers.sanitizeHostname server.osProps.name
+                                    |> Maybe.map
+                                        (\hostname ->
+                                            GetterSetters.getServerDnsRecordSets project server.osProps.uuid
+                                                |> List.filter (\{ name, zone_name } -> hostname ++ "." ++ zone_name == name)
+                                        )
+                            )
+                        |> Maybe.withDefault []
+                        |> List.map (Rest.Designate.requestDeleteRecordSet ErrorDebug project)
+            in
+            ( outerModel, Cmd.batch <| Rest.Neutron.requestUnassignFloatingIp project floatingIpUuid :: deleteRecordSetCmds )
                 |> mapToOuterMsg
 
         ReceiveImages images ->
@@ -2179,7 +2196,6 @@ processProjectSpecificMsg outerModel project msg =
                 |> mapToOuterModel outerModel
 
         ReceiveUnassignFloatingIp floatingIp ->
-            -- TODO update servers so that unassignment is reflected in the UI
             let
                 newProject =
                     processNewFloatingIp sharedModel.clientCurrentTime project floatingIp
