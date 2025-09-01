@@ -101,7 +101,7 @@ type ProjectSpecificMsgConstructor
     | ReceivePorts ErrorContext (Result HttpErrorWithBody (List OSTypes.Port))
     | ReceiveCreateProjectFloatingIp ErrorContext (Result HttpErrorWithBody OSTypes.FloatingIp)
     | ReceiveDeleteFloatingIp OSTypes.IpAddressUuid
-    | ReceiveAssignFloatingIp OSTypes.FloatingIp
+    | ReceiveAssignFloatingIp OSTypes.Port OSTypes.FloatingIp
     | ReceiveUnassignFloatingIp OSTypes.FloatingIp
     | ReceiveSecurityGroups ErrorContext (Result HttpErrorWithBody (List OSTypes.SecurityGroup))
     | ReceiveDnsRecordSets (List OpenStack.DnsRecordSet.DnsRecordSet)

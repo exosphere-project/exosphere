@@ -291,7 +291,7 @@ requestAssignFloatingIp project port_ floatingIpUuid =
                 (\ip ->
                     ProjectMsg
                         (GetterSetters.projectIdentifier project)
-                        (ReceiveAssignFloatingIp ip)
+                        (ReceiveAssignFloatingIp port_ ip)
                 )
     in
     openstackCredentialedRequest

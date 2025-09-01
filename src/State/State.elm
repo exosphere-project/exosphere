@@ -2183,16 +2183,49 @@ processProjectSpecificMsg outerModel project msg =
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
-        ReceiveAssignFloatingIp floatingIp ->
-            -- TODO update servers so that new assignment is reflected in the UI
+        ReceiveAssignFloatingIp port_ floatingIp ->
             let
                 newProject =
                     processNewFloatingIp sharedModel.clientCurrentTime project floatingIp
 
+                maybeServer =
+                    GetterSetters.serverLookup project port_.deviceUuid
+
+                maybeZone =
+                    GetterSetters.getDefaultZone project
+
+                createRecordsetCmd =
+                    -- Associate the server's floating IP with a DNS record. (#1081)
+                    case ( maybeZone, maybeServer ) of
+                        ( Just zone, Just server ) ->
+                            Helpers.sanitizeHostname server.osProps.name
+                                |> Maybe.map
+                                    (\hostname ->
+                                        Rest.Designate.requestCreateRecordSet ErrorDebug
+                                            project
+                                            { zone_id = zone.zone_id
+                                            , name = hostname ++ "." ++ zone.zone_name
+                                            , type_ = OpenStack.DnsRecordSet.ARecord
+                                            , records = Set.singleton floatingIp.address
+                                            , description =
+                                                String.join " "
+                                                    [ "Created for"
+                                                    , sharedModel.viewContext.localization.virtualComputer
+                                                    , server.osProps.name
+                                                    ]
+                                            , ttl = Nothing
+                                            }
+                                    )
+                                |> Maybe.withDefault Cmd.none
+
+                        _ ->
+                            Cmd.none
+
                 newSharedModel =
                     GetterSetters.modelUpdateProject sharedModel newProject
             in
-            ( newSharedModel, Cmd.none )
+            ( newSharedModel, createRecordsetCmd )
+                |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
         ReceiveUnassignFloatingIp floatingIp ->
@@ -3670,7 +3703,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                     |> List.map (Rest.Designate.requestDeleteRecordSet ErrorCrit project)
                     |> Cmd.batch
                 , newDnsRecordSetRequests
-                    |> List.map (Rest.Designate.requestCreateRecordSet project)
+                    |> List.map (Rest.Designate.requestCreateRecordSet ErrorCrit project)
                     |> Cmd.batch
                 ]
             )
@@ -3684,7 +3717,8 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
             case hostname_ of
                 Just hostname ->
                     ( outerModel
-                    , Rest.Designate.requestCreateRecordSet project
+                    , Rest.Designate.requestCreateRecordSet ErrorCrit
+                        project
                         { zone_id = zone.zone_id
                         , name = hostname ++ "." ++ zone.zone_name
                         , type_ = OpenStack.DnsRecordSet.ARecord
