@@ -3816,7 +3816,39 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
         ReceiveCreateServerFloatingIp errorContext result ->
             case result of
                 Ok ip ->
-                    Rest.Neutron.receiveCreateFloatingIp sharedModel project (Just server) ip
+                    let
+                        ( newSharedModel, cmd ) =
+                            Rest.Neutron.receiveCreateFloatingIp sharedModel project (Just server) ip
+
+                        maybeZone =
+                            GetterSetters.getDefaultZone project
+
+                        maybeHostname =
+                            Helpers.sanitizeHostname server.osProps.name
+
+                        createRecordsetCmd =
+                            -- Associate the server's floating IP with a DNS record. (#1081)
+                            case ( maybeZone, maybeHostname ) of
+                                ( Just zone, Just hostname ) ->
+                                    Rest.Designate.requestCreateRecordSet ErrorDebug
+                                        project
+                                        { zone_id = zone.zone_id
+                                        , name = hostname ++ "." ++ zone.zone_name
+                                        , type_ = OpenStack.DnsRecordSet.ARecord
+                                        , records = Set.singleton ip.address
+                                        , description =
+                                            String.join " "
+                                                [ "Created for"
+                                                , sharedModel.viewContext.localization.virtualComputer
+                                                , server.osProps.name
+                                                ]
+                                        , ttl = Nothing
+                                        }
+
+                                _ ->
+                                    Cmd.none
+                    in
+                    ( newSharedModel, Cmd.batch [ cmd, createRecordsetCmd ] )
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
