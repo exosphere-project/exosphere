@@ -1,12 +1,12 @@
 module Rest.Neutron exposing
     ( NeutronError
+    , ensureDefaultSecurityGroup
     , neutronErrorDecoder
     , receiveCreateFloatingIp
     , receiveCreateSecurityGroupAndRequestCreateRules
     , receiveDeleteFloatingIp
     , receiveFloatingIps
     , receiveNetworks
-    , receiveSecurityGroupsAndEnsureDefaultGroup
     , reconcileSecurityGroupRules
     , requestAssignFloatingIp
     , requestAutoAllocatedNetwork
@@ -44,9 +44,11 @@ import Rest.Helpers
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.HelperTypes exposing (FloatingIpOption(..), HttpRequestMethod(..))
 import Types.Project exposing (Project)
+import Types.SecurityGroupActions as SecurityGroupActions
 import Types.Server exposing (Server)
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
+import View.Types exposing (Context)
 
 
 
@@ -473,7 +475,7 @@ requestUpdateSecurityGroup :
             | name : String
             , description : Maybe String
         }
-    -> Cmd SharedMsg
+    -> ( Project, Cmd SharedMsg )
 requestUpdateSecurityGroup project securityGroupUuid securityGroupUpdate =
     let
         requestBody =
@@ -496,18 +498,27 @@ requestUpdateSecurityGroup project securityGroupUuid securityGroupUpdate =
             ProjectMsg
                 (GetterSetters.projectIdentifier project)
                 (ReceiveUpdateSecurityGroup errorContext securityGroupUuid result)
+
+        requestCmd =
+            openstackCredentialedRequest
+                (GetterSetters.projectIdentifier project)
+                Put
+                Nothing
+                []
+                ( project.endpoints.neutron, [ "v2.0", "security-groups", securityGroupUuid ], [] )
+                (Http.jsonBody requestBody)
+                (expectJsonWithErrorBody
+                    resultToMsg
+                    securityGroupDecoder
+                )
+
+        newProject =
+            -- Track updating the security group.
+            GetterSetters.projectUpsertSecurityGroupActions project
+                (SecurityGroupActions.ExtantGroup securityGroupUuid)
+                (\actions -> { actions | pendingSecurityGroupChanges = { updates = 1, errors = [] } })
     in
-    openstackCredentialedRequest
-        (GetterSetters.projectIdentifier project)
-        Put
-        Nothing
-        []
-        ( project.endpoints.neutron, [ "v2.0", "security-groups", securityGroupUuid ], [] )
-        (Http.jsonBody requestBody)
-        (expectJsonWithErrorBody
-            resultToMsg
-            securityGroupDecoder
-        )
+    ( newProject, requestCmd )
 
 
 requestUpdateSecurityGroupTags : Project -> OSTypes.SecurityGroupUuid -> List OSTypes.SecurityGroupTag -> Cmd SharedMsg
@@ -701,37 +712,30 @@ receiveDeleteFloatingIp model project uuid =
             ( model, Cmd.none )
 
 
-receiveSecurityGroupsAndEnsureDefaultGroup : SharedModel -> Project -> List OSTypes.SecurityGroup -> ( SharedModel, Cmd SharedMsg )
-receiveSecurityGroupsAndEnsureDefaultGroup model project securityGroups =
+ensureDefaultSecurityGroup : Context -> Project -> List OSTypes.SecurityGroup -> ( Project, List (Cmd SharedMsg) )
+ensureDefaultSecurityGroup context project securityGroups =
     {- Create a default security group unless one already exists -}
     let
-        newSecurityGroups =
-            RDPP.RemoteDataPlusPlus
-                (RDPP.DoHave securityGroups model.clientCurrentTime)
-                (RDPP.NotLoading Nothing)
-
-        newProject =
-            { project | securityGroups = newSecurityGroups }
-
         defaultSecurityGroup : OSTypes.SecurityGroupTemplate
         defaultSecurityGroup =
-            GetterSetters.projectDefaultSecurityGroup model.viewContext project
-
-        newModel =
-            GetterSetters.modelUpdateProject model newProject
-
-        cmds =
-            case List.Extra.find (\a -> a.name == defaultSecurityGroup.name) securityGroups of
-                Just defaultGroup ->
-                    requestUpdateSecurityGroupRules
-                        newProject
-                        defaultGroup
-                        defaultSecurityGroup.rules
-
-                Nothing ->
-                    [ requestCreateDefaultSecurityGroup newProject defaultSecurityGroup ]
+            GetterSetters.projectDefaultSecurityGroup context project
     in
-    ( newModel, Cmd.batch cmds )
+    case List.Extra.find (\a -> a.name == defaultSecurityGroup.name) securityGroups of
+        Just defaultGroup ->
+            requestUpdateSecurityGroupRules
+                project
+                defaultGroup
+                defaultSecurityGroup.rules
+
+        Nothing ->
+            let
+                newProject =
+                    -- Track creating the security group.
+                    GetterSetters.projectUpsertSecurityGroupActions project
+                        (SecurityGroupActions.NewGroup defaultSecurityGroup.name)
+                        (\actions -> { actions | pendingCreation = True })
+            in
+            ( newProject, [ requestCreateDefaultSecurityGroup newProject defaultSecurityGroup ] )
 
 
 {-| Ensure rules are in sync & none are missing compared to the target rules template.
@@ -742,7 +746,7 @@ receiveSecurityGroupsAndEnsureDefaultGroup model project securityGroups =
     are added to all new security groups, and those might differ from our application default rules.
 
 -}
-requestUpdateSecurityGroupRules : Project -> OSTypes.SecurityGroup -> List SecurityGroupRule.SecurityGroupRuleTemplate -> List (Cmd SharedMsg)
+requestUpdateSecurityGroupRules : Project -> OSTypes.SecurityGroup -> List SecurityGroupRule.SecurityGroupRuleTemplate -> ( Project, List (Cmd SharedMsg) )
 requestUpdateSecurityGroupRules project securityGroup updatedRules =
     let
         existingRules =
@@ -760,22 +764,35 @@ requestUpdateSecurityGroupRules project securityGroup updatedRules =
   - If there are extra rules, request to delete them.
 
 -}
-reconcileSecurityGroupRules : Project -> OSTypes.SecurityGroup -> List SecurityGroupRule -> List SecurityGroupRule -> List (Cmd SharedMsg)
+reconcileSecurityGroupRules : Project -> OSTypes.SecurityGroup -> List SecurityGroupRule -> List SecurityGroupRule -> ( Project, List (Cmd SharedMsg) )
 reconcileSecurityGroupRules project securityGroup existingRules updatedRules =
     let
         { missing, extra } =
             SecurityGroupRule.compareSecurityGroupRuleLists existingRules updatedRules
+
+        newProject =
+            -- Track updating the security group rules.
+            GetterSetters.projectUpsertSecurityGroupActions project
+                (SecurityGroupActions.ExtantGroup securityGroup.uuid)
+                (\actions ->
+                    { actions
+                        | pendingRuleChanges = { creations = List.length missing, deletions = List.length extra, errors = [] }
+                    }
+                )
+
+        cmds =
+            requestCreateSecurityGroupRules
+                newProject
+                securityGroup.uuid
+                missing
+                ("create missing rules for " ++ securityGroup.name ++ " security group")
+                ++ requestDeleteSecurityGroupRules
+                    newProject
+                    securityGroup.uuid
+                    (extra |> List.map .uuid)
+                    ("remove extra rules from " ++ securityGroup.name ++ " security group")
     in
-    requestCreateSecurityGroupRules
-        project
-        securityGroup.uuid
-        missing
-        ("create missing rules for " ++ securityGroup.name ++ " security group")
-        ++ requestDeleteSecurityGroupRules
-            project
-            securityGroup.uuid
-            (extra |> List.map .uuid)
-            ("remove extra rules from " ++ securityGroup.name ++ " security group")
+    ( newProject, cmds )
 
 
 receiveCreateSecurityGroupAndRequestCreateRules : SharedModel -> Project -> OSTypes.SecurityGroupTemplate -> OSTypes.SecurityGroup -> ( SharedModel, Cmd SharedMsg )
@@ -784,19 +801,19 @@ receiveCreateSecurityGroupAndRequestCreateRules model project securityGroupTempl
         newProject =
             GetterSetters.projectUpdateSecurityGroup project securityGroup
 
-        newModel =
-            GetterSetters.modelUpdateProject model newProject
-    in
-    ( newModel
-    , Cmd.batch <|
         -- All security groups are created with the project's OpenStack default security group rules.
         -- Any overlapping rules will cause a SecurityGroupRuleExists 409 ConflictException.
         -- So we create rules based on the difference, even for brand new groups.
-        requestUpdateSecurityGroupRules
-            newProject
-            securityGroup
-            securityGroupTemplate.rules
-    )
+        ( newerProject, cmds ) =
+            requestUpdateSecurityGroupRules
+                newProject
+                securityGroup
+                securityGroupTemplate.rules
+
+        newModel =
+            GetterSetters.modelUpdateProject model newerProject
+    in
+    ( newModel, Cmd.batch cmds )
 
 
 

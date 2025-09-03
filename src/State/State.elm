@@ -10,6 +10,7 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.ServerActionRequestQueue exposing (marshalServerActionRequestQueue)
 import Helpers.ServerResourceUsage
 import Helpers.String exposing (pluralize, toTitleCase)
+import Helpers.WebLock exposing (WebLock(..))
 import Http
 import Json.Decode as Decode
 import Json.Encode
@@ -780,6 +781,55 @@ processSharedMsg sharedMsg outerModel =
             State.Error.processConnectivityError nextSharedModel online
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
+
+        ReceiveWebLock ( resource, granted ) ->
+            let
+                webLock =
+                    Helpers.WebLock.resourceIdToWebLock resource
+            in
+            case webLock of
+                Just (EnsureDefaultSecurityGroup projectIdentifier) ->
+                    if granted then
+                        -- We have the lock, so ensure the default security group is up to date for this project.
+                        let
+                            maybeProject =
+                                GetterSetters.projectLookup sharedModel projectIdentifier
+                        in
+                        case maybeProject of
+                            Just project ->
+                                let
+                                    maybeSecurityGroups =
+                                        project.securityGroups
+                                            -- Using `withDefault []` would be dangerous here because then we would recreate the default group.
+                                            -- We ought to proceed only when we know the list.
+                                            |> RDPP.toMaybe
+
+                                    ( newProject, cmds ) =
+                                        case maybeSecurityGroups of
+                                            Just groups ->
+                                                Rest.Neutron.ensureDefaultSecurityGroup sharedModel.viewContext project groups
+
+                                            _ ->
+                                                ( project, [] )
+
+                                    newSharedModel =
+                                        GetterSetters.modelUpdateProject sharedModel newProject
+                                in
+                                ( newSharedModel, Cmd.batch cmds )
+                                    |> mapToOuterMsg
+                                    |> mapToOuterModel outerModel
+
+                            Nothing ->
+                                -- We couldn't find the project.
+                                ( outerModel, Cmd.none )
+
+                    else
+                        -- We were denied the lock, do nothing.
+                        ( outerModel, Cmd.none )
+
+                _ ->
+                    -- Unrecognized web lock resource id.
+                    ( outerModel, Cmd.none )
 
         MsgChangeWindowSize x y ->
             ( { sharedModel
@@ -2140,7 +2190,31 @@ processProjectSpecificMsg outerModel project msg =
         ReceiveSecurityGroups errorContext result ->
             case result of
                 Ok groups ->
-                    Rest.Neutron.receiveSecurityGroupsAndEnsureDefaultGroup sharedModel project groups
+                    let
+                        newProject =
+                            { project
+                                | securityGroups =
+                                    RDPP.RemoteDataPlusPlus
+                                        (RDPP.DoHave groups sharedModel.clientCurrentTime)
+                                        (RDPP.NotLoading Nothing)
+                            }
+
+                        -- Are there updates to the default security group?
+                        ( newerProject, prospectiveCmds ) =
+                            Rest.Neutron.ensureDefaultSecurityGroup sharedModel.viewContext newProject groups
+
+                        newSharedModel =
+                            GetterSetters.modelUpdateProject sharedModel newerProject
+
+                        -- Before we make updates, get a resource lock so that no other tabs or threads can make them at the same time.
+                        requestWebLockCmd =
+                            if List.isEmpty prospectiveCmds then
+                                Cmd.none
+
+                            else
+                                Ports.requestWebLock <| Helpers.WebLock.webLockToResourceId <| EnsureDefaultSecurityGroup <| GetterSetters.projectIdentifier project
+                    in
+                    ( newSharedModel, requestWebLockCmd )
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
                         -- Make the page aware of the shared msg.
@@ -2189,6 +2263,18 @@ processProjectSpecificMsg outerModel project msg =
                 newProject =
                     -- Before creation we only had a security group name. Now we can swap it out for the uuid.
                     GetterSetters.projectDeleteSecurityGroupActions project (SecurityGroupActions.NewGroup template.name)
+
+                isDefaultSecurityGroup =
+                    GetterSetters.isDefaultSecurityGroup sharedModel.viewContext project template
+
+                releaseWebLockCmd =
+                    -- Were we creating the default security group?
+                    -- If so, we need to release the web lock.
+                    if isDefaultSecurityGroup then
+                        Ports.releaseWebLock <| Helpers.WebLock.webLockToResourceId <| EnsureDefaultSecurityGroup <| GetterSetters.projectIdentifier project
+
+                    else
+                        Cmd.none
             in
             case result of
                 Ok group ->
@@ -2201,6 +2287,14 @@ processProjectSpecificMsg outerModel project msg =
 
                         { missing, extra } =
                             SecurityGroupRule.compareSecurityGroupRuleLists existingRules intendedRules
+
+                        releaseWebLockOrWaitCmd =
+                            if isDefaultSecurityGroup && List.isEmpty missing && List.isEmpty extra then
+                                releaseWebLockCmd
+
+                            else
+                                -- We still have rules to create or delete. Hold the lock until those are done.
+                                Cmd.none
 
                         pendingServerLinkage =
                             -- Should we link this group to a server now that it's created?
@@ -2240,6 +2334,7 @@ processProjectSpecificMsg outerModel project msg =
                                                     }
                                         )
                                     |> Maybe.withDefault Cmd.none
+                                , releaseWebLockOrWaitCmd
                                 ]
                     in
                     ( newSharedModel, newerCmd )
@@ -2252,29 +2347,54 @@ processProjectSpecificMsg outerModel project msg =
                     let
                         newModel =
                             GetterSetters.modelUpdateProject sharedModel newProject
+
+                        ( newSharedModel, errorCmd ) =
+                            State.Error.processSynchronousApiError newModel errorContext httpError
                     in
-                    State.Error.processSynchronousApiError newModel errorContext httpError
+                    ( newSharedModel, Cmd.batch [ errorCmd, releaseWebLockCmd ] )
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
                         -- Make the form aware of the shared msg.
                         |> pipelineCmdOuterModelMsg (updateUnderlying (ServerSecurityGroupsMsg <| Page.ServerSecurityGroups.SecurityGroupFormMsg <| Page.SecurityGroupForm.GotCreateSecurityGroupResult template result))
 
         ReceiveCreateSecurityGroupRule errorContext securityGroupUuid result ->
+            let
+                pendingRulesChanges =
+                    GetterSetters.getSecurityGroupActions project (SecurityGroupActions.ExtantGroup securityGroupUuid)
+                        |> Maybe.map .pendingRuleChanges
+                        |> Maybe.withDefault SecurityGroupActions.initPendingRulesChanges
+
+                newPendingRulesChanges =
+                    { pendingRulesChanges
+                        | creations = pendingRulesChanges.creations - 1
+                    }
+
+                maybeSecurityGroup =
+                    GetterSetters.securityGroupLookup project securityGroupUuid
+
+                noMoreChanges =
+                    newPendingRulesChanges.creations == 0 && newPendingRulesChanges.deletions == 0
+
+                isDefaultSecurityGroup =
+                    maybeSecurityGroup
+                        |> Maybe.map (GetterSetters.isDefaultSecurityGroup sharedModel.viewContext project)
+                        |> Maybe.withDefault False
+
+                releaseWebLockCmd =
+                    -- If we were updating the default security group rules, release the web lock if all changes are done.
+                    if isDefaultSecurityGroup && noMoreChanges then
+                        Ports.releaseWebLock <| Helpers.WebLock.webLockToResourceId <| EnsureDefaultSecurityGroup <| GetterSetters.projectIdentifier project
+
+                    else
+                        Cmd.none
+            in
             case result of
                 Ok rule ->
                     let
                         newProject =
                             GetterSetters.projectUpdateSecurityGroupActionsIfExists project
                                 (SecurityGroupActions.ExtantGroup securityGroupUuid)
-                                (\actions ->
-                                    { actions
-                                        | pendingRuleChanges =
-                                            { creations = actions.pendingRuleChanges.creations - 1
-                                            , deletions = actions.pendingRuleChanges.deletions
-                                            , errors = actions.pendingRuleChanges.errors
-                                            }
-                                    }
-                                )
+                                (\actions -> { actions | pendingRuleChanges = newPendingRulesChanges })
 
                         newerProject =
                             GetterSetters.projectAddSecurityGroupRule
@@ -2285,7 +2405,7 @@ processProjectSpecificMsg outerModel project msg =
                         newModel =
                             GetterSetters.modelUpdateProject sharedModel newerProject
                     in
-                    ( newModel, Cmd.none )
+                    ( newModel, releaseWebLockCmd )
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
@@ -2310,36 +2430,60 @@ processProjectSpecificMsg outerModel project msg =
                                 (\actions ->
                                     { actions
                                         | pendingRuleChanges =
-                                            { creations = actions.pendingRuleChanges.creations - 1
-                                            , deletions = actions.pendingRuleChanges.deletions
-                                            , errors = errorMessage :: actions.pendingRuleChanges.errors
+                                            { newPendingRulesChanges
+                                                | errors = errorMessage :: actions.pendingRuleChanges.errors
                                             }
                                     }
                                 )
 
                         newModel =
                             GetterSetters.modelUpdateProject sharedModel newProject
+
+                        ( newSharedModel, errorCmd ) =
+                            State.Error.processSynchronousApiError newModel errorContext httpError
                     in
-                    State.Error.processSynchronousApiError newModel errorContext httpError
+                    ( newSharedModel, Cmd.batch [ errorCmd, releaseWebLockCmd ] )
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
         ReceiveDeleteSecurityGroupRule errorContext ( securityGroupUuid, ruleUuid ) result ->
+            let
+                pendingRulesChanges =
+                    GetterSetters.getSecurityGroupActions project (SecurityGroupActions.ExtantGroup securityGroupUuid)
+                        |> Maybe.map .pendingRuleChanges
+                        |> Maybe.withDefault SecurityGroupActions.initPendingRulesChanges
+
+                newPendingRulesChanges =
+                    { pendingRulesChanges
+                        | deletions = pendingRulesChanges.deletions - 1
+                    }
+
+                maybeSecurityGroup =
+                    GetterSetters.securityGroupLookup project securityGroupUuid
+
+                noMoreChanges =
+                    newPendingRulesChanges.creations == 0 && newPendingRulesChanges.deletions == 0
+
+                isDefaultSecurityGroup =
+                    maybeSecurityGroup
+                        |> Maybe.map (GetterSetters.isDefaultSecurityGroup sharedModel.viewContext project)
+                        |> Maybe.withDefault False
+
+                releaseWebLockCmd =
+                    -- If we were updating the default security group rules, release the web lock if all changes are done.
+                    if isDefaultSecurityGroup && noMoreChanges then
+                        Ports.releaseWebLock <| Helpers.WebLock.webLockToResourceId <| EnsureDefaultSecurityGroup <| GetterSetters.projectIdentifier project
+
+                    else
+                        Cmd.none
+            in
             case result of
                 Ok () ->
                     let
                         newProject =
                             GetterSetters.projectUpdateSecurityGroupActionsIfExists project
                                 (SecurityGroupActions.ExtantGroup securityGroupUuid)
-                                (\actions ->
-                                    { actions
-                                        | pendingRuleChanges =
-                                            { creations = actions.pendingRuleChanges.creations
-                                            , deletions = actions.pendingRuleChanges.deletions - 1
-                                            , errors = actions.pendingRuleChanges.errors
-                                            }
-                                    }
-                                )
+                                (\actions -> { actions | pendingRuleChanges = newPendingRulesChanges })
 
                         newerProject =
                             GetterSetters.projectDeleteSecurityGroupRule
@@ -2350,7 +2494,7 @@ processProjectSpecificMsg outerModel project msg =
                         newModel =
                             GetterSetters.modelUpdateProject sharedModel newerProject
                     in
-                    ( newModel, Cmd.none )
+                    ( newModel, releaseWebLockCmd )
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
@@ -2365,17 +2509,19 @@ processProjectSpecificMsg outerModel project msg =
                                 (\actions ->
                                     { actions
                                         | pendingRuleChanges =
-                                            { creations = actions.pendingRuleChanges.creations
-                                            , deletions = actions.pendingRuleChanges.deletions - 1
-                                            , errors = errorMessage :: actions.pendingRuleChanges.errors
+                                            { newPendingRulesChanges
+                                                | errors = errorMessage :: actions.pendingRuleChanges.errors
                                             }
                                     }
                                 )
 
                         newModel =
                             GetterSetters.modelUpdateProject sharedModel newProject
+
+                        ( newSharedModel, errorCmd ) =
+                            State.Error.processStringError newModel errorContext errorMessage
                     in
-                    State.Error.processStringError newModel errorContext errorMessage
+                    ( newSharedModel, Cmd.batch [ errorCmd, releaseWebLockCmd ] )
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
@@ -2482,34 +2628,21 @@ processProjectSpecificMsg outerModel project msg =
 
         RequestUpdateSecurityGroup existingSecurityGroup securityGroupUpdate ->
             let
-                existingRules =
-                    existingSecurityGroup.rules
+                ( newProject, updateRuleCmds ) =
+                    Rest.Neutron.requestUpdateSecurityGroupRules project existingSecurityGroup securityGroupUpdate.rules
 
-                intendedRules =
-                    securityGroupUpdate.rules |> List.map SecurityGroupRule.securityGroupRuleTemplateToRule
-
-                { missing, extra } =
-                    SecurityGroupRule.compareSecurityGroupRuleLists existingRules intendedRules
-
-                newProject =
-                    GetterSetters.projectUpsertSecurityGroupActions project
-                        (SecurityGroupActions.ExtantGroup existingSecurityGroup.uuid)
-                        (\actions ->
-                            { actions
-                                | pendingSecurityGroupChanges = { updates = 1, errors = [] }
-                                , pendingRuleChanges = { creations = List.length missing, deletions = List.length extra, errors = [] }
-                            }
-                        )
+                ( newerProject, updateSecurityGroupCmd ) =
+                    Rest.Neutron.requestUpdateSecurityGroup newProject existingSecurityGroup.uuid securityGroupUpdate
 
                 newModel =
-                    GetterSetters.modelUpdateProject sharedModel newProject
+                    GetterSetters.modelUpdateProject sharedModel newerProject
             in
             ( newModel
             , Cmd.batch <|
                 -- Update the security group.
-                Rest.Neutron.requestUpdateSecurityGroup newProject existingSecurityGroup.uuid securityGroupUpdate
+                updateSecurityGroupCmd
                     -- Update the security group rules.
-                    :: Rest.Neutron.requestUpdateSecurityGroupRules newProject existingSecurityGroup securityGroupUpdate.rules
+                    :: updateRuleCmds
             )
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel

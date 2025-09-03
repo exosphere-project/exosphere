@@ -1,7 +1,7 @@
 module State.Subscriptions exposing (subscriptions)
 
 import Browser.Events
-import Ports exposing (changeThemePreference, updateNetworkConnectivity)
+import Ports exposing (changeThemePreference, receiveWebLock, updateNetworkConnectivity)
 import Set
 import Style.Theme exposing (decodeThemePreference)
 import Style.Types as ST
@@ -34,6 +34,7 @@ subscriptionsValid outerModel =
          , Browser.Events.onResize (\x y -> SharedMsg <| MsgChangeWindowSize x y)
          , changeThemePreference (decodeThemePreference >> sendThemeUpdate)
          , updateNetworkConnectivity (\online -> SharedMsg (NetworkConnection online))
+         , receiveWebLock (\result -> SharedMsg (ReceiveWebLock result))
          ]
             -- Close popovers if clicked outside. Based on: https://dev.to/margaretkrutikova/elm-dom-node-decoder-to-detect-click-outside-3ioh
             ++ List.map

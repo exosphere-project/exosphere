@@ -191,7 +191,7 @@ projectDefaultSecurityGroup context project =
             }
 
 
-isDefaultSecurityGroup : Context -> Project -> OSTypes.SecurityGroup -> Bool
+isDefaultSecurityGroup : Context -> Project -> { a | name : String } -> Bool
 isDefaultSecurityGroup context project sg =
     let
         defaultSecurityGroup =

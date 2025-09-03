@@ -51,6 +51,7 @@ type SharedMsg
     | SetExperimentalFeaturesEnabled Bool
     | TogglePopover PopoverId
     | NetworkConnection Bool
+    | ReceiveWebLock ( String, Bool )
     | NoOp
 
 
