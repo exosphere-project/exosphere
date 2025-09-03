@@ -2296,6 +2296,9 @@ processProjectSpecificMsg outerModel project msg =
                                 -- We still have rules to create or delete. Hold the lock until those are done.
                                 Cmd.none
 
+                        tagCreatorCmd =
+                            Rest.Neutron.requestUpdateSecurityGroupTags project group.uuid (OSTypes.AddSecurityGroupTags [ OSTypes.securityGroupExoTags.creatorUsernamePrefix ++ project.auth.user.name ])
+
                         pendingServerLinkage =
                             -- Should we link this group to a server now that it's created?
                             -- If so, get the pending linkage from the previous project state.
@@ -2335,6 +2338,7 @@ processProjectSpecificMsg outerModel project msg =
                                         )
                                     |> Maybe.withDefault Cmd.none
                                 , releaseWebLockOrWaitCmd
+                                , tagCreatorCmd
                                 ]
                     in
                     ( newSharedModel, newerCmd )
@@ -2709,11 +2713,11 @@ processProjectSpecificMsg outerModel project msg =
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
-        RequestUpdateSecurityGroupTags securityGroupUuid tags ->
-            ( outerModel, Rest.Neutron.requestUpdateSecurityGroupTags project securityGroupUuid tags )
+        RequestUpdateSecurityGroupTags securityGroupUuid tagUpdate ->
+            ( outerModel, Rest.Neutron.requestUpdateSecurityGroupTags project securityGroupUuid tagUpdate )
                 |> mapToOuterMsg
 
-        ReceiveUpdateSecurityGroupTags ( securityGroupUuid, tags ) ->
+        ReceiveUpdateSecurityGroupTags ( securityGroupUuid, tagUpdate ) ->
             let
                 { data, refreshStatus } =
                     project.securityGroups
@@ -2727,7 +2731,24 @@ processProjectSpecificMsg outerModel project msg =
                                     (List.map
                                         (\sg ->
                                             if sg.uuid == securityGroupUuid then
-                                                { sg | tags = tags }
+                                                { sg
+                                                    | tags =
+                                                        case tagUpdate of
+                                                            OSTypes.AddSecurityGroupTags newTags ->
+                                                                List.foldl
+                                                                    (\newTag tags ->
+                                                                        if List.member newTag tags then
+                                                                            tags
+
+                                                                        else
+                                                                            newTag :: tags
+                                                                    )
+                                                                    sg.tags
+                                                                    newTags
+
+                                                            OSTypes.RemoveSecurityGroupTag tagToRemove ->
+                                                                List.filter (\t -> t /= tagToRemove) sg.tags
+                                                }
 
                                             else
                                                 sg
