@@ -1,5 +1,6 @@
 module Helpers.GetterSetters exposing
-    ( LoadingProgress(..)
+    ( DataDependent(..)
+    , LoadingProgress(..)
     , cloudSpecificConfigLookup
     , flavorLookup
     , floatingIpLookup
@@ -212,6 +213,11 @@ type LoadingProgress
     = NotSure
     | Loading
     | Done
+
+
+type DataDependent a
+    = Uninitialised
+    | Ready a
 
 
 getServerVolumeActions : Project -> OSTypes.ServerUuid -> List ServerVolumeActionRequest

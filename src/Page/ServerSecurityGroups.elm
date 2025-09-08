@@ -1,4 +1,4 @@
-module Page.ServerSecurityGroups exposing (DataDependent, Model, Msg(..), init, update, view)
+module Page.ServerSecurityGroups exposing (Model, Msg(..), init, update, view)
 
 import Element
 import Element.Background as Background
@@ -7,7 +7,7 @@ import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons exposing (edit2)
-import Helpers.GetterSetters as GetterSetters exposing (isDefaultSecurityGroup, sortedSecurityGroups)
+import Helpers.GetterSetters as GetterSetters exposing (DataDependent(..), isDefaultSecurityGroup, sortedSecurityGroups)
 import Helpers.List exposing (uniqueBy)
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.ResourceList exposing (listItemColumnAttribs)
@@ -56,11 +56,6 @@ type Msg
     | ToggleSelectedGroup OSTypes.SecurityGroupUuid
     | SharedMsg SharedMsg.SharedMsg
     | SecurityGroupFormMsg SecurityGroupForm.Msg
-
-
-type DataDependent a
-    = Uninitialised
-    | Ready a
 
 
 init : Project -> OSTypes.ServerUuid -> Model
