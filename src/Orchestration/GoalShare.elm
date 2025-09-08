@@ -20,12 +20,33 @@ goalNewShare exoClientUuid time project =
         steps =
             [ stepPollNewShares time
             , stepNewShareAccessRule exoClientUuid time
+            , stepPollShareTypes time
             ]
     in
     List.foldl
         applyProjectStep
         ( project, Cmd.none )
         steps
+
+
+stepPollShareTypes : Time.Posix -> Project -> ( Project, Cmd SharedMsg )
+stepPollShareTypes time project =
+    let
+        shareTypesPollInterval =
+            pollIntervalToMs Seldom
+    in
+    if pollRDPP project.shareTypes time shareTypesPollInterval then
+        case project.endpoints.manila of
+            Just url ->
+                ( GetterSetters.projectSetShareTypesLoading project
+                , Shares.requestShareTypes project url
+                )
+
+            Nothing ->
+                ( project, Cmd.none )
+
+    else
+        ( project, Cmd.none )
 
 
 stepPollNewShares : Time.Posix -> Project -> ( Project, Cmd SharedMsg )

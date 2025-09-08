@@ -58,6 +58,7 @@ module Helpers.GetterSetters exposing
     , projectSetServersLoading
     , projectSetShareAccessRulesLoading
     , projectSetShareExportLocationsLoading
+    , projectSetShareTypesLoading
     , projectSetSharesLoading
     , projectSetVolumeSnapshotsLoading
     , projectSetVolumesLoading
@@ -1043,6 +1044,11 @@ projectSetServerVolumeAttachmentsLoading serverId project =
 projectSetSharesLoading : Project -> Project
 projectSetSharesLoading project =
     { project | shares = RDPP.setLoading project.shares }
+
+
+projectSetShareTypesLoading : Project -> Project
+projectSetShareTypesLoading project =
+    { project | shareTypes = RDPP.setLoading project.shareTypes }
 
 
 projectSetShareAccessRulesLoading : OSTypes.ShareUuid -> Project -> Project

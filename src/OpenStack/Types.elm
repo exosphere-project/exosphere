@@ -83,6 +83,7 @@ module OpenStack.Types exposing
     , ShareQuota
     , ShareSize
     , ShareStatus(..)
+    , ShareType
     , ShareTypeName
     , ShareUuid
     , ShareVisibility
@@ -916,6 +917,12 @@ type alias NetworkQuota =
 -- Manila
 
 
+type alias ShareType =
+    { name : ShareTypeName
+    , uuid : HelperTypes.Uuid
+    }
+
+
 type alias Share =
     { name : Maybe ShareName
     , uuid : ShareUuid
@@ -1254,6 +1261,8 @@ defaultShareTypeNameForProtocol : ShareProtocol -> ShareTypeName
 defaultShareTypeNameForProtocol shareProto =
     case shareProto of
         CephFS ->
+            -- Note: Exosphere expects this convention.
+            --       https://docs.openstack.org/manila/latest/configuration/shared-file-systems/drivers/cephfs_driver.html#create-cephfs-native-share
             "cephfsnativetype"
 
         UnsupportedShareProtocol str ->
