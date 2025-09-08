@@ -3,17 +3,19 @@ module Page.ShareCreate exposing (Model, Msg(..), init, update, view)
 import Element
 import Element.Font as Font
 import Element.Input as Input
-import Helpers.GetterSetters as GetterSetters
+import Helpers.GetterSetters as GetterSetters exposing (DataDependent(..))
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import OpenStack.Quotas as OSQuotas
 import OpenStack.Types as OSTypes exposing (ShareProtocol(..), defaultShareTypeNameForProtocol)
 import String exposing (trim)
 import Style.Helpers as SH
+import Style.Widgets.Alert as Alert
 import Style.Widgets.Button as Button
 import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Style.Widgets.Spacer exposing (spacer)
+import Style.Widgets.Spinner as Spinner
 import Style.Widgets.Text as Text
 import Style.Widgets.Validation as Validation
 import Time
@@ -85,7 +87,7 @@ view context project currentTime model =
                 |> RDPP.toMaybe
                 |> Maybe.map OSQuotas.shareQuotaAvail
 
-        ( canAttemptCreate, gbAvail, perShareGigabytes ) =
+        ( quotasAllowCreate, gbAvail, perShareGigabytes ) =
             case maybeQuotaAvail of
                 Just ( numAvail, gbAvail_, perShareGigabytes_ ) ->
                     ( case numAvail of
@@ -100,6 +102,9 @@ view context project currentTime model =
 
                 Nothing ->
                     ( True, OSTypes.Unlimited, OSTypes.Unlimited )
+
+        isShareTypeSupported =
+            GetterSetters.isDefaultShareTypeSupported project
     in
     Element.column
         VH.formContainer
@@ -112,6 +117,31 @@ view context project currentTime model =
                 , context.localization.share |> Helpers.String.toTitleCase
                 ]
             )
+        , case isShareTypeSupported of
+            Ready False ->
+                Alert.alert []
+                    context.palette
+                    { state = Alert.Danger
+                    , showIcon = True
+                    , showContainer = True
+                    , content =
+                        let
+                            shareTypeWarning =
+                                String.concat
+                                    [ "Your "
+                                    , context.localization.unitOfTenancy
+                                    , " does not support the default "
+                                    , context.localization.share
+                                    , " type ("
+                                    , GetterSetters.defaultShareTypeName
+                                    , "). Please contact your administrator."
+                                    ]
+                        in
+                        Text.p [] [ Text.body shareTypeWarning ]
+                    }
+
+            _ ->
+                Element.none
         , Element.column [ Element.spacing spacer.px32 ]
             [ Element.column [ Element.spacing spacer.px12 ]
                 ([ Input.text
@@ -168,35 +198,44 @@ view context project currentTime model =
                 , spellcheck = True
                 }
             , let
-                ( onPress, quotaWarnText ) =
-                    if canAttemptCreate then
-                        case ( model.sizeInput, invalidReason ) of
-                            ( ValidNumericTextInput sizeGb, Nothing ) ->
+                ( onPress, warningText ) =
+                    if isShareTypeSupported /= Ready True then
+                        ( Nothing, Nothing )
+
+                    else
+                        case ( quotasAllowCreate, model.sizeInput, invalidReason ) of
+                            ( True, ValidNumericTextInput sizeGb, Nothing ) ->
                                 ( Just <| GotSubmit sizeGb
                                 , Nothing
                                 )
 
-                            ( _, _ ) ->
-                                ( Nothing, Nothing )
+                            ( False, _, _ ) ->
+                                ( Nothing
+                                , Just <|
+                                    String.concat
+                                        [ "Your "
+                                        , context.localization.maxResourcesPerProject
+                                        , " does not allow for creation of another "
+                                        , context.localization.share
+                                        , "."
+                                        ]
+                                )
 
-                    else
-                        ( Nothing
-                        , Just <|
-                            String.concat
-                                [ "Your "
-                                , context.localization.maxResourcesPerProject
-                                , " does not allow for creation of another "
-                                , context.localization.share
-                                , "."
-                                ]
-                        )
+                            ( _, _, _ ) ->
+                                ( Nothing, Nothing )
               in
               Element.row [ Element.width Element.fill ]
-                [ case quotaWarnText of
+                [ case warningText of
                     Just text ->
                         Element.el [ Font.color <| SH.toElementColor context.palette.danger.textOnNeutralBG ] <| Element.text text
 
                     Nothing ->
+                        Element.none
+                , case isShareTypeSupported of
+                    Uninitialised ->
+                        Element.el [ Element.alignRight, Element.paddingXY spacer.px12 0 ] (Spinner.small context.palette)
+
+                    _ ->
                         Element.none
                 , Element.el [ Element.alignRight ] <|
                     Button.primary
