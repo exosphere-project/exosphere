@@ -63,6 +63,7 @@ type ProjectSpecificMsgConstructor
     = ReceiveAppCredential OSTypes.ApplicationCredential
     | PrepareCredentialedRequest (Maybe HelperTypes.Url -> OSTypes.AuthTokenString -> Cmd SharedMsg) Time.Posix
     | RemoveProject
+    | EnsureDefaultSecurityGroup
     | ServerMsg OSTypes.ServerUuid ServerSpecificMsgConstructor
     | RequestCreateServer HelperTypes.CreateServerPageModel OSTypes.NetworkUuid OSTypes.FlavorId
     | RequestDeleteServers (List OSTypes.ServerUuid)

@@ -10,7 +10,7 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.ServerActionRequestQueue exposing (marshalServerActionRequestQueue)
 import Helpers.ServerResourceUsage
 import Helpers.String exposing (pluralize, toTitleCase)
-import Helpers.WebLock exposing (WebLock(..))
+import Helpers.WebLock
 import Http
 import Json.Decode as Decode
 import Json.Encode
@@ -783,53 +783,30 @@ processSharedMsg sharedMsg outerModel =
                 |> mapToOuterModel outerModel
 
         ReceiveWebLock ( resource, granted ) ->
-            let
-                webLock =
-                    Helpers.WebLock.resourceIdToWebLock resource
-            in
-            case webLock of
-                Just (EnsureDefaultSecurityGroup projectIdentifier) ->
-                    if granted then
-                        -- We have the lock, so ensure the default security group is up to date for this project.
-                        let
-                            maybeProject =
-                                GetterSetters.projectLookup sharedModel projectIdentifier
-                        in
-                        case maybeProject of
+            if granted then
+                -- We have the lock.
+                let
+                    webLock =
+                        Helpers.WebLock.resourceIdToWebLock resource
+                in
+                case webLock of
+                    Just (Helpers.WebLock.ProjectMsg projectIdentifier innerMsg) ->
+                        case GetterSetters.projectLookup sharedModel projectIdentifier of
                             Just project ->
-                                let
-                                    maybeSecurityGroups =
-                                        project.securityGroups
-                                            -- Using `withDefault []` would be dangerous here because then we would recreate the default group.
-                                            -- We ought to proceed only when we know the list.
-                                            |> RDPP.toMaybe
-
-                                    ( newProject, cmds ) =
-                                        case maybeSecurityGroups of
-                                            Just groups ->
-                                                Rest.Neutron.ensureDefaultSecurityGroup sharedModel.viewContext project groups
-
-                                            _ ->
-                                                ( project, [] )
-
-                                    newSharedModel =
-                                        GetterSetters.modelUpdateProject sharedModel newProject
-                                in
-                                ( newSharedModel, Cmd.batch cmds )
-                                    |> mapToOuterMsg
-                                    |> mapToOuterModel outerModel
+                                -- Handle this like a normal project-specific message.
+                                processProjectSpecificMsg outerModel project innerMsg
 
                             Nothing ->
                                 -- We couldn't find the project.
                                 ( outerModel, Cmd.none )
 
-                    else
-                        -- We were denied the lock, do nothing.
+                    _ ->
+                        -- Unrecognized web lock resource id.
                         ( outerModel, Cmd.none )
 
-                _ ->
-                    -- Unrecognized web lock resource id.
-                    ( outerModel, Cmd.none )
+            else
+                -- We were denied the lock, do nothing.
+                ( outerModel, Cmd.none )
 
         MsgChangeWindowSize x y ->
             ( { sharedModel
@@ -1357,6 +1334,30 @@ processProjectSpecificMsg outerModel project msg =
                             Cmd.none
             in
             ( newOuterModel, cmd )
+
+        EnsureDefaultSecurityGroup ->
+            -- We expect to have a weblock when this is called.
+            let
+                maybeSecurityGroups =
+                    project.securityGroups
+                        -- Using `withDefault []` would be dangerous here because then we would recreate the default group.
+                        -- We ought to proceed only when we know the list.
+                        |> RDPP.toMaybe
+
+                ( newProject, cmds ) =
+                    case maybeSecurityGroups of
+                        Just groups ->
+                            Rest.Neutron.ensureDefaultSecurityGroup sharedModel.viewContext project groups
+
+                        _ ->
+                            ( project, [] )
+
+                newSharedModel =
+                    GetterSetters.modelUpdateProject sharedModel newProject
+            in
+            ( newSharedModel, Cmd.batch cmds )
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
 
         ServerMsg serverUuid serverMsgConstructor ->
             case GetterSetters.serverLookup project serverUuid of
@@ -2212,7 +2213,7 @@ processProjectSpecificMsg outerModel project msg =
                                 Cmd.none
 
                             else
-                                Ports.requestWebLock <| Helpers.WebLock.webLockToResourceId <| EnsureDefaultSecurityGroup <| GetterSetters.projectIdentifier project
+                                Ports.requestWebLock <| Helpers.WebLock.webLockToResourceId <| Helpers.WebLock.ProjectMsg (GetterSetters.projectIdentifier project) EnsureDefaultSecurityGroup
                     in
                     ( newSharedModel, requestWebLockCmd )
                         |> mapToOuterMsg
@@ -2271,7 +2272,7 @@ processProjectSpecificMsg outerModel project msg =
                     -- Were we creating the default security group?
                     -- If so, we need to release the web lock.
                     if isDefaultSecurityGroup then
-                        Ports.releaseWebLock <| Helpers.WebLock.webLockToResourceId <| EnsureDefaultSecurityGroup <| GetterSetters.projectIdentifier project
+                        Ports.releaseWebLock <| Helpers.WebLock.webLockToResourceId <| Helpers.WebLock.ProjectMsg (GetterSetters.projectIdentifier project) EnsureDefaultSecurityGroup
 
                     else
                         Cmd.none
@@ -2387,7 +2388,7 @@ processProjectSpecificMsg outerModel project msg =
                 releaseWebLockCmd =
                     -- If we were updating the default security group rules, release the web lock if all changes are done.
                     if isDefaultSecurityGroup && noMoreChanges then
-                        Ports.releaseWebLock <| Helpers.WebLock.webLockToResourceId <| EnsureDefaultSecurityGroup <| GetterSetters.projectIdentifier project
+                        Ports.releaseWebLock <| Helpers.WebLock.webLockToResourceId <| Helpers.WebLock.ProjectMsg (GetterSetters.projectIdentifier project) EnsureDefaultSecurityGroup
 
                     else
                         Cmd.none
@@ -2476,7 +2477,7 @@ processProjectSpecificMsg outerModel project msg =
                 releaseWebLockCmd =
                     -- If we were updating the default security group rules, release the web lock if all changes are done.
                     if isDefaultSecurityGroup && noMoreChanges then
-                        Ports.releaseWebLock <| Helpers.WebLock.webLockToResourceId <| EnsureDefaultSecurityGroup <| GetterSetters.projectIdentifier project
+                        Ports.releaseWebLock <| Helpers.WebLock.webLockToResourceId <| Helpers.WebLock.ProjectMsg (GetterSetters.projectIdentifier project) EnsureDefaultSecurityGroup
 
                     else
                         Cmd.none
