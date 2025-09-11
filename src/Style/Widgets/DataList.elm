@@ -31,6 +31,7 @@ import Murmur3
 import Set
 import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
+import Style.Widgets.Button as Button
 import Style.Widgets.Chip exposing (chip)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.Popover.Popover exposing (popover)
@@ -874,21 +875,8 @@ filtersView model toMsg context { filters, dropdownMsgMapper } data =
                                     selectedFiltOptsDict
                 in
                 if isAnyFilterApplied || not (String.isEmpty model.searchText) then
-                    let
-                        textBtnStyleDefaults =
-                            (SH.materialStyle context.palette).textButton
-
-                        textBtnStyle =
-                            { textBtnStyleDefaults
-                                | container =
-                                    textBtnStyleDefaults.container
-                                        ++ [ Font.medium
-                                           , Element.height Element.shrink
-                                           ]
-                            }
-                    in
-                    Widget.textButton
-                        textBtnStyle
+                    Button.button Button.Text
+                        context.palette
                         { text = "Clear filters"
                         , onPress = Just <| ClearAllFilters
                         }

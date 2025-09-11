@@ -14,6 +14,7 @@ import Widget exposing (textButton)
 type Variant
     = Primary
     | Secondary
+    | Text
     | Danger
     | DangerSecondary
     | Warning
@@ -53,6 +54,9 @@ button variant palette params =
 
                 Secondary ->
                     (SH.materialStyle palette).button
+
+                Text ->
+                    (SH.materialStyle palette).textButton
 
                 Danger ->
                     (SH.materialStyle palette).dangerButton

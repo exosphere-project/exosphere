@@ -528,6 +528,7 @@ Exosphere uses buttons from [elm-ui-widgets](https://package.elm-lang.org/packag
                         [ { name = "primary", widget = Button.primary, text = "Create", onPress = Just NoOp }
                         , { name = "primary: disabled", widget = Button.primary, text = "Next", onPress = Nothing }
                         , { name = "secondary", widget = Button.default, text = "Next", onPress = Just NoOp }
+                        , { name = "text", widget = Button.button Button.Text, text = "Clear All", onPress = Just NoOp }
                         , { name = "warning", widget = Button.button Button.Warning, text = "Suspend", onPress = Just NoOp }
                         , { name = "danger", widget = Button.button Button.Danger, text = "Delete All", onPress = Just NoOp }
                         , { name = "danger secondary", widget = Button.button Button.DangerSecondary, text = "Delete All", onPress = Just NoOp }

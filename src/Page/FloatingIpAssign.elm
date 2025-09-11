@@ -18,7 +18,6 @@ import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
-import Widget
 
 
 type alias Model =
@@ -130,8 +129,8 @@ view context project model =
                                 Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
                                     Route.FloatingIpCreate model.serverUuid
                         , label =
-                            Widget.textButton
-                                (SH.materialStyle context.palette).button
+                            Button.primary
+                                context.palette
                                 { text =
                                     String.join " "
                                         [ "Create", Helpers.String.indefiniteArticle context.localization.floatingIpAddress, context.localization.floatingIpAddress ]
