@@ -3,6 +3,7 @@ module LocalStorage.Types exposing
     , StoredProject2
     , StoredProject3
     , StoredProject4
+    , StoredProject5
     , StoredState
     )
 
@@ -14,6 +15,10 @@ import UUID
 
 
 type alias StoredProject =
+    StoredProject5
+
+
+type alias StoredProject5 =
     { secret : Types.Project.ProjectSecret
     , auth : OSTypes.ScopedAuthToken
     , region : Maybe OSTypes.Region

@@ -10,7 +10,7 @@ import Helpers.Json exposing (resultToDecoder)
 import Helpers.RemoteDataPlusPlus as RDPP
 import Json.Decode as Decode
 import Json.Encode as Encode
-import LocalStorage.Types exposing (StoredProject, StoredProject2, StoredProject3, StoredProject4, StoredState)
+import LocalStorage.Types exposing (StoredProject, StoredProject2, StoredProject3, StoredProject4, StoredProject5, StoredState)
 import OpenStack.Types as OSTypes
 import Set exposing (Set)
 import Style.Types as ST
@@ -338,7 +338,7 @@ storedStateDecoder =
                 , Decode.at [ "7", "projects" ] (Decode.list storedProjectDecoder4)
 
                 -- Added region
-                , Decode.at [ "8", "projects" ] (Decode.list storedProjectDecoder)
+                , Decode.at [ "8", "projects" ] (Decode.list storedProjectDecoder5)
                 ]
 
         clientUuid =
@@ -401,39 +401,14 @@ storedProjectDecoder1 =
     Decode.fail "Stored projects with a hard-coded password are no longer supported."
 
 
-storedProject2ToStoredProject : StoredProject2 -> Decode.Decoder StoredProject
-storedProject2ToStoredProject sp =
-    case Helpers.serviceCatalogToEndpoints sp.auth.catalog Nothing of
-        Ok endpoints ->
-            Decode.succeed <|
-                StoredProject
-                    sp.secret
-                    sp.auth
-                    Nothing
-                    endpoints
-                    Nothing
-
-        Err e ->
-            Decode.fail ("Could not decode endpoints from service catalog because: " ++ e)
-
-
 storedProjectDecoder2 : Decode.Decoder StoredProject
 storedProjectDecoder2 =
     Decode.map2 StoredProject2
         (Decode.field "secret" secretProjectSecretDecoder)
         (Decode.field "auth" storedAuthTokenDetailsDecoder)
-        |> Decode.andThen storedProject2ToStoredProject
-
-
-storedProject3ToStoredProject : StoredProject3 -> Decode.Decoder StoredProject
-storedProject3ToStoredProject sp =
-    Decode.succeed <|
-        StoredProject
-            sp.secret
-            sp.auth
-            Nothing
-            sp.endpoints
-            Nothing
+        |> Decode.andThen storedProject2ToStoredProject3
+        |> Decode.andThen storedProject3ToStoredProject4
+        |> Decode.andThen storedProject4ToStoredProject5
 
 
 storedProjectDecoder3 : Decode.Decoder StoredProject
@@ -442,7 +417,63 @@ storedProjectDecoder3 =
         (Decode.field "secret" secretProjectSecretDecoder)
         (Decode.field "auth" storedAuthTokenDetailsDecoder)
         (Decode.field "endpoints" endpointsDecoder)
-        |> Decode.andThen storedProject3ToStoredProject
+        |> Decode.andThen storedProject3ToStoredProject4
+        |> Decode.andThen storedProject4ToStoredProject5
+
+
+storedProjectDecoder4 : Decode.Decoder StoredProject
+storedProjectDecoder4 =
+    Decode.map4 StoredProject4
+        (Decode.field "secret" secretProjectSecretDecoder)
+        (Decode.field "auth" storedAuthTokenDetailsDecoder)
+        (Decode.field "endpoints" endpointsDecoder)
+        (Decode.field "description" (Decode.nullable Decode.string))
+        |> Decode.andThen storedProject4ToStoredProject5
+
+
+storedProjectDecoder5 : Decode.Decoder StoredProject
+storedProjectDecoder5 =
+    Decode.map5 StoredProject5
+        (Decode.field "secret" secretProjectSecretDecoder)
+        (Decode.field "auth" storedAuthTokenDetailsDecoder)
+        (Decode.field "region" regionDecoder)
+        (Decode.field "endpoints" endpointsDecoder)
+        (Decode.field "description" (Decode.nullable Decode.string))
+
+
+storedProject2ToStoredProject3 : StoredProject2 -> Decode.Decoder StoredProject3
+storedProject2ToStoredProject3 sp =
+    case Helpers.serviceCatalogToEndpoints sp.auth.catalog Nothing of
+        Ok endpoints ->
+            Decode.succeed <|
+                StoredProject3
+                    sp.secret
+                    sp.auth
+                    endpoints
+
+        Err e ->
+            Decode.fail ("Could not decode endpoints from service catalog because: " ++ e)
+
+
+storedProject3ToStoredProject4 : StoredProject3 -> Decode.Decoder StoredProject4
+storedProject3ToStoredProject4 sp =
+    Decode.succeed <|
+        StoredProject4
+            sp.secret
+            sp.auth
+            sp.endpoints
+            Nothing
+
+
+storedProject4ToStoredProject5 : StoredProject4 -> Decode.Decoder StoredProject5
+storedProject4ToStoredProject5 sp =
+    Decode.succeed <|
+        StoredProject5
+            sp.secret
+            sp.auth
+            Nothing
+            sp.endpoints
+            sp.description
 
 
 secretProjectSecretDecoder : Decode.Decoder Types.Project.ProjectSecret
@@ -466,37 +497,6 @@ secretProjectSecretDecoder =
                     Decode.fail <| "Invalid user type \"" ++ typeStr ++ "\". Must be either password or applicationCredential."
     in
     Decode.field "secretType" Decode.string |> Decode.andThen projectSecretFromType
-
-
-storedProjectDecoder4 : Decode.Decoder StoredProject
-storedProjectDecoder4 =
-    Decode.map4 StoredProject4
-        (Decode.field "secret" secretProjectSecretDecoder)
-        (Decode.field "auth" storedAuthTokenDetailsDecoder)
-        (Decode.field "endpoints" endpointsDecoder)
-        (Decode.field "description" (Decode.nullable Decode.string))
-        |> Decode.andThen storedProject4ToStoredProject
-
-
-storedProject4ToStoredProject : StoredProject4 -> Decode.Decoder StoredProject
-storedProject4ToStoredProject sp =
-    Decode.succeed <|
-        StoredProject
-            sp.secret
-            sp.auth
-            Nothing
-            sp.endpoints
-            sp.description
-
-
-storedProjectDecoder : Decode.Decoder StoredProject
-storedProjectDecoder =
-    Decode.map5 StoredProject
-        (Decode.field "secret" secretProjectSecretDecoder)
-        (Decode.field "auth" storedAuthTokenDetailsDecoder)
-        (Decode.field "region" regionDecoder)
-        (Decode.field "endpoints" endpointsDecoder)
-        (Decode.field "description" (Decode.nullable Decode.string))
 
 
 storedAuthTokenDetailsDecoder : Decode.Decoder OSTypes.ScopedAuthToken
