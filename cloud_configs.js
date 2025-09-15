@@ -110,15 +110,6 @@ var cloud_configs = {
               },
               restrictFlavorIds: null,
             },
-            {
-              friendlyName: "Rocky Linux 8",
-              isPrimary: false,
-              imageFilters: {
-                name: "Featured-RockyLinux8",
-                visibility: "public",
-              },
-              restrictFlavorIds: null,
-            },
           ],
         },
       ],
