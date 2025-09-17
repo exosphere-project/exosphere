@@ -21,7 +21,7 @@ COPY elm.json ./
 COPY elm-git.json ./
 COPY elm-watch.json ./
 COPY elm.sideload.json ./
-COPY postprocess.ts ./
+COPY postprocess.js ./
 RUN npm install
 
 # Copy Elm source
