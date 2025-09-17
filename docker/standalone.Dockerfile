@@ -18,8 +18,10 @@ RUN apt-get update && \
 # Install and cache dependencies
 COPY package*.json ./
 COPY elm.json ./
-COPY elm-tooling.json ./
 COPY elm-git.json ./
+COPY elm-watch.json ./
+COPY elm.sideload.json ./
+COPY postprocess.ts ./
 RUN npm install
 
 # Copy Elm source
@@ -27,9 +29,6 @@ COPY src ./src
 
 # Compile app
 RUN npm run build:prod
-
-# Minify app
-RUN npm run minify
 
 FROM nginx:alpine
 
