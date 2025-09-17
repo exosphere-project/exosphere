@@ -1,6 +1,9 @@
 import * as terser from "terser";
 
-const terserOptions: terser.MinifyOptions = {
+/**
+ * @type {terser.MinifyOptions}
+ */
+const terserOptions = {
   sourceMap: false,
   mangle: true,
   compress: {
@@ -32,17 +35,7 @@ const terserOptions: terser.MinifyOptions = {
 /**
  * @type {import("elm-watch/elm-watch-node").Postprocess}
  */
-export default async function postprocess({
-  code,
-  compilationMode,
-  runMode,
-}: {
-  code: string;
-  targetName: string;
-  compilationMode: "debug" | "standard" | "optimize";
-  runMode: "hot" | "make";
-  argv: Array<string>;
-}) {
+export default async function postprocess({ code, compilationMode, runMode }) {
   if (compilationMode === "optimize" && runMode === "make") {
     code = await terser
       .minify({ "elm-web.js": code }, terserOptions)
