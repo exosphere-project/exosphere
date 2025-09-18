@@ -10,7 +10,7 @@ import Helpers.Json exposing (resultToDecoder)
 import Helpers.RemoteDataPlusPlus as RDPP
 import Json.Decode as Decode
 import Json.Encode as Encode
-import LocalStorage.Types exposing (StoredProject, StoredProject2, StoredProject3, StoredProject4, StoredProject5, StoredState)
+import LocalStorage.Types exposing (StoredProject, StoredProject2, StoredProject3, StoredProject4, StoredProject5, StoredProject6, StoredState)
 import OpenStack.Types as OSTypes
 import Set exposing (Set)
 import Style.Types as ST
@@ -173,7 +173,7 @@ encodeStoredState projects clientUuid styleMode experimentalFeaturesEnabled dism
                 ]
     in
     Encode.object
-        [ ( "8"
+        [ ( "9"
           , Encode.object
                 [ ( "projects", Encode.list storedProjectEncode projects )
                 , ( "clientUuid", Encode.string (UUID.toString clientUuid) )
@@ -339,6 +339,9 @@ storedStateDecoder =
 
                 -- Added region
                 , Decode.at [ "8", "projects" ] (Decode.list storedProjectDecoder5)
+
+                -- TODO: Add server target status.
+                , Decode.at [ "9", "projects" ] (Decode.list storedProjectDecoder6)
                 ]
 
         clientUuid =
@@ -351,6 +354,7 @@ storedStateDecoder =
                     , Decode.at [ "6", "clientUuid" ] Decode.string
                     , Decode.at [ "7", "clientUuid" ] Decode.string
                     , Decode.at [ "8", "clientUuid" ] Decode.string
+                    , Decode.at [ "9", "clientUuid" ] Decode.string
                     ]
                     |> Decode.map UUID.fromString
                     |> Decode.andThen
@@ -371,6 +375,7 @@ storedStateDecoder =
                     , Decode.at [ "6", "styleMode" ] Decode.string
                     , Decode.at [ "7", "styleMode" ] Decode.string
                     , Decode.at [ "8", "styleMode" ] Decode.string
+                    , Decode.at [ "9", "styleMode" ] Decode.string
                     ]
                     |> Decode.map parseStyleMode
                     |> Decode.andThen resultToDecoder
@@ -382,16 +387,19 @@ storedStateDecoder =
                     [ Decode.at [ "6", "experimentalFeaturesEnabled" ] Decode.bool
                     , Decode.at [ "7", "experimentalFeaturesEnabled" ] Decode.bool
                     , Decode.at [ "8", "experimentalFeaturesEnabled" ] Decode.bool
+                    , Decode.at [ "9", "experimentalFeaturesEnabled" ] Decode.bool
                     ]
                 )
 
         dismissedBanners =
             Decode.maybe
-                (Decode.at
-                    [ "8", "dismissedBanners" ]
-                    (Decode.map Set.fromList <| Decode.list Decode.string)
+                (Decode.oneOf
+                    [ Decode.at [ "8", "dismissedBanners" ] (Decode.list Decode.string)
+                    , Decode.at [ "9", "dismissedBanners" ] (Decode.list Decode.string)
+                    ]
                 )
-                |> Decode.map (Maybe.withDefault Set.empty)
+                |> Decode.map (Maybe.withDefault [])
+                |> Decode.map Set.fromList
     in
     Decode.map5 StoredState projects clientUuid styleMode experimentalFeaturesEnabled dismissedBanners
 
@@ -409,6 +417,7 @@ storedProjectDecoder2 =
         |> Decode.andThen storedProject2ToStoredProject3
         |> Decode.andThen storedProject3ToStoredProject4
         |> Decode.andThen storedProject4ToStoredProject5
+        |> Decode.andThen storedProject5ToStoredProject6
 
 
 storedProjectDecoder3 : Decode.Decoder StoredProject
@@ -419,6 +428,7 @@ storedProjectDecoder3 =
         (Decode.field "endpoints" endpointsDecoder)
         |> Decode.andThen storedProject3ToStoredProject4
         |> Decode.andThen storedProject4ToStoredProject5
+        |> Decode.andThen storedProject5ToStoredProject6
 
 
 storedProjectDecoder4 : Decode.Decoder StoredProject
@@ -429,11 +439,23 @@ storedProjectDecoder4 =
         (Decode.field "endpoints" endpointsDecoder)
         (Decode.field "description" (Decode.nullable Decode.string))
         |> Decode.andThen storedProject4ToStoredProject5
+        |> Decode.andThen storedProject5ToStoredProject6
 
 
 storedProjectDecoder5 : Decode.Decoder StoredProject
 storedProjectDecoder5 =
     Decode.map5 StoredProject5
+        (Decode.field "secret" secretProjectSecretDecoder)
+        (Decode.field "auth" storedAuthTokenDetailsDecoder)
+        (Decode.field "region" regionDecoder)
+        (Decode.field "endpoints" endpointsDecoder)
+        (Decode.field "description" (Decode.nullable Decode.string))
+        |> Decode.andThen storedProject5ToStoredProject6
+
+
+storedProjectDecoder6 : Decode.Decoder StoredProject
+storedProjectDecoder6 =
+    Decode.map5 StoredProject6
         (Decode.field "secret" secretProjectSecretDecoder)
         (Decode.field "auth" storedAuthTokenDetailsDecoder)
         (Decode.field "region" regionDecoder)
@@ -472,6 +494,17 @@ storedProject4ToStoredProject5 sp =
             sp.secret
             sp.auth
             Nothing
+            sp.endpoints
+            sp.description
+
+
+storedProject5ToStoredProject6 : StoredProject5 -> Decode.Decoder StoredProject6
+storedProject5ToStoredProject6 sp =
+    Decode.succeed <|
+        StoredProject6
+            sp.secret
+            sp.auth
+            sp.region
             sp.endpoints
             sp.description
 
