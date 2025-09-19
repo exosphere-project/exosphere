@@ -8,10 +8,12 @@ module LocalStorage.Types exposing
     , StoredState
     )
 
+import Dict exposing (Dict)
 import OpenStack.Types as OSTypes
 import Set exposing (Set)
 import Style.Types
 import Types.Project
+import Types.Server exposing (ServerExoActions)
 import UUID
 
 
@@ -25,8 +27,7 @@ type alias StoredProject6 =
     , region : Maybe OSTypes.Region
     , endpoints : Types.Project.Endpoints
     , description : Maybe OSTypes.ProjectDescription
-
-    -- TODO: Persist server target status.
+    , serverExoActions : Dict OSTypes.ServerUuid ServerExoActions
     }
 
 

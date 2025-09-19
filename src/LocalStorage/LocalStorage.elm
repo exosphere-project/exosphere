@@ -4,7 +4,7 @@ module LocalStorage.LocalStorage exposing
     , storedStateDecoder
     )
 
-import Dict
+import Dict exposing (Dict)
 import Helpers.Helpers as Helpers
 import Helpers.Json exposing (resultToDecoder)
 import Helpers.RemoteDataPlusPlus as RDPP
@@ -16,6 +16,7 @@ import Set exposing (Set)
 import Style.Types as ST
 import Time
 import Types.Project
+import Types.Server as Server
 import Types.SharedModel as Types
 import UUID
 import View.Helpers exposing (toExoPalette)
@@ -37,6 +38,7 @@ generateStoredProject project =
     , region = project.region
     , endpoints = project.endpoints
     , description = project.description
+    , serverExoActions = project.serverExoActions
     }
 
 
@@ -108,7 +110,7 @@ hydrateProjectFromStoredProject storedProject =
     , images = RDPP.empty
     , servers = RDPP.empty
     , serverEvents = Dict.empty
-    , serverExoActions = Dict.empty -- TODO: Hydrate serverExoActions from the stored project.
+    , serverExoActions = storedProject.serverExoActions
     , serverSecurityGroups = Dict.empty
     , serverVolumeAttachments = Dict.empty
     , serverVolumeActions = Dict.empty
@@ -171,6 +173,7 @@ encodeStoredState projects clientUuid styleMode experimentalFeaturesEnabled dism
                         |> Maybe.map Encode.string
                         |> Maybe.withDefault Encode.null
                   )
+                , ( "serverExoActions", encodeServerExoActions storedProject.serverExoActions )
                 ]
     in
     Encode.object
@@ -341,7 +344,7 @@ storedStateDecoder =
                 -- Added region
                 , Decode.at [ "8", "projects" ] (Decode.list storedProjectDecoder5)
 
-                -- TODO: Add server target status.
+                -- Add server exo actions (with OS target status).
                 , Decode.at [ "9", "projects" ] (Decode.list storedProjectDecoder6)
                 ]
 
@@ -456,12 +459,13 @@ storedProjectDecoder5 =
 
 storedProjectDecoder6 : Decode.Decoder StoredProject
 storedProjectDecoder6 =
-    Decode.map5 StoredProject6
+    Decode.map6 StoredProject6
         (Decode.field "secret" secretProjectSecretDecoder)
         (Decode.field "auth" storedAuthTokenDetailsDecoder)
         (Decode.field "region" regionDecoder)
         (Decode.field "endpoints" endpointsDecoder)
         (Decode.field "description" (Decode.nullable Decode.string))
+        (Decode.field "serverExoActions" serverExoActionsDecoder)
 
 
 storedProject2ToStoredProject3 : StoredProject2 -> Decode.Decoder StoredProject3
@@ -508,6 +512,7 @@ storedProject5ToStoredProject6 sp =
             sp.region
             sp.endpoints
             sp.description
+            Dict.empty
 
 
 secretProjectSecretDecoder : Decode.Decoder Types.Project.ProjectSecret
@@ -654,3 +659,43 @@ parseStyleMode styleModeStr =
 
         _ ->
             Result.Err "unrecognized style mode"
+
+
+serverExoActionsDecoder : Decode.Decoder (Dict OSTypes.ServerUuid Server.ServerExoActions)
+serverExoActionsDecoder =
+    Decode.oneOf
+        [ Decode.dict serverExoActionDecoder
+        , Decode.succeed Dict.empty
+        ]
+
+
+serverExoActionDecoder : Decode.Decoder Server.ServerExoActions
+serverExoActionDecoder =
+    Decode.map Server.ServerExoActions
+        (Decode.field "targetOpenstackStatus" (Decode.nullable <| Decode.list serverStatusDecoder))
+
+
+serverStatusDecoder : Decode.Decoder OSTypes.ServerStatus
+serverStatusDecoder =
+    Decode.string
+        |> Decode.map OSTypes.stringToServerStatus
+        |> Decode.andThen resultToDecoder
+
+
+encodeServerExoActions : Dict OSTypes.ServerUuid Server.ServerExoActions -> Encode.Value
+encodeServerExoActions exoActions =
+    Encode.dict identity encodeServerExoAction exoActions
+
+
+encodeServerExoAction : Server.ServerExoActions -> Encode.Value
+encodeServerExoAction exoAction =
+    Encode.object
+        [ ( "targetOpenstackStatus"
+          , case exoAction.targetOpenstackStatus of
+                Nothing ->
+                    Encode.null
+
+                Just statuses ->
+                    Encode.list (Encode.string << OSTypes.serverStatusToString) statuses
+          )
+        ]
