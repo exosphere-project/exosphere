@@ -13,12 +13,10 @@ import Page.QuotaUsage
 import Route
 import Set
 import Style.Helpers as SH
-import Style.Types as ST
 import Style.Widgets.Alert as Alert
 import Style.Widgets.Button as Button
 import Style.Widgets.CopyableText
 import Style.Widgets.DataList as DataList
-import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
@@ -234,64 +232,33 @@ deletionAction :
     -> Set.Set OSTypes.IpAddressUuid
     -> Element.Element Msg
 deletionAction context project floatingIpUuids =
-    let
-        deleteAllBtn togglePopconfirm _ =
-            deleteIconButton context.palette
-                True
-                "Delete All"
-                (Just togglePopconfirm)
-
-        deletePopconfirmId =
-            Helpers.String.hyphenate
-                [ "floatingIpListDeletePopconfirm"
-                , project.auth.project.uuid
-                , "all"
-                ]
-    in
-    Element.el [ Element.alignRight ] <|
-        deletePopconfirm context
-            (SharedMsg << SharedMsg.TogglePopover)
-            deletePopconfirmId
-            { confirmation =
-                Element.text <|
-                    if Set.size floatingIpUuids > 1 then
-                        "Are you sure you want to delete these "
-                            ++ (Set.size floatingIpUuids |> String.fromInt)
-                            ++ " "
-                            ++ (context.localization.floatingIpAddress
-                                    |> Helpers.String.pluralize
-                               )
-                            ++ "?"
-
-                    else
-                        "Are you sure you want to delete this "
-                            ++ context.localization.floatingIpAddress
-                            ++ "?"
-            , buttonText = Nothing
-            , onConfirm =
-                Just <|
-                    SharedMsg <|
-                        (floatingIpUuids
-                            |> Set.toList
-                            |> List.map
-                                (\ipUuid ->
-                                    SharedMsg.ProjectMsg
-                                        (GetterSetters.projectIdentifier project)
-                                        (SharedMsg.RequestDeleteFloatingIp
-                                            (ErrorContext
-                                                ("delete floating IP address with UUID " ++ ipUuid)
-                                                ErrorCrit
-                                                Nothing
-                                            )
-                                            ipUuid
-                                        )
+    VH.deleteBulkResourcePopconfirm
+        context
+        project
+        (SharedMsg << SharedMsg.TogglePopover)
+        { count = Set.size floatingIpUuids, word = context.localization.floatingIpAddress }
+        "floatingIpListDeletePopconfirm"
+        (Just <|
+            SharedMsg <|
+                (floatingIpUuids
+                    |> Set.toList
+                    |> List.map
+                        (\ipUuid ->
+                            SharedMsg.ProjectMsg
+                                (GetterSetters.projectIdentifier project)
+                                (SharedMsg.RequestDeleteFloatingIp
+                                    (ErrorContext
+                                        ("delete floating IP address with UUID " ++ ipUuid)
+                                        ErrorCrit
+                                        Nothing
+                                    )
+                                    ipUuid
                                 )
-                            |> SharedMsg.Batch
                         )
-            , onCancel = Just NoOp
-            }
-            ST.PositionBottomRight
-            deleteAllBtn
+                    |> SharedMsg.Batch
+                )
+        )
+        (Just NoOp)
 
 
 type alias FloatingIpRecord =
