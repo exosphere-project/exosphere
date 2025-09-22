@@ -15,11 +15,12 @@ import Set
 import Style.Helpers as SH
 import Style.Widgets.Alert as Alert
 import Style.Widgets.Button as Button
-import Style.Widgets.CopyableText
+import Style.Widgets.CopyableText exposing (copyableTextAccessory)
 import Style.Widgets.DataList as DataList
 import Style.Widgets.Icon as Icon
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
+import Style.Widgets.Uuid exposing (uuidLabel)
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg
@@ -310,39 +311,52 @@ floatingIpView context project floatingIpRecord =
                 Nothing ->
                     Element.text "Unassigned"
     in
-    Element.column (listItemColumnAttribs context.palette)
-        [ Element.row [ Element.width Element.fill ]
+    Element.column
+        (listItemColumnAttribs context.palette)
+        [ Element.row [ Element.width Element.fill, Element.spacing spacer.px12 ]
             [ Element.el []
                 (Style.Widgets.CopyableText.copyableText
                     context.palette
                     (Text.typographyAttrs Text.Emphasized ++ [ Font.color (SH.toElementColor context.palette.neutral.text.default) ])
                     floatingIpRecord.ip.address
                 )
-            , Element.row [ Element.spacing spacer.px12, Element.alignRight ]
-                [ assignUnassignIpButton, deleteIpBtnWithPopconfirm ]
+            , Element.row [ Element.width Element.fill ] []
+            , assignUnassignIpButton
+            , deleteIpBtnWithPopconfirm
             ]
-        , Element.row [] [ ipAssignment ]
-        , case
-            List.head <|
-                OpenStack.DnsRecordSet.lookupRecordsByAddress
-                    (project.dnsRecordSets |> Helpers.RemoteDataPlusPlus.withDefault [])
-                    floatingIpRecord.ip.address
-          of
-            Just { name } ->
-                Element.row []
-                    [ String.concat
-                        [ context.localization.hostname |> Helpers.String.toTitleCase
-                        , ": "
+        , Element.row [ Element.spacing spacer.px8, Element.width Element.fill ]
+            [ ipAssignment
+            , Element.row [ Element.width Element.fill ] []
+            , uuidLabel context.palette floatingIpRecord.id
+            ]
+        , Element.row [ Element.spacing spacer.px8, Element.width Element.fill ]
+            [ case
+                List.head <|
+                    OpenStack.DnsRecordSet.lookupRecordsByAddress
+                        (project.dnsRecordSets |> Helpers.RemoteDataPlusPlus.withDefault [])
+                        floatingIpRecord.ip.address
+              of
+                Just { name } ->
+                    Element.row [ Element.width Element.fill ]
+                        [ String.concat
+                            [ context.localization.hostname |> Helpers.String.toTitleCase
+                            , ": "
+                            ]
+                            |> Text.text Text.Small []
+                        , let
+                            copyable =
+                                copyableTextAccessory context.palette name
+                          in
+                          Element.row
+                            [ Element.spacing spacer.px8 ]
+                            [ Text.text Text.Small [ copyable.id ] name
+                            , copyable.accessory
+                            ]
                         ]
-                        |> Text.body
-                    , Style.Widgets.CopyableText.copyableText
-                        context.palette
-                        (Text.typographyAttrs Text.Small)
-                        name
-                    ]
 
-            Nothing ->
-                Element.none
+                Nothing ->
+                    Element.none
+            ]
         ]
 
 
