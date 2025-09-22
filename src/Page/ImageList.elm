@@ -27,6 +27,7 @@ import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Spinner as Spinner
 import Style.Widgets.Tag as Tag
 import Style.Widgets.Text as Text
+import Style.Widgets.Uuid exposing (uuidLabel)
 import Types.Defaults
 import Types.HelperTypes exposing (Localization)
 import Types.Project exposing (Project)
@@ -341,6 +342,13 @@ imageView model context project imageRecord =
             else
                 Element.none
 
+        imageTags =
+            if List.isEmpty imageRecord.image.tags then
+                []
+
+            else
+                List.map (Tag.tag context.palette) imageRecord.image.tags
+
         imageAttributesView =
             let
                 ownerText =
@@ -356,18 +364,6 @@ imageView model context project imageRecord =
 
                     else
                         Nothing
-
-                imageTags =
-                    if List.isEmpty imageRecord.image.tags then
-                        Nothing
-
-                    else
-                        Just <|
-                            Element.row
-                                [ Element.spacing spacer.px8
-                                , Element.paddingEach { left = spacer.px8, top = 0, right = 0, bottom = 0 }
-                                ]
-                                (List.map (Tag.tag context.palette) imageRecord.image.tags)
 
                 imageType =
                     case imageRecord.image.imageType of
@@ -410,7 +406,6 @@ imageView model context project imageRecord =
 
                 attributesMaybeShown =
                     [ ownerText
-                    , imageTags
                     ]
 
                 attributesShown =
@@ -431,7 +426,13 @@ imageView model context project imageRecord =
             , featuredIcon
             , imageActions
             ]
-        , imageAttributesView
+        , Element.row [ Element.spacing spacer.px8, Element.width Element.fill ]
+            [ imageAttributesView
+            , uuidLabel context.palette imageRecord.image.uuid
+            ]
+        , Element.row [ Element.spacing spacer.px8, Element.width Element.fill ]
+            [ Element.row [ Element.spacing spacer.px4, Element.alignRight ] imageTags
+            ]
         ]
 
 
