@@ -17,6 +17,7 @@ import Style.Widgets.DataList as DataList
 import Style.Widgets.HumanTime exposing (relativeTimeElement)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
+import Style.Widgets.Uuid exposing (uuidLabel)
 import Time
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg
@@ -200,19 +201,20 @@ shareView context project currentTime shareRecord =
         [ Element.row [ Element.spacing spacer.px12, Element.width Element.fill ]
             [ Element.column [ Element.spacing spacer.px12, Element.width Element.fill ]
                 [ shareLink
-                , Element.row [ Element.spacing spacer.px8, Element.width Element.fill ]
-                    [ shareSize
-                    , Element.text "·"
-                    , Element.paragraph [ Element.spacing spacer.px8 ]
-                        [ Element.text "created "
-                        , accented (relativeTimeElement currentTime shareRecord.share.createdAt)
-                        , Element.text " by "
-                        , accented (Element.text shareRecord.creator)
-                        ]
-                    ]
                 ]
             , Element.el [ Element.alignRight, Element.alignTop ]
                 actions
+            ]
+        , Element.row [ Element.spacing spacer.px8, Element.width Element.fill ]
+            [ shareSize
+            , Element.text "·"
+            , Element.paragraph [ Element.spacing spacer.px8 ]
+                [ Element.text "created "
+                , accented (relativeTimeElement currentTime shareRecord.share.createdAt)
+                , Element.text " by "
+                , accented (Element.text shareRecord.creator)
+                ]
+            , uuidLabel context.palette shareRecord.id
             ]
         ]
 
