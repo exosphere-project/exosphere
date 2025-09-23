@@ -12,6 +12,7 @@ import Helpers.String
 import OpenStack.Types as OSTypes exposing (ShareStatus(..))
 import Page.QuotaUsage
 import Route
+import Set
 import Style.Helpers as SH
 import Style.Widgets.DataList as DataList
 import Style.Widgets.HumanTime exposing (relativeTimeElement)
@@ -75,7 +76,7 @@ view context project currentTime model =
                 []
                 (shareView context project currentTime)
                 (shareRecords project shares)
-                []
+                [ deletionAction context project ]
                 (Just
                     { filters = filters project currentTime
                     , dropdownMsgMapper = \dropdownId -> SharedMsg <| SharedMsg.TogglePopover dropdownId
@@ -123,12 +124,40 @@ shareRecords project shares =
     List.map
         (\share ->
             { id = share.uuid
-            , selectable = False
+            , selectable = True
             , share = share
             , creator = creator share
             }
         )
         shares
+
+
+deletionAction :
+    View.Types.Context
+    -> Project
+    -> Set.Set OSTypes.ShareUuid
+    -> Element.Element Msg
+deletionAction context project shareUuids =
+    VH.deleteBulkResourcePopconfirm
+        context
+        project
+        (SharedMsg << SharedMsg.TogglePopover)
+        { count = Set.size shareUuids, word = context.localization.share }
+        "shareListDeletePopconfirm"
+        (Just <|
+            SharedMsg <|
+                (shareUuids
+                    |> Set.toList
+                    |> List.map
+                        (\uuid ->
+                            SharedMsg.ProjectMsg
+                                (GetterSetters.projectIdentifier project)
+                                (SharedMsg.RequestDeleteShare uuid)
+                        )
+                    |> SharedMsg.Batch
+                )
+        )
+        (Just NoOp)
 
 
 shareView : View.Types.Context -> Project -> Time.Posix -> ShareRecord -> Element.Element Msg
