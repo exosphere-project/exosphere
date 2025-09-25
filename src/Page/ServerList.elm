@@ -214,8 +214,6 @@ serverRecords context currentTime project servers =
 
         flavor server =
             GetterSetters.flavorLookup project server.osProps.details.flavorId
-                |> Maybe.map .name
-                |> Maybe.withDefault ("unknown " ++ context.localization.virtualComputerHardwareConfig)
 
         interactions server =
             [ ITypes.GuacTerminal
@@ -250,7 +248,7 @@ serverRecords context currentTime project servers =
             , selectable = server.osProps.details.lockStatus == OSTypes.ServerUnlocked
             , name = VH.resourceName (Just server.osProps.name) server.osProps.uuid
             , status = VH.getServerUiStatus server
-            , size = flavor server
+            , size = flavorName context <| flavor server -- comparable flavor name
             , floatingIpAddress = floatingIpAddress server
             , creationTime = server.osProps.details.created
             , creator = serverCreatorName project server
@@ -259,6 +257,13 @@ serverRecords context currentTime project servers =
             }
         )
         servers
+
+
+flavorName : View.Types.Context -> Maybe OSTypes.Flavor -> String
+flavorName context flavor =
+    flavor
+        |> Maybe.map .name
+        |> Maybe.withDefault ("unknown " ++ context.localization.virtualComputerHardwareConfig)
 
 
 serverView :
@@ -551,6 +556,7 @@ filters :
                     , creationTime : Time.Posix
                     , securityGroupIds : List OSTypes.SecurityGroupUuid
                     , status : ServerUiStatus
+                    , size : String
                 }
             )
 filters context project currentUser currentTime =
@@ -563,6 +569,11 @@ filters context project currentUser currentTime =
         statusFilterOptionValues servers =
             List.map .status servers
                 |> List.map VH.getServerUiStatusStr
+                |> Set.fromList
+                |> Set.toList
+
+        sizeFilterOptionValues servers =
+            List.map .size servers
                 |> Set.fromList
                 |> Set.toList
     in
@@ -613,6 +624,21 @@ filters context project currentUser currentTime =
       , onFilter =
             \optionValue server ->
                 (server.status |> VH.getServerUiStatusStr) == optionValue
+      }
+    , { id = "size"
+      , label = (context.localization.virtualComputerHardwareConfig |> Helpers.String.toTitleCase) ++ " of"
+      , chipPrefix = (context.localization.virtualComputerHardwareConfig |> Helpers.String.toTitleCase) ++ " of "
+      , filterOptions =
+            \servers ->
+                sizeFilterOptionValues servers
+                    |> List.map (\s -> ( s, s ))
+                    -- TODO: Sort sizes by flavor & not alphabetically.
+                    |> Dict.fromList
+      , filterTypeAndDefaultValue =
+            DataList.MultiselectOption <| Set.empty
+      , onFilter =
+            \optionValue server ->
+                server.size == optionValue
       }
     ]
         ++ (if context.experimentalFeaturesEnabled then
