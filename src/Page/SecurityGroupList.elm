@@ -10,6 +10,7 @@ import Helpers.ResourceList exposing (creationTimeFilterOptions, listItemColumnA
 import Helpers.String exposing (pluralizeCount)
 import OpenStack.Types as OSTypes exposing (SecurityGroup, SecurityGroupUuid, securityGroupExoTags, securityGroupTaggedAs)
 import Route
+import Set
 import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.DataList as DataList
@@ -80,8 +81,8 @@ view context project currentTime model =
                 context
                 []
                 (securityGroupView context project currentTime)
-                (securityGroupRecords <| sortedSecurityGroups <| securityGroups)
-                []
+                (securityGroupRecords context project <| sortedSecurityGroups <| securityGroups)
+                [ deletionAction context project ]
                 (Just
                     { filters = filters currentTime
                     , dropdownMsgMapper = \dropdownId -> SharedMsg <| SharedMsg.TogglePopover dropdownId
@@ -118,12 +119,12 @@ type alias SecurityGroupRecord =
         }
 
 
-securityGroupRecords : List OSTypes.SecurityGroup -> List SecurityGroupRecord
-securityGroupRecords securityGroups =
+securityGroupRecords : View.Types.Context -> Project -> List OSTypes.SecurityGroup -> List SecurityGroupRecord
+securityGroupRecords context project securityGroups =
     List.map
         (\securityGroup ->
             { id = securityGroup.uuid
-            , selectable = False
+            , selectable = not <| isProtected context project securityGroup
             , securityGroup = securityGroup
             }
         )
@@ -142,6 +143,41 @@ warningSecurityGroupAffectsServers context project securityGroupUuid =
 
         Nothing ->
             Element.none
+
+
+isProtected : View.Types.Context -> Project -> SecurityGroup -> Bool
+isProtected context project securityGroup =
+    securityGroupTaggedAs securityGroupExoTags.preset securityGroup
+        || isDefaultSecurityGroup context project securityGroup
+
+
+deletionAction :
+    View.Types.Context
+    -> Project
+    -> Set.Set OSTypes.SecurityGroupUuid
+    -> Element.Element Msg
+deletionAction context project securityGroupUuids =
+    VH.deleteBulkResourcePopconfirm
+        context
+        project
+        (SharedMsg << SharedMsg.TogglePopover)
+        { count = Set.size securityGroupUuids, word = context.localization.securityGroup }
+        "securityGroupListDeletePopconfirm"
+        (Just <|
+            SharedMsg <|
+                (securityGroupUuids
+                    |> Set.toList
+                    |> List.filterMap (GetterSetters.securityGroupLookup project)
+                    |> List.map
+                        (\sg ->
+                            SharedMsg.ProjectMsg
+                                (GetterSetters.projectIdentifier project)
+                                (SharedMsg.RequestDeleteSecurityGroup sg)
+                        )
+                    |> SharedMsg.Batch
+                )
+        )
+        (Just NoOp)
 
 
 securityGroupView : View.Types.Context -> Project -> Time.Posix -> SecurityGroupRecord -> Element.Element Msg
@@ -262,8 +298,7 @@ securityGroupView context project currentTime securityGroupRecord =
                     else
                         let
                             protected =
-                                securityGroupTaggedAs securityGroupExoTags.preset securityGroupRecord.securityGroup
-                                    || isDefaultSecurityGroup context project securityGroupRecord.securityGroup
+                                isProtected context project securityGroupRecord.securityGroup
 
                             deleteBtn togglePopconfirmMsg _ =
                                 deleteIconButton
