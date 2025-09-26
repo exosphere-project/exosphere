@@ -125,7 +125,7 @@ view context project currentTime model =
                             SharedMsg <| SharedMsg.TogglePopover dropdownId
                     }
                 )
-                Nothing
+                (Just <| searchByNameUuidFilter context)
     in
     Element.column
         (VH.contentContainer ++ [ Element.spacing spacer.px32 ])
@@ -484,6 +484,18 @@ volumeView context project currentTime volumeRecord =
             ]
             :: snapshotRows
         )
+
+
+searchByNameUuidFilter : View.Types.Context -> DataList.SearchFilter { record | volume : OSTypes.Volume }
+searchByNameUuidFilter context =
+    { label = "Search:"
+    , placeholder =
+        Just <|
+            "Enter "
+                ++ context.localization.blockDevice
+                ++ " name or UUID"
+    , textToSearch = \record -> Maybe.withDefault "" record.volume.name ++ " " ++ record.id
+    }
 
 
 filters :
