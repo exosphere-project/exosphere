@@ -146,7 +146,7 @@ view context project model =
                                 SharedMsg <| SharedMsg.TogglePopover dropdownId
                         }
                     )
-                    (Just searchByNameFilter)
+                    (Just <| searchByNameUuidFilter context)
                 ]
     in
     VH.renderRDPP context project.images (Helpers.String.pluralize context.localization.staticRepresentationOfBlockDeviceContents) loadedView
@@ -626,11 +626,17 @@ filters localization =
     ]
 
 
-searchByNameFilter : DataList.SearchFilter { record | image : OSTypes.Image }
-searchByNameFilter =
-    { label = "Search by name:"
-    , placeholder = Just "try \"Ubuntu\""
-    , textToSearch = \imageRecord -> imageRecord.image.name
+searchByNameUuidFilter : Context -> DataList.SearchFilter { record | image : OSTypes.Image }
+searchByNameUuidFilter context =
+    { label = "Search:"
+    , placeholder =
+        Just <|
+            "Try \"Ubuntu\" or "
+                ++ Helpers.String.indefiniteArticle context.localization.staticRepresentationOfBlockDeviceContents
+                ++ " "
+                ++ context.localization.staticRepresentationOfBlockDeviceContents
+                ++ " UUID"
+    , textToSearch = \imageRecord -> imageRecord.image.name ++ " " ++ imageRecord.id
     }
 
 
