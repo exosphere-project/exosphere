@@ -174,7 +174,7 @@ view context project model =
                                     SharedMsg <| SharedMsg.TogglePopover dropdownId
                             }
                         )
-                        Nothing
+                        (Just <| searchByNameUuidFilter context)
                     ]
     in
     Element.column
@@ -358,6 +358,18 @@ floatingIpView context project floatingIpRecord =
                     Element.none
             ]
         ]
+
+
+searchByNameUuidFilter : View.Types.Context -> DataList.SearchFilter { record | ip : OSTypes.FloatingIp }
+searchByNameUuidFilter context =
+    { label = "Search:"
+    , placeholder =
+        Just <|
+            "Enter "
+                ++ context.localization.floatingIpAddress
+                ++ " or UUID"
+    , textToSearch = \record -> record.ip.address ++ " " ++ record.id
+    }
 
 
 filters : List (DataList.Filter { record | ip : OSTypes.FloatingIp })
