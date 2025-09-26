@@ -82,7 +82,7 @@ view context project currentTime model =
                     , dropdownMsgMapper = \dropdownId -> SharedMsg <| SharedMsg.TogglePopover dropdownId
                     }
                 )
-                Nothing
+                (Just <| searchByNameUuidFilter context)
     in
     Element.column
         (VH.contentContainer ++ [ Element.spacing spacer.px32 ])
@@ -217,6 +217,18 @@ shareView context project currentTime shareRecord =
             , uuidLabel context.palette shareRecord.id
             ]
         ]
+
+
+searchByNameUuidFilter : View.Types.Context -> DataList.SearchFilter { record | share : OSTypes.Share }
+searchByNameUuidFilter context =
+    { label = "Search:"
+    , placeholder =
+        Just <|
+            "Enter "
+                ++ context.localization.share
+                ++ " name or UUID"
+    , textToSearch = \record -> Maybe.withDefault "" record.share.name ++ " " ++ record.id
+    }
 
 
 filters :
