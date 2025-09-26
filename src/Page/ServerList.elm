@@ -164,7 +164,7 @@ view context project currentTime model =
                                         SharedMsg <| SharedMsg.TogglePopover dropdownId
                                 }
                             )
-                            Nothing
+                            (Just <| searchByNameUuidFilter context)
     in
     Element.column (VH.contentContainer ++ [ Element.spacing spacer.px32 ])
         [ if model.showHeading then
@@ -536,6 +536,18 @@ deletionAction context project serverIds =
             }
             ST.PositionBottomRight
             deleteAllBtn
+
+
+searchByNameUuidFilter : View.Types.Context -> DataList.SearchFilter { record | name : String }
+searchByNameUuidFilter context =
+    { label = "Search:"
+    , placeholder =
+        Just <|
+            "Enter "
+                ++ context.localization.virtualComputer
+                ++ " name or UUID"
+    , textToSearch = \record -> record.name ++ " " ++ record.id
+    }
 
 
 filters :
