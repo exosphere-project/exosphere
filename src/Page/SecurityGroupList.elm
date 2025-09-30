@@ -20,6 +20,7 @@ import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Spinner as Spinner
 import Style.Widgets.Tag exposing (tag, tagNeutral, tagPositive)
 import Style.Widgets.Text as Text
+import Style.Widgets.Uuid exposing (uuidLabel)
 import Style.Widgets.Validation as Validation
 import Time
 import Types.Project exposing (Project)
@@ -322,19 +323,21 @@ securityGroupView context project currentTime securityGroupRecord =
         [ Element.row [ Element.spacing spacer.px12, Element.width Element.fill ]
             [ Element.column [ Element.spacing spacer.px12, Element.width Element.fill ]
                 [ securityGroupLink
-                , Element.row [ Element.spacing spacer.px8 ]
-                    [ securityGroupRuleCount
-                    , Element.text "·"
-                    , Element.row [ Element.spacing spacer.px4 ]
-                        [ Element.text "created "
-                        , accented (relativeTimeElement currentTime securityGroupRecord.securityGroup.createdAt)
-                        ]
-                    , Element.text "·"
-                    , serverCount
-                    ]
                 ]
             , Element.row [ Element.spacing spacer.px16, Element.alignRight, Element.alignTop ]
                 (Element.row [ Element.spacing spacer.px4 ] tags :: actions)
+            ]
+        , Element.row [ Element.spacing spacer.px8, Element.width Element.fill ]
+            [ securityGroupRuleCount
+            , Element.text "·"
+            , Element.row [ Element.spacing spacer.px4 ]
+                [ Element.text "created "
+                , accented (relativeTimeElement currentTime securityGroupRecord.securityGroup.createdAt)
+                ]
+            , Element.text "·"
+            , serverCount
+            , Element.row [ Element.width Element.fill ] []
+            , uuidLabel context.palette securityGroupRecord.id
             ]
         ]
 
