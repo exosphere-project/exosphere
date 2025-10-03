@@ -88,7 +88,7 @@ view context project currentTime model =
                     , dropdownMsgMapper = \dropdownId -> SharedMsg <| SharedMsg.TogglePopover dropdownId
                     }
                 )
-                Nothing
+                (Just <| searchByNameUuidFilter context)
     in
     Element.column
         (VH.contentContainer ++ [ Element.spacing spacer.px32 ])
@@ -340,6 +340,18 @@ securityGroupView context project currentTime securityGroupRecord =
             , uuidLabel context.palette securityGroupRecord.id
             ]
         ]
+
+
+searchByNameUuidFilter : View.Types.Context -> DataList.SearchFilter { record | securityGroup : OSTypes.SecurityGroup }
+searchByNameUuidFilter context =
+    { label = "Search:"
+    , placeholder =
+        Just <|
+            "Enter "
+                ++ context.localization.securityGroup
+                ++ " name or UUID"
+    , textToSearch = \record -> record.securityGroup.name ++ " " ++ record.id
+    }
 
 
 filters : Time.Posix -> List (DataList.Filter { record | securityGroup : OSTypes.SecurityGroup })
