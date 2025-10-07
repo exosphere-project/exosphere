@@ -1,37 +1,48 @@
 module Helpers.WebLock exposing (WebLock(..), resourceIdToWebLock, webLockToResourceId)
 
+import Helpers.String exposing (removeEmptiness)
 import Types.HelperTypes exposing (ProjectIdentifier)
+import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..))
 
 
 type WebLock
-    = EnsureDefaultSecurityGroup ProjectIdentifier
+    = ProjectMsg ProjectIdentifier ProjectSpecificMsgConstructor
 
 
 webLockToResourceId : WebLock -> String
 webLockToResourceId webLock =
     case webLock of
-        EnsureDefaultSecurityGroup { projectUuid, regionId } ->
-            [ Just "ensureDefaultSecurityGroup", Just projectUuid, regionId ] |> List.filterMap identity |> String.join "::"
+        ProjectMsg { projectUuid, regionId } EnsureDefaultSecurityGroup ->
+            -- "projectId::<project-uuid>::<region-id>::ensureDefaultSecurityGroup"
+            [ Just "projectId", Just projectUuid, regionId, Just "ensureDefaultSecurityGroup" ] |> List.map (Maybe.withDefault "") |> String.join "::"
+
+        _ ->
+            "unknown"
 
 
 resourceIdToWebLock : String -> Maybe WebLock
 resourceIdToWebLock resourceId =
-    let
-        ( resource, rest ) =
-            case String.split "::" resourceId of
-                r :: rs ->
-                    ( r, rs )
+    case String.split "::" resourceId of
+        r :: rs ->
+            case r of
+                "projectId" ->
+                    case rs of
+                        [ projectUuid, regionIdOrBlank, message ] ->
+                            case message of
+                                "ensureDefaultSecurityGroup" ->
+                                    let
+                                        regionId =
+                                            removeEmptiness <| Just regionIdOrBlank
+                                    in
+                                    Just <| ProjectMsg { projectUuid = projectUuid, regionId = regionId } EnsureDefaultSecurityGroup
 
-                [] ->
-                    ( "", [] )
-    in
-    case resource of
-        "ensureDefaultSecurityGroup" ->
-            case rest of
-                projectUuid :: regionParts ->
-                    Just (EnsureDefaultSecurityGroup { projectUuid = projectUuid, regionId = List.head regionParts })
+                                _ ->
+                                    Nothing
 
-                [] ->
+                        _ ->
+                            Nothing
+
+                _ ->
                     Nothing
 
         _ ->
