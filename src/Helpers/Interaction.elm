@@ -76,7 +76,19 @@ interactionStatus project server interaction context currentTime tlsReverseProxy
                                     ]
 
                         Just floatingIp ->
-                            ITypes.Ready <| "exouser@" ++ floatingIp
+                            case server.exoProps.serverOrigin of
+                                ServerFromExo _ ->
+                                    ITypes.Ready <| "exouser@" ++ floatingIp
+
+                                ServerNotFromExo ->
+                                    ITypes.Warn
+                                        floatingIp
+                                        (String.join " "
+                                            [ context.localization.virtualComputer
+                                                |> Helpers.String.toTitleCase
+                                            , "not launched from Exosphere"
+                                            ]
+                                        )
 
                 ITypes.Console ->
                     case ( server.osProps.consoleUrl.data, server.osProps.consoleUrl.refreshStatus ) of

@@ -902,6 +902,11 @@ interactions context project server currentTime tlsReverseProxyHostname =
                                                 , SH.toElementColor context.palette.neutral.text.default
                                                 )
 
+                                            ITypes.Warn _ _ ->
+                                                ( SH.toElementColor context.palette.neutral.icon
+                                                , SH.toElementColor context.palette.neutral.text.default
+                                                )
+
                                             _ ->
                                                 ( SH.toElementColor context.palette.neutral.icon
                                                 , SH.toElementColor context.palette.neutral.text.subdued
@@ -917,6 +922,13 @@ interactions context project server currentTime tlsReverseProxyHostname =
                                     , Element.text interactionDetails.name
                                     , case interactionStatus of
                                         ITypes.Ready text ->
+                                            Element.row
+                                                []
+                                                [ Element.text ": "
+                                                , copyableText context.palette [] text
+                                                ]
+
+                                        ITypes.Warn text _ ->
                                             Element.row
                                                 []
                                                 [ Element.text ": "
