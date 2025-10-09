@@ -6,12 +6,14 @@ module Types.Server exposing
     , NewServerNetworkOptions(..)
     , ResourceUsageRDPP
     , Server
+    , ServerExoActions
     , ServerFromExoProps
     , ServerOrigin(..)
     , ServerUiStatus(..)
     , currentExoServerVersion
     , exoSetupStatusToString
     , exoVersionSupportsFeature
+    , initServerExoActions
     )
 
 import Helpers.RemoteDataPlusPlus as RDPP
@@ -35,10 +37,20 @@ type alias Server =
 type alias ExoServerProps =
     { floatingIpCreationOption : HelperTypes.FloatingIpOption
     , deletionAttempted : Bool
-    , targetOpenstackStatus : Maybe (List OSTypes.ServerStatus) -- Maybe we have performed an instance action and are waiting for server to reflect that
     , serverOrigin : ServerOrigin
     , receivedTime : Maybe Time.Posix -- Used only if this server was polled more recently than the other servers in the project
     , loadingSeparately : Bool -- Again, used only if server was polled more recently on its own.
+    }
+
+
+type alias ServerExoActions =
+    { targetOpenstackStatus : Maybe (List OSTypes.ServerStatus) -- Maybe we have performed an instance action and are waiting for server to reflect that
+    }
+
+
+initServerExoActions : ServerExoActions
+initServerExoActions =
+    { targetOpenstackStatus = Nothing
     }
 
 

@@ -3632,17 +3632,10 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
 
         RequestResizeServer flavorId ->
             let
-                oldExoProps =
-                    server.exoProps
-
-                newServer =
-                    { server
-                        | exoProps =
-                            { oldExoProps | targetOpenstackStatus = Just [ OSTypes.ServerResize ] }
-                    }
-
                 newProject =
-                    GetterSetters.projectUpdateServer project newServer
+                    GetterSetters.projectUpdateServerExoActions project
+                        server.osProps.uuid
+                        (\exoActions -> { exoActions | targetOpenstackStatus = Just [ OSTypes.ServerResize ] })
 
                 newSharedModel =
                     GetterSetters.modelUpdateProject sharedModel newProject
@@ -4193,13 +4186,17 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                 newServer =
                     Server server.osProps
                         { oldExoProps
-                            | targetOpenstackStatus = targetStatuses
-                            , floatingIpCreationOption = newFloatingIpOption
+                            | floatingIpCreationOption = newFloatingIpOption
                         }
                         server.interaction
 
+                updatedProject =
+                    GetterSetters.projectUpdateServerExoActions project
+                        server.osProps.uuid
+                        (\exoActions -> { exoActions | targetOpenstackStatus = targetStatuses })
+
                 newProject =
-                    GetterSetters.projectUpdateServer project newServer
+                    GetterSetters.projectUpdateServer updatedProject newServer
 
                 ( newNewProject, cmd ) =
                     if requestFloatingIpIfAppropriate then
@@ -4526,6 +4523,7 @@ createProject_ outerModel description authToken region endpoints =
             , images = RDPP.RemoteDataPlusPlus RDPP.DontHave RDPP.Loading
             , servers = RDPP.RemoteDataPlusPlus RDPP.DontHave RDPP.Loading
             , serverEvents = Dict.empty
+            , serverExoActions = Dict.empty
             , serverSecurityGroups = Dict.empty
             , serverVolumeAttachments = Dict.empty
             , serverVolumeActions = Dict.empty
@@ -4611,25 +4609,16 @@ createUnscopedProvider model authToken authUrl =
 requestShelveServer : Project -> Server -> Bool -> ( Project, Cmd SharedMsg )
 requestShelveServer project server deleteFloatingIps =
     let
-        oldExoProps =
-            server.exoProps
-
         targetStatus =
             Just [ OSTypes.ServerShelved, OSTypes.ServerShelvedOffloaded ]
 
-        newServer =
-            { server
-                | exoProps =
-                    { oldExoProps
-                        | targetOpenstackStatus = targetStatus
-                    }
-            }
-
         newProject =
-            GetterSetters.projectUpdateServer project newServer
+            GetterSetters.projectUpdateServerExoActions project
+                server.osProps.uuid
+                (\exoActions -> { exoActions | targetOpenstackStatus = targetStatus })
 
         shelveCmd =
-            Rest.Nova.requestShelveServer (GetterSetters.projectIdentifier newProject) newProject.endpoints.nova newServer.osProps.uuid
+            Rest.Nova.requestShelveServer (GetterSetters.projectIdentifier newProject) newProject.endpoints.nova server.osProps.uuid
 
         cleanUpFloatingIpCmds =
             if deleteFloatingIps then

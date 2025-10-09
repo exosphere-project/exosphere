@@ -840,7 +840,29 @@ receiveServers model project osServers =
 
         newProject =
             List.foldl
-                (\s p -> GetterSetters.projectUpdateServer p s)
+                (\s p ->
+                    let
+                        -- Update server target statuses if they have been reached.
+                        updatedProject =
+                            GetterSetters.projectUpdateServerExoActions p
+                                s.osProps.uuid
+                                (\exoActions ->
+                                    { exoActions
+                                        | targetOpenstackStatus =
+                                            exoActions.targetOpenstackStatus
+                                                |> Maybe.andThen
+                                                    (\statuses ->
+                                                        if List.member s.osProps.details.openstackStatus statuses then
+                                                            Nothing
+
+                                                        else
+                                                            Just statuses
+                                                    )
+                                    }
+                                )
+                    in
+                    GetterSetters.projectUpdateServer updatedProject s
+                )
                 { projectNoDeletedSvrs
                     | knownUsernames =
                         Dict.union knownUserNames projectNoDeletedSvrs.knownUsernames
@@ -871,8 +893,27 @@ receiveServer model project interactionLevel osServer =
             in
             { newServer | exoProps = newExoProps }
 
+        -- Update server target statuses if they have been reached.
+        updatedProject =
+            GetterSetters.projectUpdateServerExoActions project
+                osServer.uuid
+                (\exoActions ->
+                    { exoActions
+                        | targetOpenstackStatus =
+                            exoActions.targetOpenstackStatus
+                                |> Maybe.andThen
+                                    (\statuses ->
+                                        if List.member osServer.details.openstackStatus statuses then
+                                            Nothing
+
+                                        else
+                                            Just statuses
+                                    )
+                    }
+                )
+
         newProject =
-            GetterSetters.projectUpdateServer project newServerUpdatedSomeExoProps
+            GetterSetters.projectUpdateServer updatedProject newServerUpdatedSomeExoProps
     in
     ( newProject, cmd )
 
@@ -935,7 +976,6 @@ initOrUpdateServer project interactionLevel osServer =
                     ExoServerProps
                         (Helpers.decodeFloatingIpOption osServer.details)
                         False
-                        Nothing
                         (Helpers.serverOrigin osServer.details)
                         Nothing
                         False
@@ -955,18 +995,6 @@ initOrUpdateServer project interactionLevel osServer =
 
                 oldExoProps =
                     exoServer.exoProps
-
-                newTargetOpenstackStatus =
-                    case oldExoProps.targetOpenstackStatus of
-                        Nothing ->
-                            Nothing
-
-                        Just statuses ->
-                            if List.member osServer.details.openstackStatus statuses then
-                                Nothing
-
-                            else
-                                Just statuses
 
                 -- If server is not active, then forget Guacamole token
                 newServerOrigin =
@@ -1005,7 +1033,6 @@ initOrUpdateServer project interactionLevel osServer =
                 , exoProps =
                     { oldExoProps
                         | floatingIpCreationOption = floatingIpCreationOption
-                        , targetOpenstackStatus = newTargetOpenstackStatus
                         , serverOrigin = newServerOrigin
                     }
                 , interaction = Interactivity.maximum defaultInteractionLevel exoServer.interaction

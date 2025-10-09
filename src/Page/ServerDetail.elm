@@ -725,7 +725,7 @@ serverStatus context project server =
             server.osProps.details
 
         statusBadge =
-            VH.serverStatusBadge context.palette StatusBadge.Normal server
+            VH.serverStatusBadge context.palette StatusBadge.Normal project server
 
         lockStatus : OSTypes.ServerLockStatus -> Element.Element Msg
         lockStatus lockStatus_ =
@@ -750,7 +750,7 @@ serverStatus context project server =
                     -- TODO nicer layout here?
                     Element.column [ Element.spacing spacer.px8, Element.padding spacer.px4 ]
                         [ Element.text ("OpenStack Status: " ++ friendlyOpenstackStatus details.openstackStatus)
-                        , case server.exoProps.targetOpenstackStatus of
+                        , case (GetterSetters.getServerExoActions project server.osProps.uuid).targetOpenstackStatus of
                             Just expectedStatusList ->
                                 let
                                     listStr =
@@ -1079,7 +1079,7 @@ serverActionsDropdown context project model server =
                 , onPress = Just toggleDropdownMsg
                 }
     in
-    case server.exoProps.targetOpenstackStatus of
+    case (GetterSetters.getServerExoActions project server.osProps.uuid).targetOpenstackStatus of
         Nothing ->
             let
                 dropdownId =

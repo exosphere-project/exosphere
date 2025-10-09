@@ -208,7 +208,7 @@ serverTileContents context project =
                     , Element.width Element.fill
                     , Element.htmlAttribute <| Html.Attributes.style "min-width" "0"
                     ]
-            , VH.serverStatusBadge context.palette StatusBadge.Normal server
+            , VH.serverStatusBadge context.palette StatusBadge.Normal project server
             ]
     in
     tileContents

@@ -108,6 +108,7 @@ hydrateProjectFromStoredProject storedProject =
     , images = RDPP.empty
     , servers = RDPP.empty
     , serverEvents = Dict.empty
+    , serverExoActions = Dict.empty -- TODO: Hydrate serverExoActions from the stored project.
     , serverSecurityGroups = Dict.empty
     , serverVolumeAttachments = Dict.empty
     , serverVolumeActions = Dict.empty
