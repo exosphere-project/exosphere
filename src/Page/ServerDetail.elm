@@ -11,7 +11,7 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers exposing (serverCreatorName)
 import Helpers.Interaction as IHelpers
 import Helpers.RemoteDataPlusPlus as RDPP
-import Helpers.String
+import Helpers.String exposing (removeEmptiness)
 import Helpers.Time
 import Helpers.Validation as Validation
 import List.Extra
@@ -271,7 +271,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                 Nothing ->
                     Element.text ("Unknown " ++ context.localization.virtualComputerHardwareConfig)
 
-        imageText =
+        imageEl =
             let
                 maybeImage =
                     GetterSetters.imageLookup project details.imageUuid
@@ -279,15 +279,32 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                 maybeBootVolumeImageData =
                     GetterSetters.getBootVolume project server.osProps.uuid
                         |> Maybe.andThen .imageMetadata
+
+                staticUuid uuid =
+                    Text.text Text.Small
+                        [ Element.paddingXY spacer.px4 0
+                        , Text.fontFamily Text.Mono
+                        , Element.alignBottom
+                        ]
+                        uuid
+
+                nameOrUuid imageData =
+                    case Just imageData.name |> removeEmptiness of
+                        Just name ->
+                            Text.body name
+
+                        Nothing ->
+                            staticUuid imageData.uuid
             in
             case ( maybeBootVolumeImageData, maybeImage ) of
                 ( Just bootVolumeImageData, _ ) ->
-                    VH.resourceName (Just bootVolumeImageData.name) bootVolumeImageData.uuid
+                    nameOrUuid bootVolumeImageData
 
-                ( Nothing, maybeImage_ ) ->
-                    maybeImage_
-                        |> Maybe.map .name
-                        |> (\maybeName -> VH.resourceName maybeName details.imageUuid)
+                ( _, Just image ) ->
+                    nameOrUuid image
+
+                _ ->
+                    staticUuid details.imageUuid
 
         serverDetailTiles =
             let
@@ -456,7 +473,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                 context
                 ( "created", whenCreated )
                 (Just ( "user", creatorName ))
-                (Just ( context.localization.staticRepresentationOfBlockDeviceContents, imageText ))
+                (Just ( context.localization.staticRepresentationOfBlockDeviceContents, imageEl ))
                 (Just ( context.localization.virtualComputerHardwareConfig, flavorContents ))
                 server.osProps
                 project

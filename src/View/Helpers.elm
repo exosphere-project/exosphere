@@ -1445,7 +1445,7 @@ createdAgoByFromSize :
     View.Types.Context
     -> ( String, Element.Element msg )
     -> Maybe ( String, String )
-    -> Maybe ( String, String )
+    -> Maybe ( String, Element.Element msg )
     -> Maybe ( String, Element.Element msg )
     -> OSTypes.Server
     -> Project
@@ -1475,7 +1475,7 @@ createdAgoByFromSize context ( agoWord, agoContents ) maybeWhoCreatedTuple maybe
             Just ( fromAdjective, whereFrom ) ->
                 Element.row [ Element.padding spacer.px8 ]
                     [ Element.el [ subduedText ] (Element.text <| "from " ++ fromAdjective ++ " ")
-                    , Element.text whereFrom
+                    , whereFrom
                     ]
 
             Nothing ->
