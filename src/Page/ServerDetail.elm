@@ -273,23 +273,21 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
 
         imageText =
             let
-                maybeImageName =
-                    GetterSetters.imageLookup
-                        project
-                        details.imageUuid
-                        |> Maybe.map .name
-                        |> (\maybeName -> VH.resourceName maybeName details.imageUuid)
-                        |> Just
-            in
-            case maybeImageName of
-                Just name ->
-                    name
+                maybeImage =
+                    GetterSetters.imageLookup project details.imageUuid
 
-                Nothing ->
+                maybeBootVolumeImageData =
                     GetterSetters.getBootVolume project server.osProps.uuid
                         |> Maybe.andThen .imageMetadata
-                        |> Maybe.map (\data -> VH.resourceName (Just data.name) data.uuid)
-                        |> Maybe.withDefault "N/A"
+            in
+            case ( maybeBootVolumeImageData, maybeImage ) of
+                ( Just bootVolumeImageData, _ ) ->
+                    VH.resourceName (Just bootVolumeImageData.name) bootVolumeImageData.uuid
+
+                ( Nothing, maybeImage_ ) ->
+                    maybeImage_
+                        |> Maybe.map .name
+                        |> (\maybeName -> VH.resourceName maybeName details.imageUuid)
 
         serverDetailTiles =
             let
