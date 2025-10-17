@@ -4,6 +4,7 @@ import Element
 import FeatherIcons as Icons
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
+import Helpers.Image
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import Helpers.Url as UrlHelpers
@@ -81,8 +82,21 @@ interactionStatus project server interaction context currentTime tlsReverseProxy
                                     ITypes.Ready <| "exouser@" ++ floatingIp
 
                                 ServerNotFromExo ->
+                                    let
+                                        maybeUsername =
+                                            GetterSetters.imageLookup project server.osProps.details.imageUuid
+                                                |> Maybe.andThen (\image -> Helpers.Image.guessOsDefaultUsername image.osDistro image.osVersion)
+
+                                        usernameAt =
+                                            case maybeUsername of
+                                                Just username ->
+                                                    username ++ "@"
+
+                                                Nothing ->
+                                                    ""
+                                    in
                                     ITypes.Warn
-                                        floatingIp
+                                        (usernameAt ++ floatingIp)
                                         (String.join " "
                                             [ "Exosphere did not configure SSH for this"
                                             , context.localization.virtualComputer
