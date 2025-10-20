@@ -7,6 +7,7 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons as Icons
+import Helpers.Cidr as Cidr
 import Helpers.Connectivity
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers exposing (serverCreatorName)
@@ -2056,8 +2057,16 @@ renderIpAddresses context project server model =
                     GetterSetters.getServerFixedIps project server.osProps.uuid
                         |> List.map
                             (\ipAddress ->
+                                let
+                                    label =
+                                        if Cidr.isValidIPv6 ipAddress then
+                                            context.localization.publiclyRoutableIpAddress
+
+                                        else
+                                            context.localization.nonFloatingIpAddress
+                                in
                                 VH.compactKVSubRow
-                                    (Helpers.String.toTitleCase context.localization.nonFloatingIpAddress)
+                                    (Helpers.String.toTitleCase label)
                                     (Element.text ipAddress)
                             )
             in

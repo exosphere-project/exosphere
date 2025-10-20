@@ -1,4 +1,4 @@
-module Helpers.Cidr exposing (expandIPv6, isValidCidr)
+module Helpers.Cidr exposing (expandIPv6, isValidCidr, isValidIPv4, isValidIPv6)
 
 import OpenStack.SecurityGroupRule exposing (SecurityGroupRuleEthertype(..))
 
