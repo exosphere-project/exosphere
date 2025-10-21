@@ -2022,17 +2022,15 @@ renderIpAddresses context project server =
             GetterSetters.getServerFixedIps project server.osProps.uuid
                 |> List.map
                     (\ipAddress ->
-                        let
-                            label =
-                                if Cidr.isValidIPv6 ipAddress then
-                                    context.localization.publiclyRoutableIpAddress
+                        if Cidr.isValidIPv6 ipAddress then
+                            VH.compactKVSubRow
+                                (Helpers.String.toTitleCase context.localization.publiclyRoutableIpAddress)
+                                (copyableText context.palette [] ipAddress)
 
-                                else
-                                    context.localization.nonFloatingIpAddress
-                        in
-                        VH.compactKVSubRow
-                            (Helpers.String.toTitleCase label)
-                            (Element.text ipAddress)
+                        else
+                            VH.compactKVSubRow
+                                (Helpers.String.toTitleCase context.localization.nonFloatingIpAddress)
+                                (Text.body ipAddress)
                     )
     in
     Element.column
