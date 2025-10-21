@@ -2,6 +2,7 @@ module Helpers.Interaction exposing (getLaunchedWithGaucamoleProps, interactionD
 
 import Element
 import FeatherIcons as Icons
+import Helpers.Cidr as Cidr
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.Image
@@ -67,14 +68,25 @@ interactionStatus project server interaction context currentTime tlsReverseProxy
                 ITypes.NativeSSH ->
                     case maybeFloatingIpAddress of
                         Nothing ->
-                            ITypes.Unavailable <|
-                                String.join " "
-                                    [ context.localization.virtualComputer
-                                        |> Helpers.String.toTitleCase
-                                    , "does not have"
-                                    , Helpers.String.indefiniteArticle context.localization.floatingIpAddress
-                                    , context.localization.floatingIpAddress
-                                    ]
+                            let
+                                maybeFixedIpv6Address =
+                                    GetterSetters.getServerFixedIps project server.osProps.uuid
+                                        |> List.filter (\ip -> Cidr.isValidIPv6 ip)
+                                        |> List.head
+                            in
+                            case maybeFixedIpv6Address of
+                                Just ipv6Address ->
+                                    ITypes.Ready <| "exouser@" ++ ipv6Address
+
+                                Nothing ->
+                                    ITypes.Unavailable <|
+                                        String.join " "
+                                            [ context.localization.virtualComputer
+                                                |> Helpers.String.toTitleCase
+                                            , "does not have"
+                                            , Helpers.String.indefiniteArticle context.localization.floatingIpAddress
+                                            , context.localization.floatingIpAddress
+                                            ]
 
                         Just floatingIp ->
                             case server.exoProps.serverOrigin of
