@@ -2022,15 +2022,37 @@ renderIpAddresses context project server =
             GetterSetters.getServerFixedIps project server.osProps.uuid
                 |> List.map
                     (\ipAddress ->
-                        if Cidr.isValidIPv6 ipAddress then
-                            VH.compactKVSubRow
-                                (Helpers.String.toTitleCase context.localization.publiclyRoutableIpAddress)
-                                (copyableText context.palette [] ipAddress)
+                        let
+                            toggleTipId =
+                                Helpers.String.hyphenate
+                                    [ "fixedIpAddressTip"
+                                    , project.auth.project.uuid
+                                    , server.osProps.uuid
+                                    , ipAddress
+                                    ]
 
-                        else
-                            VH.compactKVSubRow
-                                (Helpers.String.toTitleCase context.localization.nonFloatingIpAddress)
-                                (Text.body ipAddress)
+                            toggleTip text =
+                                Style.Widgets.ToggleTip.toggleTip
+                                    context
+                                    popoverMsgMapper
+                                    toggleTipId
+                                    (Element.text text)
+                                    ST.PositionBottomRight
+
+                            ( label, elements ) =
+                                if Cidr.isValidIPv6 ipAddress then
+                                    ( context.localization.publiclyRoutableIpAddress
+                                    , [ copyableText context.palette [] ipAddress, toggleTip "An IPv6 address that is (generally) publicly routable." ]
+                                    )
+
+                                else
+                                    ( context.localization.nonFloatingIpAddress
+                                    , [ Text.body ipAddress, toggleTip "An IPv4 address on the internal network." ]
+                                    )
+                        in
+                        VH.compactKVSubRow
+                            (Helpers.String.toTitleCase label)
+                            (Element.row [ Element.spacing spacer.px8 ] elements)
                     )
     in
     Element.column
