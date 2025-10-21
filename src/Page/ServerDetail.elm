@@ -1,9 +1,8 @@
-module Page.ServerDetail exposing (IpInfoLevel, Model, Msg(..), PassphraseVisibility, VerboseStatus, init, update, view)
+module Page.ServerDetail exposing (Model, Msg(..), PassphraseVisibility, VerboseStatus, init, update, view)
 
 import DateFormat.Relative
 import Dict
 import Element
-import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons as Icons
@@ -59,17 +58,11 @@ type alias Model =
     { serverUuid : OSTypes.ServerUuid
     , verboseStatus : VerboseStatus
     , passphraseVisibility : PassphraseVisibility
-    , ipInfoLevel : IpInfoLevel
     , serverActionNamePendingConfirmation : Maybe String
     , serverNamePendingConfirmation : Maybe String
     , retainFloatingIpsWhenDeleting : Bool
     , deleteFloatingIpsWhenShelving : Bool
     }
-
-
-type IpInfoLevel
-    = IpDetails
-    | IpSummary
 
 
 type alias VerboseStatus =
@@ -83,7 +76,6 @@ type PassphraseVisibility
 
 type Msg
     = GotPassphraseVisibility PassphraseVisibility
-    | GotIpInfoLevel IpInfoLevel
     | GotServerActionNamePendingConfirmation (Maybe String)
     | GotServerNamePendingConfirmation (Maybe String)
     | GotResetServerAction
@@ -99,7 +91,6 @@ init serverUuid =
     { serverUuid = serverUuid
     , verboseStatus = False
     , passphraseVisibility = PassphraseHidden
-    , ipInfoLevel = IpSummary
     , serverActionNamePendingConfirmation = Nothing
     , serverNamePendingConfirmation = Nothing
     , retainFloatingIpsWhenDeleting = False
@@ -112,9 +103,6 @@ update msg project model =
     case msg of
         GotPassphraseVisibility visibility ->
             ( { model | passphraseVisibility = visibility }, Cmd.none, SharedMsg.NoOp )
-
-        GotIpInfoLevel level ->
-            ( { model | ipInfoLevel = level }, Cmd.none, SharedMsg.NoOp )
 
         GotServerActionNamePendingConfirmation maybeAction ->
             ( { model | serverActionNamePendingConfirmation = maybeAction }, Cmd.none, SharedMsg.NoOp )
@@ -390,7 +378,6 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                     context
                     project
                     server
-                    model
                 , VH.compactKVSubRow "Username" usernameView
                 , VH.compactKVSubRow "Passphrase"
                     (serverPassphrase context model server)
@@ -1882,8 +1869,8 @@ resourceUsageCharts context currentTimeAndZone server maybeServerResourceQtys =
                                 ]
 
 
-renderIpAddresses : View.Types.Context -> Project -> Server -> Model -> Element.Element Msg
-renderIpAddresses context project server model =
+renderIpAddresses : View.Types.Context -> Project -> Server -> Element.Element Msg
+renderIpAddresses context project server =
     let
         disableWhenTransitioning value =
             if
@@ -1977,7 +1964,7 @@ renderIpAddresses context project server model =
                                                                 (\zone ->
                                                                     SharedMsg <|
                                                                         SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
-                                                                            SharedMsg.ServerMsg model.serverUuid <|
+                                                                            SharedMsg.ServerMsg server.osProps.uuid <|
                                                                                 SharedMsg.RequestCreateServerHostname ( zone, ipAddress.address )
                                                                 )
                                                             |> disableWhenTransitioning
@@ -2031,60 +2018,28 @@ renderIpAddresses context project server model =
                                 )
                         )
 
-        ipButton : Element.Element Msg -> String -> IpInfoLevel -> Element.Element Msg
-        ipButton label displayLabel ipMsg =
-            Element.row
-                [ Element.spacing spacer.px8, Text.fontSize Text.Tiny ]
-                [ Input.button
-                    [ Border.width 1
-                    , Border.rounded 20
-                    , Border.color (SH.toElementColor context.palette.neutral.border)
-                    , Element.padding spacer.px4
-                    ]
-                    { onPress = Just <| GotIpInfoLevel ipMsg
-                    , label = label
-                    }
-                , Element.text displayLabel
-                ]
+        fixedIpAddressRows =
+            GetterSetters.getServerFixedIps project server.osProps.uuid
+                |> List.map
+                    (\ipAddress ->
+                        let
+                            label =
+                                if Cidr.isValidIPv6 ipAddress then
+                                    context.localization.publiclyRoutableIpAddress
+
+                                else
+                                    context.localization.nonFloatingIpAddress
+                        in
+                        VH.compactKVSubRow
+                            (Helpers.String.toTitleCase label)
+                            (Element.text ipAddress)
+                    )
     in
-    case model.ipInfoLevel of
-        IpDetails ->
-            let
-                icon =
-                    Icon.sizedFeatherIcon 12 Icons.chevronDown
-
-                fixedIpAddressRows =
-                    GetterSetters.getServerFixedIps project server.osProps.uuid
-                        |> List.map
-                            (\ipAddress ->
-                                let
-                                    label =
-                                        if Cidr.isValidIPv6 ipAddress then
-                                            context.localization.publiclyRoutableIpAddress
-
-                                        else
-                                            context.localization.nonFloatingIpAddress
-                                in
-                                VH.compactKVSubRow
-                                    (Helpers.String.toTitleCase label)
-                                    (Element.text ipAddress)
-                            )
-            in
-            Element.column
-                [ Element.spacing spacer.px8 ]
-                (floatingIpAddressRows
-                    ++ ipButton icon "IP Details" IpSummary
-                    :: fixedIpAddressRows
-                )
-
-        IpSummary ->
-            let
-                icon =
-                    Icon.sizedFeatherIcon 12 Icons.chevronRight
-            in
-            Element.column
-                [ Element.spacing spacer.px8 ]
-                (floatingIpAddressRows ++ [ ipButton icon "IP Details" IpDetails ])
+    Element.column
+        [ Element.spacing spacer.px8 ]
+        (floatingIpAddressRows
+            ++ fixedIpAddressRows
+        )
 
 
 serverVolumes : View.Types.Context -> Project -> Server -> List OSTypes.Volume -> Element.Element Msg
