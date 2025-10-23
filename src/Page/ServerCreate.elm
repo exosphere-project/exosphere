@@ -9,6 +9,7 @@ import Element.Input as Input
 import FeatherIcons as Icons
 import FormatNumber
 import FormatNumber.Locales exposing (Decimals(..))
+import Helpers.Connectivity
 import Helpers.Formatting exposing (humanCount)
 import Helpers.GetterSetters as GetterSetters exposing (isDefaultSecurityGroup)
 import Helpers.Helpers as Helpers
@@ -1901,6 +1902,73 @@ securityGroupPicker context project model =
                 , options = List.map securityGroupAsOption (defaults ++ presets)
                 , selected = Just model.securityGroupUuid
                 }
+
+        connectivityWarningView =
+            let
+                maybeSecurityGroupRules =
+                    model.securityGroupUuid
+                        |> Maybe.andThen (GetterSetters.securityGroupLookup project)
+                        |> Maybe.map .rules
+
+                connectivityChecks =
+                    case maybeSecurityGroupRules of
+                        Just securityGroupRules ->
+                            ([ Helpers.Connectivity.outgoingHttpRule
+                             , Helpers.Connectivity.outgoingHttpsRule
+                             , Helpers.Connectivity.outgoingDnsUdpRule
+                             , Helpers.Connectivity.outgoingDnsTcpRule
+                             , Helpers.Connectivity.incomingSshRule context
+                             ]
+                                ++ (if model.deployGuacamole == Just True then
+                                        [ Helpers.Connectivity.incomingGuacamoleRule context ]
+
+                                    else
+                                        []
+                                   )
+                                ++ (if model.deployDesktopEnvironment then
+                                        [ Helpers.Connectivity.incomingVncRule context ]
+
+                                    else
+                                        []
+                                   )
+                            )
+                                |> List.map (\c -> ( c, Helpers.Connectivity.isConnectionPermitted c securityGroupRules ))
+
+                        Nothing ->
+                            []
+
+                isConnectivityBroken =
+                    connectivityChecks
+                        |> List.any (\( _, permitted ) -> not permitted)
+            in
+            if isConnectivityBroken then
+                Alert.alert []
+                    context.palette
+                    { state = Alert.Warning
+                    , showIcon = True
+                    , showContainer = True
+                    , content =
+                        Element.column [ Element.spacing spacer.px8 ] <|
+                            List.map Text.body <|
+                                ("The selected "
+                                    ++ context.localization.securityGroup
+                                    ++ " may result in "
+                                    ++ context.localization.virtualComputer
+                                    ++ " setup problems:"
+                                )
+                                    :: (connectivityChecks
+                                            |> List.filter (\( _, permitted ) -> not permitted)
+                                            |> List.map
+                                                (\( c, _ ) ->
+                                                    " • "
+                                                        ++ Maybe.withDefault "Other connections" c.description
+                                                        ++ " may be blocked."
+                                                )
+                                       )
+                    }
+
+            else
+                Element.none
     in
     Element.column
         [ Element.spacing spacer.px12 ]
@@ -1910,6 +1978,7 @@ securityGroupPicker context project model =
             project.securityGroups
             (Helpers.String.pluralize context.localization.securityGroup)
             renderSecurityGroups
+        , connectivityWarningView
         ]
 
 
