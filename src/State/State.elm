@@ -4562,7 +4562,7 @@ requestShelveServer project server deleteFloatingIps =
                                     Rest.Neutron.requestDeleteFloatingIp project (errorContext ipUuid) ipUuid
                                 )
 
-                    deletRecordSetsCmds =
+                    deleteRecordSetsCmds =
                         Helpers.sanitizeHostname server.osProps.name
                             |> Maybe.map
                                 (\hostname ->
@@ -4572,7 +4572,7 @@ requestShelveServer project server deleteFloatingIps =
                             |> Maybe.withDefault []
                             |> List.map (Rest.Designate.requestDeleteRecordSet ErrorDebug project)
                 in
-                deleteFloatingIpCmds ++ deletRecordSetsCmds
+                deleteFloatingIpCmds ++ deleteRecordSetsCmds
 
             else
                 []
