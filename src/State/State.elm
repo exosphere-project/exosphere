@@ -1639,7 +1639,24 @@ processProjectSpecificMsg outerModel project msg =
             )
 
         RequestUnassignFloatingIp floatingIpUuid ->
-            ( outerModel, Rest.Neutron.requestUnassignFloatingIp project floatingIpUuid )
+            let
+                -- Remove any application-provisioned DNS record sets for the server's floating IP association. (#1081)
+                deleteRecordSetCmds =
+                    GetterSetters.floatingIpLookup project floatingIpUuid
+                        |> Maybe.andThen (GetterSetters.getFloatingIpServer project)
+                        |> Maybe.andThen
+                            (\server ->
+                                Helpers.sanitizeHostname server.osProps.name
+                                    |> Maybe.map
+                                        (\hostname ->
+                                            GetterSetters.getServerDnsRecordSets project server.osProps.uuid
+                                                |> List.filter (\{ name, zone_name } -> hostname ++ "." ++ zone_name == name)
+                                        )
+                            )
+                        |> Maybe.withDefault []
+                        |> List.map (Rest.Designate.requestDeleteRecordSet ErrorDebug project)
+            in
+            ( outerModel, Cmd.batch <| Rest.Neutron.requestUnassignFloatingIp project floatingIpUuid :: deleteRecordSetCmds )
                 |> mapToOuterMsg
 
         ReceiveImages images ->
@@ -2167,20 +2184,52 @@ processProjectSpecificMsg outerModel project msg =
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
-        ReceiveAssignFloatingIp floatingIp ->
-            -- TODO update servers so that new assignment is reflected in the UI
+        ReceiveAssignFloatingIp port_ floatingIp ->
             let
                 newProject =
                     processNewFloatingIp sharedModel.clientCurrentTime project floatingIp
 
+                maybeServer =
+                    GetterSetters.serverLookup project port_.deviceUuid
+
+                maybeZone =
+                    GetterSetters.getDefaultZone project
+
+                createRecordsetCmd =
+                    -- Associate the server's floating IP with a DNS record. (#1081)
+                    case ( maybeZone, maybeServer ) of
+                        ( Just zone, Just server ) ->
+                            Helpers.sanitizeHostname server.osProps.name
+                                |> Maybe.map
+                                    (\hostname ->
+                                        Rest.Designate.requestCreateRecordSet ErrorDebug
+                                            project
+                                            { zone_id = zone.zone_id
+                                            , name = hostname ++ "." ++ zone.zone_name
+                                            , type_ = OpenStack.DnsRecordSet.ARecord
+                                            , records = Set.singleton floatingIp.address
+                                            , description =
+                                                String.join " "
+                                                    [ "Created for"
+                                                    , sharedModel.viewContext.localization.virtualComputer
+                                                    , server.osProps.name
+                                                    ]
+                                            , ttl = Nothing
+                                            }
+                                    )
+                                |> Maybe.withDefault Cmd.none
+
+                        _ ->
+                            Cmd.none
+
                 newSharedModel =
                     GetterSetters.modelUpdateProject sharedModel newProject
             in
-            ( newSharedModel, Cmd.none )
+            ( newSharedModel, createRecordsetCmd )
+                |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
         ReceiveUnassignFloatingIp floatingIp ->
-            -- TODO update servers so that unassignment is reflected in the UI
             let
                 newProject =
                     processNewFloatingIp sharedModel.clientCurrentTime project floatingIp
@@ -3655,11 +3704,57 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                     |> List.map (Rest.Designate.requestDeleteRecordSet ErrorCrit project)
                     |> Cmd.batch
                 , newDnsRecordSetRequests
-                    |> List.map (Rest.Designate.requestCreateRecordSet project)
+                    |> List.map (Rest.Designate.requestCreateRecordSet ErrorCrit project)
                     |> Cmd.batch
                 ]
             )
                 |> mapToOuterMsg
+
+        RequestCreateServerHostname ( zone, ipAddress ) ->
+            let
+                hostname_ =
+                    Helpers.sanitizeHostname server.osProps.name
+            in
+            case hostname_ of
+                Just hostname ->
+                    ( outerModel
+                    , Rest.Designate.requestCreateRecordSet ErrorCrit
+                        project
+                        { zone_id = zone.zone_id
+                        , name = hostname ++ "." ++ zone.zone_name
+                        , type_ = OpenStack.DnsRecordSet.ARecord
+                        , records = Set.singleton ipAddress
+                        , description =
+                            String.join " "
+                                [ "Created for"
+                                , sharedModel.viewContext.localization.virtualComputer
+                                , server.osProps.name
+                                ]
+                        , ttl = Nothing
+                        }
+                    )
+                        |> mapToOuterMsg
+
+                Nothing ->
+                    let
+                        errMsg =
+                            "Could not determine a valid "
+                                ++ sharedModel.viewContext.localization.hostname
+                                ++ " for "
+                                ++ sharedModel.viewContext.localization.virtualComputer
+                                ++ " named '"
+                                ++ server.osProps.name
+                                ++ "'."
+
+                        errorContext =
+                            ErrorContext
+                                ("create DNS record in zone " ++ zone.zone_name)
+                                ErrorCrit
+                                Nothing
+                    in
+                    State.Error.processStringError sharedModel errorContext errMsg
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
 
         ReceiveServerAction ->
             ApiModelHelpers.requestServer (GetterSetters.projectIdentifier project) NoInteraction server.osProps.uuid sharedModel
@@ -3722,7 +3817,39 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
         ReceiveCreateServerFloatingIp errorContext result ->
             case result of
                 Ok ip ->
-                    Rest.Neutron.receiveCreateFloatingIp sharedModel project (Just server) ip
+                    let
+                        ( newSharedModel, cmd ) =
+                            Rest.Neutron.receiveCreateFloatingIp sharedModel project (Just server) ip
+
+                        maybeZone =
+                            GetterSetters.getDefaultZone project
+
+                        maybeHostname =
+                            Helpers.sanitizeHostname server.osProps.name
+
+                        createRecordsetCmd =
+                            -- Associate the server's floating IP with a DNS record. (#1081)
+                            case ( maybeZone, maybeHostname ) of
+                                ( Just zone, Just hostname ) ->
+                                    Rest.Designate.requestCreateRecordSet ErrorDebug
+                                        project
+                                        { zone_id = zone.zone_id
+                                        , name = hostname ++ "." ++ zone.zone_name
+                                        , type_ = OpenStack.DnsRecordSet.ARecord
+                                        , records = Set.singleton ip.address
+                                        , description =
+                                            String.join " "
+                                                [ "Created for"
+                                                , sharedModel.viewContext.localization.virtualComputer
+                                                , server.osProps.name
+                                                ]
+                                        , ttl = Nothing
+                                        }
+
+                                _ ->
+                                    Cmd.none
+                    in
+                    ( newSharedModel, Cmd.batch [ cmd, createRecordsetCmd ] )
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
@@ -4418,7 +4545,7 @@ requestShelveServer project server deleteFloatingIps =
         shelveCmd =
             Rest.Nova.requestShelveServer (GetterSetters.projectIdentifier newProject) newProject.endpoints.nova newServer.osProps.uuid
 
-        deleteFloatingIpCmds =
+        cleanUpFloatingIpCmds =
             if deleteFloatingIps then
                 let
                     errorContext : OSTypes.IpAddressUuid -> ErrorContext
@@ -4427,13 +4554,26 @@ requestShelveServer project server deleteFloatingIps =
                             ("delete floating IP address with UUID " ++ ipUuid)
                             ErrorDebug
                             Nothing
+
+                    deleteFloatingIpCmds =
+                        GetterSetters.getServerFloatingIps project server.osProps.uuid
+                            |> List.map .uuid
+                            |> List.map
+                                (\ipUuid ->
+                                    Rest.Neutron.requestDeleteFloatingIp project (errorContext ipUuid) ipUuid
+                                )
+
+                    deleteRecordSetsCmds =
+                        Helpers.sanitizeHostname server.osProps.name
+                            |> Maybe.map
+                                (\hostname ->
+                                    GetterSetters.getServerDnsRecordSets project server.osProps.uuid
+                                        |> List.filter (\{ name, zone_name } -> hostname ++ "." ++ zone_name == name)
+                                )
+                            |> Maybe.withDefault []
+                            |> List.map (Rest.Designate.requestDeleteRecordSet ErrorDebug project)
                 in
-                GetterSetters.getServerFloatingIps project server.osProps.uuid
-                    |> List.map .uuid
-                    |> List.map
-                        (\ipUuid ->
-                            Rest.Neutron.requestDeleteFloatingIp project (errorContext ipUuid) ipUuid
-                        )
+                deleteFloatingIpCmds ++ deleteRecordSetsCmds
 
             else
                 []
@@ -4441,7 +4581,7 @@ requestShelveServer project server deleteFloatingIps =
     ( newProject
     , Cmd.batch
         [ shelveCmd
-        , Cmd.batch deleteFloatingIpCmds
+        , Cmd.batch cleanUpFloatingIpCmds
         ]
     )
 

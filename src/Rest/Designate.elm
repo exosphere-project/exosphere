@@ -90,8 +90,8 @@ type alias DnsRecordSetRequest =
     }
 
 
-requestCreateRecordSet : Types.Project.Project -> DnsRecordSetRequest -> Cmd Types.SharedMsg.SharedMsg
-requestCreateRecordSet project request =
+requestCreateRecordSet : Types.Error.ErrorLevel -> Types.Project.Project -> DnsRecordSetRequest -> Cmd Types.SharedMsg.SharedMsg
+requestCreateRecordSet errorLevel project request =
     case project.endpoints.designate of
         Nothing ->
             Cmd.none
@@ -116,7 +116,7 @@ requestCreateRecordSet project request =
                             , String.join ", " <| Set.toList request.records
                             ]
                         )
-                        Types.Error.ErrorCrit
+                        errorLevel
                         Nothing
 
                 resultToMsg =

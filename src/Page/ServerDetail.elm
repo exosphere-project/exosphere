@@ -26,7 +26,7 @@ import Route
 import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.Alert as Alert
-import Style.Widgets.Button
+import Style.Widgets.Button as Button
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Grid exposing (scrollableCell)
 import Style.Widgets.Icon as Icon
@@ -561,7 +561,7 @@ serverNameEditView context project currentTime model server =
                                 :: List.map
                                     (\name ->
                                         Element.row [ Element.paddingEach { edges | top = spacer.px12 } ]
-                                            [ Style.Widgets.Button.default
+                                            [ Button.default
                                                 context.palette
                                                 { text = name
                                                 , onPress = Just <| GotServerNamePendingConfirmation (Just name)
@@ -1689,39 +1689,59 @@ renderIpAddresses context project server model =
                                     OpenStack.DnsRecordSet.lookupRecordsByAddress (RDPP.withDefault [] project.dnsRecordSets) ipAddress.address
                             in
                             Element.column [ Element.spacing spacer.px12 ]
-                                ((records
-                                    |> List.indexedMap
-                                        (\i r ->
-                                            VH.compactKVSubRow
-                                                (if i == 0 then
-                                                    if List.length records > 1 then
-                                                        context.localization.hostname |> Helpers.String.pluralize |> Helpers.String.toTitleCase
+                                ((case records of
+                                    [] ->
+                                        [ VH.compactKVSubRow
+                                            (context.localization.hostname |> Helpers.String.toTitleCase)
+                                            (Element.row [ Element.spacing spacer.px16 ]
+                                                [ Button.default
+                                                    context.palette
+                                                    { text =
+                                                        "Create"
+                                                    , onPress =
+                                                        GetterSetters.getDefaultZone project
+                                                            |> Maybe.map
+                                                                (\zone ->
+                                                                    SharedMsg <|
+                                                                        SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
+                                                                            SharedMsg.ServerMsg model.serverUuid <|
+                                                                                SharedMsg.RequestCreateServerHostname ( zone, ipAddress.address )
+                                                                )
+                                                    }
+                                                ]
+                                            )
+                                        ]
 
-                                                    else
-                                                        context.localization.hostname |> Helpers.String.toTitleCase
-
-                                                 else
-                                                    ""
-                                                )
-                                                (Element.row [ Element.spacing spacer.px16 ]
-                                                    [ copyableText context.palette
-                                                        []
-                                                        (if String.endsWith "." r.name then
-                                                            String.dropRight 1 r.name
+                                    _ ->
+                                        records
+                                            |> List.indexedMap
+                                                (\i r ->
+                                                    VH.compactKVSubRow
+                                                        (if i == 0 then
+                                                            Helpers.String.pluralizeCount (List.length records) (context.localization.hostname |> Helpers.String.toTitleCase)
 
                                                          else
-                                                            r.name
+                                                            ""
                                                         )
-                                                    ]
+                                                        (Element.row [ Element.spacing spacer.px16 ]
+                                                            [ copyableText context.palette
+                                                                []
+                                                                (if String.endsWith "." r.name then
+                                                                    String.dropRight 1 r.name
+
+                                                                 else
+                                                                    r.name
+                                                                )
+                                                            ]
+                                                        )
                                                 )
-                                        )
                                  )
                                     ++ [ VH.compactKVSubRow
                                             (Helpers.String.toTitleCase context.localization.floatingIpAddress)
                                             (Element.row [ Element.spacing spacer.px16 ]
                                                 [ copyableText context.palette [] ipAddress.address
-                                                , Widget.textButton
-                                                    (SH.materialStyle context.palette).button
+                                                , Button.default
+                                                    context.palette
                                                     { text =
                                                         "Unassign"
                                                     , onPress =
