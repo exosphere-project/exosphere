@@ -575,11 +575,13 @@ render context project ( currentTime, _ ) model share =
                         let
                             shareTypeWarning =
                                 String.concat
-                                    [ "This "
+                                    [ "Exosphere does not support automatically mounting a "
                                     , context.localization.share
-                                    , " protocol ("
+                                    , " with this protocol ("
                                     , protocol
-                                    , ") is not currently supported by Exosphere."
+                                    , "). You must mount it to your "
+                                    , context.localization.virtualComputer
+                                    , " manually."
                                     ]
                         in
                         Text.p [] [ Text.body shareTypeWarning ]
