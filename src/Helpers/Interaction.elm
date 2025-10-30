@@ -84,9 +84,11 @@ interactionStatus project server interaction context currentTime tlsReverseProxy
                                     ITypes.Warn
                                         floatingIp
                                         (String.join " "
-                                            [ context.localization.virtualComputer
-                                                |> Helpers.String.toTitleCase
-                                            , "not launched from Exosphere"
+                                            [ "Exosphere did not configure SSH for this"
+                                            , context.localization.virtualComputer
+                                            , "so the username and"
+                                            , context.localization.credential |> Helpers.String.pluralize
+                                            , "are unknown."
                                             ]
                                         )
 
