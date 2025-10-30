@@ -34,6 +34,7 @@ type RecordType
     | SOARecord
     | NSRecord
     | CNAMERecord
+    | TXTRecord
 
 
 fromStringToRecordType : String -> Result String RecordType
@@ -53,6 +54,9 @@ fromStringToRecordType recordSet =
 
         "CNAME" ->
             Ok CNAMERecord
+
+        "TXT" ->
+            Ok TXTRecord
 
         _ ->
             Err (recordSet ++ " is not valid")
@@ -75,6 +79,9 @@ recordTypeToString type_ =
 
         CNAMERecord ->
             "CNAME"
+
+        TXTRecord ->
+            "TXT"
 
 
 lookupRecordsByAddress : List DnsRecordSet -> String -> List DnsRecordSet
