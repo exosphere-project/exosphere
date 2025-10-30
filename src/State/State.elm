@@ -1727,7 +1727,28 @@ processProjectSpecificMsg outerModel project msg =
         ReceiveServer interactionLevel serverUuid errorContext result ->
             case result of
                 Ok server ->
-                    Rest.Nova.receiveServer sharedModel project interactionLevel server
+                    let
+                        ( newProject, cmd ) =
+                            Rest.Nova.receiveServer sharedModel project interactionLevel server
+
+                        newSharedModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+
+                        -- Is this the first time we're receiving this server in the model?
+                        isNewServer =
+                            GetterSetters.serverLookup project serverUuid == Nothing
+
+                        ( newerSharedModel, newCmd ) =
+                            if isNewServer then
+                                ( newSharedModel, cmd )
+                                    -- If the server has loaded for the first time, we may need additional information.
+                                    -- e.g. When refreshing the server detail page.
+                                    |> Helpers.pipelineCmd (ApiModelHelpers.requestServerImageIfNotFound newProject serverUuid)
+
+                            else
+                                ( newSharedModel, cmd )
+                    in
+                    ( newerSharedModel, newCmd )
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 

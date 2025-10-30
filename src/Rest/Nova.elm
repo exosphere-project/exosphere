@@ -852,7 +852,7 @@ receiveServers model project osServers =
     )
 
 
-receiveServer : SharedModel -> Project -> InteractionLevel -> OSTypes.Server -> ( SharedModel, Cmd SharedMsg )
+receiveServer : SharedModel -> Project -> InteractionLevel -> OSTypes.Server -> ( Project, Cmd SharedMsg )
 receiveServer model project interactionLevel osServer =
     let
         ( newServer, cmd ) =
@@ -874,9 +874,7 @@ receiveServer model project interactionLevel osServer =
         newProject =
             GetterSetters.projectUpdateServer project newServerUpdatedSomeExoProps
     in
-    ( GetterSetters.modelUpdateProject model newProject
-    , cmd
-    )
+    ( newProject, cmd )
 
 
 receiveServer_ : Project -> InteractionLevel -> OSTypes.Server -> ( Server, Cmd SharedMsg )
