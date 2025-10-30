@@ -25,9 +25,11 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons as Icons
+import Helpers.Helpers exposing (alwaysRegex)
 import Helpers.String
 import Html.Attributes as HtmlA
 import Murmur3
+import Regex
 import Set
 import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
@@ -361,9 +363,18 @@ view resourceName model toMsg context styleAttrs listItemView data bulkActions s
             case searchFilter of
                 Just searchFilter_ ->
                     \dataRecord ->
-                        String.contains
-                            (String.toLower model.searchText)
-                            (String.toLower <| searchFilter_.textToSearch dataRecord)
+                        let
+                            sanitize =
+                                -- Replace whitespace, hyphen & underscore. (Retain e.g. ".", ":" for IP addresses.)
+                                String.toLower >> Regex.replace (alwaysRegex "[-_\\s]") (always "")
+
+                            needle =
+                                model.searchText |> sanitize
+
+                            hay =
+                                searchFilter_.textToSearch dataRecord |> sanitize
+                        in
+                        String.contains needle hay
 
                 Nothing ->
                     \_ -> True
