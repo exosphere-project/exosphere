@@ -4,6 +4,7 @@ module Rest.Designate exposing
     , receiveDeleteRecordSet
     , receiveRecordSets
     , requestCreateRecordSet
+    , requestCreateRecordSetIfNotExists
     , requestDeleteRecordSet
     , requestRecordSets
     )
@@ -88,6 +89,32 @@ type alias DnsRecordSetRequest =
     , records : Set.Set String
     , ttl : Maybe Int
     }
+
+
+requestCreateRecordSetIfNotExists : Types.Error.ErrorLevel -> Types.Project.Project -> DnsRecordSetRequest -> Cmd Types.SharedMsg.SharedMsg
+requestCreateRecordSetIfNotExists errorLevel project request =
+    let
+        alreadyExists =
+            project.dnsRecordSets
+                |> RDPP.withDefault []
+                |> List.any
+                    (\rs ->
+                        rs.zone_id
+                            == request.zone_id
+                            && rs.name
+                            == request.name
+                            && rs.type_
+                            == request.type_
+                            && rs.records
+                            == request.records
+                    )
+    in
+    -- If we happen to know this record already exists, skip the request.
+    if alreadyExists then
+        Cmd.none
+
+    else
+        requestCreateRecordSet errorLevel project request
 
 
 requestCreateRecordSet : Types.Error.ErrorLevel -> Types.Project.Project -> DnsRecordSetRequest -> Cmd Types.SharedMsg.SharedMsg

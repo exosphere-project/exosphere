@@ -3807,7 +3807,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                             -- Associate the server's floating IP with a DNS record. (#1081)
                             case ( maybeZone, maybeHostname ) of
                                 ( Just zone, Just hostname ) ->
-                                    Rest.Designate.requestCreateRecordSet ErrorDebug
+                                    Rest.Designate.requestCreateRecordSetIfNotExists ErrorDebug
                                         project
                                         { zone_id = zone.zone_id
                                         , name = hostname ++ "." ++ zone.zone_name
@@ -3857,7 +3857,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                             Helpers.sanitizeHostname server.osProps.name
                                 |> Maybe.map
                                     (\hostname ->
-                                        Rest.Designate.requestCreateRecordSet ErrorDebug
+                                        Rest.Designate.requestCreateRecordSetIfNotExists ErrorDebug
                                             project
                                             { zone_id = zone.zone_id
                                             , name = hostname ++ "." ++ zone.zone_name
