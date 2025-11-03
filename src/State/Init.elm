@@ -321,6 +321,7 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
                         |> Helpers.pipelineCmd (ApiModelHelpers.requestServers projectId)
                         |> Helpers.pipelineCmd (ApiModelHelpers.requestSecurityGroups projectId)
                         |> Helpers.pipelineCmd (ApiModelHelpers.requestShares projectId)
+                        |> Helpers.pipelineCmd (ApiModelHelpers.requestShareTypes projectId)
                         |> Helpers.pipelineCmd (ApiModelHelpers.requestShareQuotas projectId)
                         |> Helpers.pipelineCmd (ApiModelHelpers.requestVolumes projectId)
                         |> Helpers.pipelineCmd (ApiModelHelpers.requestFloatingIps projectId)

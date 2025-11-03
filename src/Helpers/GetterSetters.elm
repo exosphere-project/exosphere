@@ -1,6 +1,8 @@
 module Helpers.GetterSetters exposing
-    ( LoadingProgress(..)
+    ( DataDependent(..)
+    , LoadingProgress(..)
     , cloudSpecificConfigLookup
+    , defaultShareTypeName
     , flavorLookup
     , floatingIpLookup
     , getBootVolume
@@ -29,6 +31,7 @@ module Helpers.GetterSetters exposing
     , imageGetDesktopMessage
     , imageLookup
     , isDefaultSecurityGroup
+    , isDefaultShareTypeSupported
     , isSnapshotOfVolume
     , isVolumeCurrentlyBackingServer
     , isVolumeReservedForShelvedInstance
@@ -59,6 +62,7 @@ module Helpers.GetterSetters exposing
     , projectSetServersLoading
     , projectSetShareAccessRulesLoading
     , projectSetShareExportLocationsLoading
+    , projectSetShareTypesLoading
     , projectSetSharesLoading
     , projectSetVolumeSnapshotsLoading
     , projectSetVolumesLoading
@@ -212,6 +216,11 @@ type LoadingProgress
     = NotSure
     | Loading
     | Done
+
+
+type DataDependent a
+    = Uninitialised
+    | Ready a
 
 
 getServerVolumeActions : Project -> OSTypes.ServerUuid -> List ServerVolumeActionRequest
@@ -1061,6 +1070,11 @@ projectSetSharesLoading project =
     { project | shares = RDPP.setLoading project.shares }
 
 
+projectSetShareTypesLoading : Project -> Project
+projectSetShareTypesLoading project =
+    { project | shareTypes = RDPP.setLoading project.shareTypes }
+
+
 projectSetShareAccessRulesLoading : OSTypes.ShareUuid -> Project -> Project
 projectSetShareAccessRulesLoading shareUuid project =
     { project
@@ -1093,6 +1107,24 @@ projectSetShareExportLocationsLoading shareUuid project =
                 )
                 project.shareExportLocations
     }
+
+
+defaultShareTypeName : OSTypes.ShareTypeName
+defaultShareTypeName =
+    OSTypes.defaultShareTypeNameForProtocol OSTypes.CephFS
+
+
+isDefaultShareTypeSupported : Project -> DataDependent Bool
+isDefaultShareTypeSupported project =
+    case project.shareTypes.data of
+        RDPP.DoHave shareTypes _ ->
+            Ready <|
+                List.any
+                    (\st -> st.name == defaultShareTypeName)
+                    shareTypes
+
+        RDPP.DontHave ->
+            Uninitialised
 
 
 projectSetVolumesLoading : Project -> Project

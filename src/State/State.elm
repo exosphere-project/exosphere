@@ -3111,6 +3111,23 @@ processProjectSpecificMsg outerModel project msg =
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
+        ReceiveShareTypes shareTypes ->
+            let
+                newProject =
+                    { project
+                        | shareTypes =
+                            RDPP.RemoteDataPlusPlus
+                                (RDPP.DoHave shareTypes sharedModel.clientCurrentTime)
+                                (RDPP.NotLoading Nothing)
+                    }
+
+                newSharedModel =
+                    GetterSetters.modelUpdateProject sharedModel newProject
+            in
+            ( newSharedModel, Cmd.none )
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
         ReceiveDeleteShare shareUuid ->
             ( outerModel
             , case outerModel.viewState of
@@ -4474,6 +4491,7 @@ createProject_ outerModel description authToken region endpoints =
             , shares = RDPP.empty
             , shareAccessRules = Dict.empty
             , shareExportLocations = Dict.empty
+            , shareTypes = RDPP.empty
             , networks = RDPP.empty
             , autoAllocatedNetworkUuid = RDPP.empty
             , dnsRecordSets = RDPP.empty

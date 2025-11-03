@@ -20,6 +20,7 @@ module Rest.ApiModelHelpers exposing
     , requestShareAccessRules
     , requestShareExportLocations
     , requestShareQuotas
+    , requestShareTypes
     , requestShares
     , requestVolumeQuota
     , requestVolumeSnapshots
@@ -230,6 +231,25 @@ requestShares projectUuid model =
                         |> GetterSetters.projectSetSharesLoading
                         |> GetterSetters.modelUpdateProject model
                     , OpenStack.Shares.requestShares project url
+                    )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        Nothing ->
+            ( model, Cmd.none )
+
+
+requestShareTypes : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd SharedMsg )
+requestShareTypes projectUuid model =
+    case GetterSetters.projectLookup model projectUuid of
+        Just project ->
+            case project.endpoints.manila of
+                Just url ->
+                    ( project
+                        |> GetterSetters.projectSetShareTypesLoading
+                        |> GetterSetters.modelUpdateProject model
+                    , OpenStack.Shares.requestShareTypes project url
                     )
 
                 Nothing ->

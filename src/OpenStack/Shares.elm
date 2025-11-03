@@ -1,4 +1,4 @@
-module OpenStack.Shares exposing (requestCreateAccessRule, requestCreateShare, requestDeleteShare, requestShareAccessRules, requestShareExportLocations, requestShares)
+module OpenStack.Shares exposing (requestCreateAccessRule, requestCreateShare, requestDeleteShare, requestShareAccessRules, requestShareExportLocations, requestShareTypes, requestShares)
 
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Time
@@ -110,6 +110,45 @@ requestCreateAccessRule project url createAccessRuleRequest =
             resultToMsg_
             (Decode.field "access" <| accessRulesDecoder)
         )
+
+
+requestShareTypes : Project -> Url -> Cmd SharedMsg
+requestShareTypes project url =
+    let
+        errorContext =
+            ErrorContext
+                "get a list of share types"
+                ErrorCrit
+                Nothing
+
+        resultToMsg_ =
+            resultToMsgErrorBody
+                errorContext
+                (\shareTypes ->
+                    ProjectMsg
+                        (GetterSetters.projectIdentifier project)
+                        (ReceiveShareTypes shareTypes)
+                )
+    in
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Get
+        Nothing
+        []
+        ( url, [ "types" ], [] )
+        Http.emptyBody
+        (expectJsonWithErrorBody
+            resultToMsg_
+            (Decode.field "share_types" <| Decode.list shareTypeDecoder)
+        )
+
+
+shareTypeDecoder : Decode.Decoder OSTypes.ShareType
+shareTypeDecoder =
+    Decode.succeed
+        OSTypes.ShareType
+        |> Pipeline.required "name" Decode.string
+        |> Pipeline.required "id" Decode.string
 
 
 requestShares : Project -> Url -> Cmd SharedMsg

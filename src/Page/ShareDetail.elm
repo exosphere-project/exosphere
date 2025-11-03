@@ -9,9 +9,10 @@ import Helpers.Formatting exposing (Unit(..), humanNumber)
 import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
-import OpenStack.Types as OSTypes exposing (AccessRule, AccessRuleState(..), AccessRuleUuid, ExportLocation, Share, accessRuleAccessLevelToHumanString, accessRuleAccessTypeToString, accessRuleStateToString)
+import OpenStack.Types as OSTypes exposing (AccessRule, AccessRuleState(..), AccessRuleUuid, ExportLocation, Share, ShareProtocol(..), accessRuleAccessLevelToHumanString, accessRuleAccessTypeToString, accessRuleStateToString)
 import Style.Helpers as SH
 import Style.Types as ST exposing (ExoPalette)
+import Style.Widgets.Alert as Alert
 import Style.Widgets.Button as Button
 import Style.Widgets.CopyableText exposing (copyableScript, copyableText, copyableTextAccessory)
 import Style.Widgets.Grid exposing (scrollableCell)
@@ -548,17 +549,6 @@ render context project ( currentTime, _ ) model share =
 
                 Nothing ->
                     Element.none
-
-        mountTileContents =
-            case ( Dict.get share.uuid project.shareExportLocations, Dict.get share.uuid project.shareAccessRules ) of
-                ( Just exportLocationsRDPP, Just accessRulesRDPP ) ->
-                    VH.renderRDPP context
-                        (RDPP.map2 Tuple.pair exportLocationsRDPP accessRulesRDPP)
-                        (context.localization.exportLocation |> Helpers.String.pluralize)
-                        (renderMountTileContents context model share)
-
-                _ ->
-                    Element.none
     in
     Element.column [ Element.spacing spacer.px24, Element.width Element.fill ]
         [ Element.row (Text.headingStyleAttrs context.palette)
@@ -574,6 +564,31 @@ render context project ( currentTime, _ ) model share =
                 , shareActionsDropdown context project model share
                 ]
             ]
+        , case share.shareProtocol of
+            UnsupportedShareProtocol protocol ->
+                Alert.alert []
+                    context.palette
+                    { state = Alert.Warning
+                    , showIcon = True
+                    , showContainer = True
+                    , content =
+                        let
+                            shareTypeWarning =
+                                String.concat
+                                    [ "Exosphere does not support automatically mounting a "
+                                    , context.localization.share
+                                    , " with this protocol ("
+                                    , protocol
+                                    , "). You must mount it to your "
+                                    , context.localization.virtualComputer
+                                    , " manually."
+                                    ]
+                        in
+                        Text.p [] [ Text.body shareTypeWarning ]
+                    }
+
+            _ ->
+                Element.none
         , VH.tile
             context
             [ FeatherIcons.database |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
@@ -625,18 +640,32 @@ render context project ( currentTime, _ ) model share =
             ]
             [ accessRules
             ]
-        , VH.tile
-            context
-            [ FeatherIcons.folder
-                |> FeatherIcons.toHtml []
-                |> Element.html
-                |> Element.el []
-            , Text.text Text.Large
-                []
-                ("Mount your "
-                    ++ context.localization.share
-                    |> Helpers.String.toTitleCase
-                )
-            ]
-            [ mountTileContents ]
+        , case share.shareProtocol of
+            CephFS ->
+                VH.tile
+                    context
+                    [ FeatherIcons.folder
+                        |> FeatherIcons.toHtml []
+                        |> Element.html
+                        |> Element.el []
+                    , Text.text Text.Large
+                        []
+                        ("Mount your "
+                            ++ context.localization.share
+                            |> Helpers.String.toTitleCase
+                        )
+                    ]
+                    [ case ( Dict.get share.uuid project.shareExportLocations, Dict.get share.uuid project.shareAccessRules ) of
+                        ( Just exportLocationsRDPP, Just accessRulesRDPP ) ->
+                            VH.renderRDPP context
+                                (RDPP.map2 Tuple.pair exportLocationsRDPP accessRulesRDPP)
+                                (context.localization.exportLocation |> Helpers.String.pluralize)
+                                (renderMountTileContents context model share)
+
+                        _ ->
+                            Element.none
+                    ]
+
+            _ ->
+                Element.none
         ]

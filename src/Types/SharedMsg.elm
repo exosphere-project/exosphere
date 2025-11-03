@@ -121,6 +121,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveShareAccessRules ( OSTypes.ShareUuid, List OSTypes.AccessRule )
     | ReceiveShareExportLocations ( OSTypes.ShareUuid, List OSTypes.ExportLocation )
     | ReceiveShares (List OSTypes.Share)
+    | ReceiveShareTypes (List OSTypes.ShareType)
     | ReceiveDeleteShare OSTypes.ShareUuid
     | ReceiveShareQuota ErrorContext (Result HttpErrorWithBody OSTypes.ShareQuota)
     | ReceiveCreateVolume
