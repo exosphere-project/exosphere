@@ -76,7 +76,21 @@ interactionStatus project server interaction context currentTime tlsReverseProxy
                                     ]
 
                         Just floatingIp ->
-                            ITypes.Ready <| "exouser@" ++ floatingIp
+                            case server.exoProps.serverOrigin of
+                                ServerFromExo _ ->
+                                    ITypes.Ready <| "exouser@" ++ floatingIp
+
+                                ServerNotFromExo ->
+                                    ITypes.Warn
+                                        floatingIp
+                                        (String.join " "
+                                            [ "Exosphere did not configure SSH for this"
+                                            , context.localization.virtualComputer
+                                            , "so the username and"
+                                            , context.localization.credential |> Helpers.String.pluralize
+                                            , "are unknown."
+                                            ]
+                                        )
 
                 ITypes.Console ->
                     case ( server.osProps.consoleUrl.data, server.osProps.consoleUrl.refreshStatus ) of
