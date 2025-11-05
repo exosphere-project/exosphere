@@ -3815,7 +3815,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                             Rest.Neutron.receiveCreateFloatingIp sharedModel project (Just server) ip
 
                         maybeZone =
-                            GetterSetters.getDefaultZone project
+                            GetterSetters.getDefaultZone project sharedModel.viewContext
 
                         maybeHostname =
                             Helpers.sanitizeHostname server.osProps.name
@@ -3865,7 +3865,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                     processNewFloatingIp sharedModel.clientCurrentTime project floatingIp
 
                 maybeZone =
-                    GetterSetters.getDefaultZone project
+                    GetterSetters.getDefaultZone project sharedModel.viewContext
 
                 createRecordsetCmd =
                     -- Associate the server's floating IP with a DNS record. (#1081)
