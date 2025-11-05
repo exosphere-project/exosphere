@@ -60,6 +60,11 @@ declare namespace Exosphere {
     hostname: string;
   };
 
+  type CloudDnsZone = {
+    region: null | string;
+    zone: string;
+  };
+
   type CloudMetadataFilter = {
     filterKey: string;
     filterValue: string;
@@ -127,7 +132,7 @@ declare namespace Exosphere {
     keystoneHostname: string;
     friendlyName: string;
     userAppProxy: null | Array<CloudUserApplicationProxy>;
-
+    dnsZones?: null | Array<CloudDnsZone>;
     imageExcludeFilter: null | CloudMetadataFilter;
     featuredImageNamePrefix: null | string;
     instanceTypes: Array<CloudInstanceType>;

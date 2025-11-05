@@ -365,15 +365,16 @@ decodeCloudSpecificConfigs value =
 
 cloudSpecificConfigDecoder : Decode.Decoder ( HelperTypes.KeystoneHostname, HelperTypes.CloudSpecificConfig )
 cloudSpecificConfigDecoder =
-    Decode.map8 HelperTypes.CloudSpecificConfig
-        (Decode.field "friendlyName" Decode.string)
-        (Decode.field "userAppProxy" (Decode.nullable (Decode.list userAppProxyConfigDecoder)))
-        (Decode.field "imageExcludeFilter" (Decode.nullable metadataFilterDecoder))
-        (Decode.field "featuredImageNamePrefix" (Decode.nullable Decode.string))
-        (Decode.field "instanceTypes" (Decode.list instanceTypeDecoder))
-        (Decode.field "flavorGroups" (Decode.list flavorGroupDecoder))
-        (Decode.maybe (Decode.field "securityGroups" securityGroupsRegionConfigDecoder))
-        (Decode.field "desktopMessage" (Decode.nullable Decode.string))
+    Decode.succeed HelperTypes.CloudSpecificConfig
+        |> Pipeline.required "friendlyName" Decode.string
+        |> Pipeline.optional "userAppProxy" (Decode.nullable (Decode.list userAppProxyConfigDecoder)) Nothing
+        |> Pipeline.optional "dnsZones" (Decode.nullable (Decode.list dnsZoneConfigDecoder)) Nothing
+        |> Pipeline.optional "imageExcludeFilter" (Decode.nullable metadataFilterDecoder) Nothing
+        |> Pipeline.optional "featuredImageNamePrefix" (Decode.nullable Decode.string) Nothing
+        |> Pipeline.optional "instanceTypes" (Decode.list instanceTypeDecoder) []
+        |> Pipeline.optional "flavorGroups" (Decode.list flavorGroupDecoder) []
+        |> Pipeline.optional "securityGroups" (Decode.nullable securityGroupsRegionConfigDecoder) Nothing
+        |> Pipeline.optional "desktopMessage" (Decode.nullable Decode.string) Nothing
         |> Decode.andThen
             (\cloudSpecificConfig ->
                 Decode.field "keystoneHostname" Decode.string
@@ -386,6 +387,13 @@ userAppProxyConfigDecoder =
     Decode.map2 HelperTypes.UserAppProxyConfig
         (Decode.field "region" (Decode.nullable Decode.string))
         (Decode.field "hostname" Decode.string)
+
+
+dnsZoneConfigDecoder : Decode.Decoder HelperTypes.DnsZoneConfig
+dnsZoneConfigDecoder =
+    Decode.map2 HelperTypes.DnsZoneConfig
+        (Decode.field "region" (Decode.nullable Decode.string))
+        (Decode.field "zone" Decode.string)
 
 
 securityGroupsRegionConfigDecoder : Decode.Decoder (Dict.Dict String OSTypes.SecurityGroupTemplate)

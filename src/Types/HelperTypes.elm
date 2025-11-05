@@ -3,6 +3,7 @@ module Types.HelperTypes exposing
     , CloudSpecificConfigMap
     , CreateServerPageModel
     , DefaultLoginView(..)
+    , DnsZoneConfig
     , FlavorGroup
     , FlavorGroupTitle
     , FloatingIpAssignmentStatus(..)
@@ -156,6 +157,12 @@ type alias UserAppProxyConfig =
     }
 
 
+type alias DnsZoneConfig =
+    { regionId : Maybe OSTypes.RegionId
+    , zone : String
+    }
+
+
 type alias MetadataFilter =
     { filterKey : String
     , filterValue : String
@@ -165,6 +172,7 @@ type alias MetadataFilter =
 type alias CloudSpecificConfig =
     { friendlyName : String
     , userAppProxy : Maybe (List UserAppProxyConfig)
+    , dnsZones : Maybe (List DnsZoneConfig)
     , imageExcludeFilter : Maybe MetadataFilter
     , featuredImageNamePrefix : Maybe String
     , instanceTypes : List InstanceType
