@@ -32,6 +32,12 @@ var cloud_configs = {
           hostname: "proxy-js2-iu.exosphere.app",
         },
       ],
+      dnsZones: [
+        {
+          region: "IU",
+          zone: "{project_name}.projects.jetstream-cloud.org.",
+        },
+      ],
       imageExcludeFilter: null,
       featuredImageNamePrefix: "Featured-",
       instanceTypes: [
