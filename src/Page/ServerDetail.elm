@@ -1669,40 +1669,60 @@ renderIpAddresses context project server model =
 
         floatingIpAddressRows =
             if List.isEmpty (GetterSetters.getServerFloatingIps project server.osProps.uuid) then
-                if server.exoProps.floatingIpCreationOption == DoNotUseFloatingIp then
-                    -- The server doesn't have a floating IP and we aren't waiting to create one, so give user option to assign one
-                    [ Element.text <|
-                        String.join " "
-                            [ "No"
-                            , context.localization.floatingIpAddress
-                            , "assigned."
-                            ]
-                    , Element.link []
-                        { url =
-                            Route.toUrl context.urlPathPrefix <|
-                                Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
-                                    Route.FloatingIpAssign Nothing (Just server.osProps.uuid)
-                        , label =
-                            Widget.textButton
-                                (SH.materialStyle context.palette).button
-                                { text =
-                                    String.join " "
-                                        [ "Assign", Helpers.String.indefiniteArticle context.localization.floatingIpAddress, context.localization.floatingIpAddress ]
-                                , onPress =
-                                    disableWhenTransitioning <| Just NoOp
-                                }
-                        }
-                    ]
+                let
+                    noFloatingIpAssignButton =
+                        [ Element.text <|
+                            String.join " "
+                                [ "No"
+                                , context.localization.floatingIpAddress
+                                , "assigned."
+                                ]
+                        , Element.link []
+                            { url =
+                                Route.toUrl context.urlPathPrefix <|
+                                    Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
+                                        Route.FloatingIpAssign Nothing (Just server.osProps.uuid)
+                            , label =
+                                Widget.textButton
+                                    (SH.materialStyle context.palette).button
+                                    { text =
+                                        String.join " "
+                                            [ "Assign", Helpers.String.indefiniteArticle context.localization.floatingIpAddress, context.localization.floatingIpAddress ]
+                                    , onPress =
+                                        disableWhenTransitioning <| Just NoOp
+                                    }
+                            }
+                        ]
 
-                else
-                    -- Floating IP is not yet created as part of server launch, but it might be.
-                    [ Element.text <|
-                        String.join " "
-                            [ "No"
-                            , context.localization.floatingIpAddress
-                            , "yet, please wait"
-                            ]
-                    ]
+                    isActive =
+                        List.member server.osProps.details.openstackStatus [ OSTypes.ServerActive, OSTypes.ServerVerifyResize ]
+
+                    isBecomingActive =
+                        server.exoProps.targetOpenstackStatus
+                            |> Maybe.andThen List.head
+                            |> Maybe.map (\status -> status == OSTypes.ServerActive)
+                            |> Maybe.withDefault False
+                in
+                -- Is this server active or becoming active?
+                case ( isActive || isBecomingActive, server.exoProps.floatingIpCreationOption ) of
+                    ( True, DoNotUseFloatingIp ) ->
+                        -- The server doesn't have a floating IP and we aren't waiting to create one, so give the user an option to assign one.
+                        noFloatingIpAssignButton
+
+                    ( True, _ ) ->
+                        -- Floating IP is not yet created as part of server launch, but it might be soon.
+                        [ Element.text <|
+                            String.join " "
+                                [ "No"
+                                , context.localization.floatingIpAddress
+                                , "yet, please wait."
+                                ]
+                        ]
+
+                    ( False, _ ) ->
+                        -- We're not currently waiting for automatic floating IP assignment.
+                        -- Give the user the option to assign one to e.g. a shelved server.
+                        noFloatingIpAssignButton
 
             else
                 GetterSetters.getServerFloatingIps project server.osProps.uuid
