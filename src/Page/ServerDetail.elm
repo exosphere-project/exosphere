@@ -1656,6 +1656,17 @@ resourceUsageCharts context currentTimeAndZone server maybeServerResourceQtys =
 renderIpAddresses : View.Types.Context -> Project -> Server -> Model -> Element.Element Msg
 renderIpAddresses context project server model =
     let
+        disableWhenTransitioning value =
+            if
+                server.exoProps.targetOpenstackStatus
+                    /= Nothing
+                    || server.exoProps.deletionAttempted
+            then
+                Nothing
+
+            else
+                value
+
         floatingIpAddressRows =
             if List.isEmpty (GetterSetters.getServerFloatingIps project server.osProps.uuid) then
                 if server.exoProps.floatingIpCreationOption == DoNotUseFloatingIp then
@@ -1677,7 +1688,8 @@ renderIpAddresses context project server model =
                                 { text =
                                     String.join " "
                                         [ "Assign", Helpers.String.indefiniteArticle context.localization.floatingIpAddress, context.localization.floatingIpAddress ]
-                                , onPress = Just NoOp
+                                , onPress =
+                                    disableWhenTransitioning <| Just NoOp
                                 }
                         }
                     ]
@@ -1719,6 +1731,7 @@ renderIpAddresses context project server model =
                                                                             SharedMsg.ServerMsg model.serverUuid <|
                                                                                 SharedMsg.RequestCreateServerHostname ( zone, ipAddress.address )
                                                                 )
+                                                            |> disableWhenTransitioning
                                                     }
                                                 ]
                                             )
@@ -1757,10 +1770,11 @@ renderIpAddresses context project server model =
                                                     { text =
                                                         "Unassign"
                                                     , onPress =
-                                                        Just <|
-                                                            SharedMsg <|
-                                                                SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
-                                                                    SharedMsg.RequestUnassignFloatingIp ipAddress.uuid
+                                                        disableWhenTransitioning <|
+                                                            Just <|
+                                                                SharedMsg <|
+                                                                    SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
+                                                                        SharedMsg.RequestUnassignFloatingIp ipAddress.uuid
                                                     }
                                                 ]
                                             )
