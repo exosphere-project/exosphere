@@ -34,28 +34,33 @@ type RecordType
     | SOARecord
     | NSRecord
     | CNAMERecord
+    | TXTRecord
+    | UnsupportedRecordType String
 
 
-fromStringToRecordType : String -> Result String RecordType
-fromStringToRecordType recordSet =
-    case recordSet of
+fromStringToRecordType : String -> RecordType
+fromStringToRecordType record =
+    case record of
         "A" ->
-            Ok ARecord
+            ARecord
 
         "PTR" ->
-            Ok PTRRecord
+            PTRRecord
 
         "SOA" ->
-            Ok SOARecord
+            SOARecord
 
         "NS" ->
-            Ok NSRecord
+            NSRecord
 
         "CNAME" ->
-            Ok CNAMERecord
+            CNAMERecord
+
+        "TXT" ->
+            TXTRecord
 
         _ ->
-            Err (recordSet ++ " is not valid")
+            UnsupportedRecordType record
 
 
 recordTypeToString : RecordType -> String
@@ -75,6 +80,12 @@ recordTypeToString type_ =
 
         CNAMERecord ->
             "CNAME"
+
+        TXTRecord ->
+            "TXT"
+
+        UnsupportedRecordType str ->
+            str
 
 
 lookupRecordsByAddress : List DnsRecordSet -> String -> List DnsRecordSet

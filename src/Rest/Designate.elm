@@ -227,18 +227,7 @@ recordSetDecoder =
         (Decode.field "zone_name" Decode.string)
         (Decode.field "id" Decode.string)
         (Decode.field "name" Decode.string)
-        (Decode.field "type" Decode.string
-            |> Decode.map OpenStack.DnsRecordSet.fromStringToRecordType
-            |> Decode.andThen
-                (\value ->
-                    case value of
-                        Err _ ->
-                            Decode.fail "Failed to parse DNS record type"
-
-                        Ok z ->
-                            Decode.succeed z
-                )
-        )
+        (Decode.field "type" Decode.string |> Decode.map OpenStack.DnsRecordSet.fromStringToRecordType)
         (Decode.field "ttl" (Decode.nullable Decode.int))
         (Decode.field "records" (Decode.list Decode.string) |> Decode.map Set.fromList)
 
