@@ -1,0 +1,15 @@
+{
+  "serve": ".",
+  "port": 8000,
+  "postprocess": ["elm-watch-node", "postprocess.js"],
+  "targets": {
+    "Exosphere": {
+      "inputs": ["src/Exosphere.elm"],
+      "output": "elm-web.js"
+    },
+    "DesignSystem": {
+      "inputs": ["src/DesignSystem/Explorer.elm"],
+      "output": "explorer.js"
+    }
+  }
+}

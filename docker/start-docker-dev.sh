@@ -5,8 +5,10 @@ CONTAINER_NAME="${2:-exosphere}"
 
 docker run --rm \
        --mount type=bind,source="${PWD}"/elm.json,destination=/usr/src/app/elm.json \
-       --mount type=bind,source="${PWD}"/elm-tooling.json,destination=/usr/src/app/elm-tooling.json \
        --mount type=bind,source="${PWD}"/elm-git.json,destination=/usr/src/app/elm-git.json \
+       --mount type=bind,source="${PWD}"/elm-watch.json,destination=/usr/src/app/elm-watch.json \
+       --mount type=bind,source="${PWD}"/elm.sideload.json,destination=/usr/src/app/elm.sideload.json \
+       --mount type=bind,source="${PWD}"/postprocess.js,destination=/usr/src/app/postprocess.js \
        --mount type=bind,source="${PWD}"/index.html,destination=/usr/src/app/index.html \
        --mount type=bind,source="${PWD}"/service-worker.js,destination=/usr/src/app/service-worker.js \
        --mount type=bind,source="${PWD}"/config.js,destination=/usr/src/app/config.js \
