@@ -1,4 +1,4 @@
-module Helpers.Image exposing (ImageOperatingSystem, detectImageOperatingSystem, detectOperatingSystem)
+module Helpers.Image exposing (ImageOperatingSystem, detectImageOperatingSystem, detectOperatingSystem, guessOsDefaultUsername)
 
 import List.Extra
 import OpenStack.Types as OSTypes
@@ -41,6 +41,93 @@ supportedDistributions =
 explicitlyUnsupportedDistributions : List String
 explicitlyUnsupportedDistributions =
     [ "Windows" ]
+
+
+{-| Given an `os_distro`, guess the default SSH username for that OS.
+
+    - List of distros: https://docs.openstack.org/glance/latest/admin/useful-image-properties.html
+    - Default usernames: https://docs.openstack.org/image-guide/obtain-images.html
+
+In general, the OpenStack image distro identifier is the same as the default username but there are exceptions.
+
+-}
+guessOsDefaultUsername : Maybe String -> Maybe String -> Maybe String
+guessOsDefaultUsername osDistro maybeOsVersion =
+    osDistro
+        |> Maybe.andThen
+            (\osDistro_ ->
+                case String.toLower osDistro_ of
+                    "debian" ->
+                        Just "debian"
+
+                    "ubuntu" ->
+                        Just "ubuntu"
+
+                    "rocky" ->
+                        Just "rocky"
+
+                    "almalinux" ->
+                        Just "almalinux"
+
+                    "centos" ->
+                        case maybeOsVersion of
+                            Just versionStr ->
+                                [ "7", "8" ]
+                                    |> List.any (\v -> String.startsWith v versionStr)
+                                    |> (\isOldVersion ->
+                                            if isOldVersion then
+                                                Just "centos"
+
+                                            else
+                                                Just "cloud-user"
+                                       )
+
+                            -- CentOS 9 & later
+                            Nothing ->
+                                Just "cloud-user"
+
+                    "fedora" ->
+                        Just "fedora"
+
+                    "rhel" ->
+                        Just "cloud-user"
+
+                    "alpine" ->
+                        Just "alpine"
+
+                    "arch" ->
+                        Just "arch"
+
+                    "opensuse" ->
+                        Just "opensuse"
+
+                    "kali" ->
+                        Just "kali"
+
+                    "cirros" ->
+                        Just "cirros"
+
+                    -- BSDs
+                    "freebsd" ->
+                        Just "freebsd"
+
+                    "openbsd" ->
+                        Just "openbsd"
+
+                    "netbsd" ->
+                        Just "netbsd"
+
+                    -- Microsoft
+                    "msdos" ->
+                        Nothing
+
+                    "windows" ->
+                        Nothing
+
+                    -- Other
+                    _ ->
+                        Nothing
+            )
 
 
 detectOperatingSystem : String -> Maybe String -> Maybe String -> Maybe ImageOperatingSystem
