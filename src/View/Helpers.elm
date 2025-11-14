@@ -4,6 +4,7 @@ module View.Helpers exposing
     , compactKVSubRow
     , contentContainer
     , createdAgoByFromSize
+    , deleteBulkResourcePopconfirm
     , deleteResourcePopconfirm
     , deleteResourcePopconfirmWithDisabledHint
     , deleteVolumeSnapshotIconButton
@@ -1673,6 +1674,47 @@ deleteResourcePopconfirm context project msgMapper resource popconfirmTag onConf
         onConfirm
         onCancel
         (DeleteButton.Enabled ("Delete " ++ resource.word))
+
+
+deleteBulkResourcePopconfirm : View.Types.Context -> Project -> (PopoverId -> msg) -> { r | count : Int, word : String } -> String -> Maybe msg -> Maybe msg -> Element.Element msg
+deleteBulkResourcePopconfirm context project msgMapper resource popconfirmTag onConfirm onCancel =
+    let
+        deletePopconfirmId =
+            Helpers.String.hyphenate
+                [ popconfirmTag
+                , project.auth.project.uuid
+                , "bulk"
+                ]
+    in
+    deletePopconfirm context
+        msgMapper
+        deletePopconfirmId
+        { confirmation =
+            let
+                determiner =
+                    if resource.count == 1 then
+                        "this"
+
+                    else
+                        "these " ++ String.fromInt resource.count
+            in
+            Element.text <|
+                "Are you sure you want to delete "
+                    ++ determiner
+                    ++ " "
+                    ++ (resource.word |> Helpers.String.pluralizeCount resource.count)
+                    ++ "?"
+        , buttonText = Nothing
+        , onCancel = onCancel
+        , onConfirm = onConfirm
+        }
+        ST.PositionBottomRight
+        (\msg _ ->
+            deleteIconButtonWithDisabledHint context.palette
+                True
+                (DeleteButton.Enabled ("Delete " ++ resource.word |> Helpers.String.pluralize))
+                (Just msg)
+        )
 
 
 deleteVolumeSnapshotIconButton : View.Types.Context -> Project -> (PopoverId -> msg) -> String -> VolumeSnapshot -> Maybe msg -> Maybe msg -> Element.Element msg

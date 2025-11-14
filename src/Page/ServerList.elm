@@ -18,7 +18,7 @@ import Set
 import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.DataList as DataList
-import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
+import Style.Widgets.DeleteButton exposing (deleteIconButton)
 import Style.Widgets.HumanTime exposing (relativeTimeElement)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.Popover.Popover exposing (dropdownItemStyle, popover)
@@ -497,50 +497,19 @@ deletionAction :
     -> Set.Set OSTypes.ServerUuid
     -> Element.Element Msg
 deletionAction context project serverIds =
-    let
-        deleteAllBtn togglePopconfirm _ =
-            deleteIconButton context.palette
-                True
-                "Delete All"
-                (Just togglePopconfirm)
-
-        deletePopconfirmId =
-            Helpers.String.hyphenate
-                [ "serverListDeletePopconfirm"
-                , project.auth.project.uuid
-                , "all"
-                ]
-    in
-    Element.el [ Element.alignRight ] <|
-        deletePopconfirm context
-            (\deletePopconfirmId_ -> SharedMsg <| SharedMsg.TogglePopover deletePopconfirmId_)
-            deletePopconfirmId
-            { confirmation =
-                Element.text <|
-                    if Set.size serverIds > 1 then
-                        "Are you sure you want to delete these "
-                            ++ (Set.size serverIds |> String.fromInt)
-                            ++ " "
-                            ++ (context.localization.virtualComputer
-                                    |> Helpers.String.pluralize
-                               )
-                            ++ "?"
-
-                    else
-                        "Are you sure you want to delete this "
-                            ++ context.localization.virtualComputer
-                            ++ "?"
-            , buttonText = Nothing
-            , onConfirm =
-                Just <|
-                    SharedMsg
-                        (SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project)
-                            (SharedMsg.RequestDeleteServers (Set.toList serverIds))
-                        )
-            , onCancel = Just NoOp
-            }
-            ST.PositionBottomRight
-            deleteAllBtn
+    VH.deleteBulkResourcePopconfirm
+        context
+        project
+        (SharedMsg << SharedMsg.TogglePopover)
+        { count = Set.size serverIds, word = context.localization.virtualComputer }
+        "serverListDeletePopconfirm"
+        (Just <|
+            SharedMsg
+                (SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project)
+                    (SharedMsg.RequestDeleteServers (Set.toList serverIds))
+                )
+        )
+        (Just NoOp)
 
 
 searchByNameUuidFilter : View.Types.Context -> DataList.SearchFilter { record | name : String }

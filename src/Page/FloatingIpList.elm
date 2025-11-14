@@ -166,7 +166,7 @@ view context project model =
                         []
                         (floatingIpView context project)
                         (floatingIpRecords ipsSorted)
-                        []
+                        [ deletionAction context project ]
                         (Just
                             { filters = filters
                             , dropdownMsgMapper =
@@ -227,6 +227,41 @@ ipScarcityWarning context =
         }
 
 
+deletionAction :
+    View.Types.Context
+    -> Project
+    -> Set.Set OSTypes.IpAddressUuid
+    -> Element.Element Msg
+deletionAction context project floatingIpUuids =
+    VH.deleteBulkResourcePopconfirm
+        context
+        project
+        (SharedMsg << SharedMsg.TogglePopover)
+        { count = Set.size floatingIpUuids, word = context.localization.floatingIpAddress }
+        "floatingIpListDeletePopconfirm"
+        (Just <|
+            SharedMsg <|
+                (floatingIpUuids
+                    |> Set.toList
+                    |> List.map
+                        (\ipUuid ->
+                            SharedMsg.ProjectMsg
+                                (GetterSetters.projectIdentifier project)
+                                (SharedMsg.RequestDeleteFloatingIp
+                                    (ErrorContext
+                                        ("delete floating IP address with UUID " ++ ipUuid)
+                                        ErrorCrit
+                                        Nothing
+                                    )
+                                    ipUuid
+                                )
+                        )
+                    |> SharedMsg.Batch
+                )
+        )
+        (Just NoOp)
+
+
 type alias FloatingIpRecord =
     DataList.DataRecord
         { ip : OSTypes.FloatingIp }
@@ -237,7 +272,7 @@ floatingIpRecords floatingIps =
     List.map
         (\floatingIp ->
             { id = floatingIp.uuid
-            , selectable = False
+            , selectable = True
             , ip = floatingIp
             }
         )

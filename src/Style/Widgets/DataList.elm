@@ -513,7 +513,7 @@ toolbarView resourceName model toMsg context rowStyle data bulkActions selection
                     )
 
                 Nothing ->
-                    ( Element.none
+                    ( Element.row [ Element.width Element.fill, Element.alignTop, Element.paddingXY 0 spacer.px8 ] [ Text.text Text.Small [ Font.color <| SH.toElementColor context.palette.neutral.text.subdued ] "Select All" ]
                     , False
                     )
 

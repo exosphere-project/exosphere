@@ -117,7 +117,7 @@ view context project currentTime model =
                 []
                 (volumeView context project currentTime)
                 (volumeRecords project ( volumes_, snapshots ))
-                []
+                [ deletionAction context project ]
                 (Just
                     { filters = filters project currentTime
                     , dropdownMsgMapper =
@@ -170,13 +170,41 @@ volumeRecords project ( volumes, snapshots ) =
     List.map
         (\volume ->
             { id = volume.uuid
-            , selectable = False
+            , selectable = volume.status == OSTypes.Available -- Only available volumes can be deleted in bulk.
             , volume = volume
             , snapshots = volumeSnapshots volume
             , creator = creator volume
             }
         )
         volumes
+
+
+deletionAction :
+    View.Types.Context
+    -> Project
+    -> Set.Set OSTypes.VolumeUuid
+    -> Element.Element Msg
+deletionAction context project volumeUuids =
+    VH.deleteBulkResourcePopconfirm
+        context
+        project
+        (SharedMsg << SharedMsg.TogglePopover)
+        { count = Set.size volumeUuids, word = context.localization.blockDevice }
+        "volumeListDeletePopconfirm"
+        (Just <|
+            SharedMsg <|
+                (volumeUuids
+                    |> Set.toList
+                    |> List.map
+                        (\uuid ->
+                            SharedMsg.ProjectMsg
+                                (GetterSetters.projectIdentifier project)
+                                (SharedMsg.RequestDeleteVolume uuid)
+                        )
+                    |> SharedMsg.Batch
+                )
+        )
+        (Just NoOp)
 
 
 volumeView :

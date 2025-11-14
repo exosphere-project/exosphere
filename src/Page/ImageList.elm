@@ -47,6 +47,7 @@ type alias Model =
 
 type Msg
     = GotDeleteConfirm OSTypes.ImageUuid
+    | GotDeleteBulkConfirm (Set.Set OSTypes.ImageUuid)
     | GotChangeVisibility OSTypes.ImageUuid OSTypes.ImageVisibility
     | DataListMsg DataList.Msg
     | SharedMsg SharedMsg.SharedMsg
@@ -72,6 +73,23 @@ update msg project model =
             , Cmd.none
             , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
                 SharedMsg.RequestDeleteImage imageId
+            )
+
+        GotDeleteBulkConfirm imageIds ->
+            ( { model
+                | deletionsAttempted =
+                    Set.union model.deletionsAttempted imageIds
+              }
+            , Cmd.none
+            , imageIds
+                |> Set.toList
+                |> List.map
+                    (\uuid ->
+                        SharedMsg.ProjectMsg
+                            (GetterSetters.projectIdentifier project)
+                            (SharedMsg.RequestDeleteImage uuid)
+                    )
+                |> SharedMsg.Batch
             )
 
         GotChangeVisibility imageId imageVisibility ->
@@ -137,8 +155,8 @@ view context project model =
                     context
                     []
                     (imageView model context project)
-                    (imageRecords context project imagesInCustomOrder)
-                    []
+                    (imageRecords context project model imagesInCustomOrder)
+                    [ deletionAction context project ]
                     (Just
                         { filters = filters context.localization
                         , dropdownMsgMapper =
@@ -179,8 +197,8 @@ type alias ImageRecord =
         }
 
 
-imageRecords : Context -> Project -> List Image -> List ImageRecord
-imageRecords context project images =
+imageRecords : Context -> Project -> Model -> List Image -> List ImageRecord
+imageRecords context project model images =
     let
         featuredImageNamePrefix =
             VH.featuredImageNamePrefixLookup context project
@@ -188,7 +206,7 @@ imageRecords context project images =
     List.map
         (\image ->
             { id = image.uuid
-            , selectable = False
+            , selectable = model.showDeleteButtons && projectOwnsImage project image && not image.protected
             , image = image
             , visibility = OSTypes.imageVisibilityToString image.visibility
             , featured = isImageFeaturedByDeployer featuredImageNamePrefix image
@@ -197,6 +215,22 @@ imageRecords context project images =
             }
         )
         images
+
+
+deletionAction :
+    View.Types.Context
+    -> Project
+    -> Set.Set OSTypes.ImageUuid
+    -> Element.Element Msg
+deletionAction context project imageUuids =
+    VH.deleteBulkResourcePopconfirm
+        context
+        project
+        (SharedMsg << SharedMsg.TogglePopover)
+        { count = Set.size imageUuids, word = context.localization.staticRepresentationOfBlockDeviceContents }
+        "imageListDeletePopconfirm"
+        (Just <| GotDeleteBulkConfirm imageUuids)
+        (Just NoOp)
 
 
 imageView : Model -> Context -> Project -> ImageRecord -> Element.Element Msg

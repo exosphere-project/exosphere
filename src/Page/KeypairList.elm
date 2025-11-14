@@ -135,7 +135,7 @@ view context project model =
                     []
                     (keypairView model context project)
                     (keypairRecords keypairs)
-                    []
+                    [ deletionAction context project ]
                     Nothing
                     Nothing
 
@@ -170,16 +170,59 @@ type alias KeypairRecord =
     DataList.DataRecord { keypair : OSTypes.Keypair }
 
 
+pseudoUuid : OSTypes.Keypair -> String
+pseudoUuid keypair =
+    [ keypair.name, keypair.fingerprint ]
+        |> String.join "::"
+
+
 keypairRecords : List OSTypes.Keypair -> List KeypairRecord
 keypairRecords keypairs =
     List.map
         (\keypair ->
-            { id = keypair.fingerprint -- doesn't matter if non-unique since bulk selection is not being used
-            , selectable = False
+            { id = pseudoUuid keypair
+            , selectable = True
             , keypair = keypair
             }
         )
         keypairs
+
+
+deletionAction :
+    View.Types.Context
+    -> Project
+    -> Set.Set String
+    -> Element.Element Msg
+deletionAction context project pseudoUuids =
+    VH.deleteBulkResourcePopconfirm
+        context
+        project
+        (SharedMsg << SharedMsg.TogglePopover)
+        { count = Set.size pseudoUuids, word = context.localization.pkiPublicKeyForSsh }
+        "keypairListDeletePopconfirm"
+        (Just <|
+            SharedMsg <|
+                (pseudoUuids
+                    |> Set.toList
+                    |> List.filterMap
+                        (\uuid ->
+                            case String.split "::" uuid of
+                                [ name, fingerprint ] ->
+                                    Just ( name, fingerprint )
+
+                                _ ->
+                                    Nothing
+                        )
+                    |> List.map
+                        (\keypairId ->
+                            SharedMsg.ProjectMsg
+                                (GetterSetters.projectIdentifier project)
+                                (SharedMsg.RequestDeleteKeypair keypairId)
+                        )
+                    |> SharedMsg.Batch
+                )
+        )
+        (Just NoOp)
 
 
 keypairView : Model -> View.Types.Context -> Project -> KeypairRecord -> Element.Element Msg
@@ -188,18 +231,12 @@ keypairView model context project keypairRecord =
         keypairId =
             ( keypairRecord.keypair.name, keypairRecord.keypair.fingerprint )
 
-        pseudoUuid =
-            Helpers.String.hyphenate
-                [ keypairRecord.keypair.name
-                , keypairRecord.keypair.fingerprint
-                ]
-
         deleteKeypairBtnWithPopconfirm =
             VH.deleteResourcePopconfirm
                 context
                 project
                 (SharedMsg << SharedMsg.TogglePopover)
-                { uuid = pseudoUuid, word = context.localization.pkiPublicKeyForSsh }
+                { uuid = pseudoUuid keypairRecord.keypair, word = context.localization.pkiPublicKeyForSsh }
                 "keypairListDeletePopconfirm"
                 (Just <| GotDeleteConfirm keypairId)
                 (Just NoOp)
