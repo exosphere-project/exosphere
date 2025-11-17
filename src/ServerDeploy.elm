@@ -57,11 +57,10 @@ python3 -m venv /opt/ansible-venv
 . /opt/ansible-venv/bin/activate
 retry pip install --upgrade pip
 retry pip install ansible-core passlib
-retry git clone \\
-  --depth=1 \\
-  --branch="{instance-config-mgt-repo-checkout}" \\
-  "{instance-config-mgt-repo-url}" \\
-  /opt/instance-config-mgt
+retry git init /opt/instance-config-mgt && \\
+  git -C /opt/instance-config-mgt remote add origin "{instance-config-mgt-repo-url}" && \\
+  git -C /opt/instance-config-mgt fetch --depth 1 origin "{instance-config-mgt-repo-checkout}" && \\
+  git -C /opt/instance-config-mgt reset --hard FETCH_HEAD
 ansible-playbook \\
   -i /opt/instance-config-mgt/ansible/hosts \\
   -e "{ansible-extra-vars}" \\
