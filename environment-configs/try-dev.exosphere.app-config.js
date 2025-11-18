@@ -36,6 +36,7 @@ var config = {
     releaseVersion: "latest",
     environmentName: "try-dev.exosphere.app",
   },
+  version: null,
 };
 
 /* Matomo tracking code */

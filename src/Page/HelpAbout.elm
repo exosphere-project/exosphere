@@ -71,8 +71,7 @@ view model context =
                     , Font.color (SH.toElementColor context.palette.neutral.text.subdued)
                     , Element.paddingEach { bottom = 0, left = spacer.px16, right = 0, top = 0 }
                     ]
-                    -- FIXME: Use a dedicated version string instead of relying on the Sentry config.
-                    (copyableText context.palette [] (model.sentryConfig |> Maybe.map .releaseVersion |> Maybe.withDefault "latest"))
+                    (copyableText context.palette [] (model.version |> Maybe.withDefault "latest"))
                 ]
             ]
         ]

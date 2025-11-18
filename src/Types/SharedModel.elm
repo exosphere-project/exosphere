@@ -32,6 +32,7 @@ type alias SharedModel =
     , instanceConfigMgtRepoCheckout : String
     , viewContext : View.Types.Context
     , sentryConfig : Maybe HelperTypes.SentryConfig
+    , version : Maybe String
     }
 
 
