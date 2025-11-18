@@ -3,6 +3,7 @@ module Page.HelpAbout exposing (headerView, view)
 import Element
 import Element.Font as Font
 import Style.Helpers as SH
+import Style.Widgets.Code as Code
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Link as Link
 import Style.Widgets.Spacer exposing (spacer)
@@ -47,7 +48,10 @@ view model context =
                         [ Element.text "You are not using a proxy server." ]
 
                     Just proxyUrl ->
-                        [ Element.text {- @nonlocalized -} ("You are using a cloud CORS proxy server at " ++ proxyUrl ++ ". All communication between Exosphere and OpenStack APIs pass through this server.") ]
+                        [ Text.body {- @nonlocalized -} "You are using a cloud CORS proxy server at "
+                        , Code.codeSpan context.palette proxyUrl
+                        , Text.body ". All communication between Exosphere and OpenStack APIs pass through this server."
+                        ]
             , Element.row []
                 [ Text.body "Exosphere client UUID:"
                 , Element.el
