@@ -71,7 +71,9 @@ var flags = {
   timeZone: d.getTimezoneOffset(),
 };
 
-const merged_config = Object.assign({}, cloud_configs, config);
+const shim_config = window.__DEBUG__ ? { version: window.__VERSION__ } : {};
+
+const merged_config = Object.assign({}, cloud_configs, config, shim_config);
 
 // start the elm app in the container
 // and keep a reference for communicating with the app
