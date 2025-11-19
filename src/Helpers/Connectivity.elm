@@ -1,7 +1,13 @@
-module Helpers.Connectivity exposing (ConnectionPorts(..), ConnectionRemote(..), ConnectivityRule, isConnectionPermitted, securityGroupRuleTemplateToConnectivtyRule)
+module Helpers.Connectivity exposing (ConnectionEtherType(..), ConnectionPorts(..), ConnectionRemote(..), ConnectivityRule, incomingGuacamoleRule, incomingSshRule, incomingVncRule, isConnectionPermitted, outgoingDnsTcpRule, outgoingDnsUdpRule, outgoingHttpRule, outgoingHttpsRule, securityGroupRuleTemplateToConnectivtyRule)
 
 import Helpers.String exposing (removeEmptiness)
-import OpenStack.SecurityGroupRule exposing (Remote(..), SecurityGroupRule, SecurityGroupRuleDirection, SecurityGroupRuleEthertype, SecurityGroupRuleProtocol, SecurityGroupRuleTemplate, getRemote, portRangeSubsumedBy, protocolSubsumedBy, remoteMatch)
+import OpenStack.SecurityGroupRule exposing (Remote(..), SecurityGroupRule, SecurityGroupRuleDirection(..), SecurityGroupRuleEthertype, SecurityGroupRuleProtocol(..), SecurityGroupRuleTemplate, getRemote, portRangeSubsumedBy, protocolSubsumedBy, remoteMatch)
+import View.Types exposing (Context)
+
+
+type ConnectionEtherType
+    = SpecificEtherType SecurityGroupRuleEthertype
+    | SomeEtherType
 
 
 type ConnectionRemote
@@ -17,7 +23,7 @@ type ConnectionPorts
 
 
 type alias ConnectivityRule =
-    { ethertype : SecurityGroupRuleEthertype
+    { ethertype : ConnectionEtherType
     , direction : SecurityGroupRuleDirection
     , protocol : Maybe SecurityGroupRuleProtocol
     , ports : ConnectionPorts
@@ -28,7 +34,7 @@ type alias ConnectivityRule =
 
 securityGroupRuleTemplateToConnectivtyRule : SecurityGroupRuleTemplate -> ConnectivityRule
 securityGroupRuleTemplateToConnectivtyRule { ethertype, direction, protocol, portRangeMin, portRangeMax, remoteIpPrefix, remoteGroupUuid, description } =
-    { ethertype = ethertype
+    { ethertype = SpecificEtherType ethertype
     , direction = direction
     , protocol = protocol
     , ports =
@@ -70,12 +76,22 @@ isConnectionPermitted connection rules =
     rules
         |> List.any
             (\rule ->
-                (rule.ethertype == connection.ethertype)
+                etherTypePermittedBy connection.ethertype rule.ethertype
                     && (rule.direction == connection.direction)
                     && protocolSubsumedBy connection.protocol rule.protocol
                     && portsPermittedBy connection.ports ( rule.portRangeMin, rule.portRangeMax )
                     && remotePermittedBy connection.remote rule
             )
+
+
+etherTypePermittedBy : ConnectionEtherType -> SecurityGroupRuleEthertype -> Bool
+etherTypePermittedBy connectionEtherType ruleEtherType =
+    case connectionEtherType of
+        SpecificEtherType ethertype ->
+            ethertype == ruleEtherType
+
+        SomeEtherType ->
+            True
 
 
 portsPermittedBy : ConnectionPorts -> ( Maybe Int, Maybe Int ) -> Bool
@@ -120,3 +136,86 @@ remotePermittedBy remoteA rule =
 
         ( SpecificRemote a, Just b ) ->
             remoteMatch a b
+
+
+outgoingHttpsRule : ConnectivityRule
+outgoingHttpsRule =
+    { ethertype = SomeEtherType
+    , direction = Egress
+    , protocol = Just ProtocolTcp
+    , ports = PortRange 443 443
+    , remote = SomeRemote
+    , description = Just "Outgoing secure web requests (HTTPS)"
+    }
+
+
+outgoingHttpRule : ConnectivityRule
+outgoingHttpRule =
+    { ethertype = SomeEtherType
+    , direction = Egress
+    , protocol = Just ProtocolTcp
+    , ports = PortRange 443 443
+    , remote = SomeRemote
+    , description = Just "Outgoing web requests (HTTP)"
+    }
+
+
+outgoingDnsUdpRule : ConnectivityRule
+outgoingDnsUdpRule =
+    { ethertype = SomeEtherType
+    , direction = Egress
+    , protocol = Just ProtocolUdp
+    , ports = PortRange 53 53
+    , remote = SomeRemote
+    , description = Just "Domain name lookups (DNS)"
+    }
+
+
+outgoingDnsTcpRule : ConnectivityRule
+outgoingDnsTcpRule =
+    { ethertype = SomeEtherType
+    , direction = Egress
+    , protocol = Just ProtocolTcp
+    , ports = PortRange 53 53
+    , remote = SomeRemote
+    , description = Just "Domain name lookups (DNS fallback)"
+    }
+
+
+incomingSshRule : Context -> ConnectivityRule
+incomingSshRule context =
+    { ethertype = SomeEtherType
+    , direction = Ingress
+    , protocol = Just ProtocolTcp
+    , ports = PortRange 22 22
+    , remote = SomeRemote
+    , description = Just <| "Secure " ++ context.localization.commandDrivenTextInterface ++ " login (SSH)"
+    }
+
+
+incomingGuacamoleRule : Context -> ConnectivityRule
+incomingGuacamoleRule context =
+    { ethertype = SomeEtherType
+    , direction = Ingress
+    , protocol = Just ProtocolTcp
+    , ports = PortRange 49528 49528
+    , remote = SomeRemote
+    , description =
+        Just <|
+            "Remote "
+                ++ context.localization.commandDrivenTextInterface
+                ++ " and "
+                ++ context.localization.graphicalDesktopEnvironment
+                ++ " (Guacamole)"
+    }
+
+
+incomingVncRule : Context -> ConnectivityRule
+incomingVncRule context =
+    { ethertype = SomeEtherType
+    , direction = Ingress
+    , protocol = Just ProtocolTcp
+    , ports = PortRange 5901 5901
+    , remote = SomeRemote
+    , description = Just <| "Remote " ++ context.localization.graphicalDesktopEnvironment ++ " (VNC)"
+    }

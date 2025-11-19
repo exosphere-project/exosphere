@@ -1,7 +1,7 @@
 module Tests.Helpers.Connectivity exposing (connectivitySuite)
 
 import Expect
-import Helpers.Connectivity exposing (ConnectionPorts(..), ConnectionRemote(..), isConnectionPermitted)
+import Helpers.Connectivity exposing (ConnectionEtherType(..), ConnectionPorts(..), ConnectionRemote(..), isConnectionPermitted)
 import OpenStack.SecurityGroupRule exposing (SecurityGroupRuleDirection(..), SecurityGroupRuleEthertype(..), SecurityGroupRuleProtocol(..), buildRuleAllowAllOutgoingIPv4, buildRuleSSH, securityGroupRuleTemplateToRule)
 import Test exposing (Test, describe, test)
 
@@ -11,7 +11,7 @@ connectivitySuite =
     describe "Connectivity Tests"
         [ let
             prototype =
-                { ethertype = Ipv4
+                { ethertype = SomeEtherType
                 , direction = Egress
                 , protocol = Just ProtocolTcp
                 , ports = PortRange 443 443
@@ -36,7 +36,7 @@ connectivitySuite =
                   , expected = True
                   }
                 , { description = "Outgoing HTTPS connections are permitted to a specific remote"
-                  , connection = prototype
+                  , connection = { prototype | ethertype = SpecificEtherType Ipv4 }
                   , rules =
                         let
                             rule =
