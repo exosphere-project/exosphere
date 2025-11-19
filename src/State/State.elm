@@ -2205,51 +2205,6 @@ processProjectSpecificMsg outerModel project msg =
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
-        ReceiveAssignFloatingIp port_ floatingIp ->
-            let
-                newProject =
-                    processNewFloatingIp sharedModel.clientCurrentTime project floatingIp
-
-                maybeServer =
-                    GetterSetters.serverLookup project port_.deviceUuid
-
-                maybeZone =
-                    GetterSetters.getDefaultZone project
-
-                createRecordsetCmd =
-                    -- Associate the server's floating IP with a DNS record. (#1081)
-                    case ( maybeZone, maybeServer ) of
-                        ( Just zone, Just server ) ->
-                            Helpers.sanitizeHostname server.osProps.name
-                                |> Maybe.map
-                                    (\hostname ->
-                                        Rest.Designate.requestCreateRecordSet ErrorDebug
-                                            project
-                                            { zone_id = zone.zone_id
-                                            , name = hostname ++ "." ++ zone.zone_name
-                                            , type_ = OpenStack.DnsRecordSet.ARecord
-                                            , records = Set.singleton floatingIp.address
-                                            , description =
-                                                String.join " "
-                                                    [ "Created for"
-                                                    , sharedModel.viewContext.localization.virtualComputer
-                                                    , server.osProps.name
-                                                    ]
-                                            , ttl = Nothing
-                                            }
-                                    )
-                                |> Maybe.withDefault Cmd.none
-
-                        _ ->
-                            Cmd.none
-
-                newSharedModel =
-                    GetterSetters.modelUpdateProject sharedModel newProject
-            in
-            ( newSharedModel, createRecordsetCmd )
-                |> mapToOuterMsg
-                |> mapToOuterModel outerModel
-
         ReceiveUnassignFloatingIp floatingIp ->
             let
                 newProject =
@@ -3869,7 +3824,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                             -- Associate the server's floating IP with a DNS record. (#1081)
                             case ( maybeZone, maybeHostname ) of
                                 ( Just zone, Just hostname ) ->
-                                    Rest.Designate.requestCreateRecordSet ErrorDebug
+                                    Rest.Designate.requestCreateRecordSetIfNotExists ErrorDebug
                                         project
                                         { zone_id = zone.zone_id
                                         , name = hostname ++ "." ++ zone.zone_name
@@ -3903,6 +3858,48 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                     State.Error.processSynchronousApiError sharedModel newErrorContext httpErrorWithBody
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
+
+        ReceiveAssignServerFloatingIp floatingIp ->
+            let
+                newProject =
+                    processNewFloatingIp sharedModel.clientCurrentTime project floatingIp
+
+                maybeZone =
+                    GetterSetters.getDefaultZone project
+
+                createRecordsetCmd =
+                    -- Associate the server's floating IP with a DNS record. (#1081)
+                    case maybeZone of
+                        Just zone ->
+                            Helpers.sanitizeHostname server.osProps.name
+                                |> Maybe.map
+                                    (\hostname ->
+                                        Rest.Designate.requestCreateRecordSetIfNotExists ErrorDebug
+                                            project
+                                            { zone_id = zone.zone_id
+                                            , name = hostname ++ "." ++ zone.zone_name
+                                            , type_ = OpenStack.DnsRecordSet.ARecord
+                                            , records = Set.singleton floatingIp.address
+                                            , description =
+                                                String.join " "
+                                                    [ "Created for"
+                                                    , sharedModel.viewContext.localization.virtualComputer
+                                                    , server.osProps.name
+                                                    ]
+                                            , ttl = Nothing
+                                            }
+                                    )
+                                |> Maybe.withDefault Cmd.none
+
+                        _ ->
+                            Cmd.none
+
+                newSharedModel =
+                    GetterSetters.modelUpdateProject sharedModel newProject
+            in
+            ( newSharedModel, createRecordsetCmd )
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
 
         ReceiveServerPassphrase passphrase ->
             if String.isEmpty passphrase then
