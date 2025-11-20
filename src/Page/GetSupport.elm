@@ -3,6 +3,7 @@ module Page.GetSupport exposing (Model, Msg(..), headerView, init, update, view)
 import Element
 import Element.Font as Font
 import Element.Input as Input
+import Helpers.Credentials exposing (projectCloudName)
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import Set
@@ -444,7 +445,7 @@ buildSupportRequest model context maybeSupportableResource requestDescription =
                 (\p ->
                     String.concat
                         [ "- "
-                        , p.auth.project.name
+                        , projectCloudName p
                         , " (UUID: "
                         , p.auth.project.uuid
                         , ") as user "
