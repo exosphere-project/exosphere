@@ -435,6 +435,9 @@ buildSupportRequest model context maybeSupportableResource requestDescription =
         , "## Exosphere Client UUID\n"
         , UUID.toString model.clientUuid
         , "\n\n"
+        , "## Exosphere Version\n"
+        , Maybe.withDefault "latest" model.version
+        , "\n\n"
         , String.concat
             [ "## Logged-in "
             , Helpers.String.toTitleCase context.localization.unitOfTenancy
