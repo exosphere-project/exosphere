@@ -1,5 +1,15 @@
 Feature: Text presence
 
+    @about
+    Scenario: Visiting the About page
+        Given a browser
+        When I go to Exosphere
+        Then I should see "Add project" within 60 seconds
+        When I click the "About" card
+        Then I should see "About Exosphere" within 15 seconds
+        And I should see "Exosphere version" within 15 seconds
+        And I should see the CI commit short SHA in the UI
+
     @add-allocation
     Scenario: Adding a Jetstream2 account
         Given a browser

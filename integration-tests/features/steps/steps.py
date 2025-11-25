@@ -210,3 +210,10 @@ def press_radio_button_in_group(context, option, label):
         xpath=f"//label[@role='radiogroup' and contains(string(), '{label}')]")
     radio_button = radio_group.first.find_by_text(option)
     radio_button.click()
+
+@then("I should see the CI commit short SHA in the UI")
+def see_ci_commit_short_sha(context):
+    expected = os.environ.get("CI_COMMIT_SHORT_SHA")
+    assert expected, "CI_COMMIT_SHORT_SHA must be set in the environment"
+    found = context.browser.is_text_present(expected, wait_time=5)
+    assert found, f"Did not see CI_COMMIT_SHORT_SHA '{expected}' on the page"

@@ -46,6 +46,7 @@ behave features/exosphere.feature
 Run selected Exosphere scenarios by tag:
 
 ```bash
+behave --tags @about features/exosphere.feature
 behave --tags @add-allocation features/exosphere.feature
 behave --tags @launch features/exosphere.feature
 behave --tags @delete features/exosphere.feature
