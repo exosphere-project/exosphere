@@ -20,10 +20,10 @@ On Linux:
 
 ### 2. Install Python dependencies
 
-Do this in a Python virtual environment:
+Do this in a Python 3.11 virtual environment:
 
 ```bash
-python3 -m pip install --requirement requirements.txt 
+python3.11 -m pip install --requirement requirements.txt 
 ```
 
 ## Usage
