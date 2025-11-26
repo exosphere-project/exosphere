@@ -10,10 +10,13 @@ docker run --rm \
        --mount type=bind,source="${PWD}"/elm.sideload.json,destination=/usr/src/app/elm.sideload.json \
        --mount type=bind,source="${PWD}"/postprocess.js,destination=/usr/src/app/postprocess.js \
        --mount type=bind,source="${PWD}"/index.html,destination=/usr/src/app/index.html \
+       --mount type=bind,source="${PWD}"/explorer.js,destination=/usr/src/app/explorer.js \
+       --mount type=bind,source="${PWD}"/explorer.html,destination=/usr/src/app/explorer.html \
        --mount type=bind,source="${PWD}"/service-worker.js,destination=/usr/src/app/service-worker.js \
        --mount type=bind,source="${PWD}"/config.js,destination=/usr/src/app/config.js \
        --mount type=bind,source="${PWD}"/ports.js,destination=/usr/src/app/ports.js \
        --mount type=bind,source="${PWD}"/cloud_configs.js,destination=/usr/src/app/cloud_configs.js \
+       --mount type=bind,source="${PWD}"/banners.json,destination=/usr/src/app/banners.json \
        --mount type=bind,source="${PWD}"/exosphere.webmanifest,destination=/usr/src/app/exosphere.webmanifest \
        --mount type=bind,source="${PWD}"/src,destination=/usr/src/app/src \
        --mount type=bind,source="${PWD}"/assets,destination=/usr/src/app/assets \
