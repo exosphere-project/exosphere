@@ -31,7 +31,7 @@
     }
   },
   "devDependencies": {
-    "elm": "^0.19.1-6",
+    "@lydell/elm": "^0.19.1-14",
     "elm-analyse": "^0.16.5",
     "elm-format": "^0.8.6",
     "elm-git-install": "^0.1.4",
