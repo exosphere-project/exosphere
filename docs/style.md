@@ -3,19 +3,20 @@
 ## Basics
 
 - Exosphere uses [elm-ui](https://github.com/mdgriffith/elm-ui) for UI layout and styling. Where we can, we avoid defining HTML and CSS manually.
-- Exosphere also consumes some [elm-ui-widgets](https://package.elm-lang.org/packages/Orasund/elm-ui-widgets/latest/)
+- Exosphere also consumes some [elm-ui-widgets](https://package.elm-lang.org/packages/Orasund/elm-ui-widgets/latest/).
 - Exosphere also uses app-specific elm-ui "widgets", see `src/Widgets`.
 
 
 ## Design System
 
 - Exosphere has a design system explorer (powered by [elm-ui-explorer](https://github.com/kalutheo/elm-ui-explorer)) showcasing Exosphere's widgets.
-- Launch the design system explorer (with live updates) using:
+- Launch the design system explorer (with live updates) using the [same command as when running for development work](./run-exosphere.md#for-development-work):
 
     ```bash
-    npm run live-design-system
+    npm start
     ```
 
+- Then, open in your browser: <http://app.exosphere.localhost:8000/explorer.html>
 - Each widget has variations or "stories" with notes to explain their usage.
 - Stories are chosen to be illustrative & you can review the code for each in `src/DesignSystem/Explorer`.
 
