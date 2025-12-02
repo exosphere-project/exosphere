@@ -1,4 +1,7 @@
 import { execSync } from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
+import vm from "node:vm";
 import * as terser from "terser";
 
 /**
@@ -33,11 +36,35 @@ const terserOptions = {
   },
 };
 
+const writeVersionArtifact = () => {
+  try {
+    const root = process.cwd();
+
+    // We can't import config.js because it is not a module. It needs to be evaluated in a sandbox.
+    const configPath = path.join(root, "config.js");
+    const src = fs.readFileSync(configPath, "utf8");
+    const sandbox = {};
+    vm.createContext(sandbox);
+    vm.runInContext(src, sandbox, { filename: "config.js" });
+    const version = sandbox.config?.version;
+
+    // Write version.json.
+    const payload = JSON.stringify({ version }, null, 2);
+    fs.writeFileSync(path.join(root, "version.json"), payload, "utf8");
+  } catch (error) {
+    console.warn("Could not generate version artifact:", error);
+  }
+};
+
 /**
  * @type {import("elm-watch/elm-watch-node").Postprocess}
  */
 export default async function postprocess({ code, compilationMode, runMode }) {
-  if (compilationMode === "optimize" && runMode === "make") {
+  if (runMode === "make") {
+    writeVersionArtifact();
+  }
+
+  if (compilationMode === "optimize") {
     code = await terser
       .minify({ "elm-web.js": code }, terserOptions)
       .then((result) => {
@@ -62,9 +89,8 @@ export default async function postprocess({ code, compilationMode, runMode }) {
       }).trim();
       const version = `${gitHash}${uncommittedChanges ? "*" : ""}`;
       code += `\nwindow.__VERSION__ = "${version}";\n`;
-    } catch (e) {
+    } catch (_) {
       console.warn("Could not get git status for versioning.");
-      throw e;
     }
   }
 

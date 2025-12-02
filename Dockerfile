@@ -17,6 +17,9 @@ RUN apt-get update && \
 COPY package*.json ./
 RUN npm install
 
+# Copy files not using a bind mount
+COPY version.json ./
+
 EXPOSE 8000
 
 CMD ELM_WATCH_HOST=0.0.0.0 elm-watch hot

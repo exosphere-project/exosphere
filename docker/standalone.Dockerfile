@@ -22,6 +22,7 @@ COPY elm-git.json ./
 COPY elm-watch.json ./
 COPY elm.sideload.json ./
 COPY postprocess.js ./
+COPY environment-configs/docker-config.js ./config.js
 RUN npm install
 
 # Copy Elm source
@@ -38,6 +39,7 @@ COPY docker/nginx/compression.conf /etc/nginx/conf.d/compression.conf
 WORKDIR /usr/share/nginx/html
 
 COPY --from=compile /usr/src/app/elm-web.js ./
+COPY --from=compile /usr/src/app/version.json ./
 
 # Add remainder of files to Nginx image
 COPY index.html .
