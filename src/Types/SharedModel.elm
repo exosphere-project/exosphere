@@ -1,9 +1,11 @@
 module Types.SharedModel exposing (CloudCorsProxyUrl, LogMessage, SharedModel, Style)
 
+import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.Types as OSTypes
 import Style.Types
 import Time
 import Toasty
+import Types.AppVersion exposing (AppVersion)
 import Types.Banner as BannerTypes
 import Types.Error exposing (ErrorContext, Toast)
 import Types.HelperTypes as HelperTypes
@@ -33,6 +35,7 @@ type alias SharedModel =
     , viewContext : View.Types.Context
     , sentryConfig : Maybe HelperTypes.SentryConfig
     , version : Maybe String
+    , latestVersion : RDPP.RemoteDataPlusPlus Types.Error.HttpErrorWithBody AppVersion
     }
 
 
