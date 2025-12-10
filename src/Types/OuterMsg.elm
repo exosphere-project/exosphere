@@ -4,6 +4,7 @@ import Page.FloatingIpAssign
 import Page.FloatingIpCreate
 import Page.FloatingIpList
 import Page.GetSupport
+import Page.HelpAbout
 import Page.Home
 import Page.ImageList
 import Page.InstanceSourcePicker
@@ -41,6 +42,7 @@ type OuterMsg
     | FloatingIpAssignMsg Page.FloatingIpAssign.Msg
     | FloatingIpListMsg Page.FloatingIpList.Msg
     | GetSupportMsg Page.GetSupport.Msg
+    | HelpAboutMsg Page.HelpAbout.Msg
     | HomeMsg Page.Home.Msg
     | ImageListMsg Page.ImageList.Msg
     | InstanceSourcePickerMsg Page.InstanceSourcePicker.Msg

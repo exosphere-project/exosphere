@@ -236,6 +236,7 @@ nonProjectViews model context viewConstructor =
         HelpAbout ->
             ( Just <| Page.HelpAbout.headerView model context
             , Page.HelpAbout.view model context
+                |> Element.map HelpAboutMsg
             )
 
         Home pageModel ->

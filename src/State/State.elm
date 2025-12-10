@@ -33,6 +33,7 @@ import Page.FloatingIpAssign
 import Page.FloatingIpCreate
 import Page.FloatingIpList
 import Page.GetSupport
+import Page.HelpAbout
 import Page.Home
 import Page.ImageList
 import Page.InstanceSourcePicker
@@ -199,6 +200,17 @@ updateUnderlying outerMsg outerModel =
                 | viewState = NonProjectView <| GetSupport newPageModel
               }
             , Cmd.map GetSupportMsg cmd
+            )
+                |> pipelineCmdOuterModelMsg
+                    (processSharedMsg sharedMsg)
+
+        ( HelpAboutMsg pageMsg, NonProjectView HelpAbout ) ->
+            let
+                ( cmd, sharedMsg ) =
+                    Page.HelpAbout.update pageMsg sharedModel
+            in
+            ( outerModel
+            , Cmd.map HelpAboutMsg cmd
             )
                 |> pipelineCmdOuterModelMsg
                     (processSharedMsg sharedMsg)
