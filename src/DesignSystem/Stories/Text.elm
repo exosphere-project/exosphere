@@ -52,7 +52,7 @@ stories renderer =
                 renderer (palettize m) <|
                     Text.p []
                         [ Text.body "Exosphere is a "
-                        , Text.underline "user-friendly"
+                        , Text.underline Text.Body "user-friendly"
                         , Text.body ", extensible client for cloud computing."
                         ]
           , { note = Text.notes }

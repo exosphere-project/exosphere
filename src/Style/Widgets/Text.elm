@@ -287,9 +287,9 @@ mono label =
     Text.underline "Emphasis is important."
 
 -}
-underline : String -> Element.Element msg
-underline label =
-    text Body
+underline : TextVariant -> String -> Element.Element msg
+underline variant label =
+    text variant
         [ Border.widthEach
             { bottom = 1
             , left = 0
