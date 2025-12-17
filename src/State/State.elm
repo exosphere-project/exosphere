@@ -1,6 +1,7 @@
 module State.State exposing (update)
 
 import Browser
+import Browser.Events
 import Browser.Navigation
 import Dict
 import Helpers.ExoSetupStatus
@@ -32,6 +33,7 @@ import Page.FloatingIpAssign
 import Page.FloatingIpCreate
 import Page.FloatingIpList
 import Page.GetSupport
+import Page.HelpAbout
 import Page.Home
 import Page.ImageList
 import Page.InstanceSourcePicker
@@ -198,6 +200,17 @@ updateUnderlying outerMsg outerModel =
                 | viewState = NonProjectView <| GetSupport newPageModel
               }
             , Cmd.map GetSupportMsg cmd
+            )
+                |> pipelineCmdOuterModelMsg
+                    (processSharedMsg sharedMsg)
+
+        ( HelpAboutMsg pageMsg, NonProjectView HelpAbout ) ->
+            let
+                ( cmd, sharedMsg ) =
+                    Page.HelpAbout.update pageMsg sharedModel
+            in
+            ( outerModel
+            , Cmd.map HelpAboutMsg cmd
             )
                 |> pipelineCmdOuterModelMsg
                     (processSharedMsg sharedMsg)
@@ -773,6 +786,29 @@ processSharedMsg sharedMsg outerModel =
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
+        RequestAppVersion ->
+            ApiModelHelpers.requestAppVersion sharedModel
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
+        ReceiveAppVersion errorContext res ->
+            (case res of
+                Ok version ->
+                    ( { sharedModel
+                        | latestVersion =
+                            RDPP.RemoteDataPlusPlus
+                                (RDPP.DoHave version sharedModel.clientCurrentTime)
+                                (RDPP.NotLoading Nothing)
+                      }
+                    , Cmd.none
+                    )
+
+                Err err ->
+                    State.Error.processSynchronousApiError sharedModel errorContext err
+            )
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
         NetworkConnection online ->
             let
                 nextSharedModel =
@@ -817,6 +853,19 @@ processSharedMsg sharedMsg outerModel =
               }
             , Cmd.none
             )
+                |> mapToOuterModel outerModel
+
+        VisibilityChanged visibility ->
+            (case visibility of
+                Browser.Events.Visible ->
+                    -- The page or tab has just become visible.
+                    -- Fetch the latest app version.
+                    ApiModelHelpers.requestAppVersion sharedModel
+
+                Browser.Events.Hidden ->
+                    ( sharedModel, Cmd.none )
+            )
+                |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
         Tick interval time ->

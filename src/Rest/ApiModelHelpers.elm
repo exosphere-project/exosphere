@@ -1,5 +1,6 @@
 module Rest.ApiModelHelpers exposing
     ( requestAllServerVolumeAttachments
+    , requestAppVersion
     , requestAutoAllocatedNetwork
     , requestComputeQuota
     , requestFlavors
@@ -34,6 +35,9 @@ import OpenStack.ServerVolumes
 import OpenStack.Shares
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes
+import Orchestration.Helpers
+import Orchestration.Types
+import Rest.AppVersion
 import Rest.Designate
 import Rest.Glance
 import Rest.Jetstream2Accounting
@@ -44,7 +48,7 @@ import Types.HelperTypes exposing (ProjectIdentifier)
 import Types.Interactivity exposing (InteractionLevel)
 import Types.Project
 import Types.SharedModel exposing (SharedModel)
-import Types.SharedMsg exposing (SharedMsg)
+import Types.SharedMsg exposing (SharedMsg(..))
 
 
 
@@ -492,3 +496,24 @@ requestJetstream2Allocation projectIdentifier model =
 
         Nothing ->
             ( model, Cmd.none )
+
+
+requestAppVersion : SharedModel -> ( SharedModel, Cmd SharedMsg )
+requestAppVersion model =
+    if
+        Orchestration.Helpers.pollRDPP
+            model.latestVersion
+            model.clientCurrentTime
+            (Orchestration.Helpers.pollIntervalToMs Orchestration.Types.Seldom)
+    then
+        ( { model
+            | latestVersion =
+                RDPP.setLoading model.latestVersion
+          }
+        , Rest.AppVersion.requestAppVersion ReceiveAppVersion
+            model.viewContext
+            model.clientCurrentTime
+        )
+
+    else
+        ( model, Cmd.none )

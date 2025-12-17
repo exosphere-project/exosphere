@@ -6,6 +6,7 @@ import Dict
 import FormatNumber.Locales
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
+import Helpers.RemoteDataPlusPlus as RDPP
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
 import LocalStorage.LocalStorage as LocalStorage
@@ -16,6 +17,7 @@ import OpenStack.Types as OSTypes
 import Ports
 import Random
 import Rest.ApiModelHelpers as ApiModelHelpers
+import Rest.AppVersion exposing (requestAppVersion)
 import Rest.Banner exposing (requestBanners)
 import Rest.Keystone
 import Set
@@ -245,6 +247,7 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
                 }
             , sentryConfig = flags.sentryConfig
             , version = flags.version
+            , latestVersion = RDPP.empty
             }
 
         ( requestResourcesModel, requestResourcesCmd ) =
@@ -302,6 +305,9 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
                 requestBannersCmd =
                     requestBanners Types.SharedMsg.ReceiveBanners hydratedModel.banners
 
+                requestVersionCmd =
+                    requestAppVersion Types.SharedMsg.ReceiveAppVersion hydratedModel.viewContext hydratedModel.clientCurrentTime
+
                 otherCmds =
                     [ refreshAuthTokenCmds
                     , List.map
@@ -313,6 +319,7 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
                         |> Cmd.batch
                     , setFaviconCmd
                     , requestBannersCmd
+                    , requestVersionCmd
                     ]
                         |> Cmd.batch
 

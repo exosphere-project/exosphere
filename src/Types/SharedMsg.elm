@@ -6,6 +6,7 @@ module Types.SharedMsg exposing
     )
 
 import Browser
+import Browser.Events
 import Http
 import OpenStack.DnsRecordSet
 import OpenStack.SecurityGroupRule as SecurityGroupRule
@@ -15,6 +16,7 @@ import Style.Types as ST
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Time
 import Toasty
+import Types.AppVersion exposing (AppVersion)
 import Types.Banner as BannerTypes
 import Types.Error exposing (ErrorContext, HttpErrorWithBody, Toast)
 import Types.Guacamole as GuacTypes
@@ -41,12 +43,15 @@ type SharedMsg
     | RequestBanners
     | DismissBanner String
     | ReceiveBanners ErrorContext (Result HttpErrorWithBody BannerTypes.Banners)
+    | RequestAppVersion
+    | ReceiveAppVersion ErrorContext (Result HttpErrorWithBody AppVersion)
     | ProjectMsg HelperTypes.ProjectIdentifier ProjectSpecificMsgConstructor
     | OpenNewWindow String
     | LinkClicked Browser.UrlRequest
     | UrlChanged Url.Url
     | ToastMsg (Toasty.Msg Toast)
     | MsgChangeWindowSize Int Int
+    | VisibilityChanged Browser.Events.Visibility
     | SelectTheme ST.ThemeChoice
     | SetExperimentalFeaturesEnabled Bool
     | TogglePopover PopoverId

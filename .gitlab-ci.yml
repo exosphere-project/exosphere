@@ -72,6 +72,7 @@ build_standalone_container:
     - cp public/ports.js .
     - cp public/cloud_configs.js .
     - cp public/config.js .
+    - cp public/version.json .
   script:
     - BROWSER_LOWER="$(echo $BROWSER | tr '[:upper:]' '[:lower:]')"
     - mkdir -p /kaniko/.docker
@@ -118,6 +119,7 @@ elm_make:
     - cp ports.js public/ports.js
     - cp cloud_configs.js public/cloud_configs.js
     - cp config.js public/config.js
+    - cp version.json public/version.json
     - cp exosphere.webmanifest public
     - cp -R assets public
     - cp -R fonts public
