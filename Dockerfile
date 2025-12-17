@@ -1,4 +1,4 @@
-FROM node:current-bullseye
+FROM node:current-bookworm
 
 # Note: this docker build is intended for local development only
 # docker build -t exosphere .
@@ -15,6 +15,11 @@ RUN apt-get update && \
 
 # Install and cache dependencies
 COPY package*.json ./
+COPY elm.json ./
+COPY elm-git.json ./
+COPY elm-watch.json ./
+COPY elm.sideload.json ./
+COPY postprocess.js ./
 RUN npm install
 
 # Copy files not using a bind mount
@@ -22,4 +27,4 @@ COPY version.json ./
 
 EXPOSE 8000
 
-CMD ELM_WATCH_HOST=0.0.0.0 elm-watch hot
+CMD ELM_WATCH_HOST=0.0.0.0 npx elm-watch hot
