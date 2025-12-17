@@ -501,19 +501,68 @@ getServerDnsRecordSets project uuid =
             )
 
 
-getDefaultZone : Project -> Maybe OpenStack.DnsRecordSet.DnsZone
-getDefaultZone project =
-    -- TODO: Get the default zone from cloud-specific config (or another source).
-    project.dnsRecordSets
-        |> RDPP.withDefault []
-        -- Groups: ( { zone_id = x, etc. }, List a )
-        |> List.Extra.groupWhile (\a b -> a.zone_id == b.zone_id)
-        -- HACK: Exclude `tg-` prefixed zones.
-        |> List.filter (\( record, _ ) -> not <| String.startsWith "tg-" record.zone_name)
-        |> List.sortBy (\( _, list ) -> List.length list)
-        |> List.reverse
-        |> List.head
-        |> Maybe.map (\( record, _ ) -> { zone_id = record.zone_id, zone_name = record.zone_name })
+getDefaultZone : Project -> View.Types.Context -> Maybe OpenStack.DnsRecordSet.DnsZone
+getDefaultZone project context =
+    let
+        -- Get the default zone from cloud-specific config.
+        cloudSpecificConfig =
+            cloudSpecificConfigLookup context.cloudSpecificConfigs project
+
+        cloudConfigDnsZones =
+            cloudSpecificConfig
+                |> Maybe.andThen .dnsZones
+                |> Maybe.withDefault []
+
+        cloudConfigRegionDnsZone =
+            cloudConfigDnsZones |> List.Extra.find (\zone -> zone.regionId == (project.region |> Maybe.map .id))
+
+        cloudConfigDnsZone : Maybe HelperTypes.DnsZoneConfig
+        cloudConfigDnsZone =
+            case cloudConfigRegionDnsZone of
+                Just zone ->
+                    Just zone
+
+                Nothing ->
+                    -- If there is no region-specific dns zone, use the first without a region id.
+                    cloudConfigDnsZones |> List.Extra.find (\zone -> zone.regionId == Nothing)
+
+        cloudConfigDnsZoneName =
+            -- Transform the template string into a zone name.
+            -- e.g. {project_name}.projects.cloud.org.
+            cloudConfigDnsZone
+                |> Maybe.map .zone
+                |> Maybe.map
+                    (\template ->
+                        [ ( "{project_name}", project.auth.project.name ) ]
+                            |> Helpers.String.formatStringTemplate template
+                    )
+
+        dnsRecordsSets =
+            RDPP.withDefault [] project.dnsRecordSets
+    in
+    case cloudConfigDnsZoneName of
+        Just zoneName ->
+            -- Find the dns zone matching the config name.
+            dnsRecordsSets
+                |> List.Extra.find (\z -> String.toLower z.zone_name == String.toLower zoneName)
+                |> Maybe.map
+                    (\record ->
+                        { zone_id = record.zone_id
+                        , zone_name = record.zone_name
+                        }
+                    )
+
+        Nothing ->
+            -- Fall back on picking the zone with the most records.
+            dnsRecordsSets
+                -- Groups: ( { zone_id = x, etc. }, List a )
+                |> List.Extra.groupWhile (\a b -> a.zone_id == b.zone_id)
+                -- HACK: Exclude `tg-` prefixed zones.
+                |> List.filter (\( record, _ ) -> not <| String.startsWith "tg-" record.zone_name)
+                |> List.sortBy (\( _, list ) -> List.length list)
+                |> List.reverse
+                |> List.head
+                |> Maybe.map (\( record, _ ) -> { zone_id = record.zone_id, zone_name = record.zone_name })
 
 
 getServerExouserPassphrase : OSTypes.ServerDetails -> Maybe String

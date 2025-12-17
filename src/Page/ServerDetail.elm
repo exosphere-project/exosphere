@@ -1723,7 +1723,7 @@ renderIpAddresses context project server model =
                                                     { text =
                                                         "Create"
                                                     , onPress =
-                                                        GetterSetters.getDefaultZone project
+                                                        GetterSetters.getDefaultZone project context
                                                             |> Maybe.map
                                                                 (\zone ->
                                                                     SharedMsg <|

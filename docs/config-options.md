@@ -35,6 +35,7 @@ Each of these JSON objects contains the following properties:
 - `keystoneHostname` (string): Used to look up the custom configuration for a cloud, e.g. `openstack.example.cloud`
 - `friendlyName` (string): Name of cloud to display to user
 - `userAppProxy` (null, array): An array of User Application proxy (UAP) information for this cloud. See `docs/user-app-proxy.md` for more information. This _must_ be set for Guacamole support (in-browser shell and desktop) to work on a given cloud.
+- `dnsZones` (null, array): An array of DNS zones for each cloud region, using region `null` as a fallback & `{project_name}` as a [URI template string](https://en.wikipedia.org/wiki/URI_Template). If available, instance hostnames are are provisioned as subdomains on the DNS zone.
 - `imageExcludeFilter` (null, JSON object): A key:value property to exclude images from UI, see example below
 - `featuredImageNamePrefix` (null, string): A (public) image is 'featured' if the name starts with this string
 - `instanceTypes` (array): An array of instance types specific to this cloud, can be left empty. See `docs/instance-types.md` for more information.
@@ -52,7 +53,17 @@ var cloud_configs = {
         { region: null,
           hostname: "uap.openstack.example.cloud",
         },
-      ]
+      ],
+      "dnsZones": [
+        {
+          "region": "IU",
+          "zone": "{project_name}.projects.jetstream-cloud.org.",
+        },
+        {
+          "region": null,
+          "zone": "{project_name}.projects.jetstream-cloud.org.",
+        },
+      ],
       "imageExcludeFilter":null,
       "featuredImageNamePrefix":null,
       "instanceTypes":[
