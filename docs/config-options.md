@@ -23,6 +23,7 @@ These options are primarily intended for cloud operators who wish to offer a cus
 | instanceConfigMgtRepoCheckout | null, string            | Check out specific branch/tag/commit of instance setup code            |
 | bannersUrl                    | null, string            | Customizable URL for loading banners, see example below                |
 | sentryConfig                  | null, JSON object       | Pass Sentry DSN for error logging, see example below                   |
+| version                       | null, string            | Current app version; Exosphere's convention is to use commit hash      |
 
 ## Example cloud configuration
 
@@ -322,7 +323,7 @@ The example shown here would show a first banner for a pre-maintenance warning, 
     "level": "success",
     "startsAt": "2024-05-28T15:00:00-05:00", 
     "endsAt": "2024-05-30T00:00:00-05:00" 
-  },
+  }
 ]
 ```
 

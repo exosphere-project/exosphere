@@ -1,3 +1,4 @@
+import { execSync } from "node:child_process";
 import * as terser from "terser";
 
 /**
@@ -45,6 +46,26 @@ export default async function postprocess({ code, compilationMode, runMode }) {
         }
         return result.code;
       });
+  }
+
+  if (compilationMode === "debug") {
+    code += `\nwindow.__DEBUG__ = true;\n`;
+  }
+
+  if (runMode === "hot") {
+    try {
+      const gitHash = execSync("git rev-parse --short HEAD", {
+        encoding: "utf8",
+      }).trim();
+      const uncommittedChanges = execSync("git status --porcelain", {
+        encoding: "utf8",
+      }).trim();
+      const version = `${gitHash}${uncommittedChanges ? "*" : ""}`;
+      code += `\nwindow.__VERSION__ = "${version}";\n`;
+    } catch (e) {
+      console.warn("Could not get git status for versioning.");
+      throw e;
+    }
   }
 
   return code;

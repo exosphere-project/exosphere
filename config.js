@@ -24,4 +24,5 @@ var config = {
   instanceConfigMgtRepoCheckout: null,
   bannersUrl: null,
   sentryConfig: null,
+  version: null,
 };

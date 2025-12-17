@@ -174,5 +174,6 @@ declare namespace Exosphere {
     openIdConnectLoginConfig: null | OpenIdConnectLoginConfig;
     localization: null | Localization;
     bannersUrl: null | string;
+    version?: null | string;
   };
 }

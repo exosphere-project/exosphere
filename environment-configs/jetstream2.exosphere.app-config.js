@@ -83,6 +83,7 @@ var config = {
     releaseVersion: "latest",
     environmentName: "jetstream2.exosphere.app",
   },
+  version: null,
 };
 
 /* Matomo tracking code */

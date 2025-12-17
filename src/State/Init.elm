@@ -244,6 +244,7 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
                 , showPopovers = Set.empty
                 }
             , sentryConfig = flags.sentryConfig
+            , version = flags.version
             }
 
         ( requestResourcesModel, requestResourcesCmd ) =
