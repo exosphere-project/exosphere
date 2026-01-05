@@ -1,10 +1,19 @@
 module Style.Widgets.Validation exposing
-    ( invalidMessage
+    ( FormErrorLevel(..)
+    , FormInteraction(..)
+    , invalidIcon
+    , invalidMessage
+    , invalidText
     , notes
+    , validIcon
+    , validMessage
     , warningAlreadyExists
+    , warningIcon
     , warningMessage
+    , warningText
     )
 
+import Color
 import Element exposing (Element)
 import Element.Font as Font
 import FeatherIcons as Icons
@@ -27,38 +36,93 @@ Use them in your forms together with your business logic.
 """
 
 
+type FormInteraction
+    = Pristine
+    | Touched
+
+
+type FormErrorLevel
+    = Warning
+    | Error
+
+
 
 --- components
 
 
-{-| Shows a message for a form validation error.
+validIcon : ExoPalette -> Element msg
+validIcon palette =
+    Icons.checkCircle
+        |> featherIcon [ Font.color (palette.success.textOnNeutralBG |> SH.toElementColor) ]
+
+
+{-| Shows a message for a form validation reassurance.
 -}
-invalidMessage : ExoPalette -> String -> Element.Element msg
-invalidMessage palette helperText =
+validMessage : ExoPalette -> String -> Element.Element msg
+validMessage palette helperText =
     Element.row [ Element.spacingXY spacer.px8 0 ]
-        [ Icons.alertCircle
-            |> featherIcon [ Font.color (palette.danger.textOnNeutralBG |> SH.toElementColor) ]
+        [ validIcon palette
         , -- let text wrap if it exceeds container's width
           Element.paragraph
-            [ Font.color (SH.toElementColor palette.danger.textOnNeutralBG)
+            [ Font.color (SH.toElementColor palette.success.textOnNeutralBG)
             , Text.fontSize Text.Small
             ]
             [ Element.text helperText ]
         ]
 
 
-{-| Shows a message for a non-blocking but potentially problematic form field input.
+invalidIcon : ExoPalette -> Element msg
+invalidIcon palette =
+    Icons.alertCircle
+        |> featherIcon [ Font.color (palette.danger.textOnNeutralBG |> SH.toElementColor) ]
+
+
+warningIcon : ExoPalette -> Element msg
+warningIcon palette =
+    Icons.alertTriangle
+        |> featherIcon [ Font.color (palette.warning.textOnNeutralBG |> SH.toElementColor) ]
+
+
+{-| Shows an error icon & message for a form validation error.
+-}
+invalidMessage : ExoPalette -> String -> Element.Element msg
+invalidMessage palette helperText =
+    Element.row [ Element.spacingXY spacer.px8 0 ]
+        [ invalidIcon palette
+        , invalidText palette helperText
+        ]
+
+
+{-| Renders text for blocking, invalid form field input.
+-}
+invalidText : ExoPalette -> String -> Element.Element msg
+invalidText palette =
+    feedbackText palette.danger.textOnNeutralBG
+
+
+{-| Renders text for a non-blocking but potentially problematic form field input.
+-}
+warningText : ExoPalette -> String -> Element.Element msg
+warningText palette =
+    feedbackText palette.warning.textOnNeutralBG
+
+
+feedbackText : Color.Color -> String -> Element msg
+feedbackText color helperText =
+    Text.p
+        [ Font.color (SH.toElementColor color)
+        , Text.fontSize Text.Small
+        ]
+        [ Element.text helperText ]
+
+
+{-| Shows a warning icon & message for a non-blocking but potentially problematic form field input.
 -}
 warningMessage : ExoPalette -> String -> Element.Element msg
 warningMessage palette helperText =
     Element.row [ Element.spacingXY spacer.px8 0 ]
-        [ Icons.alertTriangle
-            |> featherIcon [ Font.color (palette.warning.textOnNeutralBG |> SH.toElementColor) ]
-        , Element.el
-            [ Font.color (SH.toElementColor palette.warning.textOnNeutralBG)
-            , Text.fontSize Text.Small
-            ]
-            (Element.text helperText)
+        [ warningIcon palette
+        , warningText palette helperText
         ]
 
 
@@ -66,21 +130,30 @@ warningMessage palette helperText =
 -}
 warningAlreadyExists :
     { context | palette : ExoPalette }
-    -> { alreadyExists : Bool, message : String, suggestions : List String, onSuggestionPressed : String -> msg }
+    -> { alreadyExists : Bool, message : String, suggestions : List String, onSuggestionPressed : String -> msg, errorLevel : FormErrorLevel }
     -> List (Element msg)
-warningAlreadyExists context { alreadyExists, message, suggestions, onSuggestionPressed } =
+warningAlreadyExists context { alreadyExists, message, suggestions, onSuggestionPressed, errorLevel } =
     let
         renderAlreadyExists =
             if alreadyExists then
-                [ warningMessage context.palette message ]
+                let
+                    feedbackFunction =
+                        case errorLevel of
+                            Warning ->
+                                warningMessage
+
+                            Error ->
+                                invalidMessage
+                in
+                [ feedbackFunction context.palette message ]
 
             else
                 []
 
         suggestionButtons =
-            let
-                buttons =
-                    suggestions
+            if alreadyExists then
+                [ Element.row [ Element.spacing spacer.px8 ]
+                    (suggestions
                         |> List.map
                             (\suggestion ->
                                 Button.default
@@ -89,11 +162,7 @@ warningAlreadyExists context { alreadyExists, message, suggestions, onSuggestion
                                     , onPress = Just (onSuggestionPressed suggestion)
                                     }
                             )
-            in
-            if alreadyExists then
-                [ Element.row
-                    [ Element.spacing spacer.px8 ]
-                    buttons
+                    )
                 ]
 
             else

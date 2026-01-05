@@ -2,7 +2,7 @@ module Helpers.ValidationResult exposing (ValidationResult(..), isInvalid)
 
 
 type ValidationResult comparable
-    = Accepted { acceptable : comparable, actual : comparable }
+    = Accepted
     | Rejected { acceptable : comparable, actual : comparable }
     | Unknown
 
@@ -10,7 +10,7 @@ type ValidationResult comparable
 isInvalid : ValidationResult comparable -> Bool
 isInvalid result =
     case result of
-        Accepted _ ->
+        Accepted ->
             False
 
         Rejected _ ->

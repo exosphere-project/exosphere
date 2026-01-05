@@ -1,4 +1,4 @@
-module Helpers.List exposing (multiSortBy)
+module Helpers.List exposing (multiSortBy, uniqueBy)
 
 {-| Sorts a list with multi-level comparison
 
@@ -48,3 +48,22 @@ multiSortCompare sorters a b =
 
                 order ->
                     order
+
+
+{-| Returns a list with unique elements based on a comparator function.
+
+    uniqueBy (\a b -> a == b) [ 1, 2, 3, 1, 2, 3, 4 ] == [ 1, 2, 3, 4 ]
+
+-}
+uniqueBy : (a -> a -> Bool) -> List a -> List a
+uniqueBy comparator list =
+    List.foldl
+        (\item acc ->
+            if List.any (comparator item) acc then
+                acc
+
+            else
+                item :: acc
+        )
+        []
+        list

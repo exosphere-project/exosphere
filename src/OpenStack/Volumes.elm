@@ -5,17 +5,14 @@ module OpenStack.Volumes exposing
     , requestUpdateVolumeName
     , requestVolumeSnapshots
     , requestVolumes
-    , volumeLookup
     )
 
 import Helpers.GetterSetters as GetterSetters
-import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.Time exposing (makeIso8601StringToPosixDecoder)
 import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
 import Json.Encode
-import List.Extra
 import OpenStack.Types as OSTypes
 import OpenStack.VolumeSnapshots exposing (volumeSnapshotDecoder)
 import Rest.Helpers
@@ -64,7 +61,7 @@ requestCreateVolume project createVolumeRequest =
         Post
         Nothing
         []
-        (project.endpoints.cinder ++ "/volumes")
+        ( project.endpoints.cinder, [ "volumes" ], [] )
         (Http.jsonBody body)
         (expectJsonWithErrorBody
             resultToMsg_
@@ -91,7 +88,7 @@ requestVolumes project =
         Get
         Nothing
         []
-        (project.endpoints.cinder ++ "/volumes/detail")
+        ( project.endpoints.cinder, [ "volumes", "detail" ], [] )
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg
@@ -122,7 +119,7 @@ requestVolumeSnapshots project =
         Get
         Nothing
         []
-        (project.endpoints.cinder ++ "/snapshots")
+        ( project.endpoints.cinder, [ "snapshots" ], [] )
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg_
@@ -149,7 +146,7 @@ requestDeleteVolume project volumeUuid =
         Delete
         Nothing
         []
-        (project.endpoints.cinder ++ "/volumes/" ++ volumeUuid)
+        ( project.endpoints.cinder, [ "volumes", volumeUuid ], [] )
         Http.emptyBody
         (expectStringWithErrorBody resultToMsg_)
 
@@ -173,7 +170,7 @@ requestDeleteVolumeSnapshot project snapshotUuid =
         Delete
         Nothing
         []
-        (project.endpoints.cinder ++ "/snapshots/" ++ snapshotUuid)
+        ( project.endpoints.cinder, [ "snapshots", snapshotUuid ], [] )
         Http.emptyBody
         (expectStringWithErrorBody resultToMsg_)
 
@@ -206,7 +203,7 @@ requestUpdateVolumeName project volumeUuid name =
         Put
         Nothing
         []
-        (project.endpoints.cinder ++ "/volumes/" ++ volumeUuid)
+        ( project.endpoints.cinder, [ "volumes", volumeUuid ], [] )
         (Http.jsonBody body)
         (expectStringWithErrorBody resultToMsg_)
 
@@ -294,10 +291,12 @@ volumeStatusDecoder status =
 
 cinderVolumeAttachmentDecoder : Decode.Decoder OSTypes.VolumeAttachment
 cinderVolumeAttachmentDecoder =
-    Decode.map3 OSTypes.VolumeAttachment
+    Decode.map4 OSTypes.VolumeAttachment
+        (Decode.field "volume_id" Decode.string)
         (Decode.field "server_id" Decode.string)
         (Decode.field "attachment_id" Decode.string)
-        (Decode.field "device" Decode.string)
+        -- Device can be null when attachment is made to a shelved instance.
+        (Decode.field "device" <| Decode.nullable Decode.string)
 
 
 imageMetadataDecoder : Decode.Decoder OSTypes.NameAndUuid
@@ -305,11 +304,3 @@ imageMetadataDecoder =
     Decode.map2 OSTypes.NameAndUuid
         (Decode.field "image_name" Decode.string)
         (Decode.field "image_id" Decode.string)
-
-
-volumeLookup : Project -> OSTypes.VolumeUuid -> Maybe OSTypes.Volume
-volumeLookup project volumeUuid =
-    {- TODO fix or justify other lookup functions being in Helpers.Helpers -}
-    project.volumes
-        |> RDPP.withDefault []
-        |> List.Extra.find (\v -> v.uuid == volumeUuid)

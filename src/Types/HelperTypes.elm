@@ -3,11 +3,13 @@ module Types.HelperTypes exposing
     , CloudSpecificConfigMap
     , CreateServerPageModel
     , DefaultLoginView(..)
+    , DnsZoneConfig
     , FlavorGroup
     , FlavorGroupTitle
     , FloatingIpAssignmentStatus(..)
     , FloatingIpOption(..)
     , FloatingIpReuseOption(..)
+    , Headers
     , Hostname
     , HttpRequestMethod(..)
     , IPv4AddressPublicRoutability(..)
@@ -20,6 +22,7 @@ module Types.HelperTypes exposing
     , OpenIdConnectLoginConfig
     , Passphrase
     , ProjectIdentifier
+    , SelectedFlavor(..)
     , SentryConfig
     , ServerActionName
     , ServerResourceQtys
@@ -28,6 +31,8 @@ module Types.HelperTypes exposing
     , UnscopedProviderProject
     , UnscopedProviderRegion
     , Url
+    , UrlParams
+    , UrlPath
     , UserAppProxyConfig
     , UserAppProxyHostname
     , Uuid
@@ -39,6 +44,7 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.Types as OSTypes
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput)
 import Types.Error exposing (HttpErrorWithBody)
+import Url.Builder
 
 
 
@@ -76,6 +82,18 @@ type alias Passphrase =
     String
 
 
+type alias Headers =
+    List ( String, String )
+
+
+type alias UrlPath =
+    List String
+
+
+type alias UrlParams =
+    List Url.Builder.QueryParameter
+
+
 type HttpRequestMethod
     = Get
     | Patch
@@ -111,8 +129,10 @@ type alias Localization =
     , nonFloatingIpAddress : String
     , floatingIpAddress : String
     , publiclyRoutableIpAddress : String
+    , securityGroup : String
     , graphicalDesktopEnvironment : String
     , hostname : String
+    , credential : String
     }
 
 
@@ -137,6 +157,12 @@ type alias UserAppProxyConfig =
     }
 
 
+type alias DnsZoneConfig =
+    { regionId : Maybe OSTypes.RegionId
+    , zone : String
+    }
+
+
 type alias MetadataFilter =
     { filterKey : String
     , filterValue : String
@@ -146,10 +172,12 @@ type alias MetadataFilter =
 type alias CloudSpecificConfig =
     { friendlyName : String
     , userAppProxy : Maybe (List UserAppProxyConfig)
+    , dnsZones : Maybe (List DnsZoneConfig)
     , imageExcludeFilter : Maybe MetadataFilter
     , featuredImageNamePrefix : Maybe String
     , instanceTypes : List InstanceType
     , flavorGroups : List FlavorGroup
+    , securityGroups : Maybe (Dict.Dict String OSTypes.SecurityGroupTemplate)
     , desktopMessage : Maybe String
     }
 
@@ -222,7 +250,7 @@ type alias UnscopedProviderRegion =
 
 type alias OpenIdConnectLoginConfig =
     { keystoneAuthUrl : String
-    , webssoKeystoneEndpoint : String
+    , webssoUrl : String
     , oidcLoginIcon : String
     , oidcLoginButtonLabel : String
     , oidcLoginButtonDescription : String
@@ -275,9 +303,15 @@ type FloatingIpAssignmentStatus
 type SupportableItemType
     = SupportableProject
     | SupportableImage
+    | SupportableSecurityGroup
     | SupportableServer
     | SupportableShare
     | SupportableVolume
+
+
+type SelectedFlavor
+    = DefaultFlavorSelection
+    | WithSelectedFlavor OSTypes.Flavor
 
 
 type alias CreateServerPageModel =
@@ -286,12 +320,13 @@ type alias CreateServerPageModel =
     , imageName : String
     , restrictFlavorIds : Maybe (List OSTypes.FlavorId)
     , count : Int
-    , flavorId : Maybe OSTypes.FlavorId
+    , selectedFlavor : SelectedFlavor
     , volSizeTextInput : Maybe NumericTextInput
     , userDataTemplate : String
     , networkUuid : Maybe OSTypes.NetworkUuid
     , showAdvancedOptions : Bool
     , keypairName : Maybe String
+    , securityGroupUuid : Maybe OSTypes.SecurityGroupUuid
     , deployGuacamole : Maybe Bool -- Nothing when cloud doesn't support Guacamole
     , deployDesktopEnvironment : Bool
     , installOperatingSystemUpdates : Bool
@@ -301,7 +336,6 @@ type alias CreateServerPageModel =
     , workflowInputReference : String
     , workflowInputPath : String
     , workflowInputIsValid : Maybe Bool
-    , createCluster : Bool
     , showFormInvalidToggleTip : Bool
     , createServerAttempted : Bool
     , randomServerName : String

@@ -1,10 +1,10 @@
 module OpenStack.Types exposing
     ( AccessRule
     , AccessRuleAccessKey
-    , AccessRuleAccessLevel
+    , AccessRuleAccessLevel(..)
     , AccessRuleAccessTo
-    , AccessRuleAccessType
-    , AccessRuleState
+    , AccessRuleAccessType(..)
+    , AccessRuleState(..)
     , AccessRuleUuid
     , ApplicationCredential
     , ApplicationCredentialSecret
@@ -13,7 +13,9 @@ module OpenStack.Types exposing
     , AuthTokenString
     , ComputeQuota
     , ConsoleUrl
+    , CreateAccessRuleRequest
     , CreateServerRequest
+    , CreateShareRequest
     , CreateVolumeRequest
     , CredentialsForAuthToken(..)
     , Endpoint
@@ -55,6 +57,10 @@ module OpenStack.Types exposing
     , RegionId
     , ScopedAuthToken
     , SecurityGroup
+    , SecurityGroupTag
+    , SecurityGroupTagUpdate(..)
+    , SecurityGroupTemplate
+    , SecurityGroupUpdate
     , SecurityGroupUuid
     , Server
     , ServerDetails
@@ -63,6 +69,8 @@ module OpenStack.Types exposing
     , ServerLockStatus(..)
     , ServerPassword
     , ServerPowerState(..)
+    , ServerSecurityGroup
+    , ServerSecurityGroupUpdate(..)
     , ServerStatus(..)
     , ServerTag
     , ServerUuid
@@ -71,10 +79,11 @@ module OpenStack.Types exposing
     , Share
     , ShareDescription
     , ShareName
-    , ShareProtocol
+    , ShareProtocol(..)
     , ShareQuota
     , ShareSize
     , ShareStatus(..)
+    , ShareType
     , ShareTypeName
     , ShareUuid
     , ShareVisibility
@@ -89,12 +98,18 @@ module OpenStack.Types exposing
     , VolumeQuota
     , VolumeSize
     , VolumeStatus(..)
+    , VolumeTag
     , VolumeUuid
-    , accessRuleAccessLevelToString
+    , accessRuleAccessLevelToApiString
+    , accessRuleAccessLevelToHumanString
     , accessRuleAccessTypeToString
     , accessRuleStateToString
     , boolToShareVisibility
+    , defaultShareTypeNameForProtocol
     , imageVisibilityToString
+    , isVolumeTransitioning
+    , securityGroupExoTags
+    , securityGroupTaggedAs
     , serverPowerStateToString
     , serverStatusToString
     , shareProtocolToString
@@ -105,6 +120,7 @@ module OpenStack.Types exposing
     , stringToAccessRuleState
     , stringToShareProtocol
     , stringToShareStatus
+    , volumeExoTags
     , volumeStatusToString
     )
 
@@ -112,7 +128,7 @@ import Dict
 import Helpers.RemoteDataPlusPlus as RDPP
 import Json.Encode
 import OpenStack.HelperTypes as HelperTypes
-import OpenStack.SecurityGroupRule exposing (SecurityGroupRule)
+import OpenStack.SecurityGroupRule as SecurityGroupRule exposing (SecurityGroupRule, SecurityGroupRuleTemplate)
 import Time
 import Types.Error exposing (HttpErrorWithBody)
 
@@ -361,6 +377,7 @@ type alias KeypairFingerprint =
 type alias Flavor =
     { id : FlavorId
     , name : String
+    , description : Maybe String
     , vcpu : Int
     , ram_mb : Int
     , disk_root : Int
@@ -516,16 +533,6 @@ type ServerLockStatus
     | ServerUnlocked
 
 
-
-{- Todo add to ServerDetail:
-   - Metadata
-   - Security Groups
-   - Etc
-
-   Also, make keypairName a key type, created a real date/time, etc
--}
-
-
 type alias ServerDetails =
     { openstackStatus : ServerStatus
     , created : Time.Posix
@@ -575,6 +582,7 @@ type alias CreateServerRequest =
     , volBackedSizeGb : Maybe VolumeSize
     , networkUuid : NetworkUuid
     , keypairName : Maybe String
+    , securityGroupUuid : Maybe SecurityGroupUuid
     , userData : String
     , metadata : List ( String, Json.Encode.Value )
     }
@@ -585,7 +593,7 @@ type alias ServerEvent =
     , errorMessage : Maybe String
     , requestId : String
     , startTime : Time.Posix
-    , userId : String
+    , userId : Maybe String
     }
 
 
@@ -599,6 +607,8 @@ type alias Volume =
     , status : VolumeStatus
     , size : VolumeSize
     , description : Maybe VolumeDescription
+
+    -- Expect Cinder to return an empty list of attachments for shelved servers.
     , attachments : List VolumeAttachment
     , imageMetadata : Maybe NameAndUuid
     , createdAt : Time.Posix
@@ -609,6 +619,18 @@ type alias Volume =
 type alias CreateVolumeRequest =
     { name : VolumeName
     , size : VolumeSize
+    }
+
+
+{-|
+
+    Tags for volumes providing Exosphere features.
+
+-}
+volumeExoTags : { serverMetadata : VolumeTag, deviceMetadata : VolumeTag }
+volumeExoTags =
+    { serverMetadata = "exoVolumes::"
+    , deviceMetadata = "exoVolume::"
     }
 
 
@@ -633,6 +655,23 @@ type VolumeStatus
     | Uploading
     | Retyping
     | Extending
+
+
+isVolumeTransitioning : Volume -> Bool
+isVolumeTransitioning { status } =
+    not <|
+        List.member
+            status
+            [ Available
+            , Maintenance
+            , InUse
+            , AwaitingTransfer
+            , Error
+            , ErrorDeleting
+            , ErrorBackingUp
+            , ErrorRestoring
+            , ErrorExtending
+            ]
 
 
 volumeStatusToString : VolumeStatus -> String
@@ -700,7 +739,8 @@ volumeStatusToString volumeStatus =
 
 
 type alias VolumeAttachment =
-    { serverUuid : ServerUuid
+    { volumeUuid : VolumeUuid
+    , serverUuid : ServerUuid
     , attachmentUuid : AttachmentUuid
     , device : VolumeAttachmentDevice
     }
@@ -722,12 +762,16 @@ type alias VolumeSize =
     Int
 
 
+type alias VolumeTag =
+    String
+
+
 type alias AttachmentUuid =
     HelperTypes.Uuid
 
 
 type alias VolumeAttachmentDevice =
-    String
+    Maybe String
 
 
 type alias VolumeQuota =
@@ -795,11 +839,73 @@ type alias SecurityGroup =
     , name : String
     , description : Maybe String
     , rules : List SecurityGroupRule
+    , createdAt : Time.Posix
+    , tags : List SecurityGroupTag
     }
 
 
+type alias SecurityGroupTemplate =
+    { name : String
+    , description : Maybe String
+    , regionId : Maybe RegionId
+    , rules : List SecurityGroupRuleTemplate
+    }
+
+
+type alias SecurityGroupUpdate =
+    { name : String
+    , description : Maybe String
+    , rules : List SecurityGroupRuleTemplate
+    }
+
+
+type SecurityGroupTagUpdate
+    = AddSecurityGroupTags (List SecurityGroupTag)
+    | RemoveSecurityGroupTag SecurityGroupTag
+
+
+{-|
+
+    Tags for security groups that provide special Exosphere functionality.
+
+-}
+securityGroupExoTags : { preset : SecurityGroupTag, creatorUsernamePrefix : SecurityGroupTag }
+securityGroupExoTags =
+    { preset = "exo:preset"
+    , creatorUsernamePrefix = "exo:creatorUsername::"
+    }
+
+
+securityGroupTaggedAs : SecurityGroupTag -> SecurityGroup -> Bool
+securityGroupTaggedAs tag sg =
+    sg.tags
+        |> List.member tag
+
+
+{-|
+
+    Getting instance security groups returns a list of security groups with tags & created at omitted, & different fields for rules.
+
+    ref. https://docs.openstack.org/api-ref/compute/#list-security-groups-by-server
+
+-}
+type alias ServerSecurityGroup =
+    { uuid : SecurityGroupUuid
+    , name : String
+    }
+
+
+type ServerSecurityGroupUpdate
+    = AddServerSecurityGroup ServerSecurityGroup
+    | RemoveServerSecurityGroup ServerSecurityGroup
+
+
 type alias SecurityGroupUuid =
-    HelperTypes.Uuid
+    SecurityGroupRule.SecurityGroupUuid
+
+
+type alias SecurityGroupTag =
+    String
 
 
 type alias NetworkQuota =
@@ -809,6 +915,12 @@ type alias NetworkQuota =
 
 
 -- Manila
+
+
+type alias ShareType =
+    { name : ShareTypeName
+    , uuid : HelperTypes.Uuid
+    }
 
 
 type alias Share =
@@ -1145,6 +1257,36 @@ shareProtocolToString shareProto =
             str
 
 
+defaultShareTypeNameForProtocol : ShareProtocol -> ShareTypeName
+defaultShareTypeNameForProtocol shareProto =
+    case shareProto of
+        CephFS ->
+            -- Note: Exosphere expects this convention.
+            --       https://docs.openstack.org/manila/latest/configuration/shared-file-systems/drivers/cephfs_driver.html#create-cephfs-native-share
+            "cephfsnativetype"
+
+        UnsupportedShareProtocol str ->
+            str
+
+
+type alias CreateShareRequest =
+    { name : ShareName
+    , description : ShareDescription
+    , size : ShareSize
+    , protocol : ShareProtocol
+    , shareType : ShareTypeName
+    , metadata : Dict.Dict String String
+    }
+
+
+type alias CreateAccessRuleRequest =
+    { shareUuid : ShareUuid
+    , accessLevel : AccessRuleAccessLevel
+    , accessType : AccessRuleAccessType
+    , accessTo : AccessRuleAccessTo
+    }
+
+
 stringToAccessRuleAccessLevel : String -> AccessRuleAccessLevel
 stringToAccessRuleAccessLevel str =
     case String.toLower str of
@@ -1158,14 +1300,27 @@ stringToAccessRuleAccessLevel str =
             UnsupportedAccessLevel str
 
 
-accessRuleAccessLevelToString : AccessRuleAccessLevel -> String
-accessRuleAccessLevelToString accessLevel =
+accessRuleAccessLevelToHumanString : AccessRuleAccessLevel -> String
+accessRuleAccessLevelToHumanString accessLevel =
     case accessLevel of
         RO ->
             "read-only"
 
         RW ->
             "read-write"
+
+        UnsupportedAccessLevel str ->
+            str
+
+
+accessRuleAccessLevelToApiString : AccessRuleAccessLevel -> String
+accessRuleAccessLevelToApiString accessLevel =
+    case accessLevel of
+        RO ->
+            "ro"
+
+        RW ->
+            "rw"
 
         UnsupportedAccessLevel str ->
             str

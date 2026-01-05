@@ -4,23 +4,30 @@ module Rest.Nova exposing
     , receiveKeypairs
     , receiveServer
     , receiveServers
+    , requestConsoleUrls
     , requestCreateKeypair
     , requestCreateServer
     , requestCreateServerImage
     , requestDeleteKeypair
     , requestDeleteServer
+    , requestDeleteServerMetadata
     , requestFlavors
     , requestKeypairs
     , requestServer
     , requestServerEvents
     , requestServerResize
+    , requestServerSecurityGroups
     , requestServers
+    , requestSetServerHostName
     , requestSetServerMetadata
     , requestSetServerName
+    , requestShelveServer
+    , requestUpdateServerSecurityGroup
     )
 
 import Array
 import Base64
+import Dict
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.Json exposing (resultToDecoder)
@@ -43,10 +50,12 @@ import Rest.Naming
 import Types.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes exposing (HttpRequestMethod(..), ProjectIdentifier, Url)
+import Types.Interactivity as Interactivity exposing (InteractionLevel(..))
 import Types.Project exposing (Project)
 import Types.Server exposing (ExoServerProps, ExoSetupStatus(..), Server, ServerOrigin(..))
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
+import View.Types exposing (Context)
 
 
 
@@ -72,7 +81,7 @@ requestServers project =
         Get
         (Just "compute 2.27")
         []
-        (project.endpoints.nova ++ "/servers/detail")
+        ( project.endpoints.nova, [ "servers", "detail" ], [] )
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg
@@ -80,8 +89,8 @@ requestServers project =
         )
 
 
-requestServer : Project -> OSTypes.ServerUuid -> Cmd SharedMsg
-requestServer project serverUuid =
+requestServer : Project -> InteractionLevel -> OSTypes.ServerUuid -> Cmd SharedMsg
+requestServer project interactionLevel serverUuid =
     let
         errorContext =
             ErrorContext
@@ -92,22 +101,19 @@ requestServer project serverUuid =
         resultToMsg result =
             ProjectMsg
                 (GetterSetters.projectIdentifier project)
-                (ReceiveServer serverUuid errorContext result)
-
-        requestServerCmd =
-            openstackCredentialedRequest
-                (GetterSetters.projectIdentifier project)
-                Get
-                (Just "compute 2.27")
-                []
-                (project.endpoints.nova ++ "/servers/" ++ serverUuid)
-                Http.emptyBody
-                (expectJsonWithErrorBody
-                    resultToMsg
-                    (Decode.at [ "server" ] serverDecoder)
-                )
+                (ReceiveServer interactionLevel serverUuid errorContext result)
     in
-    requestServerCmd
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Get
+        (Just "compute 2.27")
+        []
+        ( project.endpoints.nova, [ "servers", serverUuid ], [] )
+        Http.emptyBody
+        (expectJsonWithErrorBody
+            resultToMsg
+            (Decode.at [ "server" ] serverDecoder)
+        )
 
 
 requestServerEvents : Project -> OSTypes.ServerUuid -> Cmd SharedMsg
@@ -116,20 +122,19 @@ requestServerEvents project serverUuid =
         errorContext =
             ErrorContext
                 ("get events for server with UUID \"" ++ serverUuid ++ "\"")
-                ErrorCrit
+                ErrorDebug
                 Nothing
 
         resultToMsg result =
             ProjectMsg (GetterSetters.projectIdentifier project) <|
-                ServerMsg serverUuid <|
-                    ReceiveServerEvents errorContext result
+                ReceiveServerEvents serverUuid errorContext result
     in
     openstackCredentialedRequest
         (GetterSetters.projectIdentifier project)
         Get
         (Just "compute 2.27")
         []
-        (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/os-instance-actions")
+        ( project.endpoints.nova, [ "servers", serverUuid, "os-instance-actions" ], [] )
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg
@@ -137,27 +142,52 @@ requestServerEvents project serverUuid =
         )
 
 
+requestServerSecurityGroups : Project -> OSTypes.ServerUuid -> Cmd SharedMsg
+requestServerSecurityGroups project serverUuid =
+    let
+        errorContext =
+            ErrorContext
+                ("get security groups for server with UUID \"" ++ serverUuid ++ "\"")
+                ErrorDebug
+                Nothing
+
+        resultToMsg result =
+            ProjectMsg (GetterSetters.projectIdentifier project) <|
+                ReceiveServerSecurityGroups serverUuid errorContext result
+    in
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Get
+        (Just "compute 2.27")
+        []
+        ( project.endpoints.nova, [ "servers", serverUuid, "os-security-groups" ], [] )
+        Http.emptyBody
+        (expectJsonWithErrorBody
+            resultToMsg
+            (Decode.at [ "security_groups" ] <| Decode.list serverSecurityGroupDecoder)
+        )
+
+
 requestConsoleUrls : Project -> OSTypes.ServerUuid -> Cmd SharedMsg
 requestConsoleUrls project serverUuid =
-    -- This is a deprecated call, will eventually need to be updated
-    -- See https://gitlab.com/exosphere/exosphere/issues/183
     let
-        reqParams =
-            [ { objectName = "os-getVNCConsole"
+        consoles =
+            [ { consoleProtocol = "vnc"
               , consoleType = "novnc"
               }
-            , { objectName = "os-getSPICEConsole"
+            , { consoleProtocol = "spice"
               , consoleType = "spice-html5"
               }
             ]
 
         buildReq params =
             let
-                reqBody =
+                body =
                     Encode.object
-                        [ ( params.objectName
+                        [ ( "remote_console"
                           , Encode.object
-                                [ ( "type", Encode.string params.consoleType )
+                                [ ( "protocol", Encode.string params.consoleProtocol )
+                                , ( "type", Encode.string params.consoleType )
                                 ]
                           )
                         ]
@@ -165,10 +195,10 @@ requestConsoleUrls project serverUuid =
             openstackCredentialedRequest
                 (GetterSetters.projectIdentifier project)
                 Post
-                Nothing
+                (Just "compute 2.6")
                 []
-                (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/action")
-                (Http.jsonBody reqBody)
+                ( project.endpoints.nova, [ "servers", serverUuid, "remote-consoles" ], [] )
+                (Http.jsonBody body)
                 (expectJsonWithErrorBody
                     (\result ->
                         ProjectMsg (GetterSetters.projectIdentifier project) <|
@@ -178,7 +208,7 @@ requestConsoleUrls project serverUuid =
                     consoleUrlDecoder
                 )
     in
-    List.map buildReq reqParams
+    List.map buildReq consoles
         |> Cmd.batch
 
 
@@ -201,7 +231,7 @@ requestFlavors project =
         Get
         (Just "compute 2.61")
         []
-        (project.endpoints.nova ++ "/flavors/detail")
+        ( project.endpoints.nova, [ "flavors", "detail" ], [] )
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg_
@@ -228,7 +258,7 @@ requestKeypairs project =
         Get
         Nothing
         []
-        (project.endpoints.nova ++ "/os-keypairs")
+        ( project.endpoints.nova, [ "os-keypairs" ], [] )
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg
@@ -265,7 +295,7 @@ requestCreateKeypair project keypairName publicKey =
         Post
         Nothing
         []
-        (project.endpoints.nova ++ "/os-keypairs")
+        ( project.endpoints.nova, [ "os-keypairs" ], [] )
         (Http.jsonBody body)
         (expectJsonWithErrorBody
             resultToMsg
@@ -287,15 +317,15 @@ requestDeleteKeypair project keypairId =
         Delete
         Nothing
         []
-        (project.endpoints.nova ++ "/os-keypairs/" ++ Tuple.first keypairId)
+        ( project.endpoints.nova, [ "os-keypairs", Tuple.first keypairId ], [] )
         Http.emptyBody
         (Http.expectWhatever
             (\result -> ProjectMsg (GetterSetters.projectIdentifier project) <| ReceiveDeleteKeypair errorContext (Tuple.first keypairId) result)
         )
 
 
-requestCreateServer : Project -> OSTypes.CreateServerRequest -> Cmd SharedMsg
-requestCreateServer project createServerRequest =
+requestCreateServer : Context -> Project -> OSTypes.CreateServerRequest -> Cmd SharedMsg
+requestCreateServer context project createServerRequest =
     let
         instanceNumbers =
             List.range 1 createServerRequest.count
@@ -314,6 +344,25 @@ requestCreateServer project createServerRequest =
 
                         Just keypairName ->
                             [ ( "key_name", Encode.string keypairName ) ]
+
+                defaultSecurityGroup =
+                    GetterSetters.projectDefaultSecurityGroup context project
+
+                defaultSecurityGroupName =
+                    defaultSecurityGroup.name
+
+                securityGroupName =
+                    case createServerRequest.securityGroupUuid of
+                        Nothing ->
+                            defaultSecurityGroupName
+
+                        Just uuid ->
+                            case GetterSetters.securityGroupLookup project uuid of
+                                Nothing ->
+                                    defaultSecurityGroupName
+
+                                Just sg ->
+                                    sg.name
             in
             List.append
                 maybeKeypairJson
@@ -321,7 +370,7 @@ requestCreateServer project createServerRequest =
                 , ( "flavorRef", Encode.string innerCreateServerRequest.flavorId )
                 , ( "networks", Encode.list Encode.object [ [ ( "uuid", Encode.string innerCreateServerRequest.networkUuid ) ] ] )
                 , ( "user_data", Encode.string (Base64.encode createServerRequest.userData) )
-                , ( "security_groups", Encode.array Encode.object (Array.fromList [ [ ( "name", Encode.string "exosphere" ) ] ]) )
+                , ( "security_groups", Encode.array Encode.object (Array.fromList [ [ ( "name", Encode.string securityGroupName ) ] ]) )
                 , ( "metadata", Encode.object createServerRequest.metadata )
                 ]
 
@@ -387,7 +436,7 @@ requestCreateServer project createServerRequest =
                         Post
                         Nothing
                         []
-                        (project.endpoints.nova ++ "/servers")
+                        ( project.endpoints.nova, [ "servers" ], [] )
                         (Http.jsonBody requestBody)
                         (expectJsonWithErrorBody
                             resultToMsg
@@ -420,26 +469,40 @@ requestDeleteServer projectId novaUrl serverId =
         Delete
         Nothing
         []
-        (novaUrl ++ "/servers/" ++ serverId)
+        ( novaUrl, [ "servers", serverId ], [] )
         Http.emptyBody
         (expectStringWithErrorBody resultToMsg_)
 
 
-requestConsoleUrlIfRequestable : Project -> Server -> Cmd SharedMsg
-requestConsoleUrlIfRequestable project server =
-    case server.osProps.consoleUrl.data of
-        RDPP.DoHave _ _ ->
-            Cmd.none
+requestShelveServer : ProjectIdentifier -> Url -> OSTypes.ServerUuid -> Cmd SharedMsg
+requestShelveServer projectId novaUrl serverId =
+    let
+        body =
+            Encode.object [ ( "shelve", Encode.null ) ]
 
-        _ ->
-            if
-                List.member server.osProps.details.openstackStatus
-                    [ OSTypes.ServerActive, OSTypes.ServerPassword, OSTypes.ServerRescue, OSTypes.ServerVerifyResize ]
-            then
-                requestConsoleUrls project server.osProps.uuid
+        errorContext =
+            ErrorContext
+                ("shelve server with UUID " ++ serverId)
+                ErrorCrit
+                Nothing
 
-            else
-                Cmd.none
+        resultToMsg_ =
+            resultToMsgErrorBody
+                errorContext
+                (\_ ->
+                    ProjectMsg projectId <|
+                        ServerMsg serverId <|
+                            ReceiveServerAction
+                )
+    in
+    openstackCredentialedRequest
+        projectId
+        Post
+        Nothing
+        []
+        ( novaUrl, [ "servers", serverId, "action" ], [] )
+        (Http.jsonBody body)
+        (expectStringWithErrorBody resultToMsg_)
 
 
 requestPassphraseIfRequestable : Project -> Server -> Cmd SharedMsg
@@ -496,7 +559,7 @@ requestCreateServerImage project serverUuid imageName =
         Post
         Nothing
         []
-        (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/action")
+        ( project.endpoints.nova, [ "servers", serverUuid, "action" ], [] )
         (Http.jsonBody body)
         (expectStringWithErrorBody
             (resultToMsgErrorBody errorContext (\_ -> NoOp))
@@ -526,7 +589,7 @@ requestServerResize project serverUuid flavorId =
         Post
         Nothing
         []
-        (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/action")
+        ( project.endpoints.nova, [ "servers", serverUuid, "action" ], [] )
         (Http.jsonBody body)
         (expectStringWithErrorBody
             (resultToMsgErrorBody errorContext
@@ -534,6 +597,46 @@ requestServerResize project serverUuid flavorId =
                     ProjectMsg (GetterSetters.projectIdentifier project) <| ServerMsg serverUuid <| ReceiveServerAction
                 )
             )
+        )
+
+
+requestUpdateServerSecurityGroup : Project -> OSTypes.ServerUuid -> OSTypes.ServerSecurityGroupUpdate -> Cmd SharedMsg
+requestUpdateServerSecurityGroup project serverUuid update =
+    let
+        ( word, group, msg ) =
+            case update of
+                OSTypes.AddServerSecurityGroup group_ ->
+                    ( "add", group_, ReceiveServerAddSecurityGroup )
+
+                OSTypes.RemoveServerSecurityGroup group_ ->
+                    ( "remove", group_, ReceiveServerRemoveSecurityGroup )
+
+        body =
+            Encode.object
+                [ ( word ++ "SecurityGroup"
+                  , Encode.object
+                        [ ( "name"
+                          , Encode.string group.name
+                          )
+                        ]
+                  )
+                ]
+
+        errorContext =
+            ErrorContext
+                (word ++ " security group " ++ group.name ++ " for server with UUID " ++ serverUuid)
+                ErrorWarn
+                Nothing
+    in
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Post
+        Nothing
+        []
+        ( project.endpoints.nova, [ "servers", serverUuid, "action" ], [] )
+        (Http.jsonBody body)
+        (expectStringWithErrorBody
+            (\result -> ProjectMsg (GetterSetters.projectIdentifier project) <| msg serverUuid errorContext group result)
         )
 
 
@@ -560,18 +663,48 @@ requestSetServerName project serverUuid newServerName =
         resultToMsg result =
             ProjectMsg (GetterSetters.projectIdentifier project) <|
                 ServerMsg serverUuid <|
-                    ReceiveSetServerName newServerName errorContext result
+                    ReceiveSetServerName errorContext result
     in
     openstackCredentialedRequest
         (GetterSetters.projectIdentifier project)
         Put
         Nothing
         []
-        (project.endpoints.nova ++ "/servers/" ++ serverUuid)
+        ( project.endpoints.nova, [ "servers", serverUuid ], [] )
         (Http.jsonBody body)
         (expectJsonWithErrorBody
             resultToMsg
             (Decode.at [ "server", "name" ] Decode.string)
+        )
+
+
+requestSetServerHostName : Project -> OSTypes.ServerUuid -> String -> Cmd SharedMsg
+requestSetServerHostName project serverUuid newServerHostName =
+    let
+        body =
+            Encode.object
+                [ ( "server"
+                  , Encode.object
+                        [ ( "hostname"
+                          , Encode.string newServerHostName
+                          )
+                        ]
+                  )
+                ]
+
+        resultToMsg _ =
+            NoOp
+    in
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Put
+        (Just "compute 2.90")
+        []
+        ( project.endpoints.nova, [ "servers", serverUuid ], [] )
+        (Http.jsonBody body)
+        (expectJsonWithErrorBody
+            resultToMsg
+            (Decode.at [ "server", "OS-EXT-SRV-ATTR:hostname" ] Decode.string)
         )
 
 
@@ -609,7 +742,7 @@ requestSetServerMetadata project serverUuid metadataItem =
         Post
         Nothing
         []
-        (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/metadata")
+        ( project.endpoints.nova, [ "servers", serverUuid, "metadata" ], [] )
         (Http.jsonBody body)
         (expectJsonWithErrorBody
             resultToMsg
@@ -642,7 +775,7 @@ requestDeleteServerMetadata project serverUuid metadataKey =
         Delete
         Nothing
         []
-        (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/metadata/" ++ metadataKey)
+        ( project.endpoints.nova, [ "servers", serverUuid, "metadata", metadataKey ], [] )
         Http.emptyBody
         (expectStringWithErrorBody resultToMsg)
 
@@ -656,7 +789,7 @@ receiveServers model project osServers =
     let
         ( newExoServers, cmds ) =
             osServers
-                |> List.map (receiveServer_ project)
+                |> List.map (receiveServer_ project NoInteraction)
                 |> List.unzip
 
         newExoServersClearSomeExoProps =
@@ -692,10 +825,26 @@ receiveServers model project osServers =
                         (RDPP.NotLoading Nothing)
             }
 
+        knownUserNames =
+            newExoServers
+                |> List.filterMap
+                    (\s ->
+                        case s.exoProps.serverOrigin of
+                            ServerFromExo exoProps ->
+                                Maybe.map (Tuple.pair s.osProps.details.userUuid) exoProps.exoCreatorUsername
+
+                            _ ->
+                                Nothing
+                    )
+                |> Dict.fromList
+
         newProject =
             List.foldl
                 (\s p -> GetterSetters.projectUpdateServer p s)
-                projectNoDeletedSvrs
+                { projectNoDeletedSvrs
+                    | knownUsernames =
+                        Dict.union knownUserNames projectNoDeletedSvrs.knownUsernames
+                }
                 newExoServersClearSomeExoProps
     in
     ( GetterSetters.modelUpdateProject model newProject
@@ -703,11 +852,11 @@ receiveServers model project osServers =
     )
 
 
-receiveServer : SharedModel -> Project -> OSTypes.Server -> ( SharedModel, Cmd SharedMsg )
-receiveServer model project osServer =
+receiveServer : SharedModel -> Project -> InteractionLevel -> OSTypes.Server -> ( Project, Cmd SharedMsg )
+receiveServer model project interactionLevel osServer =
     let
         ( newServer, cmd ) =
-            receiveServer_ project osServer
+            receiveServer_ project interactionLevel osServer
 
         newServerUpdatedSomeExoProps =
             let
@@ -723,113 +872,17 @@ receiveServer model project osServer =
             { newServer | exoProps = newExoProps }
 
         newProject =
-            case project.servers.data of
-                RDPP.DoHave _ _ ->
-                    GetterSetters.projectUpdateServer project newServerUpdatedSomeExoProps
-
-                RDPP.DontHave ->
-                    let
-                        newServersRDPP =
-                            RDPP.RemoteDataPlusPlus
-                                (RDPP.DoHave [ newServerUpdatedSomeExoProps ] model.clientCurrentTime)
-                                (RDPP.NotLoading Nothing)
-                    in
-                    { project | servers = newServersRDPP }
+            GetterSetters.projectUpdateServer project newServerUpdatedSomeExoProps
     in
-    ( GetterSetters.modelUpdateProject model newProject
-    , cmd
-    )
+    ( newProject, cmd )
 
 
-receiveServer_ : Project -> OSTypes.Server -> ( Server, Cmd SharedMsg )
-receiveServer_ project osServer =
+receiveServer_ : Project -> InteractionLevel -> OSTypes.Server -> ( Server, Cmd SharedMsg )
+receiveServer_ project interactionLevel osServer =
     let
         newServer : Server
         newServer =
-            case GetterSetters.serverLookup project osServer.uuid of
-                Nothing ->
-                    let
-                        defaultExoProps =
-                            ExoServerProps
-                                (Helpers.decodeFloatingIpOption osServer.details)
-                                False
-                                Nothing
-                                (Helpers.serverOrigin osServer.details)
-                                Nothing
-                                False
-                    in
-                    Server osServer defaultExoProps RDPP.empty
-
-                Just exoServer ->
-                    let
-                        floatingIpCreationOption =
-                            Helpers.getNewFloatingIpOption
-                                project
-                                osServer
-                                exoServer.exoProps.floatingIpCreationOption
-
-                        oldOSProps =
-                            exoServer.osProps
-
-                        oldExoProps =
-                            exoServer.exoProps
-
-                        newTargetOpenstackStatus =
-                            case oldExoProps.targetOpenstackStatus of
-                                Nothing ->
-                                    Nothing
-
-                                Just statuses ->
-                                    if List.member osServer.details.openstackStatus statuses then
-                                        Nothing
-
-                                    else
-                                        Just statuses
-
-                        -- If server is not active, then forget Guacamole token
-                        newServerOrigin =
-                            let
-                                guacPropsForgetToken : GuacTypes.LaunchedWithGuacProps -> GuacTypes.LaunchedWithGuacProps
-                                guacPropsForgetToken oldGuacProps =
-                                    { oldGuacProps | authToken = RDPP.empty }
-                            in
-                            case oldExoProps.serverOrigin of
-                                ServerNotFromExo ->
-                                    ServerNotFromExo
-
-                                ServerFromExo exoOriginProps ->
-                                    case exoOriginProps.guacamoleStatus of
-                                        GuacTypes.NotLaunchedWithGuacamole ->
-                                            oldExoProps.serverOrigin
-
-                                        GuacTypes.LaunchedWithGuacamole guacProps ->
-                                            case osServer.details.openstackStatus of
-                                                OSTypes.ServerActive ->
-                                                    oldExoProps.serverOrigin
-
-                                                _ ->
-                                                    let
-                                                        newOriginProps =
-                                                            { exoOriginProps
-                                                                | guacamoleStatus =
-                                                                    GuacTypes.LaunchedWithGuacamole
-                                                                        (guacPropsForgetToken guacProps)
-                                                            }
-                                                    in
-                                                    ServerFromExo newOriginProps
-                    in
-                    { exoServer
-                        | osProps = { oldOSProps | details = osServer.details }
-                        , exoProps =
-                            { oldExoProps
-                                | floatingIpCreationOption = floatingIpCreationOption
-                                , targetOpenstackStatus = newTargetOpenstackStatus
-                                , serverOrigin = newServerOrigin
-                            }
-                    }
-
-        consoleUrlCmd =
-            requestConsoleUrlIfRequestable project newServer
+            initOrUpdateServer project interactionLevel osServer
 
         passphraseCmd =
             requestPassphraseIfRequestable project newServer
@@ -838,12 +891,12 @@ receiveServer_ project osServer =
             -- The exoCreateFloatingIp metadata property is only used temporarily so that Exosphere knows the user's
             -- choice of whether to create a floating IP address with a new server. Once it is stored in the model,
             -- we can delete the metadata property.
-            let
-                metadataKey =
-                    "exoCreateFloatingIp"
-            in
             case newServer.exoProps.serverOrigin of
                 ServerFromExo _ ->
+                    let
+                        metadataKey =
+                            "exoCreateFloatingIp"
+                    in
                     if
                         List.member metadataKey (List.map .key newServer.osProps.details.metadata)
                             && newServer.osProps.details.openstackStatus
@@ -858,10 +911,105 @@ receiveServer_ project osServer =
                     Cmd.none
 
         allCmds =
-            [ consoleUrlCmd, passphraseCmd, deleteFloatingIpMetadataOptionCmd ]
+            [ passphraseCmd, deleteFloatingIpMetadataOptionCmd ]
                 |> Cmd.batch
     in
     ( newServer, allCmds )
+
+
+initOrUpdateServer : Project -> InteractionLevel -> OSTypes.Server -> Server
+initOrUpdateServer project interactionLevel osServer =
+    let
+        defaultInteractionLevel =
+            Interactivity.maximum interactionLevel <|
+                if osServer.details.userUuid == project.auth.user.uuid then
+                    LowInteraction
+
+                else
+                    NoInteraction
+    in
+    case GetterSetters.serverLookup project osServer.uuid of
+        Nothing ->
+            let
+                defaultExoProps =
+                    ExoServerProps
+                        (Helpers.decodeFloatingIpOption osServer.details)
+                        False
+                        Nothing
+                        (Helpers.serverOrigin osServer.details)
+                        Nothing
+                        False
+            in
+            Server osServer defaultExoProps defaultInteractionLevel
+
+        Just exoServer ->
+            let
+                floatingIpCreationOption =
+                    Helpers.getNewFloatingIpOption
+                        project
+                        osServer
+                        exoServer.exoProps.floatingIpCreationOption
+
+                oldOSProps =
+                    exoServer.osProps
+
+                oldExoProps =
+                    exoServer.exoProps
+
+                newTargetOpenstackStatus =
+                    case oldExoProps.targetOpenstackStatus of
+                        Nothing ->
+                            Nothing
+
+                        Just statuses ->
+                            if List.member osServer.details.openstackStatus statuses then
+                                Nothing
+
+                            else
+                                Just statuses
+
+                -- If server is not active, then forget Guacamole token
+                newServerOrigin =
+                    let
+                        guacPropsForgetToken : GuacTypes.LaunchedWithGuacProps -> GuacTypes.LaunchedWithGuacProps
+                        guacPropsForgetToken oldGuacProps =
+                            { oldGuacProps | authToken = RDPP.empty }
+                    in
+                    case oldExoProps.serverOrigin of
+                        ServerNotFromExo ->
+                            ServerNotFromExo
+
+                        ServerFromExo exoOriginProps ->
+                            case exoOriginProps.guacamoleStatus of
+                                GuacTypes.NotLaunchedWithGuacamole ->
+                                    oldExoProps.serverOrigin
+
+                                GuacTypes.LaunchedWithGuacamole guacProps ->
+                                    case osServer.details.openstackStatus of
+                                        OSTypes.ServerActive ->
+                                            oldExoProps.serverOrigin
+
+                                        _ ->
+                                            let
+                                                newOriginProps =
+                                                    { exoOriginProps
+                                                        | guacamoleStatus =
+                                                            GuacTypes.LaunchedWithGuacamole
+                                                                (guacPropsForgetToken guacProps)
+                                                    }
+                                            in
+                                            ServerFromExo newOriginProps
+            in
+            { exoServer
+                | osProps = { oldOSProps | details = osServer.details }
+                , exoProps =
+                    { oldExoProps
+                        | floatingIpCreationOption = floatingIpCreationOption
+                        , targetOpenstackStatus = newTargetOpenstackStatus
+                        , serverOrigin = newServerOrigin
+                    }
+                , interaction = Interactivity.maximum defaultInteractionLevel exoServer.interaction
+            }
 
 
 receiveConsoleUrl : SharedModel -> Project -> Server -> Result HttpErrorWithBody OSTypes.ConsoleUrl -> ( SharedModel, Cmd SharedMsg )
@@ -903,7 +1051,12 @@ receiveFlavors : SharedModel -> Project -> List OSTypes.Flavor -> ( SharedModel,
 receiveFlavors model project flavors =
     let
         newProject =
-            { project | flavors = flavors }
+            { project
+                | flavors =
+                    RDPP.RemoteDataPlusPlus
+                        (RDPP.DoHave flavors model.clientCurrentTime)
+                        (RDPP.NotLoading Nothing)
+            }
 
         newModel =
             GetterSetters.modelUpdateProject model newProject
@@ -1093,6 +1246,13 @@ serverFaultDecoder =
         (Decode.field "message" Decode.string)
 
 
+serverSecurityGroupDecoder : Decode.Decoder OSTypes.ServerSecurityGroup
+serverSecurityGroupDecoder =
+    Decode.map2 OSTypes.ServerSecurityGroup
+        (Decode.field "id" Decode.string)
+        (Decode.field "name" Decode.string)
+
+
 serverEventDecoder : Decode.Decoder OSTypes.ServerEvent
 serverEventDecoder =
     Decode.map5 OSTypes.ServerEvent
@@ -1103,12 +1263,12 @@ serverEventDecoder =
             |> Decode.andThen
                 makeIso8601StringToPosixDecoder
         )
-        (Decode.field "user_id" Decode.string)
+        (Decode.field "user_id" (Decode.nullable Decode.string))
 
 
 consoleUrlDecoder : Decode.Decoder OSTypes.ConsoleUrl
 consoleUrlDecoder =
-    Decode.at [ "console", "url" ] Decode.string
+    Decode.at [ "remote_console", "url" ] Decode.string
 
 
 flavorsDecoder : Decode.Decoder (List OSTypes.Flavor)
@@ -1118,9 +1278,10 @@ flavorsDecoder =
 
 flavorDecoder : Decode.Decoder OSTypes.Flavor
 flavorDecoder =
-    Decode.map7 OSTypes.Flavor
+    Decode.map8 OSTypes.Flavor
         (Decode.field "id" Decode.string)
         (Decode.field "name" Decode.string)
+        (Decode.field "description" (Decode.maybe Decode.string))
         (Decode.field "vcpus" Decode.int)
         (Decode.field "ram" Decode.int)
         (Decode.field "disk" Decode.int)

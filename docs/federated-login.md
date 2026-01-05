@@ -128,14 +128,14 @@ Finally, Exosphere needs to know where to send users to complete the login proce
 ```
 openIdConnectLoginConfig:
 { keystoneAuthUrl: "https://your.openstack.cloud:5000/v3",
-  webssoKeystoneEndpoint: "/auth/OS-FEDERATION/websso/openid?origin=https://your.exosphere.domain/oidc-redirector",
+  webssoUrl: "https://your.openstack.cloud:5000/v3/auth/OS-FEDERATION/websso/openid?origin=https://your.exosphere.domain/oidc-redirector",
   oidcLoginIcon: "path/to/your/desired/icon.png",
   oidcLoginButtonLabel : "Log in with your Medfield College NetID",
   oidcLoginButtonDescription : "Optional description to display below login button; this string can be left empty"
 }
 ```
 
-The `webssoKeystoneEndpoint` points to [this](https://docs.openstack.org/api-ref/identity/v3-ext/?expanded=#web-single-sign-on-authentication-new-in-version-1-2) Keystone endpoint. You likely won't need to change the path, but you do need to configure the `origin` query parameter. This origin must be the URL of the OIDC Redirector app for your Exosphere deployment, the same URL that you added as a `trusted_dashboard` in Keystone.
+The `webssoUrl` points to [this](https://docs.openstack.org/api-ref/identity/v3-ext/?expanded=#web-single-sign-on-authentication-new-in-version-1-2) Keystone endpoint. You likely need to change the domain, the `origin` query parameter, and [possibly remove the port subcomponent](https://gitlab.com/exosphere/exosphere/-/issues/994). The `origin` parameter must be the URL of the OIDC Redirector app for your Exosphere deployment, the same URL that you added as a `trusted_dashboard` in Keystone.
 
 ---
 

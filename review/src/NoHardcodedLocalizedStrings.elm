@@ -37,8 +37,10 @@ exosphereLocalizedStrings =
     , ( "nonFloatingIpAddress", "internal IP address" )
     , ( "floatingIpAddress", "floating IP address" )
     , ( "publiclyRoutableIpAddress", "public IP address" )
+    , ( "securityGroup", "firewall ruleset" )
     , ( "graphicalDesktopEnvironment", "graphical desktop" )
     , ( "hostname", "hostname" )
+    , ( "credential", "credential" )
 
     --- Disabled, because `size` is too general a term
     -- , ( "virtualComputerHardwareConfig", "size" )
@@ -127,7 +129,7 @@ searchStringForToken range varName localStr word =
         filters =
             List.concat
                 [ if isPluralized then
-                    [ "Helpers.String.pluralized" ]
+                    [ "Helpers.String.pluralize" ]
 
                   else
                     []

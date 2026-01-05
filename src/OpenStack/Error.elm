@@ -1,8 +1,19 @@
-module OpenStack.Error exposing (synchronousErrorJsonDecoder)
+module OpenStack.Error exposing (ErrorDomain(..), fieldForErrorDomain, synchronousErrorJsonDecoder)
 
 import Dict
 import Json.Decode as Decode
 import OpenStack.Types as OSTypes
+
+
+type ErrorDomain
+    = NeutronError
+
+
+fieldForErrorDomain : ErrorDomain -> String
+fieldForErrorDomain errorDomain =
+    case errorDomain of
+        NeutronError ->
+            "NeutronError"
 
 
 synchronousErrorJsonDecoder : Decode.Decoder OSTypes.SynchronousAPIError

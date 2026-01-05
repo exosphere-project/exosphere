@@ -105,6 +105,12 @@ breadcrumb_ outerModel context =
                                 ProjectOverview _ ->
                                     []
 
+                                Credentials _ ->
+                                    [ { route = Nothing
+                                      , label = context.localization.credential |> Helpers.String.pluralize |> Helpers.String.toTitleCase
+                                      }
+                                    ]
+
                                 FloatingIpAssign _ ->
                                     [ { route = Nothing
                                       , label =
@@ -180,6 +186,36 @@ breadcrumb_ outerModel context =
                                       }
                                     ]
 
+                                SecurityGroupDetail pageModel ->
+                                    [ { route = Just <| Route.ProjectRoute projectId <| Route.SecurityGroupList
+                                      , label =
+                                            String.join " "
+                                                [ context.localization.securityGroup
+                                                    |> Helpers.String.pluralize
+                                                    |> Helpers.String.toTitleCase
+                                                ]
+                                      }
+                                    , { route = Nothing
+                                      , label =
+                                            String.join " "
+                                                [ context.localization.securityGroup
+                                                    |> Helpers.String.toTitleCase
+                                                , View.PageTitle.securityGroupName (GetterSetters.projectLookup outerModel.sharedModel projectId) pageModel.securityGroupUuid
+                                                ]
+                                      }
+                                    ]
+
+                                SecurityGroupList _ ->
+                                    [ { route = Nothing
+                                      , label =
+                                            String.join " "
+                                                [ context.localization.securityGroup
+                                                    |> Helpers.String.pluralize
+                                                    |> Helpers.String.toTitleCase
+                                                ]
+                                      }
+                                    ]
+
                                 ServerCreate _ ->
                                     [ { route = Nothing
                                       , label =
@@ -244,6 +280,42 @@ breadcrumb_ outerModel context =
                                       }
                                     ]
 
+                                ServerSecurityGroups pageModel ->
+                                    [ { route = Just <| Route.ProjectRoute projectId <| Route.ServerList
+                                      , label =
+                                            String.join " "
+                                                [ context.localization.virtualComputer
+                                                    |> Helpers.String.pluralize
+                                                    |> Helpers.String.toTitleCase
+                                                ]
+                                      }
+                                    , { route = Just <| Route.ProjectRoute projectId <| Route.ServerDetail pageModel.serverUuid
+                                      , label =
+                                            String.join " "
+                                                [ context.localization.virtualComputer
+                                                    |> Helpers.String.toTitleCase
+                                                , View.PageTitle.serverName (GetterSetters.projectLookup outerModel.sharedModel projectId) pageModel.serverUuid
+                                                ]
+                                      }
+                                    , { route = Nothing
+                                      , label =
+                                            context.localization.securityGroup
+                                                |> Helpers.String.pluralize
+                                                |> Helpers.String.toTitleCase
+                                      }
+                                    ]
+
+                                ShareCreate _ ->
+                                    [ { route = Nothing
+                                      , label =
+                                            String.join " "
+                                                [ "Create"
+                                                , context.localization.share
+                                                    |> Helpers.String.toTitleCase
+                                                ]
+                                      }
+                                    ]
+
                                 ShareDetail pageModel ->
                                     [ { route = Just <| Route.ProjectRoute projectId <| Route.ShareList
                                       , label =
@@ -275,7 +347,15 @@ breadcrumb_ outerModel context =
                                     ]
 
                                 VolumeAttach _ ->
-                                    [ { route = Nothing
+                                    [ { route = Just <| Route.ProjectRoute projectId <| Route.VolumeList
+                                      , label =
+                                            String.join " "
+                                                [ context.localization.blockDevice
+                                                    |> Helpers.String.pluralize
+                                                    |> Helpers.String.toTitleCase
+                                                ]
+                                      }
+                                    , { route = Nothing
                                       , label =
                                             String.join " "
                                                 [ "Attach"
@@ -327,7 +407,15 @@ breadcrumb_ outerModel context =
                                     ]
 
                                 VolumeMountInstructions _ ->
-                                    [ { route = Nothing
+                                    [ { route = Just <| Route.ProjectRoute projectId <| Route.VolumeList
+                                      , label =
+                                            String.join " "
+                                                [ context.localization.blockDevice
+                                                    |> Helpers.String.pluralize
+                                                    |> Helpers.String.toTitleCase
+                                                ]
+                                      }
+                                    , { route = Nothing
                                       , label =
                                             String.join " "
                                                 [ "Mount"

@@ -1,5 +1,6 @@
 "use strict";
 
+/** @type {Exosphere.Configuration} */
 var config = {
   showDebugMsgs: false,
   cloudCorsProxyUrl: "https://try.exosphere.app/proxy",
@@ -20,6 +21,7 @@ var config = {
   localization: null,
   instanceConfigMgtRepoUrl: null,
   instanceConfigMgtRepoCheckout: null,
+  bannersUrl: null,
   sentryConfig: {
     dsnPublicKey: "2c1487a758db4414b30ea690ab46b338",
     dsnHost: "o1143942.ingest.sentry.io",
@@ -27,6 +29,7 @@ var config = {
     releaseVersion: "latest",
     environmentName: "try.exosphere.app",
   },
+  version: null,
 };
 
 /* Matomo tracking code */
@@ -44,5 +47,6 @@ _paq.push(["enableLinkTracking"]);
   g.type = "text/javascript";
   g.async = true;
   g.src = u + "matomo.js";
+  // @ts-ignore
   s.parentNode.insertBefore(g, s);
 })();

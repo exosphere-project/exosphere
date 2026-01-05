@@ -1,5 +1,6 @@
 "use strict";
 
+/** @type {Exosphere.CloudConfigs} */
 var cloud_configs = {
   clouds: [
     {
@@ -31,6 +32,12 @@ var cloud_configs = {
           hostname: "proxy-js2-iu.exosphere.app",
         },
       ],
+      dnsZones: [
+        {
+          region: "IU",
+          zone: "{project_name}.projects.jetstream-cloud.org.",
+        },
+      ],
       imageExcludeFilter: null,
       featuredImageNamePrefix: "Featured-",
       instanceTypes: [
@@ -41,7 +48,25 @@ var cloud_configs = {
           logo: "assets/img/ubuntu.svg",
           versions: [
             {
-              friendlyName: "22.04 (latest)",
+              friendlyName: "24.04 (no software collection)",
+              isPrimary: false,
+              imageFilters: {
+                name: "Preview-Ubuntu24",
+                visibility: "public",
+              },
+              restrictFlavorIds: null,
+            },
+            {
+              friendlyName: "24.04 (latest)",
+              isPrimary: true,
+              imageFilters: {
+                name: "Featured-Ubuntu24",
+                visibility: "public",
+              },
+              restrictFlavorIds: null,
+            },
+            {
+              friendlyName: "22.04",
               isPrimary: true,
               imageFilters: {
                 name: "Featured-Ubuntu22",
@@ -50,13 +75,29 @@ var cloud_configs = {
               restrictFlavorIds: null,
             },
             {
-              friendlyName: "20.04",
+              friendlyName: "20.04 (no GPU support)",
               isPrimary: false,
               imageFilters: {
                 name: "Featured-Ubuntu20",
                 visibility: "public",
               },
-              restrictFlavorIds: null,
+              restrictFlavorIds: [
+                "1",
+                "14",
+                "15",
+                "2",
+                "3",
+                "3001",
+                "3002",
+                "3003",
+                "3004",
+                "3005",
+                "4",
+                "5",
+                "7",
+                "8",
+                "9",
+              ],
             },
           ],
         },
@@ -75,33 +116,6 @@ var cloud_configs = {
               },
               restrictFlavorIds: null,
             },
-            {
-              friendlyName: "Rocky Linux 8",
-              isPrimary: false,
-              imageFilters: {
-                name: "Featured-RockyLinux8",
-                visibility: "public",
-              },
-              restrictFlavorIds: null,
-            },
-            {
-              friendlyName: "AlmaLinux 9",
-              isPrimary: false,
-              imageFilters: {
-                name: "Featured-AlmaLinux9",
-                visibility: "public",
-              },
-              restrictFlavorIds: null,
-            },
-            {
-              friendlyName: "AlmaLinux 8",
-              isPrimary: false,
-              imageFilters: {
-                name: "Featured-AlmaLinux8",
-                visibility: "public",
-              },
-              restrictFlavorIds: null,
-            },
           ],
         },
       ],
@@ -116,13 +130,34 @@ var cloud_configs = {
           matchOn: "r3..*",
           title: "Large-memory",
           description: "These have lots of RAM.",
-          disallowedActions: [],
+          disallowedActions: ["Suspend"],
         },
         {
-          matchOn: "g3..*",
-          title: "GPU",
+          matchOn: "g3.(small|medium|large)",
+          title: "Partial GPU (NVIDIA A100)",
           description: "These have a graphics processing unit.",
           disallowedActions: ["Suspend"],
+        },
+        {
+          matchOn: "g3.\\d?xl",
+          title: "Full GPU (NVIDIA A100)",
+          description:
+            "Full-GPU instances cannot resize to partial-GPU after creation.",
+          disallowedActions: ["Suspend", "Resize"],
+        },
+        {
+          matchOn: "g4.\\d?xl",
+          title: "Full GPU (NVIDIA L40S)",
+          description:
+            "Full-GPU instances cannot resize to partial-GPU after creation.",
+          disallowedActions: ["Suspend", "Resize"],
+        },
+        {
+          matchOn: "g5.\\d?xl",
+          title: "Full GPU (NVIDIA H100)",
+          description:
+            "Full-GPU instances cannot resize to partial-GPU after creation.",
+          disallowedActions: ["Suspend", "Resize"],
         },
         {
           matchOn: "p3..*",
@@ -132,11 +167,84 @@ var cloud_configs = {
         },
       ],
       desktopMessage: "",
+      securityGroups: {
+        TACC: {
+          name: "tacc-default",
+          description: "allow ICMP, SSH, and Guacamole",
+          rules: [
+            {
+              description: null,
+              direction: "egress",
+              ethertype: "IPv4",
+              port_range_max: null,
+              port_range_min: null,
+              protocol: null,
+              remote_group_id: null,
+              remote_ip_prefix: null,
+            },
+            {
+              description: null,
+              direction: "egress",
+              ethertype: "IPv6",
+              port_range_max: null,
+              port_range_min: null,
+              protocol: null,
+              remote_group_id: null,
+              remote_ip_prefix: null,
+            },
+            {
+              description: "Ping",
+              direction: "ingress",
+              ethertype: "IPv4",
+              port_range_max: null,
+              port_range_min: null,
+              protocol: "icmp",
+              remote_group_id: null,
+              remote_ip_prefix: null,
+            },
+            {
+              description: "SSH",
+              direction: "ingress",
+              ethertype: "IPv4",
+              port_range_max: 22,
+              port_range_min: 22,
+              protocol: "tcp",
+              remote_group_id: null,
+              remote_ip_prefix: null,
+            },
+            {
+              description: "Guacamole",
+              direction: "ingress",
+              ethertype: "IPv4",
+              port_range_max: 49528,
+              port_range_min: 49528,
+              protocol: "tcp",
+              remote_group_id: null,
+              remote_ip_prefix: null,
+            },
+          ],
+        },
+      },
     },
     {
       keystoneHostname: "keystone.rc.nectar.org.au",
       friendlyName: "Nectar Cloud",
       userAppProxy: null,
+      imageExcludeFilter: null,
+      featuredImageNamePrefix: null,
+      instanceTypes: [],
+      flavorGroups: [],
+      desktopMessage: null,
+    },
+    {
+      keystoneHostname: "rci.uits.iu.edu",
+      friendlyName: "Rescloud",
+      userAppProxy: [
+        {
+          region: "RegionOne",
+          hostname: "proxy-rescloud.exosphere.app",
+        },
+      ],
       imageExcludeFilter: null,
       featuredImageNamePrefix: null,
       instanceTypes: [],

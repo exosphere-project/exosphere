@@ -6,8 +6,10 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.Url as UrlHelpers
 import OpenStack.ConsoleLog
 import OpenStack.DnsRecordSet
+import OpenStack.ServerVolumes
 import OpenStack.Types as OSTypes
-import Orchestration.Helpers exposing (applyStepToAllServers)
+import Orchestration.Helpers exposing (applyStepToAllServers, pollIntervalToMs, pollRDPP, serverPollIntervalMs)
+import Orchestration.Types exposing (PollInterval(..))
 import Rest.Designate
 import Rest.Guacamole
 import Rest.Neutron
@@ -22,10 +24,14 @@ import Types.HelperTypes
         , FloatingIpReuseOption(..)
         , UserAppProxyHostname
         )
+import Types.Interactivity exposing (InteractionLevel(..), interactionIsWanted)
 import Types.Project exposing (Project)
 import Types.Server exposing (ExoSetupStatus(..), Server, ServerFromExoProps, ServerOrigin(..))
+import Types.ServerVolumeActions as ServerVolumeActions
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
+import Types.View exposing (ProjectViewConstructor(..), ViewState(..))
 import UUID
+import Url
 
 
 goalNewServer : UUID.UUID -> Time.Posix -> Project -> ( Project, Cmd SharedMsg )
@@ -37,18 +43,15 @@ goalNewServer exoClientUuid time project =
             , stepServerRequestFloatingIp time
             , stepServerRequestHostname time
             ]
-
-        ( newProject, newCmds ) =
-            List.foldl
-                (applyStepToAllServers (Just exoClientUuid))
-                ( project, Cmd.none )
-                steps
     in
-    ( newProject, newCmds )
+    List.foldl
+        (applyStepToAllServers (Just exoClientUuid))
+        ( project, Cmd.none )
+        steps
 
 
-goalPollServers : Time.Posix -> Maybe CloudSpecificConfig -> Project -> ( Project, Cmd SharedMsg )
-goalPollServers time maybeCloudSpecificConfig project =
+goalPollServers : Time.Posix -> Maybe CloudSpecificConfig -> ViewState -> Project -> ( Project, Cmd SharedMsg )
+goalPollServers time maybeCloudSpecificConfig viewState project =
     let
         userAppProxy =
             maybeCloudSpecificConfig
@@ -58,16 +61,16 @@ goalPollServers time maybeCloudSpecificConfig project =
             [ stepServerPoll time
             , stepServerPollConsoleLog time
             , stepServerPollEvents time
+            , stepServerPollVolumeAttachments time viewState
+            , stepServerPollSecurityGroups time
+            , stepServerNeedsConsoleUrl
             , stepServerGuacamoleAuth time userAppProxy
             ]
-
-        ( newProject, newCmds ) =
-            List.foldl
-                (applyStepToAllServers Nothing)
-                ( project, Cmd.none )
-                steps
     in
-    ( newProject, newCmds )
+    List.foldl
+        (applyStepToAllServers Nothing)
+        ( project, Cmd.none )
+        steps
 
 
 stepServerPoll : Time.Posix -> Project -> Server -> ( Project, Cmd SharedMsg )
@@ -89,53 +92,52 @@ stepServerPoll time project server =
                                     Time.millisToPosix 0
 
                 pollInterval =
-                    Helpers.serverPollIntervalMs project server
+                    serverPollIntervalMs project server
             in
             Time.posixToMillis time < (Time.posixToMillis receivedTime + pollInterval)
-
-        dontPollBecauseServerIsLoading : Bool
-        dontPollBecauseServerIsLoading =
-            case project.servers.refreshStatus of
-                RDPP.Loading ->
-                    True
-
-                RDPP.NotLoading _ ->
-                    server.exoProps.loadingSeparately
     in
     if serverReceivedRecentlyEnough then
         ( project, Cmd.none )
 
-    else if dontPollBecauseServerIsLoading then
-        ( project, Cmd.none )
-
     else
         let
-            oldExoProps =
-                server.exoProps
+            dontPollBecauseServerIsLoading : Bool
+            dontPollBecauseServerIsLoading =
+                case project.servers.refreshStatus of
+                    RDPP.Loading ->
+                        True
 
-            newExoProps =
-                { oldExoProps
-                    | loadingSeparately = True
-                }
-
-            newServer =
-                { server | exoProps = newExoProps }
-
-            newProject =
-                GetterSetters.projectUpdateServer project newServer
+                    RDPP.NotLoading _ ->
+                        server.exoProps.loadingSeparately
         in
-        ( newProject, Rest.Nova.requestServer project newServer.osProps.uuid )
+        if dontPollBecauseServerIsLoading then
+            ( project, Cmd.none )
+
+        else
+            let
+                oldExoProps =
+                    server.exoProps
+
+                newExoProps =
+                    { oldExoProps
+                        | loadingSeparately = True
+                    }
+
+                newServer =
+                    { server | exoProps = newExoProps }
+
+                newProject =
+                    GetterSetters.projectUpdateServer project newServer
+            in
+            ( newProject
+              -- , Cmd.none
+            , Rest.Nova.requestServer project newServer.interaction newServer.osProps.uuid
+            )
 
 
 stepServerRequestNetworks : Time.Posix -> Project -> Server -> ( Project, Cmd SharedMsg )
 stepServerRequestNetworks time project server =
     -- TODO DRY with function below?
-    let
-        requestStuff =
-            ( { project | networks = RDPP.setLoading project.networks }
-            , Rest.Neutron.requestNetworks project
-            )
-    in
     if
         not server.exoProps.deletionAttempted
             && serverIsActiveEnough server
@@ -149,10 +151,16 @@ stepServerRequestNetworks time project server =
                         False
                )
     then
+        let
+            requestStuff =
+                ( { project | networks = RDPP.setLoading project.networks }
+                , Rest.Neutron.requestNetworks project
+                )
+        in
         case project.networks.refreshStatus of
             RDPP.NotLoading (Just ( _, receivedTime )) ->
-                -- If we got an error, try again 10 seconds later?
-                if Time.posixToMillis time - Time.posixToMillis receivedTime > 10000 then
+                -- If we got an error, try again slightly later
+                if Time.posixToMillis time - Time.posixToMillis receivedTime > pollIntervalToMs Rapid then
                     requestStuff
 
                 else
@@ -176,10 +184,6 @@ stepServerRequestNetworks time project server =
 stepServerRequestPorts : Time.Posix -> Project -> Server -> ( Project, Cmd SharedMsg )
 stepServerRequestPorts time project server =
     -- TODO DRY with function above?
-    let
-        requestStuff =
-            ( { project | ports = RDPP.setLoading project.ports }, Rest.Neutron.requestPorts project )
-    in
     if
         not server.exoProps.deletionAttempted
             && serverIsActiveEnough server
@@ -196,10 +200,14 @@ stepServerRequestPorts time project server =
                         False
                )
     then
+        let
+            requestStuff =
+                ( { project | ports = RDPP.setLoading project.ports }, Rest.Neutron.requestPorts project )
+        in
         case project.ports.refreshStatus of
             RDPP.NotLoading (Just ( _, receivedTime )) ->
-                -- If we got an error, try again 10 seconds later?
-                if Time.posixToMillis time - Time.posixToMillis receivedTime > 10000 then
+                -- If we got an error, try again slightly later?
+                if Time.posixToMillis time - Time.posixToMillis receivedTime > pollIntervalToMs Rapid then
                     requestStuff
 
                 else
@@ -232,18 +240,14 @@ stepServerRequestHostname time project server =
     if
         not server.exoProps.deletionAttempted
             && serverIsNew server time
-            -- If not requested in last 5 seconds
-            && RDPP.isPollableWithInterval project.dnsRecordSets time 5000
+            -- If not requested in last few seconds
+            && pollRDPP project.dnsRecordSets time (pollIntervalToMs Rapid)
             && (-- If any server ip is without hostname then request records
                 GetterSetters.getServerFloatingIps project server.osProps.uuid
                     |> List.any
-                        (\ipAddress ->
-                            case OpenStack.DnsRecordSet.addressToRecord (project.dnsRecordSets |> RDPP.withDefault []) ipAddress.address of
-                                Just _ ->
-                                    False
-
-                                Nothing ->
-                                    True
+                        (\{ address } ->
+                            List.isEmpty <|
+                                OpenStack.DnsRecordSet.lookupRecordsByAddress (project.dnsRecordSets |> RDPP.withDefault []) address
                         )
                )
     then
@@ -320,80 +324,67 @@ stepServerPollConsoleLog time project server =
 
         ServerFromExo exoOriginProps ->
             let
-                thirtySecMillis =
-                    30000
-
-                oneMinMillis =
-                    60000
-
-                thirtyMinMillis =
-                    1000 * 60 * 30
-
-                -- For return type of next functions, the outer maybe determines whether to poll at all. The inner maybe
-                -- determines whether we poll the whole log (Nothing) or just a set number of lines (Just Int).
-                doPollLinesExoSetupStatus : Maybe (Maybe Int)
-                doPollLinesExoSetupStatus =
-                    let
-                        pollInterval =
-                            -- Poll more frequently if ExoSetupStatus is in a non-terminal state
-                            case exoOriginProps.exoSetupStatus.data of
-                                RDPP.DontHave ->
-                                    thirtySecMillis
-
-                                RDPP.DoHave statusTuple _ ->
-                                    if
-                                        List.member (Tuple.first statusTuple)
-                                            [ ExoSetupUnknown, ExoSetupWaiting, ExoSetupRunning ]
-                                    then
-                                        thirtySecMillis
-
-                                    else
-                                        thirtyMinMillis
-                    in
-                    if
-                        serverIsActiveEnough server
-                            && (exoOriginProps.exoServerVersion >= 4)
-                            && RDPP.isPollableWithInterval exoOriginProps.exoSetupStatus time pollInterval
-                    then
-                        Just Nothing
-
-                    else
-                        Nothing
-
-                doPollLinesResourceUsage : Maybe (Maybe Int)
-                doPollLinesResourceUsage =
-                    let
-                        linesToPoll : Maybe Int
-                        linesToPoll =
-                            case exoOriginProps.resourceUsage.data of
-                                RDPP.DontHave ->
-                                    -- Get all the log if we don't have it at all yet
-                                    Nothing
-
-                                RDPP.DoHave data _ ->
-                                    if Helpers.serverLessThanThisOld server time thirtyMinMillis || (data.pollingStrikes > 0) then
-                                        -- Get all the log if server is new or there were polling failures
-                                        Nothing
-
-                                    else
-                                        -- Only get recent logs
-                                        Just 10
-                    in
-                    if
-                        serverIsActiveEnough server
-                            && (exoOriginProps.exoServerVersion >= 2)
-                            && RDPP.isPollableWithInterval exoOriginProps.resourceUsage time oneMinMillis
-                    then
-                        Just linesToPoll
-
-                    else
-                        Nothing
-
                 doPollLinesCombined : Maybe (Maybe Int)
                 doPollLinesCombined =
                     -- Poll the maximum amount of whatever log is needed between resource usage graphs and setup status
                     -- This factoring could be nicer
                     let
+                        -- For return type of next functions, the outer maybe determines whether to poll at all. The inner maybe
+                        -- determines whether we poll the whole log (Nothing) or just a set number of lines (Just Int).
+                        doPollLinesExoSetupStatus : Maybe (Maybe Int)
+                        doPollLinesExoSetupStatus =
+                            let
+                                pollInterval =
+                                    -- Poll more frequently if ExoSetupStatus is in a non-terminal state
+                                    case exoOriginProps.exoSetupStatus.data of
+                                        RDPP.DontHave ->
+                                            pollIntervalToMs Rapid
+
+                                        RDPP.DoHave statusTuple _ ->
+                                            if
+                                                List.member (Tuple.first statusTuple)
+                                                    [ ExoSetupUnknown, ExoSetupWaiting, ExoSetupRunning ]
+                                            then
+                                                pollIntervalToMs Rapid
+
+                                            else
+                                                pollIntervalToMs Seldom
+                            in
+                            if
+                                serverIsActiveEnough server
+                                    && (exoOriginProps.exoServerVersion >= 4)
+                                    && pollRDPP exoOriginProps.exoSetupStatus time pollInterval
+                            then
+                                Just Nothing
+
+                            else
+                                Nothing
+
+                        doPollLinesResourceUsage : Maybe (Maybe Int)
+                        doPollLinesResourceUsage =
+                            if
+                                serverIsActiveEnough server
+                                    && (exoOriginProps.exoServerVersion >= 2)
+                                    && pollRDPP exoOriginProps.resourceUsage time (pollIntervalToMs Regular)
+                            then
+                                Just <|
+                                    case exoOriginProps.resourceUsage.data of
+                                        RDPP.DontHave ->
+                                            -- Get all the log if we don't have it at all yet
+                                            Nothing
+
+                                        RDPP.DoHave data _ ->
+                                            if Helpers.serverLessThanThisOld server time (pollIntervalToMs Seldom) || (data.pollingStrikes > 0) then
+                                                -- Get all the log if server is new or there were polling failures
+                                                Nothing
+
+                                            else
+                                                -- Only get recent logs
+                                                Just 10
+
+                            else
+                                Nothing
+
                         pollEntireLog =
                             [ doPollLinesResourceUsage, doPollLinesExoSetupStatus ]
                                 |> List.filterMap identity
@@ -406,23 +397,19 @@ stepServerPollConsoleLog time project server =
                                             Just _ ->
                                                 False
                                     )
-
-                        pollExplicitNumLines =
-                            [ doPollLinesResourceUsage, doPollLinesExoSetupStatus ]
-                                |> List.filterMap identity
-                                |> List.filterMap identity
-                                |> List.maximum
                     in
                     if pollEntireLog then
                         Just Nothing
 
                     else
-                        case pollExplicitNumLines of
-                            Just l ->
-                                Just (Just l)
-
-                            Nothing ->
-                                Nothing
+                        let
+                            pollExplicitNumLines =
+                                [ doPollLinesResourceUsage, doPollLinesExoSetupStatus ]
+                                    |> List.filterMap identity
+                                    |> List.filterMap identity
+                                    |> List.maximum
+                        in
+                        pollExplicitNumLines |> Maybe.map Just
             in
             case doPollLinesCombined of
                 Nothing ->
@@ -466,8 +453,7 @@ stepServerPollEvents : Time.Posix -> Project -> Server -> ( Project, Cmd SharedM
 stepServerPollEvents time project server =
     let
         pollIntervalMillis =
-            -- 5 minutes
-            300000
+            pollIntervalToMs Seldom
 
         curTimeMillis =
             Time.posixToMillis time
@@ -482,20 +468,20 @@ stepServerPollEvents time project server =
 
         doPollEvents =
             let
-                newServer =
-                    { server | events = RDPP.setLoading server.events }
-
                 newProject =
-                    GetterSetters.projectUpdateServer project newServer
+                    GetterSetters.projectSetServerEventsLoading server.osProps.uuid project
             in
             ( newProject, Rest.Nova.requestServerEvents newProject server.osProps.uuid )
+
+        serverEvents =
+            GetterSetters.getServerEvents project server.osProps.uuid
     in
-    case server.events.refreshStatus of
+    case serverEvents.refreshStatus of
         RDPP.Loading ->
             doNothing project
 
         RDPP.NotLoading maybeErrorTimeTuple ->
-            case server.events.data of
+            case serverEvents.data of
                 RDPP.DoHave _ receivedTime ->
                     pollIfIntervalExceeded receivedTime
 
@@ -508,19 +494,158 @@ stepServerPollEvents time project server =
                             pollIfIntervalExceeded receivedTime
 
 
-stepServerGuacamoleAuth : Time.Posix -> Maybe UserAppProxyHostname -> Project -> Server -> ( Project, Cmd SharedMsg )
-stepServerGuacamoleAuth time maybeUserAppProxy project server =
+stepServerPollSecurityGroups : Time.Posix -> Project -> Server -> ( Project, Cmd SharedMsg )
+stepServerPollSecurityGroups time project server =
     let
+        serverId =
+            server.osProps.uuid
+
+        pollIntervalMillis =
+            pollIntervalToMs Seldom
+
         curTimeMillis =
             Time.posixToMillis time
 
-        -- Default value in Guacamole is 60 minutes, using 55 minutes for safety
-        maxGuacTokenLifetimeMillis =
-            3300000
+        pollIfIntervalExceeded : Time.Posix -> ( Project, Cmd SharedMsg )
+        pollIfIntervalExceeded receivedTime =
+            if Time.posixToMillis receivedTime + pollIntervalMillis < curTimeMillis then
+                doPollSecurityGroups
 
-        errorRetryIntervalMillis =
-            15000
+            else
+                doNothing project
 
+        doPollSecurityGroups =
+            let
+                newProject =
+                    GetterSetters.projectSetServerSecurityGroupsLoading serverId project
+            in
+            ( newProject, Rest.Nova.requestServerSecurityGroups newProject serverId )
+
+        serverSecurityGroups =
+            GetterSetters.getServerSecurityGroups project serverId
+    in
+    case serverSecurityGroups.refreshStatus of
+        RDPP.Loading ->
+            doNothing project
+
+        RDPP.NotLoading maybeErrorTimeTuple ->
+            case serverSecurityGroups.data of
+                RDPP.DoHave _ receivedTime ->
+                    pollIfIntervalExceeded receivedTime
+
+                RDPP.DontHave ->
+                    case maybeErrorTimeTuple of
+                        Nothing ->
+                            doPollSecurityGroups
+
+                        Just ( _, receivedTime ) ->
+                            pollIfIntervalExceeded receivedTime
+
+
+stepServerPollVolumeAttachments : Time.Posix -> ViewState -> Project -> Server -> ( Project, Cmd SharedMsg )
+stepServerPollVolumeAttachments time viewState project server =
+    let
+        serverVolumeAttachments =
+            GetterSetters.getServerVolumeAttachments project server.osProps.uuid
+
+        pollInterval =
+            case viewState of
+                ProjectView _ projectViewState ->
+                    let
+                        serverVolumeActions =
+                            GetterSetters.getServerVolumeActions project server.osProps.uuid
+
+                        isServerVolumeAttachingDetaching maybeVolumeUuid =
+                            List.any
+                                (\action ->
+                                    let
+                                        isSpecificVolumeMatch volumeUuid =
+                                            maybeVolumeUuid
+                                                |> Maybe.map (\vUuid -> vUuid == volumeUuid)
+                                                |> Maybe.withDefault True
+                                    in
+                                    case ( action.action, action.status ) of
+                                        ( ServerVolumeActions.AttachVolume volumeUuid, ServerVolumeActions.Accepted ) ->
+                                            isSpecificVolumeMatch volumeUuid
+
+                                        ( ServerVolumeActions.DetachVolume volumeUuid, ServerVolumeActions.Accepted ) ->
+                                            isSpecificVolumeMatch volumeUuid
+
+                                        _ ->
+                                            False
+                                )
+                                serverVolumeActions
+                    in
+                    case projectViewState of
+                        ServerDetail pageModel ->
+                            if
+                                -- Are we on the detail page for this server?
+                                pageModel.serverUuid
+                                    == server.osProps.uuid
+                                    && isServerVolumeAttachingDetaching Nothing
+                            then
+                                Rapid
+
+                            else
+                                Regular
+
+                        VolumeList _ ->
+                            if isServerVolumeAttachingDetaching Nothing then
+                                Rapid
+
+                            else
+                                Regular
+
+                        VolumeDetail pageModel ->
+                            -- Are we attaching/detaching the volume for this detail page?
+                            if isServerVolumeAttachingDetaching (Just pageModel.volumeUuid) then
+                                Rapid
+
+                            else
+                                Regular
+
+                        _ ->
+                            Seldom
+
+                _ ->
+                    Seldom
+    in
+    if pollRDPP serverVolumeAttachments time (pollIntervalToMs pollInterval) then
+        let
+            newProject =
+                GetterSetters.projectSetServerVolumeAttachmentsLoading server.osProps.uuid project
+        in
+        ( newProject, OpenStack.ServerVolumes.requestVolumeAttachments newProject server.osProps.uuid )
+
+    else
+        ( project, Cmd.none )
+
+
+stepServerNeedsConsoleUrl : Project -> Server -> ( Project, Cmd SharedMsg )
+stepServerNeedsConsoleUrl project server =
+    if
+        (server.osProps.consoleUrl == RDPP.empty)
+            && interactionIsWanted LowInteraction server.interaction
+            && serverIsActiveEnough server
+    then
+        let
+            osProps =
+                server.osProps
+        in
+        ( GetterSetters.projectUpdateServer project
+            { server
+                | osProps = { osProps | consoleUrl = RDPP.setLoading server.osProps.consoleUrl }
+            }
+        , Rest.Nova.requestConsoleUrls project server.osProps.uuid
+        )
+
+    else
+        doNothing project
+
+
+stepServerGuacamoleAuth : Time.Posix -> Maybe UserAppProxyHostname -> Project -> Server -> ( Project, Cmd SharedMsg )
+stepServerGuacamoleAuth time maybeUserAppProxy project server =
+    let
         guacUpstreamPort =
             49528
 
@@ -553,8 +678,9 @@ stepServerGuacamoleAuth time maybeUserAppProxy project server =
                         proxyHostname
                         floatingIp
                         guacUpstreamPort
-                        "/guacamole/api/tokens"
-                        False
+                        Url.Http
+                        [ "guacamole", "api", "tokens" ]
+                        []
             in
             ( GetterSetters.projectUpdateServer project newServer
             , Rest.Guacamole.requestLoginToken
@@ -571,9 +697,10 @@ stepServerGuacamoleAuth time maybeUserAppProxy project server =
     case
         ( server.exoProps.serverOrigin
         , serverIsActiveEnough server
+        , interactionIsWanted LowInteraction server.interaction
         )
     of
-        ( ServerFromExo exoOriginProps, True ) ->
+        ( ServerFromExo exoOriginProps, True, True ) ->
             case exoOriginProps.guacamoleStatus of
                 GuacTypes.NotLaunchedWithGuacamole ->
                     doNothing project
@@ -588,15 +715,18 @@ stepServerGuacamoleAuth time maybeUserAppProxy project server =
                         )
                     of
                         ( Just floatingIp, Just passphrase, Just tlsReverseProxyHostname ) ->
-                            let
-                                doRequestToken_ =
-                                    doRequestToken floatingIp passphrase tlsReverseProxyHostname exoOriginProps launchedWithGuacProps
-                            in
                             case launchedWithGuacProps.authToken.refreshStatus of
                                 RDPP.Loading ->
                                     doNothing project
 
                                 RDPP.NotLoading maybeErrorTimeTuple ->
+                                    let
+                                        doRequestToken_ =
+                                            doRequestToken floatingIp passphrase tlsReverseProxyHostname exoOriginProps launchedWithGuacProps
+
+                                        curTimeMillis =
+                                            Time.posixToMillis time
+                                    in
                                     case launchedWithGuacProps.authToken.data of
                                         RDPP.DontHave ->
                                             case maybeErrorTimeTuple of
@@ -605,6 +735,9 @@ stepServerGuacamoleAuth time maybeUserAppProxy project server =
 
                                                 Just ( _, receivedTime ) ->
                                                     let
+                                                        errorRetryIntervalMillis =
+                                                            pollIntervalToMs Rapid
+
                                                         whenToRetryMillis =
                                                             Time.posixToMillis receivedTime + errorRetryIntervalMillis
                                                     in
@@ -616,6 +749,10 @@ stepServerGuacamoleAuth time maybeUserAppProxy project server =
 
                                         RDPP.DoHave _ receivedTime ->
                                             let
+                                                maxGuacTokenLifetimeMillis =
+                                                    -- Default value in Guacamole is 60 minutes, using 55 minutes for safety
+                                                    3300000
+
                                                 whenToRefreshMillis =
                                                     Time.posixToMillis receivedTime + maxGuacTokenLifetimeMillis
                                             in

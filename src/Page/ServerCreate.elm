@@ -9,19 +9,23 @@ import Element.Input as Input
 import FeatherIcons as Icons
 import FormatNumber
 import FormatNumber.Locales exposing (Decimals(..))
+import Helpers.Connectivity
 import Helpers.Formatting exposing (humanCount)
-import Helpers.GetterSetters as GetterSetters
+import Helpers.GetterSetters as GetterSetters exposing (isDefaultSecurityGroup)
 import Helpers.Helpers as Helpers
+import Helpers.Image exposing (detectImageOperatingSystem)
 import Helpers.Random as RandomHelper
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import Helpers.Units
 import Helpers.Validation as Validation
 import Helpers.ValidationResult
+import Html.Attributes
 import Maybe
 import OpenStack.Quotas as OSQuotas
 import OpenStack.ServerNameValidator exposing (serverNameValidator)
-import OpenStack.Types as OSTypes
+import OpenStack.Types as OSTypes exposing (securityGroupExoTags, securityGroupTaggedAs)
+import Page.SecurityGroupRulesTable as SecurityGroupRulesTable
 import Rest.Naming
 import Route
 import ServerDeploy exposing (cloudInitUserDataTemplate)
@@ -29,25 +33,30 @@ import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.Alert as Alert
 import Style.Widgets.Button as Button
-import Style.Widgets.Icon exposing (featherIcon)
+import Style.Widgets.CopyableText exposing (copyableTextAccessory)
+import Style.Widgets.Icon as Icon exposing (featherIcon)
 import Style.Widgets.Link as Link
 import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Style.Widgets.Select
 import Style.Widgets.Spacer exposing (spacer)
+import Style.Widgets.Spinner as Spinner
 import Style.Widgets.Tag as Tag
-import Style.Widgets.Text as Text
+import Style.Widgets.Text as Text exposing (TextVariant(..))
 import Style.Widgets.ToggleTip
-import Style.Widgets.Validation exposing (invalidMessage)
+import Style.Widgets.Validation exposing (FormErrorLevel(..), invalidMessage)
 import Time
+import Types.Error exposing (HttpErrorWithBody)
 import Types.HelperTypes as HelperTypes
     exposing
         ( FloatingIpAssignmentStatus(..)
         , FloatingIpOption(..)
         , FloatingIpReuseOption(..)
+        , SelectedFlavor(..)
         )
 import Types.Project exposing (Project)
 import Types.Server exposing (NewServerNetworkOptions(..), Server)
+import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
 import View.Forms as Forms exposing (Resource(..))
 import View.Helpers as VH exposing (edges)
@@ -66,7 +75,6 @@ type Msg
     | GotCount Int
     | GotCreateServerButtonPressed OSTypes.NetworkUuid OSTypes.FlavorId
     | GotFlavorId OSTypes.FlavorId
-    | GotFlavorList
     | GotVolSizeTextInput (Maybe NumericTextInput)
     | GotUserDataTemplate String
     | GotNetworks
@@ -74,6 +82,8 @@ type Msg
     | GotAutoAllocatedNetwork OSTypes.NetworkUuid
     | GotShowAdvancedOptions Bool
     | GotKeypairName (Maybe String)
+    | GotSecurityGroups (List OSTypes.SecurityGroup)
+    | GotSecurityGroupUuid (Maybe OSTypes.SecurityGroupUuid)
     | GotDeployGuacamole (Maybe Bool)
     | GotDeployDesktopEnvironment Bool
     | GotInstallOperatingSystemUpdates Bool
@@ -83,24 +93,33 @@ type Msg
     | GotWorkflowReference String
     | GotWorkflowPath String
     | GotWorkflowInputLoseFocus
-    | GotCreateCluster Bool
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
 
 
-init : Project -> OSTypes.ImageUuid -> String -> Maybe (List OSTypes.FlavorId) -> Maybe Bool -> Model
-init project imageUuid imageName restrictFlavorIds deployGuacamole =
+init : View.Types.Context -> Project -> OSTypes.ImageUuid -> String -> Maybe (List OSTypes.FlavorId) -> Maybe Bool -> Model
+init context project imageUuid imageName restrictFlavorIds deployGuacamole =
     { serverName = ""
     , imageUuid = imageUuid
     , imageName = imageName
     , restrictFlavorIds = restrictFlavorIds
     , count = 1
-    , flavorId = Nothing
+    , selectedFlavor = DefaultFlavorSelection
     , volSizeTextInput = Nothing
     , userDataTemplate = cloudInitUserDataTemplate
     , networkUuid = Nothing
     , showAdvancedOptions = False
     , keypairName = initialKeypairName project
+    , securityGroupUuid =
+        case project.securityGroups.data of
+            RDPP.DoHave securityGroups _ ->
+                securityGroups
+                    |> List.filter (isDefaultSecurityGroup context project)
+                    |> List.head
+                    |> Maybe.map .uuid
+
+            _ ->
+                Nothing
     , deployGuacamole = deployGuacamole
     , deployDesktopEnvironment = False
     , installOperatingSystemUpdates = True
@@ -110,7 +129,6 @@ init project imageUuid imageName restrictFlavorIds deployGuacamole =
     , workflowInputReference = ""
     , workflowInputPath = ""
     , workflowInputIsValid = Nothing
-    , createCluster = False
     , showFormInvalidToggleTip = False
     , createServerAttempted = False
     , randomServerName = ""
@@ -126,16 +144,6 @@ initialKeypairName project =
 
         keypairNameOfNewestServerCreatedByUser =
             let
-                serversCreatedByUser : List Server
-                serversCreatedByUser =
-                    project.servers
-                        |> RDPP.withDefault []
-                        |> List.filter
-                            (\s ->
-                                GetterSetters.serverCreatedByCurrentUser project s.osProps.uuid
-                                    |> Maybe.withDefault False
-                            )
-
                 newestServerCreatedByUser : Maybe Server
                 newestServerCreatedByUser =
                     let
@@ -143,7 +151,13 @@ initialKeypairName project =
                         serverSorter s =
                             s.osProps.details.created |> Time.posixToMillis
                     in
-                    serversCreatedByUser
+                    project.servers
+                        |> RDPP.withDefault []
+                        |> List.filter
+                            (\s ->
+                                GetterSetters.serverCreatedByCurrentUser project s.osProps.uuid
+                                    |> Maybe.withDefault False
+                            )
                         |> List.sortBy serverSorter
                         |> List.head
 
@@ -174,8 +188,31 @@ initialKeypairName project =
         |> List.head
 
 
-update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
-update msg project model =
+getAllowedFlavors : Model -> List OSTypes.Flavor -> List OSTypes.Flavor
+getAllowedFlavors model projectFlavors =
+    let
+        allowedFlavors : List OSTypes.Flavor
+        allowedFlavors =
+            case model.restrictFlavorIds of
+                Nothing ->
+                    projectFlavors
+
+                Just restrictedFlavorIds ->
+                    List.filterMap
+                        (\flavor ->
+                            if List.member flavor.id restrictedFlavorIds then
+                                Nothing
+
+                            else
+                                Just flavor
+                        )
+                        projectFlavors
+    in
+    GetterSetters.sortedFlavors allowedFlavors
+
+
+update : Msg -> SharedModel -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
+update msg { viewContext } project model =
     case msg of
         GotRandomServerName name ->
             ( { model | randomServerName = name, serverName = name }, Cmd.none, SharedMsg.NoOp )
@@ -203,35 +240,13 @@ update msg project model =
             )
 
         GotFlavorId flavorId ->
-            ( enforceQuotaCompliance project { model | flavorId = Just flavorId }, Cmd.none, SharedMsg.NoOp )
-
-        GotFlavorList ->
-            let
-                allowedFlavors =
-                    case model.restrictFlavorIds of
-                        Nothing ->
-                            project.flavors
-
-                        Just restrictedFlavorIds ->
-                            restrictedFlavorIds
-                                |> List.filterMap (GetterSetters.flavorLookup project)
-
-                maybeSmallestFlavor =
-                    GetterSetters.sortedFlavors allowedFlavors |> List.head
-            in
-            case maybeSmallestFlavor of
-                Just smallestFlavor ->
-                    ( enforceQuotaCompliance project
-                        { model
-                            | flavorId =
-                                Just <| Maybe.withDefault smallestFlavor.id model.flavorId
-                        }
-                    , Cmd.none
-                    , SharedMsg.NoOp
-                    )
-
+            case GetterSetters.flavorLookup project flavorId of
                 Nothing ->
+                    -- Should we indicate an error here? How?
                     ( model, Cmd.none, SharedMsg.NoOp )
+
+                Just flavor ->
+                    ( enforceQuotaCompliance project { model | selectedFlavor = WithSelectedFlavor flavor }, Cmd.none, SharedMsg.NoOp )
 
         GotVolSizeTextInput maybeVolSizeInput ->
             ( enforceQuotaCompliance project { model | volSizeTextInput = maybeVolSizeInput }, Cmd.none, SharedMsg.NoOp )
@@ -273,6 +288,24 @@ update msg project model =
 
         GotKeypairName maybeKeypairName ->
             ( { model | keypairName = maybeKeypairName }, Cmd.none, SharedMsg.NoOp )
+
+        GotSecurityGroupUuid maybeSecurityGroupUuid ->
+            ( { model | securityGroupUuid = maybeSecurityGroupUuid }, Cmd.none, SharedMsg.NoOp )
+
+        GotSecurityGroups securityGroups ->
+            -- SharedModel just updated with new security groups. If we don't have anything selected yet, choose the default.
+            if model.securityGroupUuid == Nothing then
+                let
+                    defaultSecurityGroupUuid =
+                        securityGroups
+                            |> List.filter (isDefaultSecurityGroup viewContext project)
+                            |> List.head
+                            |> Maybe.map .uuid
+                in
+                ( { model | securityGroupUuid = defaultSecurityGroupUuid }, Cmd.none, SharedMsg.NoOp )
+
+            else
+                ( model, Cmd.none, SharedMsg.NoOp )
 
         GotDeployGuacamole maybeDeployGuacamole ->
             ( { model | deployGuacamole = maybeDeployGuacamole }, Cmd.none, SharedMsg.NoOp )
@@ -357,14 +390,6 @@ update msg project model =
             , SharedMsg.NoOp
             )
 
-        GotCreateCluster createCluster ->
-            ( { model
-                | createCluster = createCluster
-              }
-            , Cmd.none
-            , SharedMsg.NoOp
-            )
-
         SharedMsg sharedMsg ->
             ( model, Cmd.none, sharedMsg )
 
@@ -372,12 +397,37 @@ update msg project model =
             ( model, Cmd.none, SharedMsg.NoOp )
 
 
+getSelectedFlavorMaybe : Model -> RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Flavor) -> Maybe OSTypes.Flavor
+getSelectedFlavorMaybe model projectFlavors =
+    case projectFlavors.data of
+        RDPP.DontHave ->
+            Nothing
+
+        RDPP.DoHave flavors _ ->
+            case getAllowedFlavors model flavors of
+                [] ->
+                    Nothing
+
+                smallestFlavor :: _ ->
+                    Just <| getSelectedFlavor model.selectedFlavor smallestFlavor
+
+
+getSelectedFlavor : SelectedFlavor -> OSTypes.Flavor -> OSTypes.Flavor
+getSelectedFlavor flavorSelection smallestFlavor =
+    case flavorSelection of
+        WithSelectedFlavor flavor ->
+            flavor
+
+        DefaultFlavorSelection ->
+            smallestFlavor
+
+
 enforceQuotaCompliance : Project -> Model -> Model
 enforceQuotaCompliance project model =
     -- If user is trying to choose a combination of flavor, volume-backed disk size, and count
     -- that would exceed quota, reduce count to comply with quota.
     case
-        ( model.flavorId |> Maybe.andThen (GetterSetters.flavorLookup project)
+        ( getSelectedFlavorMaybe model project.flavors
         , project.computeQuota.data
         , project.volumeQuota.data
         )
@@ -414,6 +464,9 @@ enforceQuotaCompliance project model =
 view : View.Types.Context -> Project -> Time.Posix -> Model -> Element.Element Msg
 view context project currentTime model =
     let
+        maybeImage =
+            GetterSetters.imageLookup project model.imageUuid
+
         serverNameExists =
             Validation.serverNameExists project model.serverName
 
@@ -479,6 +532,7 @@ view context project currentTime model =
                         [ Element.text guidanceText
                         ]
 
+        contents : OSTypes.Flavor -> OSTypes.ComputeQuota -> OSTypes.VolumeQuota -> List (Element.Element Msg)
         contents flavor computeQuota volumeQuota =
             let
                 canBeLaunched quota fl =
@@ -490,7 +544,7 @@ view context project currentTime model =
                 flavorAvailability =
                     model.restrictFlavorIds
                         |> Maybe.map (List.filterMap (GetterSetters.flavorLookup project))
-                        |> Maybe.withDefault project.flavors
+                        |> Maybe.withDefault (RDPP.withDefault [] project.flavors)
                         |> List.map (canBeLaunched computeQuota)
 
                 hasAvailableResources =
@@ -513,13 +567,13 @@ view context project currentTime model =
                 ( createOnPress, maybeInvalidFormFields ) =
                     case ( invalidNameReasons, invalidInputs ) of
                         ( Nothing, False ) ->
-                            case ( model.networkUuid, model.flavorId ) of
-                                ( Just netUuid, Just flavorId ) ->
-                                    ( Just <| GotCreateServerButtonPressed netUuid flavorId
+                            case model.networkUuid of
+                                Just netUuid ->
+                                    ( Just <| GotCreateServerButtonPressed netUuid flavor.id
                                     , Nothing
                                     )
 
-                                ( _, _ ) ->
+                                _ ->
                                     let
                                         invalidNetworkField =
                                             if model.networkUuid == Nothing then
@@ -528,15 +582,8 @@ view context project currentTime model =
                                             else
                                                 []
 
-                                        invalidFlavorField =
-                                            if model.flavorId == Nothing then
-                                                [ "flavor" ]
-
-                                            else
-                                                []
-
                                         invalidFormFields =
-                                            invalidNetworkField ++ invalidFlavorField
+                                            invalidNetworkField
                                     in
                                     ( Nothing, Just invalidFormFields )
 
@@ -614,24 +661,25 @@ view context project currentTime model =
                                     invalidFormHint =
                                         case maybeInvalidFormFields of
                                             Just invalidFormFields ->
-                                                let
-                                                    invalidFormFieldsString =
-                                                        Helpers.String.itemsListToString <|
-                                                            List.map (\s -> "'" ++ s ++ "'")
-                                                                invalidFormFields
-                                                in
                                                 if List.isEmpty invalidFormFields then
                                                     genericInvalidFormHint
 
-                                                else if List.length invalidFormFields == 1 then
-                                                    "Please correct problem with "
-                                                        ++ invalidFormFieldsString
-                                                        ++ " field"
-
                                                 else
-                                                    "Please correct problems with "
-                                                        ++ invalidFormFieldsString
-                                                        ++ " fields"
+                                                    let
+                                                        invalidFormFieldsString =
+                                                            Helpers.String.itemsListToString <|
+                                                                List.map (\s -> "'" ++ s ++ "'")
+                                                                    invalidFormFields
+                                                    in
+                                                    if List.length invalidFormFields == 1 then
+                                                        "Please correct problem with "
+                                                            ++ invalidFormFieldsString
+                                                            ++ " field"
+
+                                                    else
+                                                        "Please correct problems with "
+                                                            ++ invalidFormFieldsString
+                                                            ++ " fields"
 
                                             Nothing ->
                                                 genericInvalidFormHint
@@ -641,6 +689,9 @@ view context project currentTime model =
                 hasAnyKeypairs : Bool
                 hasAnyKeypairs =
                     project.keypairs |> RDPP.withDefault [] |> List.isEmpty |> not
+
+                maybeOperatingSystem =
+                    maybeImage |> Maybe.andThen detectImageOperatingSystem
             in
             [ Element.column
                 [ Element.spacing spacer.px8
@@ -679,7 +730,7 @@ view context project currentTime model =
                         }
                     ]
                     :: renderInvalidNameReasons
-                    ++ Forms.resourceNameAlreadyExists context project currentTime { resource = Compute model.serverName, onSuggestionPressed = \suggestion -> GotServerName suggestion }
+                    ++ Forms.resourceNameAlreadyExists context project currentTime { resource = Compute model.serverName, onSuggestionPressed = \suggestion -> GotServerName suggestion, errorLevel = Warning }
                 )
             , Element.row [ Element.spacing spacer.px8 ]
                 [ Text.strong <|
@@ -689,15 +740,53 @@ view context project currentTime model =
                         , ": "
                         ]
                 , Element.text model.imageName
+                , case
+                    maybeOperatingSystem
+                        |> Maybe.map (\{ supported, distribution } -> ( supported, distribution ))
+                  of
+                    Just ( Just False, distribution ) ->
+                        Element.row
+                            [ Element.spacing spacer.px8
+                            , Font.color (SH.toElementColor context.palette.danger.textOnNeutralBG)
+                            , Element.htmlAttribute <|
+                                Html.Attributes.title <|
+                                    String.join " "
+                                        [ "You can still use this"
+                                        , context.localization.staticRepresentationOfBlockDeviceContents
+                                        , "but it may not work with some features of Exosphere"
+                                        ]
+                            ]
+                            [ Icon.featherIcon [] Icons.alertCircle
+                            , Element.text
+                                (String.join " "
+                                    [ "Exosphere does not support launching"
+                                    , distribution
+                                    , Helpers.String.pluralize context.localization.virtualComputer
+                                    ]
+                                )
+                            ]
+
+                    Just ( Just True, distribution ) ->
+                        Element.row
+                            [ Element.spacing spacer.px8
+                            , Font.color (SH.toElementColor context.palette.success.textOnNeutralBG)
+                            ]
+                            [ Icon.featherIcon [] Icons.checkCircle
+                            , Element.text (distribution ++ " is officially supported by Exosphere")
+                            ]
+
+                    _ ->
+                        Element.none
                 ]
             , VH.flavorPicker context
                 project
                 model.restrictFlavorIds
+                Nothing
                 computeQuota
                 (\flavorGroupTipId -> SharedMsg <| SharedMsg.TogglePopover flavorGroupTipId)
                 (Helpers.String.hyphenate [ "serverCreateFlavorGroupTip", project.auth.project.uuid ])
                 Nothing
-                model.flavorId
+                (Just flavor.id)
                 GotFlavorId
             , volBackedPrompt project context model volumeQuota flavor
             , countPicker context model computeQuota volumeQuota flavor
@@ -708,6 +797,11 @@ view context project currentTime model =
 
               else
                 -- No keypairs, so show this further down in advanced options
+                Element.none
+            , if context.experimentalFeaturesEnabled then
+                securityGroupPicker context project model
+
+              else
                 Element.none
             , Element.column
                 [ Element.spacing spacer.px32 ]
@@ -739,7 +833,6 @@ view context project currentTime model =
 
                               else
                                 keypairPicker context project model
-                            , clusterInput context model
                             , userDataInput context model
                             ]
                        )
@@ -758,9 +851,7 @@ view context project currentTime model =
 
         loading message =
             Element.row [ Element.spacing spacer.px16 ]
-                [ Widget.circularProgressIndicator
-                    (SH.materialStyle context.palette).progressIndicator
-                    Nothing
+                [ Spinner.medium context.palette
                 , Element.text message
                 ]
     in
@@ -782,26 +873,68 @@ view context project currentTime model =
             , Element.spacing spacer.px32
             ]
           <|
-            case
-                ( model.flavorId |> Maybe.andThen (GetterSetters.flavorLookup project)
-                , RDPP.toMaybe project.computeQuota
-                , RDPP.toMaybe project.volumeQuota
-                )
-            of
-                ( Just flavor, Just computeQuota, Just volumeQuota ) ->
-                    contents flavor computeQuota volumeQuota
+            case ( project.flavors.data, project.flavors.refreshStatus ) of
+                ( RDPP.DontHave, RDPP.NotLoading Nothing ) ->
+                    --
+                    [ Element.text "Uninitialized" ]
 
-                _ ->
+                ( RDPP.DontHave, RDPP.Loading ) ->
                     [ loading "Loading..." ]
+
+                ( RDPP.DontHave, RDPP.NotLoading (Just _) ) ->
+                    -- Error will be shown to the user via another method
+                    []
+
+                ( RDPP.DoHave flavors _, _ ) ->
+                    let
+                        allowedFlavors =
+                            getAllowedFlavors model flavors
+                    in
+                    case allowedFlavors of
+                        [] ->
+                            case flavors of
+                                [] ->
+                                    [ Element.text <|
+                                        String.concat
+                                            [ Helpers.String.toTitleCase context.localization.unitOfTenancy
+                                            , " has no flavors assigned. You cannot create "
+                                            , Helpers.String.pluralize context.localization.virtualComputer
+                                            , " until flavors are made available. Contact your OpenStack administrator."
+                                            ]
+                                    ]
+
+                                _ ->
+                                    [ Element.text <|
+                                        String.concat
+                                            [ "You are not allowed to use any of the flavors in your "
+                                            , context.localization.unitOfTenancy
+                                            , ". You cannot create "
+                                            , Helpers.String.pluralize context.localization.virtualComputer
+                                            , " until flavors are made available. Contact your OpenStack administrator."
+                                            ]
+                                    ]
+
+                        smallestFlavor :: _ ->
+                            case
+                                ( RDPP.toMaybe project.computeQuota
+                                , RDPP.toMaybe project.volumeQuota
+                                )
+                            of
+                                ( Just computeQuota, Just volumeQuota ) ->
+                                    let
+                                        selectedFlavor =
+                                            getSelectedFlavor model.selectedFlavor smallestFlavor
+                                    in
+                                    contents selectedFlavor computeQuota volumeQuota
+
+                                _ ->
+                                    [ loading "Loading..." ]
         ]
 
 
 volBackedPrompt : Project -> View.Types.Context -> Model -> OSTypes.VolumeQuota -> OSTypes.Flavor -> Element.Element Msg
 volBackedPrompt project context model volumeQuota flavor =
     let
-        { locale } =
-            context
-
         ( volumeCountAvail, volumeSizeGbAvail ) =
             OSQuotas.volumeQuotaAvail volumeQuota
 
@@ -824,49 +957,43 @@ volBackedPrompt project context model volumeQuota flavor =
         canLaunchVolBacked =
             canLaunchVolBackedCount && canLaunchVolBackedSizeGb
 
-        flavorRootDiskSize =
-            flavor.disk_root
-
-        nonVolBackedOptionText =
-            if flavorRootDiskSize == 0 then
-                String.join " "
-                    [ "Default for selected"
-                    , context.localization.staticRepresentationOfBlockDeviceContents
-                    , "(warning, could be too small for your work)"
-                    ]
-
-            else
-                String.concat
-                    [ FormatNumber.format { locale | decimals = Exact 0 } (toFloat flavorRootDiskSize)
-                    , " GB (default for selected "
-                    , context.localization.virtualComputerHardwareConfig
-                    , ")"
-                    ]
-
         defaultVolSizeGB =
             10
+    in
+    Element.column [ Element.spacing spacer.px12 ]
+        [ Text.strong "Choose a root disk size"
+        , if canLaunchVolBacked then
+            let
+                flavorRootDiskSize =
+                    flavor.disk_root
 
-        defaultVolNumericInputParams =
-            { labelText = "Root disk size (GB)"
-            , minVal = Just 2
-            , maxVal =
-                case volumeSizeGbAvail of
-                    OSTypes.Limit l ->
-                        Just l
+                nonVolBackedOptionText =
+                    if flavorRootDiskSize == 0 then
+                        String.join " "
+                            [ "Default for selected"
+                            , context.localization.staticRepresentationOfBlockDeviceContents
+                            , "(warning, could be too small for your work)"
+                            ]
 
-                    OSTypes.Unlimited ->
-                        Nothing
-            , defaultVal = Just defaultVolSizeGB
-            }
-
-        radioInput =
+                    else
+                        let
+                            { locale } =
+                                context
+                        in
+                        String.concat
+                            [ FormatNumber.format { locale | decimals = Exact 0 } (toFloat flavorRootDiskSize)
+                            , " GB (default for selected "
+                            , context.localization.virtualComputerHardwareConfig
+                            , ")"
+                            ]
+            in
             Input.radio [ Element.spacing spacer.px4 ]
                 { label = Input.labelHidden "Root disk size"
                 , onChange =
                     \new ->
                         let
                             newVolSizeTextInput =
-                                if new == True then
+                                if new then
                                     Just <| ValidNumericTextInput defaultVolSizeGB
 
                                 else
@@ -892,11 +1019,6 @@ volBackedPrompt project context model volumeQuota flavor =
                         Nothing ->
                             Just False
                 }
-    in
-    Element.column [ Element.spacing spacer.px12 ]
-        [ Text.strong "Choose a root disk size"
-        , if canLaunchVolBacked then
-            radioInput
 
           else
             Element.text <|
@@ -905,7 +1027,8 @@ volBackedPrompt project context model volumeQuota flavor =
                     , context.localization.blockDevice
                     , " "
                     , context.localization.maxResourcesPerProject
-                    , " exhausted, cannot launch a "
+                    , " exhausted, cannot launch "
+                    , Helpers.String.indefiniteArticle context.localization.blockDevice ++ " "
                     , context.localization.blockDevice
                     , "-backed "
                     , context.localization.virtualComputer
@@ -916,6 +1039,21 @@ volBackedPrompt project context model volumeQuota flavor =
                 Element.none
 
             Just volSizeTextInput ->
+                let
+                    defaultVolNumericInputParams =
+                        { labelText = "Root disk size (GB)"
+                        , minVal = Just 2
+                        , maxVal =
+                            case volumeSizeGbAvail of
+                                OSTypes.Limit l ->
+                                    Just l
+
+                                OSTypes.Unlimited ->
+                                    Nothing
+                        , defaultVal = Just defaultVolSizeGB
+                        , required = True
+                        }
+                in
                 Element.row [ Element.spacing spacer.px8 ]
                     [ numericTextInput
                         context.palette
@@ -942,7 +1080,7 @@ volBackedPrompt project context model volumeQuota flavor =
                     |> String.replace "%imageName%" model.imageName
                     |> invalidMessage context.palette
 
-            Helpers.ValidationResult.Accepted _ ->
+            Helpers.ValidationResult.Accepted ->
                 Element.none
 
             Helpers.ValidationResult.Unknown ->
@@ -1112,103 +1250,6 @@ workflowInputIsValid ( repository, reference, path ) =
 customWorkflowInputExperimental : View.Types.Context -> Project -> Model -> Element.Element Msg
 customWorkflowInputExperimental context project model =
     let
-        workflowInput =
-            let
-                displayRepoInputError =
-                    model.workflowInputRepository == "" && model.workflowInputIsValid == Just False
-
-                repoInputLabel =
-                    VH.requiredLabel context.palette (Element.text "DOI or Git repository URL")
-
-                repoInputHelperText =
-                    if displayRepoInputError then
-                        invalidMessage context.palette "Required"
-
-                    else
-                        Element.none
-
-                inputValidationStatusAttributes =
-                    if displayRepoInputError then
-                        VH.invalidInputAttributes context.palette
-
-                    else
-                        []
-
-                repoInput =
-                    Element.column [ Element.width Element.fill, Element.spacing spacer.px12 ]
-                        [ Input.text
-                            (Events.onLoseFocus GotWorkflowInputLoseFocus
-                                :: (VH.inputItemAttributes context.palette
-                                        ++ inputValidationStatusAttributes
-                                   )
-                            )
-                            { text = model.workflowInputRepository
-                            , placeholder =
-                                Just
-                                    (Input.placeholder
-                                        []
-                                        (Element.text "Example, https://github.com/binder-examples/minimal-dockerfile")
-                                    )
-                            , onChange =
-                                GotWorkflowRepository
-                            , label = Input.labelAbove [] repoInputLabel
-                            }
-                        , repoInputHelperText
-                        ]
-
-                referenceInput =
-                    Input.text
-                        (VH.inputItemAttributes context.palette
-                            ++ [ Events.onLoseFocus GotWorkflowInputLoseFocus ]
-                        )
-                        { text = model.workflowInputReference
-                        , placeholder =
-                            Just
-                                (Input.placeholder
-                                    []
-                                    (Element.text "Example, HEAD")
-                                )
-                        , onChange =
-                            GotWorkflowReference
-                        , label = Input.labelAbove [] (Element.text "Git reference (branch, tag, or commit)")
-                        }
-
-                sourcePathInput =
-                    let
-                        pathInputLabel =
-                            "Path to open"
-                    in
-                    Element.column
-                        [ Element.width Element.fill
-                        , Element.spacing spacer.px12
-                        ]
-                        [ Element.text pathInputLabel
-                        , Input.text
-                            (VH.inputItemAttributes context.palette
-                                ++ [ Events.onLoseFocus GotWorkflowInputLoseFocus ]
-                            )
-                            { text = model.workflowInputPath
-                            , placeholder =
-                                Just
-                                    (Input.placeholder
-                                        []
-                                        (Element.text "Example, /rstudio")
-                                    )
-                            , onChange =
-                                GotWorkflowPath
-                            , label = Input.labelHidden pathInputLabel
-                            }
-                        ]
-            in
-            Element.column
-                [ Element.width Element.fill
-                , Element.spacing spacer.px24
-                ]
-                [ repoInput
-                , referenceInput
-                , sourcePathInput
-                ]
-
         workflowExplanationToggleTip =
             Style.Widgets.ToggleTip.toggleTip
                 context
@@ -1227,7 +1268,7 @@ customWorkflowInputExperimental context project model =
                         ]
                     ]
                 )
-                ST.PositionTop
+                ST.PositionRight
 
         experimentalTag =
             Tag.tag context.palette "Experimental"
@@ -1257,108 +1298,113 @@ customWorkflowInputExperimental context project model =
                 ]
             , selected = Just model.includeWorkflow
             }
-            :: (if not model.includeWorkflow then
-                    [ Element.none ]
+            :: (if model.includeWorkflow then
+                    let
+                        displayRepoInputError =
+                            model.workflowInputRepository == "" && model.workflowInputIsValid == Just False
+
+                        repoInputLabel =
+                            VH.requiredLabel context.palette (Element.text "DOI or Git repository URL")
+
+                        repoInputHelperText =
+                            if displayRepoInputError then
+                                invalidMessage context.palette "Required"
+
+                            else
+                                Element.none
+
+                        inputValidationStatusAttributes =
+                            if displayRepoInputError then
+                                VH.invalidInputAttributes context.palette
+
+                            else
+                                []
+
+                        repoInput =
+                            Element.column [ Element.width Element.fill, Element.spacing spacer.px12 ]
+                                [ Input.text
+                                    (Events.onLoseFocus GotWorkflowInputLoseFocus
+                                        :: (VH.inputItemAttributes context.palette
+                                                ++ inputValidationStatusAttributes
+                                           )
+                                    )
+                                    { text = model.workflowInputRepository
+                                    , placeholder =
+                                        Just
+                                            (Input.placeholder
+                                                []
+                                                (Element.text "Example, https://github.com/binder-examples/minimal-dockerfile")
+                                            )
+                                    , onChange =
+                                        GotWorkflowRepository
+                                    , label = Input.labelAbove [] repoInputLabel
+                                    }
+                                , repoInputHelperText
+                                ]
+
+                        referenceInput =
+                            Input.text
+                                (VH.inputItemAttributes context.palette
+                                    ++ [ Events.onLoseFocus GotWorkflowInputLoseFocus ]
+                                )
+                                { text = model.workflowInputReference
+                                , placeholder =
+                                    Just
+                                        (Input.placeholder
+                                            []
+                                            (Element.text "Example, HEAD")
+                                        )
+                                , onChange =
+                                    GotWorkflowReference
+                                , label = Input.labelAbove [] (Element.text "Git reference (branch, tag, or commit)")
+                                }
+
+                        sourcePathInput =
+                            let
+                                pathInputLabel =
+                                    "Path to open"
+                            in
+                            Element.column
+                                [ Element.width Element.fill
+                                , Element.spacing spacer.px12
+                                ]
+                                [ Element.text pathInputLabel
+                                , Input.text
+                                    (VH.inputItemAttributes context.palette
+                                        ++ [ Events.onLoseFocus GotWorkflowInputLoseFocus ]
+                                    )
+                                    { text = model.workflowInputPath
+                                    , placeholder =
+                                        Just
+                                            (Input.placeholder
+                                                []
+                                                (Element.text "Example, /rstudio")
+                                            )
+                                    , onChange =
+                                        GotWorkflowPath
+                                    , label = Input.labelHidden pathInputLabel
+                                    }
+                                ]
+                    in
+                    [ Element.column
+                        [ Element.width Element.fill
+                        , Element.spacing spacer.px24
+                        ]
+                        [ repoInput
+                        , referenceInput
+                        , sourcePathInput
+                        ]
+                    ]
 
                 else
-                    [ workflowInput
-                    ]
+                    [ Element.none ]
                )
         )
-
-
-clusterInput : View.Types.Context -> Model -> Element.Element Msg
-clusterInput context model =
-    if context.experimentalFeaturesEnabled then
-        clusterInputExperimental context model
-
-    else
-        Element.none
-
-
-clusterInputExperimental : View.Types.Context -> Model -> Element.Element Msg
-clusterInputExperimental context model =
-    let
-        warnings =
-            [ Element.text {- @nonlocalized -} "Warning: This will only work on Jetstream Cloud, and can take 30 minutes or longer to set up a cluster."
-            , Element.text <|
-                String.concat
-                    [ "This feature currently only supports "
-                    , context.localization.staticRepresentationOfBlockDeviceContents
-                        |> Helpers.String.pluralize
-                    , " based on Rocky Linux 8. If you choose "
-                    , context.localization.staticRepresentationOfBlockDeviceContents
-                        |> Helpers.String.indefiniteArticle
-                    , " "
-                    , context.localization.staticRepresentationOfBlockDeviceContents
-                    , " based on a different operating system it is unlikely to work."
-                    ]
-            ]
-
-        experimentalTag =
-            Tag.tag context.palette "Experimental"
-    in
-    Element.column
-        [ Element.width Element.fill
-        , Element.spacing spacer.px12
-        ]
-        [ Input.radioRow [ Element.spacing spacer.px32 ]
-            { label =
-                Input.labelAbove VH.radioLabelAttributes
-                    (Element.wrappedRow [ Element.spacing spacer.px8 ]
-                        [ Text.text Text.Emphasized [] ("Create your own SLURM cluster with this " ++ context.localization.virtualComputer ++ " as the head node")
-                        , experimentalTag
-                        ]
-                    )
-            , onChange = GotCreateCluster
-            , options =
-                [ Input.option False (Element.text "No")
-                , Input.option True (Element.text "Yes")
-
-                {- -}
-                ]
-            , selected = Just model.createCluster
-            }
-        , if model.createCluster then
-            Alert.alert []
-                context.palette
-                { state = Alert.Warning
-                , showIcon = False
-                , showContainer = True
-                , content =
-                    Element.column
-                        [ Element.spacing spacer.px12, Element.width Element.fill ]
-                        (List.map (\warning -> Element.paragraph [] [ warning ]) warnings)
-                }
-
-          else
-            Element.none
-        ]
 
 
 desktopEnvironmentPicker : View.Types.Context -> Project -> Model -> Element.Element Msg
 desktopEnvironmentPicker context project model =
     let
-        genericMessage : String
-        genericMessage =
-            String.join " "
-                [ context.localization.graphicalDesktopEnvironment
-                    |> Helpers.String.capitalizeWord
-                , "works for"
-                , context.localization.staticRepresentationOfBlockDeviceContents
-                    |> Helpers.String.pluralize
-                , "based on Ubuntu (20.04 or newer), Rocky Linux, or AlmaLinux. If you selected a different operating system, it may not work. Also, if selected"
-                , context.localization.staticRepresentationOfBlockDeviceContents
-                , "does not have a desktop environment pre-installed,"
-                , context.localization.virtualComputer
-                , "may take a long time to deploy."
-                ]
-
-        cloudSpecificMessage : Maybe String
-        cloudSpecificMessage =
-            GetterSetters.cloudSpecificConfigLookup context.cloudSpecificConfigs project
-                |> Maybe.andThen .desktopMessage
-
         imageSpecificMessage : Maybe String
         imageSpecificMessage =
             GetterSetters.imageLookup project model.imageUuid
@@ -1376,6 +1422,12 @@ desktopEnvironmentPicker context project model =
                     Just message
 
                 Nothing ->
+                    let
+                        cloudSpecificMessage : Maybe String
+                        cloudSpecificMessage =
+                            GetterSetters.cloudSpecificConfigLookup context.cloudSpecificConfigs project
+                                |> Maybe.andThen .desktopMessage
+                    in
                     case cloudSpecificMessage of
                         Just "" ->
                             -- Empty string, cloud operator wants to hide message entirely
@@ -1385,6 +1437,22 @@ desktopEnvironmentPicker context project model =
                             Just message
 
                         Nothing ->
+                            let
+                                genericMessage : String
+                                genericMessage =
+                                    String.join " "
+                                        [ context.localization.graphicalDesktopEnvironment
+                                            |> Helpers.String.capitalizeWord
+                                        , "works for"
+                                        , context.localization.staticRepresentationOfBlockDeviceContents
+                                            |> Helpers.String.pluralize
+                                        , "based on Ubuntu (20.04 or newer), Rocky Linux, or AlmaLinux. If you selected a different operating system, it may not work. Also, if selected"
+                                        , context.localization.staticRepresentationOfBlockDeviceContents
+                                        , "does not have a desktop environment pre-installed,"
+                                        , context.localization.virtualComputer
+                                        , "may take a long time to deploy."
+                                        ]
+                            in
                             Just genericMessage
               )
                 |> Maybe.map Element.text
@@ -1394,9 +1462,11 @@ desktopEnvironmentPicker context project model =
 
                 rootDiskWarnText =
                     String.join " "
-                        [ "Warning: root disk may be too small for a graphical desktop environment. Please select a"
+                        [ "Warning: root disk may be too small for a graphical desktop environment. Please select"
+                        , Helpers.String.indefiniteArticle context.localization.virtualComputerHardwareConfig
                         , context.localization.virtualComputerHardwareConfig
-                        , "with a"
+                        , "with"
+                        , Helpers.String.indefiniteArticle <| String.fromInt warningMaxGB
                         , String.fromInt warningMaxGB
                         , "GB or larger root disk, or select a volume-backed root disk at least"
                         , String.fromInt warningMaxGB
@@ -1405,15 +1475,15 @@ desktopEnvironmentPicker context project model =
               in
               case model.volSizeTextInput of
                 Nothing ->
-                    case model.flavorId |> Maybe.andThen (GetterSetters.flavorLookup project) of
-                        Just flavor ->
+                    case model.selectedFlavor of
+                        WithSelectedFlavor flavor ->
                             if flavor.disk_root < warningMaxGB then
                                 Just <| Element.text rootDiskWarnText
 
                             else
                                 Nothing
 
-                        Nothing ->
+                        _ ->
                             Nothing
 
                 Just numericTextInput ->
@@ -1542,11 +1612,11 @@ skipOperatingSystemUpdatesPicker context model =
 networkPicker : View.Types.Context -> Project -> Model -> Element.Element Msg
 networkPicker context project model =
     let
-        networkOptions =
-            Helpers.newServerNetworkOptions project
-
         guidance =
             let
+                networkOptions =
+                    Helpers.newServerNetworkOptions project
+
                 withTextColor : String -> Element.Element msg
                 withTextColor text =
                     Element.paragraph
@@ -1604,7 +1674,8 @@ floatingIpPicker context project model =
                     , Input.option (UseFloatingIp CreateNewFloatingIp Unknown)
                         (Element.text <|
                             String.join " "
-                                [ "Assign a"
+                                [ "Assign"
+                                , Helpers.String.indefiniteArticle context.localization.floatingIpAddress
                                 , context.localization.floatingIpAddress
                                 , "to this"
                                 , context.localization.virtualComputer
@@ -1613,7 +1684,8 @@ floatingIpPicker context project model =
                     , Input.option DoNotUseFloatingIp
                         (Element.text <|
                             String.join " "
-                                [ "Do not create or assign a"
+                                [ "Do not create or assign"
+                                , Helpers.String.indefiniteArticle context.localization.floatingIpAddress
                                 , context.localization.floatingIpAddress
                                 ]
                         )
@@ -1623,7 +1695,8 @@ floatingIpPicker context project model =
                 { label =
                     Input.labelHidden <|
                         String.join " "
-                            [ "Choose a"
+                            [ "Choose"
+                            , Helpers.String.indefiniteArticle context.localization.floatingIpAddress
                             , context.localization.floatingIpAddress
                             , "option"
                             ]
@@ -1730,7 +1803,7 @@ keypairPicker context project model =
                     ]
 
             else
-                Input.radio []
+                Input.radio [ Element.spacing spacer.px4 ]
                     { label = Input.labelHidden promptText
                     , onChange = \keypairName -> GotKeypairName <| keypairName
                     , options = noneOption :: List.map keypairAsOption keypairs
@@ -1768,49 +1841,189 @@ keypairPicker context project model =
         ]
 
 
+securityGroupPicker : View.Types.Context -> Project -> Model -> Element.Element Msg
+securityGroupPicker context project model =
+    let
+        securityGroupAsOption : OSTypes.SecurityGroup -> Input.Option (Maybe String) Msg
+        securityGroupAsOption securityGroup =
+            let
+                description =
+                    Maybe.withDefault "" securityGroup.description
+
+                extraInfo =
+                    if String.isEmpty description then
+                        ""
+
+                    else
+                        " - " ++ description
+
+                rulesTable securityGroupUuid =
+                    SecurityGroupRulesTable.view context project securityGroupUuid
+            in
+            Input.option (Just securityGroup.uuid)
+                (Element.row []
+                    [ Element.el
+                        [ Element.width <| Element.maximum 600 <| Element.fill, Element.htmlAttribute <| Html.Attributes.style "min-width" "0" ]
+                        (VH.ellipsizedText (securityGroup.name ++ extraInfo))
+                    , Style.Widgets.ToggleTip.toggleTip
+                        context
+                        (SharedMsg << SharedMsg.TogglePopover)
+                        (Helpers.String.hyphenate
+                            [ "securityGroupRulesId"
+                            , project.auth.project.uuid
+                            , securityGroup.uuid
+                            ]
+                        )
+                        (rulesTable securityGroup.uuid)
+                        ST.PositionRight
+                    ]
+                )
+
+        promptText =
+            String.join " "
+                [ "Choose"
+                , Helpers.String.indefiniteArticle context.localization.securityGroup
+                , context.localization.securityGroup
+                ]
+
+        renderSecurityGroups securityGroups =
+            let
+                presets =
+                    securityGroups
+                        |> List.filter (securityGroupTaggedAs securityGroupExoTags.preset)
+
+                defaults =
+                    securityGroups
+                        |> List.filter (isDefaultSecurityGroup context project)
+            in
+            Input.radio [ Element.spacing spacer.px4 ]
+                { label = Input.labelHidden promptText
+                , onChange = \securityGroupUuid -> GotSecurityGroupUuid <| securityGroupUuid
+                , options = List.map securityGroupAsOption (defaults ++ presets)
+                , selected = Just model.securityGroupUuid
+                }
+
+        connectivityWarningView =
+            let
+                maybeSecurityGroupRules =
+                    model.securityGroupUuid
+                        |> Maybe.andThen (GetterSetters.securityGroupLookup project)
+                        |> Maybe.map .rules
+
+                connectivityChecks =
+                    case maybeSecurityGroupRules of
+                        Just securityGroupRules ->
+                            ([ Helpers.Connectivity.outgoingHttpRule
+                             , Helpers.Connectivity.outgoingHttpsRule
+                             , Helpers.Connectivity.outgoingDnsUdpRule
+                             , Helpers.Connectivity.outgoingDnsTcpRule
+                             , Helpers.Connectivity.incomingSshRule context
+                             ]
+                                ++ (if model.deployGuacamole == Just True then
+                                        [ Helpers.Connectivity.incomingGuacamoleRule context ]
+
+                                    else
+                                        []
+                                   )
+                                ++ (if model.deployDesktopEnvironment then
+                                        [ Helpers.Connectivity.incomingVncRule context ]
+
+                                    else
+                                        []
+                                   )
+                            )
+                                |> List.map (\c -> ( c, Helpers.Connectivity.isConnectionPermitted c securityGroupRules ))
+
+                        Nothing ->
+                            []
+
+                isConnectivityBroken =
+                    connectivityChecks
+                        |> List.any (\( _, permitted ) -> not permitted)
+            in
+            if isConnectivityBroken then
+                Alert.alert []
+                    context.palette
+                    { state = Alert.Warning
+                    , showIcon = True
+                    , showContainer = True
+                    , content =
+                        Element.column [ Element.spacing spacer.px8 ] <|
+                            List.map Text.body <|
+                                ("The selected "
+                                    ++ context.localization.securityGroup
+                                    ++ " may result in "
+                                    ++ context.localization.virtualComputer
+                                    ++ " setup problems:"
+                                )
+                                    :: (connectivityChecks
+                                            |> List.filter (\( _, permitted ) -> not permitted)
+                                            |> List.map
+                                                (\( c, _ ) ->
+                                                    " • "
+                                                        ++ Maybe.withDefault "Other connections" c.description
+                                                        ++ " may be blocked."
+                                                )
+                                       )
+                    }
+
+            else
+                Element.none
+    in
+    Element.column
+        [ Element.spacing spacer.px12 ]
+        [ Text.strong promptText
+        , VH.renderRDPP
+            context
+            project.securityGroups
+            (Helpers.String.pluralize context.localization.securityGroup)
+            renderSecurityGroups
+        , connectivityWarningView
+        ]
+
+
 userDataInput : View.Types.Context -> Model -> Element.Element Msg
 userDataInput context model =
     let
-        cloudConfigExamplesTooltip : Element.Element Msg
-        cloudConfigExamplesTooltip =
-            Style.Widgets.ToggleTip.toggleTip
-                context
-                (\toggleId -> SharedMsg (SharedMsg.TogglePopover toggleId))
-                "ServerCreate-cloud-config-examples-tooltip"
-                (Element.el
-                    [ Text.fontSize Text.Body
-                    , Element.width (Element.px 250)
-                    ]
-                    (let
-                        t =
-                            Element.text
-
-                        examples =
-                            Link.externalLink context.palette "https://cloudinit.readthedocs.io/en/latest/reference/examples.html" "examples"
-                     in
-                     Element.paragraph []
-                        [ t "Other configuration ", examples, t "." ]
-                    )
-                )
-                ST.PositionTopLeft
-
         cloudConfigExplainer : Element.Element Msg
         cloudConfigExplainer =
             let
-                t =
-                    Element.text
-
                 cloudInit =
                     Link.externalLink context.palette "https://cloudinit.readthedocs.io/en/latest/index.html" "cloud-init"
 
-                tooltip =
-                    cloudConfigExamplesTooltip
-
                 instance =
-                    t context.localization.virtualComputer
+                    Element.text context.localization.virtualComputer
+
+                cloudConfigExamplesTooltip =
+                    Style.Widgets.ToggleTip.toggleTip
+                        context
+                        (\toggleId -> SharedMsg (SharedMsg.TogglePopover toggleId))
+                        "ServerCreate-cloud-config-examples-tooltip"
+                        (Element.el
+                            [ Text.fontSize Text.Body
+                            , Element.width (Element.px 250)
+                            ]
+                            (let
+                                examples =
+                                    Link.externalLink context.palette "https://cloudinit.readthedocs.io/en/latest/reference/examples.html" "examples"
+                             in
+                             Element.paragraph []
+                                [ Element.text "Other configuration "
+                                , examples
+                                , Element.text "."
+                                ]
+                            )
+                        )
+                        ST.PositionTopLeft
             in
             Element.paragraph []
-                [ t "This ", cloudInit, tooltip, t " config describes how to provision the ", instance, t ". It's provided here to permit specific changes in rare circumstances; please modify it cautiously." ]
+                [ Element.text "This "
+                , cloudInit
+                , cloudConfigExamplesTooltip
+                , Element.text " config describes how to provision the "
+                , instance
+                , Element.text ". It's provided here to permit specific changes in rare circumstances; please modify it cautiously."
+                ]
 
         cloudConfigWarning : Element.Element Msg
         cloudConfigWarning =
@@ -1837,6 +2050,9 @@ userDataInput context model =
         receiveUserDataTemplate : String -> Msg
         receiveUserDataTemplate =
             GotUserDataTemplate
+
+        copyable =
+            copyableTextAccessory context.palette model.userDataTemplate
     in
     Element.column
         [ Element.spacing spacer.px12 ]
@@ -1844,32 +2060,38 @@ userDataInput context model =
             (Helpers.String.toTitleCase context.localization.cloudInitData)
         , cloudConfigExplainer
         , cloudConfigWarning
-        , Input.multiline
-            (VH.inputItemAttributes context.palette
-                ++ [ Element.width Element.fill
-                   , Element.height (Element.px 500)
-                   , Element.spacing spacer.px4
-                   , Font.family [ Font.monospace ]
-                   ]
-            )
-            { onChange = receiveUserDataTemplate
-            , text = model.userDataTemplate
-            , placeholder =
-                Just
-                    (Input.placeholder []
-                        (Element.text <|
-                            String.join
-                                " "
-                                [ "#!/bin/bash\n\n# Your"
-                                , context.localization.cloudInitData
-                                , "here"
-                                ]
+        , Element.row
+            [ Element.spacing spacer.px8 ]
+            [ Input.multiline
+                (VH.inputItemAttributes context.palette
+                    ++ [ Element.width Element.fill
+                       , Element.height (Element.px 500)
+                       , Element.spacing spacer.px4
+                       , Text.fontFamily Text.Mono
+                       ]
+                    ++ Text.typographyAttrs Tiny
+                    ++ [ copyable.id ]
+                )
+                { onChange = receiveUserDataTemplate
+                , text = model.userDataTemplate
+                , placeholder =
+                    Just
+                        (Input.placeholder []
+                            (Element.text <|
+                                String.join
+                                    " "
+                                    [ "#!/bin/bash\n\n# Your"
+                                    , context.localization.cloudInitData
+                                    , "here"
+                                    ]
+                            )
                         )
-                    )
-            , label =
-                Input.labelHidden <| Helpers.String.toTitleCase context.localization.cloudInitData
-            , spellcheck = False
-            }
+                , label =
+                    Input.labelHidden <| Helpers.String.toTitleCase context.localization.cloudInitData
+                , spellcheck = False
+                }
+            , copyable.accessory
+            ]
         ]
 
 
@@ -1890,22 +2112,23 @@ compareDiskSize project model =
         selectedDiskSize =
             case model.volSizeTextInput of
                 Nothing ->
-                    model.flavorId
-                        |> Maybe.andThen (GetterSetters.flavorLookup project)
-                        |> Maybe.map .disk_root
+                    case model.selectedFlavor of
+                        WithSelectedFlavor flavor ->
+                            Just <| .disk_root flavor
+
+                        _ ->
+                            Nothing
 
                 Just volSize ->
                     Style.Widgets.NumericTextInput.NumericTextInput.toMaybe volSize
 
         isDiskSizeEnough : Int -> Int -> Helpers.ValidationResult.ValidationResult Int
         isDiskSizeEnough disk imageMin =
-            { acceptable = imageMin, actual = disk }
-                |> (if disk >= imageMin then
-                        Helpers.ValidationResult.Accepted
+            if disk >= imageMin then
+                Helpers.ValidationResult.Accepted
 
-                    else
-                        Helpers.ValidationResult.Rejected
-                   )
+            else
+                Helpers.ValidationResult.Rejected { acceptable = imageMin, actual = disk }
     in
     Maybe.map2 isDiskSizeEnough selectedDiskSize minimumImageSize
         |> Maybe.withDefault Helpers.ValidationResult.Unknown

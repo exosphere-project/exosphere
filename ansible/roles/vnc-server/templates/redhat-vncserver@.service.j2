@@ -1,0 +1,17 @@
+[Unit]
+Description=TurboVNC Server
+After=syslog.target network.target
+
+[Service]
+Type=simple
+User={{ vnc_server_user }}
+PAMName=login
+PIDFile=/home/{{ vnc_server_user }}/.vnc/%H%i.pid
+ExecStartPre=-/opt/TurboVNC/bin/vncserver -kill :%i
+ExecStart=/opt/TurboVNC/bin/vncserver -fg -rfbauth /home/{{ vnc_server_user }}/.vnc/passwd :%i
+ExecStop=/opt/TurboVNC/bin/vncserver -kill :%i
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

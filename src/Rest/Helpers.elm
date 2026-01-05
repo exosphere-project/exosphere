@@ -1,6 +1,8 @@
 module Rest.Helpers exposing
     ( expectJsonWithErrorBody
     , expectStringWithErrorBody
+    , expectVoidWithErrorBody
+    , httpResponseStringToResult
     , idOrName
     , keystoneUrlWithVersion
     , openstackCredentialedRequest
@@ -18,6 +20,7 @@ import Types.Error exposing (ErrorContext, HttpErrorWithBody)
 import Types.HelperTypes as HelperTypes exposing (HttpRequestMethod(..))
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import Url
+import Url.Builder
 
 
 httpRequestMethodStr : HttpRequestMethod -> String
@@ -43,12 +46,12 @@ openstackCredentialedRequest :
     HelperTypes.ProjectIdentifier
     -> HttpRequestMethod
     -> Maybe String
-    -> List ( String, String )
-    -> String
+    -> HelperTypes.Headers
+    -> ( HelperTypes.Url, HelperTypes.UrlPath, HelperTypes.UrlParams )
     -> Http.Body
     -> Http.Expect SharedMsg
     -> Cmd SharedMsg
-openstackCredentialedRequest projectId method maybeMicroversion additionalHeaders origUrl requestBody expect =
+openstackCredentialedRequest projectId method maybeMicroversion additionalHeaders urlParts requestBody expect =
     {-
        Prepare an HTTP request to OpenStack which requires a currently valid auth token and maybe a proxy server URL.
 
@@ -61,6 +64,13 @@ openstackCredentialedRequest projectId method maybeMicroversion additionalHeader
         requestProto : Maybe HelperTypes.Url -> OSTypes.AuthTokenString -> Cmd SharedMsg
         requestProto maybeProxyUrl token =
             let
+                origUrl =
+                    let
+                        ( baseUrl, urlParameters, urlQueryParameters ) =
+                            urlParts
+                    in
+                    Url.Builder.crossOrigin baseUrl urlParameters urlQueryParameters
+
                 ( url, headers ) =
                     case maybeProxyUrl of
                         Just proxyUrl ->
@@ -151,59 +161,58 @@ resultToMsgErrorBody errorContext successMsg result =
             successMsg stuff
 
 
+httpResponseStringToResult : (String -> Result HttpErrorWithBody a) -> Http.Response String -> Result HttpErrorWithBody a
+httpResponseStringToResult decode response =
+    case response of
+        Http.BadUrl_ url ->
+            Err <| HttpErrorWithBody (Http.BadUrl url) ""
+
+        Http.Timeout_ ->
+            Err <| HttpErrorWithBody Http.Timeout ""
+
+        Http.NetworkError_ ->
+            Err <| HttpErrorWithBody Http.NetworkError ""
+
+        Http.BadStatus_ metadata body ->
+            Err <| HttpErrorWithBody (Http.BadStatus metadata.statusCode) body
+
+        Http.GoodStatus_ _ body ->
+            body |> decode
+
+
 expectStringWithErrorBody : (Result HttpErrorWithBody String -> msg) -> Http.Expect msg
 expectStringWithErrorBody toMsg =
-    -- TODO DRY with function below
     -- Implements the example here: https://package.elm-lang.org/packages/elm/http/latest/Http#expectStringResponse
     -- When we have an error with the response, we return the error along with the response body
     -- so that we can show the response body as an error message in the app.
     Http.expectStringResponse toMsg <|
-        \response ->
-            case response of
-                Http.BadUrl_ url ->
-                    Err <| HttpErrorWithBody (Http.BadUrl url) ""
+        httpResponseStringToResult Ok
 
-                Http.Timeout_ ->
-                    Err <| HttpErrorWithBody Http.Timeout ""
 
-                Http.NetworkError_ ->
-                    Err <| HttpErrorWithBody Http.NetworkError ""
-
-                Http.BadStatus_ metadata body ->
-                    Err <| HttpErrorWithBody (Http.BadStatus metadata.statusCode) body
-
-                Http.GoodStatus_ _ body ->
-                    Ok body
+{-| Used when the response we expect is an http code & no particular body content,
+but we care about the response body in case of an error.
+-}
+expectVoidWithErrorBody : (Result HttpErrorWithBody () -> msg) -> Http.Expect msg
+expectVoidWithErrorBody toMsg =
+    Http.expectStringResponse toMsg <|
+        httpResponseStringToResult
+            (\_ -> Ok ())
 
 
 expectJsonWithErrorBody : (Result HttpErrorWithBody a -> msg) -> Decode.Decoder a -> Http.Expect msg
 expectJsonWithErrorBody toMsg decoder =
-    -- TODO DRY with function above
     -- Implements the example here: https://package.elm-lang.org/packages/elm/http/latest/Http#expectStringResponse
     -- When we have an error with the response or the JSON decoding, we return the error along with the response body
     -- so that we can show the response body as an error message in the app.
     Http.expectStringResponse toMsg <|
-        \response ->
-            case response of
-                Http.BadUrl_ url ->
-                    Err <| HttpErrorWithBody (Http.BadUrl url) ""
+        httpResponseStringToResult <|
+            \body ->
+                case Decode.decodeString decoder body of
+                    Ok value ->
+                        Ok value
 
-                Http.Timeout_ ->
-                    Err <| HttpErrorWithBody Http.Timeout ""
-
-                Http.NetworkError_ ->
-                    Err <| HttpErrorWithBody Http.NetworkError ""
-
-                Http.BadStatus_ metadata body ->
-                    Err <| HttpErrorWithBody (Http.BadStatus metadata.statusCode) body
-
-                Http.GoodStatus_ _ body ->
-                    case Decode.decodeString decoder body of
-                        Ok value ->
-                            Ok value
-
-                        Err err ->
-                            Err <| HttpErrorWithBody (Http.BadBody (Decode.errorToString err)) body
+                    Err err ->
+                        Err <| HttpErrorWithBody (Http.BadBody (Decode.errorToString err)) body
 
 
 keystoneUrlWithVersion : String -> String

@@ -1,7 +1,10 @@
-module Style.Widgets.CopyableText exposing (copyableText, copyableTextAccessory, notes)
+module Style.Widgets.CopyableText exposing (copyableScript, copyableText, copyableTextAccessory, notes)
 
 import Element exposing (Element)
+import Element.Background as Background
+import Element.Border as Border
 import Element.Input as Input
+import Html
 import Html.Attributes
 import Murmur3
 import Style.Helpers as SH
@@ -40,6 +43,47 @@ copyableText palette textAttributes text =
         , Element.el [] Element.none -- To preserve spacing
         , copyable.accessory
         ]
+
+
+{-| Create a copyable script block
+
+    copyableScript context.palette "some \\\n  preformatted \\\n  script"
+
+-}
+copyableScript : ExoPalette -> String -> Element.Element msg
+copyableScript palette script =
+    let
+        copyableAccessory =
+            copyableTextAccessory palette script
+    in
+    Element.el
+        ([ Element.inFront <|
+            Element.el
+                [ Element.alignRight
+                , Element.moveLeft <| toFloat spacer.px4
+                , Element.moveDown <| toFloat spacer.px4
+                ]
+                copyableAccessory.accessory
+         , copyableAccessory.id
+         , Element.width Element.fill
+         , Border.solid
+         , Border.width 1
+         , Border.rounded 3
+         , Element.padding spacer.px8
+         , Text.fontFamily Text.Mono
+         , Background.color <| SH.toElementColor palette.neutral.background.frontLayer
+         , Border.color <| SH.toElementColor palette.neutral.border
+         ]
+            ++ Text.typographyAttrs Text.Small
+        )
+    <|
+        Element.html <|
+            Html.pre
+                [ Html.Attributes.style "margin" "0"
+                , Html.Attributes.style "white-space" "pre-wrap"
+                , Html.Attributes.style "word-wrap" "anywhere"
+                ]
+                [ Html.text script ]
 
 
 {-| Create a copy text accessory & an html attribute id to identify the copyable text.

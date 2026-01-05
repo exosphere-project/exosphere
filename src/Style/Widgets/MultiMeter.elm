@@ -105,8 +105,9 @@ tooltip position label tooltipLink =
             , Element.mouseOver [ Element.transparent False ]
             , Element.htmlAttribute (HtmlA.attribute "role" "tooltip")
             , Element.htmlAttribute (HtmlA.id tooltipLink)
-            , (position << Element.map never) <|
-                Element.el [ Element.htmlAttribute (HtmlA.style "pointerEvents" "none") ]
-                    (tooltipLabel label)
+            , position <|
+                Element.map never <|
+                    Element.el [ Element.htmlAttribute (HtmlA.style "pointerEvents" "none") ]
+                        (tooltipLabel label)
             ]
             Element.none

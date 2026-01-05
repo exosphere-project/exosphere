@@ -80,24 +80,22 @@ view_ context project model computeQuota =
         restrictFlavorIds_ : Server -> List OSTypes.FlavorId
         restrictFlavorIds_ server =
             let
-                currentFlavorRootDiskSize =
-                    case GetterSetters.flavorLookup project server.osProps.details.flavorId of
-                        Just flavor ->
-                            flavor.disk_root
-
-                        Nothing ->
-                            0
-
                 minRootDiskSize =
-                    case GetterSetters.getBootVolume (RDPP.withDefault [] project.volumes) model.serverUuid of
+                    case GetterSetters.getBootVolume project model.serverUuid of
                         Just _ ->
                             -- Server is volume-backed, so root disk size of flavor does not matter
                             0
 
                         Nothing ->
-                            currentFlavorRootDiskSize
+                            case GetterSetters.flavorLookup project server.osProps.details.flavorId of
+                                Just flavor ->
+                                    flavor.disk_root
+
+                                Nothing ->
+                                    0
             in
             project.flavors
+                |> RDPP.withDefault []
                 |> List.filter (\flavor -> flavor.disk_root >= minRootDiskSize)
                 |> List.map .id
 
@@ -125,6 +123,7 @@ view_ context project model computeQuota =
             [ VH.flavorPicker context
                 project
                 restrictFlavorIds
+                (Just ("This flavor has a root disk smaller than your current " ++ context.localization.virtualComputer))
                 computeQuota
                 (\flavorGroupTipId -> SharedMsg <| SharedMsg.TogglePopover flavorGroupTipId)
                 (Helpers.String.hyphenate [ "serverResizeFlavorGroupTip", project.auth.project.uuid ])

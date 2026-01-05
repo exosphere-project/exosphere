@@ -4,6 +4,7 @@ import Page.FloatingIpAssign
 import Page.FloatingIpCreate
 import Page.FloatingIpList
 import Page.GetSupport
+import Page.HelpAbout
 import Page.Home
 import Page.ImageList
 import Page.InstanceSourcePicker
@@ -13,6 +14,8 @@ import Page.LoginOpenstack
 import Page.LoginPicker
 import Page.MessageLog
 import Page.ProjectOverview
+import Page.SecurityGroupDetail
+import Page.SecurityGroupList
 import Page.SelectProjectRegions
 import Page.SelectProjects
 import Page.ServerCreate
@@ -20,7 +23,9 @@ import Page.ServerCreateImage
 import Page.ServerDetail
 import Page.ServerList
 import Page.ServerResize
+import Page.ServerSecurityGroups
 import Page.Settings
+import Page.ShareCreate
 import Page.ShareDetail
 import Page.ShareList
 import Page.VolumeAttach
@@ -37,6 +42,7 @@ type OuterMsg
     | FloatingIpAssignMsg Page.FloatingIpAssign.Msg
     | FloatingIpListMsg Page.FloatingIpList.Msg
     | GetSupportMsg Page.GetSupport.Msg
+    | HelpAboutMsg Page.HelpAbout.Msg
     | HomeMsg Page.Home.Msg
     | ImageListMsg Page.ImageList.Msg
     | InstanceSourcePickerMsg Page.InstanceSourcePicker.Msg
@@ -54,10 +60,14 @@ type OuterMsg
     | VolumeDetailMsg Page.VolumeDetail.Msg
     | VolumeListMsg Page.VolumeList.Msg
     | VolumeMountInstructionsMsg Page.VolumeMountInstructions.Msg
+    | SecurityGroupDetailMsg Page.SecurityGroupDetail.Msg
+    | SecurityGroupListMsg Page.SecurityGroupList.Msg
     | ServerCreateMsg Page.ServerCreate.Msg
     | ServerCreateImageMsg Page.ServerCreateImage.Msg
     | ServerDetailMsg Page.ServerDetail.Msg
     | ServerListMsg Page.ServerList.Msg
     | ServerResizeMsg Page.ServerResize.Msg
+    | ServerSecurityGroupsMsg Page.ServerSecurityGroups.Msg
+    | ShareCreateMsg Page.ShareCreate.Msg
     | ShareDetailMsg Page.ShareDetail.Msg
     | ShareListMsg Page.ShareList.Msg

@@ -1,21 +1,30 @@
 module State.State exposing (update)
 
 import Browser
+import Browser.Events
 import Browser.Navigation
 import Dict
 import Helpers.ExoSetupStatus
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
+import Helpers.ServerActionRequestQueue exposing (marshalServerActionRequestQueue)
 import Helpers.ServerResourceUsage
 import Helpers.String exposing (pluralize, toTitleCase)
+import Helpers.WebLock
 import Http
+import Json.Decode as Decode
+import Json.Encode
 import List.Extra
 import LocalStorage.LocalStorage as LocalStorage
 import Maybe
+import OpenStack.DnsRecordSet
+import OpenStack.Error
+import OpenStack.SecurityGroupRule as SecurityGroupRule
 import OpenStack.ServerPassword as OSServerPassword
 import OpenStack.ServerTags as OSServerTags
 import OpenStack.ServerVolumes as OSSvrVols
+import OpenStack.Shares as OSShares
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes as OSVolumes
 import Orchestration.GoalServer as GoalServer
@@ -24,6 +33,7 @@ import Page.FloatingIpAssign
 import Page.FloatingIpCreate
 import Page.FloatingIpList
 import Page.GetSupport
+import Page.HelpAbout
 import Page.Home
 import Page.ImageList
 import Page.InstanceSourcePicker
@@ -33,6 +43,9 @@ import Page.LoginOpenstack
 import Page.LoginPicker
 import Page.MessageLog
 import Page.ProjectOverview
+import Page.SecurityGroupDetail
+import Page.SecurityGroupForm
+import Page.SecurityGroupList
 import Page.SelectProjectRegions
 import Page.SelectProjects
 import Page.ServerCreate
@@ -40,15 +53,19 @@ import Page.ServerCreateImage
 import Page.ServerDetail
 import Page.ServerList
 import Page.ServerResize
+import Page.ServerSecurityGroups
 import Page.Settings
+import Page.ShareCreate
 import Page.ShareDetail
 import Page.ShareList
 import Page.VolumeAttach
 import Page.VolumeCreate
 import Page.VolumeDetail
 import Page.VolumeList
+import Page.VolumeMountInstructions
 import Ports
 import Rest.ApiModelHelpers as ApiModelHelpers
+import Rest.Banner exposing (receiveBanners, requestBanners)
 import Rest.Designate
 import Rest.Glance
 import Rest.Keystone
@@ -63,14 +80,19 @@ import Style.Widgets.NumericTextInput.NumericTextInput
 import Style.Widgets.Toast as Toast
 import Task
 import Time
+import Types.Banner exposing (bannerId)
 import Types.Error as Error exposing (AppError, ErrorContext, ErrorLevel(..))
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes as HelperTypes exposing (UnscopedProviderProject)
+import Types.Interactivity as Interactivity exposing (InteractionLevel(..))
 import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Endpoints, Project, ProjectSecret(..))
+import Types.SecurityGroupActions as SecurityGroupActions
 import Types.Server exposing (ExoSetupStatus(..), NewServerNetworkOptions(..), Server, ServerFromExoProps, ServerOrigin(..), currentExoServerVersion)
+import Types.ServerActionRequestQueue as ServerActionRequestQueue
 import Types.ServerResourceUsage
+import Types.ServerVolumeActions as ServerVolumeActions
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..), TickInterval)
 import Types.View
@@ -86,6 +108,7 @@ import Types.Workflow
         , CustomWorkflowTokenRDPP
         , ServerCustomWorkflowStatus(..)
         )
+import UUID
 import Url
 import View.Helpers exposing (toExoPalette)
 
@@ -97,9 +120,11 @@ update msg result =
             ( Err appError, Cmd.none )
 
         Ok model ->
-            case updateValid msg model of
-                ( newModel, nextMsg ) ->
-                    ( Ok newModel, nextMsg )
+            let
+                ( newModel, nextMsg ) =
+                    updateValid msg model
+            in
+            ( Ok newModel, nextMsg )
 
 
 updateValid : OuterMsg -> OuterModel -> ( OuterModel, Cmd OuterMsg )
@@ -175,6 +200,17 @@ updateUnderlying outerMsg outerModel =
                 | viewState = NonProjectView <| GetSupport newPageModel
               }
             , Cmd.map GetSupportMsg cmd
+            )
+                |> pipelineCmdOuterModelMsg
+                    (processSharedMsg sharedMsg)
+
+        ( HelpAboutMsg pageMsg, NonProjectView HelpAbout ) ->
+            let
+                ( cmd, sharedMsg ) =
+                    Page.HelpAbout.update pageMsg sharedModel
+            in
+            ( outerModel
+            , Cmd.map HelpAboutMsg cmd
             )
                 |> pipelineCmdOuterModelMsg
                     (processSharedMsg sharedMsg)
@@ -396,10 +432,40 @@ updateUnderlying outerMsg outerModel =
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
 
+                        ( SecurityGroupDetailMsg pageMsg, SecurityGroupDetail pageModel ) ->
+                            let
+                                ( newSharedModel, cmd, sharedMsg ) =
+                                    Page.SecurityGroupDetail.update pageMsg sharedModel project pageModel
+                            in
+                            ( { outerModel
+                                | viewState =
+                                    ProjectView projectId <|
+                                        SecurityGroupDetail newSharedModel
+                              }
+                            , Cmd.map SecurityGroupDetailMsg cmd
+                            )
+                                |> pipelineCmdOuterModelMsg
+                                    (processSharedMsg sharedMsg)
+
+                        ( SecurityGroupListMsg pageMsg, SecurityGroupList pageModel ) ->
+                            let
+                                ( newSharedModel, cmd, sharedMsg ) =
+                                    Page.SecurityGroupList.update pageMsg project pageModel
+                            in
+                            ( { outerModel
+                                | viewState =
+                                    ProjectView projectId <|
+                                        SecurityGroupList newSharedModel
+                              }
+                            , Cmd.map SecurityGroupListMsg cmd
+                            )
+                                |> pipelineCmdOuterModelMsg
+                                    (processSharedMsg sharedMsg)
+
                         ( ServerCreateMsg pageMsg, ServerCreate pageModel ) ->
                             let
                                 ( newSharedModel, cmd, sharedMsg ) =
-                                    Page.ServerCreate.update pageMsg project pageModel
+                                    Page.ServerCreate.update pageMsg sharedModel project pageModel
                             in
                             ( { outerModel
                                 | viewState =
@@ -471,6 +537,36 @@ updateUnderlying outerMsg outerModel =
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
 
+                        ( ServerSecurityGroupsMsg pageMsg, ServerSecurityGroups pageModel ) ->
+                            let
+                                ( newSharedModel, cmd, sharedMsg ) =
+                                    Page.ServerSecurityGroups.update pageMsg sharedModel project pageModel
+                            in
+                            ( { outerModel
+                                | viewState =
+                                    ProjectView projectId <|
+                                        ServerSecurityGroups newSharedModel
+                              }
+                            , Cmd.map ServerSecurityGroupsMsg cmd
+                            )
+                                |> pipelineCmdOuterModelMsg
+                                    (processSharedMsg sharedMsg)
+
+                        ( ShareCreateMsg pageMsg, ShareCreate pageModel ) ->
+                            let
+                                ( newSharedModel, cmd, sharedMsg ) =
+                                    Page.ShareCreate.update pageMsg project pageModel
+                            in
+                            ( { outerModel
+                                | viewState =
+                                    ProjectView projectId <|
+                                        ShareCreate newSharedModel
+                              }
+                            , Cmd.map ShareCreateMsg cmd
+                            )
+                                |> pipelineCmdOuterModelMsg
+                                    (processSharedMsg sharedMsg)
+
                         ( ShareDetailMsg pageMsg, ShareDetail pageModel ) ->
                             let
                                 ( newSharedModel, cmd, sharedMsg ) =
@@ -489,7 +585,7 @@ updateUnderlying outerMsg outerModel =
                         ( ShareListMsg pageMsg, ShareList pageModel ) ->
                             let
                                 ( newSharedModel, cmd, sharedMsg ) =
-                                    Page.ShareList.update pageMsg pageModel
+                                    Page.ShareList.update pageMsg project pageModel
                             in
                             ( { outerModel
                                 | viewState =
@@ -561,6 +657,21 @@ updateUnderlying outerMsg outerModel =
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
 
+                        ( VolumeMountInstructionsMsg pageMsg, VolumeMountInstructions pageModel ) ->
+                            let
+                                ( newSharedModel, cmd, sharedMsg ) =
+                                    Page.VolumeMountInstructions.update pageMsg project pageModel
+                            in
+                            ( { outerModel
+                                | viewState =
+                                    ProjectView projectId <|
+                                        VolumeMountInstructions newSharedModel
+                              }
+                            , Cmd.map VolumeMountInstructionsMsg cmd
+                            )
+                                |> pipelineCmdOuterModelMsg
+                                    (processSharedMsg sharedMsg)
+
                         _ ->
                             -- This is not great because it allows us to forget to write a case statement above, but I don't know of a nicer way to write a catchall case for when a page-specific Msg is received for an inapplicable page.
                             ( outerModel, Cmd.none )
@@ -614,8 +725,87 @@ processSharedMsg sharedMsg outerModel =
         Logout ->
             ( outerModel, Ports.logout () )
 
+        Batch sharedMsgs ->
+            List.foldl
+                (\msg ( model, cmd ) ->
+                    let
+                        ( newModel, newCmd ) =
+                            processSharedMsg msg model
+                    in
+                    ( newModel, Cmd.batch [ cmd, newCmd ] )
+                )
+                ( outerModel, Cmd.none )
+                sharedMsgs
+
         ToastMsg subMsg ->
             Toast.update ToastMsg subMsg outerModel.sharedModel
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
+        RequestBanners ->
+            ( sharedModel, requestBanners ReceiveBanners outerModel.sharedModel.banners )
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
+        DismissBanner bannerId ->
+            let
+                oldBanners =
+                    sharedModel.banners
+
+                newBanners =
+                    { oldBanners | dismissedBanners = Set.insert bannerId sharedModel.banners.dismissedBanners }
+
+                newSharedModel =
+                    { sharedModel | banners = newBanners }
+            in
+            ( { outerModel | sharedModel = newSharedModel }, Cmd.none )
+
+        ReceiveBanners errorContext res ->
+            (case res of
+                Ok banners ->
+                    let
+                        ( newBanners, cmd ) =
+                            receiveBanners
+                                sharedModel.banners
+                                banners
+
+                        newDismissedBanners =
+                            let
+                                newBannerIds =
+                                    newBanners.banners
+                                        |> List.map bannerId
+                                        |> Set.fromList
+                            in
+                            { newBanners | dismissedBanners = Set.intersect newBannerIds newBanners.dismissedBanners }
+                    in
+                    ( { sharedModel | banners = newDismissedBanners }, cmd )
+
+                Err err ->
+                    State.Error.processSynchronousApiError sharedModel errorContext err
+            )
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
+        RequestAppVersion ->
+            ApiModelHelpers.requestAppVersion sharedModel
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
+        ReceiveAppVersion errorContext res ->
+            (case res of
+                Ok version ->
+                    ( { sharedModel
+                        | latestVersion =
+                            RDPP.RemoteDataPlusPlus
+                                (RDPP.DoHave version sharedModel.clientCurrentTime)
+                                (RDPP.NotLoading Nothing)
+                      }
+                    , Cmd.none
+                    )
+
+                Err err ->
+                    State.Error.processSynchronousApiError sharedModel errorContext err
+            )
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
@@ -628,6 +818,32 @@ processSharedMsg sharedMsg outerModel =
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
+        ReceiveWebLock ( resource, granted ) ->
+            if granted then
+                -- We have the lock.
+                let
+                    webLock =
+                        Helpers.WebLock.resourceIdToWebLock resource
+                in
+                case webLock of
+                    Just (Helpers.WebLock.ProjectMsg projectIdentifier innerMsg) ->
+                        case GetterSetters.projectLookup sharedModel projectIdentifier of
+                            Just project ->
+                                -- Handle this like a normal project-specific message.
+                                processProjectSpecificMsg outerModel project innerMsg
+
+                            Nothing ->
+                                -- We couldn't find the project.
+                                ( outerModel, Cmd.none )
+
+                    _ ->
+                        -- Unrecognized web lock resource id.
+                        ( outerModel, Cmd.none )
+
+            else
+                -- We were denied the lock, do nothing.
+                ( outerModel, Cmd.none )
+
         MsgChangeWindowSize x y ->
             ( { sharedModel
                 | viewContext =
@@ -639,12 +855,25 @@ processSharedMsg sharedMsg outerModel =
             )
                 |> mapToOuterModel outerModel
 
+        VisibilityChanged visibility ->
+            (case visibility of
+                Browser.Events.Visible ->
+                    -- The page or tab has just become visible.
+                    -- Fetch the latest app version.
+                    ApiModelHelpers.requestAppVersion sharedModel
+
+                Browser.Events.Hidden ->
+                    ( sharedModel, Cmd.none )
+            )
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
         Tick interval time ->
             processTick outerModel interval time
                 |> mapToOuterModel outerModel
 
         DoOrchestration posixTime ->
-            Orchestration.orchModel sharedModel posixTime
+            Orchestration.orchModel outerModel.viewState sharedModel posixTime
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
@@ -713,7 +942,7 @@ processSharedMsg sharedMsg outerModel =
                                                     ErrorCrit
                                                     (Just ("Please check with your " ++ viewContext.localization.openstackWithOwnKeystone ++ " administrator or the Exosphere developers."))
                                                 )
-                                                ("Could not find any endpoints with a " ++ viewContext.localization.openstackSharingKeystoneWithAnother ++ " ID.")
+                                                ("Could not find any endpoints with " ++ Helpers.String.indefiniteArticle viewContext.localization.openstackSharingKeystoneWithAnother ++ " " ++ viewContext.localization.openstackSharingKeystoneWithAnother ++ " ID.")
                                                 |> mapToOuterMsg
                                                 |> mapToOuterModel outerModel_
 
@@ -1054,128 +1283,18 @@ processSharedMsg sharedMsg outerModel =
 processTick : OuterModel -> TickInterval -> Time.Posix -> ( SharedModel, Cmd OuterMsg )
 processTick outerModel interval time =
     let
-        serverVolsNeedFrequentPoll : Project -> Server -> Bool
-        serverVolsNeedFrequentPoll project server =
-            GetterSetters.getVolsAttachedToServer project server
-                |> List.any volNeedsFrequentPoll
-
-        volNeedsFrequentPoll volume =
-            not <|
-                List.member
-                    volume.status
-                    [ OSTypes.Available
-                    , OSTypes.Maintenance
-                    , OSTypes.InUse
-                    , OSTypes.Error
-                    , OSTypes.ErrorDeleting
-                    , OSTypes.ErrorBackingUp
-                    , OSTypes.ErrorRestoring
-                    , OSTypes.ErrorExtending
-                    ]
-
-        viewIndependentCmd =
+        orchestrationCmd =
             if interval == 5 then
                 Task.perform DoOrchestration Time.now
 
             else
                 Cmd.none
 
-        ( viewDependentModel, viewDependentCmd ) =
-            {- TODO move some of this to Orchestration? -}
-            case outerModel.viewState of
-                NonProjectView _ ->
-                    ( outerModel.sharedModel, Cmd.none )
-
-                ProjectView projectName projectViewState ->
-                    case GetterSetters.projectLookup outerModel.sharedModel projectName of
-                        Nothing ->
-                            {- Should this throw an error? -}
-                            ( outerModel.sharedModel, Cmd.none )
-
-                        Just project ->
-                            let
-                                pollVolumes : ( SharedModel, Cmd SharedMsg )
-                                pollVolumes =
-                                    ( outerModel.sharedModel
-                                    , case interval of
-                                        5 ->
-                                            if List.any volNeedsFrequentPoll (RDPP.withDefault [] project.volumes) then
-                                                OSVolumes.requestVolumes project
-
-                                            else
-                                                Cmd.none
-
-                                        60 ->
-                                            OSVolumes.requestVolumes project
-
-                                        _ ->
-                                            Cmd.none
-                                    )
-                            in
-                            case projectViewState of
-                                ProjectOverview _ ->
-                                    pollVolumes
-
-                                ServerDetail model ->
-                                    let
-                                        volCmd =
-                                            OSVolumes.requestVolumes project
-                                    in
-                                    case interval of
-                                        5 ->
-                                            case GetterSetters.serverLookup project model.serverUuid of
-                                                Just server ->
-                                                    ( outerModel.sharedModel
-                                                    , if serverVolsNeedFrequentPoll project server then
-                                                        volCmd
-
-                                                      else
-                                                        Cmd.none
-                                                    )
-
-                                                Nothing ->
-                                                    ( outerModel.sharedModel, Cmd.none )
-
-                                        300 ->
-                                            ( outerModel.sharedModel, volCmd )
-
-                                        _ ->
-                                            ( outerModel.sharedModel, Cmd.none )
-
-                                VolumeDetail pageModel ->
-                                    ( outerModel.sharedModel
-                                    , case interval of
-                                        5 ->
-                                            case GetterSetters.volumeLookup project pageModel.volumeUuid of
-                                                Nothing ->
-                                                    Cmd.none
-
-                                                Just volume ->
-                                                    if volNeedsFrequentPoll volume then
-                                                        OSVolumes.requestVolumes project
-
-                                                    else
-                                                        Cmd.none
-
-                                        60 ->
-                                            OSVolumes.requestVolumes project
-
-                                        _ ->
-                                            Cmd.none
-                                    )
-
-                                VolumeList _ ->
-                                    pollVolumes
-
-                                _ ->
-                                    ( outerModel.sharedModel, Cmd.none )
+        sharedModel =
+            outerModel.sharedModel
     in
-    ( { viewDependentModel | clientCurrentTime = time }
-    , Cmd.batch
-        [ viewDependentCmd
-        , viewIndependentCmd
-        ]
-        |> Cmd.map SharedMsg
+    ( { sharedModel | clientCurrentTime = time }
+    , orchestrationCmd |> Cmd.map SharedMsg
     )
 
 
@@ -1265,6 +1384,30 @@ processProjectSpecificMsg outerModel project msg =
             in
             ( newOuterModel, cmd )
 
+        EnsureDefaultSecurityGroup ->
+            -- We expect to have a weblock when this is called.
+            let
+                maybeSecurityGroups =
+                    project.securityGroups
+                        -- Using `withDefault []` would be dangerous here because then we would recreate the default group.
+                        -- We ought to proceed only when we know the list.
+                        |> RDPP.toMaybe
+
+                ( newProject, cmds ) =
+                    case maybeSecurityGroups of
+                        Just groups ->
+                            Rest.Neutron.ensureDefaultSecurityGroup sharedModel.viewContext project groups
+
+                        _ ->
+                            ( project, [] )
+
+                newSharedModel =
+                    GetterSetters.modelUpdateProject sharedModel newProject
+            in
+            ( newSharedModel, Cmd.batch cmds )
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
         ServerMsg serverUuid serverMsgConstructor ->
             case GetterSetters.serverLookup project serverUuid of
                 Nothing ->
@@ -1293,13 +1436,28 @@ processProjectSpecificMsg outerModel project msg =
         RequestImageVisibilityChange imageUuid visibility ->
             ( outerModel, Rest.Glance.requestChangeVisibility project imageUuid visibility ) |> mapToOuterMsg
 
-        RequestServers ->
-            ApiModelHelpers.requestServers (GetterSetters.projectIdentifier project) sharedModel
+        ReceiveDnsRecordSets sets ->
+            Rest.Designate.receiveRecordSets sharedModel project sets
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
-        ReceiveDnsRecordSets sets ->
-            Rest.Designate.receiveRecordSets sharedModel project sets
+        ReceiveCreateDnsRecordSet _ (Ok data) ->
+            Rest.Designate.receiveCreateRecordSet sharedModel project data
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
+        ReceiveDeleteDnsRecordSet _ (Ok data) ->
+            Rest.Designate.receiveDeleteRecordSet sharedModel project data
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
+        ReceiveCreateDnsRecordSet context (Err e) ->
+            State.Error.processSynchronousApiError sharedModel context e
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
+        ReceiveDeleteDnsRecordSet context (Err e) ->
+            State.Error.processSynchronousApiError sharedModel context e
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
@@ -1326,6 +1484,7 @@ processProjectSpecificMsg outerModel project msg =
                             |> Maybe.andThen Style.Widgets.NumericTextInput.NumericTextInput.toMaybe
                     , networkUuid = networkUuid
                     , keypairName = pageModel.keypairName
+                    , securityGroupUuid = pageModel.securityGroupUuid
                     , userData =
                         Helpers.renderUserDataTemplate
                             project
@@ -1337,7 +1496,6 @@ processProjectSpecificMsg outerModel project msg =
                             pageModel.installOperatingSystemUpdates
                             sharedModel.instanceConfigMgtRepoUrl
                             sharedModel.instanceConfigMgtRepoCheckout
-                            pageModel.createCluster
                     , metadata =
                         Helpers.newServerMetadata
                             currentExoServerVersion
@@ -1349,8 +1507,50 @@ processProjectSpecificMsg outerModel project msg =
                             customWorkFlowSource
                     }
             in
-            ( outerModel, Rest.Nova.requestCreateServer project createServerRequest )
+            ( outerModel, Rest.Nova.requestCreateServer viewContext project createServerRequest )
                 |> mapToOuterMsg
+
+        RequestCreateShare name description size protocol shareTypeName ->
+            let
+                createShareRequest =
+                    { name = name
+                    , description = description
+                    , size = size
+                    , protocol = protocol
+                    , shareType = shareTypeName
+                    , metadata =
+                        Dict.fromList
+                            [ -- Identify the client that created the share.
+                              ( "exoClientUuid"
+                              , UUID.toString sharedModel.clientUuid
+                              )
+                            ]
+                    }
+            in
+            case project.endpoints.manila of
+                Just manilaUrl ->
+                    ( outerModel, OSShares.requestCreateShare project manilaUrl createShareRequest )
+                        |> mapToOuterMsg
+
+                Nothing ->
+                    State.Error.processStringError
+                        sharedModel
+                        (ErrorContext
+                            ("create " ++ Helpers.String.indefiniteArticle viewContext.localization.share ++ " " ++ viewContext.localization.share ++ " with name " ++ createShareRequest.name)
+                            ErrorCrit
+                            (Just <|
+                                "Confirm that your "
+                                    ++ viewContext.localization.unitOfTenancy
+                                    ++ " supports "
+                                    ++ pluralize viewContext.localization.share
+                                    ++ ", perhaps check with your "
+                                    ++ viewContext.localization.openstackWithOwnKeystone
+                                    ++ " administrator."
+                            )
+                        )
+                        ("Could not determine " ++ viewContext.localization.share ++ " endpoint.")
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
 
         RequestCreateVolume name size ->
             let
@@ -1373,17 +1573,46 @@ processProjectSpecificMsg outerModel project msg =
         RequestDetachVolume volumeUuid ->
             let
                 maybeVolume =
-                    OSVolumes.volumeLookup project volumeUuid
+                    GetterSetters.volumeLookup project volumeUuid
 
-                maybeServerUuid =
+                maybeServer =
                     maybeVolume
-                        |> Maybe.map (GetterSetters.getServersWithVolAttached project)
+                        |> Maybe.map .uuid
+                        |> Maybe.map (GetterSetters.getServerUuidsByVolumeAttached project)
                         |> Maybe.andThen List.head
+                        |> Maybe.andThen (GetterSetters.serverLookup project)
             in
-            case maybeServerUuid of
-                Just serverUuid ->
-                    ( outerModel, OSSvrVols.requestDetachVolume project serverUuid volumeUuid )
+            case maybeServer of
+                Just server ->
+                    let
+                        serverHasVolumeMetadata =
+                            List.any (\{ key } -> key == OSTypes.volumeExoTags.serverMetadata ++ volumeUuid) server.osProps.details.metadata
+
+                        newProject =
+                            GetterSetters.projectUpsertServerVolumeAction project
+                                server.osProps.uuid
+                                { action = ServerVolumeActions.DetachVolume volumeUuid
+                                , status = ServerVolumeActions.Pending
+                                }
+                    in
+                    ( GetterSetters.modelUpdateProject sharedModel newProject
+                    , Cmd.batch
+                        [ OSSvrVols.requestDetachVolume newProject server.osProps.uuid volumeUuid
+                        , if
+                            serverHasVolumeMetadata
+                                && -- You can't update metadata when the server is `shelved_offloaded`.
+                                   (server.osProps.details.openstackStatus
+                                        /= OSTypes.ServerShelvedOffloaded
+                                   )
+                          then
+                            Rest.Nova.requestDeleteServerMetadata newProject server.osProps.uuid (OSTypes.volumeExoTags.serverMetadata ++ volumeUuid)
+
+                          else
+                            Cmd.none
+                        ]
+                    )
                         |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
 
                 Nothing ->
                     State.Error.processStringError
@@ -1403,7 +1632,7 @@ processProjectSpecificMsg outerModel project msg =
                     State.Error.processStringError
                         sharedModel
                         (ErrorContext
-                            ("create a " ++ sharedModel.viewContext.localization.floatingIpAddress)
+                            ("create " ++ Helpers.String.indefiniteArticle viewContext.localization.floatingIpAddress ++ " " ++ sharedModel.viewContext.localization.floatingIpAddress)
                             ErrorCrit
                             Nothing
                         )
@@ -1416,6 +1645,30 @@ processProjectSpecificMsg outerModel project msg =
                 Just net ->
                     ( outerModel, Rest.Neutron.requestCreateFloatingIp project net Nothing maybeIp )
                         |> mapToOuterMsg
+
+        RequestDeleteShare shareUuid ->
+            case project.endpoints.manila of
+                Just manilaUrl ->
+                    let
+                        newProject =
+                            { project
+                                | shares =
+                                    let
+                                        newShares =
+                                            project.shares
+                                                |> RDPP.withDefault []
+                                                |> List.filter (\s -> s.uuid /= shareUuid)
+                                    in
+                                    RDPP.RemoteDataPlusPlus
+                                        (RDPP.DoHave newShares sharedModel.clientCurrentTime)
+                                        (RDPP.NotLoading Nothing)
+                            }
+                    in
+                    ( { outerModel | sharedModel = GetterSetters.modelUpdateProject sharedModel newProject }, OSShares.requestDeleteShare project manilaUrl shareUuid )
+                        |> mapToOuterMsg
+
+                Nothing ->
+                    ( outerModel, Cmd.none )
 
         RequestDeleteFloatingIp errorContext floatingIpAddress ->
             ( outerModel, Rest.Neutron.requestDeleteFloatingIp project errorContext floatingIpAddress )
@@ -1435,7 +1688,24 @@ processProjectSpecificMsg outerModel project msg =
             )
 
         RequestUnassignFloatingIp floatingIpUuid ->
-            ( outerModel, Rest.Neutron.requestUnassignFloatingIp project floatingIpUuid )
+            let
+                -- Remove any application-provisioned DNS record sets for the server's floating IP association. (#1081)
+                deleteRecordSetCmds =
+                    GetterSetters.floatingIpLookup project floatingIpUuid
+                        |> Maybe.andThen (GetterSetters.getFloatingIpServer project)
+                        |> Maybe.andThen
+                            (\server ->
+                                Helpers.sanitizeHostname server.osProps.name
+                                    |> Maybe.map
+                                        (\hostname ->
+                                            GetterSetters.getServerDnsRecordSets project server.osProps.uuid
+                                                |> List.filter (\{ name, zone_name } -> hostname ++ "." ++ zone_name == name)
+                                        )
+                            )
+                        |> Maybe.withDefault []
+                        |> List.map (Rest.Designate.requestDeleteRecordSet ErrorDebug project)
+            in
+            ( outerModel, Cmd.batch <| Rest.Neutron.requestUnassignFloatingIp project floatingIpUuid :: deleteRecordSetCmds )
                 |> mapToOuterMsg
 
         ReceiveImages images ->
@@ -1503,10 +1773,31 @@ processProjectSpecificMsg outerModel project msg =
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
-        ReceiveServer serverUuid errorContext result ->
+        ReceiveServer interactionLevel serverUuid errorContext result ->
             case result of
                 Ok server ->
-                    Rest.Nova.receiveServer sharedModel project server
+                    let
+                        ( newProject, cmd ) =
+                            Rest.Nova.receiveServer sharedModel project interactionLevel server
+
+                        newSharedModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+
+                        -- Is this the first time we're receiving this server in the model?
+                        isNewServer =
+                            GetterSetters.serverLookup project serverUuid == Nothing
+
+                        ( newerSharedModel, newCmd ) =
+                            if isNewServer then
+                                ( newSharedModel, cmd )
+                                    -- If the server has loaded for the first time, we may need additional information.
+                                    -- e.g. When refreshing the server detail page.
+                                    |> Helpers.pipelineCmd (ApiModelHelpers.requestServerImageIfNotFound newProject serverUuid)
+
+                            else
+                                ( newSharedModel, cmd )
+                    in
+                    ( newerSharedModel, newCmd )
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
@@ -1574,31 +1865,120 @@ processProjectSpecificMsg outerModel project msg =
                         _ ->
                             non404
 
-        ReceiveFlavors flavors ->
-            let
-                ( newOuterModel, newCmd ) =
-                    Rest.Nova.receiveFlavors sharedModel project flavors
+        ReceiveServerEvents serverId errorContext result ->
+            case result of
+                Ok serverEvents ->
+                    let
+                        newProject =
+                            { project
+                                | serverEvents =
+                                    Dict.update serverId
+                                        (\_ ->
+                                            Just
+                                                (RDPP.RemoteDataPlusPlus
+                                                    (RDPP.DoHave serverEvents sharedModel.clientCurrentTime)
+                                                    (RDPP.NotLoading Nothing)
+                                                )
+                                        )
+                                        project.serverEvents
+                            }
+                    in
+                    ( GetterSetters.modelUpdateProject sharedModel newProject
+                    , Cmd.none
+                    )
+                        |> mapToOuterModel outerModel
+
+                Err httpErrorWithBody ->
+                    State.Error.processSynchronousApiError sharedModel errorContext httpErrorWithBody
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
-            in
-            ( newOuterModel, newCmd )
-                |> pipelineCmdOuterModelMsg
-                    (updateUnderlying (ServerCreateMsg <| Page.ServerCreate.GotFlavorList))
 
-        RequestKeypairs ->
-            let
-                newKeypairs =
-                    RDPP.setLoading project.keypairs
+        ReceiveServerSecurityGroups serverId errorContext result ->
+            case result of
+                Ok serverSecurityGroups ->
+                    let
+                        securityGroups =
+                            RDPP.RemoteDataPlusPlus
+                                (RDPP.DoHave serverSecurityGroups sharedModel.clientCurrentTime)
+                                (RDPP.NotLoading Nothing)
 
-                newProject =
-                    { project | keypairs = newKeypairs }
+                        newProject =
+                            GetterSetters.projectUpsertServerSecurityGroups project serverId securityGroups
+                    in
+                    ( GetterSetters.modelUpdateProject sharedModel newProject
+                    , Cmd.none
+                    )
+                        |> mapToOuterModel outerModel
+                        -- Make the page aware of the shared msg.
+                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerSecurityGroupsMsg <| Page.ServerSecurityGroups.GotServerSecurityGroups serverId))
 
-                newSharedModel =
-                    GetterSetters.modelUpdateProject sharedModel newProject
-            in
-            ( newSharedModel
-            , Rest.Nova.requestKeypairs newProject
-            )
+                Err httpErrorWithBody ->
+                    State.Error.processSynchronousApiError sharedModel errorContext httpErrorWithBody
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+        ReceiveServerVolumeAttachments serverId errorContext result ->
+            case result of
+                Ok serverVolumeAttachments ->
+                    let
+                        newProject =
+                            GetterSetters.projectUpsertServerVolumeAttachments project
+                                serverId
+                                (RDPP.RemoteDataPlusPlus
+                                    (RDPP.DoHave serverVolumeAttachments sharedModel.clientCurrentTime)
+                                    (RDPP.NotLoading Nothing)
+                                )
+
+                        -- Get the server's pending actions.
+                        pendingServerVolumeActions =
+                            GetterSetters.getServerVolumeActions newProject serverId
+
+                        -- For each server volume action, check whether it can be resolved.
+                        resolvedServerVolumeActions =
+                            pendingServerVolumeActions
+                                |> List.filterMap
+                                    (\action ->
+                                        case action.action of
+                                            ServerVolumeActions.AttachVolume volumeUuid ->
+                                                -- A volume we expected to attach is now present.
+                                                if List.any (\attachment -> attachment.volumeUuid == volumeUuid) serverVolumeAttachments then
+                                                    Just action
+
+                                                else
+                                                    -- TODO: Check whether the volume is in a transition state. If not, clean this up.
+                                                    Nothing
+
+                                            ServerVolumeActions.DetachVolume volumeUuid ->
+                                                -- A volume we expected to detach is now gone.
+                                                if not (List.any (\attachment -> attachment.volumeUuid == volumeUuid) serverVolumeAttachments) then
+                                                    Just action
+
+                                                else
+                                                    -- TODO: Check whether the volume is in a transition state. If not, clean this up.
+                                                    Nothing
+                                    )
+
+                        -- Clear the resolved server volume actions.
+                        newerProject =
+                            List.foldl
+                                (\action accProject ->
+                                    GetterSetters.projectDeleteServerVolumeAction accProject serverId action
+                                )
+                                newProject
+                                resolvedServerVolumeActions
+                    in
+                    ( GetterSetters.modelUpdateProject sharedModel newerProject
+                    , Cmd.none
+                    )
+                        |> mapToOuterModel outerModel
+
+                Err httpErrorWithBody ->
+                    State.Error.processSynchronousApiError sharedModel errorContext httpErrorWithBody
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+        ReceiveFlavors flavors ->
+            Rest.Nova.receiveFlavors sharedModel project flavors
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
@@ -1874,20 +2254,7 @@ processProjectSpecificMsg outerModel project msg =
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
-        ReceiveAssignFloatingIp floatingIp ->
-            -- TODO update servers so that new assignment is reflected in the UI
-            let
-                newProject =
-                    processNewFloatingIp sharedModel.clientCurrentTime project floatingIp
-
-                newSharedModel =
-                    GetterSetters.modelUpdateProject sharedModel newProject
-            in
-            ( newSharedModel, Cmd.none )
-                |> mapToOuterModel outerModel
-
         ReceiveUnassignFloatingIp floatingIp ->
-            -- TODO update servers so that unassignment is reflected in the UI
             let
                 newProject =
                     processNewFloatingIp sharedModel.clientCurrentTime project floatingIp
@@ -1898,9 +2265,35 @@ processProjectSpecificMsg outerModel project msg =
         ReceiveSecurityGroups errorContext result ->
             case result of
                 Ok groups ->
-                    Rest.Neutron.receiveSecurityGroupsAndEnsureExoGroup sharedModel project groups
+                    let
+                        newProject =
+                            { project
+                                | securityGroups =
+                                    RDPP.RemoteDataPlusPlus
+                                        (RDPP.DoHave groups sharedModel.clientCurrentTime)
+                                        (RDPP.NotLoading Nothing)
+                            }
+
+                        -- Are there updates to the default security group?
+                        ( newerProject, prospectiveCmds ) =
+                            Rest.Neutron.ensureDefaultSecurityGroup sharedModel.viewContext newProject groups
+
+                        newSharedModel =
+                            GetterSetters.modelUpdateProject sharedModel newerProject
+
+                        -- Before we make updates, get a resource lock so that no other tabs or threads can make them at the same time.
+                        requestWebLockCmd =
+                            if List.isEmpty prospectiveCmds then
+                                Cmd.none
+
+                            else
+                                Ports.requestWebLock <| Helpers.WebLock.webLockToResourceId <| Helpers.WebLock.ProjectMsg (GetterSetters.projectIdentifier project) EnsureDefaultSecurityGroup
+                    in
+                    ( newSharedModel, requestWebLockCmd )
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
+                        -- Make the page aware of the shared msg.
+                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerCreateMsg <| Page.ServerCreate.GotSecurityGroups groups))
 
                 Err httpError ->
                     let
@@ -1917,25 +2310,476 @@ processProjectSpecificMsg outerModel project msg =
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
-        ReceiveCreateExoSecurityGroup errorContext result ->
+        RequestCreateSecurityGroup securityGroupTemplate maybeServerUuid ->
+            let
+                newProject =
+                    -- We don't have a security group uuid yet. Once it's created, we'll swap it out.
+                    GetterSetters.projectUpsertSecurityGroupActions project
+                        (SecurityGroupActions.NewGroup securityGroupTemplate.name)
+                        (\actions ->
+                            { actions
+                                | pendingCreation = True
+
+                                -- Should we link this to a server once it's created?
+                                , pendingServerLinkage =
+                                    maybeServerUuid
+                            }
+                        )
+
+                newModel =
+                    GetterSetters.modelUpdateProject sharedModel newProject
+            in
+            ( newModel, Rest.Neutron.requestCreateSecurityGroup project securityGroupTemplate )
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
+        ReceiveCreateSecurityGroup errorContext template result ->
+            let
+                newProject =
+                    -- Before creation we only had a security group name. Now we can swap it out for the uuid.
+                    GetterSetters.projectDeleteSecurityGroupActions project (SecurityGroupActions.NewGroup template.name)
+
+                isDefaultSecurityGroup =
+                    GetterSetters.isDefaultSecurityGroup sharedModel.viewContext project template
+
+                releaseWebLockCmd =
+                    -- Were we creating the default security group?
+                    -- If so, we need to release the web lock.
+                    if isDefaultSecurityGroup then
+                        Ports.releaseWebLock <| Helpers.WebLock.webLockToResourceId <| Helpers.WebLock.ProjectMsg (GetterSetters.projectIdentifier project) EnsureDefaultSecurityGroup
+
+                    else
+                        Cmd.none
+            in
             case result of
                 Ok group ->
-                    Rest.Neutron.receiveCreateExoSecurityGroupAndRequestCreateRules sharedModel project group
+                    let
+                        existingRules =
+                            group.rules
+
+                        intendedRules =
+                            template.rules |> List.map SecurityGroupRule.securityGroupRuleTemplateToRule
+
+                        { missing, extra } =
+                            SecurityGroupRule.compareSecurityGroupRuleLists existingRules intendedRules
+
+                        releaseWebLockOrWaitCmd =
+                            if isDefaultSecurityGroup && List.isEmpty missing && List.isEmpty extra then
+                                releaseWebLockCmd
+
+                            else
+                                -- We still have rules to create or delete. Hold the lock until those are done.
+                                Cmd.none
+
+                        tagCreatorCmd =
+                            Rest.Neutron.requestUpdateSecurityGroupTags project group.uuid (OSTypes.AddSecurityGroupTags [ OSTypes.securityGroupExoTags.creatorUsernamePrefix ++ project.auth.user.name ])
+
+                        pendingServerLinkage =
+                            -- Should we link this group to a server now that it's created?
+                            -- If so, get the pending linkage from the previous project state.
+                            GetterSetters.getSecurityGroupActions project (SecurityGroupActions.NewGroup template.name)
+                                |> Maybe.andThen .pendingServerLinkage
+
+                        newerProject =
+                            -- Substitute in a new `securityGroupAction` with the uuid.
+                            GetterSetters.projectUpsertSecurityGroupActions newProject
+                                (SecurityGroupActions.ExtantGroup group.uuid)
+                                (\actions ->
+                                    { actions
+                                        | pendingRuleChanges = { creations = List.length missing, deletions = List.length extra, errors = [] }
+                                        , pendingServerLinkage =
+                                            pendingServerLinkage
+                                    }
+                                )
+
+                        ( newSharedModel, newCmd ) =
+                            Rest.Neutron.receiveCreateSecurityGroupAndRequestCreateRules
+                                sharedModel
+                                newerProject
+                                template
+                                group
+
+                        newerCmd =
+                            Cmd.batch
+                                [ newCmd
+                                , pendingServerLinkage
+                                    |> Maybe.map
+                                        (\serverUuid ->
+                                            Rest.Nova.requestUpdateServerSecurityGroup project serverUuid <|
+                                                OSTypes.AddServerSecurityGroup
+                                                    { uuid = group.uuid
+                                                    , name = group.name
+                                                    }
+                                        )
+                                    |> Maybe.withDefault Cmd.none
+                                , releaseWebLockOrWaitCmd
+                                , tagCreatorCmd
+                                ]
+                    in
+                    ( newSharedModel, newerCmd )
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+                        -- Make the form aware of the shared msg.
+                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerSecurityGroupsMsg <| Page.ServerSecurityGroups.SecurityGroupFormMsg <| Page.SecurityGroupForm.GotCreateSecurityGroupResult template result))
+
+                Err httpError ->
+                    let
+                        newModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+
+                        ( newSharedModel, errorCmd ) =
+                            State.Error.processSynchronousApiError newModel errorContext httpError
+                    in
+                    ( newSharedModel, Cmd.batch [ errorCmd, releaseWebLockCmd ] )
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+                        -- Make the form aware of the shared msg.
+                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerSecurityGroupsMsg <| Page.ServerSecurityGroups.SecurityGroupFormMsg <| Page.SecurityGroupForm.GotCreateSecurityGroupResult template result))
+
+        ReceiveCreateSecurityGroupRule errorContext securityGroupUuid result ->
+            let
+                pendingRulesChanges =
+                    GetterSetters.getSecurityGroupActions project (SecurityGroupActions.ExtantGroup securityGroupUuid)
+                        |> Maybe.map .pendingRuleChanges
+                        |> Maybe.withDefault SecurityGroupActions.initPendingRulesChanges
+
+                newPendingRulesChanges =
+                    { pendingRulesChanges
+                        | creations = pendingRulesChanges.creations - 1
+                    }
+
+                maybeSecurityGroup =
+                    GetterSetters.securityGroupLookup project securityGroupUuid
+
+                noMoreChanges =
+                    newPendingRulesChanges.creations == 0 && newPendingRulesChanges.deletions == 0
+
+                isDefaultSecurityGroup =
+                    maybeSecurityGroup
+                        |> Maybe.map (GetterSetters.isDefaultSecurityGroup sharedModel.viewContext project)
+                        |> Maybe.withDefault False
+
+                releaseWebLockCmd =
+                    -- If we were updating the default security group rules, release the web lock if all changes are done.
+                    if isDefaultSecurityGroup && noMoreChanges then
+                        Ports.releaseWebLock <| Helpers.WebLock.webLockToResourceId <| Helpers.WebLock.ProjectMsg (GetterSetters.projectIdentifier project) EnsureDefaultSecurityGroup
+
+                    else
+                        Cmd.none
+            in
+            case result of
+                Ok rule ->
+                    let
+                        newProject =
+                            GetterSetters.projectUpdateSecurityGroupActionsIfExists project
+                                (SecurityGroupActions.ExtantGroup securityGroupUuid)
+                                (\actions -> { actions | pendingRuleChanges = newPendingRulesChanges })
+
+                        newerProject =
+                            GetterSetters.projectAddSecurityGroupRule
+                                newProject
+                                securityGroupUuid
+                                rule
+
+                        newModel =
+                            GetterSetters.modelUpdateProject sharedModel newerProject
+                    in
+                    ( newModel, releaseWebLockCmd )
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
                 Err httpError ->
                     let
-                        oldSecurityGroups =
-                            project.securityGroups.data
+                        error =
+                            Decode.decodeString
+                                (Decode.field (OpenStack.Error.fieldForErrorDomain OpenStack.Error.NeutronError) Rest.Neutron.neutronErrorDecoder)
+                                httpError.body
+
+                        errorMessage =
+                            case error of
+                                Ok neutronError ->
+                                    neutronError.message
+
+                                Err _ ->
+                                    httpError.body
 
                         newProject =
-                            { project
-                                | securityGroups =
-                                    RDPP.RemoteDataPlusPlus
-                                        oldSecurityGroups
-                                        (RDPP.NotLoading (Just ( httpError, sharedModel.clientCurrentTime )))
+                            GetterSetters.projectUpdateSecurityGroupActionsIfExists project
+                                (SecurityGroupActions.ExtantGroup securityGroupUuid)
+                                (\actions ->
+                                    { actions
+                                        | pendingRuleChanges =
+                                            { newPendingRulesChanges
+                                                | errors = errorMessage :: actions.pendingRuleChanges.errors
+                                            }
+                                    }
+                                )
+
+                        newModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+
+                        ( newSharedModel, errorCmd ) =
+                            State.Error.processSynchronousApiError newModel errorContext httpError
+                    in
+                    ( newSharedModel, Cmd.batch [ errorCmd, releaseWebLockCmd ] )
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+        ReceiveDeleteSecurityGroupRule errorContext ( securityGroupUuid, ruleUuid ) result ->
+            let
+                pendingRulesChanges =
+                    GetterSetters.getSecurityGroupActions project (SecurityGroupActions.ExtantGroup securityGroupUuid)
+                        |> Maybe.map .pendingRuleChanges
+                        |> Maybe.withDefault SecurityGroupActions.initPendingRulesChanges
+
+                newPendingRulesChanges =
+                    { pendingRulesChanges
+                        | deletions = pendingRulesChanges.deletions - 1
+                    }
+
+                maybeSecurityGroup =
+                    GetterSetters.securityGroupLookup project securityGroupUuid
+
+                noMoreChanges =
+                    newPendingRulesChanges.creations == 0 && newPendingRulesChanges.deletions == 0
+
+                isDefaultSecurityGroup =
+                    maybeSecurityGroup
+                        |> Maybe.map (GetterSetters.isDefaultSecurityGroup sharedModel.viewContext project)
+                        |> Maybe.withDefault False
+
+                releaseWebLockCmd =
+                    -- If we were updating the default security group rules, release the web lock if all changes are done.
+                    if isDefaultSecurityGroup && noMoreChanges then
+                        Ports.releaseWebLock <| Helpers.WebLock.webLockToResourceId <| Helpers.WebLock.ProjectMsg (GetterSetters.projectIdentifier project) EnsureDefaultSecurityGroup
+
+                    else
+                        Cmd.none
+            in
+            case result of
+                Ok () ->
+                    let
+                        newProject =
+                            GetterSetters.projectUpdateSecurityGroupActionsIfExists project
+                                (SecurityGroupActions.ExtantGroup securityGroupUuid)
+                                (\actions -> { actions | pendingRuleChanges = newPendingRulesChanges })
+
+                        newerProject =
+                            GetterSetters.projectDeleteSecurityGroupRule
+                                newProject
+                                securityGroupUuid
+                                ruleUuid
+
+                        newModel =
+                            GetterSetters.modelUpdateProject sharedModel newerProject
+                    in
+                    ( newModel, releaseWebLockCmd )
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+                Err httpError ->
+                    let
+                        errorMessage =
+                            Helpers.httpErrorToString httpError
+
+                        newProject =
+                            GetterSetters.projectUpdateSecurityGroupActionsIfExists project
+                                (SecurityGroupActions.ExtantGroup securityGroupUuid)
+                                (\actions ->
+                                    { actions
+                                        | pendingRuleChanges =
+                                            { newPendingRulesChanges
+                                                | errors = errorMessage :: actions.pendingRuleChanges.errors
+                                            }
+                                    }
+                                )
+
+                        newModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+
+                        ( newSharedModel, errorCmd ) =
+                            State.Error.processStringError newModel errorContext errorMessage
+                    in
+                    ( newSharedModel, Cmd.batch [ errorCmd, releaseWebLockCmd ] )
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+        RequestDeleteSecurityGroup securityGroup ->
+            let
+                securityGroupUuid =
+                    securityGroup.uuid
+
+                serversAffected =
+                    GetterSetters.serversForSecurityGroup project securityGroupUuid
+                        |> .servers
+
+                numberOfServers =
+                    List.length serversAffected
+
+                updatedProject =
+                    GetterSetters.projectUpsertSecurityGroupActions project
+                        (SecurityGroupActions.ExtantGroup securityGroupUuid)
+                        (\action ->
+                            { action
+                                | pendingDeletion = True
+
+                                -- Track the number of servers to unlink.
+                                , pendingServerChanges = { updates = numberOfServers, errors = [] }
                             }
+                        )
+
+                ( newProject, newCmds ) =
+                    -- First unlink any servers from the security group we want to delete.
+                    serversAffected
+                        |> List.foldl
+                            (\server ( proj, cmds ) ->
+                                let
+                                    ( nextProject, nextCmd ) =
+                                        marshalServerActionRequestQueue
+                                            proj
+                                            server.osProps.uuid
+                                            [ OSTypes.RemoveServerSecurityGroup
+                                                { uuid = securityGroup.uuid
+                                                , name = securityGroup.name
+                                                }
+                                            ]
+                                in
+                                ( nextProject, cmds ++ [ nextCmd ] )
+                            )
+                            ( updatedProject, [] )
+
+                newModel =
+                    GetterSetters.modelUpdateProject sharedModel newProject
+            in
+            ( newModel
+            , Cmd.batch <|
+                newCmds
+                    ++ (if numberOfServers == 0 then
+                            -- We don't have any servers to unlink, so we can delete the security group immediately.
+                            [ Rest.Neutron.requestDeleteSecurityGroup project securityGroup.uuid ]
+
+                        else
+                            [ Cmd.none ]
+                       )
+            )
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
+        ReceiveDeleteSecurityGroup errorContext securityGroupUuid result ->
+            let
+                newProject =
+                    GetterSetters.projectDeleteSecurityGroupActions project (SecurityGroupActions.ExtantGroup securityGroupUuid)
+            in
+            case result of
+                Ok () ->
+                    let
+                        newerProject =
+                            GetterSetters.projectDeleteSecurityGroup newProject securityGroupUuid
+
+                        newModel =
+                            GetterSetters.modelUpdateProject sharedModel newerProject
+                    in
+                    ( newModel
+                    , case outerModel.viewState of
+                        ProjectView _ (SecurityGroupDetail pageModel) ->
+                            -- If we are on the security group detail page, navigate to the security groups list.
+                            if pageModel.securityGroupUuid == securityGroupUuid then
+                                Route.pushUrl sharedModel.viewContext (Route.ProjectRoute (GetterSetters.projectIdentifier project) Route.SecurityGroupList)
+
+                            else
+                                Cmd.none
+
+                        _ ->
+                            Cmd.none
+                    )
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+                Err httpError ->
+                    let
+                        newModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+                    in
+                    State.Error.processSynchronousApiError newModel errorContext httpError
+                        |> mapToOuterMsg
+                        -- TODO: Make the page aware of the shared msg.
+                        |> mapToOuterModel outerModel
+
+        RequestUpdateSecurityGroup existingSecurityGroup securityGroupUpdate ->
+            let
+                ( newProject, updateRuleCmds ) =
+                    Rest.Neutron.requestUpdateSecurityGroupRules project existingSecurityGroup securityGroupUpdate.rules
+
+                ( newerProject, updateSecurityGroupCmd ) =
+                    Rest.Neutron.requestUpdateSecurityGroup newProject existingSecurityGroup.uuid securityGroupUpdate
+
+                newModel =
+                    GetterSetters.modelUpdateProject sharedModel newerProject
+            in
+            ( newModel
+            , Cmd.batch <|
+                -- Update the security group.
+                updateSecurityGroupCmd
+                    -- Update the security group rules.
+                    :: updateRuleCmds
+            )
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
+        ReceiveUpdateSecurityGroup errorContext securityGroupUuid result ->
+            case result of
+                Ok group ->
+                    let
+                        newProject =
+                            GetterSetters.projectUpdateSecurityGroupActionsIfExists project
+                                (SecurityGroupActions.ExtantGroup securityGroupUuid)
+                                (\actions ->
+                                    { actions
+                                        | pendingSecurityGroupChanges =
+                                            { updates = actions.pendingSecurityGroupChanges.updates - 1
+                                            , errors = actions.pendingSecurityGroupChanges.errors
+                                            }
+                                    }
+                                )
+
+                        newerProject =
+                            GetterSetters.projectUpdateSecurityGroup
+                                newProject
+                                group
+
+                        newModel =
+                            GetterSetters.modelUpdateProject sharedModel newerProject
+                    in
+                    ( newModel, Cmd.none )
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+                Err httpError ->
+                    let
+                        error =
+                            Decode.decodeString
+                                (Decode.field (OpenStack.Error.fieldForErrorDomain OpenStack.Error.NeutronError) Rest.Neutron.neutronErrorDecoder)
+                                httpError.body
+
+                        errorMessage =
+                            case error of
+                                Ok neutronError ->
+                                    neutronError.message
+
+                                Err _ ->
+                                    httpError.body
+
+                        newProject =
+                            GetterSetters.projectUpdateSecurityGroupActionsIfExists project
+                                (SecurityGroupActions.ExtantGroup securityGroupUuid)
+                                (\actions ->
+                                    { actions
+                                        | pendingSecurityGroupChanges =
+                                            { updates = actions.pendingSecurityGroupChanges.updates - 1
+                                            , errors = errorMessage :: actions.pendingSecurityGroupChanges.errors
+                                            }
+                                    }
+                                )
 
                         newModel =
                             GetterSetters.modelUpdateProject sharedModel newProject
@@ -1943,6 +2787,270 @@ processProjectSpecificMsg outerModel project msg =
                     State.Error.processSynchronousApiError newModel errorContext httpError
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
+
+        RequestUpdateSecurityGroupTags securityGroupUuid tagUpdate ->
+            ( outerModel, Rest.Neutron.requestUpdateSecurityGroupTags project securityGroupUuid tagUpdate )
+                |> mapToOuterMsg
+
+        ReceiveUpdateSecurityGroupTags ( securityGroupUuid, tagUpdate ) ->
+            let
+                { data, refreshStatus } =
+                    project.securityGroups
+
+                newSecurityGroups =
+                    case data of
+                        -- Update tags, preserving loading/cache state of security groups.
+                        RDPP.DoHave groups receivedTime ->
+                            RDPP.RemoteDataPlusPlus
+                                (RDPP.DoHave
+                                    (List.map
+                                        (\sg ->
+                                            if sg.uuid == securityGroupUuid then
+                                                { sg
+                                                    | tags =
+                                                        case tagUpdate of
+                                                            OSTypes.AddSecurityGroupTags newTags ->
+                                                                List.foldl
+                                                                    (\newTag tags ->
+                                                                        if List.member newTag tags then
+                                                                            tags
+
+                                                                        else
+                                                                            newTag :: tags
+                                                                    )
+                                                                    sg.tags
+                                                                    newTags
+
+                                                            OSTypes.RemoveSecurityGroupTag tagToRemove ->
+                                                                List.filter (\t -> t /= tagToRemove) sg.tags
+                                                }
+
+                                            else
+                                                sg
+                                        )
+                                        groups
+                                    )
+                                    receivedTime
+                                )
+                                refreshStatus
+
+                        _ ->
+                            project.securityGroups
+
+                newProject =
+                    { project
+                        | securityGroups =
+                            newSecurityGroups
+                    }
+
+                newModel =
+                    GetterSetters.modelUpdateProject sharedModel newProject
+            in
+            ( newModel, Cmd.none )
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
+        ReceiveServerAddSecurityGroup serverId errorContext serverSecurityGroup result ->
+            let
+                updatedProject =
+                    GetterSetters.projectUpdateSecurityGroupActionsIfExists project
+                        (SecurityGroupActions.ExtantGroup serverSecurityGroup.uuid)
+                        (\actions ->
+                            { actions
+                                | pendingServerLinkage =
+                                    actions.pendingServerLinkage
+                                        |> Maybe.andThen
+                                            (\serverUuid ->
+                                                -- If this is our server, clear the pending linkage.
+                                                -- Otherwise, leave it alone.
+                                                if serverUuid == serverId then
+                                                    Nothing
+
+                                                else
+                                                    actions.pendingServerLinkage
+                                            )
+                            }
+                        )
+            in
+            case result of
+                Ok _ ->
+                    let
+                        serverSecurityGroupsRdpp =
+                            GetterSetters.getServerSecurityGroups updatedProject serverId
+                    in
+                    case serverSecurityGroupsRdpp.data of
+                        RDPP.DoHave serverSecurityGroups receivedTime ->
+                            let
+                                newServerSecurityGroups =
+                                    if List.member serverSecurityGroup serverSecurityGroups then
+                                        serverSecurityGroups
+
+                                    else
+                                        serverSecurityGroup :: serverSecurityGroups
+
+                                securityGroups =
+                                    RDPP.RemoteDataPlusPlus
+                                        (RDPP.DoHave newServerSecurityGroups receivedTime)
+                                        -- don't interfere with any loading in progress
+                                        serverSecurityGroupsRdpp.refreshStatus
+
+                                newProject =
+                                    GetterSetters.projectUpsertServerSecurityGroups updatedProject serverId securityGroups
+                            in
+                            ( GetterSetters.modelUpdateProject sharedModel newProject, Cmd.none )
+                                |> mapToOuterMsg
+                                |> mapToOuterModel outerModel
+                                -- Make the page aware of the shared msg.
+                                |> pipelineCmdOuterModelMsg (updateUnderlying (ServerSecurityGroupsMsg <| Page.ServerSecurityGroups.GotServerSecurityGroups serverId))
+
+                        _ ->
+                            ( outerModel, Cmd.none )
+
+                Err httpError ->
+                    let
+                        updatedSharedModel =
+                            GetterSetters.modelUpdateProject sharedModel updatedProject
+                    in
+                    State.Error.processSynchronousApiError updatedSharedModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+        ReceiveServerRemoveSecurityGroup serverId errorContext serverSecurityGroup result ->
+            let
+                -- Remove the job from the queue if it exists.
+                updatedQueueProject_ =
+                    GetterSetters.projectRemoveServerActionRequestJob
+                        project
+                        serverId
+                        (ServerActionRequestQueue.RemoveServerSecurityGroup serverSecurityGroup)
+
+                -- With that job removed, is there another one to process?
+                ( updatedQueueProject, queueCmd ) =
+                    marshalServerActionRequestQueue
+                        updatedQueueProject_
+                        serverId
+                        []
+
+                -- Even if the request failed, we want to update pending security group actions.
+                updatedProject =
+                    GetterSetters.projectUpdateSecurityGroupActionsIfExists updatedQueueProject
+                        (SecurityGroupActions.ExtantGroup serverSecurityGroup.uuid)
+                        (\actions ->
+                            { actions
+                                | pendingServerChanges =
+                                    let
+                                        pendingServerChanges =
+                                            actions.pendingServerChanges
+                                    in
+                                    { pendingServerChanges
+                                        | updates = actions.pendingServerChanges.updates - 1
+                                    }
+                            }
+                        )
+
+                securityGroupAction =
+                    GetterSetters.getSecurityGroupActions updatedProject (SecurityGroupActions.ExtantGroup serverSecurityGroup.uuid)
+                        |> Maybe.withDefault
+                            SecurityGroupActions.initSecurityGroupAction
+
+                updatedSharedModel =
+                    GetterSetters.modelUpdateProject sharedModel updatedProject
+
+                deleteCmd =
+                    -- If we wanted to delete this group & all the server-security group links have been removed, we can go ahead.
+                    if securityGroupAction.pendingDeletion && securityGroupAction.pendingServerChanges.updates <= 0 then
+                        Rest.Neutron.requestDeleteSecurityGroup updatedProject serverSecurityGroup.uuid
+
+                    else
+                        Cmd.none
+            in
+            case result of
+                Ok _ ->
+                    let
+                        serverSecurityGroupsRdpp =
+                            GetterSetters.getServerSecurityGroups updatedProject serverId
+                    in
+                    case serverSecurityGroupsRdpp.data of
+                        RDPP.DoHave serverSecurityGroups receivedTime ->
+                            let
+                                newServerSecurityGroups =
+                                    List.filter (\sg -> sg /= serverSecurityGroup) serverSecurityGroups
+
+                                securityGroups =
+                                    RDPP.RemoteDataPlusPlus
+                                        (RDPP.DoHave newServerSecurityGroups receivedTime)
+                                        -- don't interfere with any loading in progress
+                                        serverSecurityGroupsRdpp.refreshStatus
+
+                                newProject =
+                                    GetterSetters.projectUpsertServerSecurityGroups updatedProject serverId securityGroups
+                            in
+                            ( GetterSetters.modelUpdateProject updatedSharedModel newProject, Cmd.batch [ deleteCmd, queueCmd ] )
+                                |> mapToOuterMsg
+                                |> mapToOuterModel outerModel
+                                -- Make the page aware of the shared msg.
+                                |> pipelineCmdOuterModelMsg (updateUnderlying (ServerSecurityGroupsMsg <| Page.ServerSecurityGroups.GotServerSecurityGroups serverId))
+
+                        _ ->
+                            ( updatedSharedModel, Cmd.batch [ deleteCmd, queueCmd ] )
+                                |> mapToOuterMsg
+                                |> mapToOuterModel outerModel
+
+                Err httpError ->
+                    let
+                        ( newSharedModel, errCmd ) =
+                            State.Error.processSynchronousApiError updatedSharedModel errorContext httpError
+                    in
+                    ( newSharedModel, Cmd.batch [ errCmd, deleteCmd, queueCmd ] )
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+        ReceiveCreateShare share ->
+            ( outerModel
+            , Cmd.batch
+                [ Route.pushUrl sharedModel.viewContext (Route.ProjectRoute (GetterSetters.projectIdentifier project) Route.ShareList)
+
+                -- Initialise the share access rules for the new share. We expect an empty list.
+                , case project.endpoints.manila of
+                    Just url ->
+                        OSShares.requestShareAccessRules project url share.uuid
+
+                    Nothing ->
+                        Cmd.none
+                ]
+            )
+                |> mapToOuterMsg
+
+        ReceiveCreateAccessRule ( shareUuid, accessRule ) ->
+            let
+                newProject =
+                    { project
+                        | shareAccessRules =
+                            Dict.update shareUuid
+                                (\maybeAccessRulesRDPP ->
+                                    let
+                                        newAccessRules =
+                                            maybeAccessRulesRDPP
+                                                |> Maybe.withDefault RDPP.empty
+                                                |> RDPP.withDefault []
+                                                |> List.filter (\rule -> rule.uuid /= accessRule.uuid)
+                                                |> List.append [ accessRule ]
+                                    in
+                                    Just
+                                        (RDPP.RemoteDataPlusPlus
+                                            (RDPP.DoHave newAccessRules sharedModel.clientCurrentTime)
+                                            (RDPP.NotLoading Nothing)
+                                        )
+                                )
+                                project.shareAccessRules
+                    }
+
+                newSharedModel =
+                    GetterSetters.modelUpdateProject sharedModel newProject
+            in
+            ( newSharedModel, Cmd.none )
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
 
         ReceiveShareAccessRules ( shareUuid, accessRules ) ->
             let
@@ -2007,6 +3115,38 @@ processProjectSpecificMsg outerModel project msg =
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
+        ReceiveShareTypes shareTypes ->
+            let
+                newProject =
+                    { project
+                        | shareTypes =
+                            RDPP.RemoteDataPlusPlus
+                                (RDPP.DoHave shareTypes sharedModel.clientCurrentTime)
+                                (RDPP.NotLoading Nothing)
+                    }
+
+                newSharedModel =
+                    GetterSetters.modelUpdateProject sharedModel newProject
+            in
+            ( newSharedModel, Cmd.none )
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
+        ReceiveDeleteShare shareUuid ->
+            ( outerModel
+            , case outerModel.viewState of
+                ProjectView _ (ShareDetail pageModel) ->
+                    -- If we are on the share detail page, navigate to the shares list.
+                    if pageModel.shareUuid == shareUuid then
+                        Route.pushUrl sharedModel.viewContext (Route.ProjectRoute (GetterSetters.projectIdentifier project) Route.ShareList)
+
+                    else
+                        Cmd.none
+
+                _ ->
+                    Cmd.none
+            )
+
         ReceiveCreateVolume ->
             {- Should we add new volume to model now? -}
             ( outerModel
@@ -2025,9 +3165,7 @@ processProjectSpecificMsg outerModel project msg =
                                 |> List.map
                                     (\s ->
                                         ( s
-                                        , GetterSetters.getBootVolume
-                                            (RDPP.withDefault [] project.volumes)
-                                            s.osProps.uuid
+                                        , GetterSetters.getBootVolume project s.osProps.uuid
                                         )
                                     )
                                 -- We only care about servers created by exosphere
@@ -2146,15 +3284,78 @@ processProjectSpecificMsg outerModel project msg =
             ( outerModel, OSVolumes.requestVolumes project )
                 |> mapToOuterMsg
 
-        ReceiveAttachVolume attachment ->
-            ( outerModel
-            , Route.pushUrl sharedModel.viewContext (Route.ProjectRoute (GetterSetters.projectIdentifier project) <| Route.VolumeMountInstructions attachment)
-            )
+        ReceiveAttachVolume errorContext ( serverUuid, volumeUuid ) result ->
+            case result of
+                Ok attachment ->
+                    let
+                        newProject =
+                            GetterSetters.projectUpsertServerVolumeAction project
+                                attachment.serverUuid
+                                { action = ServerVolumeActions.AttachVolume attachment.volumeUuid
+                                , status = ServerVolumeActions.Accepted
+                                }
+                    in
+                    ( GetterSetters.modelUpdateProject sharedModel newProject
+                    , Route.pushUrl sharedModel.viewContext (Route.ProjectRoute (GetterSetters.projectIdentifier project) <| Route.VolumeMountInstructions attachment)
+                    )
+                        |> mapToOuterModel outerModel
 
-        ReceiveDetachVolume ->
-            ( outerModel
-            , Route.pushUrl sharedModel.viewContext (Route.ProjectRoute (GetterSetters.projectIdentifier project) Route.VolumeList)
-            )
+                Err httpError ->
+                    let
+                        -- Remove the failed pending action.
+                        newProject =
+                            GetterSetters.projectDeleteServerVolumeAction project
+                                serverUuid
+                                { action = ServerVolumeActions.AttachVolume volumeUuid
+                                , status = ServerVolumeActions.Pending
+                                }
+
+                        updatedSharedModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+
+                        ( newSharedModel, errCmd ) =
+                            State.Error.processSynchronousApiError updatedSharedModel errorContext httpError
+                    in
+                    ( newSharedModel, errCmd )
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+        ReceiveDetachVolume errorContext ( serverUuid, volumeUuid ) result ->
+            case result of
+                Ok () ->
+                    let
+                        newProject =
+                            GetterSetters.projectUpsertServerVolumeAction project
+                                serverUuid
+                                { action = ServerVolumeActions.DetachVolume volumeUuid
+                                , status = ServerVolumeActions.Accepted
+                                }
+                    in
+                    ( GetterSetters.modelUpdateProject sharedModel newProject
+                    , OSVolumes.requestVolumes project
+                    )
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+                Err httpError ->
+                    let
+                        -- Remove the failed pending action.
+                        newProject =
+                            GetterSetters.projectDeleteServerVolumeAction project
+                                serverUuid
+                                { action = ServerVolumeActions.DetachVolume volumeUuid
+                                , status = ServerVolumeActions.Pending
+                                }
+
+                        updatedSharedModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+
+                        ( newSharedModel, errCmd ) =
+                            State.Error.processSynchronousApiError updatedSharedModel errorContext httpError
+                    in
+                    ( newSharedModel, errCmd )
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
 
         ReceiveAppCredential appCredential ->
             let
@@ -2337,11 +3538,6 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
             outerModel.sharedModel
     in
     case serverMsgConstructor of
-        RequestServer ->
-            ApiModelHelpers.requestServer (GetterSetters.projectIdentifier project) server.osProps.uuid sharedModel
-                |> mapToOuterMsg
-                |> mapToOuterModel outerModel
-
         RequestDeleteServer retainFloatingIps ->
             let
                 ( newProject, cmd ) =
@@ -2351,9 +3547,54 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
-        RequestAttachVolume volumeUuid ->
-            ( outerModel, OSSvrVols.requestAttachVolume project server.osProps.uuid volumeUuid )
+        RequestShelveServer deleteFloatingIps ->
+            let
+                ( newProject, cmd ) =
+                    requestShelveServer project server deleteFloatingIps
+            in
+            ( GetterSetters.modelUpdateProject sharedModel newProject, cmd )
                 |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
+        RequestAttachVolume volumeUuid ->
+            let
+                volumeName =
+                    GetterSetters.volumeLookup project volumeUuid
+                        |> Maybe.andThen .name
+
+                volumeMetadata =
+                    { key = OSTypes.volumeExoTags.serverMetadata ++ volumeUuid
+                    , value =
+                        Json.Encode.encode 0 <|
+                            Json.Encode.object
+                                [ ( "name"
+                                  , volumeName
+                                        |> Maybe.map Json.Encode.string
+                                        |> Maybe.withDefault Json.Encode.null
+                                  )
+                                ]
+                    }
+
+                newProject =
+                    GetterSetters.projectUpsertServerVolumeAction project
+                        server.osProps.uuid
+                        { action = ServerVolumeActions.AttachVolume volumeUuid
+                        , status = ServerVolumeActions.Pending
+                        }
+            in
+            ( GetterSetters.modelUpdateProject sharedModel newProject
+            , Cmd.batch
+                [ OSSvrVols.requestAttachVolume newProject server.osProps.uuid volumeUuid volumeMetadata.value
+                , if GetterSetters.serverExoServerVersion server == Just 5 then
+                    -- On this version, we need server metadata for `NamedMountpoints`.
+                    Rest.Nova.requestSetServerMetadata newProject server.osProps.uuid volumeMetadata
+
+                  else
+                    Cmd.none
+                ]
+            )
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
 
         RequestCreateServerImage imageName ->
             let
@@ -2372,13 +3613,32 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                 ]
             )
 
+        RequestServerSecurityGroupUpdates serverSecurityGroupUpdates ->
+            let
+                ( newProject, newCmd ) =
+                    marshalServerActionRequestQueue
+                        project
+                        server.osProps.uuid
+                        serverSecurityGroupUpdates
+
+                newSharedModel =
+                    GetterSetters.modelUpdateProject sharedModel newProject
+            in
+            ( { outerModel | sharedModel = newSharedModel }
+            , newCmd
+            )
+                |> mapToOuterMsg
+
         RequestResizeServer flavorId ->
             let
                 oldExoProps =
                     server.exoProps
 
                 newServer =
-                    Server server.osProps { oldExoProps | targetOpenstackStatus = Just [ OSTypes.ServerResize ] } server.events
+                    { server
+                        | exoProps =
+                            { oldExoProps | targetOpenstackStatus = Just [ OSTypes.ServerResize ] }
+                    }
 
                 newProject =
                     GetterSetters.projectUpdateServer project newServer
@@ -2397,7 +3657,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                     State.Error.processStringError
                         sharedModel
                         (ErrorContext
-                            ("create a " ++ sharedModel.viewContext.localization.floatingIpAddress)
+                            ("create " ++ Helpers.String.indefiniteArticle sharedModel.viewContext.localization.floatingIpAddress ++ " " ++ sharedModel.viewContext.localization.floatingIpAddress)
                             ErrorCrit
                             Nothing
                         )
@@ -2423,38 +3683,126 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                         |> mapToOuterMsg
 
         RequestSetServerName newServerName ->
-            ( outerModel, Rest.Nova.requestSetServerName project server.osProps.uuid newServerName )
+            let
+                recordSetWithNameExists name =
+                    project.dnsRecordSets
+                        |> RDPP.withDefault []
+                        |> List.any (\r -> r.name == name)
+
+                oldHostname =
+                    Helpers.sanitizeHostname server.osProps.name
+
+                newHostname =
+                    Helpers.sanitizeHostname newServerName
+
+                oldDnsRecordSets : List OpenStack.DnsRecordSet.DnsRecordSet
+                oldDnsRecordSets =
+                    if oldHostname == newHostname then
+                        -- when the hostname would not change, don't recreate any records
+                        []
+
+                    else
+                        -- map2 is used so we don't accidentally delete a record without creating a replacement
+                        Maybe.map2
+                            (\hostname _ ->
+                                GetterSetters.getServerDnsRecordSets project server.osProps.uuid
+                                    -- Only match when a record fits the "expected" name for the old server name
+                                    |> List.filter (\{ name, zone_name } -> (hostname ++ "." ++ zone_name) == name)
+                            )
+                            oldHostname
+                            newHostname
+                            |> Maybe.withDefault []
+
+                newDnsRecordSetRequests : List Rest.Designate.DnsRecordSetRequest
+                newDnsRecordSetRequests =
+                    newHostname
+                        |> Maybe.map
+                            (\hostname ->
+                                oldDnsRecordSets
+                                    |> List.map
+                                        (\oldRecord ->
+                                            { zone_id = oldRecord.zone_id
+                                            , name = hostname ++ "." ++ oldRecord.zone_name
+                                            , type_ = oldRecord.type_
+                                            , records = oldRecord.records
+                                            , description =
+                                                String.join " "
+                                                    [ "Created for"
+                                                    , sharedModel.viewContext.localization.virtualComputer
+                                                    , newServerName
+                                                    ]
+                                            , ttl = oldRecord.ttl
+                                            }
+                                        )
+                            )
+                        |> Maybe.withDefault []
+                        |> List.filter (\req -> not (recordSetWithNameExists req.name))
+            in
+            ( outerModel
+            , Cmd.batch
+                [ Rest.Nova.requestSetServerName project server.osProps.uuid newServerName
+                , Rest.Nova.requestSetServerHostName project server.osProps.uuid newServerName
+                , oldDnsRecordSets
+                    |> List.map (Rest.Designate.requestDeleteRecordSet ErrorCrit project)
+                    |> Cmd.batch
+                , newDnsRecordSetRequests
+                    |> List.map (Rest.Designate.requestCreateRecordSet ErrorCrit project)
+                    |> Cmd.batch
+                ]
+            )
                 |> mapToOuterMsg
 
+        RequestCreateServerHostname ( zone, ipAddress ) ->
+            let
+                hostname_ =
+                    Helpers.sanitizeHostname server.osProps.name
+            in
+            case hostname_ of
+                Just hostname ->
+                    ( outerModel
+                    , Rest.Designate.requestCreateRecordSet ErrorCrit
+                        project
+                        { zone_id = zone.zone_id
+                        , name = hostname ++ "." ++ zone.zone_name
+                        , type_ = OpenStack.DnsRecordSet.ARecord
+                        , records = Set.singleton ipAddress
+                        , description =
+                            String.join " "
+                                [ "Created for"
+                                , sharedModel.viewContext.localization.virtualComputer
+                                , server.osProps.name
+                                ]
+                        , ttl = Nothing
+                        }
+                    )
+                        |> mapToOuterMsg
+
+                Nothing ->
+                    let
+                        errMsg =
+                            "Could not determine a valid "
+                                ++ sharedModel.viewContext.localization.hostname
+                                ++ " for "
+                                ++ sharedModel.viewContext.localization.virtualComputer
+                                ++ " named '"
+                                ++ server.osProps.name
+                                ++ "'."
+
+                        errorContext =
+                            ErrorContext
+                                ("create DNS record in zone " ++ zone.zone_name)
+                                ErrorCrit
+                                Nothing
+                    in
+                    State.Error.processStringError sharedModel errorContext errMsg
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
         ReceiveServerAction ->
-            ApiModelHelpers.requestServer (GetterSetters.projectIdentifier project) server.osProps.uuid sharedModel
+            ApiModelHelpers.requestServer (GetterSetters.projectIdentifier project) NoInteraction server.osProps.uuid sharedModel
                 |> Helpers.pipelineCmd (ApiModelHelpers.requestServerEvents (GetterSetters.projectIdentifier project) server.osProps.uuid)
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
-
-        ReceiveServerEvents _ result ->
-            case result of
-                Ok serverEvents ->
-                    let
-                        newServer =
-                            { server
-                                | events =
-                                    RDPP.RemoteDataPlusPlus
-                                        (RDPP.DoHave serverEvents sharedModel.clientCurrentTime)
-                                        (RDPP.NotLoading Nothing)
-                            }
-
-                        newProject =
-                            GetterSetters.projectUpdateServer project newServer
-                    in
-                    ( GetterSetters.modelUpdateProject sharedModel newProject
-                    , Cmd.none
-                    )
-                        |> mapToOuterModel outerModel
-
-                Err _ ->
-                    -- Dropping this on the floor for now, someday we may want to do something different
-                    ( outerModel, Cmd.none )
 
         ReceiveConsoleUrl url ->
             Rest.Nova.receiveConsoleUrl sharedModel project server url
@@ -2463,6 +3811,16 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
 
         ReceiveDeleteServer ->
             let
+                recordSets : List OpenStack.DnsRecordSet.DnsRecordSet
+                recordSets =
+                    Helpers.sanitizeHostname server.osProps.name
+                        |> Maybe.map
+                            (\hostname ->
+                                GetterSetters.getServerDnsRecordSets project server.osProps.uuid
+                                    |> List.filter (\{ name, zone_name } -> hostname ++ "." ++ zone_name == name)
+                            )
+                        |> Maybe.withDefault []
+
                 newProject =
                     let
                         oldExoProps =
@@ -2480,22 +3838,60 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                     { outerModel | sharedModel = GetterSetters.modelUpdateProject sharedModel newProject }
             in
             ( newOuterModel
-            , case outerModel.viewState of
-                ProjectView projectId (ServerDetail pageModel) ->
-                    if pageModel.serverUuid == server.osProps.uuid then
-                        Route.pushUrl sharedModel.viewContext (Route.ProjectRoute projectId Route.ProjectOverview)
+            , Cmd.batch
+                [ case outerModel.viewState of
+                    ProjectView projectId (ServerDetail pageModel) ->
+                        if pageModel.serverUuid == server.osProps.uuid then
+                            Route.pushUrl sharedModel.viewContext (Route.ProjectRoute projectId Route.ProjectOverview)
 
-                    else
+                        else
+                            Cmd.none
+
+                    _ ->
                         Cmd.none
-
-                _ ->
-                    Cmd.none
+                , recordSets
+                    |> List.map (Rest.Designate.requestDeleteRecordSet ErrorDebug project)
+                    |> Cmd.batch
+                    |> Cmd.map SharedMsg
+                ]
             )
 
         ReceiveCreateServerFloatingIp errorContext result ->
             case result of
                 Ok ip ->
-                    Rest.Neutron.receiveCreateFloatingIp sharedModel project (Just server) ip
+                    let
+                        ( newSharedModel, cmd ) =
+                            Rest.Neutron.receiveCreateFloatingIp sharedModel project (Just server) ip
+
+                        maybeZone =
+                            GetterSetters.getDefaultZone project sharedModel.viewContext
+
+                        maybeHostname =
+                            Helpers.sanitizeHostname server.osProps.name
+
+                        createRecordsetCmd =
+                            -- Associate the server's floating IP with a DNS record. (#1081)
+                            case ( maybeZone, maybeHostname ) of
+                                ( Just zone, Just hostname ) ->
+                                    Rest.Designate.requestCreateRecordSetIfNotExists ErrorDebug
+                                        project
+                                        { zone_id = zone.zone_id
+                                        , name = hostname ++ "." ++ zone.zone_name
+                                        , type_ = OpenStack.DnsRecordSet.ARecord
+                                        , records = Set.singleton ip.address
+                                        , description =
+                                            String.join " "
+                                                [ "Created for"
+                                                , sharedModel.viewContext.localization.virtualComputer
+                                                , server.osProps.name
+                                                ]
+                                        , ttl = Nothing
+                                        }
+
+                                _ ->
+                                    Cmd.none
+                    in
+                    ( newSharedModel, Cmd.batch [ cmd, createRecordsetCmd ] )
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
@@ -2512,15 +3908,54 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
+        ReceiveAssignServerFloatingIp floatingIp ->
+            let
+                newProject =
+                    processNewFloatingIp sharedModel.clientCurrentTime project floatingIp
+
+                maybeZone =
+                    GetterSetters.getDefaultZone project sharedModel.viewContext
+
+                createRecordsetCmd =
+                    -- Associate the server's floating IP with a DNS record. (#1081)
+                    case maybeZone of
+                        Just zone ->
+                            Helpers.sanitizeHostname server.osProps.name
+                                |> Maybe.map
+                                    (\hostname ->
+                                        Rest.Designate.requestCreateRecordSetIfNotExists ErrorDebug
+                                            project
+                                            { zone_id = zone.zone_id
+                                            , name = hostname ++ "." ++ zone.zone_name
+                                            , type_ = OpenStack.DnsRecordSet.ARecord
+                                            , records = Set.singleton floatingIp.address
+                                            , description =
+                                                String.join " "
+                                                    [ "Created for"
+                                                    , sharedModel.viewContext.localization.virtualComputer
+                                                    , server.osProps.name
+                                                    ]
+                                            , ttl = Nothing
+                                            }
+                                    )
+                                |> Maybe.withDefault Cmd.none
+
+                        _ ->
+                            Cmd.none
+
+                newSharedModel =
+                    GetterSetters.modelUpdateProject sharedModel newProject
+            in
+            ( newSharedModel, createRecordsetCmd )
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
         ReceiveServerPassphrase passphrase ->
             if String.isEmpty passphrase then
                 ( outerModel, Cmd.none )
 
             else
                 let
-                    tag =
-                        "exoPw:" ++ passphrase
-
                     cmd =
                         case server.exoProps.serverOrigin of
                             ServerNotFromExo ->
@@ -2528,6 +3963,10 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
 
                             ServerFromExo serverFromExoProps ->
                                 if serverFromExoProps.exoServerVersion >= 1 then
+                                    let
+                                        tag =
+                                            "exoPw:" ++ passphrase
+                                    in
                                     Cmd.batch
                                         [ OSServerTags.requestCreateServerTag project server.osProps.uuid tag
                                         , OSServerPassword.requestClearServerPassword project server.osProps.uuid
@@ -2539,7 +3978,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                 ( outerModel, cmd )
                     |> mapToOuterMsg
 
-        ReceiveSetServerName _ errorContext result ->
+        ReceiveSetServerName errorContext result ->
             case result of
                 Err e ->
                     State.Error.processSynchronousApiError sharedModel errorContext e
@@ -2673,11 +4112,8 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
 
                         newProject =
                             GetterSetters.projectUpdateServer project newServer
-
-                        newSharedModel =
-                            GetterSetters.modelUpdateProject sharedModel newProject
                     in
-                    newSharedModel
+                    GetterSetters.modelUpdateProject sharedModel newProject
             in
             case server.exoProps.serverOrigin of
                 ServerFromExo exoOriginProps ->
@@ -2745,8 +4181,21 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                 oldExoProps =
                     server.exoProps
 
+                newFloatingIpOption =
+                    if requestFloatingIpIfAppropriate then
+                        -- Reset this to whatever is stored in server metadata, because we may need to re-request/re-assign a floating IP despite having previously reached the terminal state of DoNotUseFloatingIp.
+                        Helpers.decodeFloatingIpOption server.osProps.details
+
+                    else
+                        oldExoProps.floatingIpCreationOption
+
                 newServer =
-                    Server server.osProps { oldExoProps | targetOpenstackStatus = targetStatuses } server.events
+                    Server server.osProps
+                        { oldExoProps
+                            | targetOpenstackStatus = targetStatuses
+                            , floatingIpCreationOption = newFloatingIpOption
+                        }
+                        server.interaction
 
                 newProject =
                     GetterSetters.projectUpdateServer project newServer
@@ -2792,11 +4241,15 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                                 Ok consoleLog ->
                                     let
                                         ( newExoSetupStatus, newTimestamp ) =
-                                            Helpers.ExoSetupStatus.parseConsoleLogExoSetupStatus
+                                            if oldExoSetupStatus == ExoSetupComplete then
                                                 ( oldExoSetupStatus, oldTimestamp )
-                                                consoleLog
-                                                server.osProps.details.created
-                                                sharedModel.clientCurrentTime
+
+                                            else
+                                                Helpers.ExoSetupStatus.parseConsoleLogExoSetupStatus
+                                                    ( oldExoSetupStatus, oldTimestamp )
+                                                    consoleLog
+                                                    server.osProps.details.created
+                                                    sharedModel.clientCurrentTime
 
                                         cmd =
                                             if newExoSetupStatus == oldExoSetupStatus then
@@ -2907,6 +4360,17 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                             ( newSharedModel, exoSetupStatusMetadataCmd )
                                 |> mapToOuterMsg
                                 |> mapToOuterModel outerModel
+
+        SetMinimumServerInteractivity interactivity ->
+            let
+                newProject =
+                    GetterSetters.projectUpdateServer project { server | interaction = Interactivity.maximum interactivity server.interaction }
+
+                newSharedModel =
+                    GetterSetters.modelUpdateProject sharedModel newProject
+            in
+            ( newSharedModel, Cmd.none )
+                |> mapToOuterModel outerModel
 
 
 processNewFloatingIp : Time.Posix -> Project -> OSTypes.FloatingIp -> Project
@@ -3060,25 +4524,33 @@ createProject_ outerModel description authToken region endpoints =
             , description = description
             , images = RDPP.RemoteDataPlusPlus RDPP.DontHave RDPP.Loading
             , servers = RDPP.RemoteDataPlusPlus RDPP.DontHave RDPP.Loading
+            , serverEvents = Dict.empty
+            , serverSecurityGroups = Dict.empty
+            , serverVolumeAttachments = Dict.empty
+            , serverVolumeActions = Dict.empty
+            , serverActionRequestQueue = Dict.empty
             , serverImages = []
-            , flavors = []
+            , flavors = RDPP.empty
             , keypairs = RDPP.empty
             , volumes = RDPP.empty
             , volumeSnapshots = RDPP.empty
             , shares = RDPP.empty
             , shareAccessRules = Dict.empty
             , shareExportLocations = Dict.empty
+            , shareTypes = RDPP.empty
             , networks = RDPP.empty
             , autoAllocatedNetworkUuid = RDPP.empty
             , dnsRecordSets = RDPP.empty
             , floatingIps = RDPP.empty
             , ports = RDPP.empty
             , securityGroups = RDPP.empty
+            , securityGroupActions = Dict.empty
             , computeQuota = RDPP.empty
             , volumeQuota = RDPP.empty
             , networkQuota = RDPP.empty
             , shareQuota = RDPP.empty
             , jetstream2Allocations = RDPP.empty
+            , knownUsernames = Dict.fromList [ ( authToken.user.uuid, authToken.user.name ) ]
             }
 
         newSharedModel =
@@ -3087,7 +4559,6 @@ createProject_ outerModel description authToken region endpoints =
         ( newNewSharedModel, newCmd ) =
             ( newSharedModel
             , [ Rest.Nova.requestServers
-              , Rest.Neutron.requestSecurityGroups
               , Rest.Keystone.requestAppCredential sharedModel.clientUuid sharedModel.clientCurrentTime
               ]
                 |> List.map (\x -> x newProject)
@@ -3103,6 +4574,8 @@ createProject_ outerModel description authToken region endpoints =
                     (ApiModelHelpers.requestPorts (GetterSetters.projectIdentifier newProject))
                 |> Helpers.pipelineCmd
                     (ApiModelHelpers.requestNetworks (GetterSetters.projectIdentifier newProject))
+                |> Helpers.pipelineCmd
+                    (ApiModelHelpers.requestSecurityGroups (GetterSetters.projectIdentifier newProject))
                 |> Helpers.pipelineCmd
                     (ApiModelHelpers.requestImages (GetterSetters.projectIdentifier newProject))
                 |> Helpers.pipelineCmd
@@ -3130,6 +4603,70 @@ createUnscopedProvider model authToken authUrl =
     , Cmd.batch
         [ Rest.Keystone.requestUnscopedProjects newProvider model.cloudCorsProxyUrl
         , Rest.Keystone.requestUnscopedRegions newProvider model.cloudCorsProxyUrl
+        ]
+    )
+
+
+requestShelveServer : Project -> Server -> Bool -> ( Project, Cmd SharedMsg )
+requestShelveServer project server deleteFloatingIps =
+    let
+        oldExoProps =
+            server.exoProps
+
+        targetStatus =
+            Just [ OSTypes.ServerShelved, OSTypes.ServerShelvedOffloaded ]
+
+        newServer =
+            { server
+                | exoProps =
+                    { oldExoProps
+                        | targetOpenstackStatus = targetStatus
+                    }
+            }
+
+        newProject =
+            GetterSetters.projectUpdateServer project newServer
+
+        shelveCmd =
+            Rest.Nova.requestShelveServer (GetterSetters.projectIdentifier newProject) newProject.endpoints.nova newServer.osProps.uuid
+
+        cleanUpFloatingIpCmds =
+            if deleteFloatingIps then
+                let
+                    errorContext : OSTypes.IpAddressUuid -> ErrorContext
+                    errorContext ipUuid =
+                        ErrorContext
+                            ("delete floating IP address with UUID " ++ ipUuid)
+                            ErrorDebug
+                            Nothing
+
+                    deleteFloatingIpCmds =
+                        GetterSetters.getServerFloatingIps project server.osProps.uuid
+                            |> List.map .uuid
+                            |> List.map
+                                (\ipUuid ->
+                                    Rest.Neutron.requestDeleteFloatingIp project (errorContext ipUuid) ipUuid
+                                )
+
+                    deleteRecordSetsCmds =
+                        Helpers.sanitizeHostname server.osProps.name
+                            |> Maybe.map
+                                (\hostname ->
+                                    GetterSetters.getServerDnsRecordSets project server.osProps.uuid
+                                        |> List.filter (\{ name, zone_name } -> hostname ++ "." ++ zone_name == name)
+                                )
+                            |> Maybe.withDefault []
+                            |> List.map (Rest.Designate.requestDeleteRecordSet ErrorDebug project)
+                in
+                deleteFloatingIpCmds ++ deleteRecordSetsCmds
+
+            else
+                []
+    in
+    ( newProject
+    , Cmd.batch
+        [ shelveCmd
+        , Cmd.batch cleanUpFloatingIpCmds
         ]
     )
 

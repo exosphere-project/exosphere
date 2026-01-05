@@ -21,7 +21,9 @@ These options are primarily intended for cloud operators who wish to offer a cus
 | localization                  | null, JSON object       | Pass custom localization strings for the UI, see example below         |
 | instanceConfigMgtRepoUrl      | null, string            | Set a custom repository to use for instance setup code                 |
 | instanceConfigMgtRepoCheckout | null, string            | Check out specific branch/tag/commit of instance setup code            |
+| bannersUrl                    | null, string            | Customizable URL for loading banners, see example below                |
 | sentryConfig                  | null, JSON object       | Pass Sentry DSN for error logging, see example below                   |
+| version                       | null, string            | Current app version; Exosphere's convention is to use commit hash      |
 
 ## Example cloud configuration
 
@@ -34,11 +36,13 @@ Each of these JSON objects contains the following properties:
 - `keystoneHostname` (string): Used to look up the custom configuration for a cloud, e.g. `openstack.example.cloud`
 - `friendlyName` (string): Name of cloud to display to user
 - `userAppProxy` (null, array): An array of User Application proxy (UAP) information for this cloud. See `docs/user-app-proxy.md` for more information. This _must_ be set for Guacamole support (in-browser shell and desktop) to work on a given cloud.
+- `dnsZones` (null, array): An array of DNS zones for each cloud region, using region `null` as a fallback & `{project_name}` as a [URI template string](https://en.wikipedia.org/wiki/URI_Template). If available, instance hostnames are are provisioned as subdomains on the DNS zone.
 - `imageExcludeFilter` (null, JSON object): A key:value property to exclude images from UI, see example below
 - `featuredImageNamePrefix` (null, string): A (public) image is 'featured' if the name starts with this string
 - `instanceTypes` (array): An array of instance types specific to this cloud, can be left empty. See `docs/instance-types.md` for more information.
 - `flavorGroups` (array): An array of flavor groups specific to this cloud, can be left empty. See `docs/flavor-groups.md` for more information.
 - `desktopMessage` (null, string): Override message to show users who select a graphical desktop environment when creating an instance. `null` will display a default message, while an empty string will display no message.
+- `securityGroups` (null, JSON object): A map of default Security Groups for each cloud region, using `noRegion` as a fallback. See `docs/security-groups.md` for more information.
 
 ```javascript
 var cloud_configs = {
@@ -50,7 +54,17 @@ var cloud_configs = {
         { region: null,
           hostname: "uap.openstack.example.cloud",
         },
-      ]
+      ],
+      "dnsZones": [
+        {
+          "region": "IU",
+          "zone": "{project_name}.projects.jetstream-cloud.org.",
+        },
+        {
+          "region": null,
+          "zone": "{project_name}.projects.jetstream-cloud.org.",
+        },
+      ],
       "imageExcludeFilter":null,
       "featuredImageNamePrefix":null,
       "instanceTypes":[
@@ -102,7 +116,91 @@ var cloud_configs = {
           "disallowedActions":["Suspend"],
         }        
       ],
-      "desktopMessage":null
+      "desktopMessage":null,
+      "securityGroups":{
+        "noRegion": {
+          "description": "Allow all traffic",
+          "name": "permissive",
+          "rules": [
+            {
+              "description": "Mosh",
+              "direction": "ingress",
+              "ethertype": "IPv4",
+              "port_range_max": 61000,
+              "port_range_min": 60000,
+              "protocol": "udp",
+              "remote_group_id": null,
+              "remote_ip_prefix": "0.0.0.0/0"
+            },
+            {
+              "description": "SSH",
+              "direction": "ingress",
+              "ethertype": "IPv4",
+              "port_range_max": 22,
+              "port_range_min": 22,
+              "protocol": "tcp",
+              "remote_group_id": null,
+              "remote_ip_prefix": null
+            },
+            {
+              "description": null,
+              "direction": "egress",
+              "ethertype": "IPv4",
+              "port_range_max": null,
+              "port_range_min": null,
+              "protocol": null,
+              "remote_group_id": null,
+              "remote_ip_prefix": null
+            },
+            {
+              "description": null,
+              "direction": "egress",
+              "ethertype": "IPv6",
+              "port_range_max": null,
+              "port_range_min": null,
+              "protocol": null,
+              "remote_group_id": null,
+              "remote_ip_prefix": null
+            },
+            {
+              "description": "Ping",
+              "direction": "ingress",
+              "ethertype": "IPv4",
+              "port_range_max": null,
+              "port_range_min": null,
+              "protocol": "icmp",
+              "remote_group_id": null,
+              "remote_ip_prefix": null
+            },
+            {
+              "description": "Expose all incoming ports",
+              "direction": "ingress",
+              "ethertype": "IPv4",
+              "port_range_max": null,
+              "port_range_min": null,
+              "protocol": "tcp",
+              "remote_group_id": null,
+              "remote_ip_prefix": null
+            }
+          ]
+        },
+        "IU": {
+          "name": "restrictive",
+          "description": "Only allow SSH",
+          "rules": [
+            {
+              "description": "SSH",
+              "direction": "ingress",
+              "ethertype": "IPv4",
+              "port_range_max": 22,
+              "port_range_min": 22,
+              "protocol": "tcp",
+              "remote_group_id": null,
+              "remote_ip_prefix": null
+            }
+          ]
+        }
+      }
     }
   ]
 }
@@ -175,9 +273,58 @@ localization: {
     nonFloatingIpAddress: "internal IP address",
     floatingIpAddress: "floating IP address",
     publiclyRoutableIpAddress: "public IP address",
+    securityGroup: "firewall ruleset",
     graphicalDesktopEnvironment: "graphical desktop environment",
-    hostname: "hostname"
-    }
+    hostname: "hostname",
+    credentials: "credentials"
+}
+```
+
+## Example Banners Configuration
+
+Banners are deployed through an optional JSON file, allowing deployers to show and update banners in the Exosphere interface. This JSON file will be polled by the Exosphere client.
+
+In your `config.js`, you can change `bannersUrl` to use a custom endpoint (any URL which returns a valid `Banners` JSON response). If you leave this set to null, it will default to `banners.json`.
+
+```
+"bannersUrl": "/banners.json",
+```
+
+Banners may be configured with both start and end times to display banners during a certain time period, as well as a `level` to adjust the color and icon shown along with a banner. 
+
+![Banners Example (light)](assets/banners-light.png) ![Banners Example (dark)](assets/banners-dark.png)
+
+Banner messages are parsed as markdown, allowing rich links and formatting in your notifications.
+
+| *Option*            | *Possible Values*       | *Description*                                                                                                           |
+|---------------------|-------------------------|-------------------------------------------------------------------------------------------------------------------------|
+| message             | string (markdown)       | The message to display to the user, parsed as markdown                                                                  |
+| level (optional)    | string (banner)         | One of "default", "info", "success", "warning", or "danger"                                                             |
+| startsAt (optional) | string (date and time)  | A date and time, such as "2024-05-28T13:00:00−05:00", formatted using [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) |
+| endsAt (optional)   | string (date and time)  | A date and time, such as "2024-05-28T15:00:00−05:00", formatted using [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) |
+
+The example shown here would show a first banner for a pre-maintenance warning, a second banner during a maintenance period, and a third banner when maintenance is complete.
+
+```json
+[
+  {
+    "message": "Maintenance period begins on 5/28/2024, at 1:00pm Eastern. Some functionality may be degraded", 
+    "level": "info", 
+    "endsAt": "2024-05-28T13:00:00-05:00" 
+  },
+  {
+    "message": "This Cloud is under Maintenance until 5/28/2024, 3:00pm Eastern. Some functionality may be degraded", 
+    "level": "warning",
+    "startsAt": "2024-05-28T13:00:00-05:00", 
+    "endsAt": "2024-05-28T15:00:00-05:00" 
+  },
+  {
+    "message": "Maintenance has been completed. Please notify support of any found issues", 
+    "level": "success",
+    "startsAt": "2024-05-28T15:00:00-05:00", 
+    "endsAt": "2024-05-30T00:00:00-05:00" 
+  }
+]
 ```
 
 ## Example Sentry Configuration

@@ -1,4 +1,4 @@
-FROM node:current-bullseye
+FROM node:current-bookworm
 
 # Note: this docker build is intended for local development only
 # docker build -t exosphere .
@@ -16,23 +16,15 @@ RUN apt-get update && \
 # Install and cache dependencies
 COPY package*.json ./
 COPY elm.json ./
-COPY elm-tooling.json ./
 COPY elm-git.json ./
-RUN npm install \
-    && npm install --no-save elm-live
+COPY elm-watch.json ./
+COPY elm.sideload.json ./
+COPY postprocess.js ./
+RUN npm install
 
-# Add remainder of files
-COPY index.html .
-COPY service-worker.js .
-COPY environment-configs/docker-config.js ./config.js
-COPY ports.js .
-COPY cloud_configs.js .
-COPY exosphere.webmanifest .
-COPY src ./src
-COPY assets ./assets
-COPY fonts ./fonts
-RUN npx elm make src/Exosphere.elm --output elm-web.js
+# Copy files not using a bind mount
+COPY version.json ./
 
 EXPOSE 8000
 
-CMD npx elm-live src/Exosphere.elm --pushstate true --proxy-prefix '/proxy' --proxy-host 'https://try-dev.exosphere.app/proxy' --host 0.0.0.0 --verbose --start-page index.html --hot true -- --output=elm-web.js
+CMD ELM_WATCH_HOST=0.0.0.0 npx elm-watch hot

@@ -120,24 +120,18 @@ renderRegion selectedRegions region =
         renderRegionLabel : Element.Element Msg
         renderRegionLabel =
             let
-                labelStrNoDescription =
-                    String.join " "
-                        [ region.id
-                        ]
-
-                labelStrWithDescription =
-                    String.join " "
-                        [ region.id
-                        , String.fromChar '—'
-                        , region.description
-                        ]
-
                 labelStr =
                     if String.isEmpty region.description then
-                        labelStrNoDescription
+                        String.join " "
+                            [ region.id
+                            ]
 
                     else
-                        labelStrWithDescription
+                        String.join " "
+                            [ region.id
+                            , String.fromChar '—'
+                            , region.description
+                            ]
             in
             Element.paragraph [ Element.width Element.fill ] [ Element.text labelStr ]
     in

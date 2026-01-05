@@ -40,7 +40,7 @@ requestServerPassword project serverUuid =
         Get
         Nothing
         []
-        (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/os-server-password")
+        ( project.endpoints.nova, [ "servers", serverUuid, "os-server-password" ], [] )
         Http.emptyBody
         (expectJsonWithErrorBody resultToMsg_ serverPasswordDecoder)
 
@@ -59,7 +59,7 @@ requestClearServerPassword project serverUuid =
         Delete
         Nothing
         []
-        (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/os-server-password")
+        ( project.endpoints.nova, [ "servers", serverUuid, "os-server-password" ], [] )
         Http.emptyBody
         (expectStringWithErrorBody
             (resultToMsgErrorBody errorContext (\_ -> NoOp))

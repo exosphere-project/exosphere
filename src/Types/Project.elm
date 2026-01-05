@@ -8,7 +8,10 @@ import OpenStack.VolumeSnapshots exposing (VolumeSnapshot)
 import Types.Error exposing (HttpErrorWithBody)
 import Types.HelperTypes as HelperTypes
 import Types.Jetstream2Accounting
+import Types.SecurityGroupActions exposing (ComparableSecurityGroupActionId, SecurityGroupAction)
 import Types.Server exposing (Server)
+import Types.ServerActionRequestQueue exposing (ServerActionRequestJob)
+import Types.ServerVolumeActions exposing (ServerVolumeActionRequest)
 
 
 
@@ -23,10 +26,18 @@ type alias Project =
     , description : Maybe String
     , images : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Image)
     , servers : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List Server)
+    , serverEvents : Dict OSTypes.ServerUuid (RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.ServerEvent))
+    , serverSecurityGroups : Dict OSTypes.ServerUuid (RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.ServerSecurityGroup))
+    , serverVolumeAttachments : Dict OSTypes.ServerUuid (RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.VolumeAttachment))
+    , serverVolumeActions : Dict OSTypes.ServerUuid (List ServerVolumeActionRequest)
+
+    -- TODO: Queued server security group removals (#1069) is a workaround for https://bugs.launchpad.net/nova/+bug/2115798 & might be removed in the future.
+    , serverActionRequestQueue : Dict OSTypes.ServerUuid (List ServerActionRequestJob)
     , shares : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Share)
     , shareAccessRules : Dict OSTypes.ShareUuid (RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.AccessRule))
     , shareExportLocations : Dict OSTypes.ShareUuid (RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.ExportLocation))
-    , flavors : List OSTypes.Flavor
+    , shareTypes : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.ShareType)
+    , flavors : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Flavor)
     , keypairs : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Keypair)
     , volumes : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Volume)
     , volumeSnapshots : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List VolumeSnapshot)
@@ -36,6 +47,7 @@ type alias Project =
     , dnsRecordSets : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OpenStack.DnsRecordSet.DnsRecordSet)
     , ports : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Port)
     , securityGroups : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.SecurityGroup)
+    , securityGroupActions : Dict.Dict ComparableSecurityGroupActionId SecurityGroupAction
     , computeQuota : RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.ComputeQuota
     , volumeQuota : RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.VolumeQuota
     , networkQuota : RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.NetworkQuota
@@ -44,6 +56,7 @@ type alias Project =
     -- List of server-backing images that we request separately (because the server's image is not in the default image list)
     , serverImages : List OSTypes.Image
     , jetstream2Allocations : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List Types.Jetstream2Accounting.Allocation)
+    , knownUsernames : Dict.Dict OSTypes.UserUuid String
     }
 
 

@@ -4,7 +4,7 @@ import DesignSystem.Helpers exposing (Plugins, Renderer, ThemeModel, palettize)
 import Element
 import Element.Font as Font
 import Element.Input as Input
-import Style.Widgets.CopyableText as CopyableText exposing (copyableText, copyableTextAccessory)
+import Style.Widgets.CopyableText as CopyableText exposing (copyableScript, copyableText, copyableTextAccessory)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
 import UIExplorer
@@ -30,6 +30,22 @@ stories renderer onChange =
                         , Element.width Element.shrink
                         ]
                         "192.168.1.1"
+          , { note = CopyableText.notes }
+          )
+        , ( "copyable scripts"
+          , \m ->
+                renderer (palettize m) <|
+                    copyableScript (palettize m) """
+export OS_PROJECT_NAME="cloud-riders"
+export OS_USERNAME="enfysnest"
+export OS_IDENTITY_API_VERSION=3
+export OS_USER_DOMAIN_NAME="default"
+export OS_TENANT_NAME="enfysnest"
+export OS_AUTH_URL="https://cell.alliance.rebel:35357/v3"
+export OS_PROJECT_DOMAIN_NAME="default"
+export OS_REGION_NAME="CellOne"
+export OS_PASSWORD=$OS_PASSWORD_INPUT
+"""
           , { note = CopyableText.notes }
           )
         , ( "separate accessory"

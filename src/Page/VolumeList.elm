@@ -1,14 +1,14 @@
 module Page.VolumeList exposing (Model, Msg, init, update, view)
 
-import Dict
 import Element
 import Element.Font as Font
 import FeatherIcons as Icons
 import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (Unit(..), humanNumber)
-import Helpers.GetterSetters as GetterSetters
+import Helpers.GetterSetters as GetterSetters exposing (LoadingProgress(..), isSnapshotOfVolume)
+import Helpers.Helpers exposing (lookupUsername)
 import Helpers.RemoteDataPlusPlus as RDPP
-import Helpers.ResourceList exposing (creationTimeFilterOptions, listItemColumnAttribs, onCreationTimeFilter)
+import Helpers.ResourceList exposing (creationTimeFilterOptions, creatorFilterOptions, listItemColumnAttribs, onCreationTimeFilter)
 import Helpers.String
 import OpenStack.Types as OSTypes
 import OpenStack.VolumeSnapshots as VS
@@ -19,11 +19,15 @@ import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.Button as Button
 import Style.Widgets.DataList as DataList
-import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
+import Style.Widgets.DeleteButton as DeleteButton
 import Style.Widgets.HumanTime exposing (relativeTimeElement)
 import Style.Widgets.Icon exposing (featherIcon)
 import Style.Widgets.Spacer exposing (spacer)
+import Style.Widgets.StatusBadge as StatusBadge
+import Style.Widgets.Tag exposing (tag)
 import Style.Widgets.Text as Text
+import Style.Widgets.ToggleTip
+import Style.Widgets.Uuid exposing (uuidLabel)
 import Time
 import Types.HelperTypes exposing (Uuid)
 import Types.Project exposing (Project)
@@ -39,7 +43,7 @@ type alias Model =
 
 
 type Msg
-    = DetachVolume OSTypes.VolumeUuid
+    = GotDetachVolumeConfirm OSTypes.VolumeUuid
     | GotDeleteSnapshotConfirm Uuid
     | GotDeleteVolumeConfirm OSTypes.VolumeUuid
     | SharedMsg SharedMsg.SharedMsg
@@ -47,10 +51,10 @@ type Msg
     | NoOp
 
 
-init : Bool -> Model
-init showHeading =
+init : Project -> Bool -> Model
+init project showHeading =
     Model showHeading
-        (DataList.init <| DataList.getDefaultFilterOptions (filters (Time.millisToPosix 0)))
+        (DataList.init <| DataList.getDefaultFilterOptions (filters project (Time.millisToPosix 0)))
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
@@ -60,7 +64,7 @@ update msg project model =
             GetterSetters.projectIdentifier project
     in
     case msg of
-        DetachVolume volumeUuid ->
+        GotDetachVolumeConfirm volumeUuid ->
             ( model
             , Cmd.none
             , SharedMsg.ProjectMsg projectId <|
@@ -113,15 +117,15 @@ view context project currentTime model =
                 []
                 (volumeView context project currentTime)
                 (volumeRecords project ( volumes_, snapshots ))
-                []
+                [ deletionAction context project ]
                 (Just
-                    { filters = filters currentTime
+                    { filters = filters project currentTime
                     , dropdownMsgMapper =
                         \dropdownId ->
                             SharedMsg <| SharedMsg.TogglePopover dropdownId
                     }
                 )
-                Nothing
+                (Just <| searchByNameUuidFilter context)
     in
     Element.column
         (VH.contentContainer ++ [ Element.spacing spacer.px32 ])
@@ -157,15 +161,8 @@ volumeRecords : Project -> ( List OSTypes.Volume, List VS.VolumeSnapshot ) -> Li
 volumeRecords project ( volumes, snapshots ) =
     let
         creator volume =
-            if volume.userUuid == project.auth.user.uuid then
-                "me"
-
-            else
-                "other user"
-
-        isSnapshotOfVolume : OSTypes.Volume -> VS.VolumeSnapshot -> Bool
-        isSnapshotOfVolume { uuid } { volumeId } =
-            uuid == volumeId
+            lookupUsername project volume.userUuid
+                |> Maybe.withDefault "unknown user"
 
         volumeSnapshots volume =
             List.filter (\snapshot -> isSnapshotOfVolume volume snapshot) snapshots
@@ -173,13 +170,41 @@ volumeRecords project ( volumes, snapshots ) =
     List.map
         (\volume ->
             { id = volume.uuid
-            , selectable = False
+            , selectable = volume.status == OSTypes.Available -- Only available volumes can be deleted in bulk.
             , volume = volume
             , snapshots = volumeSnapshots volume
             , creator = creator volume
             }
         )
         volumes
+
+
+deletionAction :
+    View.Types.Context
+    -> Project
+    -> Set.Set OSTypes.VolumeUuid
+    -> Element.Element Msg
+deletionAction context project volumeUuids =
+    VH.deleteBulkResourcePopconfirm
+        context
+        project
+        (SharedMsg << SharedMsg.TogglePopover)
+        { count = Set.size volumeUuids, word = context.localization.blockDevice }
+        "volumeListDeletePopconfirm"
+        (Just <|
+            SharedMsg <|
+                (volumeUuids
+                    |> Set.toList
+                    |> List.map
+                        (\uuid ->
+                            SharedMsg.ProjectMsg
+                                (GetterSetters.projectIdentifier project)
+                                (SharedMsg.RequestDeleteVolume uuid)
+                        )
+                    |> SharedMsg.Batch
+                )
+        )
+        (Just NoOp)
 
 
 volumeView :
@@ -190,9 +215,6 @@ volumeView :
     -> Element.Element Msg
 volumeView context project currentTime volumeRecord =
     let
-        neutralColor =
-            SH.toElementColor context.palette.neutral.text.default
-
         volumeLink =
             Element.link []
                 { url =
@@ -211,117 +233,198 @@ volumeView context project currentTime volumeRecord =
                         )
                 }
 
-        volumeAttachment =
+        { progress, attachments } =
+            GetterSetters.serverAttachmentsForVolume project volumeRecord.volume.uuid
+
+        volumeAttachmentLoading =
             let
-                serverName serverUuid =
-                    case GetterSetters.serverLookup project serverUuid of
-                        Just server ->
-                            VH.resourceName (Just server.osProps.name) server.osProps.uuid
+                loading =
+                    Element.row [ Element.alignRight ]
+                        [ Element.el [ Font.italic ] (Element.text "Loading attachments...") ]
 
-                        Nothing ->
-                            "unresolvable " ++ context.localization.virtualComputer ++ " name"
+                maybeServerUuid =
+                    GetterSetters.getServerUuidsByVolumeAttached project volumeRecord.volume.uuid
+                        |> List.head
+
+                volumeAttachment =
+                    Element.row [ Element.alignRight ]
+                        ((Element.text <|
+                            case volumeRecord.volume.status of
+                                OSTypes.Reserved ->
+                                    "Reserved for "
+
+                                _ ->
+                                    "Attached to "
+                         )
+                            :: (case maybeServerUuid of
+                                    Just serverUuid_ ->
+                                        let
+                                            maybeServer =
+                                                GetterSetters.serverLookup project serverUuid_
+
+                                            serverName =
+                                                case maybeServer of
+                                                    Just server ->
+                                                        VH.resourceName (Just server.osProps.name) server.osProps.uuid
+
+                                                    Nothing ->
+                                                        "unresolvable " ++ context.localization.virtualComputer ++ " name"
+
+                                            isServerShelved =
+                                                maybeServer
+                                                    |> Maybe.map (\s -> s.osProps.details.openstackStatus)
+                                                    |> Maybe.map (\status -> [ OSTypes.ServerShelved, OSTypes.ServerShelvedOffloaded ] |> List.member status)
+                                                    |> Maybe.withDefault False
+
+                                            isBootVolume =
+                                                GetterSetters.isVolumeCurrentlyBackingServer project Nothing volumeRecord.volume
+                                        in
+                                        [ Element.link []
+                                            { url =
+                                                Route.toUrl context.urlPathPrefix
+                                                    (Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
+                                                        Route.ServerDetail serverUuid_
+                                                    )
+                                            , label =
+                                                Element.el
+                                                    [ Font.color (SH.toElementColor context.palette.primary)
+                                                    ]
+                                                    (Element.text <| serverName)
+                                            }
+                                        , case ( volumeRecord.volume.status, isServerShelved && isBootVolume ) of
+                                            ( OSTypes.Reserved, True ) ->
+                                                Style.Widgets.ToggleTip.toggleTip
+                                                    context
+                                                    (SharedMsg << SharedMsg.TogglePopover)
+                                                    ("volumeReservedTip-" ++ volumeRecord.id)
+                                                    (Text.body <| "Unshelve the attached " ++ context.localization.virtualComputer ++ " to interact with this " ++ context.localization.blockDevice ++ ".")
+                                                    ST.PositionBottomRight
+
+                                            _ ->
+                                                Element.none
+                                        ]
+
+                                    Nothing ->
+                                        [ Element.el
+                                            [ Font.color
+                                                (SH.toElementColor context.palette.neutral.text.default)
+                                            ]
+                                            (Element.text <|
+                                                case volumeRecord.volume.status of
+                                                    OSTypes.Reserved ->
+                                                        "unknown " ++ context.localization.virtualComputer
+
+                                                    _ ->
+                                                        "no " ++ context.localization.virtualComputer
+                                            )
+                                        ]
+                               )
+                        )
             in
-            Element.row [ Element.alignRight ]
-                [ Element.text "Attached to "
-                , case List.head volumeRecord.volume.attachments of
-                    Just volumeAttachment_ ->
-                        Element.link []
-                            { url =
-                                Route.toUrl context.urlPathPrefix
-                                    (Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
-                                        Route.ServerDetail volumeAttachment_.serverUuid
-                                    )
-                            , label =
-                                Element.el
-                                    [ Font.color (SH.toElementColor context.palette.primary)
-                                    ]
-                                    (Element.text <| serverName volumeAttachment_.serverUuid)
-                            }
+            case ( progress, attachments ) of
+                ( Done, _ ) ->
+                    volumeAttachment
 
-                    Nothing ->
-                        Element.el
-                            [ Font.color
-                                (SH.toElementColor context.palette.neutral.text.default)
-                            ]
-                            (Element.text <| "no " ++ context.localization.virtualComputer)
-                ]
+                ( Loading, [] ) ->
+                    loading
 
-        volumeActions =
-            case volumeRecord.volume.status of
-                OSTypes.Detaching ->
-                    Element.el [ Font.italic ] (Element.text "Detaching ...")
-
-                OSTypes.Deleting ->
-                    Element.el [ Font.italic ] (Element.text "Deleting ...")
-
-                OSTypes.InUse ->
-                    if GetterSetters.isBootVolume Nothing volumeRecord.volume then
-                        -- Volume cannot be deleted or detached
-                        Element.row [ Element.height <| Element.minimum 32 Element.fill ]
-                            [ Element.text "as "
-                            , Element.el
-                                [ Font.color (SH.toElementColor context.palette.neutral.text.default) ]
-                                (Element.text <| "boot " ++ context.localization.blockDevice)
-                            ]
-
-                    else
-                        -- Volume can only be detached
-                        Button.default
-                            context.palette
-                            { text = "Detach"
-                            , onPress =
-                                Just <| DetachVolume volumeRecord.id
-                            }
-
-                OSTypes.Available ->
-                    -- Volume can be either deleted or attached
-                    let
-                        deleteVolumeBtn togglePopconfirmMsg _ =
-                            deleteIconButton
-                                context.palette
-                                False
-                                ("Delete " ++ context.localization.blockDevice)
-                                (Just togglePopconfirmMsg)
-
-                        deletePopconfirmId =
-                            Helpers.String.hyphenate
-                                [ "volumeListDeletePopconfirm"
-                                , project.auth.project.uuid
-                                , volumeRecord.id
-                                ]
-                    in
-                    Element.row [ Element.spacing spacer.px12 ]
-                        [ deletePopconfirm context
-                            (SharedMsg << SharedMsg.TogglePopover)
-                            deletePopconfirmId
-                            { confirmation =
-                                Element.text <|
-                                    "Are you sure you want to delete this "
-                                        ++ context.localization.blockDevice
-                                        ++ "?"
-                            , buttonText = Nothing
-                            , onCancel = Just NoOp
-                            , onConfirm = Just <| GotDeleteVolumeConfirm volumeRecord.id
-                            }
-                            ST.PositionBottomRight
-                            deleteVolumeBtn
-                        , Element.link []
-                            { url =
-                                Route.toUrl context.urlPathPrefix
-                                    (Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
-                                        Route.VolumeAttach Nothing (Just volumeRecord.id)
-                                    )
-                            , label =
-                                Button.default
-                                    context.palette
-                                    { text = "Attach"
-                                    , onPress = Just NoOp
-                                    }
-                            }
-                        ]
+                ( Loading, _ ) ->
+                    -- As soon as we have an attachment, we can render it.
+                    volumeAttachment
 
                 _ ->
-                    Element.none
+                    loading
+
+        volumeActions =
+            let
+                deleteButton enabled =
+                    VH.deleteResourcePopconfirmWithDisabledHint
+                        context
+                        project
+                        (SharedMsg << SharedMsg.TogglePopover)
+                        { uuid = volumeRecord.id, word = context.localization.blockDevice }
+                        "volumeListDeletePopconfirm"
+                        (Just <| GotDeleteVolumeConfirm volumeRecord.id)
+                        (Just NoOp)
+                        (let
+                            deleteString =
+                                "Delete " ++ context.localization.blockDevice
+                         in
+                         if enabled then
+                            DeleteButton.Enabled deleteString
+
+                         else
+                            DeleteButton.Disabled (Maybe.withDefault deleteString <| VH.deleteVolumeWarning context project volumeRecord.volume)
+                        )
+
+                bootVolumeTag =
+                    if GetterSetters.isVolumeCurrentlyBackingServer project Nothing volumeRecord.volume then
+                        tag context.palette <| "boot " ++ context.localization.blockDevice
+
+                    else
+                        Element.none
+
+                controls =
+                    case volumeRecord.volume.status of
+                        OSTypes.Detaching ->
+                            [ Element.el [ Font.italic ] (Element.text "Detaching...") ]
+
+                        OSTypes.Deleting ->
+                            [ Element.el [ Font.italic ] (Element.text "Deleting...") ]
+
+                        OSTypes.InUse ->
+                            [ VH.detachVolumeButton
+                                context
+                                project
+                                (SharedMsg << SharedMsg.TogglePopover)
+                                "volumeListDetachPopconfirm"
+                                volumeRecord.volume
+                                (Just <| GotDetachVolumeConfirm volumeRecord.id)
+                                (Just NoOp)
+                            , deleteButton False
+                            ]
+
+                        OSTypes.Reserved ->
+                            [ VH.detachVolumeButton
+                                context
+                                project
+                                (SharedMsg << SharedMsg.TogglePopover)
+                                "volumeListDetachPopconfirm"
+                                volumeRecord.volume
+                                (Just <| GotDetachVolumeConfirm volumeRecord.id)
+                                (Just NoOp)
+                            , deleteButton False
+                            ]
+
+                        OSTypes.Available ->
+                            -- Volume can be either deleted or attached
+                            let
+                                attachButton =
+                                    Element.link []
+                                        { url =
+                                            Route.toUrl context.urlPathPrefix
+                                                (Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
+                                                    Route.VolumeAttach Nothing (Just volumeRecord.id)
+                                                )
+                                        , label =
+                                            Button.default
+                                                context.palette
+                                                { text = "Attach"
+                                                , onPress = Just NoOp
+                                                }
+                                        }
+                            in
+                            [ attachButton
+                            , deleteButton True
+                            ]
+
+                        _ ->
+                            []
+            in
+            Element.row [ Element.spacing spacer.px12 ]
+                (bootVolumeTag
+                    :: controls
+                )
 
         sizeString bytes =
             let
@@ -333,105 +436,46 @@ volumeView context project currentTime volumeRecord =
             in
             sizeDisplay ++ " " ++ sizeLabel
 
+        snapshotRow snapshot =
+            Element.row [ Element.spaceEvenly, Element.width <| Element.fill ]
+                [ Element.row [ Element.spacing spacer.px8 ]
+                    [ Text.body <| sizeString snapshot.sizeInGiB
+                    , Text.body "·"
+                    , let
+                        accentColor =
+                            context.palette.neutral.text.default |> SH.toElementColor
+
+                        accented =
+                            Element.el [ Font.color accentColor ]
+                      in
+                      Element.row []
+                        [ Element.text "created "
+                        , accented (relativeTimeElement currentTime snapshot.createdAt)
+                        ]
+                    , Text.body "·"
+                    , Text.body <| VH.resourceName snapshot.name snapshot.uuid
+                    ]
+                , Element.row
+                    []
+                    [ VH.deleteVolumeSnapshotIconButton
+                        context
+                        project
+                        (SharedMsg << SharedMsg.TogglePopover)
+                        "volumeListDeleteSnapshotPopconfirm"
+                        snapshot
+                        (Just <| GotDeleteSnapshotConfirm snapshot.uuid)
+                        (Just NoOp)
+                    ]
+                ]
+
         snapshotRows =
             case volumeRecord.snapshots of
                 [] ->
                     []
 
                 snapshots ->
-                    [ Element.row [ Element.spacing spacer.px8, Font.color neutralColor ] [ Element.text "Snapshots" ]
-                    , Element.table
-                        [ Element.spacing spacer.px12 ]
-                        { data = snapshots
-                        , columns =
-                            [ { header = Element.none
-                              , width = Element.shrink
-                              , view = \snapshot -> Element.text (sizeString snapshot.sizeInGiB)
-                              }
-                            , { header = Element.none
-                              , width = Element.shrink
-                              , view =
-                                    \{ name, description, uuid } ->
-                                        let
-                                            renderedName =
-                                                VH.resourceName name uuid
-                                        in
-                                        Element.column
-                                            [ Element.spacing spacer.px4 ]
-                                            [ Element.el [ Font.color neutralColor ] (Element.text renderedName)
-                                            , description
-                                                |> Maybe.map Element.text
-                                                |> Maybe.withDefault Element.none
-                                            ]
-                              }
-                            , { header = Element.none
-                              , width = Element.fill
-                              , view =
-                                    let
-                                        renderCreationTime : VS.VolumeSnapshot -> Element.Element msg
-                                        renderCreationTime { createdAt } =
-                                            Element.row []
-                                                [ Element.text "created "
-                                                , relativeTimeElement currentTime createdAt
-                                                ]
-                                    in
-                                    renderCreationTime
-                              }
-                            , { header = Element.none
-                              , width = Element.shrink
-                              , view =
-                                    \snapshot ->
-                                        if not <| List.member snapshot.status [ VS.Deleted, VS.Deleting ] then
-                                            let
-                                                deviceLabel =
-                                                    context.localization.blockDevice ++ " snapshot"
-
-                                                deletePopconfirmId =
-                                                    Helpers.String.hyphenate
-                                                        [ "volumeListDeleteSnapshotPopconfirm"
-                                                        , project.auth.project.uuid
-                                                        , snapshot.uuid
-                                                        ]
-
-                                                deleteButton =
-                                                    deletePopconfirm context
-                                                        (SharedMsg << SharedMsg.TogglePopover)
-                                                        deletePopconfirmId
-                                                        { confirmation =
-                                                            Element.text <|
-                                                                "Are you sure you want to delete this "
-                                                                    ++ deviceLabel
-                                                                    ++ "?"
-                                                        , buttonText = Nothing
-                                                        , onCancel = Just NoOp
-                                                        , onConfirm = Just <| GotDeleteSnapshotConfirm snapshot.uuid
-                                                        }
-                                                        ST.PositionBottomRight
-                                                        (\msg _ ->
-                                                            deleteIconButton context.palette
-                                                                False
-                                                                ("Delete " ++ deviceLabel)
-                                                                (Just msg)
-                                                        )
-                                            in
-                                            Element.row
-                                                [ Element.spacing spacer.px12 ]
-                                                [ deleteButton ]
-
-                                        else
-                                            let
-                                                label =
-                                                    if VS.isTransitioning snapshot then
-                                                        VS.statusToString snapshot.status ++ " ..."
-
-                                                    else
-                                                        VS.statusToString snapshot.status
-                                            in
-                                            Element.el [ Font.italic ] (Element.text label)
-                              }
-                            ]
-                        }
-                    ]
+                    Text.text Text.Emphasized [] "Snapshots"
+                        :: List.map (\snapshot -> snapshotRow snapshot) snapshots
     in
     Element.column
         (listItemColumnAttribs context.palette)
@@ -439,12 +483,13 @@ volumeView context project currentTime volumeRecord =
             (listItemColumnAttribs context.palette)
             [ Element.row [ Element.spacing spacer.px12, Element.width Element.fill ]
                 [ volumeLink
-                , volumeAttachment
+                , VH.volumeStatusBadgeFromStatus context.palette StatusBadge.Small volumeRecord.volume.status
+                , volumeAttachmentLoading
                 ]
             , Element.row
                 [ Element.spacing spacer.px8, Element.width Element.fill ]
-                [ Element.el [] (Element.text (sizeString volumeRecord.volume.size))
-                , Element.text "·"
+                [ Element.el [ Element.alignTop ] (Element.text (sizeString volumeRecord.volume.size))
+                , Text.text Text.Body [ Element.alignTop ] "·"
                 , let
                     accentColor =
                         context.palette.neutral.text.default |> SH.toElementColor
@@ -452,34 +497,47 @@ volumeView context project currentTime volumeRecord =
                     accented =
                         Element.el [ Font.color accentColor ]
                   in
-                  Element.paragraph []
+                  Element.paragraph [ Element.alignTop ]
                     [ Element.text "created "
                     , accented (relativeTimeElement currentTime volumeRecord.volume.createdAt)
                     , Element.text " by "
                     , accented (Element.text volumeRecord.creator)
                     ]
-                , Element.el [ Element.alignRight ]
-                    volumeActions
+                , Element.column [ Element.spacing spacer.px16, Element.paddingXY 0 spacer.px4 ]
+                    [ uuidLabel context.palette volumeRecord.id
+                    , Element.el [ Element.alignRight ]
+                        volumeActions
+                    ]
                 ]
             ]
             :: snapshotRows
         )
 
 
+searchByNameUuidFilter : View.Types.Context -> DataList.SearchFilter { record | volume : OSTypes.Volume }
+searchByNameUuidFilter context =
+    { label = "Search:"
+    , placeholder =
+        Just <|
+            "Enter "
+                ++ context.localization.blockDevice
+                ++ " name or UUID"
+    , textToSearch = \record -> Maybe.withDefault "" record.volume.name ++ " " ++ record.id
+    }
+
+
 filters :
-    Time.Posix
+    Project
+    -> Time.Posix
     -> List (DataList.Filter { record | volume : OSTypes.Volume, creator : String })
-filters currentTime =
+filters project currentTime =
     [ { id = "creator"
       , label = "Creator"
       , chipPrefix = "Created by "
       , filterOptions =
-            \_ ->
-                [ "me", "other user" ]
-                    |> List.map (\creator -> ( creator, creator ))
-                    |> Dict.fromList
+            \records -> creatorFilterOptions project (List.map .creator records)
       , filterTypeAndDefaultValue =
-            DataList.MultiselectOption <| Set.fromList [ "me" ]
+            DataList.MultiselectOption <| Set.singleton project.auth.user.name
       , onFilter =
             \optionValue volume ->
                 volume.creator == optionValue

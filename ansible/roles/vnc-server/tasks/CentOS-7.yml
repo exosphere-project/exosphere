@@ -1,5 +1,11 @@
 ---
 
+- name: 'VNC server packages installed'
+  loop: '{{ vncserver_packages }}'
+  package:
+    name: '{{ item }}'
+    state: 'present'
+
 - name: 'systemd service override directory created'
   file:
     path: '/etc/tigervnc'

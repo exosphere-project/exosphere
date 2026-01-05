@@ -1,5 +1,6 @@
 "use strict";
 
+/** @type {Exosphere.Configuration} */
 var config = {
   showDebugMsgs: false,
   cloudCorsProxyUrl: "https://try-dev.exosphere.app/proxy",
@@ -18,8 +19,8 @@ var config = {
   userSupportEmailSubject: null,
   openIdConnectLoginConfig: {
     keystoneAuthUrl: "https://js2.jetstream-cloud.org:5000/identity/v3",
-    webssoKeystoneEndpoint:
-      "/auth/OS-FEDERATION/websso/openid?origin=https://try-dev.exosphere.app/exosphere/oidc-redirector",
+    webssoUrl:
+      "https://js2.jetstream-cloud.org/identity/v3/auth/OS-FEDERATION/websso/openid?origin=https://try-dev.exosphere.app/exosphere/oidc-redirector",
     oidcLoginIcon: "assets/img/access-logo.jpg",
     oidcLoginButtonLabel: "Add ACCESS Account",
     oidcLoginButtonDescription: "Jetstream 2 only",
@@ -27,6 +28,7 @@ var config = {
   localization: null,
   instanceConfigMgtRepoUrl: null,
   instanceConfigMgtRepoCheckout: "dev",
+  bannersUrl: null,
   sentryConfig: {
     dsnPublicKey: "2c1487a758db4414b30ea690ab46b338",
     dsnHost: "o1143942.ingest.sentry.io",
@@ -34,6 +36,7 @@ var config = {
     releaseVersion: "latest",
     environmentName: "try-dev.exosphere.app",
   },
+  version: null,
 };
 
 /* Matomo tracking code */
@@ -51,5 +54,6 @@ _paq.push(["enableLinkTracking"]);
   g.type = "text/javascript";
   g.async = true;
   g.src = u + "matomo.js";
+  // @ts-ignore
   s.parentNode.insertBefore(g, s);
 })();

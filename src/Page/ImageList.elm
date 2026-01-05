@@ -7,6 +7,7 @@ import FeatherIcons as Icons
 import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (Unit(..), humanNumber)
 import Helpers.GetterSetters as GetterSetters
+import Helpers.Image exposing (ImageOperatingSystem, detectImageOperatingSystem)
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.ResourceList exposing (listItemColumnAttribs)
 import Helpers.String
@@ -18,13 +19,15 @@ import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.Button as Button
 import Style.Widgets.DataList as DataList
-import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
-import Style.Widgets.Icon exposing (featherIcon, sizedFeatherIcon)
+import Style.Widgets.DeleteButton as DeleteButton
+import Style.Widgets.Icon as Icon exposing (featherIcon, sizedFeatherIcon)
 import Style.Widgets.Popover.Popover as Popover
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.Spacer exposing (spacer)
+import Style.Widgets.Spinner as Spinner
 import Style.Widgets.Tag as Tag
 import Style.Widgets.Text as Text
+import Style.Widgets.Uuid exposing (uuidLabel)
 import Types.Defaults
 import Types.HelperTypes exposing (Localization)
 import Types.Project exposing (Project)
@@ -44,6 +47,7 @@ type alias Model =
 
 type Msg
     = GotDeleteConfirm OSTypes.ImageUuid
+    | GotDeleteBulkConfirm (Set.Set OSTypes.ImageUuid)
     | GotChangeVisibility OSTypes.ImageUuid OSTypes.ImageVisibility
     | DataListMsg DataList.Msg
     | SharedMsg SharedMsg.SharedMsg
@@ -69,6 +73,23 @@ update msg project model =
             , Cmd.none
             , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
                 SharedMsg.RequestDeleteImage imageId
+            )
+
+        GotDeleteBulkConfirm imageIds ->
+            ( { model
+                | deletionsAttempted =
+                    Set.union model.deletionsAttempted imageIds
+              }
+            , Cmd.none
+            , imageIds
+                |> Set.toList
+                |> List.map
+                    (\uuid ->
+                        SharedMsg.ProjectMsg
+                            (GetterSetters.projectIdentifier project)
+                            (SharedMsg.RequestDeleteImage uuid)
+                    )
+                |> SharedMsg.Batch
             )
 
         GotChangeVisibility imageId imageVisibility ->
@@ -134,8 +155,8 @@ view context project model =
                     context
                     []
                     (imageView model context project)
-                    (imageRecords context project imagesInCustomOrder)
-                    []
+                    (imageRecords context project model imagesInCustomOrder)
+                    [ deletionAction context project ]
                     (Just
                         { filters = filters context.localization
                         , dropdownMsgMapper =
@@ -143,7 +164,7 @@ view context project model =
                                 SharedMsg <| SharedMsg.TogglePopover dropdownId
                         }
                     )
-                    (Just searchByNameFilter)
+                    (Just <| searchByNameUuidFilter context)
                 ]
     in
     VH.renderRDPP context project.images (Helpers.String.pluralize context.localization.staticRepresentationOfBlockDeviceContents) loadedView
@@ -172,11 +193,12 @@ type alias ImageRecord =
         , visibility : String
         , featured : Bool
         , owned : Bool
+        , operatingSystem : Maybe ImageOperatingSystem
         }
 
 
-imageRecords : Context -> Project -> List Image -> List ImageRecord
-imageRecords context project images =
+imageRecords : Context -> Project -> Model -> List Image -> List ImageRecord
+imageRecords context project model images =
     let
         featuredImageNamePrefix =
             VH.featuredImageNamePrefixLookup context project
@@ -184,82 +206,115 @@ imageRecords context project images =
     List.map
         (\image ->
             { id = image.uuid
-            , selectable = False
+            , selectable = model.showDeleteButtons && projectOwnsImage project image && not image.protected
             , image = image
             , visibility = OSTypes.imageVisibilityToString image.visibility
             , featured = isImageFeaturedByDeployer featuredImageNamePrefix image
             , owned = projectOwnsImage project image
+            , operatingSystem = detectImageOperatingSystem image
             }
         )
         images
+
+
+deletionAction :
+    View.Types.Context
+    -> Project
+    -> Set.Set OSTypes.ImageUuid
+    -> Element.Element Msg
+deletionAction context project imageUuids =
+    VH.deleteBulkResourcePopconfirm
+        context
+        project
+        (SharedMsg << SharedMsg.TogglePopover)
+        { count = Set.size imageUuids, word = context.localization.staticRepresentationOfBlockDeviceContents }
+        "imageListDeletePopconfirm"
+        (Just <| GotDeleteBulkConfirm imageUuids)
+        (Just NoOp)
 
 
 imageView : Model -> Context -> Project -> ImageRecord -> Element.Element Msg
 imageView model context project imageRecord =
     let
         deleteImageBtn =
-            let
-                deleteBtn togglePopconfirmMsg _ =
-                    let
-                        ( deleteBtnText, deleteBtnOnPress ) =
-                            if imageRecord.image.protected then
-                                ( "Can't delete protected "
-                                    ++ context.localization.staticRepresentationOfBlockDeviceContents
-                                , Nothing
-                                )
-
-                            else
-                                ( "Delete "
-                                    ++ context.localization.staticRepresentationOfBlockDeviceContents
-                                , Just togglePopconfirmMsg
-                                )
-                    in
-                    deleteIconButton
-                        context.palette
-                        False
-                        deleteBtnText
-                        deleteBtnOnPress
-
-                deletePopconfirmId =
-                    Helpers.String.hyphenate
-                        [ "ImageListDeletePopconfirm"
-                        , project.auth.project.uuid
-                        , imageRecord.id
-                        ]
-
-                deleteBtnWithPopconfirm =
-                    deletePopconfirm context
-                        (\deletePopconfirmId_ -> SharedMsg <| SharedMsg.TogglePopover deletePopconfirmId_)
-                        deletePopconfirmId
-                        { confirmation =
-                            Element.text <|
-                                "Are you sure you want to delete this "
-                                    ++ context.localization.staticRepresentationOfBlockDeviceContents
-                                    ++ "?"
-                        , buttonText = Nothing
-                        , onConfirm = Just <| GotDeleteConfirm imageRecord.id
-                        , onCancel = Just NoOp
-                        }
-                        ST.PositionBottomRight
-                        deleteBtn
-
-                deletionAttempted =
-                    Set.member imageRecord.id model.deletionsAttempted
-
-                deletionPending =
-                    imageRecord.image.status == OSTypes.ImagePendingDelete
-            in
             if model.showDeleteButtons && projectOwnsImage project imageRecord.image then
+                let
+                    deletionAttempted =
+                        Set.member imageRecord.id model.deletionsAttempted
+
+                    deletionPending =
+                        imageRecord.image.status == OSTypes.ImagePendingDelete
+                in
                 if deletionAttempted || deletionPending then
-                    -- FIXME: Constraint progressIndicator svg's height to 36 px also
-                    Element.el [ Element.height <| Element.px 36 ]
-                        (Widget.circularProgressIndicator (SH.materialStyle context.palette).progressIndicator Nothing)
+                    Spinner.small context.palette
 
                 else
-                    deleteBtnWithPopconfirm
+                    VH.deleteResourcePopconfirmWithDisabledHint
+                        context
+                        project
+                        (SharedMsg << SharedMsg.TogglePopover)
+                        { uuid = imageRecord.id, word = context.localization.staticRepresentationOfBlockDeviceContents }
+                        "imageListDeletePopconfirm"
+                        (Just <| GotDeleteConfirm imageRecord.id)
+                        (Just NoOp)
+                        (if imageRecord.image.protected then
+                            DeleteButton.Disabled
+                                ("Can't delete protected "
+                                    ++ context.localization.staticRepresentationOfBlockDeviceContents
+                                    |> Helpers.String.pluralize
+                                )
+
+                         else
+                            DeleteButton.Enabled ("Delete " ++ context.localization.staticRepresentationOfBlockDeviceContents)
+                        )
 
             else
                 Element.none
+
+        imageSupportedLabel =
+            imageRecord.operatingSystem
+                |> Maybe.map
+                    (\{ supported, distribution } ->
+                        case supported of
+                            Just True ->
+                                Icon.featherIcon
+                                    [ Font.color (SH.toElementColor context.palette.success.textOnNeutralBG)
+                                    , Element.htmlAttribute <|
+                                        HtmlA.title
+                                            (String.join " "
+                                                [ "Exosphere supports launching"
+                                                , distribution
+                                                , Helpers.String.pluralize context.localization.virtualComputer
+                                                ]
+                                            )
+                                    ]
+                                    Icons.checkCircle
+
+                            Just False ->
+                                Element.row
+                                    [ Element.spacing spacer.px4
+                                    , Font.color (SH.toElementColor context.palette.danger.textOnNeutralBG)
+                                    , Element.htmlAttribute <|
+                                        HtmlA.title <|
+                                            String.concat
+                                                [ "Exosphere does not support launching "
+                                                , distribution
+                                                , " "
+                                                , Helpers.String.pluralize context.localization.virtualComputer
+                                                , "."
+                                                , "\n"
+                                                , "You can still use this "
+                                                , context.localization.staticRepresentationOfBlockDeviceContents
+                                                , " but it may not work with some features of Exosphere"
+                                                ]
+                                    ]
+                                    [ Icon.featherIcon [] Icons.alertOctagon
+                                    ]
+
+                            _ ->
+                                Element.none
+                    )
+                |> Maybe.withDefault Element.none
 
         createServerBtn =
             let
@@ -272,19 +327,20 @@ imageView model context project imageRecord =
                                     context.localization.virtualComputer
                         , onPress = onPress
                         }
-
-                serverCreationRoute =
-                    Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
-                        Route.ServerCreate
-                            imageRecord.image.uuid
-                            imageRecord.image.name
-                            Nothing
-                            (GetterSetters.getUserAppProxyFromContext project context
-                                |> Maybe.map (\_ -> True)
-                            )
             in
             case imageRecord.image.status of
                 OSTypes.ImageActive ->
+                    let
+                        serverCreationRoute =
+                            Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
+                                Route.ServerCreate
+                                    imageRecord.image.uuid
+                                    imageRecord.image.name
+                                    Nothing
+                                    (GetterSetters.getUserAppProxyFromContext project context
+                                        |> Maybe.map (\_ -> True)
+                                    )
+                    in
                     Element.link []
                         { url = Route.toUrl context.urlPathPrefix serverCreationRoute
                         , label = textBtn (Just NoOp)
@@ -302,7 +358,8 @@ imageView model context project imageRecord =
 
         imageActions =
             Element.row [ Element.alignRight, Element.spacing spacer.px12 ]
-                [ deleteImageBtn
+                [ imageSupportedLabel
+                , deleteImageBtn
                 , createServerBtn
                 , if imageRecord.owned then
                     imageVisibilityDropdown imageRecord context project
@@ -310,29 +367,6 @@ imageView model context project imageRecord =
                   else
                     Element.none
                 ]
-
-        size =
-            case imageRecord.image.size of
-                Just s ->
-                    let
-                        { locale } =
-                            context
-
-                        ( count, units ) =
-                            humanNumber { locale | decimals = Exact 2 } Bytes s
-                    in
-                    count ++ " " ++ units
-
-                Nothing ->
-                    "unknown size"
-
-        imageType =
-            case imageRecord.image.imageType of
-                Just imageTypeName ->
-                    imageTypeName
-
-                Nothing ->
-                    context.localization.staticRepresentationOfBlockDeviceContents
 
         featuredIcon =
             if imageRecord.featured then
@@ -342,34 +376,37 @@ imageView model context project imageRecord =
             else
                 Element.none
 
-        ownerText =
-            if imageRecord.owned then
-                Just <|
-                    Element.row []
-                        [ Element.el [ Font.color (SH.toElementColor context.palette.neutral.text.default) ]
-                            (Element.text "belongs")
-                        , Element.text <|
-                            " to this "
-                                ++ context.localization.unitOfTenancy
-                        ]
-
-            else
-                Nothing
-
         imageTags =
             if List.isEmpty imageRecord.image.tags then
-                Nothing
+                []
 
             else
-                Just <|
-                    Element.row
-                        [ Element.spacing spacer.px8
-                        , Element.paddingEach { left = spacer.px8, top = 0, right = 0, bottom = 0 }
-                        ]
-                        (List.map (Tag.tag context.palette) imageRecord.image.tags)
+                List.map (Tag.tag context.palette) imageRecord.image.tags
 
         imageAttributesView =
             let
+                ownerText =
+                    if imageRecord.owned then
+                        Just <|
+                            Element.row []
+                                [ Element.el [ Font.color (SH.toElementColor context.palette.neutral.text.default) ]
+                                    (Element.text "belongs")
+                                , Element.text <|
+                                    " to this "
+                                        ++ context.localization.unitOfTenancy
+                                ]
+
+                    else
+                        Nothing
+
+                imageType =
+                    case imageRecord.image.imageType of
+                        Just imageTypeName ->
+                            imageTypeName
+
+                        Nothing ->
+                            context.localization.staticRepresentationOfBlockDeviceContents
+
                 attributesAlwaysShown =
                     [ if imageRecord.image.status == OSTypes.ImageQueued then
                         Element.text "Building..."
@@ -380,7 +417,20 @@ imageView model context project imageRecord =
                                 ]
 
                       else
-                        Element.text size
+                        Element.text <|
+                            case imageRecord.image.size of
+                                Just s ->
+                                    let
+                                        { locale } =
+                                            context
+
+                                        ( count, units ) =
+                                            humanNumber { locale | decimals = Exact 2 } Bytes s
+                                    in
+                                    count ++ " " ++ units
+
+                                Nothing ->
+                                    "unknown size"
                     , Element.row []
                         [ Element.el [ Font.color (SH.toElementColor context.palette.neutral.text.default) ]
                             (Element.text <| String.toLower <| OSTypes.imageVisibilityToString imageRecord.image.visibility)
@@ -390,7 +440,6 @@ imageView model context project imageRecord =
 
                 attributesMaybeShown =
                     [ ownerText
-                    , imageTags
                     ]
 
                 attributesShown =
@@ -411,7 +460,13 @@ imageView model context project imageRecord =
             , featuredIcon
             , imageActions
             ]
-        , imageAttributesView
+        , Element.row [ Element.spacing spacer.px8, Element.width Element.fill ]
+            [ imageAttributesView
+            , uuidLabel context.palette imageRecord.image.uuid
+            ]
+        , Element.row [ Element.spacing spacer.px8, Element.width Element.fill ]
+            [ Element.row [ Element.spacing spacer.px4, Element.alignRight ] imageTags
+            ]
         ]
 
 
@@ -568,8 +623,7 @@ filters localization =
       , chipPrefix = Helpers.String.toTitleCase localization.staticRepresentationOfBlockDeviceContents ++ " tag is "
       , filterOptions =
             \images ->
-                List.map (\i -> i.image.tags) images
-                    |> List.concat
+                List.concatMap (\i -> i.image.tags) images
                     |> Set.fromList
                     |> Set.toList
                     |> List.map (\tag -> ( tag, tag ))
@@ -606,11 +660,17 @@ filters localization =
     ]
 
 
-searchByNameFilter : DataList.SearchFilter { record | image : OSTypes.Image }
-searchByNameFilter =
-    { label = "Search by name:"
-    , placeholder = Just "try \"Ubuntu\""
-    , textToSearch = \imageRecord -> imageRecord.image.name
+searchByNameUuidFilter : Context -> DataList.SearchFilter { record | image : OSTypes.Image }
+searchByNameUuidFilter context =
+    { label = "Search:"
+    , placeholder =
+        Just <|
+            "Try \"Ubuntu\" or "
+                ++ Helpers.String.indefiniteArticle context.localization.staticRepresentationOfBlockDeviceContents
+                ++ " "
+                ++ context.localization.staticRepresentationOfBlockDeviceContents
+                ++ " UUID"
+    , textToSearch = \imageRecord -> imageRecord.image.name ++ " " ++ imageRecord.id
     }
 
 

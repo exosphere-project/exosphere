@@ -1,4 +1,4 @@
-module View.PageTitle exposing (pageTitle, serverName, shareName, volumeName)
+module View.PageTitle exposing (pageTitle, securityGroupName, serverName, shareName, volumeName)
 
 import Helpers.GetterSetters as GetterSetters
 import Helpers.String
@@ -28,7 +28,7 @@ pageTitle outerModel =
                 Home _ ->
                     "Exosphere"
 
-                LoadingUnscopedProjects _ ->
+                LoadingUnscopedProjects ->
                     String.join " "
                         [ "Loading"
                         , Helpers.String.pluralize localization.unitOfTenancy
@@ -104,6 +104,12 @@ pageTitle outerModel =
                         , "overview"
                         ]
 
+                Credentials _ ->
+                    String.join " "
+                        [ projectName
+                        , localization.credential |> Helpers.String.pluralize |> Helpers.String.toTitleCase
+                        ]
+
                 FloatingIpAssign _ ->
                     String.join " "
                         [ "Assign"
@@ -164,6 +170,20 @@ pageTitle outerModel =
                         , projectName
                         ]
 
+                SecurityGroupDetail pageModel ->
+                    String.join " "
+                        [ localization.securityGroup
+                            |> Helpers.String.toTitleCase
+                        , securityGroupName maybeProject pageModel.securityGroupUuid
+                        ]
+
+                SecurityGroupList _ ->
+                    String.join " "
+                        [ localization.securityGroup |> Helpers.String.pluralize |> Helpers.String.toTitleCase
+                        , "for"
+                        , projectName
+                        ]
+
                 ServerCreate _ ->
                     String.join " "
                         [ "Create"
@@ -202,6 +222,24 @@ pageTitle outerModel =
                         , localization.virtualComputer
                             |> Helpers.String.toTitleCase
                         , serverName maybeProject pageModel.serverUuid
+                        ]
+
+                ServerSecurityGroups pageModel ->
+                    String.join " "
+                        [ localization.virtualComputer
+                            |> Helpers.String.toTitleCase
+                        , localization.securityGroup
+                            |> Helpers.String.pluralize
+                            |> Helpers.String.toTitleCase
+                        , "for"
+                        , serverName maybeProject pageModel.serverUuid
+                        ]
+
+                ShareCreate _ ->
+                    String.join " "
+                        [ "Create"
+                        , localization.share
+                            |> Helpers.String.toTitleCase
                         ]
 
                 ShareDetail pageModel ->
@@ -254,6 +292,14 @@ pageTitle outerModel =
                         , localization.blockDevice
                             |> Helpers.String.toTitleCase
                         ]
+
+
+securityGroupName : Maybe Project -> OSTypes.SecurityGroupUuid -> String
+securityGroupName maybeProject securityGroupUuid =
+    maybeProject
+        |> Maybe.andThen (\proj -> GetterSetters.securityGroupLookup proj securityGroupUuid)
+        |> Maybe.map (\securityGroup -> securityGroup.name)
+        |> Maybe.withDefault securityGroupUuid
 
 
 serverName : Maybe Project -> OSTypes.ServerUuid -> String

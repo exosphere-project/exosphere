@@ -11,6 +11,7 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import Html
 import Html.Attributes
+import Page.Credentials
 import Page.FloatingIpAssign
 import Page.FloatingIpCreate
 import Page.FloatingIpList
@@ -26,6 +27,8 @@ import Page.LoginOpenstack
 import Page.LoginPicker
 import Page.MessageLog
 import Page.ProjectOverview
+import Page.SecurityGroupDetail
+import Page.SecurityGroupList
 import Page.SelectProjectRegions
 import Page.SelectProjects
 import Page.ServerCreate
@@ -33,7 +36,9 @@ import Page.ServerCreateImage
 import Page.ServerDetail
 import Page.ServerList
 import Page.ServerResize
+import Page.ServerSecurityGroups
 import Page.Settings
+import Page.ShareCreate
 import Page.ShareDetail
 import Page.ShareList
 import Page.VolumeAttach
@@ -52,13 +57,14 @@ import Style.Widgets.Text as Text exposing (FontFamily(..), TextVariant(..))
 import Style.Widgets.Toast as Toast
 import Toasty
 import Types.Error exposing (AppError)
-import Types.HelperTypes exposing (ProjectIdentifier, WindowSize)
+import Types.HelperTypes exposing (WindowSize)
 import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project)
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg exposing (SharedMsg(..))
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
+import View.Banner as Banner
 import View.Breadcrumb
 import View.Helpers as VH
 import View.Nav
@@ -82,7 +88,7 @@ viewValid outerModel =
     { title =
         View.PageTitle.pageTitle outerModel
     , body =
-        [ view_ outerModel ]
+        [ viewWrapper outerModel ]
     }
 
 
@@ -93,8 +99,8 @@ viewInvalid appError =
     }
 
 
-view_ : OuterModel -> Html.Html OuterMsg
-view_ outerModel =
+viewWrapper : OuterModel -> Html.Html OuterMsg
+viewWrapper outerModel =
     let
         { viewContext } =
             outerModel.sharedModel
@@ -129,30 +135,14 @@ appView windowSize outerModel context =
                                     ]
                             )
 
-                        Just project_ ->
-                            ( Just <| projectHeaderView context project_
+                        Just project ->
+                            ( Just <| projectHeaderView context project
                             , projectContentView
                                 outerModel.sharedModel
                                 context
-                                project_
+                                project
                                 viewConstructor
                             )
-
-        headerContainerAttrs =
-            [ Background.color <|
-                SH.toElementColor context.palette.neutral.background.frontLayer
-            , Border.widthXY 0 1
-            , Border.color <|
-                SH.toElementColor context.palette.neutral.border
-            , Element.width Element.fill
-            , Element.paddingEach
-                { top = spacer.px12
-                , right = spacer.px24
-                , bottom = spacer.px16
-                , left = spacer.px24
-                }
-            , Element.spacing spacer.px12
-            ]
 
         contentContainerAttrs =
             [ Element.padding spacer.px24
@@ -165,10 +155,27 @@ appView windowSize outerModel context =
                 , Element.width Element.fill
                 , Element.height Element.fill
                 , Element.scrollbars
-                , Element.spacing spacer.px8
                 ]
-                [ case header of
+                [ Banner.view context.palette (SharedMsg << DismissBanner) outerModel.sharedModel.clientCurrentTime outerModel.sharedModel.banners
+                , case header of
                     Just header_ ->
+                        let
+                            headerContainerAttrs =
+                                [ Background.color <|
+                                    SH.toElementColor context.palette.neutral.background.frontLayer
+                                , Border.widthXY 0 1
+                                , Border.color <|
+                                    SH.toElementColor context.palette.neutral.border
+                                , Element.width Element.fill
+                                , Element.paddingEach
+                                    { top = spacer.px12
+                                    , right = spacer.px24
+                                    , bottom = spacer.px16
+                                    , left = spacer.px24
+                                    }
+                                , Element.spacing spacer.px12
+                                ]
+                        in
                         Element.column
                             headerContainerAttrs
                             [ View.Breadcrumb.breadcrumb outerModel context
@@ -194,7 +201,7 @@ appView windowSize outerModel context =
         , Element.spacing 0
         , Element.width Element.fill
         , Element.height <|
-            Element.px windowSize.height
+            Element.minimum windowSize.height Element.fill
         ]
         [ Element.el
             [ Border.shadow shadowDefaults
@@ -229,6 +236,7 @@ nonProjectViews model context viewConstructor =
         HelpAbout ->
             ( Just <| Page.HelpAbout.headerView model context
             , Page.HelpAbout.view model context
+                |> Element.map HelpAboutMsg
             )
 
         Home pageModel ->
@@ -237,7 +245,7 @@ nonProjectViews model context viewConstructor =
                 |> Element.map HomeMsg
             )
 
-        LoadingUnscopedProjects _ ->
+        LoadingUnscopedProjects ->
             ( Nothing
               -- TODO put a fidget spinner here
             , Text.body <|
@@ -307,6 +315,9 @@ projectContentView model context p viewConstructor =
             Page.ProjectOverview.view context p model.clientCurrentTime pageModel
                 |> Element.map ProjectOverviewMsg
 
+        Credentials pageModel ->
+            Page.Credentials.view context p pageModel
+
         FloatingIpAssign pageModel ->
             Page.FloatingIpAssign.view context p pageModel
                 |> Element.map FloatingIpAssignMsg
@@ -335,6 +346,14 @@ projectContentView model context p viewConstructor =
             Page.KeypairList.view context p pageModel
                 |> Element.map KeypairListMsg
 
+        SecurityGroupDetail pageModel ->
+            Page.SecurityGroupDetail.view context p ( model.clientCurrentTime, model.timeZone ) pageModel
+                |> Element.map SecurityGroupDetailMsg
+
+        SecurityGroupList pageModel ->
+            Page.SecurityGroupList.view context p model.clientCurrentTime pageModel
+                |> Element.map SecurityGroupListMsg
+
         ServerCreate pageModel ->
             Page.ServerCreate.view context p model.clientCurrentTime pageModel
                 |> Element.map ServerCreateMsg
@@ -355,6 +374,14 @@ projectContentView model context p viewConstructor =
             Page.ServerResize.view context p pageModel
                 |> Element.map ServerResizeMsg
 
+        ServerSecurityGroups pageModel ->
+            Page.ServerSecurityGroups.view context p model.clientCurrentTime pageModel
+                |> Element.map ServerSecurityGroupsMsg
+
+        ShareCreate pageModel ->
+            Page.ShareCreate.view context p model.clientCurrentTime pageModel
+                |> Element.map ShareCreateMsg
+
         ShareDetail pageModel ->
             Page.ShareDetail.view context p ( model.clientCurrentTime, model.timeZone ) pageModel
                 |> Element.map ShareDetailMsg
@@ -372,7 +399,7 @@ projectContentView model context p viewConstructor =
                 |> Element.map VolumeCreateMsg
 
         VolumeDetail pageModel ->
-            Page.VolumeDetail.view context p pageModel
+            Page.VolumeDetail.view context p ( model.clientCurrentTime, model.timeZone ) pageModel
                 |> Element.map VolumeDetailMsg
 
         VolumeList pageModel ->
@@ -399,7 +426,7 @@ projectHeaderView context p =
                 , context.localization.unitOfTenancy
                 , p.auth.project.uuid
                 , Maybe.withDefault
-                    ("without a " ++ context.localization.openstackSharingKeystoneWithAnother)
+                    ("without " ++ Helpers.String.indefiniteArticle context.localization.openstackSharingKeystoneWithAnother ++ " " ++ context.localization.openstackSharingKeystoneWithAnother)
                     (Maybe.map (\region -> "in " ++ context.localization.openstackSharingKeystoneWithAnother ++ " " ++ region.id) p.region)
                 ]
     in
@@ -458,15 +485,18 @@ projectHeaderView context p =
                 [ Element.alignRight ]
         , Element.el
             [ Element.alignRight ]
-            (createProjectResourcesButton context (GetterSetters.projectIdentifier p))
+            (createProjectResourcesButton context p)
         ]
 
 
-createProjectResourcesButton : View.Types.Context -> ProjectIdentifier -> Element.Element OuterMsg
-createProjectResourcesButton context projectId =
+createProjectResourcesButton : View.Types.Context -> Project -> Element.Element OuterMsg
+createProjectResourcesButton context project =
     let
+        projectId =
+            GetterSetters.projectIdentifier project
+
         renderButton : Element.Element Never -> String -> Route.Route -> Element.Attribute OuterMsg -> Element.Element OuterMsg
-        renderButton icon_ text route closeDropdown =
+        renderButton icon text route closeDropdown =
             Element.link
                 [ Element.width Element.fill
                 , closeDropdown
@@ -476,7 +506,7 @@ createProjectResourcesButton context projectId =
                     Widget.button
                         (dropdownItemStyle context.palette)
                         { icon =
-                            Element.el [] icon_
+                            Element.el [] icon
                         , text =
                             text
                         , onPress =
@@ -501,6 +531,18 @@ createProjectResourcesButton context projectId =
                     )
                     (Route.ProjectRoute projectId <| Route.VolumeCreate)
                     closeDropdown
+                , case ( context.experimentalFeaturesEnabled, project.endpoints.manila ) of
+                    ( True, Just _ ) ->
+                        renderButton
+                            (sizedFeatherIcon 18 Icons.share2)
+                            (context.localization.share
+                                |> Helpers.String.toTitleCase
+                            )
+                            (Route.ProjectRoute projectId <| Route.ShareCreate)
+                            closeDropdown
+
+                    _ ->
+                        Element.none
                 , renderButton
                     (sizedFeatherIcon 18 Icons.key)
                     (context.localization.pkiPublicKeyForSsh

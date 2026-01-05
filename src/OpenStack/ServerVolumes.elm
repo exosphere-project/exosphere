@@ -1,4 +1,4 @@
-module OpenStack.ServerVolumes exposing (requestAttachVolume, requestDetachVolume, serverCanHaveVolumeAttached, serversCanHaveVolumeAttached)
+module OpenStack.ServerVolumes exposing (requestAttachVolume, requestDetachVolume, requestVolumeAttachments, serverCanHaveVolumeAttached, serversCanHaveVolumeAttached)
 
 import Helpers.GetterSetters as GetterSetters
 import Http
@@ -8,9 +8,8 @@ import OpenStack.Types as OSTypes
 import Rest.Helpers
     exposing
         ( expectJsonWithErrorBody
-        , expectStringWithErrorBody
+        , expectVoidWithErrorBody
         , openstackCredentialedRequest
-        , resultToMsgErrorBody
         )
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.HelperTypes exposing (HttpRequestMethod(..))
@@ -19,14 +18,41 @@ import Types.Server exposing (Server)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 
 
-requestAttachVolume : Project -> OSTypes.ServerUuid -> OSTypes.VolumeUuid -> Cmd SharedMsg
-requestAttachVolume project serverUuid volumeUuid =
+requestVolumeAttachments : Project -> OSTypes.ServerUuid -> Cmd SharedMsg
+requestVolumeAttachments project serverUuid =
+    let
+        errorContext =
+            ErrorContext
+                ("get volume attachments for server " ++ serverUuid)
+                ErrorDebug
+                Nothing
+
+        resultToMsg result =
+            ProjectMsg (GetterSetters.projectIdentifier project) <|
+                ReceiveServerVolumeAttachments serverUuid errorContext result
+    in
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Get
+        Nothing
+        []
+        ( project.endpoints.nova, [ "servers", serverUuid, "os-volume_attachments" ], [] )
+        Http.emptyBody
+        (expectJsonWithErrorBody
+            resultToMsg
+            (Decode.field "volumeAttachments" <| Decode.list novaVolumeAttachmentDecoder)
+        )
+
+
+requestAttachVolume : Project -> OSTypes.ServerUuid -> OSTypes.VolumeUuid -> OSTypes.MetadataValue -> Cmd SharedMsg
+requestAttachVolume project serverUuid volumeUuid metadata =
     let
         body =
             Json.Encode.object
                 [ ( "volumeAttachment"
                   , Json.Encode.object
                         [ ( "volumeId", Json.Encode.string volumeUuid )
+                        , ( "tag", Json.Encode.string <| OSTypes.volumeExoTags.deviceMetadata ++ metadata )
                         ]
                   )
                 ]
@@ -37,24 +63,22 @@ requestAttachVolume project serverUuid volumeUuid =
                 ErrorCrit
                 Nothing
 
-        resultToMsg_ =
-            resultToMsgErrorBody
-                errorContext
-                (\attachment ->
-                    ProjectMsg
-                        (GetterSetters.projectIdentifier project)
-                        (ReceiveAttachVolume attachment)
-                )
+        resultToMsg result =
+            ProjectMsg
+                (GetterSetters.projectIdentifier project)
+                (ReceiveAttachVolume errorContext ( serverUuid, volumeUuid ) result)
     in
     openstackCredentialedRequest
         (GetterSetters.projectIdentifier project)
         Post
         Nothing
-        []
-        (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/os-volume_attachments")
+        -- From v2.20, attaching a volume from an instance in SHELVED or SHELVED_OFFLOADED state is allowed.
+        -- From v2.49, device tagging is allowed. The guest OS can access hardware metadata about the tagged devices.
+        [ ( "X-OpenStack-Nova-API-Version", "2.49" ) ]
+        ( project.endpoints.nova, [ "servers", serverUuid, "os-volume_attachments" ], [] )
         (Http.jsonBody body)
         (expectJsonWithErrorBody
-            resultToMsg_
+            resultToMsg
             (Decode.field "volumeAttachment" <| novaVolumeAttachmentDecoder)
         )
 
@@ -68,33 +92,33 @@ requestDetachVolume project serverUuid volumeUuid =
                 ErrorCrit
                 Nothing
 
-        resultToMsg_ =
-            resultToMsgErrorBody
-                errorContext
-                (\_ ->
-                    ProjectMsg
-                        (GetterSetters.projectIdentifier project)
-                        ReceiveDetachVolume
-                )
+        resultToMsg =
+            \result ->
+                ProjectMsg
+                    (GetterSetters.projectIdentifier project)
+                    (ReceiveDetachVolume errorContext ( serverUuid, volumeUuid ) result)
     in
     openstackCredentialedRequest
         (GetterSetters.projectIdentifier project)
         Delete
         Nothing
-        []
-        (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/os-volume_attachments/" ++ volumeUuid)
+        -- From v2.20, detaching a volume from an instance in SHELVED or SHELVED_OFFLOADED state is allowed.
+        [ ( "X-OpenStack-Nova-API-Version", "2.20" ) ]
+        ( project.endpoints.nova, [ "servers", serverUuid, "os-volume_attachments", volumeUuid ], [] )
         Http.emptyBody
-        (expectStringWithErrorBody
-            resultToMsg_
+        (expectVoidWithErrorBody
+            resultToMsg
         )
 
 
 novaVolumeAttachmentDecoder : Decode.Decoder OSTypes.VolumeAttachment
 novaVolumeAttachmentDecoder =
-    Decode.map3 OSTypes.VolumeAttachment
+    Decode.map4 OSTypes.VolumeAttachment
+        (Decode.field "volumeId" Decode.string)
         (Decode.field "serverId" Decode.string)
         (Decode.field "id" Decode.string)
-        (Decode.field "device" Decode.string)
+        -- Device can be null when attachment is made to a shelved instance.
+        (Decode.field "device" <| Decode.nullable Decode.string)
 
 
 serversCanHaveVolumeAttached : List Server -> List Server

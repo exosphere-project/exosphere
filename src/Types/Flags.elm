@@ -1,7 +1,14 @@
 module Types.Flags exposing (ConfigurationFlags, Flags, PaletteColors, RGBTriplet, ThemePalettes, flagsDecoder)
 
+{-| Contributor Notes
+
+Flags are type-checked using Typescript.
+Changes to Flags should be reflected in `types.d.ts`
+
+-}
+
 import Json.Decode exposing (Decoder, Value, bool, int, maybe, nullable, string, succeed, value)
-import Json.Decode.Pipeline exposing (required)
+import Json.Decode.Pipeline exposing (optional, required)
 import Types.HelperTypes as HelperTypes exposing (OpenIdConnectLoginConfig)
 
 
@@ -50,6 +57,8 @@ type alias ConfigurationFlags =
     , instanceConfigMgtRepoUrl : Maybe String
     , instanceConfigMgtRepoCheckout : Maybe String
     , sentryConfig : Maybe HelperTypes.SentryConfig
+    , bannersUrl : Maybe String
+    , version : Maybe String
 
     -- Flags that Exosphere sets dynamically
     , localeGuessingString : String
@@ -88,6 +97,8 @@ flagsDecoder =
         |> required "instanceConfigMgtRepoUrl" (maybe string)
         |> required "instanceConfigMgtRepoCheckout" (maybe string)
         |> required "sentryConfig" (nullable sentryConfigDecoder)
+        |> required "bannersUrl" (maybe string)
+        |> optional "version" (maybe string) Nothing
         |> required "localeGuessingString" string
         |> required "width" int
         |> required "height" int
@@ -127,7 +138,7 @@ openIdConnectLoginConfigDecoder : Decoder OpenIdConnectLoginConfig
 openIdConnectLoginConfigDecoder =
     succeed OpenIdConnectLoginConfig
         |> required "keystoneAuthUrl" string
-        |> required "webssoKeystoneEndpoint" string
+        |> required "webssoUrl" string
         |> required "oidcLoginIcon" string
         |> required "oidcLoginButtonLabel" string
         |> required "oidcLoginButtonDescription" string
@@ -153,8 +164,10 @@ localizationDecoder =
         |> required "nonFloatingIpAddress" string
         |> required "floatingIpAddress" string
         |> required "publiclyRoutableIpAddress" string
+        |> required "securityGroup" string
         |> required "graphicalDesktopEnvironment" string
         |> required "hostname" string
+        |> required "credential" string
 
 
 sentryConfigDecoder : Decoder HelperTypes.SentryConfig

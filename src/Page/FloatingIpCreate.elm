@@ -127,7 +127,7 @@ view context project _ model =
                                 String.join " "
                                     [ "Specify"
                                     , context.localization.floatingIpAddress
-                                    , "(Optional)"
+                                    , "(optional)"
                                     ]
                             , Text.text Text.Small [] <|
                                 String.join " "

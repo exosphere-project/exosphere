@@ -4,8 +4,16 @@ module View.Helpers exposing
     , compactKVSubRow
     , contentContainer
     , createdAgoByFromSize
+    , deleteBulkResourcePopconfirm
+    , deleteResourcePopconfirm
+    , deleteResourcePopconfirmWithDisabledHint
+    , deleteVolumeSnapshotIconButton
+    , deleteVolumeWarning
+    , detachVolumeButton
+    , directionOptions
     , edges
     , ellipsizedText
+    , etherTypeOptions
     , extendedResourceName
     , featuredImageNamePrefixLookup
     , flavorPicker
@@ -21,25 +29,47 @@ module View.Helpers exposing
     , inputItemAttributes
     , invalidInputAttributes
     , loginPickerButton
+    , portRangeBoundsOptions
+    , portRangeBoundsToString
+    , protocolOptions
     , radioLabelAttributes
+    , remoteOptions
+    , remoteToRemoteType
+    , remoteToStringInput
+    , remoteTypeToString
+    , renderConfirmation
     , renderMarkdown
     , renderMaybe
     , renderMessageAsElement
     , renderMessageAsString
+    , renderProgress
     , renderRDPP
+    , renderRDPPWithDependencies
     , requiredLabel
     , resourceName
+    , securityGroupTypeLabel
     , serverStatusBadge
+    , serverStatusBadgeFromStatus
     , shareStatusBadge
     , sortProjects
+    , stringToPortRangeBounds
+    , stringToRemoteType
+    , tableHeader
+    , tile
     , titleFromHostname
     , toExoPalette
     , validInputAttributes
+    , volumeStatusBadge
+    , volumeStatusBadgeFromStatus
     , warningInputAttributes
+    , whenCreated
+    , whenCreatedText
+    , whenCreatedToggleTip
     )
 
 import Color
 import Css
+import DateFormat.Relative
 import Dict
 import Element
 import Element.Background as Background
@@ -51,11 +81,11 @@ import FeatherIcons as Icons
 import FormatNumber
 import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (humanCount)
-import Helpers.GetterSetters as GetterSetters
+import Helpers.GetterSetters as GetterSetters exposing (LoadingProgress(..))
 import Helpers.Helpers as Helpers
 import Helpers.Jetstream2
 import Helpers.RemoteDataPlusPlus as RDPP
-import Helpers.String
+import Helpers.String exposing (toTitleCase)
 import Helpers.Time exposing (humanReadableDateAndTime)
 import Helpers.Url as UrlHelpers
 import Html
@@ -67,27 +97,35 @@ import Markdown.Html
 import Markdown.Parser
 import Markdown.Renderer
 import OpenStack.Quotas as OSQuotas
-import OpenStack.Types as OSTypes exposing (ShareStatus(..))
+import OpenStack.SecurityGroupRule exposing (Remote(..), SecurityGroupRuleDirection(..), SecurityGroupRuleEthertype(..), SecurityGroupRuleProtocol(..), directionToString, etherTypeToString, protocolToString)
+import OpenStack.Types as OSTypes exposing (ShareStatus(..), Volume, VolumeStatus(..))
+import OpenStack.VolumeSnapshots as VS exposing (VolumeSnapshot)
 import Regex
 import Route
+import String.Extra
 import Style.Helpers as SH
 import Style.Types as ST exposing (ExoPalette)
 import Style.Widgets.Button as Button
+import Style.Widgets.Card
+import Style.Widgets.Code exposing (codeBlock, codeSpan)
+import Style.Widgets.CopyableText exposing (copyableTextAccessory)
+import Style.Widgets.DeleteButton as DeleteButton exposing (DeleteButtonState, deleteIconButtonWithDisabledHint, deletePopconfirm)
 import Style.Widgets.Icon exposing (featherIcon)
 import Style.Widgets.Link as Link
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.Spacer exposing (spacer)
-import Style.Widgets.StatusBadge as StatusBadge
+import Style.Widgets.Spinner as Spinner
+import Style.Widgets.StatusBadge as StatusBadge exposing (StatusBadgeSize)
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip as ToggleTip
+import Time
 import Types.Error exposing (ErrorLevel(..), toFriendlyErrorLevel)
-import Types.HelperTypes
+import Types.HelperTypes exposing (Localization)
 import Types.Project exposing (Project)
 import Types.Server exposing (ExoSetupStatus(..), Server, ServerOrigin(..), ServerUiStatus(..))
 import Types.SharedModel exposing (LogMessage, SharedModel, Style)
 import Types.SharedMsg as SharedMsg
-import View.Types
-import Widget
+import View.Types exposing (PortRangeBounds(..), RemoteType(..))
 
 
 toExoPalette : Style -> ExoPalette
@@ -238,6 +276,9 @@ renderMessageAsElement context message =
 
                 ErrorCrit ->
                     context.palette.danger.textOnNeutralBG |> SH.toElementColor
+
+        copyable =
+            copyableTextAccessory context.palette message.message
     in
     Element.column [ Element.spacing spacer.px12, Element.width Element.fill ]
         [ Element.row [ Element.alignRight ]
@@ -255,7 +296,10 @@ renderMessageAsElement context message =
         , compactKVRow "We were trying to"
             (Element.paragraph [] [ Element.text message.context.actionContext ])
         , compactKVRow "Message"
-            (Element.paragraph [] [ Element.text message.message ])
+            (Element.row
+                [ Element.width Element.fill, Element.spacing spacer.px8 ]
+                [ Element.paragraph [ copyable.id ] [ Element.text message.message ], copyable.accessory ]
+            )
         , case message.context.recoveryHint of
             Just hint_ ->
                 compactKVRow "Recovery hint" (Element.paragraph [] [ Element.text hint_ ])
@@ -360,9 +404,7 @@ titleFromHostname hostname =
 loadingStuff : View.Types.Context -> String -> Element.Element msg
 loadingStuff context resourceWord =
     Element.row [ Element.spacing spacer.px16 ]
-        [ Widget.circularProgressIndicator
-            (SH.materialStyle context.palette).progressIndicator
-            Nothing
+        [ Spinner.medium context.palette
         , Element.text <|
             String.concat
                 [ "Loading "
@@ -372,27 +414,78 @@ loadingStuff context resourceWord =
         ]
 
 
+renderProgress : { items : List a, progress : LoadingProgress } -> Element.Element msg -> Element.Element msg
+renderProgress { items, progress } renderer =
+    case ( progress, List.length items ) of
+        ( NotSure, _ ) ->
+            Element.text "Loading..."
+
+        ( Loading, 0 ) ->
+            Element.text "Loading..."
+
+        ( Loading, _ ) ->
+            Element.column [ Element.width Element.fill ]
+                [ renderer
+                , Element.row [ Element.paddingXY 0 spacer.px16 ]
+                    [ Element.text "Loading..."
+                    ]
+                ]
+
+        ( Done, _ ) ->
+            renderer
+
+
 renderRDPP : View.Types.Context -> RDPP.RemoteDataPlusPlus Types.Error.HttpErrorWithBody a -> String -> (a -> Element.Element msg) -> Element.Element msg
 renderRDPP context remoteData resourceWord renderSuccessCase =
-    case remoteData.data of
-        RDPP.DoHave data _ ->
+    renderRDPPWithDependencies context remoteData resourceWord [] renderSuccessCase
+
+
+{-| Render an RDPP that depends on other RDPPs having data. If any dependencies don't have data, indicate that they are loading or have errored.
+
+    renderRDPPWithDependencies context users "users" [ userEvents ] renderUsers
+
+-}
+renderRDPPWithDependencies :
+    View.Types.Context
+    -> RDPP.RemoteDataPlusPlus Types.Error.HttpErrorWithBody a
+    -> String
+    -> List (RDPP.RemoteDataPlusPlus b c)
+    -> (a -> Element.Element msg)
+    -> Element.Element msg
+renderRDPPWithDependencies context remoteData resourceWord dependencyRDPPs renderSuccessCase =
+    let
+        gotDepData =
+            List.all RDPP.gotData dependencyRDPPs
+
+        renderError e =
+            Element.text <|
+                String.join " "
+                    [ "Could not load"
+                    , resourceWord
+                    , "because:"
+                    , e
+                    ]
+    in
+    case ( gotDepData, remoteData.data ) of
+        ( False, _ ) ->
+            if List.any RDPP.isLoading dependencyRDPPs then
+                loadingStuff context resourceWord
+
+            else
+                renderError "error loading dependency data"
+
+        ( True, RDPP.DoHave data _ ) ->
             renderSuccessCase data
 
-        RDPP.DontHave ->
+        ( True, RDPP.DontHave ) ->
             case remoteData.refreshStatus of
                 RDPP.Loading ->
                     loadingStuff context resourceWord
 
                 RDPP.NotLoading maybeErrorTuple ->
                     case maybeErrorTuple of
-                        Just ( error, _ ) ->
-                            Element.text <|
-                                String.join " "
-                                    [ "Could not load"
-                                    , resourceWord
-                                    , "because:"
-                                    , Helpers.httpErrorWithBodyToString error
-                                    ]
+                        Just ( e, _ ) ->
+                            renderError (Helpers.httpErrorWithBodyToString e)
 
                         Nothing ->
                             loadingStuff context resourceWord
@@ -412,90 +505,93 @@ loginPickerButton context =
         }
 
 
-serverStatusBadge : ExoPalette -> Server -> Element.Element msg
-serverStatusBadge palette server =
+serverStatusBadge : ExoPalette -> StatusBadgeSize -> Server -> Element.Element msg
+serverStatusBadge palette size server =
+    serverStatusBadgeFromStatus palette size (getServerUiStatus server)
+
+
+serverStatusBadgeFromStatus : ExoPalette -> StatusBadgeSize -> ServerUiStatus -> Element.Element msg
+serverStatusBadgeFromStatus palette size status =
     let
         contents =
-            server |> getServerUiStatus |> getServerUiStatusStr |> Element.text
+            status |> getServerUiStatusStr |> Element.text
     in
-    StatusBadge.statusBadge
+    StatusBadge.statusBadgeWithSize
         palette
-        (server |> getServerUiStatus |> getServerUiStatusBadgeState)
+        size
+        (status |> getServerUiStatusBadgeState)
         contents
 
 
 getServerUiStatus : Server -> ServerUiStatus
 getServerUiStatus server =
-    let
-        maybeFirstTargetStatus =
-            server.exoProps.targetOpenstackStatus
-                |> Maybe.andThen List.head
-
-        targetStatusActive =
-            maybeFirstTargetStatus == Just OSTypes.ServerActive
-    in
     if server.exoProps.deletionAttempted then
         ServerUiStatusDeleting
 
     else
+        let
+            maybeFirstTargetStatus =
+                server.exoProps.targetOpenstackStatus
+                    |> Maybe.andThen List.head
+
+            targetStatusActive =
+                maybeFirstTargetStatus == Just OSTypes.ServerActive
+        in
         case server.osProps.details.openstackStatus of
             OSTypes.ServerActive ->
-                let
-                    whenNoTargetStatus =
-                        case server.exoProps.serverOrigin of
-                            ServerFromExo serverFromExoProps ->
-                                if serverFromExoProps.exoServerVersion < 4 then
-                                    ServerUiStatusReady
-
-                                else
-                                    case serverFromExoProps.exoSetupStatus.data of
-                                        RDPP.DoHave ( status, _ ) _ ->
-                                            case status of
-                                                ExoSetupWaiting ->
-                                                    ServerUiStatusBuilding
-
-                                                ExoSetupRunning ->
-                                                    ServerUiStatusRunningSetup
-
-                                                ExoSetupComplete ->
-                                                    ServerUiStatusReady
-
-                                                ExoSetupError ->
-                                                    ServerUiStatusError
-
-                                                ExoSetupTimeout ->
-                                                    ServerUiStatusError
-
-                                                ExoSetupUnknown ->
-                                                    ServerUiStatusUnknown
-
-                                        RDPP.DontHave ->
-                                            ServerUiStatusUnknown
-
-                            ServerNotFromExo ->
-                                ServerUiStatusReady
-                in
-                case maybeFirstTargetStatus of
-                    Just OSTypes.ServerDeleted ->
+                case ( maybeFirstTargetStatus, server.exoProps.serverOrigin ) of
+                    ( Just OSTypes.ServerDeleted, _ ) ->
                         ServerUiStatusDeleting
 
-                    Just OSTypes.ServerResize ->
+                    ( Just OSTypes.ServerResize, _ ) ->
                         ServerUiStatusResizing
 
-                    Just OSTypes.ServerShelved ->
+                    ( Just OSTypes.ServerShelved, _ ) ->
                         ServerUiStatusShelving
 
-                    Just OSTypes.ServerShelvedOffloaded ->
+                    ( Just OSTypes.ServerShelvedOffloaded, _ ) ->
                         ServerUiStatusShelving
 
-                    Just OSTypes.ServerSoftDeleted ->
+                    ( Just OSTypes.ServerSoftDeleted, _ ) ->
                         ServerUiStatusDeleting
 
-                    Just OSTypes.ServerSuspended ->
+                    ( Just OSTypes.ServerSuspended, _ ) ->
                         ServerUiStatusSuspending
 
-                    _ ->
-                        whenNoTargetStatus
+                    ( _, ServerFromExo serverFromExoProps ) ->
+                        if serverFromExoProps.exoServerVersion < 4 then
+                            ServerUiStatusReady
+
+                        else
+                            case serverFromExoProps.exoSetupStatus.data of
+                                RDPP.DoHave ( status, _ ) _ ->
+                                    case status of
+                                        ExoSetupWaiting ->
+                                            ServerUiStatusBuilding
+
+                                        ExoSetupStarting ->
+                                            ServerUiStatusRunningSetup
+
+                                        ExoSetupRunning ->
+                                            ServerUiStatusRunningSetup
+
+                                        ExoSetupComplete ->
+                                            ServerUiStatusReady
+
+                                        ExoSetupError ->
+                                            ServerUiStatusError
+
+                                        ExoSetupTimeout ->
+                                            ServerUiStatusError
+
+                                        ExoSetupUnknown ->
+                                            ServerUiStatusUnknown
+
+                                RDPP.DontHave ->
+                                    ServerUiStatusUnknown
+
+                    ( _, ServerNotFromExo ) ->
+                        ServerUiStatusReady
 
             OSTypes.ServerBuild ->
                 ServerUiStatusBuilding
@@ -877,19 +973,6 @@ renderMarkdown palette markdown =
 
 elmUiRenderer : ExoPalette -> Markdown.Renderer.Renderer (Element.Element msg)
 elmUiRenderer palette =
-    let
-        codeAttrs =
-            [ Text.fontFamily Text.Mono
-            , Border.rounded spacer.px4
-            , Border.color (SH.toElementColor palette.muted.border)
-            , Background.color (SH.toElementColor palette.muted.background)
-            , Font.color (SH.toElementColor palette.muted.textOnColoredBG)
-            ]
-
-        codeRenderer =
-            Text.text Text.Body
-                (Element.paddingXY spacer.px4 spacer.px4 :: codeAttrs)
-    in
     -- Heavily borrowed and modified from https://ellie-app.com/bQLgjtbgdkZa1
     { heading = heading palette
     , paragraph =
@@ -901,7 +984,7 @@ elmUiRenderer palette =
     , emphasis = \content -> Element.row [ Font.italic ] content
     , strikethrough = \content -> Element.row [ Font.strike ] content
     , codeSpan =
-        codeRenderer
+        codeSpan palette
     , link =
         \{ destination } body ->
             Element.newTabLink (Link.linkStyle palette)
@@ -969,9 +1052,7 @@ elmUiRenderer palette =
                 )
     , codeBlock =
         \{ body } ->
-            Element.row
-                (codeAttrs ++ [ Element.paddingXY spacer.px8 spacer.px8, Element.width Element.fill ])
-                [ codeRenderer body ]
+            codeBlock palette body
     , html = Markdown.Html.oneOf []
     , table = Element.column []
     , tableHeader = Element.column []
@@ -1079,6 +1160,7 @@ flavorPicker :
     View.Types.Context
     -> Project
     -> Maybe (List OSTypes.FlavorId)
+    -> Maybe String
     -> OSTypes.ComputeQuota
     -> (PopoverId -> msg)
     -> PopoverId
@@ -1086,7 +1168,7 @@ flavorPicker :
     -> Maybe OSTypes.FlavorId
     -> (OSTypes.FlavorId -> msg)
     -> Element.Element msg
-flavorPicker context project restrictFlavorIds computeQuota flavorGroupToggleTipMsgMapper flavorGroupToggleTipId maybeCurrentFlavorId selectedFlavorId changeMsg =
+flavorPicker context project restrictFlavorIds showDisabledFlavorsReason computeQuota flavorGroupToggleTipMsgMapper flavorGroupToggleTipId maybeCurrentFlavorId selectedFlavorId changeMsg =
     let
         { locale } =
             context
@@ -1096,14 +1178,32 @@ flavorPicker context project restrictFlavorIds computeQuota flavorGroupToggleTip
                 |> Maybe.map .flavorGroups
                 |> Maybe.withDefault []
 
-        allowedFlavors =
+        isFlavorAllowed flavor =
             case restrictFlavorIds of
                 Nothing ->
-                    project.flavors
+                    True
 
                 Just restrictedFlavorIds ->
+                    List.member flavor.id restrictedFlavorIds
+
+        flavorsToShow =
+            case ( restrictFlavorIds, showDisabledFlavorsReason ) of
+                ( Just restrictedFlavorIds, Nothing ) ->
                     restrictedFlavorIds
                         |> List.filterMap (GetterSetters.flavorLookup project)
+
+                _ ->
+                    RDPP.withDefault [] project.flavors
+
+        disabledFlavorTooltip flavor reason =
+            ToggleTip.toggleTip context
+                flavorGroupToggleTipMsgMapper
+                (flavor.id ++ "--restricted")
+                (reason
+                    |> Maybe.withDefault "This flavor is restricted"
+                    |> Element.text
+                )
+                ST.PositionRight
 
         -- This is a kludge. Input.radio is intended to display a group of multiple radio buttons,
         -- but we want to embed a button in each table row, so we define several Input.radios,
@@ -1121,25 +1221,20 @@ flavorPicker context project restrictFlavorIds computeQuota flavorGroupToggleTip
 
                 radio_ =
                     if isCurrentFlavor then
-                        Element.text "Current"
+                        Element.el [ paddingRight ] <|
+                            Element.text "Current"
 
-                    else
+                    else if isFlavorAllowed flavor then
                         Element.Input.radio
-                            []
+                            [ Element.centerX ]
                             { label = Element.Input.labelHidden flavor.name
                             , onChange = changeMsg
                             , options = [ Element.Input.option flavor.id (Element.text " ") ]
-                            , selected =
-                                selectedFlavorId
-                                    |> Maybe.andThen
-                                        (\flavorId ->
-                                            if flavor.id == flavorId then
-                                                Just flavor.id
-
-                                            else
-                                                Nothing
-                                        )
+                            , selected = selectedFlavorId
                             }
+
+                    else
+                        disabledFlavorTooltip flavor showDisabledFlavorsReason
             in
             -- Only allow selection if there is enough available quota
             case OSQuotas.computeQuotaFlavorAvailServers computeQuota flavor of
@@ -1148,7 +1243,8 @@ flavorPicker context project restrictFlavorIds computeQuota flavorGroupToggleTip
 
                 Just availServers ->
                     if availServers < 1 then
-                        Element.text "X"
+                        disabledFlavorTooltip flavor
+                            (Just "This size would exceed your allocation's quota")
 
                     else
                         radio_
@@ -1170,6 +1266,28 @@ flavorPicker context project restrictFlavorIds computeQuota flavorGroupToggleTip
             , { header = Element.el (headerAttribs ++ [ Font.alignLeft ]) (Element.text "Name")
               , width = Element.fill
               , view = \r -> Element.el [ paddingRight ] (Element.text r.name)
+              }
+            , { header = Element.none
+              , width = Element.fill |> Element.minimum 0
+              , view =
+                    \r ->
+                        case r.description of
+                            Nothing ->
+                                Element.none
+
+                            Just description ->
+                                let
+                                    toggleTipId =
+                                        Helpers.String.hyphenate
+                                            [ r.id
+                                            , description
+                                            ]
+                                in
+                                ToggleTip.toggleTip context
+                                    flavorGroupToggleTipMsgMapper
+                                    toggleTipId
+                                    (Element.text description)
+                                    ST.PositionRight
               }
             , { header = Element.el (headerAttribs ++ [ Font.alignRight ]) (Element.text "CPUs")
               , width = Element.fill
@@ -1210,7 +1328,7 @@ flavorPicker context project restrictFlavorIds computeQuota flavorGroupToggleTip
             ]
 
         zeroRootDiskExplainText =
-            case List.Extra.find (\f -> f.disk_root == 0) allowedFlavors of
+            case List.Extra.find (\f -> f.disk_root == 0) flavorsToShow of
                 Just _ ->
                     String.concat
                         [ "* No default root disk size is defined for this "
@@ -1227,7 +1345,8 @@ flavorPicker context project restrictFlavorIds computeQuota flavorGroupToggleTip
                 [ hint context <|
                     String.join
                         " "
-                        [ "Please pick a"
+                        [ "Please pick"
+                        , Helpers.String.indefiniteArticle context.localization.virtualComputerHardwareConfig
                         , context.localization.virtualComputerHardwareConfig
                         ]
                 ]
@@ -1236,7 +1355,7 @@ flavorPicker context project restrictFlavorIds computeQuota flavorGroupToggleTip
                 []
 
         anyFlavorsTooLarge =
-            allowedFlavors
+            flavorsToShow
                 |> List.filterMap (OSQuotas.computeQuotaFlavorAvailServers computeQuota)
                 |> List.filter (\x -> x < 1)
                 |> List.isEmpty
@@ -1301,12 +1420,12 @@ flavorPicker context project restrictFlavorIds computeQuota flavorGroupToggleTip
         [ Text.strong <| Helpers.String.toTitleCase context.localization.virtualComputerHardwareConfig
         , Element.el flavorEmptyHint <|
             if List.isEmpty flavorGroups then
-                renderFlavors (GetterSetters.sortedFlavors allowedFlavors)
+                renderFlavors (GetterSetters.sortedFlavors flavorsToShow)
 
             else
                 Element.column
                     [ Element.spacing spacer.px12 ]
-                    (flavorGroups |> List.map (renderFlavorGroup (GetterSetters.sortedFlavors allowedFlavors)))
+                    (flavorGroups |> List.map (renderFlavorGroup (GetterSetters.sortedFlavors flavorsToShow)))
         , if anyFlavorsTooLarge then
             Element.text <|
                 String.join " "
@@ -1327,7 +1446,7 @@ createdAgoByFromSize :
     View.Types.Context
     -> ( String, Element.Element msg )
     -> Maybe ( String, String )
-    -> Maybe ( String, String )
+    -> Maybe ( String, Element.Element msg )
     -> Maybe ( String, Element.Element msg )
     -> OSTypes.Server
     -> Project
@@ -1357,7 +1476,7 @@ createdAgoByFromSize context ( agoWord, agoContents ) maybeWhoCreatedTuple maybe
             Just ( fromAdjective, whereFrom ) ->
                 Element.row [ Element.padding spacer.px8 ]
                     [ Element.el [ subduedText ] (Element.text <| "from " ++ fromAdjective ++ " ")
-                    , Element.text whereFrom
+                    , whereFrom
                     ]
 
             Nothing ->
@@ -1375,7 +1494,7 @@ createdAgoByFromSize context ( agoWord, agoContents ) maybeWhoCreatedTuple maybe
             Element.row [ Element.padding spacer.px8 ]
                 [ Element.el [ subduedText ] (Element.text "Burn rate ")
                 , String.concat
-                    [ Helpers.Jetstream2.calculateAllocationBurnRate flavors server
+                    [ Helpers.Jetstream2.calculateAllocationBurnRate (RDPP.withDefault [] flavors) server
                         |> Maybe.map (Helpers.Formatting.humanRatio context.locale)
                         |> Maybe.withDefault "Unknown"
                     , " SUs/hour"
@@ -1385,6 +1504,342 @@ createdAgoByFromSize context ( agoWord, agoContents ) maybeWhoCreatedTuple maybe
 
           else
             Element.none
+        ]
+
+
+whenCreatedText :
+    { currentTime : Time.Posix
+    , createdAt : Time.Posix
+    }
+    ->
+        { timeDistanceStr : String
+        , createdTimeText : Element.Element msg
+        }
+whenCreatedText { currentTime, createdAt } =
+    let
+        timeDistanceStr =
+            DateFormat.Relative.relativeTime currentTime createdAt
+
+        createdTimeText =
+            let
+                createdTimeFormatted =
+                    Helpers.Time.humanReadableDateAndTime createdAt
+            in
+            Element.text ("Created on: " ++ createdTimeFormatted)
+    in
+    { timeDistanceStr = timeDistanceStr, createdTimeText = createdTimeText }
+
+
+whenCreatedToggleTip :
+    View.Types.Context
+    -> Project
+    -> (PopoverId -> msg)
+    -> String
+    ->
+        { r
+            | uuid : String
+        }
+    -> Element.Element msg
+    -> Element.Element msg
+whenCreatedToggleTip context project popoverMsgMapper timeDistanceStr resource toggleTipContents =
+    Element.row
+        [ Element.spacing spacer.px4 ]
+        [ Element.text timeDistanceStr
+        , ToggleTip.toggleTip
+            context
+            popoverMsgMapper
+            (Helpers.String.hyphenate
+                [ "createdTimeTip"
+                , project.auth.project.uuid
+                , resource.uuid
+                ]
+            )
+            toggleTipContents
+            ST.PositionBottom
+        ]
+
+
+whenCreated :
+    View.Types.Context
+    -> Project
+    -> (PopoverId -> msg)
+    -> Time.Posix
+    ->
+        { r
+            | uuid : String
+            , createdAt : Time.Posix
+        }
+    -> Element.Element msg
+whenCreated context project popoverMsgMapper currentTime resource =
+    let
+        { timeDistanceStr, createdTimeText } =
+            whenCreatedText { currentTime = currentTime, createdAt = resource.createdAt }
+
+        toggleTipContents =
+            Element.column [] [ createdTimeText ]
+    in
+    whenCreatedToggleTip
+        context
+        project
+        popoverMsgMapper
+        timeDistanceStr
+        resource
+        toggleTipContents
+
+
+deleteResourcePopconfirmWithDisabledHint : View.Types.Context -> Project -> (PopoverId -> msg) -> { r | uuid : String, word : String } -> String -> Maybe msg -> Maybe msg -> DeleteButtonState -> Element.Element msg
+deleteResourcePopconfirmWithDisabledHint context project msgMapper resource popconfirmTag onConfirm onCancel buttonState =
+    let
+        deletePopconfirmId =
+            Helpers.String.hyphenate
+                [ popconfirmTag
+                , project.auth.project.uuid
+                , resource.uuid
+                ]
+    in
+    deletePopconfirm context
+        msgMapper
+        deletePopconfirmId
+        { confirmation =
+            Element.text <|
+                "Are you sure you want to delete this "
+                    ++ resource.word
+                    ++ "?"
+        , buttonText = Nothing
+        , onCancel = onCancel
+        , onConfirm = onConfirm
+        }
+        ST.PositionBottomRight
+        (\msg _ ->
+            deleteIconButtonWithDisabledHint context.palette
+                False
+                buttonState
+                (Just msg)
+        )
+
+
+deleteVolumeWarning : View.Types.Context -> Project -> Volume -> Maybe String
+deleteVolumeWarning context project volume =
+    case ( GetterSetters.isVolumeCurrentlyBackingServer project Nothing volume, volume.status ) of
+        ( True, OSTypes.Reserved ) ->
+            Just <|
+                String.join " "
+                    [ "Unshelve the attached"
+                    , context.localization.virtualComputer
+                    , "to interact with this"
+                    , context.localization.blockDevice ++ "."
+                    ]
+
+        ( True, _ ) ->
+            Just <|
+                String.join " "
+                    [ "This"
+                    , context.localization.blockDevice
+                    , "backs"
+                    , Helpers.String.indefiniteArticle context.localization.virtualComputer
+                    , context.localization.virtualComputer ++ "."
+                    , "It cannot be deleted before the"
+                    , context.localization.virtualComputer
+                    , "is deleted."
+                    ]
+
+        ( _, OSTypes.Reserved ) ->
+            Just <|
+                String.join " "
+                    [ "This"
+                    , context.localization.blockDevice
+                    , "must be detached before it can be deleted."
+                    ]
+
+        ( _, OSTypes.InUse ) ->
+            Just <|
+                String.join " "
+                    [ "This"
+                    , context.localization.blockDevice
+                    , "must be detached before it can be deleted."
+                    ]
+
+        _ ->
+            Nothing
+
+
+deleteResourcePopconfirm : View.Types.Context -> Project -> (PopoverId -> msg) -> { r | uuid : String, word : String } -> String -> Maybe msg -> Maybe msg -> Element.Element msg
+deleteResourcePopconfirm context project msgMapper resource popconfirmTag onConfirm onCancel =
+    deleteResourcePopconfirmWithDisabledHint
+        context
+        project
+        msgMapper
+        resource
+        popconfirmTag
+        onConfirm
+        onCancel
+        (DeleteButton.Enabled ("Delete " ++ resource.word))
+
+
+deleteBulkResourcePopconfirm : View.Types.Context -> Project -> (PopoverId -> msg) -> { r | count : Int, word : String } -> String -> Maybe msg -> Maybe msg -> Element.Element msg
+deleteBulkResourcePopconfirm context project msgMapper resource popconfirmTag onConfirm onCancel =
+    let
+        deletePopconfirmId =
+            Helpers.String.hyphenate
+                [ popconfirmTag
+                , project.auth.project.uuid
+                , "bulk"
+                ]
+    in
+    deletePopconfirm context
+        msgMapper
+        deletePopconfirmId
+        { confirmation =
+            let
+                determiner =
+                    if resource.count == 1 then
+                        "this"
+
+                    else
+                        "these " ++ String.fromInt resource.count
+            in
+            Element.text <|
+                "Are you sure you want to delete "
+                    ++ determiner
+                    ++ " "
+                    ++ (resource.word |> Helpers.String.pluralizeCount resource.count)
+                    ++ "?"
+        , buttonText = Nothing
+        , onCancel = onCancel
+        , onConfirm = onConfirm
+        }
+        ST.PositionBottomRight
+        (\msg _ ->
+            deleteIconButtonWithDisabledHint context.palette
+                True
+                (DeleteButton.Enabled ("Delete " ++ resource.word |> Helpers.String.pluralize))
+                (Just msg)
+        )
+
+
+deleteVolumeSnapshotIconButton : View.Types.Context -> Project -> (PopoverId -> msg) -> String -> VolumeSnapshot -> Maybe msg -> Maybe msg -> Element.Element msg
+deleteVolumeSnapshotIconButton context project msgMapper popconfirmTag snapshot onConfirm onCancel =
+    if not <| List.member snapshot.status [ VS.Deleted, VS.Deleting ] then
+        deleteResourcePopconfirm
+            context
+            project
+            msgMapper
+            { uuid = snapshot.uuid, word = context.localization.blockDevice ++ " snapshot" }
+            popconfirmTag
+            onConfirm
+            onCancel
+
+    else
+        let
+            label =
+                if VS.isTransitioning snapshot then
+                    VS.statusToString snapshot.status ++ "..."
+
+                else
+                    VS.statusToString snapshot.status
+        in
+        Text.body <| label
+
+
+detachVolumeButton : View.Types.Context -> Project -> (PopoverId -> msg) -> String -> Volume -> Maybe msg -> Maybe msg -> Element.Element msg
+detachVolumeButton context project msgMapper popconfirmTag volume onConfirm onCancel =
+    let
+        isBootVolume =
+            GetterSetters.isVolumeCurrentlyBackingServer project Nothing volume
+
+        detachButton : msg -> Bool -> Element.Element msg
+        detachButton togglePopconfirm _ =
+            Button.default
+                context.palette
+                { text = "Detach"
+                , onPress =
+                    if isBootVolume then
+                        Nothing
+
+                    else
+                        Just togglePopconfirm
+                }
+
+        detachPopconfirmId =
+            Helpers.String.hyphenate [ popconfirmTag, project.auth.project.uuid, volume.uuid ]
+    in
+    deletePopconfirm context
+        msgMapper
+        detachPopconfirmId
+        { confirmation =
+            Element.column [ Element.spacing spacer.px8 ]
+                [ Element.text <|
+                    "Detaching "
+                        ++ Helpers.String.indefiniteArticle context.localization.blockDevice
+                        ++ " "
+                        ++ context.localization.blockDevice
+                        ++ " while it is in use may cause data loss."
+                , Element.text
+                    "Make sure to close any open files before detaching."
+                ]
+        , buttonText = Just "Detach"
+        , onConfirm = onConfirm
+        , onCancel = onCancel
+        }
+        ST.PositionBottomRight
+        detachButton
+
+
+tableHeader : String -> Element.Element msg
+tableHeader text =
+    Element.el [ Font.heavy ] <| Element.text text
+
+
+tile : View.Types.Context -> List (Element.Element msg) -> List (Element.Element msg) -> Element.Element msg
+tile context headerContents contents =
+    Style.Widgets.Card.exoCard context.palette
+        (Element.column
+            [ Element.width Element.fill
+            , Element.padding spacer.px16
+            , Element.spacing spacer.px16
+            ]
+            (List.concat
+                [ case List.length headerContents of
+                    0 ->
+                        []
+
+                    _ ->
+                        [ Element.row
+                            (Text.subheadingStyleAttrs context.palette
+                                ++ Text.typographyAttrs Text.Large
+                                ++ [ Border.width 0 ]
+                            )
+                            headerContents
+                        ]
+                , contents
+                ]
+            )
+        )
+
+
+renderConfirmation : View.Types.Context -> Maybe msg -> Maybe msg -> String -> List (Element.Attribute msg) -> Element.Element msg
+renderConfirmation context actionMsg cancelMsg title closeActionsAttributes =
+    Element.row
+        [ Element.spacing spacer.px12, Element.width (Element.fill |> Element.minimum 280) ]
+        [ Element.text title
+        , Element.el
+            (Element.alignRight :: closeActionsAttributes)
+          <|
+            Button.button
+                Button.Danger
+                context.palette
+                { text = "Yes"
+                , onPress = actionMsg
+                }
+        , Element.el
+            [ Element.alignRight ]
+          <|
+            Button.button
+                Button.Secondary
+                context.palette
+                { text = "No"
+                , onPress = cancelMsg
+                }
         ]
 
 
@@ -1466,3 +1921,258 @@ renderMaybe condition component =
 
         Nothing ->
             Element.none
+
+
+allDirections : List SecurityGroupRuleDirection
+allDirections =
+    [ Ingress, Egress ]
+
+
+directionOptions : List ( String, String )
+directionOptions =
+    List.map (\direction -> ( directionToString direction, directionToString direction |> toTitleCase )) allDirections
+
+
+allEtherTypes : List SecurityGroupRuleEthertype
+allEtherTypes =
+    [ Ipv4, Ipv6 ]
+
+
+etherTypeOptions : List ( String, String )
+etherTypeOptions =
+    List.map (\etherType -> ( etherTypeToString etherType, etherTypeToString etherType )) allEtherTypes
+
+
+allProtocols : List SecurityGroupRuleProtocol
+allProtocols =
+    [ AnyProtocol
+    , ProtocolIcmp
+    , ProtocolIcmpv6
+    , ProtocolTcp
+    , ProtocolUdp
+    , ProtocolAh
+    , ProtocolDccp
+    , ProtocolEgp
+    , ProtocolEsp
+    , ProtocolGre
+    , ProtocolIgmp
+    , ProtocolIpv6Encap
+    , ProtocolIpv6Frag
+    , ProtocolIpv6Nonxt
+    , ProtocolIpv6Opts
+    , ProtocolIpv6Route
+    , ProtocolOspf
+    , ProtocolPgm
+    , ProtocolRsvp
+    , ProtocolSctp
+    , ProtocolUdpLite
+    , ProtocolVrrp
+    ]
+
+
+protocolOptions : List ( String, String )
+protocolOptions =
+    List.map (\protocol -> ( protocolToString protocol, protocolToString protocol )) allProtocols
+
+
+portRangeBoundsOptions : List ( String, String )
+portRangeBoundsOptions =
+    List.map
+        (\bounds -> ( portRangeBoundsToString bounds, portRangeBoundsToString bounds ))
+        allPortRangeBounds
+
+
+allPortRangeBounds : List PortRangeBounds
+allPortRangeBounds =
+    [ PortRangeAny, PortRangeSingle, PortRangeMinMax ]
+
+
+portRangeBoundsToString : PortRangeBounds -> String
+portRangeBoundsToString bounds =
+    case bounds of
+        PortRangeAny ->
+            "Any"
+
+        PortRangeSingle ->
+            "Single"
+
+        PortRangeMinMax ->
+            "Min - Max"
+
+
+stringToPortRangeBounds : String -> PortRangeBounds
+stringToPortRangeBounds bounds =
+    case bounds of
+        "Single" ->
+            PortRangeSingle
+
+        "Min - Max" ->
+            PortRangeMinMax
+
+        _ ->
+            PortRangeAny
+
+
+remoteOptions : Localization -> List ( String, String )
+remoteOptions localization =
+    List.map
+        (\remoteType -> ( remoteTypeToString localization remoteType, remoteTypeToString localization remoteType |> toTitleCase ))
+        allRemoteTypes
+
+
+allRemoteTypes : List RemoteType
+allRemoteTypes =
+    [ Any, IpPrefix, SecurityGroup ]
+
+
+securityGroupTypeLabel : Localization -> String
+securityGroupTypeLabel localization =
+    localization.securityGroup |> String.Extra.toTitleCase
+
+
+stringToRemoteType : Localization -> String -> RemoteType
+stringToRemoteType localization remoteType =
+    case remoteType of
+        "IP Prefix" ->
+            IpPrefix
+
+        _ ->
+            if remoteType == securityGroupTypeLabel localization then
+                SecurityGroup
+
+            else
+                Any
+
+
+remoteTypeToString : Localization -> RemoteType -> String
+remoteTypeToString localization remoteType =
+    case remoteType of
+        IpPrefix ->
+            "IP Prefix"
+
+        SecurityGroup ->
+            securityGroupTypeLabel localization
+
+        Any ->
+            "Any"
+
+
+remoteToRemoteType : Maybe Remote -> RemoteType
+remoteToRemoteType remote =
+    case remote of
+        Just (RemoteIpPrefix _) ->
+            IpPrefix
+
+        Just (RemoteGroupUuid _) ->
+            SecurityGroup
+
+        _ ->
+            Any
+
+
+remoteToString : Maybe Remote -> String
+remoteToString remote =
+    case remote of
+        Just (RemoteIpPrefix ip) ->
+            ip
+
+        Just (RemoteGroupUuid groupUuid) ->
+            groupUuid
+
+        Nothing ->
+            "Any"
+
+
+remoteToStringInput : Maybe Remote -> String
+remoteToStringInput remote =
+    remote
+        |> remoteToString
+        |> (\remoteString ->
+                if remoteString == "Any" then
+                    ""
+
+                else
+                    remoteString
+           )
+
+
+volumeStatusBadge : ExoPalette -> StatusBadgeSize -> Volume -> Element.Element msg
+volumeStatusBadge palette size volume =
+    volumeStatusBadgeFromStatus palette size volume.status
+
+
+volumeStatusBadgeFromStatus : ExoPalette -> StatusBadgeSize -> VolumeStatus -> Element.Element msg
+volumeStatusBadgeFromStatus palette size status =
+    let
+        contents =
+            status |> OSTypes.volumeStatusToString |> String.Extra.humanize |> Helpers.String.toTitleCase |> Element.text
+    in
+    StatusBadge.statusBadgeWithSize
+        palette
+        size
+        (status |> getVolumeStatusBadgeState)
+        contents
+
+
+getVolumeStatusBadgeState : VolumeStatus -> StatusBadge.StatusBadgeState
+getVolumeStatusBadgeState status =
+    case status of
+        Creating ->
+            StatusBadge.Warning
+
+        Available ->
+            StatusBadge.ReadyGood
+
+        Reserved ->
+            StatusBadge.Muted
+
+        Attaching ->
+            StatusBadge.Warning
+
+        Detaching ->
+            StatusBadge.Warning
+
+        InUse ->
+            StatusBadge.ReadyGood
+
+        Maintenance ->
+            StatusBadge.Warning
+
+        Deleting ->
+            StatusBadge.Muted
+
+        AwaitingTransfer ->
+            StatusBadge.Warning
+
+        Error ->
+            StatusBadge.Error
+
+        ErrorDeleting ->
+            StatusBadge.Error
+
+        BackingUp ->
+            StatusBadge.Warning
+
+        RestoringBackup ->
+            StatusBadge.Warning
+
+        ErrorBackingUp ->
+            StatusBadge.Error
+
+        ErrorRestoring ->
+            StatusBadge.Error
+
+        ErrorExtending ->
+            StatusBadge.Error
+
+        Downloading ->
+            StatusBadge.Warning
+
+        Uploading ->
+            StatusBadge.Warning
+
+        Retyping ->
+            StatusBadge.Warning
+
+        Extending ->
+            StatusBadge.Warning

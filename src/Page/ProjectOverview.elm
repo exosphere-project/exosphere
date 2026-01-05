@@ -4,6 +4,7 @@ import Element
 import Element.Border as Border
 import Element.Font as Font
 import FeatherIcons as Icons
+import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting
 import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
@@ -17,6 +18,7 @@ import Style.Helpers as SH
 import Style.Widgets.Card
 import Style.Widgets.Icon as Icon
 import Style.Widgets.Spacer exposing (spacer)
+import Style.Widgets.StatusBadge as StatusBadge
 import Style.Widgets.Text as Text
 import Time
 import Types.Project exposing (Project)
@@ -32,7 +34,6 @@ type alias Model =
 
 type Msg
     = SharedMsg SharedMsg.SharedMsg
-    | NoOp
 
 
 init : Model
@@ -46,9 +47,6 @@ update msg _ model =
         SharedMsg sharedMsg ->
             ( model, Cmd.none, sharedMsg )
 
-        NoOp ->
-            ( model, Cmd.none, SharedMsg.NoOp )
-
 
 view : View.Types.Context -> Project -> Time.Posix -> Model -> Element.Element Msg
 view context project currentTime _ =
@@ -58,7 +56,7 @@ view context project currentTime _ =
             Element.link []
                 { url = Route.toUrl context.urlPathPrefix (Route.ProjectRoute (GetterSetters.projectIdentifier project) projRouteConstructor)
                 , label =
-                    tile context
+                    clickableTile context
                         [ Element.column
                             [ Element.padding spacer.px24
                             , Element.width Element.fill
@@ -171,6 +169,25 @@ view context project currentTime _ =
                 Route.ImageList
                 Nothing
                 (imageTileContents context project)
+            , if context.experimentalFeaturesEnabled then
+                renderTile
+                    (Icon.featherIcon [] Icons.shield)
+                    (context.localization.securityGroup
+                        |> Helpers.String.pluralize
+                        |> Helpers.String.toTitleCase
+                    )
+                    Route.SecurityGroupList
+                    Nothing
+                    (securityGroupTileContents context project)
+
+              else
+                Element.none
+            , renderTile
+                (Icon.featherIcon [] Icons.terminal)
+                (context.localization.credential |> Helpers.String.pluralize |> Helpers.String.toTitleCase)
+                Route.Credentials
+                Nothing
+                (credentialTileContents context)
             ]
         ]
 
@@ -191,7 +208,7 @@ serverTileContents context project =
                     , Element.width Element.fill
                     , Element.htmlAttribute <| Html.Attributes.style "min-width" "0"
                     ]
-            , VH.serverStatusBadge context.palette server
+            , VH.serverStatusBadge context.palette StatusBadge.Normal server
             ]
     in
     tileContents
@@ -257,6 +274,54 @@ shareTileContents context project =
         VH.renderRDPP
         renderShare
         showShare
+
+
+securityGroupTileContents : View.Types.Context -> Project -> Element.Element Msg
+securityGroupTileContents context project =
+    let
+        renderSecurityGroup : OSTypes.SecurityGroup -> List (Element.Element Msg)
+        renderSecurityGroup securityGroup =
+            [ VH.extendedResourceName (Just securityGroup.name) securityGroup.uuid context.localization.securityGroup
+                |> VH.ellipsizedText
+                |> Element.el
+                    [ Element.centerY
+                    , Element.width Element.fill
+                    , Element.htmlAttribute <| Html.Attributes.style "min-width" "0"
+                    ]
+            , let
+                { locale } =
+                    context
+
+                numberOfRules =
+                    List.length securityGroup.rules
+              in
+              Element.el
+                [ context.palette.neutral.text.subdued
+                    |> SH.toElementColor
+                    |> Font.color
+                ]
+                (Element.text
+                    (String.join " "
+                        [ Helpers.Formatting.humanCount
+                            { locale | decimals = Exact 0 }
+                            numberOfRules
+                        , "rule" |> Helpers.String.pluralizeCount numberOfRules
+                        ]
+                    )
+                )
+            ]
+
+        showSecurityGroup : OSTypes.SecurityGroup -> Bool
+        showSecurityGroup =
+            always True
+    in
+    tileContents
+        context
+        project.securityGroups
+        context.localization.securityGroup
+        VH.renderRDPP
+        renderSecurityGroup
+        showSecurityGroup
 
 
 floatingIpTileContents : View.Types.Context -> Project -> Element.Element Msg
@@ -341,6 +406,26 @@ imageTileContents context project =
         (\_ -> True)
 
 
+credentialTileContents : View.Types.Context -> Element.Element Msg
+credentialTileContents context =
+    Element.column
+        [ Element.centerX
+        , Element.spacing spacer.px8
+        ]
+        [ Element.paragraph []
+            [ Element.text <|
+                String.join " "
+                    [ "Obtain"
+                    , Helpers.String.pluralize context.localization.credential
+                    , "for"
+                    , context.localization.commandDrivenTextInterface
+                    , "or developer access to this"
+                    , context.localization.unitOfTenancy
+                    ]
+            ]
+        ]
+
+
 tileContents :
     View.Types.Context
     -> resourceWithAvailabilityMetadata
@@ -422,6 +507,6 @@ tileContents context resourceWithAvailabilityMetadata resourceWord renderResourc
     renderResource context resourceWithAvailabilityMetadata (Helpers.String.pluralize resourceWord) renderItems
 
 
-tile : View.Types.Context -> List (Element.Element Msg) -> Element.Element Msg
-tile context contents =
+clickableTile : View.Types.Context -> List (Element.Element Msg) -> Element.Element Msg
+clickableTile context contents =
     Style.Widgets.Card.clickableCardFixedSize context.palette 450 350 contents

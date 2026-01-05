@@ -2,18 +2,15 @@ module Page.ServerList exposing (Model, Msg, init, update, view)
 
 import Dict
 import Element
-import Element.Background as Background
-import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons as Icons
 import Helpers.GetterSetters as GetterSetters
-import Helpers.Helpers as Helpers
+import Helpers.Helpers as Helpers exposing (serverCreatorName)
 import Helpers.Interaction as IHelpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.ResourceList exposing (creationTimeFilterOptions, listItemColumnAttribs, onCreationTimeFilter)
 import Helpers.String
-import Html.Attributes as HtmlA
 import OpenStack.Types as OSTypes
 import Page.QuotaUsage
 import Route
@@ -21,17 +18,20 @@ import Set
 import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.DataList as DataList
-import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
+import Style.Widgets.DeleteButton exposing (deleteIconButton)
 import Style.Widgets.HumanTime exposing (relativeTimeElement)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.Popover.Popover exposing (dropdownItemStyle, popover)
 import Style.Widgets.Spacer exposing (spacer)
+import Style.Widgets.Spinner as Spinner
 import Style.Widgets.StatusBadge as StatusBadge
 import Style.Widgets.Text as Text
+import Style.Widgets.Uuid exposing (uuidLabel)
 import Time
 import Types.Interaction as ITypes
+import Types.Interactivity exposing (InteractionLevel(..))
 import Types.Project exposing (Project)
-import Types.Server exposing (Server, ServerOrigin(..), ServerUiStatus(..))
+import Types.Server exposing (Server, ServerUiStatus)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
@@ -54,12 +54,12 @@ type Msg
     | NoOp
 
 
-init : Project -> Bool -> Model
-init project showHeading =
+init : View.Types.Context -> Project -> Bool -> Model
+init context project showHeading =
     Model showHeading
         (DataList.init <|
             DataList.getDefaultFilterOptions
-                (filters project.auth.user.name (Time.millisToPosix 0))
+                (filters context project project.auth.user.name (Time.millisToPosix 0))
         )
         False
 
@@ -108,9 +108,7 @@ view context project currentTime model =
             case ( project.servers.data, project.servers.refreshStatus ) of
                 ( RDPP.DontHave, RDPP.NotLoading Nothing ) ->
                     Element.row [ Element.spacing spacer.px16 ]
-                        [ Widget.circularProgressIndicator
-                            (SH.materialStyle context.palette).progressIndicator
-                            Nothing
+                        [ Spinner.medium context.palette
                         , Element.text "Please wait..."
                         ]
 
@@ -128,9 +126,7 @@ view context project currentTime model =
 
                 ( RDPP.DontHave, RDPP.Loading ) ->
                     Element.row [ Element.spacing spacer.px16 ]
-                        [ Widget.circularProgressIndicator
-                            (SH.materialStyle context.palette).progressIndicator
-                            Nothing
+                        [ Spinner.medium context.palette
                         , Element.text "Loading..."
                         ]
 
@@ -162,13 +158,13 @@ view context project currentTime model =
                             serversList
                             [ deletionAction context project ]
                             (Just
-                                { filters = filters project.auth.user.name currentTime
+                                { filters = filters context project project.auth.user.name currentTime
                                 , dropdownMsgMapper =
                                     \dropdownId ->
                                         SharedMsg <| SharedMsg.TogglePopover dropdownId
                                 }
                             )
-                            Nothing
+                            (Just <| searchByNameUuidFilter context)
     in
     Element.column (VH.contentContainer ++ [ Element.spacing spacer.px32 ])
         [ if model.showHeading then
@@ -200,6 +196,7 @@ type alias ServerRecord msg =
                 { interactionStatus : ITypes.InteractionStatus
                 , interactionDetails : ITypes.InteractionDetails msg
                 }
+        , securityGroupIds : List OSTypes.SecurityGroupUuid
         }
 
 
@@ -211,27 +208,12 @@ serverRecords :
     -> List (ServerRecord msg)
 serverRecords context currentTime project servers =
     let
-        creatorName server =
-            case server.exoProps.serverOrigin of
-                ServerFromExo exoOriginProps ->
-                    case exoOriginProps.exoCreatorUsername of
-                        Just creatorUsername ->
-                            creatorUsername
-
-                        Nothing ->
-                            "unknown user"
-
-                _ ->
-                    "unknown user"
-
         floatingIpAddress server =
             List.head (GetterSetters.getServerFloatingIps project server.osProps.uuid)
                 |> Maybe.map .address
 
         flavor server =
             GetterSetters.flavorLookup project server.osProps.details.flavorId
-                |> Maybe.map .name
-                |> Maybe.withDefault ("unknown " ++ context.localization.virtualComputerHardwareConfig)
 
         interactions server =
             [ ITypes.GuacTerminal
@@ -254,6 +236,11 @@ serverRecords context currentTime project servers =
                                 context
                         }
                     )
+
+        serverSecurityGroupIds server =
+            GetterSetters.getServerSecurityGroups project server.osProps.uuid
+                |> RDPP.withDefault []
+                |> List.map .uuid
     in
     List.map
         (\server ->
@@ -261,14 +248,22 @@ serverRecords context currentTime project servers =
             , selectable = server.osProps.details.lockStatus == OSTypes.ServerUnlocked
             , name = VH.resourceName (Just server.osProps.name) server.osProps.uuid
             , status = VH.getServerUiStatus server
-            , size = flavor server
+            , size = flavorName context <| flavor server -- comparable flavor name
             , floatingIpAddress = floatingIpAddress server
             , creationTime = server.osProps.details.created
-            , creator = creatorName server
+            , creator = serverCreatorName project server
             , interactions = interactions server
+            , securityGroupIds = serverSecurityGroupIds server
             }
         )
         servers
+
+
+flavorName : View.Types.Context -> Maybe OSTypes.Flavor -> String
+flavorName context flavor =
+    flavor
+        |> Maybe.map .name
+        |> Maybe.withDefault ("unknown " ++ context.localization.virtualComputerHardwareConfig)
 
 
 serverView :
@@ -293,27 +288,6 @@ serverView context currentTime project retainFloatingIpsWhenDeleting serverRecor
                         (Element.text serverRecord.name)
                 }
 
-        statusColor =
-            serverRecord.status
-                |> VH.getServerUiStatusBadgeState
-                |> StatusBadge.toColors context.palette
-                |> .default
-                |> SH.toElementColor
-
-        statusText =
-            VH.getServerUiStatusStr serverRecord.status
-
-        statusTextToDisplay =
-            case serverRecord.status of
-                ServerUiStatusDeleting ->
-                    -- because server appears for a while in the DataList
-                    -- after delete action is taken
-                    Element.el [ Font.italic ] <|
-                        Element.text (statusText ++ " ...")
-
-                _ ->
-                    Element.none
-
         interactionPopover closePopover =
             Element.column []
                 (List.map
@@ -324,7 +298,13 @@ serverView context currentTime project retainFloatingIpsWhenDeleting serverRecor
                                 { text = interactionDetails.name
                                 , icon =
                                     Element.el []
-                                        (interactionDetails.icon (SH.toElementColor context.palette.primary) 18)
+                                        (case interactionStatus of
+                                            ITypes.Loading ->
+                                                Spinner.sized 18 context.palette
+
+                                            _ ->
+                                                interactionDetails.icon 18
+                                        )
                                 , onPress =
                                     case interactionStatus of
                                         ITypes.Ready url ->
@@ -368,7 +348,15 @@ serverView context currentTime project retainFloatingIpsWhenDeleting serverRecor
                         ]
             in
             popover context
-                (\interactionPopoverId_ -> SharedMsg <| SharedMsg.TogglePopover interactionPopoverId_)
+                (\interactionPopoverId_ ->
+                    SharedMsg <|
+                        SharedMsg.Batch
+                            [ SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
+                                SharedMsg.ServerMsg serverRecord.id <|
+                                    SharedMsg.SetMinimumServerInteractivity LowInteraction
+                            , SharedMsg.TogglePopover interactionPopoverId_
+                            ]
+                )
                 { id = interactionPopoverId
                 , content = interactionPopover
                 , contentStyleAttrs = []
@@ -455,13 +443,13 @@ serverView context currentTime project retainFloatingIpsWhenDeleting serverRecor
         floatingIpView =
             case serverRecord.floatingIpAddress of
                 Just floatingIpAddress ->
-                    Element.row [ Element.spacing spacer.px8 ]
+                    Element.row [ Element.spacing spacer.px8, Element.alignRight ]
                         [ Icon.ipAddress
                             (SH.toElementColor
                                 context.palette.neutral.icon
                             )
                             16
-                        , Element.el [] (Element.text floatingIpAddress)
+                        , Text.text Text.Small [ Text.fontFamily Text.Mono ] floatingIpAddress
                         ]
 
                 Nothing ->
@@ -471,24 +459,16 @@ serverView context currentTime project retainFloatingIpsWhenDeleting serverRecor
         (listItemColumnAttribs context.palette)
         [ Element.row [ Element.spacing spacer.px12, Element.width Element.fill ]
             [ serverLink
-            , Element.el
-                [ Element.width (Element.px 12)
-                , Element.height (Element.px 12)
-                , Border.rounded 6
-                , Background.color statusColor
-                , Element.htmlAttribute <| HtmlA.title statusText
-                ]
-                Element.none
-            , statusTextToDisplay
+            , VH.serverStatusBadgeFromStatus context.palette StatusBadge.Small serverRecord.status
             , Element.el [ Element.alignRight ] interactionButton
             , Element.el [ Element.alignRight ] deleteServerBtnWithPopconfirm
             ]
         , Element.row
-            [ Element.spacing spacer.px8
+            [ Element.spacingXY spacer.px8 0
             , Element.width Element.fill
             ]
-            [ Element.el [] (Element.text serverRecord.size)
-            , Element.text "·"
+            [ Element.el [ Element.alignTop ] (Element.text serverRecord.size)
+            , Text.text Text.Body [ Element.alignTop ] "·"
             , let
                 accentColor =
                     SH.toElementColor context.palette.neutral.text.default
@@ -497,13 +477,16 @@ serverView context currentTime project retainFloatingIpsWhenDeleting serverRecor
                 accented inner =
                     Element.el [ Font.color accentColor ] inner
               in
-              Element.paragraph []
+              Element.paragraph [ Element.alignTop ]
                 [ Element.text "created "
                 , accented (relativeTimeElement currentTime serverRecord.creationTime)
                 , Element.text " by "
                 , accented (Element.text serverRecord.creator)
                 ]
-            , floatingIpView
+            , Element.column [ Element.spacing spacer.px16, Element.paddingXY 0 spacer.px4 ]
+                [ uuidLabel context.palette serverRecord.id
+                , floatingIpView
+                ]
             ]
         ]
 
@@ -514,54 +497,37 @@ deletionAction :
     -> Set.Set OSTypes.ServerUuid
     -> Element.Element Msg
 deletionAction context project serverIds =
-    let
-        deleteAllBtn togglePopconfirm _ =
-            deleteIconButton context.palette
-                True
-                "Delete All"
-                (Just togglePopconfirm)
+    VH.deleteBulkResourcePopconfirm
+        context
+        project
+        (SharedMsg << SharedMsg.TogglePopover)
+        { count = Set.size serverIds, word = context.localization.virtualComputer }
+        "serverListDeletePopconfirm"
+        (Just <|
+            SharedMsg
+                (SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project)
+                    (SharedMsg.RequestDeleteServers (Set.toList serverIds))
+                )
+        )
+        (Just NoOp)
 
-        deletePopconfirmId =
-            Helpers.String.hyphenate
-                [ "serverListDeletePopconfirm"
-                , project.auth.project.uuid
-                , "all"
-                ]
-    in
-    Element.el [ Element.alignRight ] <|
-        deletePopconfirm context
-            (\deletePopconfirmId_ -> SharedMsg <| SharedMsg.TogglePopover deletePopconfirmId_)
-            deletePopconfirmId
-            { confirmation =
-                Element.text <|
-                    if Set.size serverIds > 1 then
-                        "Are you sure you want to delete these "
-                            ++ (Set.size serverIds |> String.fromInt)
-                            ++ " "
-                            ++ (context.localization.virtualComputer
-                                    |> Helpers.String.pluralize
-                               )
-                            ++ "?"
 
-                    else
-                        "Are you sure you want to delete this "
-                            ++ context.localization.virtualComputer
-                            ++ "?"
-            , buttonText = Nothing
-            , onConfirm =
-                Just <|
-                    SharedMsg
-                        (SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project)
-                            (SharedMsg.RequestDeleteServers (Set.toList serverIds))
-                        )
-            , onCancel = Just NoOp
-            }
-            ST.PositionBottomRight
-            deleteAllBtn
+searchByNameUuidFilter : View.Types.Context -> DataList.SearchFilter { record | name : String }
+searchByNameUuidFilter context =
+    { label = "Search:"
+    , placeholder =
+        Just <|
+            "Enter "
+                ++ context.localization.virtualComputer
+                ++ " name or UUID"
+    , textToSearch = \record -> record.name ++ " " ++ record.id
+    }
 
 
 filters :
-    String
+    View.Types.Context
+    -> Project
+    -> String
     -> Time.Posix
     ->
         List
@@ -569,12 +535,26 @@ filters :
                 { record
                     | creator : String
                     , creationTime : Time.Posix
+                    , securityGroupIds : List OSTypes.SecurityGroupUuid
+                    , status : ServerUiStatus
+                    , size : String
                 }
             )
-filters currentUser currentTime =
+filters context project currentUser currentTime =
     let
         creatorFilterOptionValues servers =
             List.map .creator servers
+                |> Set.fromList
+                |> Set.toList
+
+        statusFilterOptionValues servers =
+            List.map .status servers
+                |> List.map VH.getServerUiStatusStr
+                |> Set.fromList
+                |> Set.toList
+
+        sizeFilterOptionValues servers =
+            List.map .size servers
                 |> Set.fromList
                 |> Set.toList
     in
@@ -596,7 +576,7 @@ filters currentUser currentTime =
                         )
                     |> Dict.fromList
       , filterTypeAndDefaultValue =
-            DataList.MultiselectOption <| Set.fromList [ currentUser ]
+            DataList.MultiselectOption <| Set.singleton currentUser
       , onFilter =
             \optionValue server ->
                 server.creator == optionValue
@@ -612,4 +592,60 @@ filters currentUser currentTime =
             \optionValue server ->
                 onCreationTimeFilter optionValue server.creationTime currentTime
       }
+    , { id = "status"
+      , label = "Status of"
+      , chipPrefix = "Status of "
+      , filterOptions =
+            \servers ->
+                statusFilterOptionValues servers
+                    |> List.map (\s -> ( s, s ))
+                    |> Dict.fromList
+      , filterTypeAndDefaultValue =
+            DataList.MultiselectOption <| Set.empty
+      , onFilter =
+            \optionValue server ->
+                (server.status |> VH.getServerUiStatusStr) == optionValue
+      }
+    , { id = "size"
+      , label = (context.localization.virtualComputerHardwareConfig |> Helpers.String.toTitleCase) ++ " of"
+      , chipPrefix = (context.localization.virtualComputerHardwareConfig |> Helpers.String.toTitleCase) ++ " of "
+      , filterOptions =
+            \servers ->
+                sizeFilterOptionValues servers
+                    |> List.map (\s -> ( s, s ))
+                    -- TODO: Sort sizes by flavor & not alphabetically.
+                    |> Dict.fromList
+      , filterTypeAndDefaultValue =
+            DataList.MultiselectOption <| Set.empty
+      , onFilter =
+            \optionValue server ->
+                server.size == optionValue
+      }
     ]
+        ++ (if context.experimentalFeaturesEnabled then
+                let
+                    securityGroupFilterOptionValues =
+                        project.securityGroups
+                            |> RDPP.withDefault []
+                            |> List.map (\sg -> ( sg.uuid, sg.name ))
+                in
+                [ { id = "securityGroup"
+                  , label = context.localization.securityGroup |> Helpers.String.toTitleCase
+                  , chipPrefix = "Member of "
+                  , filterOptions =
+                        \_ ->
+                            securityGroupFilterOptionValues
+                                |> Dict.fromList
+                  , filterTypeAndDefaultValue =
+                        DataList.MultiselectOption <| Set.empty
+                  , onFilter =
+                        \optionValue server ->
+                            server.securityGroupIds
+                                |> Set.fromList
+                                |> Set.member optionValue
+                  }
+                ]
+
+            else
+                []
+           )

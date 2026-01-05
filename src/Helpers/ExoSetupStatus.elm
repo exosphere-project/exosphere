@@ -6,6 +6,7 @@ module Helpers.ExoSetupStatus exposing
     , parseConsoleLogExoSetupStatus
     )
 
+import Helpers.Time exposing (hoursToMillis, minutesToMillis)
 import Json.Decode
 import Json.Encode
 import Time
@@ -21,26 +22,23 @@ parseConsoleLogExoSetupStatus ( oldExoSetupStatus, oldTimestamp ) consoleLog ser
         decodedData =
             -- TODO this may do a lot of work and it can easily be made more performant
             logLines
-                -- Throw out anything before the start of a JSON object on a given line
-                |> List.map
+                -- Throw out anything before the start of a JSON object on a given line, ignoring lines without '{'
+                |> List.filterMap
                     (\line ->
                         String.indexes "{" line
                             |> List.head
                             |> Maybe.map (\index -> String.dropLeft index line)
-                            |> Maybe.withDefault line
                     )
-                -- Throw out anything after the end of a JSON object on a given line
-                |> List.map
+                -- Throw out anything after the end of a JSON object on a given line, ignoring lines with '}'
+                |> List.filterMap
                     (\line ->
                         String.indexes "}" line
                             |> List.reverse
                             |> List.head
                             |> Maybe.map (\index -> String.left (index + 1) line)
-                            |> Maybe.withDefault line
                     )
                 |> List.map (Json.Decode.decodeString exoSetupDecoder)
-                |> List.map Result.toMaybe
-                |> List.filterMap identity
+                |> List.filterMap Result.toMaybe
 
         ( latestStatus, latestTimestamp ) =
             decodedData
@@ -48,26 +46,17 @@ parseConsoleLogExoSetupStatus ( oldExoSetupStatus, oldTimestamp ) consoleLog ser
                 |> List.head
                 |> Maybe.withDefault ( oldExoSetupStatus, oldTimestamp )
 
-        nonTerminalStatuses =
-            [ ExoSetupWaiting, ExoSetupRunning ]
-
-        statusIsNonTerminal =
-            List.member latestStatus nonTerminalStatuses
-
-        serverTooOldForNonTerminalStatus =
-            Time.posixToMillis serverCreatedTime
-                -- 2 hours
-                + 7200000
-                < Time.posixToMillis currentTime
-
-        finalStatus =
-            if statusIsNonTerminal && serverTooOldForNonTerminalStatus then
-                ( ExoSetupTimeout, Just currentTime )
-
-            else
-                ( latestStatus, latestTimestamp )
+        serverOlderThan millis =
+            (Time.posixToMillis currentTime - Time.posixToMillis serverCreatedTime) > millis
     in
-    finalStatus
+    if
+        (latestStatus == ExoSetupWaiting && serverOlderThan (minutesToMillis 20))
+            || (List.member latestStatus [ ExoSetupStarting, ExoSetupRunning ] && serverOlderThan (hoursToMillis 2))
+    then
+        ( ExoSetupTimeout, Just currentTime )
+
+    else
+        ( latestStatus, latestTimestamp )
 
 
 exoSetupStatusToStr : ExoSetupStatus -> String
@@ -75,6 +64,9 @@ exoSetupStatusToStr status =
     case status of
         ExoSetupWaiting ->
             "waiting"
+
+        ExoSetupStarting ->
+            "starting"
 
         ExoSetupRunning ->
             "running"
@@ -103,6 +95,9 @@ strtoExoSetupStatus str =
     case str of
         "waiting" ->
             ExoSetupWaiting
+
+        "starting" ->
+            ExoSetupStarting
 
         "running" ->
             ExoSetupRunning

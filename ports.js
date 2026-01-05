@@ -1,7 +1,7 @@
 "use strict";
 
 // get a reference to the div where we will show our UI
-let container = document.getElementById("container");
+const container = document.getElementById("container");
 
 var storedState = localStorage.getItem("exosphere-save");
 var startingState = storedState ? JSON.parse(storedState) : null;
@@ -71,7 +71,9 @@ var flags = {
   timeZone: d.getTimezoneOffset(),
 };
 
-const merged_config = Object.assign({}, cloud_configs, config);
+const shim_config = window.__DEBUG__ ? { version: window.__VERSION__ } : {};
+
+const merged_config = Object.assign({}, cloud_configs, config, shim_config);
 
 // start the elm app in the container
 // and keep a reference for communicating with the app
@@ -86,11 +88,11 @@ app.ports.logout.subscribe(() => {
   window.location.reload();
 });
 
-app.ports.openNewWindow.subscribe(function (url) {
+app.ports.openNewWindow.subscribe((url) => {
   window.open(url);
 });
 
-app.ports.setStorage.subscribe(function (state) {
+app.ports.setStorage.subscribe((state) => {
   if (disablePersistence) {
     return;
   }
@@ -98,11 +100,11 @@ app.ports.setStorage.subscribe(function (state) {
   localStorage.setItem("exosphere-save", JSON.stringify(state));
 });
 
-app.ports.instantiateClipboardJs.subscribe(function () {
-  var clipboard = new ClipboardJS(".copy-button");
+app.ports.instantiateClipboardJs.subscribe(() => {
+  const clipboard = new ClipboardJS(".copy-button");
 });
 
-app.ports.setFavicon.subscribe(function (url) {
+app.ports.setFavicon.subscribe((url) => {
   // From https://stackoverflow.com/questions/260857/changing-website-favicon-dynamically
   var link = document.querySelector("link[rel~='icon']");
   if (!link) {
@@ -114,10 +116,10 @@ app.ports.setFavicon.subscribe(function (url) {
 });
 
 // Note that this only does anything if an Exosphere environment is deployed with Matomo analytics. By default, it has no effect.
-app.ports.pushUrlAndTitleToMatomo.subscribe(function (args) {
+app.ports.pushUrlAndTitleToMatomo.subscribe((args) => {
   if (typeof _paq !== "undefined") {
     // From https://developer.matomo.org/guides/spa-tracking
-    var currentUrl = args.newUrl;
+    const currentUrl = args.newUrl;
     _paq.push(["setReferrerUrl", currentUrl]);
     _paq.push(["setCustomUrl", currentUrl]);
     _paq.push(["setDocumentTitle", args.pageTitle]);
@@ -127,7 +129,7 @@ app.ports.pushUrlAndTitleToMatomo.subscribe(function (args) {
     _paq.push(["trackPageView"]);
 
     // make Matomo aware of newly added content
-    var content = document.getElementById("content");
+    const content = document.getElementById("content");
     _paq.push(["MediaAnalytics::scanForMedia", content]);
     _paq.push(["FormAnalytics::scanForForms", content]);
     _paq.push(["trackContentImpressionsWithinNode", content]);
@@ -146,4 +148,42 @@ window.addEventListener("offline", (event) => {
 });
 window.addEventListener("online", (event) => {
   app.ports.updateNetworkConnectivity.send(true);
+});
+
+const weblockResolvers = {};
+// Request an exclusive web lock to synchronise resource access across tabs.
+//  https://developer.mozilla.org/en-US/docs/Web/API/Web_Locks_API
+app.ports.requestWebLock.subscribe((resource) => {
+  // Request the lock.
+  navigator.locks.request(
+    resource,
+    {
+      // Don't wait if the lock is not available.
+      ifAvailable: true,
+      mode: "exclusive",
+    },
+    // Lock acquired.
+    (lock) => {
+      // Signal that we have the lock request result.
+      app.ports.receiveWebLock.send([resource, !!lock]);
+
+      // Was the lock acquired?
+      if (!lock) {
+        return;
+      }
+
+      // If the lock was granted, we hold the lock until the promise resolves.
+      return new Promise((resolve) => {
+        weblockResolvers[resource] = resolve;
+      });
+    }
+  );
+});
+
+app.ports.releaseWebLock.subscribe((resource) => {
+  // Resolve the promise to release the lock.
+  if (weblockResolvers[resource]) {
+    weblockResolvers[resource]();
+    delete weblockResolvers[resource];
+  }
 });

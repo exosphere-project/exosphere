@@ -107,27 +107,6 @@ view context sharedModel t =
                 ErrorCrit ->
                     ( context.palette.danger, "Error" )
 
-        toastElement =
-            if List.member t.context.actionContext hiddenActionContexts then
-                minimalToast
-                    context
-                    stateColor
-                    { title = title
-                    , error = t.error
-                    , showDebugMsgs = sharedModel.showDebugMsgs
-                    }
-
-            else
-                genericToast
-                    context
-                    stateColor
-                    { title = title
-                    , maybeActionContext = Just t.context.actionContext
-                    , error = t.error
-                    , maybeRecoveryHint = t.context.recoveryHint
-                    , showDebugMsgs = sharedModel.showDebugMsgs
-                    }
-
         show =
             case t.context.level of
                 ErrorDebug ->
@@ -140,6 +119,28 @@ view context sharedModel t =
             Element.layoutWith { options = [ Element.noStaticStyleSheet ] } []
     in
     if show then
+        let
+            toastElement =
+                if List.member t.context.actionContext hiddenActionContexts then
+                    minimalToast
+                        context
+                        stateColor
+                        { title = title
+                        , error = t.error
+                        , showDebugMsgs = sharedModel.showDebugMsgs
+                        }
+
+                else
+                    genericToast
+                        context
+                        stateColor
+                        { title = title
+                        , maybeActionContext = Just t.context.actionContext
+                        , error = t.error
+                        , maybeRecoveryHint = t.context.recoveryHint
+                        , showDebugMsgs = sharedModel.showDebugMsgs
+                        }
+        in
         layoutWith toastElement
 
     else

@@ -11,6 +11,7 @@ cp index.html public/index.html
 cp ports.js public/ports.js
 cp cloud_configs.js public/cloud_configs.js
 cp config.js public/config.js
+cp version.json public/version.json
 cp exosphere.webmanifest public
 cp -R assets public
 cp -R fonts public

@@ -1,5 +1,6 @@
 module Types.Server exposing
-    ( ExoServerProps
+    ( ExoFeature(..)
+    , ExoServerProps
     , ExoServerVersion
     , ExoSetupStatus(..)
     , NewServerNetworkOptions(..)
@@ -10,6 +11,7 @@ module Types.Server exposing
     , ServerUiStatus(..)
     , currentExoServerVersion
     , exoSetupStatusToString
+    , exoVersionSupportsFeature
     )
 
 import Helpers.RemoteDataPlusPlus as RDPP
@@ -18,6 +20,7 @@ import Time
 import Types.Error exposing (HttpErrorWithBody)
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes as HelperTypes
+import Types.Interactivity exposing (InteractionLevel)
 import Types.ServerResourceUsage
 import Types.Workflow as WorkflowTypes
 
@@ -25,7 +28,7 @@ import Types.Workflow as WorkflowTypes
 type alias Server =
     { osProps : OSTypes.Server
     , exoProps : ExoServerProps
-    , events : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.ServerEvent)
+    , interaction : InteractionLevel
     }
 
 
@@ -64,7 +67,18 @@ type alias ExoServerVersion =
 
 currentExoServerVersion : ExoServerVersion
 currentExoServerVersion =
-    4
+    6
+
+
+type ExoFeature
+    = NamedMountpoints
+
+
+exoVersionSupportsFeature : ExoFeature -> ExoServerVersion -> Bool
+exoVersionSupportsFeature feature version =
+    case feature of
+        NamedMountpoints ->
+            version >= 5
 
 
 type ServerUiStatus
@@ -98,6 +112,7 @@ type ServerUiStatus
 
 type ExoSetupStatus
     = ExoSetupWaiting
+    | ExoSetupStarting
     | ExoSetupRunning
     | ExoSetupComplete
     | ExoSetupError
@@ -117,6 +132,9 @@ exoSetupStatusToString status =
     case status of
         ExoSetupWaiting ->
             "Waiting"
+
+        ExoSetupStarting ->
+            "Starting"
 
         ExoSetupRunning ->
             "Running"

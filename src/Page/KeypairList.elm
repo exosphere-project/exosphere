@@ -14,10 +14,8 @@ import Page.QuotaUsage
 import Route
 import Set
 import Style.Helpers as SH
-import Style.Types as ST
-import Style.Widgets.CopyableText
+import Style.Widgets.CopyableText exposing (copyableText, copyableTextAccessory)
 import Style.Widgets.DataList as DataList
-import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
 import Style.Widgets.Icon exposing (featherIcon)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
@@ -137,7 +135,7 @@ view context project model =
                     []
                     (keypairView model context project)
                     (keypairRecords keypairs)
-                    []
+                    [ deletionAction context project ]
                     Nothing
                     Nothing
 
@@ -172,16 +170,59 @@ type alias KeypairRecord =
     DataList.DataRecord { keypair : OSTypes.Keypair }
 
 
+pseudoUuid : OSTypes.Keypair -> String
+pseudoUuid keypair =
+    [ keypair.name, keypair.fingerprint ]
+        |> String.join "::"
+
+
 keypairRecords : List OSTypes.Keypair -> List KeypairRecord
 keypairRecords keypairs =
     List.map
         (\keypair ->
-            { id = keypair.fingerprint -- doesn't matter if non-unique since bulk selection is not being used
-            , selectable = False
+            { id = pseudoUuid keypair
+            , selectable = True
             , keypair = keypair
             }
         )
         keypairs
+
+
+deletionAction :
+    View.Types.Context
+    -> Project
+    -> Set.Set String
+    -> Element.Element Msg
+deletionAction context project pseudoUuids =
+    VH.deleteBulkResourcePopconfirm
+        context
+        project
+        (SharedMsg << SharedMsg.TogglePopover)
+        { count = Set.size pseudoUuids, word = context.localization.pkiPublicKeyForSsh }
+        "keypairListDeletePopconfirm"
+        (Just <|
+            SharedMsg <|
+                (pseudoUuids
+                    |> Set.toList
+                    |> List.filterMap
+                        (\uuid ->
+                            case String.split "::" uuid of
+                                [ name, fingerprint ] ->
+                                    Just ( name, fingerprint )
+
+                                _ ->
+                                    Nothing
+                        )
+                    |> List.map
+                        (\keypairId ->
+                            SharedMsg.ProjectMsg
+                                (GetterSetters.projectIdentifier project)
+                                (SharedMsg.RequestDeleteKeypair keypairId)
+                        )
+                    |> SharedMsg.Batch
+                )
+        )
+        (Just NoOp)
 
 
 keypairView : Model -> View.Types.Context -> Project -> KeypairRecord -> Element.Element Msg
@@ -190,46 +231,26 @@ keypairView model context project keypairRecord =
         keypairId =
             ( keypairRecord.keypair.name, keypairRecord.keypair.fingerprint )
 
-        deletePopconfirmId =
-            Helpers.String.hyphenate
-                [ "keypairListDeletePopconfirm"
-                , project.auth.project.uuid
-                , keypairRecord.keypair.name
-                , keypairRecord.keypair.fingerprint
-                ]
-
-        deleteKeypairButton togglePopconfirmMsg _ =
-            deleteIconButton
-                context.palette
-                False
-                ("Delete " ++ context.localization.pkiPublicKeyForSsh)
-                (Just togglePopconfirmMsg)
-
         deleteKeypairBtnWithPopconfirm =
-            deletePopconfirm context
-                (\deletePopconfirmId_ -> SharedMsg <| SharedMsg.TogglePopover deletePopconfirmId_)
-                deletePopconfirmId
-                { confirmation =
-                    Element.text <|
-                        "Are you sure you want to delete this "
-                            ++ context.localization.pkiPublicKeyForSsh
-                            ++ "?"
-                , buttonText = Nothing
-                , onConfirm = Just <| GotDeleteConfirm keypairId
-                , onCancel = Just NoOp
-                }
-                ST.PositionBottomRight
-                deleteKeypairButton
+            VH.deleteResourcePopconfirm
+                context
+                project
+                (SharedMsg << SharedMsg.TogglePopover)
+                { uuid = pseudoUuid keypairRecord.keypair, word = context.localization.pkiPublicKeyForSsh }
+                "keypairListDeletePopconfirm"
+                (Just <| GotDeleteConfirm keypairId)
+                (Just NoOp)
 
         ( publicKeyLabelStyle, publicKeyValue ) =
             if Set.member keypairId model.expandedPublicKeys then
                 ( Element.alignTop
                 , Element.row [ Element.width Element.fill ]
                     [ Element.el [ Element.width Element.fill ]
-                        (Style.Widgets.CopyableText.copyableText
+                        (copyableText
                             context.palette
                             [ Html.Attributes.style "word-break" "break-all"
                                 |> Element.htmlAttribute
+                            , Text.fontFamily Text.Mono
                             ]
                             keypairRecord.keypair.publicKey
                         )
@@ -255,10 +276,13 @@ keypairView model context project keypairRecord =
                 , Element.row [ Element.width Element.fill ]
                     [ Element.el
                         [ -- FIXME: this should come dynamically as the space left after putting "show more"
-                          Element.width <| Element.px 640
+                          Element.width <| Element.px 580
                         , Element.htmlAttribute <| Html.Attributes.style "min-width" "0"
+                        , (copyableTextAccessory context.palette keypairRecord.keypair.publicKey).id
+                        , Text.fontFamily Text.Mono
                         ]
                         (VH.ellipsizedText keypairRecord.keypair.publicKey)
+                    , (copyableTextAccessory context.palette keypairRecord.keypair.publicKey).accessory
                     , Element.Input.button [ Element.alignRight, Element.width Element.shrink ]
                         { label =
                             Element.el
@@ -287,7 +311,7 @@ keypairView model context project keypairRecord =
             , Element.el []
                 (Style.Widgets.CopyableText.copyableText
                     context.palette
-                    []
+                    [ Text.fontFamily Text.Mono ]
                     keypairRecord.keypair.fingerprint
                 )
             ]

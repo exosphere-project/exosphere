@@ -13,15 +13,14 @@ import Page.QuotaUsage
 import Route
 import Set
 import Style.Helpers as SH
-import Style.Types as ST
 import Style.Widgets.Alert as Alert
 import Style.Widgets.Button as Button
-import Style.Widgets.CopyableText
+import Style.Widgets.CopyableText exposing (copyableTextAccessory)
 import Style.Widgets.DataList as DataList
-import Style.Widgets.DeleteButton exposing (deleteIconButton, deletePopconfirm)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
+import Style.Widgets.Uuid exposing (uuidLabel)
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg
@@ -97,9 +96,6 @@ view context project model =
             let
                 -- Warn the user when their project has at least this many unassigned floating IPs.
                 -- Perhaps in the future this behavior becomes configurable at runtime.
-                ipScarcityWarningThreshold =
-                    2
-
                 ipsSorted =
                     List.sortBy (.address >> ipToInt) ips
 
@@ -129,9 +125,6 @@ view context project model =
 
                         Nothing ->
                             False
-
-                ( _, ipsNotAssignedToResources ) =
-                    List.partition ipAssignedToAResource ipsSorted
             in
             if List.isEmpty ipsSorted then
                 Element.column
@@ -151,6 +144,13 @@ view context project model =
                     ]
 
             else
+                let
+                    ipScarcityWarningThreshold =
+                        2
+
+                    ( _, ipsNotAssignedToResources ) =
+                        List.partition ipAssignedToAResource ipsSorted
+                in
                 Element.column
                     [ Element.spacing spacer.px24, Element.width Element.fill ]
                     [ if List.length ipsNotAssignedToResources >= ipScarcityWarningThreshold then
@@ -166,7 +166,7 @@ view context project model =
                         []
                         (floatingIpView context project)
                         (floatingIpRecords ipsSorted)
-                        []
+                        [ deletionAction context project ]
                         (Just
                             { filters = filters
                             , dropdownMsgMapper =
@@ -174,7 +174,7 @@ view context project model =
                                     SharedMsg <| SharedMsg.TogglePopover dropdownId
                             }
                         )
-                        Nothing
+                        (Just <| searchByNameUuidFilter context)
                     ]
     in
     Element.column
@@ -227,6 +227,41 @@ ipScarcityWarning context =
         }
 
 
+deletionAction :
+    View.Types.Context
+    -> Project
+    -> Set.Set OSTypes.IpAddressUuid
+    -> Element.Element Msg
+deletionAction context project floatingIpUuids =
+    VH.deleteBulkResourcePopconfirm
+        context
+        project
+        (SharedMsg << SharedMsg.TogglePopover)
+        { count = Set.size floatingIpUuids, word = context.localization.floatingIpAddress }
+        "floatingIpListDeletePopconfirm"
+        (Just <|
+            SharedMsg <|
+                (floatingIpUuids
+                    |> Set.toList
+                    |> List.map
+                        (\ipUuid ->
+                            SharedMsg.ProjectMsg
+                                (GetterSetters.projectIdentifier project)
+                                (SharedMsg.RequestDeleteFloatingIp
+                                    (ErrorContext
+                                        ("delete floating IP address with UUID " ++ ipUuid)
+                                        ErrorCrit
+                                        Nothing
+                                    )
+                                    ipUuid
+                                )
+                        )
+                    |> SharedMsg.Batch
+                )
+        )
+        (Just NoOp)
+
+
 type alias FloatingIpRecord =
     DataList.DataRecord
         { ip : OSTypes.FloatingIp }
@@ -237,7 +272,7 @@ floatingIpRecords floatingIps =
     List.map
         (\floatingIp ->
             { id = floatingIp.uuid
-            , selectable = False
+            , selectable = True
             , ip = floatingIp
             }
         )
@@ -272,35 +307,14 @@ floatingIpView context project floatingIpRecord =
                         }
 
         deleteIpBtnWithPopconfirm =
-            let
-                deleteIpButton togglePopconfirmMsg _ =
-                    deleteIconButton
-                        context.palette
-                        False
-                        ("Delete " ++ context.localization.floatingIpAddress)
-                        (Just togglePopconfirmMsg)
-
-                deletePopconfirmId =
-                    Helpers.String.hyphenate
-                        [ "floatingIpListDeletePopconfirm"
-                        , project.auth.project.uuid
-                        , floatingIpRecord.id
-                        ]
-            in
-            deletePopconfirm context
-                (\deletePopconfirmId_ -> SharedMsg <| SharedMsg.TogglePopover deletePopconfirmId_)
-                deletePopconfirmId
-                { confirmation =
-                    Element.text <|
-                        "Are you sure you want to delete this "
-                            ++ context.localization.floatingIpAddress
-                            ++ "?"
-                , buttonText = Nothing
-                , onConfirm = Just <| GotDeleteConfirm floatingIpRecord.id
-                , onCancel = Just NoOp
-                }
-                ST.PositionBottomRight
-                deleteIpButton
+            VH.deleteResourcePopconfirm
+                context
+                project
+                (SharedMsg << SharedMsg.TogglePopover)
+                { uuid = floatingIpRecord.id, word = context.localization.floatingIpAddress }
+                "floatingIpListDeletePopconfirm"
+                (Just <| GotDeleteConfirm floatingIpRecord.id)
+                (Just NoOp)
 
         ipAssignment =
             case floatingIpRecord.ip.portUuid of
@@ -332,39 +346,65 @@ floatingIpView context project floatingIpRecord =
                 Nothing ->
                     Element.text "Unassigned"
     in
-    Element.column (listItemColumnAttribs context.palette)
-        [ Element.row [ Element.width Element.fill ]
+    Element.column
+        (listItemColumnAttribs context.palette)
+        [ Element.row [ Element.width Element.fill, Element.spacing spacer.px12 ]
             [ Element.el []
                 (Style.Widgets.CopyableText.copyableText
                     context.palette
                     (Text.typographyAttrs Text.Emphasized ++ [ Font.color (SH.toElementColor context.palette.neutral.text.default) ])
                     floatingIpRecord.ip.address
                 )
-            , Element.row [ Element.spacing spacer.px12, Element.alignRight ]
-                [ assignUnassignIpButton, deleteIpBtnWithPopconfirm ]
+            , Element.row [ Element.width Element.fill ] []
+            , assignUnassignIpButton
+            , deleteIpBtnWithPopconfirm
             ]
-        , Element.row [] [ ipAssignment ]
-        , case
-            OpenStack.DnsRecordSet.addressToRecord
-                (project.dnsRecordSets |> Helpers.RemoteDataPlusPlus.withDefault [])
-                floatingIpRecord.ip.address
-          of
-            Just { name } ->
-                Element.row []
-                    [ String.concat
-                        [ context.localization.hostname |> Helpers.String.toTitleCase
-                        , ": "
+        , Element.row [ Element.spacing spacer.px8, Element.width Element.fill ]
+            [ ipAssignment
+            , Element.row [ Element.width Element.fill ] []
+            , uuidLabel context.palette floatingIpRecord.id
+            ]
+        , Element.row [ Element.spacing spacer.px8, Element.width Element.fill ]
+            [ case
+                List.head <|
+                    OpenStack.DnsRecordSet.lookupRecordsByAddress
+                        (project.dnsRecordSets |> Helpers.RemoteDataPlusPlus.withDefault [])
+                        floatingIpRecord.ip.address
+              of
+                Just { name } ->
+                    Element.row [ Element.width Element.fill ]
+                        [ String.concat
+                            [ context.localization.hostname |> Helpers.String.toTitleCase
+                            , ": "
+                            ]
+                            |> Text.text Text.Small []
+                        , let
+                            copyable =
+                                copyableTextAccessory context.palette name
+                          in
+                          Element.row
+                            [ Element.spacing spacer.px8 ]
+                            [ Text.text Text.Small [ copyable.id ] name
+                            , copyable.accessory
+                            ]
                         ]
-                        |> Text.body
-                    , Style.Widgets.CopyableText.copyableText
-                        context.palette
-                        (Text.typographyAttrs Text.Small)
-                        name
-                    ]
 
-            Nothing ->
-                Element.none
+                Nothing ->
+                    Element.none
+            ]
         ]
+
+
+searchByNameUuidFilter : View.Types.Context -> DataList.SearchFilter { record | ip : OSTypes.FloatingIp }
+searchByNameUuidFilter context =
+    { label = "Search:"
+    , placeholder =
+        Just <|
+            "Enter "
+                ++ context.localization.floatingIpAddress
+                ++ " or UUID"
+    , textToSearch = \record -> record.ip.address ++ " " ++ record.id
+    }
 
 
 filters : List (DataList.Filter { record | ip : OSTypes.FloatingIp })
@@ -375,7 +415,7 @@ filters =
       , filterOptions =
             \_ -> Dict.fromList [ ( "yes", "assigned" ), ( "no", "unassigned" ) ]
       , filterTypeAndDefaultValue =
-            DataList.MultiselectOption <| Set.fromList [ "no" ]
+            DataList.MultiselectOption <| Set.singleton "no"
       , onFilter =
             \optionValue floatingIpRecord ->
                 let

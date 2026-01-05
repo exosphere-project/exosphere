@@ -6,6 +6,7 @@ module OpenStack.Quotas exposing
     , requestNetworkQuota
     , requestShareQuota
     , requestVolumeQuota
+    , shareQuotaAvail
     , shareQuotaDecoder
     , volumeQuotaAvail
     , volumeQuotaDecoder
@@ -46,7 +47,7 @@ requestComputeQuota project =
         Get
         Nothing
         []
-        (project.endpoints.nova ++ "/limits")
+        ( project.endpoints.nova, [ "limits" ], [] )
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg
@@ -87,7 +88,7 @@ requestVolumeQuota project =
         Get
         Nothing
         []
-        (project.endpoints.cinder ++ "/limits")
+        ( project.endpoints.cinder, [ "limits" ], [] )
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg
@@ -126,7 +127,7 @@ requestNetworkQuota project =
         Get
         Nothing
         []
-        (project.endpoints.neutron ++ "/v2.0/quotas/" ++ project.auth.project.uuid ++ "/details.json")
+        ( project.endpoints.neutron, [ "v2.0", "quotas", project.auth.project.uuid, "details.json" ], [] )
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg
@@ -163,11 +164,7 @@ requestShareQuota project url =
         Get
         Nothing
         [ ( "X-OpenStack-Manila-API-Version", "2.42" ) ]
-        (url
-            ++ "/"
-            ++ project.auth.project.uuid
-            ++ "/limits"
-        )
+        ( url, [ project.auth.project.uuid, "limits" ], [] )
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg
@@ -194,6 +191,30 @@ shareQuotaDecoder =
             |> hardcoded Nothing
             |> hardcoded Nothing
         )
+
+
+{-| Returns tuple showing # shares, # total gigabytes & # gigabytes per share that are available given quota and usage.
+
+Nothing implies no limit.
+
+-}
+shareQuotaAvail : OSTypes.ShareQuota -> ( OSTypes.QuotaItemLimit, OSTypes.QuotaItemLimit, OSTypes.QuotaItemLimit )
+shareQuotaAvail shareQuota =
+    ( shareQuota.shares.limit
+        |> quotaItemLimitMap
+            (\l -> l - shareQuota.shares.inUse)
+    , shareQuota.gigabytes.limit
+        |> quotaItemLimitMap
+            (\l -> l - shareQuota.gigabytes.inUse)
+    , case shareQuota.perShareGigabytes of
+        Just perShareGigabytes ->
+            perShareGigabytes.limit
+                |> quotaItemLimitMap
+                    (\l -> l)
+
+        Nothing ->
+            OSTypes.Unlimited
+    )
 
 
 

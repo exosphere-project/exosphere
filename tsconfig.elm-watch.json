@@ -1,0 +1,11 @@
+{
+  "files": ["postprocess.js"],
+  "compilerOptions": {
+    "moduleResolution": "node",
+    "target": "ES2019",
+    "types": ["node"],
+    "noEmit": true,
+    "checkJs": true,
+    "allowJs": true
+  }
+}

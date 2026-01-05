@@ -31,7 +31,7 @@ To apply further configuration changes after you start the container: stop it (`
 
 ## For Development Work
 
-### Docker Development Option (New Contributors Start Here)
+### Repository
 
 First, clone the repository. If you plan to make a contribution, fork the project on GitLab, and clone your fork instead of the upstream repo.
 
@@ -40,64 +40,18 @@ git clone https://gitlab.com/exosphere/exosphere.git
 cd exosphere
 ```
 
-Build the container and run it with a bind mount to `src/`:
+### Node.js Development Option
 
-```
-docker build -t exosphere .
-docker run --rm -v $PWD/src:/usr/src/app/src -it --name exosphere -p 127.0.0.1:8000:8000 exosphere
-```
+This option is flexible but requires a [Node.js](https://nodejs.org) environment on your computer. If you would like a more isolated development environment, consider the [Docker Development Option](#docker-development-option).
 
-You should see `elm-live` starting in the `docker run` output:
+Local development using Node.js relies on an external [proxy server](solving-cors-problem.md) for connectivity to OpenStack clouds. It defaults to a proxy hosted by the Exosphere project unless you specify your own in `config.js`.
 
-```
-elm-live:
-  Hot Reloading is ON
-
-  Warning: Hot Reloading does not replay the messages of the app.
-  It just restores the previous state and can lead to bad state.
-  If this happen, reload the app in the browser manually to fix it.
-
-
-elm-live:
-  Server has been started! Server details below:
-    - Website URL: http://0.0.0.0:8000
-    - Serving files from: /usr/src/app
-    - Proxying requests starting with /proxy to https://try-dev.exosphere.app/proxy
-
-elm-live:
-  The build has succeeded. 
-
-elm-live:
-  Watching the following files:
-    - src/**/*.elm
-```
-
-Then, open in your browser: [http://app.exosphere.localhost:8000](http://app.exosphere.localhost:8000)
-
-(If you are using Mac OS, you may need to add `127.0.0.1 app.exosphere.localhost` to `/etc/hosts`.)
-
-While the container is running, you can edit the Elm source code in the `src/` directory on your computer. When you save a file in your editor, `elm-live` will detect and recompile your changes, then hot-reload the app in your browser. 😎 You'll see any compiler errors as more output from the `docker run` command. (Be aware that hot-reloading will occasionally fail, and you'll need to refresh your web browser to see your changes.)
-
-If you need to change any files or configuration _outside the `src/` directory,_ you need to stop (`Ctrl-C` or `⌘-C`) the `docker run` command, then re-run the `docker build` and `docker run` commands above.
-
-If you want to copy the compiled app (`elm-web.js`, or any other file) from the container, you can run this in another terminal window:
-
-```bash
-docker cp exosphere:/usr/src/app/elm-web.js my-elm.js
-```
-
-When you're done running the container, stop it by pressing `Ctrl-C` or `⌘-C` in the `docker run` window (the one running `elm-live`).
-
-### Node.js and `npm` Development Option
-
-The Node.js and `npm` option offers more customizability than the Docker option, and works for people who don't want to use Docker, but it requires a Node.js environment on your computer. It relies on an external [proxy server](solving-cors-problem.md) for connectivity to OpenStack clouds. It defaults to a proxy hosted by the Exosphere project unless you specify your own in `config.js`.
-
-First, [install node.js + npm](https://www.npmjs.com/get-npm).
+First, [install Node.js](https://nodejs.org/en/download).
 
 - If you use Ubuntu or Debian, you may also need to `apt-get install nodejs-legacy`.
-- If you are using Mac OS, you may need to add `127.0.0.1 app.exosphere.localhost` to `/etc/hosts`.
+- If you are using macOS, you may need to add `127.0.0.1 app.exosphere.localhost` to `/etc/hosts`.
 
-Then install the project's dependencies (including Elm). Convenience command to do this (run from the root of the exosphere repo):
+Install the project's dependencies (including Elm) using `npm`. From the root of the exosphere repo run:
 
 ```bash
 npm install
@@ -105,19 +59,48 @@ npm install
 
 To compile the app and serve it using a local development server run this command:
 
-```
+```bash
 npm start
 ```
 
 Then, open in your browser: <http://app.exosphere.localhost:8000>
 
-To enable the Elm Debugger in the local development server run the following command instead:
+When you save a file in your editor, [`elm-watch`](https://lydell.github.io/elm-watch/) will detect and recompile your changes, then hot-reload the app in your browser. (Be aware that hot-reloading can occasionally fail; if it does, you can refresh your web browser to see your changes.)
+
+### Docker Development Option
+
+From the root of the exosphere repo, build the container and run it. There are bind mounts for `src/` and all other files needed by the application.
+
+```bash
+docker build -t exosphere .
+./docker/start-docker-dev.sh exosphere
+```
+
+You should see [`elm-watch`](https://lydell.github.io/elm-watch/) starting in the `docker run` output:
 
 ```
-npm run live-debug
+✅ Exosphere
+✅ DesignSystem
+
+📊 server: http://localhost:8000, network: http://172.17.0.2:8000
+📊 web socket connections: 1, elm-watch-node workers: 1
 ```
 
-When you save a file in your editor, `elm-live` will detect and recompile your changes, then hot-reload the app in your browser. (Be aware that hot-reloading will occasionally fail, and you'll need to refresh your web browser to see your changes.)
+Then, open in your browser: <http://app.exosphere.localhost:8000>
+
+(If you are using macOS, you may need to add `127.0.0.1 app.exosphere.localhost` to `/etc/hosts`.)
+
+While the container is running, you can edit the Elm source code in the `src/` directory on your computer. When you save a file in your editor, `elm-watch` will detect and recompile your changes, then hot-reload the app in your browser. You'll see any compiler errors as more output from the `docker run` command. (Be aware that hot-reloading can occasionally fail; if it does, you can refresh your web browser to see your changes.)
+
+If you need to change any files or configuration not in your bind mounts, you need to stop (`Ctrl-C` or `⌘-C`) the `docker run` command, then re-run the `docker build` and `docker run` commands above.
+
+If you want to copy the compiled app (`elm-web.js`, or any other file) from the container, you can run this in another terminal window:
+
+```bash
+docker cp exosphere:/usr/src/app/elm-web.js my-elm.js
+```
+
+When you're done running the container, stop it by pressing `Ctrl-C` or `⌘-C` in the `docker run` window (the one running `elm-watch`).
 
 ## Running on a Production Server
 

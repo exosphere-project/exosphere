@@ -4,14 +4,13 @@ import Element
 import Element.Input as Input
 import Html.Attributes
 import Route
-import Style.Helpers as SH
+import Style.Widgets.Button as Button
 import Style.Widgets.Text as Text
 import Types.Error exposing (ErrorLevel(..))
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
-import Widget
 
 
 type alias Model =
@@ -86,8 +85,8 @@ view context sharedModel model =
                     Element.none
 
                 else
-                    Widget.textButton
-                        (SH.materialStyle context.palette).textButton
+                    Button.button Button.Text
+                        context.palette
                         { onPress = Just NoOp
                         , text = "Copy all messages"
                         }

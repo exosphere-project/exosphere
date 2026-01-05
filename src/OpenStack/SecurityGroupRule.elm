@@ -1,19 +1,50 @@
 module OpenStack.SecurityGroupRule exposing
-    ( SecurityGroupRule
+    ( Remote(..)
+    , SecurityGroupRule
     , SecurityGroupRuleDirection(..)
     , SecurityGroupRuleEthertype(..)
     , SecurityGroupRuleProtocol(..)
+    , SecurityGroupRuleTemplate
     , SecurityGroupRuleUuid
     , SecurityGroupUuid
-    , defaultExosphereRules
+    , buildRuleAllowAllOutgoingIPv4
+    , buildRuleGuacamole
+    , buildRuleIcmp
+    , buildRuleMosh
+    , buildRuleSSH
+    , buildRuleTcpEgress
+    , buildRuleTcpIngress
+    , compareSecurityGroupRuleLists
+    , decodeDirection
+    , defaultRules
+    , directionToString
     , encode
+    , etherTypeToString
+    , getRemote
+    , isRuleShadowed
     , matchRule
+    , matchRuleAndDescription
+    , portRangeSubsumedBy
+    , portRangeToString
+    , protocolSubsumedBy
+    , protocolToString
+    , remoteMatch
+    , remoteSubsumedBy
     , securityGroupRuleDecoder
+    , securityGroupRuleDiff
+    , securityGroupRuleTemplateToRule
+    , securityGroupRuleToTemplate
+    , stringToSecurityGroupRuleDirection
+    , stringToSecurityGroupRuleEthertype
+    , stringToSecurityGroupRuleProtocol
     )
 
-import Helpers.Json exposing (resultToDecoder)
+import Helpers.String exposing (removeEmptiness)
 import Json.Decode as Decode
+import Json.Decode.Pipeline as Pipeline
 import Json.Encode as Encode
+import OpenStack.HelperTypes as HelperTypes
+import String
 
 
 type alias SecurityGroupRule =
@@ -21,67 +52,377 @@ type alias SecurityGroupRule =
     , ethertype : SecurityGroupRuleEthertype
     , direction : SecurityGroupRuleDirection
     , protocol : Maybe SecurityGroupRuleProtocol
-    , port_range_min : Maybe Int
-    , port_range_max : Maybe Int
-    , remoteGroupUuid : Maybe SecurityGroupRuleUuid -- TODO: not encoded
+    , portRangeMin : Maybe Int
+    , portRangeMax : Maybe Int
+    , remoteIpPrefix : Maybe String
+    , remoteGroupUuid : Maybe SecurityGroupRuleUuid
     , description : Maybe String
     }
 
 
+type alias SecurityGroupRuleTemplate =
+    { ethertype : SecurityGroupRuleEthertype
+    , direction : SecurityGroupRuleDirection
+    , protocol : Maybe SecurityGroupRuleProtocol
+    , portRangeMin : Maybe Int
+    , portRangeMax : Maybe Int
+    , remoteIpPrefix : Maybe String
+    , remoteGroupUuid : Maybe SecurityGroupRuleUuid
+    , description : Maybe String
+    }
+
+
+securityGroupRuleTemplateToRule : SecurityGroupRuleTemplate -> SecurityGroupRule
+securityGroupRuleTemplateToRule { ethertype, direction, protocol, portRangeMin, portRangeMax, remoteIpPrefix, remoteGroupUuid, description } =
+    { uuid = ""
+    , ethertype = ethertype
+    , direction = direction
+    , protocol = protocol
+    , portRangeMin = portRangeMin
+    , portRangeMax = portRangeMax
+    , remoteIpPrefix = remoteIpPrefix
+    , remoteGroupUuid = remoteGroupUuid
+    , description = removeEmptiness description
+    }
+
+
+securityGroupRuleToTemplate : SecurityGroupRule -> SecurityGroupRuleTemplate
+securityGroupRuleToTemplate { ethertype, direction, protocol, portRangeMin, portRangeMax, remoteIpPrefix, remoteGroupUuid, description } =
+    { ethertype = ethertype
+    , direction = direction
+    , protocol = protocol
+    , portRangeMin = portRangeMin
+    , portRangeMax = portRangeMax
+    , remoteIpPrefix = remoteIpPrefix
+    , remoteGroupUuid = remoteGroupUuid
+    , description = removeEmptiness description
+    }
+
+
+{-| Compare security group rules. If they have the same impact, they are equal.
+-}
 matchRule : SecurityGroupRule -> SecurityGroupRule -> Bool
 matchRule ruleA ruleB =
     (ruleA.ethertype == ruleB.ethertype)
         && (ruleA.direction == ruleB.direction)
         && (ruleA.protocol == ruleB.protocol)
-        && (ruleA.port_range_min == ruleB.port_range_min)
-        && (ruleA.port_range_max == ruleB.port_range_max)
+        && (ruleA.portRangeMin == ruleB.portRangeMin)
+        && (ruleA.portRangeMax == ruleB.portRangeMax)
+        && (case ( getRemote ruleA, getRemote ruleB ) of
+                ( Just remoteA, Just remoteB ) ->
+                    remoteMatch remoteA remoteB
+
+                ( Nothing, Nothing ) ->
+                    True
+
+                _ ->
+                    False
+           )
 
 
-buildRuleTCP : Int -> String -> SecurityGroupRule
-buildRuleTCP portNumber description =
-    { uuid = ""
-    , ethertype = Ipv4
+{-| Compare security group rules based on rule impact & description.
+-}
+matchRuleAndDescription : SecurityGroupRule -> SecurityGroupRule -> Bool
+matchRuleAndDescription ruleA ruleB =
+    matchRule ruleA ruleB
+        && ((ruleA.description == ruleB.description)
+                -- Treat `Just ""` & `Nothing` as equivalent.
+                --  (Neutron tends to return `"description": ""` when it's not specified on creation.)
+                || (removeEmptiness ruleA.description == removeEmptiness ruleB.description)
+           )
+
+
+{-| Is the scope of this rule already covered by any of the given rules?
+-}
+isRuleShadowed : SecurityGroupRule -> List SecurityGroupRule -> Bool
+isRuleShadowed rule rules =
+    List.any (\r -> isSubsumedBy rule r) rules
+
+
+{-| Is the scope of rule A distinctly covered by rule B?
+
+e.g. Rule A allows TCP ingress on port 80; rule B allows TCP ingress on all ports.
+
+-}
+isSubsumedBy : SecurityGroupRule -> SecurityGroupRule -> Bool
+isSubsumedBy ruleA ruleB =
+    ruleA.uuid
+        /= ruleB.uuid
+        && (not <| matchRule ruleA ruleB)
+        && (ruleA.direction == ruleB.direction)
+        && (ruleA.ethertype == ruleB.ethertype)
+        && protocolSubsumedBy ruleA.protocol ruleB.protocol
+        && portRangeSubsumedBy ( ruleA.portRangeMin, ruleA.portRangeMax ) ( ruleB.portRangeMin, ruleB.portRangeMax )
+        && remoteSubsumedBy ruleA ruleB
+
+
+protocolSubsumedBy : Maybe SecurityGroupRuleProtocol -> Maybe SecurityGroupRuleProtocol -> Bool
+protocolSubsumedBy protocolA protocolB =
+    case ( protocolA, protocolB ) of
+        ( Nothing, Nothing ) ->
+            True
+
+        ( Just _, Nothing ) ->
+            -- RuleB applies to any protocol.
+            True
+
+        ( Just pA, Just pB ) ->
+            pA == pB
+
+        ( Nothing, Just _ ) ->
+            -- RuleA applies to any protocol, but RuleB is more specific.
+            False
+
+
+portRangeSubsumedBy : ( Maybe Int, Maybe Int ) -> ( Maybe Int, Maybe Int ) -> Bool
+portRangeSubsumedBy ( portMinA, portMaxA ) ( portMinB, portMaxB ) =
+    let
+        minA =
+            Maybe.withDefault 0 portMinA
+
+        maxA =
+            Maybe.withDefault 65535 portMaxA
+
+        minB =
+            Maybe.withDefault 0 portMinB
+
+        maxB =
+            Maybe.withDefault 65535 portMaxB
+    in
+    (minB <= minA) && (maxA <= maxB)
+
+
+{-| A remote is either an IP prefix or a security group uuid.
+-}
+type Remote
+    = RemoteIpPrefix String
+    | RemoteGroupUuid String
+
+
+getRemote : SecurityGroupRule -> Maybe Remote
+getRemote rule =
+    case ( rule.remoteIpPrefix, rule.remoteGroupUuid ) of
+        ( Just ipPrefix, Nothing ) ->
+            Just (RemoteIpPrefix ipPrefix)
+
+        ( Nothing, Just groupUuid ) ->
+            Just (RemoteGroupUuid groupUuid)
+
+        ( Nothing, Nothing ) ->
+            Nothing
+
+        ( Just _, Just _ ) ->
+            -- Should not happen since IP & remote group are mutually exclusive.
+            Nothing
+
+
+remoteMatch : Remote -> Remote -> Bool
+remoteMatch remoteA remoteB =
+    case ( remoteA, remoteB ) of
+        ( RemoteIpPrefix ipA, RemoteIpPrefix ipB ) ->
+            ipA == ipB
+
+        ( RemoteGroupUuid groupA, RemoteGroupUuid groupB ) ->
+            groupA == groupB
+
+        ( _, _ ) ->
+            False
+
+
+remoteSubsumedBy : SecurityGroupRule -> SecurityGroupRule -> Bool
+remoteSubsumedBy ruleA ruleB =
+    let
+        remoteA =
+            getRemote ruleA
+
+        remoteB =
+            getRemote ruleB
+    in
+    case ( remoteA, remoteB ) of
+        ( Nothing, Nothing ) ->
+            True
+
+        ( Just _, Nothing ) ->
+            -- RuleB applies to any remote, subsumes RuleA.
+            True
+
+        ( Just ra, Just rb ) ->
+            -- TODO: Parse CIDR notation and compare ranges instead of using strict match for IP prefix.
+            remoteMatch ra rb
+
+        ( Nothing, Just _ ) ->
+            -- RuleA applies to any remote, RuleB is more specific.
+            False
+
+
+buildRuleTcpIngress : Int -> String -> SecurityGroupRuleTemplate
+buildRuleTcpIngress portNumber description =
+    { ethertype = Ipv4
     , direction = Ingress
     , protocol = Just ProtocolTcp
-    , port_range_min = Just portNumber
-    , port_range_max = Just portNumber
+    , portRangeMin = Just portNumber
+    , portRangeMax = Just portNumber
+    , remoteIpPrefix = Nothing
     , remoteGroupUuid = Nothing
     , description = Just description
     }
 
 
-buildRuleIcmp : SecurityGroupRule
+buildRuleTcpEgress : Int -> String -> SecurityGroupRuleTemplate
+buildRuleTcpEgress portNumber description =
+    { ethertype = Ipv4
+    , direction = Egress
+    , protocol = Just ProtocolTcp
+    , portRangeMin = Just portNumber
+    , portRangeMax = Just portNumber
+    , remoteIpPrefix = Nothing
+    , remoteGroupUuid = Nothing
+    , description = Just description
+    }
+
+
+buildRuleIcmp : SecurityGroupRuleTemplate
 buildRuleIcmp =
-    { uuid = ""
-    , ethertype = Ipv4
+    { ethertype = Ipv4
     , direction = Ingress
     , protocol = Just ProtocolIcmp
-    , port_range_min = Nothing
-    , port_range_max = Nothing
+    , portRangeMin = Nothing
+    , portRangeMax = Nothing
+    , remoteIpPrefix = Nothing
     , remoteGroupUuid = Nothing
     , description = Just "Ping"
     }
 
 
-buildRuleExposeAllIncomingPorts : SecurityGroupRule
+buildRuleIcmpIPv6 : SecurityGroupRuleTemplate
+buildRuleIcmpIPv6 =
+    { ethertype = Ipv6
+    , direction = Ingress
+    , protocol = Just ProtocolIcmpv6
+    , portRangeMin = Nothing
+    , portRangeMax = Nothing
+    , remoteIpPrefix = Nothing
+    , remoteGroupUuid = Nothing
+    , description = Just "Ping IPv6"
+    }
+
+
+buildRuleMosh : SecurityGroupRuleTemplate
+buildRuleMosh =
+    -- TODO: Remove Mosh from the default rules.
+    { ethertype = Ipv4
+    , direction = Ingress
+    , protocol = Just ProtocolUdp
+    , portRangeMin = Just 60000
+    , portRangeMax = Just 61000
+    , remoteIpPrefix = Nothing
+    , remoteGroupUuid = Nothing
+    , description = Just "Mosh"
+    }
+
+
+buildRuleExposeAllIncomingPorts : SecurityGroupRuleTemplate
 buildRuleExposeAllIncomingPorts =
-    { uuid = ""
-    , ethertype = Ipv4
+    { ethertype = Ipv4
     , direction = Ingress
     , protocol = Just ProtocolTcp
-    , port_range_min = Nothing
-    , port_range_max = Nothing
+    , portRangeMin = Nothing
+    , portRangeMax = Nothing
+    , remoteIpPrefix = Nothing
     , remoteGroupUuid = Nothing
     , description = Just "Expose all incoming ports"
     }
 
 
-defaultExosphereRules : List SecurityGroupRule
-defaultExosphereRules =
-    [ buildRuleTCP 22 "SSH"
+buildRuleAllowAllOutgoingIPv4 : SecurityGroupRuleTemplate
+buildRuleAllowAllOutgoingIPv4 =
+    { ethertype = Ipv4
+    , direction = Egress
+    , protocol = Nothing
+    , portRangeMin = Nothing
+    , portRangeMax = Nothing
+    , remoteIpPrefix = Nothing
+    , remoteGroupUuid = Nothing
+    , description = Just "Allow all outgoing IPv4 traffic"
+    }
+
+
+buildRuleAllowAllOutgoingIPv6 : SecurityGroupRuleTemplate
+buildRuleAllowAllOutgoingIPv6 =
+    { ethertype = Ipv6
+    , direction = Egress
+    , protocol = Nothing
+    , portRangeMin = Nothing
+    , portRangeMax = Nothing
+    , remoteIpPrefix = Nothing
+    , remoteGroupUuid = Nothing
+    , description = Just "Allow all outgoing IPv6 traffic"
+    }
+
+
+buildRuleSSH : SecurityGroupRuleTemplate
+buildRuleSSH =
+    buildRuleTcpIngress 22 "SSH"
+
+
+buildRuleGuacamole : SecurityGroupRuleTemplate
+buildRuleGuacamole =
+    buildRuleTcpIngress 49528 "Guacamole"
+
+
+defaultRules : List SecurityGroupRuleTemplate
+defaultRules =
+    [ buildRuleSSH
     , buildRuleIcmp
+    , buildRuleIcmpIPv6
+    , buildRuleMosh
     , buildRuleExposeAllIncomingPorts
+    , buildRuleAllowAllOutgoingIPv4
+    , buildRuleAllowAllOutgoingIPv6
     ]
+
+
+{-| Returns rules that are in the first list but not in the second list. (Difference read as A minus B.)
+
+Note: This includes differences in rule description.
+
+-}
+securityGroupRuleDiff : List SecurityGroupRule -> List SecurityGroupRule -> List SecurityGroupRule
+securityGroupRuleDiff rulesA rulesB =
+    rulesA
+        |> List.filterMap
+            (\defaultRule ->
+                let
+                    ruleExists =
+                        rulesB
+                            |> List.any
+                                (\existingRule ->
+                                    matchRuleAndDescription existingRule defaultRule
+                                )
+                in
+                if ruleExists then
+                    Nothing
+
+                else
+                    Just defaultRule
+            )
+
+
+{-| Given two lists of security group rules, determine which are missing or extra when comparing the first list to the second.
+
+Note: Rules that have the same impact but different descriptions are considered different.
+
+-}
+compareSecurityGroupRuleLists : List SecurityGroupRule -> List SecurityGroupRule -> { extra : List SecurityGroupRule, missing : List SecurityGroupRule }
+compareSecurityGroupRuleLists existingRules updatedRules =
+    let
+        missingRules =
+            securityGroupRuleDiff updatedRules existingRules
+
+        extraRules =
+            securityGroupRuleDiff existingRules updatedRules
+    in
+    { extra = extraRules, missing = missingRules }
 
 
 type alias SecurityGroupRuleUuid =
@@ -89,23 +430,25 @@ type alias SecurityGroupRuleUuid =
 
 
 type alias SecurityGroupUuid =
-    String
+    HelperTypes.Uuid
 
 
 type SecurityGroupRuleDirection
     = Ingress
     | Egress
+    | UnsupportedDirection String
 
 
 type SecurityGroupRuleEthertype
     = Ipv4
     | Ipv6
+    | UnsupportedEthertype String
 
 
 type SecurityGroupRuleProtocol
     = AnyProtocol
     | ProtocolIcmp
-    | ProtcolIcmpv6
+    | ProtocolIcmpv6
     | ProtocolTcp
     | ProtocolUdp
     | ProtocolAh
@@ -125,6 +468,7 @@ type SecurityGroupRuleProtocol
     | ProtocolSctp
     | ProtocolUdpLite
     | ProtocolVrrp
+    | UnsupportedProtocol String
 
 
 type PortRangeType
@@ -133,15 +477,17 @@ type PortRangeType
 
 
 encode : SecurityGroupUuid -> SecurityGroupRule -> Encode.Value
-encode securityGroupUuid { ethertype, direction, protocol, port_range_min, port_range_max, description } =
+encode securityGroupUuid { ethertype, direction, protocol, portRangeMin, portRangeMax, remoteIpPrefix, remoteGroupUuid, description } =
     Encode.object
         [ ( "security_group_rule"
           , [ ( "security_group_id", Encode.string securityGroupUuid ) ]
                 |> encodeEthertype ethertype
                 |> encodeDirection direction
                 |> encodeProtocol protocol
-                |> encodePort port_range_min PortRangeMin
-                |> encodePort port_range_max PortRangeMax
+                |> encodePort portRangeMin PortRangeMin
+                |> encodePort portRangeMax PortRangeMax
+                |> encodeRemoteIpPrefix remoteIpPrefix
+                |> encodeRemoteGroupId remoteGroupUuid
                 |> encodeDescription description
                 |> Encode.object
           )
@@ -156,6 +502,52 @@ encodeDescription maybeDescription object =
 
         Nothing ->
             object
+
+
+encodeRemoteGroupId : Maybe SecurityGroupRuleUuid -> List ( String, Encode.Value ) -> List ( String, Encode.Value )
+encodeRemoteGroupId maybeRemoteGroupId object =
+    case maybeRemoteGroupId of
+        Just remoteGroupId ->
+            ( "remote_group_id", Encode.string remoteGroupId ) :: object
+
+        Nothing ->
+            object
+
+
+encodeRemoteIpPrefix : Maybe String -> List ( String, Encode.Value ) -> List ( String, Encode.Value )
+encodeRemoteIpPrefix maybeRemoteIpPrefix object =
+    case maybeRemoteIpPrefix of
+        Just remoteIpPrefix ->
+            ( "remote_ip_prefix", Encode.string remoteIpPrefix ) :: object
+
+        Nothing ->
+            object
+
+
+portRangeToString :
+    { a
+        | portRangeMin : Maybe Int
+        , portRangeMax : Maybe Int
+    }
+    -> String
+portRangeToString { portRangeMin, portRangeMax } =
+    case ( portRangeMin, portRangeMax ) of
+        ( Just min, Just max ) ->
+            if min == max then
+                String.fromInt min
+
+            else
+                String.fromInt min ++ " - " ++ String.fromInt max
+
+        ( Nothing, Nothing ) ->
+            "Any"
+
+        -- These cases of single unbounded ranges shouldn't occur in real life.
+        ( Just min, Nothing ) ->
+            String.fromInt min ++ " - "
+
+        ( Nothing, Just max ) ->
+            " - " ++ String.fromInt max
 
 
 encodePort : Maybe Int -> PortRangeType -> List ( String, Encode.Value ) -> List ( String, Encode.Value )
@@ -173,78 +565,163 @@ encodePort maybePort portRangeType object =
             object
 
 
+protocolToString : SecurityGroupRuleProtocol -> String
+protocolToString protocol =
+    case protocol of
+        AnyProtocol ->
+            "Any"
+
+        ProtocolIcmp ->
+            "ICMP"
+
+        ProtocolIcmpv6 ->
+            "ICMPv6"
+
+        ProtocolTcp ->
+            "TCP"
+
+        ProtocolUdp ->
+            "UDP"
+
+        ProtocolAh ->
+            "AH"
+
+        ProtocolDccp ->
+            "DCCP"
+
+        ProtocolEgp ->
+            "EGP"
+
+        ProtocolEsp ->
+            "ESP"
+
+        ProtocolGre ->
+            "GRE"
+
+        ProtocolIgmp ->
+            "IGMP"
+
+        ProtocolIpv6Encap ->
+            "IPv6-Encap"
+
+        ProtocolIpv6Frag ->
+            "IPv6-Frag"
+
+        ProtocolIpv6Nonxt ->
+            "IPv6-Nonxt"
+
+        ProtocolIpv6Opts ->
+            "IPv6-Opts"
+
+        ProtocolIpv6Route ->
+            "IPv6-Route"
+
+        ProtocolOspf ->
+            "OSPF"
+
+        ProtocolPgm ->
+            "PGM"
+
+        ProtocolRsvp ->
+            "RSVP"
+
+        ProtocolSctp ->
+            "SCTP"
+
+        ProtocolUdpLite ->
+            "UDPLite"
+
+        ProtocolVrrp ->
+            "VRRP"
+
+        UnsupportedProtocol str ->
+            str
+
+
+stringToSecurityGroupRuleProtocol : String -> SecurityGroupRuleProtocol
+stringToSecurityGroupRuleProtocol protocol =
+    -- forgive mixed case strings like "ICMPv6"
+    case String.toLower protocol of
+        "any" ->
+            AnyProtocol
+
+        "icmp" ->
+            ProtocolIcmp
+
+        "icmpv6" ->
+            ProtocolIcmpv6
+
+        "ipv6-icmp" ->
+            ProtocolIcmpv6
+
+        "tcp" ->
+            ProtocolTcp
+
+        "udp" ->
+            ProtocolUdp
+
+        "ah" ->
+            ProtocolAh
+
+        "dccp" ->
+            ProtocolDccp
+
+        "egp" ->
+            ProtocolEgp
+
+        "esp" ->
+            ProtocolEsp
+
+        "gre" ->
+            ProtocolGre
+
+        "igmp" ->
+            ProtocolIgmp
+
+        "ipv6-encap" ->
+            ProtocolIpv6Encap
+
+        "ipv6-frag" ->
+            ProtocolIpv6Frag
+
+        "ipv6-nonxt" ->
+            ProtocolIpv6Nonxt
+
+        "ipv6-opts" ->
+            ProtocolIpv6Opts
+
+        "ipv6-route" ->
+            ProtocolIpv6Route
+
+        "ospf" ->
+            ProtocolOspf
+
+        "pgm" ->
+            ProtocolPgm
+
+        "rsvp" ->
+            ProtocolRsvp
+
+        "sctp" ->
+            ProtocolSctp
+
+        "udplite" ->
+            ProtocolUdpLite
+
+        "vrrp" ->
+            ProtocolVrrp
+
+        _ ->
+            UnsupportedProtocol protocol
+
+
 encodeProtocol : Maybe SecurityGroupRuleProtocol -> List ( String, Encode.Value ) -> List ( String, Encode.Value )
 encodeProtocol maybeProtocol object =
     case maybeProtocol of
         Just protocol ->
             let
                 protocolString =
-                    case protocol of
-                        AnyProtocol ->
-                            "any"
-
-                        ProtocolIcmp ->
-                            "icmp"
-
-                        ProtcolIcmpv6 ->
-                            "icmpv6"
-
-                        ProtocolTcp ->
-                            "tcp"
-
-                        ProtocolUdp ->
-                            "udp"
-
-                        ProtocolAh ->
-                            "ah"
-
-                        ProtocolDccp ->
-                            "dccp"
-
-                        ProtocolEgp ->
-                            "egp"
-
-                        ProtocolEsp ->
-                            "esp"
-
-                        ProtocolGre ->
-                            "gre"
-
-                        ProtocolIgmp ->
-                            "igmp"
-
-                        ProtocolIpv6Encap ->
-                            "ipv6-encap"
-
-                        ProtocolIpv6Frag ->
-                            "ipv6-frag"
-
-                        ProtocolIpv6Nonxt ->
-                            "ipv6-nonxt"
-
-                        ProtocolIpv6Opts ->
-                            "ipv6-opts"
-
-                        ProtocolIpv6Route ->
-                            "ipv6-route"
-
-                        ProtocolOspf ->
-                            "ospf"
-
-                        ProtocolPgm ->
-                            "pgm"
-
-                        ProtocolRsvp ->
-                            "rsvp"
-
-                        ProtocolSctp ->
-                            "sctp"
-
-                        ProtocolUdpLite ->
-                            "udplite"
-
-                        ProtocolVrrp ->
-                            "vrrp"
+                    protocolToString protocol |> String.toLower
             in
             ( "protocol", Encode.string protocolString ) :: object
 
@@ -252,144 +729,103 @@ encodeProtocol maybeProtocol object =
             object
 
 
+directionToString : SecurityGroupRuleDirection -> String
+directionToString direction =
+    case direction of
+        Ingress ->
+            "incoming"
+
+        Egress ->
+            "outgoing"
+
+        UnsupportedDirection str ->
+            str
+
+
+stringToSecurityGroupRuleDirection : String -> SecurityGroupRuleDirection
+stringToSecurityGroupRuleDirection direction =
+    case direction of
+        "incoming" ->
+            Ingress
+
+        "outgoing" ->
+            Egress
+
+        _ ->
+            UnsupportedDirection direction
+
+
+decodeDirection : String -> SecurityGroupRuleDirection
+decodeDirection direction =
+    case direction of
+        "ingress" ->
+            Ingress
+
+        "egress" ->
+            Egress
+
+        _ ->
+            UnsupportedDirection direction
+
+
 encodeDirection : SecurityGroupRuleDirection -> List ( String, Encode.Value ) -> List ( String, Encode.Value )
 encodeDirection direction object =
-    let
-        directionString =
-            case direction of
-                Ingress ->
-                    "ingress"
+    ( "direction"
+    , Encode.string <|
+        case direction of
+            Ingress ->
+                "ingress"
 
-                Egress ->
-                    "egress"
-    in
-    ( "direction", Encode.string directionString ) :: object
+            Egress ->
+                "egress"
+
+            UnsupportedDirection str ->
+                str
+    )
+        :: object
+
+
+etherTypeToString : SecurityGroupRuleEthertype -> String
+etherTypeToString ethertype =
+    case ethertype of
+        Ipv4 ->
+            "IPv4"
+
+        Ipv6 ->
+            "IPv6"
+
+        UnsupportedEthertype str ->
+            str
+
+
+stringToSecurityGroupRuleEthertype : String -> SecurityGroupRuleEthertype
+stringToSecurityGroupRuleEthertype ethertype =
+    case ethertype of
+        "IPv4" ->
+            Ipv4
+
+        "IPv6" ->
+            Ipv6
+
+        _ ->
+            UnsupportedEthertype ethertype
 
 
 encodeEthertype : SecurityGroupRuleEthertype -> List ( String, Encode.Value ) -> List ( String, Encode.Value )
 encodeEthertype ethertype object =
-    let
-        ethertypeString =
-            case ethertype of
-                Ipv4 ->
-                    "IPv4"
-
-                Ipv6 ->
-                    "IPv6"
-    in
-    ( "ethertype", Encode.string ethertypeString ) :: object
+    ( "ethertype", Encode.string <| etherTypeToString ethertype ) :: object
 
 
 securityGroupRuleDecoder : Decode.Decoder SecurityGroupRule
 securityGroupRuleDecoder =
-    Decode.map8 SecurityGroupRule
-        (Decode.field "id" Decode.string)
-        (Decode.field "ethertype" Decode.string |> Decode.map parseSecurityGroupRuleEthertype |> Decode.andThen resultToDecoder)
-        (Decode.field "direction" Decode.string |> Decode.map parseSecurityGroupRuleDirection |> Decode.andThen resultToDecoder)
-        (Decode.field "protocol" (Decode.nullable (Decode.string |> Decode.map parseSecurityGroupRuleProtocol |> Decode.andThen resultToDecoder)))
-        (Decode.field "port_range_min" (Decode.nullable Decode.int))
-        (Decode.field "port_range_max" (Decode.nullable Decode.int))
-        (Decode.field "remote_group_id" (Decode.nullable Decode.string))
-        (Decode.field "description" (Decode.nullable Decode.string))
-
-
-parseSecurityGroupRuleEthertype : String -> Result String SecurityGroupRuleEthertype
-parseSecurityGroupRuleEthertype ethertype =
-    case ethertype of
-        "IPv4" ->
-            Result.Ok Ipv4
-
-        "IPv6" ->
-            Result.Ok Ipv6
-
-        _ ->
-            Result.Err "Ooooooops, unrecognised security group rule ethertype"
-
-
-parseSecurityGroupRuleDirection : String -> Result String SecurityGroupRuleDirection
-parseSecurityGroupRuleDirection dir =
-    case dir of
-        "ingress" ->
-            Result.Ok Ingress
-
-        "egress" ->
-            Result.Ok Egress
-
-        _ ->
-            Result.Err "Ooooooops, unrecognised security group rule direction"
-
-
-parseSecurityGroupRuleProtocol : String -> Result String SecurityGroupRuleProtocol
-parseSecurityGroupRuleProtocol prot =
-    case prot of
-        "any" ->
-            Result.Ok AnyProtocol
-
-        "icmp" ->
-            Result.Ok ProtocolIcmp
-
-        "icmpv6" ->
-            Result.Ok ProtcolIcmpv6
-
-        "ipv6-icmp" ->
-            Result.Ok ProtcolIcmpv6
-
-        "tcp" ->
-            Result.Ok ProtocolTcp
-
-        "udp" ->
-            Result.Ok ProtocolUdp
-
-        "ah" ->
-            Result.Ok ProtocolAh
-
-        "dccp" ->
-            Result.Ok ProtocolDccp
-
-        "egp" ->
-            Result.Ok ProtocolEgp
-
-        "esp" ->
-            Result.Ok ProtocolEsp
-
-        "gre" ->
-            Result.Ok ProtocolGre
-
-        "igmp" ->
-            Result.Ok ProtocolIgmp
-
-        "ipv6-encap" ->
-            Result.Ok ProtocolIpv6Encap
-
-        "ipv6-frag" ->
-            Result.Ok ProtocolIpv6Frag
-
-        "ipv6-nonxt" ->
-            Result.Ok ProtocolIpv6Nonxt
-
-        "ipv6-opts" ->
-            Result.Ok ProtocolIpv6Opts
-
-        "ipv6-route" ->
-            Result.Ok ProtocolIpv6Route
-
-        "ospf" ->
-            Result.Ok ProtocolOspf
-
-        "pgm" ->
-            Result.Ok ProtocolPgm
-
-        "rsvp" ->
-            Result.Ok ProtocolRsvp
-
-        "sctp" ->
-            Result.Ok ProtocolSctp
-
-        "udplite" ->
-            Result.Ok ProtocolUdpLite
-
-        "vrrp" ->
-            Result.Ok ProtocolVrrp
-
-        _ ->
-            Result.Err "Ooooooops, unrecognised security group rule protocol"
+    Decode.succeed
+        SecurityGroupRule
+        |> Pipeline.required "id" Decode.string
+        |> Pipeline.required "ethertype" (Decode.string |> Decode.map stringToSecurityGroupRuleEthertype)
+        |> Pipeline.required "direction" (Decode.string |> Decode.map decodeDirection)
+        |> Pipeline.optional "protocol" (Decode.nullable (Decode.string |> Decode.map stringToSecurityGroupRuleProtocol)) Nothing
+        |> Pipeline.optional "port_range_min" (Decode.nullable Decode.int) Nothing
+        |> Pipeline.optional "port_range_max" (Decode.nullable Decode.int) Nothing
+        |> Pipeline.optional "remote_ip_prefix" (Decode.nullable Decode.string) Nothing
+        |> Pipeline.optional "remote_group_id" (Decode.nullable Decode.string) Nothing
+        |> Pipeline.optional "description" (Decode.nullable Decode.string) Nothing

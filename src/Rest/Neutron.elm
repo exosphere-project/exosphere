@@ -1,46 +1,79 @@
 module Rest.Neutron exposing
-    ( receiveCreateExoSecurityGroupAndRequestCreateRules
+    ( NeutronError
+    , ensureDefaultSecurityGroup
+    , neutronErrorDecoder
     , receiveCreateFloatingIp
+    , receiveCreateSecurityGroupAndRequestCreateRules
     , receiveDeleteFloatingIp
     , receiveFloatingIps
     , receiveNetworks
-    , receiveSecurityGroupsAndEnsureExoGroup
+    , reconcileSecurityGroupRules
     , requestAssignFloatingIp
     , requestAutoAllocatedNetwork
     , requestCreateFloatingIp
+    , requestCreateSecurityGroup
     , requestDeleteFloatingIp
+    , requestDeleteSecurityGroup
     , requestFloatingIps
     , requestNetworks
     , requestPorts
     , requestSecurityGroups
     , requestUnassignFloatingIp
+    , requestUpdateSecurityGroup
+    , requestUpdateSecurityGroupRules
+    , requestUpdateSecurityGroupTags
+    , securityGroupsDecoder
     )
 
 import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
+import Helpers.Time
 import Http
 import Json.Decode as Decode
 import Json.Encode as Encode
 import List.Extra
-import OpenStack.SecurityGroupRule as SecurityGroupRule exposing (SecurityGroupRule, securityGroupRuleDecoder)
-import OpenStack.Types as OSTypes
+import OpenStack.SecurityGroupRule as SecurityGroupRule exposing (SecurityGroupRule, SecurityGroupRuleUuid, securityGroupRuleDecoder)
+import OpenStack.Types as OSTypes exposing (SecurityGroupTag, SecurityGroupTagUpdate)
 import Rest.Helpers
     exposing
         ( expectJsonWithErrorBody
         , expectStringWithErrorBody
+        , expectVoidWithErrorBody
         , openstackCredentialedRequest
         , resultToMsgErrorBody
         )
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.HelperTypes exposing (FloatingIpOption(..), HttpRequestMethod(..))
 import Types.Project exposing (Project)
+import Types.SecurityGroupActions as SecurityGroupActions
 import Types.Server exposing (Server)
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
+import View.Types exposing (Context)
 
 
 
 {- HTTP Requests -}
+
+
+{-| The shape of an error response from Neutron:
+
+    {
+        "NeutronError": {
+            "type": "SecurityGroupProtocolRequiredWithPorts",
+            "message": "Must also specify protocol if port range is given.",
+            "detail": ""
+        }
+    }
+
+-}
+type alias NeutronError =
+    { message : String }
+
+
+neutronErrorDecoder : Decode.Decoder NeutronError
+neutronErrorDecoder =
+    Decode.map NeutronError <| Decode.field "message" Decode.string
 
 
 requestNetworks : Project -> Cmd SharedMsg
@@ -62,7 +95,7 @@ requestNetworks project =
         Get
         Nothing
         []
-        (project.endpoints.neutron ++ "/v2.0/networks")
+        ( project.endpoints.neutron, [ "v2.0", "networks" ], [] )
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg
@@ -89,7 +122,7 @@ requestAutoAllocatedNetwork project =
         Get
         Nothing
         []
-        (project.endpoints.neutron ++ "/v2.0/auto-allocated-topology/" ++ project.auth.project.uuid)
+        ( project.endpoints.neutron, [ "v2.0", "auto-allocated-topology", project.auth.project.uuid ], [] )
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg
@@ -120,7 +153,7 @@ requestFloatingIps project =
         Get
         Nothing
         []
-        (project.endpoints.neutron ++ "/v2.0/floatingips")
+        ( project.endpoints.neutron, [ "v2.0", "floatingips" ], [] )
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg_
@@ -147,7 +180,7 @@ requestPorts project =
         Get
         Nothing
         []
-        (project.endpoints.neutron ++ "/v2.0/ports")
+        ( project.endpoints.neutron, [ "v2.0", "ports" ], [] )
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg
@@ -196,21 +229,18 @@ requestCreateFloatingIp project network maybePortServerUuid maybeIp =
 
                         Nothing ->
                             ReceiveCreateProjectFloatingIp errorContext result
-
-        requestCmd =
-            openstackCredentialedRequest
-                (GetterSetters.projectIdentifier project)
-                Post
-                Nothing
-                []
-                (project.endpoints.neutron ++ "/v2.0/floatingips")
-                (Http.jsonBody requestBody)
-                (expectJsonWithErrorBody
-                    resultToMsg_
-                    floatingIpDecoder
-                )
     in
-    requestCmd
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Post
+        Nothing
+        []
+        ( project.endpoints.neutron, [ "v2.0", "floatingips" ], [] )
+        (Http.jsonBody requestBody)
+        (expectJsonWithErrorBody
+            resultToMsg_
+            floatingIpDecoder
+        )
 
 
 requestDeleteFloatingIp : Project -> Types.Error.ErrorContext -> OSTypes.IpAddressUuid -> Cmd SharedMsg
@@ -230,7 +260,7 @@ requestDeleteFloatingIp project errorContext uuid =
         Delete
         Nothing
         []
-        (project.endpoints.neutron ++ "/v2.0/floatingips/" ++ uuid)
+        ( project.endpoints.neutron, [ "v2.0", "floatingips", uuid ], [] )
         Http.emptyBody
         (expectStringWithErrorBody
             resultToMsg_
@@ -261,23 +291,20 @@ requestAssignFloatingIp project port_ floatingIpUuid =
                 (\ip ->
                     ProjectMsg
                         (GetterSetters.projectIdentifier project)
-                        (ReceiveAssignFloatingIp ip)
-                )
-
-        requestCmd =
-            openstackCredentialedRequest
-                (GetterSetters.projectIdentifier project)
-                Put
-                Nothing
-                []
-                (project.endpoints.neutron ++ "/v2.0/floatingips/" ++ floatingIpUuid)
-                (Http.jsonBody requestBody)
-                (expectJsonWithErrorBody
-                    resultToMsg_
-                    floatingIpDecoder
+                        (ServerMsg port_.deviceUuid <| ReceiveAssignServerFloatingIp ip)
                 )
     in
-    requestCmd
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Put
+        Nothing
+        []
+        ( project.endpoints.neutron, [ "v2.0", "floatingips", floatingIpUuid ], [] )
+        (Http.jsonBody requestBody)
+        (expectJsonWithErrorBody
+            resultToMsg_
+            floatingIpDecoder
+        )
 
 
 requestUnassignFloatingIp : Project -> OSTypes.IpAddressUuid -> Cmd SharedMsg
@@ -306,21 +333,18 @@ requestUnassignFloatingIp project floatingIpUuid =
                         (GetterSetters.projectIdentifier project)
                         (ReceiveUnassignFloatingIp ip)
                 )
-
-        requestCmd =
-            openstackCredentialedRequest
-                (GetterSetters.projectIdentifier project)
-                Put
-                Nothing
-                []
-                (project.endpoints.neutron ++ "/v2.0/floatingips/" ++ floatingIpUuid)
-                (Http.jsonBody requestBody)
-                (expectJsonWithErrorBody
-                    resultToMsg_
-                    floatingIpDecoder
-                )
     in
-    requestCmd
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Put
+        Nothing
+        []
+        ( project.endpoints.neutron, [ "v2.0", "floatingips", floatingIpUuid ], [] )
+        (Http.jsonBody requestBody)
+        (expectJsonWithErrorBody
+            resultToMsg_
+            floatingIpDecoder
+        )
 
 
 requestSecurityGroups : Project -> Cmd SharedMsg
@@ -342,7 +366,7 @@ requestSecurityGroups project =
         Get
         Nothing
         []
-        (project.endpoints.neutron ++ "/v2.0/security-groups")
+        ( project.endpoints.neutron, [ "v2.0", "security-groups" ], [] )
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg
@@ -350,39 +374,63 @@ requestSecurityGroups project =
         )
 
 
-requestCreateExoSecurityGroup : Project -> Cmd SharedMsg
-requestCreateExoSecurityGroup project =
+requestCreateDefaultSecurityGroup : Project -> OSTypes.SecurityGroupTemplate -> Cmd SharedMsg
+requestCreateDefaultSecurityGroup project securityGroup =
     let
-        desc =
-            "Security group for instances launched via Exosphere"
-
-        requestBody =
-            Encode.object
-                [ ( "security_group"
-                  , Encode.object
-                        [ ( "name", Encode.string "exosphere" )
-                        , ( "description", Encode.string desc )
-                        ]
-                  )
-                ]
-
         errorContext =
             ErrorContext
-                ("create security group for Exosphere in project " ++ project.auth.project.name)
+                ("create default security group for Exosphere in project " ++ project.auth.project.name)
                 ErrorCrit
                 Nothing
 
         resultToMsg result =
             ProjectMsg
                 (GetterSetters.projectIdentifier project)
-                (ReceiveCreateExoSecurityGroup errorContext result)
+                (ReceiveCreateSecurityGroup errorContext securityGroup result)
+    in
+    createSecurityGroupRequestBuilder project securityGroup resultToMsg
+
+
+requestCreateSecurityGroup : Project -> OSTypes.SecurityGroupTemplate -> Cmd SharedMsg
+requestCreateSecurityGroup project securityGroup =
+    let
+        errorContext =
+            ErrorContext
+                ("create security group " ++ securityGroup.name ++ " in project " ++ project.auth.project.name)
+                ErrorCrit
+                Nothing
+
+        resultToMsg result =
+            ProjectMsg
+                (GetterSetters.projectIdentifier project)
+                (ReceiveCreateSecurityGroup errorContext securityGroup result)
+    in
+    createSecurityGroupRequestBuilder project securityGroup resultToMsg
+
+
+createSecurityGroupRequestBuilder :
+    Project
+    -> OSTypes.SecurityGroupTemplate
+    -> (Result Types.Error.HttpErrorWithBody OSTypes.SecurityGroup -> SharedMsg)
+    -> Cmd SharedMsg
+createSecurityGroupRequestBuilder project securityGroup resultToMsg =
+    let
+        requestBody =
+            Encode.object
+                [ ( "security_group"
+                  , Encode.object
+                        [ ( "name", Encode.string securityGroup.name )
+                        , ( "description", Encode.string <| Maybe.withDefault "" securityGroup.description )
+                        ]
+                  )
+                ]
     in
     openstackCredentialedRequest
         (GetterSetters.projectIdentifier project)
         Post
         Nothing
         []
-        (project.endpoints.neutron ++ "/v2.0/security-groups")
+        ( project.endpoints.neutron, [ "v2.0", "security-groups" ], [] )
         (Http.jsonBody requestBody)
         (expectJsonWithErrorBody
             resultToMsg
@@ -390,32 +438,168 @@ requestCreateExoSecurityGroup project =
         )
 
 
-requestCreateExoSecurityGroupRules : SharedModel -> Project -> List SecurityGroupRule -> ( SharedModel, Cmd SharedMsg )
-requestCreateExoSecurityGroupRules model project rules =
+requestDeleteSecurityGroup : Project -> OSTypes.SecurityGroupUuid -> Cmd SharedMsg
+requestDeleteSecurityGroup project securityGroupUuid =
     let
-        maybeSecurityGroup =
-            RDPP.withDefault [] project.securityGroups
-                |> List.Extra.find (\g -> g.name == "exosphere")
+        errorContext =
+            ErrorContext
+                ("delete security group uuid " ++ securityGroupUuid ++ " in project " ++ project.auth.project.name)
+                ErrorCrit
+                Nothing
+
+        resultToMsg =
+            resultToMsgErrorBody
+                errorContext
+                (\_ ->
+                    ProjectMsg
+                        (GetterSetters.projectIdentifier project)
+                        (ReceiveDeleteSecurityGroup errorContext securityGroupUuid (Ok ()))
+                )
     in
-    case maybeSecurityGroup of
-        Nothing ->
-            -- No security group found, may have been deleted? Nothing to do
-            ( model, Cmd.none )
-
-        Just group ->
-            let
-                cmds =
-                    requestCreateSecurityGroupRules
-                        project
-                        group
-                        rules
-                        "create rules for Exosphere security group"
-            in
-            ( model, Cmd.batch cmds )
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Delete
+        Nothing
+        []
+        ( project.endpoints.neutron, [ "v2.0", "security-groups", securityGroupUuid ], [] )
+        Http.emptyBody
+        (expectStringWithErrorBody
+            resultToMsg
+        )
 
 
-requestCreateSecurityGroupRules : Project -> OSTypes.SecurityGroup -> List SecurityGroupRule -> String -> List (Cmd SharedMsg)
-requestCreateSecurityGroupRules project group rules errorMessage =
+requestUpdateSecurityGroup :
+    Project
+    -> OSTypes.SecurityGroupUuid
+    ->
+        { a
+            | name : String
+            , description : Maybe String
+        }
+    -> ( Project, Cmd SharedMsg )
+requestUpdateSecurityGroup project securityGroupUuid securityGroupUpdate =
+    let
+        requestBody =
+            Encode.object
+                [ ( "security_group"
+                  , Encode.object
+                        [ ( "name", Encode.string securityGroupUpdate.name )
+                        , ( "description", Encode.string <| Maybe.withDefault "" securityGroupUpdate.description )
+                        ]
+                  )
+                ]
+
+        errorContext =
+            ErrorContext
+                ("update security group uuid " ++ securityGroupUuid ++ " in project " ++ project.auth.project.name)
+                ErrorCrit
+                Nothing
+
+        resultToMsg result =
+            ProjectMsg
+                (GetterSetters.projectIdentifier project)
+                (ReceiveUpdateSecurityGroup errorContext securityGroupUuid result)
+
+        requestCmd =
+            openstackCredentialedRequest
+                (GetterSetters.projectIdentifier project)
+                Put
+                Nothing
+                []
+                ( project.endpoints.neutron, [ "v2.0", "security-groups", securityGroupUuid ], [] )
+                (Http.jsonBody requestBody)
+                (expectJsonWithErrorBody
+                    resultToMsg
+                    securityGroupDecoder
+                )
+
+        newProject =
+            -- Track updating the security group.
+            GetterSetters.projectUpsertSecurityGroupActions project
+                (SecurityGroupActions.ExtantGroup securityGroupUuid)
+                (\actions -> { actions | pendingSecurityGroupChanges = { updates = 1, errors = [] } })
+    in
+    ( newProject, requestCmd )
+
+
+requestUpdateSecurityGroupTags : Project -> OSTypes.SecurityGroupUuid -> SecurityGroupTagUpdate -> Cmd SharedMsg
+requestUpdateSecurityGroupTags project securityGroupUuid tagUpdate =
+    case tagUpdate of
+        OSTypes.AddSecurityGroupTags tags ->
+            requestCreateSecurityGroupTags project securityGroupUuid tags
+
+        OSTypes.RemoveSecurityGroupTag tag ->
+            requestDeleteSecurityGroupTag project securityGroupUuid tag
+
+
+requestCreateSecurityGroupTags : Project -> OSTypes.SecurityGroupUuid -> List SecurityGroupTag -> Cmd SharedMsg
+requestCreateSecurityGroupTags project securityGroupUuid tags =
+    let
+        requestBody =
+            Encode.object
+                [ ( "tags", Encode.list Encode.string tags )
+                ]
+
+        errorContext =
+            ErrorContext
+                ("create tags for security group uuid " ++ securityGroupUuid ++ " in project " ++ project.auth.project.name)
+                ErrorCrit
+                Nothing
+
+        resultToMsg =
+            resultToMsgErrorBody
+                errorContext
+                (\t ->
+                    ProjectMsg
+                        (GetterSetters.projectIdentifier project)
+                        (ReceiveUpdateSecurityGroupTags ( securityGroupUuid, OSTypes.AddSecurityGroupTags t ))
+                )
+    in
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Post
+        Nothing
+        []
+        ( project.endpoints.neutron, [ "v2.0", "security-groups", securityGroupUuid, "tags" ], [] )
+        (Http.jsonBody requestBody)
+        (expectJsonWithErrorBody
+            resultToMsg
+            tagDecoder
+        )
+
+
+requestDeleteSecurityGroupTag : Project -> OSTypes.SecurityGroupUuid -> SecurityGroupTag -> Cmd SharedMsg
+requestDeleteSecurityGroupTag project securityGroupUuid tag =
+    let
+        errorContext =
+            ErrorContext
+                ("delete tag for security group uuid " ++ securityGroupUuid ++ " in project " ++ project.auth.project.name)
+                ErrorCrit
+                Nothing
+
+        resultToMsg =
+            resultToMsgErrorBody
+                errorContext
+                (\_ ->
+                    ProjectMsg
+                        (GetterSetters.projectIdentifier project)
+                        (ReceiveUpdateSecurityGroupTags ( securityGroupUuid, OSTypes.RemoveSecurityGroupTag tag ))
+                )
+    in
+    openstackCredentialedRequest
+        (GetterSetters.projectIdentifier project)
+        Delete
+        Nothing
+        []
+        ( project.endpoints.neutron, [ "v2.0", "security-groups", securityGroupUuid, "tags", tag ], [] )
+        Http.emptyBody
+        (expectVoidWithErrorBody
+            resultToMsg
+        )
+
+
+requestCreateSecurityGroupRules : Project -> OSTypes.SecurityGroupUuid -> List SecurityGroupRule -> String -> List (Cmd SharedMsg)
+requestCreateSecurityGroupRules project securityGroupUuid rules errorMessage =
     let
         errorContext =
             ErrorContext
@@ -424,26 +608,53 @@ requestCreateSecurityGroupRules project group rules errorMessage =
                 ErrorCrit
                 Nothing
 
+        resultToMsg result =
+            ProjectMsg
+                (GetterSetters.projectIdentifier project)
+                (ReceiveCreateSecurityGroupRule errorContext securityGroupUuid result)
+
         buildRequestCmd body =
             openstackCredentialedRequest
                 (GetterSetters.projectIdentifier project)
                 Post
                 Nothing
                 []
-                (project.endpoints.neutron ++ "/v2.0/security-group-rules")
+                ( project.endpoints.neutron, [ "v2.0", "security-group-rules" ], [] )
                 (Http.jsonBody body)
-                (expectStringWithErrorBody
-                    (resultToMsgErrorBody errorContext (\_ -> NoOp))
+                (expectJsonWithErrorBody
+                    resultToMsg
+                    (Decode.at [ "security_group_rule" ] <| securityGroupRuleDecoder)
                 )
 
         bodies =
             rules
-                |> List.map (SecurityGroupRule.encode group.uuid)
-
-        cmds =
-            bodies |> List.map buildRequestCmd
+                |> List.map (SecurityGroupRule.encode securityGroupUuid)
     in
-    cmds
+    bodies |> List.map buildRequestCmd
+
+
+requestDeleteSecurityGroupRules : Project -> OSTypes.SecurityGroupUuid -> List SecurityGroupRuleUuid -> String -> List (Cmd SharedMsg)
+requestDeleteSecurityGroupRules project securityGroupUuid ruleUuids errorMessage =
+    let
+        errorContext =
+            ErrorContext
+                errorMessage
+                ErrorWarn
+                Nothing
+
+        buildRequestCmd ruleUuid =
+            openstackCredentialedRequest
+                (GetterSetters.projectIdentifier project)
+                Delete
+                Nothing
+                []
+                ( project.endpoints.neutron, [ "v2.0", "security-group-rules", ruleUuid ], [] )
+                Http.emptyBody
+                (Http.expectWhatever
+                    (\result -> ProjectMsg (GetterSetters.projectIdentifier project) <| ReceiveDeleteSecurityGroupRule errorContext ( securityGroupUuid, ruleUuid ) result)
+                )
+    in
+    ruleUuids |> List.map buildRequestCmd
 
 
 
@@ -542,88 +753,108 @@ receiveDeleteFloatingIp model project uuid =
             ( model, Cmd.none )
 
 
-receiveSecurityGroupsAndEnsureExoGroup : SharedModel -> Project -> List OSTypes.SecurityGroup -> ( SharedModel, Cmd SharedMsg )
-receiveSecurityGroupsAndEnsureExoGroup model project securityGroups =
-    {- Create an "exosphere" security group unless one already exists -}
+ensureDefaultSecurityGroup : Context -> Project -> List OSTypes.SecurityGroup -> ( Project, List (Cmd SharedMsg) )
+ensureDefaultSecurityGroup context project securityGroups =
+    {- Create a default security group unless one already exists -}
     let
-        newSecurityGroups =
-            RDPP.RemoteDataPlusPlus
-                (RDPP.DoHave securityGroups model.clientCurrentTime)
-                (RDPP.NotLoading Nothing)
+        defaultSecurityGroup : OSTypes.SecurityGroupTemplate
+        defaultSecurityGroup =
+            GetterSetters.projectDefaultSecurityGroup context project
+    in
+    case List.Extra.find (\a -> a.name == defaultSecurityGroup.name) securityGroups of
+        Just defaultGroup ->
+            requestUpdateSecurityGroupRules
+                project
+                defaultGroup
+                defaultSecurityGroup.rules
+
+        Nothing ->
+            let
+                newProject =
+                    -- Track creating the security group.
+                    GetterSetters.projectUpsertSecurityGroupActions project
+                        (SecurityGroupActions.NewGroup defaultSecurityGroup.name)
+                        (\actions -> { actions | pendingCreation = True })
+            in
+            ( newProject, [ requestCreateDefaultSecurityGroup newProject defaultSecurityGroup ] )
+
+
+{-| Ensure rules are in sync & none are missing compared to the target rules template.
+
+  - If rules are missing, request to create them.
+  - If there are extra rules, request to delete them.
+  - Especially important for default groups since the [default OpenStack Networking security group rules](https://docs.openstack.org/api-ref/network/v2/index.html#list-security-group-default-rules)
+    are added to all new security groups, and those might differ from our application default rules.
+
+-}
+requestUpdateSecurityGroupRules : Project -> OSTypes.SecurityGroup -> List SecurityGroupRule.SecurityGroupRuleTemplate -> ( Project, List (Cmd SharedMsg) )
+requestUpdateSecurityGroupRules project securityGroup updatedRules =
+    let
+        existingRules =
+            securityGroup.rules
+
+        expectedRules =
+            updatedRules |> List.map SecurityGroupRule.securityGroupRuleTemplateToRule
+    in
+    reconcileSecurityGroupRules project securityGroup existingRules expectedRules
+
+
+{-| Compare existing & updated security group rules:
+
+  - If rules are missing, request to create them.
+  - If there are extra rules, request to delete them.
+
+-}
+reconcileSecurityGroupRules : Project -> OSTypes.SecurityGroup -> List SecurityGroupRule -> List SecurityGroupRule -> ( Project, List (Cmd SharedMsg) )
+reconcileSecurityGroupRules project securityGroup existingRules updatedRules =
+    let
+        { missing, extra } =
+            SecurityGroupRule.compareSecurityGroupRuleLists existingRules updatedRules
 
         newProject =
-            { project | securityGroups = newSecurityGroups }
-
-        newModel =
-            GetterSetters.modelUpdateProject model newProject
+            -- Track updating the security group rules.
+            GetterSetters.projectUpsertSecurityGroupActions project
+                (SecurityGroupActions.ExtantGroup securityGroup.uuid)
+                (\actions ->
+                    { actions
+                        | pendingRuleChanges = { creations = List.length missing, deletions = List.length extra, errors = [] }
+                    }
+                )
 
         cmds =
-            case List.Extra.find (\a -> a.name == "exosphere") securityGroups of
-                Just exoGroup ->
-                    -- check rules, ensure rules are latest set and none missing
-                    -- if rules are missing, request to create them
-                    -- assumes additive rules for now (i.e. add missing rules,
-                    -- but do not subtract rules that shouldn't be there)
-                    let
-                        existingRules =
-                            exoGroup.rules
-
-                        defaultExosphereRules =
-                            SecurityGroupRule.defaultExosphereRules
-
-                        missingRules =
-                            defaultExosphereRules
-                                |> List.filterMap
-                                    (\defaultRule ->
-                                        let
-                                            ruleExists =
-                                                existingRules
-                                                    |> List.any
-                                                        (\existingRule ->
-                                                            SecurityGroupRule.matchRule existingRule defaultRule
-                                                        )
-                                        in
-                                        if ruleExists then
-                                            Nothing
-
-                                        else
-                                            Just defaultRule
-                                    )
-                    in
-                    requestCreateSecurityGroupRules
-                        newProject
-                        exoGroup
-                        missingRules
-                        "create missing rules for Exosphere security group"
-
-                Nothing ->
-                    [ requestCreateExoSecurityGroup newProject ]
+            requestCreateSecurityGroupRules
+                newProject
+                securityGroup.uuid
+                missing
+                ("create missing rules for " ++ securityGroup.name ++ " security group")
+                ++ requestDeleteSecurityGroupRules
+                    newProject
+                    securityGroup.uuid
+                    (extra |> List.map .uuid)
+                    ("remove extra rules from " ++ securityGroup.name ++ " security group")
     in
-    ( newModel, Cmd.batch cmds )
+    ( newProject, cmds )
 
 
-receiveCreateExoSecurityGroupAndRequestCreateRules : SharedModel -> Project -> OSTypes.SecurityGroup -> ( SharedModel, Cmd SharedMsg )
-receiveCreateExoSecurityGroupAndRequestCreateRules model project newSecGroup =
+receiveCreateSecurityGroupAndRequestCreateRules : SharedModel -> Project -> OSTypes.SecurityGroupTemplate -> OSTypes.SecurityGroup -> ( SharedModel, Cmd SharedMsg )
+receiveCreateSecurityGroupAndRequestCreateRules model project securityGroupTemplate securityGroup =
     let
-        newSecGroups =
-            newSecGroup
-                :: (project.securityGroups |> RDPP.withDefault [])
-
         newProject =
-            { project
-                | securityGroups =
-                    RDPP.RemoteDataPlusPlus
-                        (RDPP.DoHave newSecGroups model.clientCurrentTime)
-                        (RDPP.NotLoading Nothing)
-            }
+            GetterSetters.projectUpdateSecurityGroup project securityGroup
+
+        -- All security groups are created with the project's OpenStack default security group rules.
+        -- Any overlapping rules will cause a SecurityGroupRuleExists 409 ConflictException.
+        -- So we create rules based on the difference, even for brand new groups.
+        ( newerProject, cmds ) =
+            requestUpdateSecurityGroupRules
+                newProject
+                securityGroup
+                securityGroupTemplate.rules
 
         newModel =
-            GetterSetters.modelUpdateProject model newProject
+            GetterSetters.modelUpdateProject model newerProject
     in
-    requestCreateExoSecurityGroupRules
-        newModel
-        newProject
-        SecurityGroupRule.defaultExosphereRules
+    ( newModel, Cmd.batch cmds )
 
 
 
@@ -711,10 +942,17 @@ securityGroupDecoder =
     Decode.field "security_group" securityGroupValueDecoder
 
 
+tagDecoder : Decode.Decoder (List String)
+tagDecoder =
+    Decode.field "tags" (Decode.list Decode.string)
+
+
 securityGroupValueDecoder : Decode.Decoder OSTypes.SecurityGroup
 securityGroupValueDecoder =
-    Decode.map4 OSTypes.SecurityGroup
+    Decode.map6 OSTypes.SecurityGroup
         (Decode.field "id" Decode.string)
         (Decode.field "name" Decode.string)
         (Decode.field "description" (Decode.nullable Decode.string))
         (Decode.field "security_group_rules" (Decode.list securityGroupRuleDecoder))
+        (Decode.field "created_at" (Decode.string |> Decode.andThen Helpers.Time.makeIso8601StringToPosixDecoder))
+        tagDecoder

@@ -56,11 +56,15 @@ type ProjectRouteConstructor
     | FloatingIpCreate (Maybe OSTypes.ServerUuid)
     | KeypairCreate
     | KeypairList
+    | SecurityGroupDetail OSTypes.SecurityGroupUuid
+    | SecurityGroupList
     | ServerCreate OSTypes.ImageUuid String (Maybe (List OSTypes.FlavorId)) (Maybe Bool)
     | ServerCreateImage OSTypes.ServerUuid (Maybe String)
     | ServerDetail OSTypes.ServerUuid
     | ServerList
     | ServerResize OSTypes.ServerUuid
+    | ServerSecurityGroups OSTypes.ServerUuid
+    | ShareCreate
     | ShareList
     | ShareDetail OSTypes.ShareUuid
     | VolumeAttach (Maybe OSTypes.ServerUuid) (Maybe OSTypes.VolumeUuid)
@@ -68,6 +72,7 @@ type ProjectRouteConstructor
     | VolumeDetail OSTypes.VolumeUuid
     | VolumeList
     | VolumeMountInstructions OSTypes.VolumeAttachment
+    | Credentials
 
 
 {-| Generates a url to the given route (including the project's path prefix if the app lives in a subdirectory).
@@ -161,6 +166,11 @@ toUrl maybePathPrefix route =
                             , []
                             )
 
+                        Credentials ->
+                            ( [ "credentials" ]
+                            , []
+                            )
+
                         FloatingIpAssign maybeIpUuid maybeServerUuid ->
                             let
                                 ipUuidQP =
@@ -219,6 +229,18 @@ toUrl maybePathPrefix route =
 
                         KeypairList ->
                             ( [ "keypairs" ]
+                            , []
+                            )
+
+                        SecurityGroupDetail securityGroupUuid ->
+                            ( [ "securitygroups"
+                              , securityGroupUuid
+                              ]
+                            , []
+                            )
+
+                        SecurityGroupList ->
+                            ( [ "securitygroups" ]
                             , []
                             )
 
@@ -286,6 +308,19 @@ toUrl maybePathPrefix route =
                             , []
                             )
 
+                        ServerSecurityGroups serverUuid ->
+                            ( [ "servers"
+                              , serverUuid
+                              , "securitygroups"
+                              ]
+                            , []
+                            )
+
+                        ShareCreate ->
+                            ( [ "createshare" ]
+                            , []
+                            )
+
                         ShareDetail shareUuid ->
                             ( [ "shares"
                               , shareUuid
@@ -341,10 +376,17 @@ toUrl maybePathPrefix route =
 
                         VolumeMountInstructions attachment ->
                             ( [ "attachvolinstructions" ]
-                            , [ UB.string "serveruuid" attachment.serverUuid
+                            , [ UB.string "voluuid" attachment.volumeUuid
+                              , UB.string "serveruuid" attachment.serverUuid
                               , UB.string "attachmentuuid" attachment.attachmentUuid
-                              , UB.string "device" attachment.device
                               ]
+                                ++ (case attachment.device of
+                                        Just device ->
+                                            [ UB.string "device" device ]
+
+                                        Nothing ->
+                                            []
+                                   )
                             )
             in
             buildUrlFunc (projectIdentifierPath ++ projectSpecificPath) projectSpecificQuery
@@ -573,6 +615,9 @@ projectRouteParsers =
         ProjectOverview
         (s "overview")
     , map
+        Credentials
+        (s "credentials")
+    , map
         (\svrUuid imageName ->
             ServerCreateImage svrUuid (Just imageName)
         )
@@ -584,6 +629,12 @@ projectRouteParsers =
          s "servers" </> string </> s "image" <?> queryParser
         )
     , map
+        SecurityGroupDetail
+        (s "securitygroups" </> string)
+    , map
+        SecurityGroupList
+        (s "securitygroups")
+    , map
         ServerDetail
         (s "servers" </> string)
     , map
@@ -592,6 +643,12 @@ projectRouteParsers =
     , map
         ServerResize
         (s "servers" </> string </> s "resize")
+    , map
+        ServerSecurityGroups
+        (s "servers" </> string </> s "securitygroups")
+    , map
+        ShareCreate
+        (s "createshare")
     , map
         ShareDetail
         (s "shares" </> string)
@@ -701,17 +758,18 @@ projectRouteParsers =
         VolumeMountInstructions
         (let
             queryParser =
-                Query.map3
+                Query.map4
                     OSTypes.VolumeAttachment
+                    (Query.string "voluuid"
+                        |> Query.map (Maybe.withDefault "")
+                    )
                     (Query.string "serveruuid"
                         |> Query.map (Maybe.withDefault "")
                     )
                     (Query.string "attachmentuuid"
                         |> Query.map (Maybe.withDefault "")
                     )
-                    (Query.string "device"
-                        |> Query.map (Maybe.withDefault "")
-                    )
+                    (Query.string "device")
          in
          s "attachvolinstructions" <?> queryParser
         )

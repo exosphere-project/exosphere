@@ -24,6 +24,7 @@ import Types.HelperTypes exposing (HttpRequestMethod(..), MetadataFilter)
 import Types.Project exposing (Project)
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
+import Url.Builder
 
 
 
@@ -45,21 +46,31 @@ requestImagesWithVisibility : Maybe OSTypes.ImageVisibility -> SharedModel -> Pr
 requestImagesWithVisibility maybeVisibility model project =
     let
         query =
-            case maybeVisibility of
-                Nothing ->
-                    "?limit=999999"
+            Url.Builder.int "limit" 999999
+                :: (case maybeVisibility of
+                        Nothing ->
+                            []
 
-                Just OSTypes.ImageCommunity ->
-                    "?visibility=community&status=active&limit=999999"
+                        Just OSTypes.ImageCommunity ->
+                            [ Url.Builder.string "visibility" "community"
+                            , Url.Builder.string "status" "active"
+                            ]
 
-                Just OSTypes.ImagePrivate ->
-                    "?visibility=private&status=active&limit=999999"
+                        Just OSTypes.ImagePrivate ->
+                            [ Url.Builder.string "visibility" "private"
+                            , Url.Builder.string "status" "active"
+                            ]
 
-                Just OSTypes.ImagePublic ->
-                    "?visibility=public&status=active&limit=999999"
+                        Just OSTypes.ImagePublic ->
+                            [ Url.Builder.string "visibility" "public"
+                            , Url.Builder.string "status" "active"
+                            ]
 
-                Just OSTypes.ImageShared ->
-                    "?visibility=shared&status=active&limit=999999"
+                        Just OSTypes.ImageShared ->
+                            [ Url.Builder.string "visibility" "shared"
+                            , Url.Builder.string "status" "active"
+                            ]
+                   )
 
         projectKeystoneHostname =
             UrlHelpers.hostnameFromUrl project.endpoints.keystone
@@ -85,7 +96,7 @@ requestImagesWithVisibility maybeVisibility model project =
         Get
         Nothing
         []
-        (project.endpoints.glance ++ "/v2/images" ++ query)
+        ( project.endpoints.glance, [ "v2", "images" ], query )
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg_
@@ -106,7 +117,7 @@ requestImage imageId project errorContext =
         Get
         Nothing
         []
-        (project.endpoints.glance ++ "/v2/images/" ++ imageId)
+        ( project.endpoints.glance, [ "v2", "images", imageId ], [] )
         Http.emptyBody
         (Rest.Helpers.expectJsonWithErrorBody
             resultToMsg_
@@ -153,7 +164,7 @@ requestChangeVisibility project imageUuid imageVisibility =
         Patch
         Nothing
         []
-        (project.endpoints.glance ++ "/v2/images/" ++ imageUuid)
+        ( project.endpoints.glance, [ "v2", "images", imageUuid ], [] )
         (Http.stringBody "application/openstack-images-v2.1-json-patch" (Json.Encode.encode 0 body))
         (expectJsonWithErrorBody
             resultToMsg_
@@ -184,7 +195,7 @@ requestDeleteImage project imageUuid =
         Delete
         Nothing
         []
-        (project.endpoints.glance ++ "/v2/images/" ++ imageUuid)
+        ( project.endpoints.glance, [ "v2", "images", imageUuid ], [] )
         Http.emptyBody
         (Rest.Helpers.expectStringWithErrorBody
             resultToMsg_

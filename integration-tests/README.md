@@ -20,10 +20,10 @@ On Linux:
 
 ### 2. Install Python dependencies
 
-Do this in a Python virtual environment:
+Do this in a Python 3.11 virtual environment:
 
 ```bash
-python3 -m pip install --requirement requirements.txt 
+python3.11 -m pip install --requirement requirements.txt 
 ```
 
 ## Usage
@@ -46,6 +46,7 @@ behave features/exosphere.feature
 Run selected Exosphere scenarios by tag:
 
 ```bash
+behave --tags @about features/exosphere.feature
 behave --tags @add-allocation features/exosphere.feature
 behave --tags @launch features/exosphere.feature
 behave --tags @delete features/exosphere.feature

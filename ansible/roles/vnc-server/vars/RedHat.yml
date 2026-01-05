@@ -1,4 +1,11 @@
 ---
 
+vncserver_repos:
+  - name: VirtualGL
+    repo: https://raw.githubusercontent.com/VirtualGL/repo/main/VirtualGL.repo
+  - name: TurboVNC
+    repo: https://raw.githubusercontent.com/TurboVNC/repo/main/TurboVNC.repo
+
 vncserver_packages:
-  - 'tigervnc-server'
+  - 'VirtualGL'
+  - 'turbovnc'

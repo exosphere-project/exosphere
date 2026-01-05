@@ -1,13 +1,81 @@
 module ServerDeploy exposing (cloudInitUserDataTemplate)
 
+import Helpers.Multipart as Multipart
 
-cloudInitUserDataTemplate : String
-cloudInitUserDataTemplate =
-    {-
-       The virtualenv case expression is due to CentOS 7 requiring use of `virtualenv-3`,
-       Ubuntu 18 requiring `python3 -m virtualenv`, and everything else just using `virtualenv`.
-    -}
+
+exosphereBootHook : String
+exosphereBootHook =
+    {- @nonlocalized -}
+    """#!/bin/bash
+
+# Ensure this hook only runs on the first boot.
+if cloud-init-per instance exosphere-setup-starting /bin/false; then
+  exit 0
+fi
+
+echo on > /proc/sys/kernel/printk_devkmsg || true  # Disable console rate limiting for distros that use kmsg
+sleep 1  # Ensures that console log output from any previous command completes before the following command begins
+echo '{"status":"starting", "epoch": '$(date '+%s')'000}' | tee --append /dev/console > /dev/kmsg || true
+chmod 640 /var/log/cloud-init-output.log
+"""
+
+
+exosphereSetupRunning : String
+exosphereSetupRunning =
+    """#!/bin/bash
+
+sleep 1  # Ensures that console log output from any previous command completes before the following command begins
+echo '{"status":"running", "epoch": '$(date '+%s')'000}' | tee --append /dev/console > /dev/kmsg || true
+"""
+
+
+exosphereAnsibleSetup : String
+exosphereAnsibleSetup =
+    """#!/bin/bash
+set +e
+
+retry() {
+  local max_attempt=3
+  local attempt=0
+  while [ $attempt -lt $max_attempt ]; do
+    if "$@"; then
+      return 0
+    fi
+    echo "Command failed: $@"
+    attempt=$((attempt + 1))
+    if [ $attempt -lt $max_attempt ]; then
+      sleep 5
+    fi
+  done
+  echo "All retries of command failed: $@"
+  return 1
+}
+
+(which apt-get && retry apt-get install -y python3-venv) # Install python3-venv on Debian-based platforms
+(which yum     && retry yum install -y python3)      # Install python3 on RHEL-based platforms
+python3 -m venv /opt/ansible-venv
+. /opt/ansible-venv/bin/activate
+retry pip install --upgrade pip
+retry pip install ansible-core passlib
+retry git init /opt/instance-config-mgt && \\
+  git -C /opt/instance-config-mgt remote add origin "{instance-config-mgt-repo-url}" && \\
+  git -C /opt/instance-config-mgt fetch --depth 1 origin "{instance-config-mgt-repo-checkout}" && \\
+  git -C /opt/instance-config-mgt reset --hard FETCH_HEAD
+ansible-playbook \\
+  -i /opt/instance-config-mgt/ansible/hosts \\
+  -e "{ansible-extra-vars}" \\
+  /opt/instance-config-mgt/ansible/playbook.yml
+ANSIBLE_RETURN_CODE=$?
+if [ $ANSIBLE_RETURN_CODE -eq 0 ]; then STATUS="complete"; else STATUS="error"; fi
+sleep 1  # Ensures that console log output from any previous commands complete before the following command begins
+echo '{"status":"'$STATUS'", "epoch": '$(date '+%s')'000}' | tee --append /dev/console > /dev/kmsg || true
+"""
+
+
+exosphereCloudConfig : String
+exosphereCloudConfig =
     """#cloud-config
+
 users:
   - default
   - name: exouser
@@ -18,31 +86,18 @@ ssh_pwauth: true
 package_update: true
 package_upgrade: {install-os-updates}
 packages:
-  - git{write-files}
-runcmd:
-  - echo on > /proc/sys/kernel/printk_devkmsg || true  # Disable console rate limiting for distros that use kmsg
-  - sleep 1  # Ensures that console log output from any previous command completes before the following command begins
-  - >-
-    echo '{"status":"running", "epoch": '$(date '+%s')'000}' | tee --append /dev/console > /dev/kmsg || true
-  - chmod 640 /var/log/cloud-init-output.log
-  - {create-cluster-command}
-  - (which apt-get && apt-get install -y python3-venv) # Install python3-venv on Debian-based platforms
-  - (which yum     && yum     install -y python3)      # Install python3 on RHEL-based platforms
-  - |-
-    python3 -m venv /opt/ansible-venv
-    . /opt/ansible-venv/bin/activate
-    pip install --upgrade pip
-    pip install ansible-core
-    ansible-pull \\
-      --url "{instance-config-mgt-repo-url}" \\
-      --checkout "{instance-config-mgt-repo-checkout}" \\
-      --directory /opt/instance-config-mgt \\
-      -i /opt/instance-config-mgt/ansible/hosts \\
-      -e "{ansible-extra-vars}" \\
-      /opt/instance-config-mgt/ansible/playbook.yml
-  - ANSIBLE_RETURN_CODE=$?
-  - if [ $ANSIBLE_RETURN_CODE -eq 0 ]; then STATUS="complete"; else STATUS="error"; fi
-  - sleep 1  # Ensures that console log output from any previous commands complete before the following command begins
-  - >-
-    echo '{"status":"'$STATUS'", "epoch": '$(date '+%s')'000}' | tee --append /dev/console > /dev/kmsg || true
+  - git
 """
+
+
+cloudInitUserDataTemplate : String
+cloudInitUserDataTemplate =
+    Multipart.mixed (Multipart.boundary "===============exosphere-user-data==")
+        |> Multipart.addAttachment "text/cloud-boothook" "00-exosphere-boothook.sh" [] exosphereBootHook
+        |> Multipart.addAttachment "text/x-shellscript" "00-exosphere-setup-running.sh" [] exosphereSetupRunning
+        |> Multipart.addAttachment "text/x-shellscript" "90-exosphere-ansible-setup.sh" [] exosphereAnsibleSetup
+        |> Multipart.addAttachment "text/cloud-config" "exosphere.yml" [] exosphereCloudConfig
+        |> Multipart.string
+        -- Strip carriage returns, cloud-init doesn't require them when parsing
+        -- but trailing carriage returns sometimes get left on shellscripts
+        |> String.replace "\u{000D}" ""

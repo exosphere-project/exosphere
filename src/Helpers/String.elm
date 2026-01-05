@@ -1,14 +1,22 @@
 module Helpers.String exposing
     ( capitalizeWord
+    , formatStringTemplate
     , hyphenate
     , indefiniteArticle
     , itemsListToString
     , pluralize
+    , pluralizeCount
+    , removeEmptiness
     , toTitleCase
     )
 
 import List.Extra
 import Regex
+
+
+formatStringTemplate : String -> List ( String, String ) -> String
+formatStringTemplate =
+    List.foldl (\t -> String.replace (Tuple.first t) (Tuple.second t))
 
 
 indefiniteArticle : String -> String
@@ -17,10 +25,8 @@ indefiniteArticle phrase =
         -- Look at whatever comes before the first space, hyphen, or period
         phrase
             |> String.split " "
-            |> List.map (String.split "-")
-            |> List.concat
-            |> List.map (String.split ".")
-            |> List.concat
+            |> List.concatMap (String.split "-")
+            |> List.concatMap (String.split ".")
             |> List.head
     of
         Nothing ->
@@ -76,6 +82,15 @@ pluralize word =
         ]
 
 
+pluralizeCount : Int -> String -> String
+pluralizeCount count word =
+    if count == 1 then
+        word
+
+    else
+        pluralize word
+
+
 capitalizeWord : String -> String
 capitalizeWord word =
     String.concat
@@ -116,3 +131,19 @@ itemsListToString items =
                         String.join ", " (firstItem :: intermediateItems)
                             ++ ", and "
                             ++ lastItem
+
+
+{-| Remove extraneous whitespace & prefer `Nothing` to `Just ""`.
+-}
+removeEmptiness : Maybe String -> Maybe String
+removeEmptiness description =
+    description
+        |> Maybe.map String.trim
+        |> Maybe.andThen
+            (\d ->
+                if String.isEmpty d then
+                    Nothing
+
+                else
+                    Just d
+            )

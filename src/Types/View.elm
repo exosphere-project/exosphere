@@ -6,6 +6,7 @@ module Types.View exposing
     )
 
 import OpenStack.Types as OSTypes
+import Page.Credentials
 import Page.FloatingIpAssign
 import Page.FloatingIpCreate
 import Page.FloatingIpList
@@ -19,13 +20,17 @@ import Page.LoginOpenIdConnect
 import Page.LoginOpenstack
 import Page.MessageLog
 import Page.ProjectOverview
+import Page.SecurityGroupDetail
+import Page.SecurityGroupList
 import Page.SelectProjectRegions
 import Page.SelectProjects
 import Page.ServerCreateImage
 import Page.ServerDetail
 import Page.ServerList
 import Page.ServerResize
+import Page.ServerSecurityGroups
 import Page.Settings
+import Page.ShareCreate
 import Page.ShareDetail
 import Page.ShareList
 import Page.VolumeAttach
@@ -48,7 +53,7 @@ type NonProjectViewConstructor
     = GetSupport Page.GetSupport.Model
     | HelpAbout
     | Home Page.Home.Model
-    | LoadingUnscopedProjects OSTypes.AuthTokenString
+    | LoadingUnscopedProjects
     | Login LoginView
     | LoginPicker
     | MessageLog Page.MessageLog.Model
@@ -65,6 +70,7 @@ type LoginView
 
 type ProjectViewConstructor
     = ProjectOverview Page.ProjectOverview.Model
+    | Credentials Page.Credentials.Model
     | FloatingIpAssign Page.FloatingIpAssign.Model
     | FloatingIpList Page.FloatingIpList.Model
     | ImageList Page.ImageList.Model
@@ -72,13 +78,17 @@ type ProjectViewConstructor
     | FloatingIpCreate Page.FloatingIpCreate.Model
     | KeypairCreate Page.KeypairCreate.Model
     | KeypairList Page.KeypairList.Model
+    | SecurityGroupDetail Page.SecurityGroupDetail.Model
+    | SecurityGroupList Page.SecurityGroupList.Model
     | ServerCreate HelperTypes.CreateServerPageModel
     | ServerCreateImage Page.ServerCreateImage.Model
     | ServerDetail Page.ServerDetail.Model
     | ServerList Page.ServerList.Model
     | ServerResize Page.ServerResize.Model
-    | ShareList Page.ShareList.Model
+    | ServerSecurityGroups Page.ServerSecurityGroups.Model
+    | ShareCreate Page.ShareCreate.Model
     | ShareDetail Page.ShareDetail.Model
+    | ShareList Page.ShareList.Model
       -- TODO these should be in alphabetical order
     | VolumeList Page.VolumeList.Model
     | VolumeAttach Page.VolumeAttach.Model

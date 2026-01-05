@@ -1,6 +1,7 @@
 module Style.Widgets.Button exposing (ThemedButton, Variant(..), button, default, primary)
 
 import Element
+import Html.Attributes exposing (attribute)
 import Style.Helpers as SH
 import Style.Types
 import Widget exposing (textButton)
@@ -13,6 +14,7 @@ import Widget exposing (textButton)
 type Variant
     = Primary
     | Secondary
+    | Text
     | Danger
     | DangerSecondary
     | Warning
@@ -53,6 +55,9 @@ button variant palette params =
                 Secondary ->
                     (SH.materialStyle palette).button
 
+                Text ->
+                    (SH.materialStyle palette).textButton
+
                 Danger ->
                     (SH.materialStyle palette).dangerButton
 
@@ -61,7 +66,11 @@ button variant palette params =
 
                 Warning ->
                     (SH.materialStyle palette).warningButton
+
+        patchedStyle =
+            -- The `Input.button` from elm-ui does not have a valid, accessible disabled state.
+            { style | ifDisabled = style.ifDisabled ++ [ Element.htmlAttribute (attribute "aria-disabled" "true") ] }
     in
     textButton
-        style
+        patchedStyle
         params

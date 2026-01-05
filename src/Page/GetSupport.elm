@@ -3,6 +3,7 @@ module Page.GetSupport exposing (Model, Msg(..), headerView, init, update, view)
 import Element
 import Element.Font as Font
 import Element.Input as Input
+import Helpers.Credentials exposing (projectCloudName)
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import Set
@@ -49,7 +50,7 @@ update msg _ model =
         GotResourceType maybeItemType ->
             ( { model
                 | maybeSupportableResource =
-                    Maybe.andThen (\itemType -> Just ( itemType, Nothing )) maybeItemType
+                    Maybe.map (\itemType -> ( itemType, Nothing )) maybeItemType
               }
             , Cmd.none
             , SharedMsg.NoOp
@@ -127,6 +128,7 @@ viewSupportForm context sharedModel model =
                         Input.option (Just itemType) (Element.text itemTypeStr)
                     )
                     [ HelperTypes.SupportableServer
+                    , HelperTypes.SupportableSecurityGroup
                     , HelperTypes.SupportableShare
                     , HelperTypes.SupportableVolume
                     , HelperTypes.SupportableImage
@@ -161,8 +163,7 @@ viewSupportForm context sharedModel model =
                                 HelperTypes.SupportableImage ->
                                     sharedModel.projects
                                         |> List.map .images
-                                        |> List.map (RDPP.withDefault [])
-                                        |> List.concat
+                                        |> List.concatMap (RDPP.withDefault [])
                                         |> List.map
                                             (\image ->
                                                 ( image.uuid
@@ -177,8 +178,7 @@ viewSupportForm context sharedModel model =
                                 HelperTypes.SupportableServer ->
                                     sharedModel.projects
                                         |> List.map .servers
-                                        |> List.map (RDPP.withDefault [])
-                                        |> List.concat
+                                        |> List.concatMap (RDPP.withDefault [])
                                         |> List.map
                                             (\server ->
                                                 ( server.osProps.uuid
@@ -187,11 +187,22 @@ viewSupportForm context sharedModel model =
                                             )
                                         |> List.sortBy Tuple.second
 
+                                HelperTypes.SupportableSecurityGroup ->
+                                    sharedModel.projects
+                                        |> List.map .securityGroups
+                                        |> List.concatMap (RDPP.withDefault [])
+                                        |> List.map
+                                            (\securityGroup ->
+                                                ( securityGroup.uuid
+                                                , VH.resourceName (Just securityGroup.name) securityGroup.uuid
+                                                )
+                                            )
+                                        |> List.sortBy Tuple.second
+
                                 HelperTypes.SupportableShare ->
                                     sharedModel.projects
                                         |> List.map .shares
-                                        |> List.map (RDPP.withDefault [])
-                                        |> List.concat
+                                        |> List.concatMap (RDPP.withDefault [])
                                         |> List.map
                                             (\share ->
                                                 ( share.uuid
@@ -203,8 +214,7 @@ viewSupportForm context sharedModel model =
                                 HelperTypes.SupportableVolume ->
                                     sharedModel.projects
                                         |> List.map .volumes
-                                        |> List.map (RDPP.withDefault [])
-                                        |> List.concat
+                                        |> List.concatMap (RDPP.withDefault [])
                                         |> List.map
                                             (\volume ->
                                                 ( volume.uuid
@@ -285,8 +295,8 @@ viewBuiltSupportRequest context sharedModel model =
             []
           <|
             List.concat
-                [ [ Element.text "If the button does not work, please copy all of the text in the box below and paste it into an email message to: " ]
-                , [ boldCopyableText sharedModel.style.userSupportEmailAddress
+                [ [ Element.text "If the button does not work, please copy all of the text in the box below and paste it into an email message to: "
+                  , boldCopyableText sharedModel.style.userSupportEmailAddress
                   ]
                 , case sharedModel.style.userSupportEmailSubject of
                     Just subject ->
@@ -361,6 +371,9 @@ supportableItemTypeStr context supportableItemType =
         HelperTypes.SupportableServer ->
             context.localization.virtualComputer
 
+        HelperTypes.SupportableSecurityGroup ->
+            context.localization.securityGroup
+
         HelperTypes.SupportableShare ->
             context.localization.share
 
@@ -422,6 +435,9 @@ buildSupportRequest model context maybeSupportableResource requestDescription =
         , "## Exosphere Client UUID\n"
         , UUID.toString model.clientUuid
         , "\n\n"
+        , "## Exosphere Version\n"
+        , Maybe.withDefault "latest" model.version
+        , "\n\n"
         , String.concat
             [ "## Logged-in "
             , Helpers.String.toTitleCase context.localization.unitOfTenancy
@@ -432,7 +448,7 @@ buildSupportRequest model context maybeSupportableResource requestDescription =
                 (\p ->
                     String.concat
                         [ "- "
-                        , p.auth.project.name
+                        , projectCloudName p
                         , " (UUID: "
                         , p.auth.project.uuid
                         , ") as user "

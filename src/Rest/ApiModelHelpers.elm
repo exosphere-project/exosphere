@@ -1,6 +1,9 @@
 module Rest.ApiModelHelpers exposing
-    ( requestAutoAllocatedNetwork
+    ( requestAllServerVolumeAttachments
+    , requestAppVersion
+    , requestAutoAllocatedNetwork
     , requestComputeQuota
+    , requestFlavors
     , requestFloatingIps
     , requestImages
     , requestJetstream2Allocation
@@ -8,13 +11,17 @@ module Rest.ApiModelHelpers exposing
     , requestNetworks
     , requestPorts
     , requestRecordSets
+    , requestSecurityGroups
     , requestServer
     , requestServerEvents
     , requestServerImageIfNotFound
+    , requestServerSecurityGroups
+    , requestServerVolumeAttachments
     , requestServers
     , requestShareAccessRules
     , requestShareExportLocations
     , requestShareQuotas
+    , requestShareTypes
     , requestShares
     , requestVolumeQuota
     , requestVolumeSnapshots
@@ -24,9 +31,13 @@ module Rest.ApiModelHelpers exposing
 import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.Quotas
+import OpenStack.ServerVolumes
 import OpenStack.Shares
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes
+import Orchestration.Helpers
+import Orchestration.Types
+import Rest.AppVersion
 import Rest.Designate
 import Rest.Glance
 import Rest.Jetstream2Accounting
@@ -34,13 +45,48 @@ import Rest.Neutron
 import Rest.Nova
 import Types.Error
 import Types.HelperTypes exposing (ProjectIdentifier)
+import Types.Interactivity exposing (InteractionLevel)
 import Types.Project
 import Types.SharedModel exposing (SharedModel)
-import Types.SharedMsg exposing (SharedMsg)
+import Types.SharedMsg exposing (SharedMsg(..))
 
 
 
 {- This module assists with making API calls that also require updating the model when the API call is placed. Typically, we set the resource to "loading" status while we wait for a response from the API. -}
+
+
+requestFlavors : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd SharedMsg )
+requestFlavors projectUuid model =
+    case GetterSetters.projectLookup model projectUuid of
+        Nothing ->
+            ( model, Cmd.none )
+
+        Just project ->
+            ( { project | flavors = RDPP.setLoading project.flavors }
+                |> GetterSetters.modelUpdateProject model
+            , Rest.Nova.requestFlavors project
+            )
+
+
+requestSecurityGroups : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd SharedMsg )
+requestSecurityGroups projectUuid model =
+    case GetterSetters.projectLookup model projectUuid of
+        Just project ->
+            case project.securityGroups.refreshStatus of
+                -- Receiving security groups has a side-effect: ensuring the default exosphere security group exists.
+                -- To avoid conflicts, we don't request security groups if they're already loading.
+                RDPP.Loading ->
+                    ( model, Cmd.none )
+
+                _ ->
+                    ( project
+                        |> GetterSetters.projectSetSecurityGroupsLoading
+                        |> GetterSetters.modelUpdateProject model
+                    , Rest.Neutron.requestSecurityGroups project
+                    )
+
+        Nothing ->
+            ( model, Cmd.none )
 
 
 requestServers : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd SharedMsg )
@@ -57,14 +103,14 @@ requestServers projectUuid model =
             ( model, Cmd.none )
 
 
-requestServer : ProjectIdentifier -> OSTypes.ServerUuid -> SharedModel -> ( SharedModel, Cmd SharedMsg )
-requestServer projectUuid serverUuid model =
+requestServer : ProjectIdentifier -> InteractionLevel -> OSTypes.ServerUuid -> SharedModel -> ( SharedModel, Cmd SharedMsg )
+requestServer projectUuid interactionLevel serverUuid model =
     case GetterSetters.projectLookup model projectUuid of
         Just project ->
             ( project
-                |> (\p -> GetterSetters.projectSetServerLoading p serverUuid)
+                |> GetterSetters.projectSetServerLoading serverUuid
                 |> GetterSetters.modelUpdateProject model
-            , Rest.Nova.requestServer project serverUuid
+            , Rest.Nova.requestServer project interactionLevel serverUuid
             )
 
         Nothing ->
@@ -101,9 +147,78 @@ requestServerEvents projectId serverUuid model =
     case GetterSetters.projectLookup model projectId of
         Just project ->
             ( project
-                |> (\p -> GetterSetters.projectSetServerEventsLoading p serverUuid)
+                |> GetterSetters.projectSetServerEventsLoading serverUuid
                 |> GetterSetters.modelUpdateProject model
             , Rest.Nova.requestServerEvents project serverUuid
+            )
+
+        Nothing ->
+            ( model, Cmd.none )
+
+
+requestServerVolumeAttachments : ProjectIdentifier -> OSTypes.ServerUuid -> SharedModel -> ( SharedModel, Cmd SharedMsg )
+requestServerVolumeAttachments projectId serverUuid model =
+    case GetterSetters.projectLookup model projectId of
+        Just project ->
+            ( project
+                |> GetterSetters.projectSetServerVolumeAttachmentsLoading serverUuid
+                |> GetterSetters.modelUpdateProject model
+            , OpenStack.ServerVolumes.requestVolumeAttachments project serverUuid
+            )
+
+        Nothing ->
+            ( model, Cmd.none )
+
+
+requestAllServerVolumeAttachments : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd SharedMsg )
+requestAllServerVolumeAttachments projectId model =
+    case GetterSetters.projectLookup model projectId of
+        Just project ->
+            let
+                serverUuids =
+                    project.servers
+                        |> RDPP.withDefault []
+                        |> List.map (\server -> server.osProps.uuid)
+
+                newProject =
+                    serverUuids
+                        |> List.filterMap
+                            (\serverUuid ->
+                                -- If the server volume attachment is already loading, we don't need to request it again.
+                                if GetterSetters.getServerVolumeAttachments project serverUuid |> RDPP.isLoading then
+                                    Nothing
+
+                                else
+                                    Just serverUuid
+                            )
+                        |> List.foldl
+                            (\serverUuid accModel ->
+                                accModel
+                                    |> GetterSetters.projectSetServerVolumeAttachmentsLoading serverUuid
+                            )
+                            project
+
+                newCmd =
+                    serverUuids
+                        |> List.map (OpenStack.ServerVolumes.requestVolumeAttachments newProject)
+                        |> Cmd.batch
+            in
+            ( newProject |> GetterSetters.modelUpdateProject model
+            , newCmd
+            )
+
+        Nothing ->
+            ( model, Cmd.none )
+
+
+requestServerSecurityGroups : ProjectIdentifier -> OSTypes.ServerUuid -> SharedModel -> ( SharedModel, Cmd SharedMsg )
+requestServerSecurityGroups projectId serverUuid model =
+    case GetterSetters.projectLookup model projectId of
+        Just project ->
+            ( project
+                |> GetterSetters.projectSetServerSecurityGroupsLoading serverUuid
+                |> GetterSetters.modelUpdateProject model
+            , Rest.Nova.requestServerSecurityGroups project serverUuid
             )
 
         Nothing ->
@@ -120,6 +235,25 @@ requestShares projectUuid model =
                         |> GetterSetters.projectSetSharesLoading
                         |> GetterSetters.modelUpdateProject model
                     , OpenStack.Shares.requestShares project url
+                    )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        Nothing ->
+            ( model, Cmd.none )
+
+
+requestShareTypes : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd SharedMsg )
+requestShareTypes projectUuid model =
+    case GetterSetters.projectLookup model projectUuid of
+        Just project ->
+            case project.endpoints.manila of
+                Just url ->
+                    ( project
+                        |> GetterSetters.projectSetShareTypesLoading
+                        |> GetterSetters.modelUpdateProject model
+                    , OpenStack.Shares.requestShareTypes project url
                     )
 
                 Nothing ->
@@ -362,3 +496,24 @@ requestJetstream2Allocation projectIdentifier model =
 
         Nothing ->
             ( model, Cmd.none )
+
+
+requestAppVersion : SharedModel -> ( SharedModel, Cmd SharedMsg )
+requestAppVersion model =
+    if
+        Orchestration.Helpers.pollRDPP
+            model.latestVersion
+            model.clientCurrentTime
+            (Orchestration.Helpers.pollIntervalToMs Orchestration.Types.Seldom)
+    then
+        ( { model
+            | latestVersion =
+                RDPP.setLoading model.latestVersion
+          }
+        , Rest.AppVersion.requestAppVersion ReceiveAppVersion
+            model.viewContext
+            model.clientCurrentTime
+        )
+
+    else
+        ( model, Cmd.none )

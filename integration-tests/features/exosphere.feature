@@ -1,5 +1,15 @@
 Feature: Text presence
 
+    @about
+    Scenario: Visiting the About page
+        Given a browser
+        When I go to Exosphere
+        Then I should see "Add project" within 60 seconds
+        When I click the "About" card
+        Then I should see "About Exosphere" within 15 seconds
+        And I should see "Exosphere version" within 15 seconds
+        And I should see the CI commit short SHA in the UI
+
     @add-allocation
     Scenario: Adding a Jetstream2 account
         Given a browser
@@ -38,7 +48,7 @@ Feature: Text presence
         And I click the "Instance" button
         Then the browser's URL should contain "/projects/44359c085e124766bad6e2c69d867291/regions/IU/instancesource"
         And I should see an element with xpath "//h2[contains(string(),'Choose an Instance Source')]" within 120 seconds
-        When I click the "22.04 (latest)" button
+        When I click the "22.04" button
         Then I should see an element with xpath "//h2[contains(string(),'Create Instance')]" within 5 seconds
         # Wait a few seconds to allow all API requests to complete
         Then I wait for 5 seconds

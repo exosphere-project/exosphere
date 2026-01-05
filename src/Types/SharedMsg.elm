@@ -6,17 +6,22 @@ module Types.SharedMsg exposing
     )
 
 import Browser
+import Browser.Events
 import Http
 import OpenStack.DnsRecordSet
+import OpenStack.SecurityGroupRule as SecurityGroupRule
 import OpenStack.Types as OSTypes
 import OpenStack.VolumeSnapshots exposing (VolumeSnapshot)
 import Style.Types as ST
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Time
 import Toasty
+import Types.AppVersion exposing (AppVersion)
+import Types.Banner as BannerTypes
 import Types.Error exposing (ErrorContext, HttpErrorWithBody, Toast)
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes as HelperTypes
+import Types.Interactivity exposing (InteractionLevel)
 import Types.Jetstream2Accounting
 import Url
 
@@ -27,6 +32,7 @@ type SharedMsg
     | DoOrchestration Time.Posix
     | HandleApiErrorWithBody ErrorContext HttpErrorWithBody
     | Logout
+    | Batch (List SharedMsg)
     | RequestUnscopedToken OSTypes.OpenstackLogin
     | ReceiveProjectScopedToken OSTypes.KeystoneUrl ( Http.Metadata, String )
     | ReceiveUnscopedAuthToken OSTypes.KeystoneUrl ( Http.Metadata, String )
@@ -34,16 +40,23 @@ type SharedMsg
     | ReceiveUnscopedRegions OSTypes.KeystoneUrl ErrorContext (Result HttpErrorWithBody (List HelperTypes.UnscopedProviderRegion))
     | RequestProjectScopedToken OSTypes.KeystoneUrl (List HelperTypes.UnscopedProviderProject)
     | CreateProjectsFromRegionSelections OSTypes.KeystoneUrl OSTypes.ProjectUuid (List OSTypes.RegionId)
+    | RequestBanners
+    | DismissBanner String
+    | ReceiveBanners ErrorContext (Result HttpErrorWithBody BannerTypes.Banners)
+    | RequestAppVersion
+    | ReceiveAppVersion ErrorContext (Result HttpErrorWithBody AppVersion)
     | ProjectMsg HelperTypes.ProjectIdentifier ProjectSpecificMsgConstructor
     | OpenNewWindow String
     | LinkClicked Browser.UrlRequest
     | UrlChanged Url.Url
     | ToastMsg (Toasty.Msg Toast)
     | MsgChangeWindowSize Int Int
+    | VisibilityChanged Browser.Events.Visibility
     | SelectTheme ST.ThemeChoice
     | SetExperimentalFeaturesEnabled Bool
     | TogglePopover PopoverId
     | NetworkConnection Bool
+    | ReceiveWebLock ( String, Bool )
     | NoOp
 
 
@@ -55,15 +68,16 @@ type ProjectSpecificMsgConstructor
     = ReceiveAppCredential OSTypes.ApplicationCredential
     | PrepareCredentialedRequest (Maybe HelperTypes.Url -> OSTypes.AuthTokenString -> Cmd SharedMsg) Time.Posix
     | RemoveProject
+    | EnsureDefaultSecurityGroup
     | ServerMsg OSTypes.ServerUuid ServerSpecificMsgConstructor
-    | RequestServers
     | RequestCreateServer HelperTypes.CreateServerPageModel OSTypes.NetworkUuid OSTypes.FlavorId
     | RequestDeleteServers (List OSTypes.ServerUuid)
+    | RequestCreateShare OSTypes.ShareName OSTypes.ShareDescription OSTypes.ShareSize OSTypes.ShareProtocol OSTypes.ShareTypeName
+    | RequestDeleteShare OSTypes.ShareUuid
     | RequestCreateVolume OSTypes.VolumeName OSTypes.VolumeSize
     | RequestDeleteVolume OSTypes.VolumeUuid
     | RequestDeleteVolumeSnapshot HelperTypes.Uuid
     | RequestDetachVolume OSTypes.VolumeUuid
-    | RequestKeypairs
     | RequestCreateKeypair OSTypes.KeypairName OSTypes.PublicKey
     | RequestDeleteKeypair OSTypes.KeypairIdentifier
     | RequestCreateProjectFloatingIp (Maybe OSTypes.IpAddressValue)
@@ -71,9 +85,16 @@ type ProjectSpecificMsgConstructor
     | RequestAssignFloatingIp OSTypes.Port OSTypes.IpAddressUuid
     | RequestUnassignFloatingIp OSTypes.IpAddressUuid
     | RequestDeleteImage OSTypes.ImageUuid
+    | RequestCreateSecurityGroup OSTypes.SecurityGroupTemplate (Maybe OSTypes.ServerUuid)
+    | RequestDeleteSecurityGroup OSTypes.SecurityGroup
+    | RequestUpdateSecurityGroup OSTypes.SecurityGroup OSTypes.SecurityGroupUpdate
+    | RequestUpdateSecurityGroupTags OSTypes.SecurityGroupUuid OSTypes.SecurityGroupTagUpdate
     | ReceiveImages (List OSTypes.Image)
     | ReceiveServerImage (Maybe OSTypes.Image)
-    | ReceiveServer OSTypes.ServerUuid ErrorContext (Result HttpErrorWithBody OSTypes.Server)
+    | ReceiveServer InteractionLevel OSTypes.ServerUuid ErrorContext (Result HttpErrorWithBody OSTypes.Server)
+    | ReceiveServerEvents OSTypes.ServerUuid ErrorContext (Result HttpErrorWithBody (List OSTypes.ServerEvent))
+    | ReceiveServerSecurityGroups OSTypes.ServerUuid ErrorContext (Result HttpErrorWithBody (List OSTypes.ServerSecurityGroup))
+    | ReceiveServerVolumeAttachments OSTypes.ServerUuid ErrorContext (Result HttpErrorWithBody (List OSTypes.VolumeAttachment))
     | ReceiveServers ErrorContext (Result HttpErrorWithBody (List OSTypes.Server))
     | ReceiveCreateServer ErrorContext (Result HttpErrorWithBody OSTypes.ServerUuid)
     | ReceiveFlavors (List OSTypes.Flavor)
@@ -86,14 +107,26 @@ type ProjectSpecificMsgConstructor
     | ReceivePorts ErrorContext (Result HttpErrorWithBody (List OSTypes.Port))
     | ReceiveCreateProjectFloatingIp ErrorContext (Result HttpErrorWithBody OSTypes.FloatingIp)
     | ReceiveDeleteFloatingIp OSTypes.IpAddressUuid
-    | ReceiveAssignFloatingIp OSTypes.FloatingIp
     | ReceiveUnassignFloatingIp OSTypes.FloatingIp
     | ReceiveSecurityGroups ErrorContext (Result HttpErrorWithBody (List OSTypes.SecurityGroup))
     | ReceiveDnsRecordSets (List OpenStack.DnsRecordSet.DnsRecordSet)
-    | ReceiveCreateExoSecurityGroup ErrorContext (Result HttpErrorWithBody OSTypes.SecurityGroup)
+    | ReceiveCreateDnsRecordSet ErrorContext (Result HttpErrorWithBody OpenStack.DnsRecordSet.DnsRecordSet)
+    | ReceiveDeleteDnsRecordSet ErrorContext (Result HttpErrorWithBody OpenStack.DnsRecordSet.DnsRecordSet)
+    | ReceiveCreateSecurityGroup ErrorContext OSTypes.SecurityGroupTemplate (Result HttpErrorWithBody OSTypes.SecurityGroup)
+    | ReceiveCreateSecurityGroupRule ErrorContext OSTypes.SecurityGroupUuid (Result HttpErrorWithBody SecurityGroupRule.SecurityGroupRule)
+    | ReceiveDeleteSecurityGroupRule ErrorContext ( OSTypes.SecurityGroupUuid, SecurityGroupRule.SecurityGroupRuleUuid ) (Result Http.Error ())
+    | ReceiveDeleteSecurityGroup ErrorContext OSTypes.SecurityGroupUuid (Result HttpErrorWithBody ())
+    | ReceiveUpdateSecurityGroup ErrorContext OSTypes.SecurityGroupUuid (Result HttpErrorWithBody OSTypes.SecurityGroup)
+    | ReceiveUpdateSecurityGroupTags ( OSTypes.SecurityGroupUuid, OSTypes.SecurityGroupTagUpdate )
+    | ReceiveServerAddSecurityGroup OSTypes.ServerUuid ErrorContext OSTypes.ServerSecurityGroup (Result HttpErrorWithBody String)
+    | ReceiveServerRemoveSecurityGroup OSTypes.ServerUuid ErrorContext OSTypes.ServerSecurityGroup (Result HttpErrorWithBody String)
+    | ReceiveCreateShare OSTypes.Share
+    | ReceiveCreateAccessRule ( OSTypes.ShareUuid, OSTypes.AccessRule )
     | ReceiveShareAccessRules ( OSTypes.ShareUuid, List OSTypes.AccessRule )
     | ReceiveShareExportLocations ( OSTypes.ShareUuid, List OSTypes.ExportLocation )
     | ReceiveShares (List OSTypes.Share)
+    | ReceiveShareTypes (List OSTypes.ShareType)
+    | ReceiveDeleteShare OSTypes.ShareUuid
     | ReceiveShareQuota ErrorContext (Result HttpErrorWithBody OSTypes.ShareQuota)
     | ReceiveCreateVolume
     | ReceiveVolumes ErrorContext (Result HttpErrorWithBody (List OSTypes.Volume))
@@ -101,8 +134,8 @@ type ProjectSpecificMsgConstructor
     | ReceiveDeleteVolume
     | ReceiveUpdateVolumeName
     | ReceiveDeleteVolumeSnapshot
-    | ReceiveAttachVolume OSTypes.VolumeAttachment
-    | ReceiveDetachVolume
+    | ReceiveAttachVolume ErrorContext ( OSTypes.ServerUuid, OSTypes.VolumeUuid ) (Result HttpErrorWithBody OSTypes.VolumeAttachment)
+    | ReceiveDetachVolume ErrorContext ( OSTypes.ServerUuid, OSTypes.VolumeUuid ) (Result HttpErrorWithBody ())
     | ReceiveComputeQuota ErrorContext (Result HttpErrorWithBody OSTypes.ComputeQuota)
     | ReceiveVolumeQuota ErrorContext (Result HttpErrorWithBody OSTypes.VolumeQuota)
     | ReceiveNetworkQuota ErrorContext (Result HttpErrorWithBody OSTypes.NetworkQuota)
@@ -113,22 +146,25 @@ type ProjectSpecificMsgConstructor
 
 
 type ServerSpecificMsgConstructor
-    = RequestServer
-    | RequestDeleteServer Bool
+    = RequestDeleteServer Bool
+    | RequestShelveServer Bool
     | RequestSetServerName String
     | RequestAttachVolume OSTypes.VolumeUuid
     | RequestCreateServerImage String
     | RequestResizeServer OSTypes.FlavorId
+    | RequestServerSecurityGroupUpdates (List OSTypes.ServerSecurityGroupUpdate)
     | RequestCreateServerFloatingIp (Maybe OSTypes.IpAddressValue)
+    | RequestCreateServerHostname ( OpenStack.DnsRecordSet.DnsZone, OSTypes.IpAddressValue )
     | ReceiveServerAction
-    | ReceiveServerEvents ErrorContext (Result HttpErrorWithBody (List OSTypes.ServerEvent))
     | ReceiveConsoleUrl (Result HttpErrorWithBody OSTypes.ConsoleUrl)
     | ReceiveDeleteServer
     | ReceiveCreateServerFloatingIp ErrorContext (Result HttpErrorWithBody OSTypes.FloatingIp)
+    | ReceiveAssignServerFloatingIp OSTypes.FloatingIp
     | ReceiveServerPassphrase OSTypes.ServerPassword
-    | ReceiveSetServerName String ErrorContext (Result HttpErrorWithBody String)
+    | ReceiveSetServerName ErrorContext (Result HttpErrorWithBody String)
     | ReceiveSetServerMetadata OSTypes.MetadataItem ErrorContext (Result HttpErrorWithBody (List OSTypes.MetadataItem))
     | ReceiveDeleteServerMetadata OSTypes.MetadataKey ErrorContext (Result HttpErrorWithBody String)
     | ReceiveGuacamoleAuthToken (Result Http.Error GuacTypes.GuacamoleAuthToken)
     | RequestServerAction (HelperTypes.Url -> Cmd SharedMsg) (Maybe (List OSTypes.ServerStatus)) Bool
     | ReceiveConsoleLog ErrorContext (Result HttpErrorWithBody String)
+    | SetMinimumServerInteractivity InteractionLevel

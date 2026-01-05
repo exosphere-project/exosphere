@@ -3,16 +3,23 @@ port module DesignSystem.Explorer exposing (main)
 import Browser.Events
 import Color
 import DesignSystem.Helpers exposing (Plugins, palettize, toHtml)
+import DesignSystem.Stories.Alert as AlertStories
 import DesignSystem.Stories.Card as CardStories
+import DesignSystem.Stories.Code as CodeStories
 import DesignSystem.Stories.ColorPalette as ColorPalette
 import DesignSystem.Stories.CopyableText as CopyableTextStories
 import DesignSystem.Stories.DataList
+import DesignSystem.Stories.Grid as GridStories
+import DesignSystem.Stories.IconButton as IconButtonStories
 import DesignSystem.Stories.Link as LinkStories
 import DesignSystem.Stories.Markdown as Markdown
+import DesignSystem.Stories.Select as SelectStories
 import DesignSystem.Stories.Space as SpaceStories
+import DesignSystem.Stories.Spinner as SpinnerStories
 import DesignSystem.Stories.Text as TextStories
 import DesignSystem.Stories.Toast as ToastStories
 import DesignSystem.Stories.ToggleTip as ToggleTip
+import DesignSystem.Stories.Uuid as Uuid
 import DesignSystem.Stories.Validation as Validation
 import Element
 import Element.Background as Background
@@ -30,9 +37,10 @@ import Style.Widgets.Meter exposing (meter)
 import Style.Widgets.MultiMeter exposing (multiMeter)
 import Style.Widgets.Popover.Popover exposing (popover, toggleIfTargetIsOutside)
 import Style.Widgets.Popover.Types exposing (PopoverId)
+import Style.Widgets.Select as Select
 import Style.Widgets.Spacer exposing (spacer)
-import Style.Widgets.StatusBadge exposing (StatusBadgeState(..), statusBadge)
-import Style.Widgets.Tag exposing (tag)
+import Style.Widgets.StatusBadge as StatusBadge exposing (StatusBadgeState(..), statusBadgeWithSize)
+import Style.Widgets.Tag exposing (tag, tagInfo, tagNeutral, tagPositive, tagWarning)
 import Style.Widgets.Text as Text
 import Style.Widgets.Toast as Toast
 import Time
@@ -116,6 +124,11 @@ type alias ChipFilterModel =
     }
 
 
+type alias SelectState =
+    { selected : Maybe Select.Value
+    }
+
+
 type alias Model =
     { popover : PopoverState
     , chips : ChipsState
@@ -123,6 +136,7 @@ type alias Model =
     , tabs : TabsPlugin.Model
     , toasties : Toasty.Stack Toast
     , dataList : Style.Widgets.DataList.Model
+    , select : SelectState
     , servers : List DesignSystem.Stories.DataList.Server
     , chipFilter : ChipFilterModel
     , predefinedNow : Time.Posix
@@ -154,6 +168,7 @@ initialModel =
         Style.Widgets.DataList.init
             (Style.Widgets.DataList.getDefaultFilterOptions (DesignSystem.Stories.DataList.filters nowTime))
     , predefinedNow = nowTime
+    , select = { selected = Nothing }
     , servers = DesignSystem.Stories.DataList.initServers nowTime
     , chipFilter =
         { selected = Set.empty
@@ -356,7 +371,7 @@ config =
                             { model
                                 | servers =
                                     List.filter
-                                        (\server -> not (server.id == serverId))
+                                        (\server -> server.id /= serverId)
                                         model.servers
                             }
                       }
@@ -471,7 +486,7 @@ For everything else, use [FeatherIcons](https://package.elm-lang.org/packages/16
                             )
                         )
                         [ ( "bell", bell )
-                        , ( "console", console )
+                        , ( "console", \_ -> console )
                         , ( "copyToClipboard", copyToClipboard )
                         , ( "history", history )
                         , ( "ipAddress", ipAddress )
@@ -513,14 +528,20 @@ Exosphere uses buttons from [elm-ui-widgets](https://package.elm-lang.org/packag
                         [ { name = "primary", widget = Button.primary, text = "Create", onPress = Just NoOp }
                         , { name = "primary: disabled", widget = Button.primary, text = "Next", onPress = Nothing }
                         , { name = "secondary", widget = Button.default, text = "Next", onPress = Just NoOp }
+                        , { name = "text", widget = Button.button Button.Text, text = "Clear All", onPress = Just NoOp }
                         , { name = "warning", widget = Button.button Button.Warning, text = "Suspend", onPress = Just NoOp }
                         , { name = "danger", widget = Button.button Button.Danger, text = "Delete All", onPress = Just NoOp }
                         , { name = "danger secondary", widget = Button.button Button.DangerSecondary, text = "Delete All", onPress = Just NoOp }
                         ]
                     )
+                , IconButtonStories.stories toHtml (Just NoOp)
                 , storiesOf
                     "Tag"
-                    [ ( "default", \m -> toHtml (palettize m) <| tag (palettize m) "Experimental", { note = """
+                    (List.map
+                        (\t ->
+                            ( t.name
+                            , \m -> toHtml (palettize m) <| t.widget (palettize m) t.text
+                            , { note = """
 ## Usage
 
 To annotate additional but important information like marking features as "Experimental".
@@ -531,8 +552,16 @@ To annotate additional but important information like marking features as "Exper
 If you are looking for a way to display removable tags, consider a [chip](/#Organisms/Chip).
 
 If you want to show a resource's current state or provide feedback on a process, consider using a [status badge](/#Atoms/Status%20Badge).
-                        """ } )
-                    ]
+                        """ }
+                            )
+                        )
+                        [ { name = "default", widget = tag, text = "Experimental" }
+                        , { name = "positive", widget = tagPositive, text = "preset" }
+                        , { name = "neutral", widget = tagNeutral, text = "default" }
+                        , { name = "info", widget = tagInfo, text = "info" }
+                        , { name = "warning", widget = tagWarning, text = "warning" }
+                        ]
+                    )
                 , storiesOf
                     "Status Badge"
                     (List.map
@@ -540,7 +569,7 @@ If you want to show a resource's current state or provide feedback on a process,
                             ( status.name
                             , \m ->
                                 toHtml (palettize m) <|
-                                    statusBadge (palettize m) status.variant status.text
+                                    statusBadgeWithSize (palettize m) status.size status.variant status.text
                             , { note = """
 ## Usage
 
@@ -548,16 +577,22 @@ To display a read-only label which clearly shows the current status of a resourc
                         """ }
                             )
                         )
-                        [ { name = "good", variant = ReadyGood, text = Element.text "Ready" }
-                        , { name = "muted", variant = Muted, text = Element.text "Unknown" }
-                        , { name = "warning", variant = Style.Widgets.StatusBadge.Warning, text = Element.text "Building" }
-                        , { name = "error", variant = Error, text = Element.text "Error" }
+                        [ { name = "good", size = StatusBadge.Normal, variant = ReadyGood, text = Element.text "Ready" }
+                        , { name = "muted", size = StatusBadge.Normal, variant = Muted, text = Element.text "Unknown" }
+                        , { name = "warning", size = StatusBadge.Normal, variant = StatusBadge.Warning, text = Element.text "Building" }
+                        , { name = "error", size = StatusBadge.Normal, variant = Error, text = Element.text "Error" }
+                        , { name = "small", size = StatusBadge.Small, variant = ReadyGood, text = Element.text "Ready" }
                         ]
                     )
+                , SpinnerStories.stories toHtml
                 ]
             |> category "Molecules"
-                [ --TODO: Add `filterChipView` (inside DataList) since `chip` is not in use.
-                  CopyableTextStories.stories toHtml (\_ -> NoOp)
+                [ AlertStories.stories toHtml
+
+                -- TODO: Add `filterChipView` (inside DataList) since `chip` is not in use.
+                , CodeStories.stories toHtml
+                , CopyableTextStories.stories toHtml (\_ -> NoOp)
+                , GridStories.stories toHtml
                 , Markdown.stories toHtml
                 , storiesOf
                     "Meter"
@@ -603,6 +638,8 @@ This is like the [meter](/#Molecules/Meter) but renders multiple values.
                     """ }
                       )
                     ]
+                , Uuid.stories toHtml
+                , SelectStories.stories toHtml (\_ -> NoOp)
                 , Validation.stories toHtml (\_ -> NoOp)
                 ]
             |> category "Organisms"

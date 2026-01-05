@@ -12,6 +12,7 @@ import Json.Decode as Decode
 import Json.Encode as Encode
 import LocalStorage.Types exposing (StoredProject, StoredProject2, StoredProject3, StoredProject4, StoredState)
 import OpenStack.Types as OSTypes
+import Set exposing (Set)
 import Style.Types as ST
 import Time
 import Types.Project
@@ -26,7 +27,7 @@ generateStoredState model =
         strippedProjects =
             List.map generateStoredProject model.projects
     in
-    encodeStoredState strippedProjects model.clientUuid model.style.styleMode model.viewContext.experimentalFeaturesEnabled
+    encodeStoredState strippedProjects model.clientUuid model.style.styleMode model.viewContext.experimentalFeaturesEnabled model.banners.dismissedBanners
 
 
 generateStoredProject : Types.Project.Project -> StoredProject
@@ -76,6 +77,14 @@ hydrateModelFromStoredState emptyModel newClientUuid storedState =
 
         viewContext =
             model.viewContext
+
+        oldBanners =
+            model.banners
+
+        newBanners =
+            { oldBanners
+                | dismissedBanners = storedState.dismissedBanners
+            }
     in
     { model
         | projects = projects
@@ -85,6 +94,7 @@ hydrateModelFromStoredState emptyModel newClientUuid storedState =
                 | experimentalFeaturesEnabled = experimentalFeaturesEnabled
                 , palette = toExoPalette newStyle
             }
+        , banners = newBanners
     }
 
 
@@ -97,8 +107,13 @@ hydrateProjectFromStoredProject storedProject =
     , description = storedProject.description
     , images = RDPP.empty
     , servers = RDPP.empty
+    , serverEvents = Dict.empty
+    , serverSecurityGroups = Dict.empty
+    , serverVolumeAttachments = Dict.empty
+    , serverVolumeActions = Dict.empty
+    , serverActionRequestQueue = Dict.empty
     , serverImages = []
-    , flavors = []
+    , flavors = RDPP.empty
     , keypairs = RDPP.empty
     , volumes = RDPP.empty
     , volumeSnapshots = RDPP.empty
@@ -106,16 +121,19 @@ hydrateProjectFromStoredProject storedProject =
     , shares = RDPP.empty
     , shareAccessRules = Dict.empty
     , shareExportLocations = Dict.empty
+    , shareTypes = RDPP.empty
     , autoAllocatedNetworkUuid = RDPP.empty
     , dnsRecordSets = RDPP.empty
     , floatingIps = RDPP.empty
     , ports = RDPP.empty
     , securityGroups = RDPP.empty
+    , securityGroupActions = Dict.empty
     , computeQuota = RDPP.empty
     , volumeQuota = RDPP.empty
     , networkQuota = RDPP.empty
     , shareQuota = RDPP.empty
     , jetstream2Allocations = RDPP.empty
+    , knownUsernames = Dict.fromList [ ( storedProject.auth.user.uuid, storedProject.auth.user.name ) ]
     }
 
 
@@ -123,8 +141,8 @@ hydrateProjectFromStoredProject storedProject =
 -- Encoders
 
 
-encodeStoredState : List StoredProject -> UUID.UUID -> ST.StyleMode -> Bool -> Encode.Value
-encodeStoredState projects clientUuid styleMode experimentalFeaturesEnabled =
+encodeStoredState : List StoredProject -> UUID.UUID -> ST.StyleMode -> Bool -> Set String -> Encode.Value
+encodeStoredState projects clientUuid styleMode experimentalFeaturesEnabled dismissedBanners =
     let
         secretEncode : Types.Project.ProjectSecret -> Encode.Value
         secretEncode secret =
@@ -161,6 +179,7 @@ encodeStoredState projects clientUuid styleMode experimentalFeaturesEnabled =
                 , ( "clientUuid", Encode.string (UUID.toString clientUuid) )
                 , ( "styleMode", encodeStyleMode styleMode )
                 , ( "experimentalFeaturesEnabled", Encode.bool experimentalFeaturesEnabled )
+                , ( "dismissedBanners", Encode.list Encode.string (Set.toList dismissedBanners) )
                 ]
           )
         ]
@@ -365,8 +384,16 @@ storedStateDecoder =
                     , Decode.at [ "8", "experimentalFeaturesEnabled" ] Decode.bool
                     ]
                 )
+
+        dismissedBanners =
+            Decode.maybe
+                (Decode.at
+                    [ "8", "dismissedBanners" ]
+                    (Decode.map Set.fromList <| Decode.list Decode.string)
+                )
+                |> Decode.map (Maybe.withDefault Set.empty)
     in
-    Decode.map4 StoredState projects clientUuid styleMode experimentalFeaturesEnabled
+    Decode.map5 StoredState projects clientUuid styleMode experimentalFeaturesEnabled dismissedBanners
 
 
 storedProjectDecoder1 : Decode.Decoder StoredProject

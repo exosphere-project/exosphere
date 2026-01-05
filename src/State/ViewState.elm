@@ -8,7 +8,7 @@ import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.Quotas as OSQuotas
 import OpenStack.Types as OSTypes
-import OpenStack.Volumes as OSVolumes
+import Page.Credentials
 import Page.FloatingIpAssign
 import Page.FloatingIpCreate
 import Page.FloatingIpList
@@ -22,6 +22,8 @@ import Page.LoginOpenIdConnect
 import Page.LoginOpenstack
 import Page.MessageLog
 import Page.ProjectOverview
+import Page.SecurityGroupDetail
+import Page.SecurityGroupList
 import Page.SelectProjectRegions
 import Page.SelectProjects
 import Page.ServerCreate
@@ -29,7 +31,9 @@ import Page.ServerCreateImage
 import Page.ServerDetail
 import Page.ServerList
 import Page.ServerResize
+import Page.ServerSecurityGroups
 import Page.Settings
+import Page.ShareCreate
 import Page.ShareDetail
 import Page.ShareList
 import Page.VolumeAttach
@@ -44,6 +48,7 @@ import Rest.Nova
 import Route
 import Time
 import Types.HelperTypes as HelperTypes
+import Types.Interactivity exposing (InteractionLevel(..))
 import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.SharedModel exposing (SharedModel)
@@ -149,7 +154,7 @@ routeToViewStateModelCmd sharedModel route =
                                 ]
                             )
             in
-            ( NonProjectView <| LoadingUnscopedProjects authTokenString
+            ( NonProjectView <| LoadingUnscopedProjects
             , newSharedModel
             , cmd
             )
@@ -181,7 +186,7 @@ routeToViewStateModelCmd sharedModel route =
         Route.MessageLog showDebugMsgs ->
             ( NonProjectView <| MessageLog <| Page.MessageLog.init (Just showDebugMsgs)
             , sharedModel
-            , Cmd.none
+            , Ports.instantiateClipboardJs ()
             )
 
         Route.PageNotFound ->
@@ -203,8 +208,7 @@ routeToViewStateModelCmd sharedModel route =
                                 ( newSharedModel, newCmd ) =
                                     ( sharedModel
                                     , Cmd.batch
-                                        [ OSVolumes.requestVolumes project
-                                        , Rest.Nova.requestKeypairs project
+                                        [ Rest.Nova.requestKeypairs project
                                         , OSQuotas.requestComputeQuota project
                                         , OSQuotas.requestVolumeQuota project
                                         , OSQuotas.requestNetworkQuota project
@@ -215,6 +219,8 @@ routeToViewStateModelCmd sharedModel route =
                                             (ApiModelHelpers.requestShares (GetterSetters.projectIdentifier project))
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestShareQuotas (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestVolumes (GetterSetters.projectIdentifier project))
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestVolumeSnapshots (GetterSetters.projectIdentifier project))
                                         |> Helpers.pipelineCmd
@@ -275,9 +281,11 @@ routeToViewStateModelCmd sharedModel route =
                         Route.InstanceSourcePicker ->
                             let
                                 ( newSharedModel, newCmd ) =
-                                    ( sharedModel, Rest.Nova.requestFlavors project )
+                                    ( sharedModel, Cmd.none )
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestImages (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestFlavors (GetterSetters.projectIdentifier project))
                             in
                             ( projectViewProto <| InstanceSourcePicker <| Page.InstanceSourcePicker.init
                             , newSharedModel
@@ -306,24 +314,55 @@ routeToViewStateModelCmd sharedModel route =
                                 ]
                             )
 
+                        Route.SecurityGroupDetail securityGroupId ->
+                            let
+                                ( newSharedModel, cmd ) =
+                                    ( project |> GetterSetters.modelUpdateProject sharedModel
+                                    , Ports.instantiateClipboardJs ()
+                                    )
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestSecurityGroups (GetterSetters.projectIdentifier project))
+
+                                -- TODO: Request security group quotas.
+                            in
+                            ( projectViewProto <| SecurityGroupDetail (Page.SecurityGroupDetail.init securityGroupId)
+                            , newSharedModel
+                            , cmd
+                            )
+
+                        Route.SecurityGroupList ->
+                            let
+                                ( newNewSharedModel, newCmd ) =
+                                    ( GetterSetters.modelUpdateProject sharedModel project
+                                    , Ports.instantiateClipboardJs ()
+                                    )
+                                        |> Helpers.pipelineCmd (ApiModelHelpers.requestSecurityGroups (GetterSetters.projectIdentifier project))
+
+                                -- TODO: Request security group quotas.
+                            in
+                            ( projectViewProto <| SecurityGroupList (Page.SecurityGroupList.init True)
+                            , newNewSharedModel
+                            , newCmd
+                            )
+
                         Route.ServerCreate imageId imageName maybeRestrictFlavorIds maybeDeployGuac ->
                             let
+                                cmd : Cmd SharedMsg
                                 cmd =
-                                    Cmd.batch
-                                        [ Rest.Nova.requestFlavors project
-                                        , Rest.Nova.requestKeypairs project
-                                        ]
+                                    Rest.Nova.requestKeypairs project
 
                                 ( newSharedModel, newCmd ) =
                                     ( sharedModel, cmd )
                                         |> Helpers.pipelineCmd (ApiModelHelpers.requestAutoAllocatedNetwork (GetterSetters.projectIdentifier project))
                                         |> Helpers.pipelineCmd (ApiModelHelpers.requestComputeQuota (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd (ApiModelHelpers.requestFlavors (GetterSetters.projectIdentifier project))
                                         |> Helpers.pipelineCmd (ApiModelHelpers.requestVolumeQuota (GetterSetters.projectIdentifier project))
                                         |> Helpers.pipelineCmd (ApiModelHelpers.requestNetworkQuota (GetterSetters.projectIdentifier project))
                             in
                             ( projectViewProto <|
                                 ServerCreate
                                     (Page.ServerCreate.init
+                                        newSharedModel.viewContext
                                         project
                                         imageId
                                         imageName
@@ -347,21 +386,27 @@ routeToViewStateModelCmd sharedModel route =
                                         |> GetterSetters.modelUpdateProject sharedModel
 
                                 cmd =
-                                    Cmd.batch
-                                        [ Rest.Nova.requestFlavors project
-                                        , OSVolumes.requestVolumes project
-                                        , Ports.instantiateClipboardJs ()
-                                        ]
+                                    Ports.instantiateClipboardJs ()
 
                                 ( newNewSharedModel, newCmd ) =
                                     ( newSharedModel, cmd )
                                         |> Helpers.pipelineCmd
-                                            (ApiModelHelpers.requestServer (GetterSetters.projectIdentifier project) serverId)
+                                            (ApiModelHelpers.requestServer (GetterSetters.projectIdentifier project) HighInteraction serverId)
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestImages (GetterSetters.projectIdentifier project))
                                         |> Helpers.pipelineCmd (ApiModelHelpers.requestServerImageIfNotFound project serverId)
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestRecordSets (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestFlavors (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestServerEvents (GetterSetters.projectIdentifier project) serverId)
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestServerVolumeAttachments (GetterSetters.projectIdentifier project) serverId)
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestServerSecurityGroups (GetterSetters.projectIdentifier project) serverId)
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestVolumes (GetterSetters.projectIdentifier project))
                             in
                             ( projectViewProto <| ServerDetail (Page.ServerDetail.init serverId)
                             , newNewSharedModel
@@ -371,37 +416,57 @@ routeToViewStateModelCmd sharedModel route =
                         Route.ServerList ->
                             let
                                 ( newSharedModel, cmd ) =
-                                    ApiModelHelpers.requestServers
-                                        (GetterSetters.projectIdentifier project)
-                                        sharedModel
+                                    ( sharedModel, Cmd.none )
                                         |> Helpers.pipelineCmd
-                                            (ApiModelHelpers.requestFloatingIps
-                                                (GetterSetters.projectIdentifier project)
-                                            )
+                                            (ApiModelHelpers.requestServers (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestFloatingIps (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestFlavors (GetterSetters.projectIdentifier project))
                             in
-                            ( projectViewProto <| ServerList <| Page.ServerList.init project True
+                            ( projectViewProto <| ServerList <| Page.ServerList.init newSharedModel.viewContext project True
                             , newSharedModel
                             , Cmd.batch
                                 [ cmd
                                 , OSQuotas.requestComputeQuota project
-                                , Rest.Nova.requestFlavors project
                                 ]
                             )
 
                         Route.ServerResize serverId ->
+                            let
+                                ( newSharedModel, cmd ) =
+                                    ( sharedModel, Cmd.none )
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestFlavors (GetterSetters.projectIdentifier project))
+                            in
                             ( projectViewProto <| ServerResize (Page.ServerResize.init serverId)
-                            , sharedModel
+                            , newSharedModel
                             , Cmd.batch
-                                [ Rest.Nova.requestFlavors project
+                                [ cmd
                                 , OSQuotas.requestComputeQuota project
                                 ]
+                            )
+
+                        Route.ServerSecurityGroups serverId ->
+                            let
+                                ( newSharedModel, newCmd ) =
+                                    ( project |> GetterSetters.modelUpdateProject sharedModel
+                                    , Ports.instantiateClipboardJs ()
+                                    )
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestServer (GetterSetters.projectIdentifier project) HighInteraction serverId)
+                                        |> Helpers.pipelineCmd (ApiModelHelpers.requestSecurityGroups (GetterSetters.projectIdentifier project))
+                            in
+                            ( projectViewProto <| ServerSecurityGroups (Page.ServerSecurityGroups.init project serverId)
+                            , newSharedModel
+                            , newCmd
                             )
 
                         Route.ShareDetail shareId ->
                             let
                                 ( newSharedModel, cmd ) =
                                     ( project |> GetterSetters.modelUpdateProject sharedModel
-                                    , Cmd.batch [ Ports.instantiateClipboardJs () ]
+                                    , Ports.instantiateClipboardJs ()
                                     )
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestShares (GetterSetters.projectIdentifier project))
@@ -421,12 +486,12 @@ routeToViewStateModelCmd sharedModel route =
                             let
                                 ( newNewSharedModel, newCmd ) =
                                     ( GetterSetters.modelUpdateProject sharedModel project
-                                    , Cmd.batch [ Ports.instantiateClipboardJs () ]
+                                    , Ports.instantiateClipboardJs ()
                                     )
                                         |> Helpers.pipelineCmd (ApiModelHelpers.requestShares (GetterSetters.projectIdentifier project))
                                         |> Helpers.pipelineCmd (ApiModelHelpers.requestShareQuotas (GetterSetters.projectIdentifier project))
                             in
-                            ( projectViewProto <| ShareList (Page.ShareList.init True)
+                            ( projectViewProto <| ShareList (Page.ShareList.init project True)
                             , newNewSharedModel
                             , newCmd
                             )
@@ -434,13 +499,25 @@ routeToViewStateModelCmd sharedModel route =
                         Route.VolumeAttach maybeServerUuid maybeVolumeUuid ->
                             let
                                 ( newSharedModel, newCmd ) =
-                                    ( sharedModel, OSVolumes.requestVolumes project )
+                                    ( sharedModel, Cmd.none )
                                         |> Helpers.pipelineCmd (ApiModelHelpers.requestServers (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd (ApiModelHelpers.requestVolumes (GetterSetters.projectIdentifier project))
                             in
                             ( projectViewProto <|
                                 VolumeAttach (Page.VolumeAttach.init maybeServerUuid maybeVolumeUuid)
                             , newSharedModel
                             , newCmd
+                            )
+
+                        Route.ShareCreate ->
+                            ( projectViewProto <| ShareCreate Page.ShareCreate.init
+                            , sharedModel
+                            , case project.endpoints.manila of
+                                Nothing ->
+                                    Cmd.none
+
+                                Just url ->
+                                    OSQuotas.requestShareQuota project url
                             )
 
                         Route.VolumeCreate ->
@@ -450,9 +527,19 @@ routeToViewStateModelCmd sharedModel route =
                             )
 
                         Route.VolumeDetail volumeUuid ->
-                            ( projectViewProto <| VolumeDetail <| Page.VolumeDetail.init True volumeUuid
-                            , sharedModel
-                            , Cmd.none
+                            let
+                                ( newSharedModel, newCmd ) =
+                                    ( sharedModel
+                                    , Ports.instantiateClipboardJs ()
+                                    )
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestVolumes (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestVolumeSnapshots (GetterSetters.projectIdentifier project))
+                            in
+                            ( projectViewProto <| VolumeDetail <| Page.VolumeDetail.init volumeUuid
+                            , newSharedModel
+                            , newCmd
                             )
 
                         Route.VolumeList ->
@@ -460,21 +547,30 @@ routeToViewStateModelCmd sharedModel route =
                                 ( newSharedModel, newCmd ) =
                                     ( sharedModel
                                     , Cmd.batch
-                                        [ OSVolumes.requestVolumes project
-                                        , Ports.instantiateClipboardJs ()
+                                        [ Ports.instantiateClipboardJs ()
                                         , OSQuotas.requestVolumeQuota project
                                         ]
                                     )
                                         |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestVolumes (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestVolumeSnapshots (GetterSetters.projectIdentifier project))
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestAllServerVolumeAttachments (GetterSetters.projectIdentifier project))
                             in
-                            ( projectViewProto <| VolumeList <| Page.VolumeList.init True
+                            ( projectViewProto <| VolumeList <| Page.VolumeList.init project True
                             , newSharedModel
                             , newCmd
                             )
 
                         Route.VolumeMountInstructions attachment ->
                             ( projectViewProto <| VolumeMountInstructions <| Page.VolumeMountInstructions.init attachment
+                            , sharedModel
+                            , Cmd.none
+                            )
+
+                        Route.Credentials ->
+                            ( projectViewProto <| Credentials <| Page.Credentials.init project
                             , sharedModel
                             , Cmd.none
                             )
@@ -513,6 +609,9 @@ viewStateToSupportableItem viewState =
             -> ( HelperTypes.SupportableItemType, Maybe HelperTypes.Uuid )
         supportableProjectItem projectIdentifier projectViewConstructor =
             case projectViewConstructor of
+                SecurityGroupDetail pageModel ->
+                    ( HelperTypes.SupportableSecurityGroup, Just pageModel.securityGroupUuid )
+
                 ServerCreate pageModel ->
                     ( HelperTypes.SupportableImage, Just pageModel.imageUuid )
 

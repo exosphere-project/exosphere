@@ -46,6 +46,7 @@ What can I do with Exosphere?
 - [Nomenclature Reference](docs/nomenclature-reference.md)
 - [Installing Exosphere Progressive Web Application](docs/pwa-install.md)
 - [Cockpit Deprecation and Manual Installation](docs/cockpit.md)
+- [Graphical Acceleration](docs/graphical-acceleration.md)
 
 ### For Cloud Operators
 
@@ -59,14 +60,24 @@ What can I do with Exosphere?
 
 ### For Exosphere Contributors
 
-- [Contributing to Exosphere](contributing.md) **(new contributors start here)**
+- [Quick Start for New Contributors](docs/contributor-quick-start.md)
+- [Contributing to Exosphere](contributing.md)
+- [Contributor Skills](docs/contributor-skills.md)
 - [Tour of Exosphere Codebase](docs/code-tour.md)
 - [UI, Layout, Style & Design System](docs/style.md)
+- [Contribution Review Policy](docs/review-policy.md)
+- [Merge Request Quality Checklist](docs/quality-checklist.md)
 - [Architecture Decision Records](docs/adr/README.md)
 - [Exosphere Tests](tests/README.md)
 - [Browser Integration Tests](integration-tests/README.md)
 - [MkDocs Site](docs/mkdocs-site.md)
 - [Code of Conduct](docs/code-of-conduct.md)
+
+### For Exosphere Project Maintainers
+
+- [Issue Triage Process](docs/issue-triage.md)
+- [Exosphere Governance](docs/governance.md)
+- [Sustainability Goals](docs/sustainability-goals.md)
 
 ### Legal Docs
 
@@ -76,11 +87,13 @@ What can I do with Exosphere?
 
 ## Collaborate With Us
 
-Talk to us in real-time on [Matrix / Element](https://matrix.to/#/#exosphere:matrix.org). You can also [browse an archive](https://view.matrix.org/room/!qALrQaRCgWgkQcBoKG:matrix.org/) of the chat history.
+Talk to us in real-time on [Matrix / Element - #exosphere:matrix.org](https://matrix.to/#/#exosphere:matrix.org). You can also [browse an archive](https://view.matrix.org/room/!qALrQaRCgWgkQcBoKG:matrix.org/) of the chat history.
+
+There's also a developer-focused [Matrix / Element - #exosphere-dev:matrix.org](https://matrix.to/#/#exosphere-dev:matrix.org) chat with a [browsable archive](https://view.matrix.org/room/!XybqdsuDqzOURHcTIV:matrix.org/).
 
 We use GitLab to track issues and contributions. To request a new feature or report a bug, [create a new issue](https://gitlab.com/exosphere/exosphere/-/issues/new) on our GitLab project.
 
-We have a **weekly community video call** Wednesdays at 15:30 UTC (**note the new day and time**). Join by clicking on the Jitsi widget in our [Element chat](https://matrix.to/#/#exosphere:matrix.org). ([agenda](https://c-mart.sandcats.io/shared/wfRsWBVmJZ3maUn7HMFqNj_MR_Bzy1vob9CzWu1n7QI), and [previous meeting notes](https://gitlab.com/exosphere/exosphere/-/wikis/Meetings/2023/Weekly-Community-Meetings-(2023)))
+We have a **weekly community video call** Wednesdays at 15:30 UTC (**note the new day and time**). Join by clicking on the Jitsi widget in our [Element chat](https://matrix.to/#/#exosphere:matrix.org). ([agenda](https://c-mart.sandcats.io/shared/1k-xDVhqs6AgGK7rTKenjG7saPcXpml_SxaOgyLImW5), and [previous meeting notes](https://gitlab.com/exosphere/exosphere/-/wikis/Meetings/2025/Weekly-Community-Meetings-(2025)))
 
 ## Exosphere's Impact
 

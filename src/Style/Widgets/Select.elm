@@ -1,4 +1,4 @@
-module Style.Widgets.Select exposing (Label, Value, select)
+module Style.Widgets.Select exposing (Label, Value, notes, select)
 
 import Color
 import Element
@@ -12,6 +12,17 @@ import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
 import Style.Widgets.Icon exposing (featherIcon)
 import Style.Widgets.Spacer exposing (spacer)
+
+
+notes : String
+notes =
+    """
+## Usage
+
+### Select
+
+A drop-down list of options using `Html.select` under the hood.
+"""
 
 
 select :
@@ -47,6 +58,7 @@ select attributes palette { onChange, options, selected, label } =
                 , HtmlA.style "-webkit-appearance" "none"
                 , HtmlA.style "-moz-appearance" "none"
                 , HtmlA.style "padding" "5px"
+                , HtmlA.style "paddingRight" "24px" -- offset for down chevron
                 , HtmlA.style "border-width" "0"
                 , HtmlA.style "height" "48px"
                 , HtmlA.style "font-size" "18px"
@@ -87,8 +99,19 @@ select attributes palette { onChange, options, selected, label } =
          ]
             ++ attributes
         )
-        [ Element.el [ Element.width Element.fill ] <| Element.html select_
-        , featherIcon [] Icons.chevronDown
+        [ Element.el
+            [ Element.width Element.fill
+            , Element.onRight
+                (Icons.chevronDown
+                    |> featherIcon
+                        [ Element.moveLeft <| toFloat <| spacer.px24
+                        , Element.centerY
+                        , Element.htmlAttribute (HtmlA.style "pointer-events" "none")
+                        ]
+                )
+            ]
+          <|
+            Element.html select_
         ]
 
 

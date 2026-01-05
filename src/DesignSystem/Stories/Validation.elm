@@ -3,7 +3,7 @@ module DesignSystem.Stories.Validation exposing (stories)
 import DesignSystem.Helpers exposing (Plugins, Renderer, ThemeModel, palettize)
 import Element
 import Style.Widgets.Spacer exposing (spacer)
-import Style.Widgets.Validation exposing (invalidMessage, notes, warningAlreadyExists, warningMessage)
+import Style.Widgets.Validation exposing (invalidMessage, notes, validMessage, warningAlreadyExists, warningMessage)
 import UIExplorer exposing (storiesOf)
 
 
@@ -14,20 +14,30 @@ stories :
 stories renderer onSuggestionPressed =
     storiesOf
         "Validation"
-        [ ( "invalid", \m -> renderer (palettize m) <| invalidMessage (palettize m) "Name cannot start with a space", { note = notes } )
-        , ( "warning", \m -> renderer (palettize m) <| warningMessage (palettize m) "This volume name already exists for this project.", { note = notes } )
-        , ( "warning already exists"
-          , \m ->
-                renderer (palettize m) <|
-                    Element.column [ Element.spacing spacer.px24 ]
-                        (warningAlreadyExists
-                            { palette = palettize m }
-                            { alreadyExists = True
-                            , message = "That name is already exists. Please choose another."
-                            , suggestions = [ "Timothy", "Clara", "Nightmare Moon" ]
-                            , onSuggestionPressed = onSuggestionPressed
-                            }
+        ([ ( "valid", \m -> renderer (palettize m) <| validMessage (palettize m) "The record is up to date.", { note = notes } )
+         , ( "invalid", \m -> renderer (palettize m) <| invalidMessage (palettize m) "Name cannot start with a space", { note = notes } )
+         , ( "warning", \m -> renderer (palettize m) <| warningMessage (palettize m) "This volume name already exists for this project.", { note = notes } )
+         ]
+            ++ ([ ( Style.Widgets.Validation.Warning, "warning already exists" )
+                , ( Style.Widgets.Validation.Error, "error already exists" )
+                ]
+                    |> List.map
+                        (\( level, title ) ->
+                            ( title
+                            , \m ->
+                                renderer (palettize m) <|
+                                    Element.column [ Element.spacing spacer.px24 ]
+                                        (warningAlreadyExists
+                                            { palette = palettize m }
+                                            { alreadyExists = True
+                                            , message = "That name is already exists. Please choose another."
+                                            , suggestions = [ "Timothy", "Clara", "Nightmare Moon" ]
+                                            , onSuggestionPressed = onSuggestionPressed
+                                            , errorLevel = level
+                                            }
+                                        )
+                            , { note = notes }
+                            )
                         )
-          , { note = notes }
-          )
-        ]
+               )
+        )

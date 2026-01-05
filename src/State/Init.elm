@@ -6,14 +6,19 @@ import Dict
 import FormatNumber.Locales
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
+import Helpers.RemoteDataPlusPlus as RDPP
 import Json.Decode as Decode
+import Json.Decode.Pipeline as Pipeline
 import LocalStorage.LocalStorage as LocalStorage
 import LocalStorage.Types as LocalStorageTypes
 import Maybe
+import OpenStack.SecurityGroupRule exposing (SecurityGroupRuleTemplate, decodeDirection, stringToSecurityGroupRuleEthertype, stringToSecurityGroupRuleProtocol)
 import OpenStack.Types as OSTypes
 import Ports
 import Random
 import Rest.ApiModelHelpers as ApiModelHelpers
+import Rest.AppVersion exposing (requestAppVersion)
+import Rest.Banner exposing (requestBanners)
 import Rest.Keystone
 import Set
 import State.Auth
@@ -22,6 +27,7 @@ import Style.Theme
 import Style.Types as ST
 import Time
 import Toasty
+import Types.Banner as BannerTypes
 import Types.Defaults as Defaults
 import Types.Error exposing (AppError)
 import Types.Flags exposing (ConfigurationFlags, Flags, flagsDecoder)
@@ -34,6 +40,7 @@ import Types.SharedMsg exposing (SharedMsg)
 import Types.View exposing (NonProjectViewConstructor(..), ViewState(..))
 import UUID
 import Url
+import Url.Builder as UB
 import View.Helpers exposing (toExoPalette)
 
 
@@ -43,9 +50,11 @@ init serializedFlags urlKey =
         Ok flags ->
             case validateCloudSpecificConfigs flags.clouds of
                 Ok cloudSpecificConfigs ->
-                    case initWithValidFlags flags cloudSpecificConfigs urlKey of
-                        ( model, cmd ) ->
-                            ( Ok model, cmd )
+                    let
+                        ( model, cmd ) =
+                            initWithValidFlags flags cloudSpecificConfigs urlKey
+                    in
+                    ( Ok model, cmd )
 
                 Err appError ->
                     ( Err appError, Cmd.none )
@@ -77,6 +86,7 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
             , clientUuid = Nothing
             , styleMode = Nothing
             , experimentalFeaturesEnabled = Nothing
+            , dismissedBanners = Set.empty
             }
 
         deployerColors =
@@ -171,11 +181,39 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
                 Nothing ->
                     []
 
+        baseUrl =
+            let
+                url =
+                    Tuple.first urlKey
+            in
+            { url | path = "", query = Nothing, fragment = Nothing }
+
         emptyModel : Bool -> UUID.UUID -> SharedModel
         emptyModel showDebugMsgs uuid =
             { logMessages = logMessages
             , unscopedProviders = []
             , scopedAuthTokensWaitingRegionSelection = []
+            , banners =
+                let
+                    defaultUrl =
+                        let
+                            urlNoPathPrefix =
+                                UB.absolute [ "banners.json" ] []
+                        in
+                        case flags.urlPathPrefix of
+                            Nothing ->
+                                urlNoPathPrefix
+
+                            Just "" ->
+                                urlNoPathPrefix
+
+                            Just urlPathPrefix ->
+                                UB.absolute [ urlPathPrefix, "banners.json" ] []
+
+                    bannersUrl =
+                        Maybe.withDefault defaultUrl flags.bannersUrl
+                in
+                BannerTypes.empty bannersUrl
             , projects = []
             , toasties = Toasty.initialState
             , networkConnectivity = Nothing
@@ -198,87 +236,100 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
                 , locale =
                     flags.localeGuessingString
                         |> FormatNumber.Locales.fromString
-                        >> Maybe.withDefault FormatNumber.Locales.usLocale
+                        |> Maybe.withDefault FormatNumber.Locales.usLocale
                 , localization = Maybe.withDefault Defaults.localization flags.localization
                 , navigationKey = Tuple.second urlKey
                 , palette = toExoPalette style
+                , baseUrl = baseUrl
                 , urlPathPrefix = flags.urlPathPrefix
                 , windowSize = { width = flags.width, height = flags.height }
                 , showPopovers = Set.empty
                 }
             , sentryConfig = flags.sentryConfig
+            , version = flags.version
+            , latestVersion = RDPP.empty
             }
-
-        -- This only gets used if we do not find a client UUID in stored state
-        newClientUuid : UUID.UUID
-        newClientUuid =
-            let
-                seeds =
-                    UUID.Seeds
-                        (Random.initialSeed flags.randomSeed0)
-                        (Random.initialSeed flags.randomSeed1)
-                        (Random.initialSeed flags.randomSeed2)
-                        (Random.initialSeed flags.randomSeed3)
-            in
-            UUID.step seeds |> Tuple.first
-
-        hydratedModel : SharedModel
-        hydratedModel =
-            LocalStorage.hydrateModelFromStoredState (emptyModel flags.showDebugMsgs) newClientUuid storedState
-
-        -- If any projects are password-authenticated, get Application Credentials for them so we can forget the passwords
-        projectsNeedingAppCredentials : List Project
-        projectsNeedingAppCredentials =
-            let
-                projectNeedsAppCredential p =
-                    case p.secret of
-                        ApplicationCredential _ ->
-                            False
-
-                        _ ->
-                            True
-            in
-            List.filter projectNeedsAppCredential hydratedModel.projects
-
-        refreshAuthTokenCmds =
-            hydratedModel.projects
-                |> List.map (State.Auth.requestAuthToken hydratedModel)
-                |> List.filterMap
-                    (\result ->
-                        case result of
-                            Err _ ->
-                                Nothing
-
-                            Ok cmd ->
-                                Just cmd
-                    )
-                |> Cmd.batch
-
-        setFaviconCmd =
-            flags.favicon
-                |> Maybe.map Ports.setFavicon
-                |> Maybe.withDefault Cmd.none
-
-        otherCmds =
-            [ refreshAuthTokenCmds
-            , List.map
-                (Rest.Keystone.requestAppCredential
-                    hydratedModel.clientUuid
-                    hydratedModel.clientCurrentTime
-                )
-                projectsNeedingAppCredentials
-                |> Cmd.batch
-            , setFaviconCmd
-            ]
-                |> Cmd.batch
 
         ( requestResourcesModel, requestResourcesCmd ) =
             let
+                setFaviconCmd =
+                    flags.favicon
+                        |> Maybe.map Ports.setFavicon
+                        |> Maybe.withDefault Cmd.none
+
+                -- This only gets used if we do not find a client UUID in stored state
+                newClientUuid : UUID.UUID
+                newClientUuid =
+                    let
+                        seeds =
+                            UUID.Seeds
+                                (Random.initialSeed flags.randomSeed0)
+                                (Random.initialSeed flags.randomSeed1)
+                                (Random.initialSeed flags.randomSeed2)
+                                (Random.initialSeed flags.randomSeed3)
+                    in
+                    UUID.step seeds |> Tuple.first
+
+                hydratedModel : SharedModel
+                hydratedModel =
+                    LocalStorage.hydrateModelFromStoredState (emptyModel flags.showDebugMsgs) newClientUuid storedState
+
+                refreshAuthTokenCmds =
+                    hydratedModel.projects
+                        |> List.map (State.Auth.requestAuthToken hydratedModel)
+                        |> List.filterMap
+                            (\result ->
+                                case result of
+                                    Err _ ->
+                                        Nothing
+
+                                    Ok cmd ->
+                                        Just cmd
+                            )
+                        |> Cmd.batch
+
+                -- If any projects are password-authenticated, get Application Credentials for them so we can forget the passwords
+                projectsNeedingAppCredentials : List Project
+                projectsNeedingAppCredentials =
+                    let
+                        projectNeedsAppCredential p =
+                            case p.secret of
+                                ApplicationCredential _ ->
+                                    False
+
+                                _ ->
+                                    True
+                    in
+                    List.filter projectNeedsAppCredential hydratedModel.projects
+
+                requestBannersCmd =
+                    requestBanners Types.SharedMsg.ReceiveBanners hydratedModel.banners
+
+                requestVersionCmd =
+                    requestAppVersion Types.SharedMsg.ReceiveAppVersion hydratedModel.viewContext hydratedModel.clientCurrentTime
+
+                otherCmds =
+                    [ refreshAuthTokenCmds
+                    , List.map
+                        (Rest.Keystone.requestAppCredential
+                            hydratedModel.clientUuid
+                            hydratedModel.clientCurrentTime
+                        )
+                        projectsNeedingAppCredentials
+                        |> Cmd.batch
+                    , setFaviconCmd
+                    , requestBannersCmd
+                    , requestVersionCmd
+                    ]
+                        |> Cmd.batch
+
                 applyRequestsToProject : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd SharedMsg )
                 applyRequestsToProject projectId model =
                     ( model, otherCmds )
                         |> Helpers.pipelineCmd (ApiModelHelpers.requestServers projectId)
+                        |> Helpers.pipelineCmd (ApiModelHelpers.requestSecurityGroups projectId)
                         |> Helpers.pipelineCmd (ApiModelHelpers.requestShares projectId)
+                        |> Helpers.pipelineCmd (ApiModelHelpers.requestShareTypes projectId)
                         |> Helpers.pipelineCmd (ApiModelHelpers.requestShareQuotas projectId)
                         |> Helpers.pipelineCmd (ApiModelHelpers.requestVolumes projectId)
                         |> Helpers.pipelineCmd (ApiModelHelpers.requestFloatingIps projectId)
@@ -322,14 +373,16 @@ decodeCloudSpecificConfigs value =
 
 cloudSpecificConfigDecoder : Decode.Decoder ( HelperTypes.KeystoneHostname, HelperTypes.CloudSpecificConfig )
 cloudSpecificConfigDecoder =
-    Decode.map7 HelperTypes.CloudSpecificConfig
-        (Decode.field "friendlyName" Decode.string)
-        (Decode.field "userAppProxy" (Decode.nullable (Decode.list userAppProxyConfigDecoder)))
-        (Decode.field "imageExcludeFilter" (Decode.nullable metadataFilterDecoder))
-        (Decode.field "featuredImageNamePrefix" (Decode.nullable Decode.string))
-        (Decode.field "instanceTypes" (Decode.list instanceTypeDecoder))
-        (Decode.field "flavorGroups" (Decode.list flavorGroupDecoder))
-        (Decode.field "desktopMessage" (Decode.nullable Decode.string))
+    Decode.succeed HelperTypes.CloudSpecificConfig
+        |> Pipeline.required "friendlyName" Decode.string
+        |> Pipeline.optional "userAppProxy" (Decode.nullable (Decode.list userAppProxyConfigDecoder)) Nothing
+        |> Pipeline.optional "dnsZones" (Decode.nullable (Decode.list dnsZoneConfigDecoder)) Nothing
+        |> Pipeline.optional "imageExcludeFilter" (Decode.nullable metadataFilterDecoder) Nothing
+        |> Pipeline.optional "featuredImageNamePrefix" (Decode.nullable Decode.string) Nothing
+        |> Pipeline.optional "instanceTypes" (Decode.list instanceTypeDecoder) []
+        |> Pipeline.optional "flavorGroups" (Decode.list flavorGroupDecoder) []
+        |> Pipeline.optional "securityGroups" (Decode.nullable securityGroupsRegionConfigDecoder) Nothing
+        |> Pipeline.optional "desktopMessage" (Decode.nullable Decode.string) Nothing
         |> Decode.andThen
             (\cloudSpecificConfig ->
                 Decode.field "keystoneHostname" Decode.string
@@ -342,6 +395,61 @@ userAppProxyConfigDecoder =
     Decode.map2 HelperTypes.UserAppProxyConfig
         (Decode.field "region" (Decode.nullable Decode.string))
         (Decode.field "hostname" Decode.string)
+
+
+dnsZoneConfigDecoder : Decode.Decoder HelperTypes.DnsZoneConfig
+dnsZoneConfigDecoder =
+    Decode.map2 HelperTypes.DnsZoneConfig
+        (Decode.field "region" (Decode.nullable Decode.string))
+        (Decode.field "zone" Decode.string)
+
+
+securityGroupsRegionConfigDecoder : Decode.Decoder (Dict.Dict String OSTypes.SecurityGroupTemplate)
+securityGroupsRegionConfigDecoder =
+    Decode.map (Dict.map securityGroupRegionConfigToTemplate) (Decode.dict securityGroupRegionContentsDecoder)
+
+
+type alias SecurityGroupRegionConfig =
+    { name : String
+    , description : Maybe String
+    , rules : List SecurityGroupRuleTemplate
+    }
+
+
+securityGroupRegionConfigToTemplate : String -> SecurityGroupRegionConfig -> OSTypes.SecurityGroupTemplate
+securityGroupRegionConfigToTemplate regionId { name, description, rules } =
+    OSTypes.SecurityGroupTemplate
+        name
+        description
+        (if regionId == "noRegion" then
+            Nothing
+
+         else
+            Just regionId
+        )
+        rules
+
+
+securityGroupRegionContentsDecoder : Decode.Decoder SecurityGroupRegionConfig
+securityGroupRegionContentsDecoder =
+    Decode.map3 SecurityGroupRegionConfig
+        (Decode.field "name" Decode.string)
+        (Decode.field "description" (Decode.nullable Decode.string))
+        (Decode.field "rules" (Decode.list securityGroupRuleTemplateDecoder))
+
+
+securityGroupRuleTemplateDecoder : Decode.Decoder SecurityGroupRuleTemplate
+securityGroupRuleTemplateDecoder =
+    Decode.succeed
+        SecurityGroupRuleTemplate
+        |> Pipeline.required "ethertype" (Decode.string |> Decode.map stringToSecurityGroupRuleEthertype)
+        |> Pipeline.required "direction" (Decode.string |> Decode.map decodeDirection)
+        |> Pipeline.optional "protocol" (Decode.nullable (Decode.string |> Decode.map stringToSecurityGroupRuleProtocol)) Nothing
+        |> Pipeline.optional "port_range_min" (Decode.nullable Decode.int) Nothing
+        |> Pipeline.optional "port_range_max" (Decode.nullable Decode.int) Nothing
+        |> Pipeline.optional "remote_ip_prefix" (Decode.nullable Decode.string) Nothing
+        |> Pipeline.optional "remote_group_id" (Decode.nullable Decode.string) Nothing
+        |> Pipeline.optional "description" (Decode.nullable Decode.string) Nothing
 
 
 metadataFilterDecoder : Decode.Decoder HelperTypes.MetadataFilter

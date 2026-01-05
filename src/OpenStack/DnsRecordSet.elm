@@ -1,16 +1,30 @@
-module OpenStack.DnsRecordSet exposing (DnsRecordSet, RecordType, addressToRecord, fromStringToRecordType)
+module OpenStack.DnsRecordSet exposing
+    ( DnsRecordSet
+    , DnsZone
+    , RecordType(..)
+    , fromStringToRecordType
+    , lookupRecordsByAddress
+    , recordTypeToString
+    )
 
-import List.Extra
 import OpenStack.HelperTypes
 import Set
 
 
 type alias DnsRecordSet =
-    { id : OpenStack.HelperTypes.Uuid
+    { zone_id : OpenStack.HelperTypes.Uuid
+    , zone_name : String
+    , id : OpenStack.HelperTypes.Uuid
     , name : String
     , type_ : RecordType
     , ttl : Maybe Int
     , records : Set.Set String
+    }
+
+
+type alias DnsZone =
+    { zone_id : OpenStack.HelperTypes.Uuid
+    , zone_name : String
     }
 
 
@@ -19,31 +33,62 @@ type RecordType
     | PTRRecord
     | SOARecord
     | NSRecord
+    | CNAMERecord
+    | TXTRecord
+    | UnsupportedRecordType String
 
 
-fromStringToRecordType : String -> Result String RecordType
-fromStringToRecordType recordSet =
-    case recordSet of
+fromStringToRecordType : String -> RecordType
+fromStringToRecordType record =
+    case record of
         "A" ->
-            Ok ARecord
+            ARecord
 
         "PTR" ->
-            Ok PTRRecord
+            PTRRecord
 
         "SOA" ->
-            Ok SOARecord
+            SOARecord
 
         "NS" ->
-            Ok NSRecord
+            NSRecord
+
+        "CNAME" ->
+            CNAMERecord
+
+        "TXT" ->
+            TXTRecord
 
         _ ->
-            Err (recordSet ++ " is not valid")
+            UnsupportedRecordType record
 
 
-addressToRecord : List DnsRecordSet -> String -> Maybe DnsRecordSet
-addressToRecord dnsRecordSets address =
+recordTypeToString : RecordType -> String
+recordTypeToString type_ =
+    case type_ of
+        ARecord ->
+            "A"
+
+        PTRRecord ->
+            "PTR"
+
+        SOARecord ->
+            "SOA"
+
+        NSRecord ->
+            "NS"
+
+        CNAMERecord ->
+            "CNAME"
+
+        TXTRecord ->
+            "TXT"
+
+        UnsupportedRecordType str ->
+            str
+
+
+lookupRecordsByAddress : List DnsRecordSet -> String -> List DnsRecordSet
+lookupRecordsByAddress dnsRecordSets address =
     dnsRecordSets
-        |> List.Extra.find
-            (\{ records } ->
-                records |> Set.toList |> List.any (\z -> z == address)
-            )
+        |> List.filter (.records >> Set.member address)

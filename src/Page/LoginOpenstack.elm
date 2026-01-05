@@ -3,6 +3,7 @@ module Page.LoginOpenstack exposing (EntryType, Model, Msg, defaultCreds, header
 import Element
 import Element.Font as Font
 import Element.Input as Input
+import Helpers.String
 import OpenStack.OpenRc
 import OpenStack.Types as OSTypes
 import Style.Helpers as SH
@@ -38,7 +39,6 @@ type Msg
     | GotSelectCredsInput
     | GotProcessOpenRc
     | SharedMsg SharedMsg.SharedMsg
-    | NoOp
 
 
 init : Maybe OSTypes.OpenstackLogin -> Model
@@ -106,9 +106,6 @@ update msg _ model =
 
         SharedMsg sharedMsg ->
             ( model, Cmd.none, sharedMsg )
-
-        NoOp ->
-            ( model, Cmd.none, SharedMsg.NoOp )
 
 
 headerView : View.Types.Context -> Element.Element msg
@@ -206,7 +203,7 @@ loginOpenstackCredsEntry context model allCredsEntered =
     in
     Element.column
         (VH.formContainer ++ [ Element.spacing spacer.px16 ])
-        [ Element.el [] (Element.text "Enter your credentials")
+        [ Element.el [] (Element.text <| "Enter your " ++ Helpers.String.pluralize context.localization.credential)
         , textField
             creds.authUrl
             "OS_AUTH_URL e.g. https://mycloud.net:5000/v3"

@@ -1,22 +1,24 @@
 module Page.ShareList exposing (Model, Msg, init, update, view)
 
-import Dict
 import Element
 import Element.Font as Font
 import FeatherIcons
 import FormatNumber.Locales exposing (Decimals(..))
 import Helpers.Formatting exposing (Unit(..), humanNumber)
 import Helpers.GetterSetters as GetterSetters
-import Helpers.ResourceList exposing (creationTimeFilterOptions, listItemColumnAttribs, onCreationTimeFilter)
+import Helpers.Helpers exposing (lookupUsername)
+import Helpers.ResourceList exposing (creationTimeFilterOptions, creatorFilterOptions, listItemColumnAttribs, onCreationTimeFilter)
 import Helpers.String
-import OpenStack.Types as OSTypes
+import OpenStack.Types as OSTypes exposing (ShareStatus(..))
 import Page.QuotaUsage
 import Route
+import Set
 import Style.Helpers as SH
 import Style.Widgets.DataList as DataList
 import Style.Widgets.HumanTime exposing (relativeTimeElement)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
+import Style.Widgets.Uuid exposing (uuidLabel)
 import Time
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg
@@ -34,15 +36,16 @@ type Msg
     = NoOp
     | DataListMsg DataList.Msg
     | SharedMsg SharedMsg.SharedMsg
+    | GotDeleteConfirm OSTypes.ShareUuid
 
 
-init : Bool -> Model
-init showHeading =
-    Model showHeading (DataList.init <| DataList.getDefaultFilterOptions (filters (Time.millisToPosix 0)))
+init : Project -> Bool -> Model
+init project showHeading =
+    Model showHeading (DataList.init <| DataList.getDefaultFilterOptions (filters project (Time.millisToPosix 0)))
 
 
-update : Msg -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
-update msg model =
+update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
+update msg project model =
     case msg of
         NoOp ->
             ( model, Cmd.none, SharedMsg.NoOp )
@@ -52,6 +55,13 @@ update msg model =
 
         DataListMsg dataListMsg ->
             ( { model | dataListModel = DataList.update dataListMsg model.dataListModel }, Cmd.none, SharedMsg.NoOp )
+
+        GotDeleteConfirm shareUuid ->
+            ( model
+            , Cmd.none
+            , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
+                SharedMsg.RequestDeleteShare shareUuid
+            )
 
 
 view : View.Types.Context -> Project -> Time.Posix -> Model -> Element.Element Msg
@@ -67,13 +77,13 @@ view context project currentTime model =
                 []
                 (shareView context project currentTime)
                 (shareRecords project shares)
-                []
+                [ deletionAction context project ]
                 (Just
-                    { filters = filters currentTime
+                    { filters = filters project currentTime
                     , dropdownMsgMapper = \dropdownId -> SharedMsg <| SharedMsg.TogglePopover dropdownId
                     }
                 )
-                Nothing
+                (Just <| searchByNameUuidFilter context)
     in
     Element.column
         (VH.contentContainer ++ [ Element.spacing spacer.px32 ])
@@ -109,16 +119,13 @@ shareRecords project shares =
     let
         creator : OSTypes.Share -> String
         creator share =
-            if share.userUuid == project.auth.user.uuid then
-                "me"
-
-            else
-                "other user"
+            lookupUsername project share.userUuid
+                |> Maybe.withDefault "unknown user"
     in
     List.map
         (\share ->
             { id = share.uuid
-            , selectable = False
+            , selectable = True
             , share = share
             , creator = creator share
             }
@@ -126,7 +133,35 @@ shareRecords project shares =
         shares
 
 
-shareView : View.Types.Context -> Project -> Time.Posix -> ShareRecord -> Element.Element msg
+deletionAction :
+    View.Types.Context
+    -> Project
+    -> Set.Set OSTypes.ShareUuid
+    -> Element.Element Msg
+deletionAction context project shareUuids =
+    VH.deleteBulkResourcePopconfirm
+        context
+        project
+        (SharedMsg << SharedMsg.TogglePopover)
+        { count = Set.size shareUuids, word = context.localization.share }
+        "shareListDeletePopconfirm"
+        (Just <|
+            SharedMsg <|
+                (shareUuids
+                    |> Set.toList
+                    |> List.map
+                        (\uuid ->
+                            SharedMsg.ProjectMsg
+                                (GetterSetters.projectIdentifier project)
+                                (SharedMsg.RequestDeleteShare uuid)
+                        )
+                    |> SharedMsg.Batch
+                )
+        )
+        (Just NoOp)
+
+
+shareView : View.Types.Context -> Project -> Time.Posix -> ShareRecord -> Element.Element Msg
 shareView context project currentTime shareRecord =
     let
         { locale } =
@@ -168,31 +203,73 @@ shareView context project currentTime shareRecord =
 
         accented =
             Element.el [ Font.color accentColor ]
+
+        actions =
+            case shareRecord.share.status of
+                ShareDeleting ->
+                    Text.text Text.Body [ Font.italic ] "Deleting..."
+
+                ShareErrorDeleting ->
+                    Text.text Text.Body [ Font.italic ] ("Could not delete " ++ context.localization.share ++ ".")
+
+                ShareAvailable ->
+                    VH.deleteResourcePopconfirm
+                        context
+                        project
+                        (SharedMsg << SharedMsg.TogglePopover)
+                        { uuid = shareRecord.id, word = context.localization.share }
+                        "shareListDeletePopconfirm"
+                        (Just <| GotDeleteConfirm shareRecord.id)
+                        (Just NoOp)
+
+                _ ->
+                    Element.none
     in
     Element.column
         (listItemColumnAttribs context.palette)
         [ Element.row [ Element.spacing spacer.px12, Element.width Element.fill ]
-            [ shareLink
-            , Element.el [ Element.alignRight ]
-                shareSize
+            [ Element.column [ Element.spacing spacer.px12, Element.width Element.fill ]
+                [ shareLink
+                ]
+            , Element.el [ Element.alignRight, Element.alignTop ]
+                actions
             ]
-        , Element.el [ Element.spacing spacer.px8, Element.width Element.fill ] <|
-            Element.paragraph [ Element.spacing spacer.px8, Element.width Element.fill ]
+        , Element.row [ Element.spacing spacer.px8, Element.width Element.fill ]
+            [ shareSize
+            , Element.text "·"
+            , Element.paragraph [ Element.spacing spacer.px8 ]
                 [ Element.text "created "
                 , accented (relativeTimeElement currentTime shareRecord.share.createdAt)
                 , Element.text " by "
                 , accented (Element.text shareRecord.creator)
                 ]
+            , uuidLabel context.palette shareRecord.id
+            ]
         ]
 
 
-filters : Time.Posix -> List (DataList.Filter { record | share : OSTypes.Share, creator : String })
-filters currentTime =
+searchByNameUuidFilter : View.Types.Context -> DataList.SearchFilter { record | share : OSTypes.Share }
+searchByNameUuidFilter context =
+    { label = "Search:"
+    , placeholder =
+        Just <|
+            "Enter "
+                ++ context.localization.share
+                ++ " name or UUID"
+    , textToSearch = \record -> Maybe.withDefault "" record.share.name ++ " " ++ record.id
+    }
+
+
+filters :
+    Project
+    -> Time.Posix
+    -> List (DataList.Filter { record | share : OSTypes.Share, creator : String })
+filters project currentTime =
     [ { id = "creator"
       , label = "Creator"
       , chipPrefix = "Created by "
-      , filterOptions = \_ -> [ "me", "other user" ] |> List.map (\creator -> ( creator, creator )) |> Dict.fromList
-      , filterTypeAndDefaultValue = DataList.UniselectOption DataList.UniselectNoChoice
+      , filterOptions = \records -> creatorFilterOptions project (List.map .creator records)
+      , filterTypeAndDefaultValue = DataList.UniselectOption (DataList.UniselectHasChoice project.auth.user.name)
       , onFilter = \optionValue share -> share.creator == optionValue
       }
     , { id = "creationTime"

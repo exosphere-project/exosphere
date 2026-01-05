@@ -8,12 +8,13 @@ import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons as Icons
 import Helpers.GetterSetters as GetterSetters
-import Helpers.Helpers as Helpers
+import Helpers.Helpers as Helpers exposing (serverCreatorName)
 import Helpers.Interaction as IHelpers
 import Helpers.RemoteDataPlusPlus as RDPP
-import Helpers.String
+import Helpers.String exposing (removeEmptiness)
 import Helpers.Time
 import Helpers.Validation as Validation
+import List.Extra
 import OpenStack.DnsRecordSet
 import OpenStack.ServerActions as ServerActions
 import OpenStack.ServerNameValidator exposing (serverNameValidator)
@@ -25,22 +26,23 @@ import Route
 import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.Alert as Alert
-import Style.Widgets.Button
-import Style.Widgets.Card
+import Style.Widgets.Button as Button
 import Style.Widgets.CopyableText exposing (copyableText)
+import Style.Widgets.Grid exposing (scrollableCell)
 import Style.Widgets.Icon as Icon
-import Style.Widgets.IconButton
 import Style.Widgets.Link as Link
 import Style.Widgets.Popover.Popover exposing (popover, popoverStyleDefaults)
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.Spacer exposing (spacer)
+import Style.Widgets.StatusBadge as StatusBadge
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
+import Style.Widgets.Uuid exposing (copyableUuid)
 import Time
-import Types.HelperTypes exposing (FloatingIpOption(..), ServerResourceQtys, UserAppProxyHostname)
+import Types.HelperTypes exposing (FloatingIpOption(..), ProjectIdentifier, ServerResourceQtys, UserAppProxyHostname)
 import Types.Interaction as ITypes
 import Types.Project exposing (Project)
-import Types.Server exposing (ExoSetupStatus(..), Server, ServerOrigin(..))
+import Types.Server exposing (ExoFeature(..), ExoSetupStatus(..), Server, ServerOrigin(..))
 import Types.ServerResourceUsage
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH exposing (edges)
@@ -56,6 +58,7 @@ type alias Model =
     , serverActionNamePendingConfirmation : Maybe String
     , serverNamePendingConfirmation : Maybe String
     , retainFloatingIpsWhenDeleting : Bool
+    , deleteFloatingIpsWhenShelving : Bool
     }
 
 
@@ -74,12 +77,12 @@ type PassphraseVisibility
 
 
 type Msg
-    = GotShowVerboseStatus Bool
-    | GotPassphraseVisibility PassphraseVisibility
+    = GotPassphraseVisibility PassphraseVisibility
     | GotIpInfoLevel IpInfoLevel
     | GotServerActionNamePendingConfirmation (Maybe String)
     | GotServerNamePendingConfirmation (Maybe String)
     | GotRetainFloatingIpsWhenDeleting Bool
+    | GotDeleteFloatingIpsWhenShelving Bool
     | GotSetServerName String
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
@@ -94,15 +97,13 @@ init serverUuid =
     , serverActionNamePendingConfirmation = Nothing
     , serverNamePendingConfirmation = Nothing
     , retainFloatingIpsWhenDeleting = False
+    , deleteFloatingIpsWhenShelving = True
     }
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
 update msg project model =
     case msg of
-        GotShowVerboseStatus shown ->
-            ( { model | verboseStatus = shown }, Cmd.none, SharedMsg.NoOp )
-
         GotPassphraseVisibility visibility ->
             ( { model | passphraseVisibility = visibility }, Cmd.none, SharedMsg.NoOp )
 
@@ -117,6 +118,9 @@ update msg project model =
 
         GotRetainFloatingIpsWhenDeleting retain ->
             ( { model | retainFloatingIpsWhenDeleting = retain }, Cmd.none, SharedMsg.NoOp )
+
+        GotDeleteFloatingIpsWhenShelving delete ->
+            ( { model | deleteFloatingIpsWhenShelving = delete }, Cmd.none, SharedMsg.NoOp )
 
         GotSetServerName validName ->
             ( model
@@ -140,18 +144,28 @@ popoverMsgMapper popoverId =
 
 view : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> Model -> Element.Element Msg
 view context project currentTimeAndZone model =
-    {- Attempt to look up a given server UUID; if a Server type is found, call rendering function serverDetail_ -}
-    case GetterSetters.serverLookup project model.serverUuid of
-        Just server ->
-            serverDetail_ context project currentTimeAndZone model server
+    let
+        renderHasServers servers =
+            let
+                maybeServer =
+                    servers |> List.Extra.find (\s -> s.osProps.uuid == model.serverUuid)
+            in
+            case maybeServer of
+                Just server ->
+                    serverDetail_ context project currentTimeAndZone model server
 
-        Nothing ->
-            Element.text <|
-                String.join " "
-                    [ "No"
-                    , context.localization.virtualComputer
-                    , "found"
-                    ]
+                Nothing ->
+                    Element.text <|
+                        String.join " "
+                            [ "No"
+                            , context.localization.virtualComputer
+                            , "found"
+                            ]
+    in
+    VH.renderRDPP context
+        project.servers
+        context.localization.virtualComputer
+        renderHasServers
 
 
 serverDetail_ : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> Model -> Server -> Element.Element Msg
@@ -163,15 +177,8 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
 
         whenCreated =
             let
-                timeDistanceStr =
-                    DateFormat.Relative.relativeTime currentTime details.created
-
-                createdTimeText =
-                    let
-                        createdTimeFormatted =
-                            Helpers.Time.humanReadableDateAndTime details.created
-                    in
-                    Element.text ("Created on: " ++ createdTimeFormatted)
+                { timeDistanceStr, createdTimeText } =
+                    VH.whenCreatedText { currentTime = currentTime, createdAt = details.created }
 
                 setupTimeText =
                     case server.exoProps.serverOrigin of
@@ -196,36 +203,18 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                             Element.none
 
                 toggleTipContents =
-                    Element.column [] [ createdTimeText, setupTimeText ]
+                    Element.column [ Element.spacing spacer.px4 ] [ createdTimeText, setupTimeText ]
             in
-            Element.row
-                [ Element.spacing spacer.px4 ]
-                [ Element.text timeDistanceStr
-                , Style.Widgets.ToggleTip.toggleTip
-                    context
-                    popoverMsgMapper
-                    (Helpers.String.hyphenate
-                        [ "createdTimeTip"
-                        , project.auth.project.uuid
-                        , server.osProps.uuid
-                        ]
-                    )
-                    toggleTipContents
-                    ST.PositionBottomLeft
-                ]
+            VH.whenCreatedToggleTip
+                context
+                project
+                popoverMsgMapper
+                timeDistanceStr
+                server.osProps
+                toggleTipContents
 
         creatorName =
-            case server.exoProps.serverOrigin of
-                ServerFromExo exoOriginProps ->
-                    case exoOriginProps.exoCreatorUsername of
-                        Just creatorName_ ->
-                            creatorName_
-
-                        Nothing ->
-                            "unknown user"
-
-                _ ->
-                    "unknown user"
+            serverCreatorName project server
 
         maybeFlavor =
             GetterSetters.flavorLookup project details.flavorId
@@ -245,11 +234,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                                     Just vgpuQty ->
                                         let
                                             desc =
-                                                if vgpuQty == 1 then
-                                                    "virtual GPU"
-
-                                                else
-                                                    "virtual GPUs"
+                                                "virtual GPU" |> Helpers.String.pluralizeCount vgpuQty
                                         in
                                         Element.text
                                             (String.fromInt vgpuQty ++ " " ++ desc)
@@ -286,57 +271,40 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                 Nothing ->
                     Element.text ("Unknown " ++ context.localization.virtualComputerHardwareConfig)
 
-        imageText =
+        imageEl =
             let
-                maybeImageName =
-                    GetterSetters.imageLookup
-                        project
-                        details.imageUuid
-                        |> Maybe.map .name
-                        |> (\maybeName -> VH.resourceName maybeName details.imageUuid)
-                        |> Just
+                maybeImage =
+                    GetterSetters.imageLookup project details.imageUuid
 
-                maybeVolBackedImageName =
-                    let
-                        vols =
-                            RDPP.withDefault [] project.volumes
-                    in
-                    GetterSetters.getBootVolume vols server.osProps.uuid
+                maybeBootVolumeImageData =
+                    GetterSetters.getBootVolume project server.osProps.uuid
                         |> Maybe.andThen .imageMetadata
-                        |> Maybe.map (\data -> VH.resourceName (Just data.name) data.uuid)
-            in
-            case maybeImageName of
-                Just name ->
-                    name
 
-                Nothing ->
-                    case maybeVolBackedImageName of
-                        Just name_ ->
-                            name_
+                staticUuid uuid =
+                    Text.text Text.Small
+                        [ Element.paddingXY spacer.px4 0
+                        , Text.fontFamily Text.Mono
+                        , Element.alignBottom
+                        ]
+                        uuid
+
+                nameOrUuid imageData =
+                    case Just imageData.name |> removeEmptiness of
+                        Just name ->
+                            Text.body name
 
                         Nothing ->
-                            "N/A"
+                            staticUuid imageData.uuid
+            in
+            case ( maybeBootVolumeImageData, maybeImage ) of
+                ( Just bootVolumeImageData, _ ) ->
+                    nameOrUuid bootVolumeImageData
 
-        tile : List (Element.Element Msg) -> List (Element.Element Msg) -> Element.Element Msg
-        tile headerContents contents =
-            Style.Widgets.Card.exoCard context.palette
-                (Element.column
-                    [ Element.width Element.fill
-                    , Element.padding spacer.px16
-                    , Element.spacing spacer.px16
-                    ]
-                    (List.concat
-                        [ [ Element.row
-                                (Text.subheadingStyleAttrs context.palette
-                                    ++ Text.typographyAttrs Text.Large
-                                    ++ [ Border.width 0 ]
-                                )
-                                headerContents
-                          ]
-                        , contents
-                        ]
-                    )
-                )
+                ( _, Just image ) ->
+                    nameOrUuid image
+
+                _ ->
+                    staticUuid details.imageUuid
 
         serverDetailTiles =
             let
@@ -374,7 +342,8 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                     else
                         Element.none
             in
-            [ tile
+            [ VH.tile
+                context
                 [ Icon.featherIcon [] Icons.monitor
                 , Element.text "Interactions"
                 ]
@@ -385,9 +354,10 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                     currentTime
                     (GetterSetters.getUserAppProxyFromContext project context)
                 ]
-            , tile
+            , VH.tile
+                context
                 [ Icon.featherIcon [] Icons.key
-                , Element.text "Credentials"
+                , Element.text (context.localization.credential |> Helpers.String.pluralize |> Helpers.String.toTitleCase)
                 ]
                 [ renderIpAddresses
                     context
@@ -406,21 +376,50 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                     )
                     (Element.text (Maybe.withDefault "(none)" details.keypairName))
                 ]
-            , tile
+            , VH.tile
+                context
                 [ Icon.featherIcon [] Icons.hardDrive
                 , context.localization.blockDevice
                     |> Helpers.String.pluralize
                     |> Helpers.String.toTitleCase
                     |> Element.text
                 ]
-                [ serverVolumes context project server
+                [ renderServerVolumes context project server
                 , Element.el [ Element.centerX ] attachButton
                 ]
-            , tile
+            , if context.experimentalFeaturesEnabled then
+                VH.tile
+                    context
+                    [ Icon.featherIcon [] Icons.shield
+                    , context.localization.securityGroup
+                        |> Helpers.String.pluralize
+                        |> Helpers.String.toTitleCase
+                        |> Element.text
+                    , Element.link [ Element.alignRight ]
+                        { url =
+                            Route.toUrl context.urlPathPrefix <|
+                                Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
+                                    Route.ServerSecurityGroups server.osProps.uuid
+                        , label =
+                            Widget.button
+                                (SH.materialStyle context.palette).button
+                                { text = "Edit"
+                                , icon = Icon.sizedFeatherIcon 16 Icons.edit3
+                                , onPress =
+                                    Just NoOp
+                                }
+                        }
+                    ]
+                    [ renderSecurityGroups context project server ]
+
+              else
+                Element.none
+            , VH.tile
+                context
                 [ Icon.history (SH.toElementColor context.palette.neutral.text.default) 20
                 , Element.text "Action History"
                 ]
-                [ serverEventHistory
+                [ renderServerEventHistory
                     context
                     project
                     server
@@ -458,24 +457,23 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                 , serverActionsDropdown context project model server
                 ]
             ]
-        , tile
+        , VH.tile
+            context
             [ Icon.featherIcon [] Icons.cpu
             , Element.text "Info"
             , Element.el
-                [ Text.fontSize Text.Tiny
+                [ Text.fontSize Text.Small
                 , Font.color (SH.toElementColor context.palette.neutral.text.subdued)
-                , Element.alignBottom
+                , Element.paddingXY spacer.px12 0
+                , Text.fontFamily Text.Mono
                 ]
-                (copyableText context.palette
-                    [ Element.width (Element.shrink |> Element.minimum 240) ]
-                    server.osProps.uuid
-                )
+                (copyableUuid context.palette server.osProps.uuid)
             ]
             [ VH.createdAgoByFromSize
                 context
                 ( "created", whenCreated )
                 (Just ( "user", creatorName ))
-                (Just ( context.localization.staticRepresentationOfBlockDeviceContents, imageText ))
+                (Just ( context.localization.staticRepresentationOfBlockDeviceContents, imageEl ))
                 (Just ( context.localization.virtualComputerHardwareConfig, flavorContents ))
                 server.osProps
                 project
@@ -483,7 +481,8 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
             ]
         , serverFaultView
         , if List.member details.openstackStatus [ OSTypes.ServerActive, OSTypes.ServerVerifyResize ] then
-            tile
+            VH.tile
+                context
                 [ Icon.featherIcon [] Icons.activity
                 , Element.text "Resource Usage"
                 ]
@@ -499,13 +498,163 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
         ]
 
 
+serverNameEditView : View.Types.Context -> Project -> Time.Posix -> Model -> Server -> Element.Element Msg
+serverNameEditView context project currentTime model server =
+    let
+        serverNamePendingConfirmation =
+            model.serverNamePendingConfirmation
+                |> Maybe.withDefault ""
+
+        invalidNameReasons =
+            serverNameValidator
+                (Just context.localization.virtualComputer)
+                serverNamePendingConfirmation
+
+        renderInvalidNameReasons =
+            case invalidNameReasons of
+                Just reasons ->
+                    List.map Element.text reasons
+                        |> List.map List.singleton
+                        |> List.map (Element.paragraph [])
+                        |> Element.column
+                            (popoverStyleDefaults context.palette
+                                ++ [ Font.color (SH.toElementColor context.palette.danger.textOnNeutralBG)
+                                   , Text.fontSize Text.Small
+                                   , Element.alignRight
+                                   , Element.moveDown 6
+                                   , Element.spacing spacer.px12
+                                   , Element.padding spacer.px16
+                                   ]
+                            )
+
+                Nothing ->
+                    Element.none
+
+        renderServerNameExists =
+            if
+                Validation.serverNameExists project serverNamePendingConfirmation
+                    -- the server's own name currently exists, of course:
+                    && server.osProps.name
+                    /= Maybe.withDefault "" model.serverNamePendingConfirmation
+            then
+                let
+                    message =
+                        Element.row []
+                            [ Element.paragraph
+                                [ Element.width (Element.fill |> Element.minimum 300)
+                                , Element.spacing spacer.px8
+                                , Font.regular
+                                , Font.color <| SH.toElementColor <| context.palette.warning.textOnNeutralBG
+                                ]
+                                [ Element.text <|
+                                    Validation.resourceNameExistsMessage context.localization.virtualComputer context.localization.unitOfTenancy
+                                ]
+                            ]
+
+                    suggestedNames =
+                        Validation.resourceNameSuggestions currentTime project serverNamePendingConfirmation
+                            |> List.filter (\n -> not (Validation.serverNameExists project n))
+
+                    content =
+                        Element.column []
+                            (message
+                                :: List.map
+                                    (\name ->
+                                        Element.row [ Element.paddingEach { edges | top = spacer.px12 } ]
+                                            [ Button.default
+                                                context.palette
+                                                { text = name
+                                                , onPress = Just <| GotServerNamePendingConfirmation (Just name)
+                                                }
+                                            ]
+                                    )
+                                    suggestedNames
+                            )
+                in
+                Style.Widgets.ToggleTip.warningToggleTip
+                    context
+                    (\serverRenameAlreadyExistsToggleTipId -> SharedMsg <| SharedMsg.TogglePopover serverRenameAlreadyExistsToggleTipId)
+                    "serverRenameAlreadyExistsToggleTip"
+                    content
+                    ST.PositionRightTop
+
+            else
+                Element.none
+
+        rowStyle =
+            [ Element.spacing spacer.px8
+            , Element.width Element.fill
+            ]
+
+        cancelOnPress =
+            Just <| GotServerNamePendingConfirmation Nothing
+
+        saveOnPress =
+            case ( invalidNameReasons, model.serverNamePendingConfirmation ) of
+                ( Nothing, Just validName ) ->
+                    if validName == server.osProps.name then
+                        cancelOnPress
+
+                    else
+                        Just <| GotSetServerName validName
+
+                ( _, _ ) ->
+                    Nothing
+    in
+    Element.row rowStyle
+        [ Element.el
+            [ Element.below renderInvalidNameReasons
+            ]
+            (Input.text
+                (VH.inputItemAttributes context.palette
+                    ++ [ Element.width <| Element.minimum 300 Element.fill ]
+                )
+                { text = model.serverNamePendingConfirmation |> Maybe.withDefault ""
+                , placeholder =
+                    Just
+                        (Input.placeholder
+                            []
+                            (Element.text <|
+                                String.join " "
+                                    [ "My"
+                                    , context.localization.virtualComputer
+                                        |> Helpers.String.toTitleCase
+                                    ]
+                            )
+                        )
+                , onChange = \name -> GotServerNamePendingConfirmation <| Just name
+                , label = Input.labelHidden "Name"
+                }
+            )
+        , Widget.iconButton
+            (SH.materialStyle context.palette).button
+            { text = "Save"
+            , icon = Icon.sizedFeatherIcon 16 Icons.save
+            , onPress =
+                saveOnPress
+            }
+        , Widget.iconButton
+            (SH.materialStyle context.palette).button
+            { text = "Cancel"
+            , icon = Icon.sizedFeatherIcon 16 Icons.xCircle
+            , onPress =
+                cancelOnPress
+            }
+        , renderServerNameExists
+        ]
+
+
 serverNameView : View.Types.Context -> Project -> Time.Posix -> Model -> Server -> Element.Element Msg
 serverNameView context project currentTime model server =
-    let
-        name_ =
-            VH.resourceName (Just server.osProps.name) server.osProps.uuid
+    case model.serverNamePendingConfirmation of
+        Just _ ->
+            serverNameEditView context project currentTime model server
 
-        serverNameViewPlain =
+        Nothing ->
+            let
+                name_ =
+                    VH.resourceName (Just server.osProps.name) server.osProps.uuid
+            in
             Element.row
                 [ Element.spacing spacer.px8 ]
                 [ Text.text Text.ExtraLarge [] name_
@@ -517,158 +666,6 @@ serverNameView context project currentTime model server =
                         Just <| GotServerNamePendingConfirmation (Just name_)
                     }
                 ]
-
-        serverNameViewEdit =
-            let
-                serverNamePendingConfirmation =
-                    model.serverNamePendingConfirmation
-                        |> Maybe.withDefault ""
-
-                invalidNameReasons =
-                    serverNameValidator
-                        (Just context.localization.virtualComputer)
-                        serverNamePendingConfirmation
-
-                renderInvalidNameReasons =
-                    case invalidNameReasons of
-                        Just reasons ->
-                            List.map Element.text reasons
-                                |> List.map List.singleton
-                                |> List.map (Element.paragraph [])
-                                |> Element.column
-                                    (popoverStyleDefaults context.palette
-                                        ++ [ Font.color (SH.toElementColor context.palette.danger.textOnNeutralBG)
-                                           , Text.fontSize Text.Small
-                                           , Element.alignRight
-                                           , Element.moveDown 6
-                                           , Element.spacing spacer.px12
-                                           , Element.padding spacer.px16
-                                           ]
-                                    )
-
-                        Nothing ->
-                            Element.none
-
-                renderServerNameExists =
-                    if
-                        Validation.serverNameExists project serverNamePendingConfirmation
-                            -- the server's own name currently exists, of course:
-                            && server.osProps.name
-                            /= Maybe.withDefault "" model.serverNamePendingConfirmation
-                    then
-                        let
-                            message =
-                                Element.row []
-                                    [ Element.paragraph
-                                        [ Element.width (Element.fill |> Element.minimum 300)
-                                        , Element.spacing spacer.px8
-                                        , Font.regular
-                                        , Font.color <| SH.toElementColor <| context.palette.warning.textOnNeutralBG
-                                        ]
-                                        [ Element.text <|
-                                            Validation.resourceNameExistsMessage context.localization.virtualComputer context.localization.unitOfTenancy
-                                        ]
-                                    ]
-
-                            suggestedNames =
-                                Validation.resourceNameSuggestions currentTime project serverNamePendingConfirmation
-                                    |> List.filter (\n -> not (Validation.serverNameExists project n))
-
-                            content =
-                                Element.column []
-                                    (message
-                                        :: List.map
-                                            (\name ->
-                                                Element.row [ Element.paddingEach { edges | top = spacer.px12 } ]
-                                                    [ Style.Widgets.Button.default
-                                                        context.palette
-                                                        { text = name
-                                                        , onPress = Just <| GotServerNamePendingConfirmation (Just name)
-                                                        }
-                                                    ]
-                                            )
-                                            suggestedNames
-                                    )
-                        in
-                        Style.Widgets.ToggleTip.warningToggleTip
-                            context
-                            (\serverRenameAlreadyExistsToggleTipId -> SharedMsg <| SharedMsg.TogglePopover serverRenameAlreadyExistsToggleTipId)
-                            "serverRenameAlreadyExistsToggleTip"
-                            content
-                            ST.PositionRightTop
-
-                    else
-                        Element.none
-
-                rowStyle =
-                    { containerRow =
-                        [ Element.spacing spacer.px8
-                        , Element.width Element.fill
-                        ]
-                    , element = []
-                    , ifFirst = [ Element.width <| Element.minimum 200 <| Element.fill ]
-                    , ifLast = []
-                    , otherwise = []
-                    }
-
-                saveOnPress =
-                    case ( invalidNameReasons, model.serverNamePendingConfirmation ) of
-                        ( Nothing, Just validName ) ->
-                            Just <|
-                                GotSetServerName validName
-
-                        ( _, _ ) ->
-                            Nothing
-            in
-            Widget.row
-                rowStyle
-                [ Element.el
-                    [ Element.below renderInvalidNameReasons
-                    ]
-                    (Input.text
-                        (VH.inputItemAttributes context.palette
-                            ++ [ Element.width <| Element.minimum 300 Element.fill ]
-                        )
-                        { text = model.serverNamePendingConfirmation |> Maybe.withDefault ""
-                        , placeholder =
-                            Just
-                                (Input.placeholder
-                                    []
-                                    (Element.text <|
-                                        String.join " "
-                                            [ "My"
-                                            , context.localization.virtualComputer
-                                                |> Helpers.String.toTitleCase
-                                            ]
-                                    )
-                                )
-                        , onChange = \name -> GotServerNamePendingConfirmation <| Just name
-                        , label = Input.labelHidden "Name"
-                        }
-                    )
-                , Widget.iconButton
-                    (SH.materialStyle context.palette).button
-                    { text = "Save"
-                    , icon = Icon.sizedFeatherIcon 16 Icons.save
-                    , onPress =
-                        saveOnPress
-                    }
-                , Widget.iconButton
-                    (SH.materialStyle context.palette).button
-                    { text = "Cancel"
-                    , icon = Icon.sizedFeatherIcon 16 Icons.xCircle
-                    , onPress =
-                        Just <| GotServerNamePendingConfirmation Nothing
-                    }
-                , renderServerNameExists
-                ]
-    in
-    case model.serverNamePendingConfirmation of
-        Just _ ->
-            serverNameViewEdit
-
-        Nothing ->
-            serverNameViewPlain
 
 
 passphraseVulnWarning : View.Types.Context -> Server -> Element.Element Msg
@@ -728,7 +725,7 @@ serverStatus context project server =
             server.osProps.details
 
         statusBadge =
-            VH.serverStatusBadge context.palette server
+            VH.serverStatusBadge context.palette StatusBadge.Normal server
 
         lockStatus : OSTypes.ServerLockStatus -> Element.Element Msg
         lockStatus lockStatus_ =
@@ -819,15 +816,19 @@ interactions context project server currentTime tlsReverseProxyHostname =
                         context
                         currentTime
                         tlsReverseProxyHostname
+            in
+            case interactionStatus of
+                ITypes.Hidden ->
+                    Element.none
 
-                ( statusWord, statusColor ) =
-                    IHelpers.interactionStatusWordColor context.palette interactionStatus
-
-                interactionDetails =
-                    IHelpers.interactionDetails interaction context
-
-                interactionToggleTip =
+                _ ->
                     let
+                        interactionDetails =
+                            IHelpers.interactionDetails interaction context
+
+                        ( statusWord, statusColor ) =
+                            IHelpers.interactionStatusWordColor context.palette interactionStatus
+
                         status =
                             Element.row []
                                 [ Text.strong "Status: "
@@ -877,18 +878,6 @@ interactions context project server currentTime tlsReverseProxyHostname =
                                 , interactionDetails.name
                                 ]
                     in
-                    Style.Widgets.ToggleTip.toggleTip
-                        context
-                        popoverMsgMapper
-                        toggleTipId
-                        contents
-                        ST.PositionRightBottom
-            in
-            case interactionStatus of
-                ITypes.Hidden ->
-                    Element.none
-
-                _ ->
                     Element.row
                         [ Element.spacing spacer.px12 ]
                         [ Icon.roundRect statusColor 14
@@ -906,7 +895,7 @@ interactions context project server currentTime tlsReverseProxyHostname =
                                                 , bottom = 0
                                                 }
                                             ]
-                                            (interactionDetails.icon (SH.toElementColor context.palette.primary) 18)
+                                            (interactionDetails.icon 18)
                                     , onPress =
                                         case interactionStatus of
                                             ITypes.Ready url ->
@@ -928,6 +917,11 @@ interactions context project server currentTime tlsReverseProxyHostname =
                                                 , SH.toElementColor context.palette.neutral.text.default
                                                 )
 
+                                            ITypes.Warn _ _ ->
+                                                ( SH.toElementColor context.palette.neutral.icon
+                                                , SH.toElementColor context.palette.neutral.text.default
+                                                )
+
                                             _ ->
                                                 ( SH.toElementColor context.palette.neutral.icon
                                                 , SH.toElementColor context.palette.neutral.text.subdued
@@ -939,7 +933,7 @@ interactions context project server currentTime tlsReverseProxyHostname =
                                     ]
                                     [ Element.el
                                         [ Font.color iconColor ]
-                                        (interactionDetails.icon iconColor 22)
+                                        (interactionDetails.icon 22)
                                     , Element.text interactionDetails.name
                                     , case interactionStatus of
                                         ITypes.Ready text ->
@@ -949,10 +943,22 @@ interactions context project server currentTime tlsReverseProxyHostname =
                                                 , copyableText context.palette [] text
                                                 ]
 
+                                        ITypes.Warn text _ ->
+                                            Element.row
+                                                []
+                                                [ Element.text ": "
+                                                , copyableText context.palette [] text
+                                                ]
+
                                         _ ->
                                             Element.none
                                     ]
-                        , interactionToggleTip
+                        , Style.Widgets.ToggleTip.toggleTip
+                            context
+                            popoverMsgMapper
+                            toggleTipId
+                            contents
+                            ST.PositionRightBottom
                         ]
     in
     [ ITypes.GuacTerminal
@@ -999,51 +1005,43 @@ serverPassphrase context model server =
                     , onPress = Just onPressMsg
                     }
                 ]
+    in
+    case GetterSetters.getServerExouserPassphrase server.osProps.details of
+        Just passphrase ->
+            passphraseShower passphrase
 
-        passphraseHint =
-            case GetterSetters.getServerExouserPassphrase server.osProps.details of
-                Just passphrase ->
-                    passphraseShower passphrase
+        Nothing ->
+            -- TODO factor out this logic used to determine whether to display the charts as well
+            case server.exoProps.serverOrigin of
+                ServerFromExo originProps ->
+                    case originProps.exoSetupStatus.data of
+                        RDPP.DoHave ( ExoSetupWaiting, _ ) _ ->
+                            Element.text "Not available yet, check in a few minutes."
 
-                Nothing ->
-                    -- TODO factor out this logic used to determine whether to display the charts as well
-                    case server.exoProps.serverOrigin of
-                        ServerFromExo originProps ->
-                            case originProps.exoSetupStatus.data of
-                                RDPP.DoHave ( ExoSetupWaiting, _ ) _ ->
-                                    Element.text "Not available yet, check in a few minutes."
-
-                                RDPP.DoHave ( ExoSetupRunning, _ ) _ ->
-                                    Element.text "Not available yet, check in a few minutes."
-
-                                _ ->
-                                    Element.text "Not available"
+                        RDPP.DoHave ( ExoSetupRunning, _ ) _ ->
+                            Element.text "Not available yet, check in a few minutes."
 
                         _ ->
-                            Element.el
-                                [ context.palette.neutral.text.subdued
-                                    |> SH.toElementColor
-                                    |> Font.color
+                            Element.text "Not available"
+
+                _ ->
+                    Element.el
+                        [ context.palette.neutral.text.subdued
+                            |> SH.toElementColor
+                            |> Font.color
+                        ]
+                        (Element.text <|
+                            String.concat
+                                [ "Not available because "
+                                , context.localization.virtualComputer
+                                , " was not created by Exosphere"
                                 ]
-                                (Element.text <|
-                                    String.concat
-                                        [ "Not available because "
-                                        , context.localization.virtualComputer
-                                        , " was not created by Exosphere"
-                                        ]
-                                )
-    in
-    passphraseHint
+                        )
 
 
 serverActionsDropdown : View.Types.Context -> Project -> Model -> Server -> Element.Element Msg
 serverActionsDropdown context project model server =
     let
-        dropdownId =
-            [ "serverActionsDropdown", project.auth.project.uuid, server.osProps.uuid ]
-                |> List.intersperse "-"
-                |> String.concat
-
         dropdownContent closeDropdown =
             let
                 disallowedActions =
@@ -1053,7 +1051,7 @@ serverActionsDropdown context project model server =
             in
             Element.column [ Element.spacing spacer.px8 ] <|
                 List.map
-                    (renderServerActionButton context project model server closeDropdown)
+                    (renderServerAction context project model server closeDropdown)
                     (ServerActions.getAllowed
                         (Just context.localization.virtualComputer)
                         (Just context.localization.staticRepresentationOfBlockDeviceContents)
@@ -1083,6 +1081,12 @@ serverActionsDropdown context project model server =
     in
     case server.exoProps.targetOpenstackStatus of
         Nothing ->
+            let
+                dropdownId =
+                    [ "serverActionsDropdown", project.auth.project.uuid, server.osProps.uuid ]
+                        |> List.intersperse "-"
+                        |> String.concat
+            in
             popover context
                 popoverMsgMapper
                 { id = dropdownId
@@ -1098,112 +1102,202 @@ serverActionsDropdown context project model server =
             Element.none
 
 
-serverEventHistory :
+renderServerEventHistory :
     View.Types.Context
     -> Project
     -> Server
     -> Time.Posix
     -> Element.Element Msg
-serverEventHistory context project server currentTime =
-    case server.events.data of
-        RDPP.DoHave serverEvents _ ->
-            let
-                serverSetupStatus : Maybe ( String, Maybe Time.Posix )
-                serverSetupStatus =
-                    case server.exoProps.serverOrigin of
-                        ServerNotFromExo ->
+renderServerEventHistory context project server currentTime =
+    VH.renderRDPP context
+        (GetterSetters.getServerEvents project server.osProps.uuid)
+        "Action History"
+        (serverEventHistoryTable context project server currentTime)
+
+
+serverEventHistoryTable :
+    View.Types.Context
+    -> Project
+    -> Server
+    -> Time.Posix
+    -> List OSTypes.ServerEvent
+    -> Element.Element Msg
+serverEventHistoryTable context project server currentTime serverEvents =
+    let
+        serverSetupStatus : Maybe ( String, Maybe Time.Posix )
+        serverSetupStatus =
+            case server.exoProps.serverOrigin of
+                ServerNotFromExo ->
+                    Nothing
+
+                ServerFromExo exoOriginProps ->
+                    case exoOriginProps.exoSetupStatus.data of
+                        RDPP.DoHave ( exoSetupStatus, timestamp ) _ ->
+                            Just
+                                ( Types.Server.exoSetupStatusToString exoSetupStatus
+                                , timestamp
+                                )
+
+                        RDPP.DontHave ->
                             Nothing
 
-                        ServerFromExo exoOriginProps ->
-                            case exoOriginProps.exoSetupStatus.data of
-                                RDPP.DoHave ( exoSetupStatus, timestamp ) _ ->
-                                    Just
-                                        ( Types.Server.exoSetupStatusToString exoSetupStatus
-                                        , timestamp
-                                        )
+        columns : List (Element.Column { action : String, startTime : Time.Posix } Msg)
+        columns =
+            [ { header = Text.strong "Action"
+              , width = Element.px 180
+              , view =
+                    \event ->
+                        let
+                            actionStr =
+                                event.action
+                                    |> String.replace "_" " "
+                        in
+                        Element.paragraph [] [ Element.text actionStr ]
+              }
+            , { header = Text.strong "Time"
+              , width = Element.px 180
+              , view =
+                    \event ->
+                        let
+                            relativeTime =
+                                DateFormat.Relative.relativeTime currentTime event.startTime
 
-                                RDPP.DontHave ->
-                                    Nothing
-
-                columns : List (Element.Column { action : String, startTime : Time.Posix } Msg)
-                columns =
-                    [ { header = Text.strong "Action"
-                      , width = Element.px 180
-                      , view =
-                            \event ->
+                            absoluteTime =
                                 let
-                                    actionStr =
-                                        event.action
-                                            |> String.replace "_" " "
+                                    toggleTipId =
+                                        Helpers.String.hyphenate
+                                            [ "serverEventTimeTip"
+                                            , project.auth.project.uuid
+                                            , server.osProps.uuid
+                                            , event.startTime |> Time.posixToMillis |> String.fromInt
+                                            ]
                                 in
-                                Element.paragraph [] [ Element.text actionStr ]
-                      }
-                    , { header = Text.strong "Time"
-                      , width = Element.px 180
-                      , view =
-                            \event ->
-                                let
-                                    relativeTime =
-                                        DateFormat.Relative.relativeTime currentTime event.startTime
+                                Style.Widgets.ToggleTip.toggleTip
+                                    context
+                                    popoverMsgMapper
+                                    toggleTipId
+                                    (Element.text (Helpers.Time.humanReadableDateAndTime event.startTime))
+                                    ST.PositionBottomRight
+                        in
+                        Element.row []
+                            [ Element.text relativeTime
+                            , absoluteTime
+                            ]
+              }
+            ]
 
-                                    absoluteTime =
-                                        let
-                                            toggleTipId =
-                                                Helpers.String.hyphenate
-                                                    [ "serverEventTimeTip"
-                                                    , project.auth.project.uuid
-                                                    , server.osProps.uuid
-                                                    , event.startTime |> Time.posixToMillis |> String.fromInt
-                                                    ]
-                                        in
-                                        Style.Widgets.ToggleTip.toggleTip
-                                            context
-                                            popoverMsgMapper
-                                            toggleTipId
-                                            (Element.text (Helpers.Time.humanReadableDateAndTime event.startTime))
-                                            ST.PositionBottomRight
-                                in
-                                Element.row []
-                                    [ Element.text relativeTime
-                                    , absoluteTime
-                                    ]
+        serverEventsWithActionAndStartTime =
+            serverEvents
+                |> List.map (\{ action, startTime } -> { action = action, startTime = startTime })
+
+        serverSetupStatusInfo =
+            case serverSetupStatus of
+                Just ( status, Just timestamp ) ->
+                    [ { action = "Setup " ++ status
+                      , startTime = timestamp
                       }
                     ]
 
-                serverEventsWithActionAndStartTime =
-                    serverEvents
-                        |> List.map (\{ action, startTime } -> { action = action, startTime = startTime })
+                Just ( _, Nothing ) ->
+                    []
 
-                serverSetupStatusInfo =
-                    case serverSetupStatus of
-                        Just ( status, Just timestamp ) ->
-                            [ { action = "Setup " ++ status
-                              , startTime = timestamp
-                              }
-                            ]
+                Nothing ->
+                    []
+    in
+    Element.table
+        [ Element.spacingXY 0 spacer.px8
+        , Element.width Element.fill
+        ]
+        { data =
+            (serverEventsWithActionAndStartTime ++ serverSetupStatusInfo)
+                |> List.sortBy (\{ startTime } -> startTime |> Time.posixToMillis)
+                |> List.reverse
+        , columns = columns
+        }
 
-                        Just ( _, Nothing ) ->
-                            []
 
-                        Nothing ->
-                            []
+securityGroupsTable :
+    View.Types.Context
+    -> ProjectIdentifier
+    -> List OSTypes.SecurityGroup
+    -> Element.Element Msg
+securityGroupsTable context projectId securityGroups =
+    case List.length securityGroups of
+        0 ->
+            Element.text "(none)"
+
+        _ ->
+            let
+                columns : List (Element.Column { name : String, description : Maybe String, uuid : String } Msg)
+                columns =
+                    [ { header = Text.strong "Name"
+                      , width = Element.shrink
+                      , view =
+                            \securityGroup ->
+                                Element.link []
+                                    { url =
+                                        Route.toUrl context.urlPathPrefix
+                                            (Route.ProjectRoute projectId <|
+                                                Route.SecurityGroupDetail securityGroup.uuid
+                                            )
+                                    , label =
+                                        Element.el
+                                            [ Font.color (SH.toElementColor context.palette.primary), Element.width (Element.px 180) ]
+                                            (VH.ellipsizedText <|
+                                                VH.extendedResourceName
+                                                    (Just securityGroup.name)
+                                                    securityGroup.uuid
+                                                    context.localization.securityGroup
+                                            )
+                                    }
+                      }
+                    , { header = Text.strong "Description"
+                      , width = Element.fill
+                      , view =
+                            \securityGroup ->
+                                let
+                                    description =
+                                        Maybe.withDefault "-" securityGroup.description
+                                in
+                                Element.el [ Element.clipY ]
+                                    (Text.text Text.Body [ Element.width (Element.px 0) ] <|
+                                        if String.isEmpty description then
+                                            "-"
+
+                                        else
+                                            description
+                                    )
+                      }
+                    ]
             in
             Element.table
-                [ Element.spacingXY 0 spacer.px8
-                , Element.width Element.fill
+                [ Element.spacing spacer.px16
                 ]
-                { data =
-                    (serverEventsWithActionAndStartTime ++ serverSetupStatusInfo)
-                        |> List.sortBy (\{ startTime } -> startTime |> Time.posixToMillis)
-                        |> List.reverse
+                { data = List.map (\s -> { name = s.name, description = s.description, uuid = s.uuid }) securityGroups
                 , columns = columns
                 }
 
-        _ ->
-            Element.none
+
+renderSecurityGroups : View.Types.Context -> Project -> Server -> Element.Element Msg
+renderSecurityGroups context project server =
+    let
+        renderTable serverSecurityGroups =
+            securityGroupsTable
+                context
+                (GetterSetters.projectIdentifier project)
+                (GetterSetters.securityGroupsFromServerSecurityGroups project serverSecurityGroups)
+
+        serverSecurityGroupsRdpp =
+            GetterSetters.getServerSecurityGroups project server.osProps.uuid
+    in
+    VH.renderRDPPWithDependencies context
+        serverSecurityGroupsRdpp
+        (context.localization.securityGroup |> Helpers.String.pluralize)
+        [ project.securityGroups ]
+        renderTable
 
 
-renderServerActionButton :
+renderServerAction :
     View.Types.Context
     -> Project
     -> Model
@@ -1211,7 +1305,7 @@ renderServerActionButton :
     -> Element.Attribute Msg
     -> ServerActions.ServerAction
     -> Element.Element Msg
-renderServerActionButton context project model server closeActionsDropdown serverAction =
+renderServerAction context project model server closeActionsDropdown serverAction =
     let
         displayConfirmation =
             case model.serverActionNamePendingConfirmation of
@@ -1231,50 +1325,21 @@ renderServerActionButton context project model server closeActionsDropdown serve
 
         ( True, True ) ->
             let
-                renderKeepFloatingIpCheckbox : List (Element.Element Msg)
-                renderKeepFloatingIpCheckbox =
-                    if
-                        serverAction.name
-                            == "Delete"
-                            && (not <| List.isEmpty <| GetterSetters.getServerFloatingIps project server.osProps.uuid)
-                    then
-                        [ Input.checkbox
-                            []
-                            { onChange = GotRetainFloatingIpsWhenDeleting
-                            , icon = Input.defaultCheckbox
-                            , checked = model.retainFloatingIpsWhenDeleting
-                            , label =
-                                Input.labelRight []
-                                    (Element.text <|
-                                        String.join " "
-                                            [ "Keep the"
-                                            , context.localization.floatingIpAddress
-                                            , "of this"
-                                            , context.localization.virtualComputer
-                                            , "for future use"
-                                            ]
-                                    )
-                            }
-                        ]
-
-                    else
-                        []
-
-                actionMsg =
-                    Just <| serverAction.action (GetterSetters.projectIdentifier project) server model.retainFloatingIpsWhenDeleting
-
                 cancelMsg =
                     Just <| GotServerActionNamePendingConfirmation Nothing
 
                 title =
                     confirmationMessage serverAction
+
+                ( actionOption, actionOptionMsg ) =
+                    renderServerActionOption context project model server serverAction
             in
             Element.column
                 [ Element.spacing spacer.px8 ]
             <|
                 List.concat
-                    [ [ renderConfirmationButton context serverAction actionMsg cancelMsg title closeActionsDropdown ]
-                    , renderKeepFloatingIpCheckbox
+                    [ [ renderConfirmationButton context serverAction (Just actionOptionMsg) cancelMsg title closeActionsDropdown ]
+                    , actionOption
                     ]
 
         ( _, _ ) ->
@@ -1331,6 +1396,96 @@ renderServerActionButton context project model server closeActionsDropdown serve
 confirmationMessage : ServerActions.ServerAction -> String
 confirmationMessage serverAction =
     "Are you sure you want to " ++ (serverAction.name |> String.toLower) ++ "?"
+
+
+renderServerActionOption :
+    View.Types.Context
+    -> Project
+    -> Model
+    -> Server
+    -> ServerActions.ServerAction
+    -> ( List (Element.Element Msg), SharedMsg.SharedMsg )
+renderServerActionOption context project model server serverAction =
+    let
+        hasFloatingIps =
+            not <| List.isEmpty <| GetterSetters.getServerFloatingIps project server.osProps.uuid
+
+        noOption =
+            ( [], serverAction.action (GetterSetters.projectIdentifier project) server False )
+    in
+    if hasFloatingIps then
+        case serverAction.name of
+            "Delete" ->
+                deleteActionOption context project model server serverAction
+
+            "Shelve" ->
+                shelveActionOption context project model server serverAction
+
+            _ ->
+                noOption
+
+    else
+        noOption
+
+
+deleteActionOption :
+    View.Types.Context
+    -> Project
+    -> Model
+    -> Server
+    -> ServerActions.ServerAction
+    -> ( List (Element.Element Msg), SharedMsg.SharedMsg )
+deleteActionOption context project model server serverAction =
+    ( [ Input.checkbox
+            []
+            { onChange = GotRetainFloatingIpsWhenDeleting
+            , icon = Input.defaultCheckbox
+            , checked = model.retainFloatingIpsWhenDeleting
+            , label =
+                Input.labelRight []
+                    (Element.text <|
+                        String.join " "
+                            [ "Keep the"
+                            , context.localization.floatingIpAddress
+                            , "of this"
+                            , context.localization.virtualComputer
+                            , "for future use"
+                            ]
+                    )
+            }
+      ]
+    , serverAction.action (GetterSetters.projectIdentifier project) server model.retainFloatingIpsWhenDeleting
+    )
+
+
+shelveActionOption :
+    View.Types.Context
+    -> Project
+    -> Model
+    -> Server
+    -> ServerActions.ServerAction
+    -> ( List (Element.Element Msg), SharedMsg.SharedMsg )
+shelveActionOption context project model server serverAction =
+    ( [ Input.checkbox
+            []
+            { onChange = GotDeleteFloatingIpsWhenShelving
+            , icon = Input.defaultCheckbox
+            , checked = model.deleteFloatingIpsWhenShelving
+            , label =
+                Input.labelRight []
+                    (Element.text <|
+                        String.join " "
+                            [ "Release"
+                            , context.localization.floatingIpAddress
+                            , "from this"
+                            , context.localization.virtualComputer
+                            , "while shelved"
+                            ]
+                    )
+            }
+      ]
+    , serverAction.action (GetterSetters.projectIdentifier project) server model.deleteFloatingIpsWhenShelving
+    )
 
 
 serverActionSelectModButton : View.Types.Context -> ServerActions.SelectMod -> (Widget.TextButton Msg -> Element.Element Msg)
@@ -1423,9 +1578,6 @@ resourceUsageCharts context currentTimeAndZone server maybeServerResourceQtys =
         chartsWidth =
             max 1075 containerWidth
 
-        thirtyMinMillis =
-            1000 * 60 * 30
-
         charts_ : Types.ServerResourceUsage.TimeSeries -> Element.Element Msg
         charts_ timeSeries =
             Element.column
@@ -1440,147 +1592,214 @@ resourceUsageCharts context currentTimeAndZone server maybeServerResourceQtys =
                     maybeServerResourceQtys
                     timeSeries
                 ]
-
-        charts =
-            case server.exoProps.serverOrigin of
-                ServerNotFromExo ->
-                    Element.text <|
-                        String.join " "
-                            [ "Charts not available because"
-                            , context.localization.virtualComputer
-                            , "was not created by Exosphere."
-                            ]
-
-                ServerFromExo exoOriginProps ->
-                    case exoOriginProps.resourceUsage.data of
-                        RDPP.DoHave history _ ->
-                            if Dict.isEmpty history.timeSeries then
-                                case exoOriginProps.exoSetupStatus.data of
-                                    RDPP.DoHave ( ExoSetupError, _ ) _ ->
-                                        Element.none
-
-                                    RDPP.DoHave ( ExoSetupTimeout, _ ) _ ->
-                                        Element.none
-
-                                    RDPP.DoHave ( ExoSetupWaiting, _ ) _ ->
-                                        Element.none
-
-                                    _ ->
-                                        if Helpers.serverLessThanThisOld server (Tuple.first currentTimeAndZone) thirtyMinMillis then
-                                            Element.text <|
-                                                String.join " "
-                                                    [ "No chart data yet. This"
-                                                    , context.localization.virtualComputer
-                                                    , "is new and may take a few minutes to start reporting data."
-                                                    ]
-
-                                        else
-                                            Element.text "No chart data to show."
-
-                            else
-                                charts_ history.timeSeries
-
-                        _ ->
-                            if exoOriginProps.exoServerVersion < 2 then
-                                Element.text <|
-                                    String.join " "
-                                        [ "Charts not available because"
-                                        , context.localization.virtualComputer
-                                        , "was not created using a new enough build of Exosphere."
-                                        ]
-
-                            else
-                                Element.text <|
-                                    String.join " "
-                                        [ "Could not access the"
-                                        , context.localization.virtualComputer
-                                        , "console log, charts not available."
-                                        ]
     in
-    charts
+    case server.exoProps.serverOrigin of
+        ServerNotFromExo ->
+            Element.text <|
+                String.join " "
+                    [ "Charts not available because"
+                    , context.localization.virtualComputer
+                    , "was not created by Exosphere."
+                    ]
+
+        ServerFromExo exoOriginProps ->
+            case exoOriginProps.resourceUsage.data of
+                RDPP.DoHave history _ ->
+                    if Dict.isEmpty history.timeSeries then
+                        case exoOriginProps.exoSetupStatus.data of
+                            RDPP.DoHave ( ExoSetupError, _ ) _ ->
+                                Element.none
+
+                            RDPP.DoHave ( ExoSetupTimeout, _ ) _ ->
+                                Element.none
+
+                            RDPP.DoHave ( ExoSetupWaiting, _ ) _ ->
+                                Element.none
+
+                            _ ->
+                                let
+                                    thirtyMinMillis =
+                                        1000 * 60 * 30
+                                in
+                                if Helpers.serverLessThanThisOld server (Tuple.first currentTimeAndZone) thirtyMinMillis then
+                                    Element.text <|
+                                        String.join " "
+                                            [ "No chart data yet. This"
+                                            , context.localization.virtualComputer
+                                            , "is new and may take a few minutes to start reporting data."
+                                            ]
+
+                                else
+                                    Element.text "No chart data to show."
+
+                    else
+                        charts_ history.timeSeries
+
+                _ ->
+                    if exoOriginProps.exoServerVersion < 2 then
+                        Element.text <|
+                            String.join " "
+                                [ "Charts not available because"
+                                , context.localization.virtualComputer
+                                , "was not created using a new enough build of Exosphere."
+                                ]
+
+                    else
+                        Element.text <|
+                            String.join " "
+                                [ "Could not access the"
+                                , context.localization.virtualComputer
+                                , "console log, charts not available."
+                                ]
 
 
 renderIpAddresses : View.Types.Context -> Project -> Server -> Model -> Element.Element Msg
 renderIpAddresses context project server model =
     let
-        fixedIpAddressRows =
-            GetterSetters.getServerFixedIps project server.osProps.uuid
-                |> List.map
-                    (\ipAddress ->
-                        VH.compactKVSubRow
-                            (Helpers.String.toTitleCase context.localization.nonFloatingIpAddress)
-                            (Element.text ipAddress)
-                    )
+        disableWhenTransitioning value =
+            if
+                server.exoProps.targetOpenstackStatus
+                    /= Nothing
+                    || server.exoProps.deletionAttempted
+            then
+                Nothing
+
+            else
+                value
 
         floatingIpAddressRows =
             if List.isEmpty (GetterSetters.getServerFloatingIps project server.osProps.uuid) then
-                if server.exoProps.floatingIpCreationOption == DoNotUseFloatingIp then
-                    -- The server doesn't have a floating IP and we aren't waiting to create one, so give user option to assign one
-                    [ Element.text <|
-                        String.join " "
-                            [ "No"
-                            , context.localization.floatingIpAddress
-                            , "assigned."
-                            ]
-                    , Element.link []
-                        { url =
-                            Route.toUrl context.urlPathPrefix <|
-                                Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
-                                    Route.FloatingIpAssign Nothing (Just server.osProps.uuid)
-                        , label =
-                            Widget.textButton
-                                (SH.materialStyle context.palette).button
-                                { text =
-                                    String.join " "
-                                        [ "Assign a", context.localization.floatingIpAddress ]
-                                , onPress = Just NoOp
-                                }
-                        }
-                    ]
+                let
+                    noFloatingIpAssignButton =
+                        [ Element.text <|
+                            String.join " "
+                                [ "No"
+                                , context.localization.floatingIpAddress
+                                , "assigned."
+                                ]
+                        , Element.link []
+                            { url =
+                                Route.toUrl context.urlPathPrefix <|
+                                    Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
+                                        Route.FloatingIpAssign Nothing (Just server.osProps.uuid)
+                            , label =
+                                Widget.textButton
+                                    (SH.materialStyle context.palette).button
+                                    { text =
+                                        String.join " "
+                                            [ "Assign", Helpers.String.indefiniteArticle context.localization.floatingIpAddress, context.localization.floatingIpAddress ]
+                                    , onPress =
+                                        disableWhenTransitioning <| Just NoOp
+                                    }
+                            }
+                        ]
 
-                else
-                    -- Floating IP is not yet created as part of server launch, but it might be.
-                    [ Element.text <|
-                        String.join " "
-                            [ "No"
-                            , context.localization.floatingIpAddress
-                            , "yet, please wait"
-                            ]
-                    ]
+                    isActive =
+                        List.member server.osProps.details.openstackStatus [ OSTypes.ServerActive, OSTypes.ServerVerifyResize ]
+
+                    isBecomingActive =
+                        server.exoProps.targetOpenstackStatus
+                            |> Maybe.andThen List.head
+                            |> Maybe.map (\status -> status == OSTypes.ServerActive)
+                            |> Maybe.withDefault False
+                in
+                -- Is this server active or becoming active?
+                case ( isActive || isBecomingActive, server.exoProps.floatingIpCreationOption ) of
+                    ( True, DoNotUseFloatingIp ) ->
+                        -- The server doesn't have a floating IP and we aren't waiting to create one, so give the user an option to assign one.
+                        noFloatingIpAssignButton
+
+                    ( True, _ ) ->
+                        -- Floating IP is not yet created as part of server launch, but it might be soon.
+                        [ Element.text <|
+                            String.join " "
+                                [ "No"
+                                , context.localization.floatingIpAddress
+                                , "yet, please wait."
+                                ]
+                        ]
+
+                    ( False, _ ) ->
+                        -- We're not currently waiting for automatic floating IP assignment.
+                        -- Give the user the option to assign one to e.g. a shelved server.
+                        noFloatingIpAssignButton
 
             else
                 GetterSetters.getServerFloatingIps project server.osProps.uuid
                     |> List.map
                         (\ipAddress ->
-                            Element.column []
-                                [ case OpenStack.DnsRecordSet.addressToRecord (project.dnsRecordSets |> RDPP.withDefault []) ipAddress.address of
-                                    Just { name } ->
-                                        VH.compactKVSubRow
-                                            (Helpers.String.toTitleCase context.localization.hostname)
+                            let
+                                records =
+                                    OpenStack.DnsRecordSet.lookupRecordsByAddress (RDPP.withDefault [] project.dnsRecordSets) ipAddress.address
+                            in
+                            Element.column [ Element.spacing spacer.px12 ]
+                                ((case records of
+                                    [] ->
+                                        [ VH.compactKVSubRow
+                                            (context.localization.hostname |> Helpers.String.toTitleCase)
                                             (Element.row [ Element.spacing spacer.px16 ]
-                                                [ copyableText context.palette [] name
+                                                [ Button.default
+                                                    context.palette
+                                                    { text =
+                                                        "Create"
+                                                    , onPress =
+                                                        GetterSetters.getDefaultZone project context
+                                                            |> Maybe.map
+                                                                (\zone ->
+                                                                    SharedMsg <|
+                                                                        SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
+                                                                            SharedMsg.ServerMsg model.serverUuid <|
+                                                                                SharedMsg.RequestCreateServerHostname ( zone, ipAddress.address )
+                                                                )
+                                                            |> disableWhenTransitioning
+                                                    }
                                                 ]
                                             )
-
-                                    Nothing ->
-                                        Element.none
-                                , VH.compactKVSubRow
-                                    (Helpers.String.toTitleCase context.localization.floatingIpAddress)
-                                    (Element.row [ Element.spacing spacer.px16 ]
-                                        [ copyableText context.palette [] ipAddress.address
-                                        , Widget.textButton
-                                            (SH.materialStyle context.palette).button
-                                            { text =
-                                                "Unassign"
-                                            , onPress =
-                                                Just <|
-                                                    SharedMsg <|
-                                                        SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
-                                                            SharedMsg.RequestUnassignFloatingIp ipAddress.uuid
-                                            }
                                         ]
-                                    )
-                                ]
+
+                                    _ ->
+                                        records
+                                            |> List.indexedMap
+                                                (\i r ->
+                                                    VH.compactKVSubRow
+                                                        (if i == 0 then
+                                                            Helpers.String.pluralizeCount (List.length records) (context.localization.hostname |> Helpers.String.toTitleCase)
+
+                                                         else
+                                                            ""
+                                                        )
+                                                        (Element.row [ Element.spacing spacer.px16 ]
+                                                            [ copyableText context.palette
+                                                                []
+                                                                (if String.endsWith "." r.name then
+                                                                    String.dropRight 1 r.name
+
+                                                                 else
+                                                                    r.name
+                                                                )
+                                                            ]
+                                                        )
+                                                )
+                                 )
+                                    ++ [ VH.compactKVSubRow
+                                            (Helpers.String.toTitleCase context.localization.floatingIpAddress)
+                                            (Element.row [ Element.spacing spacer.px16 ]
+                                                [ copyableText context.palette [] ipAddress.address
+                                                , Button.default
+                                                    context.palette
+                                                    { text =
+                                                        "Unassign"
+                                                    , onPress =
+                                                        disableWhenTransitioning <|
+                                                            Just <|
+                                                                SharedMsg <|
+                                                                    SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
+                                                                        SharedMsg.RequestUnassignFloatingIp ipAddress.uuid
+                                                    }
+                                                ]
+                                            )
+                                       ]
+                                )
                         )
 
         ipButton : Element.Element Msg -> String -> IpInfoLevel -> Element.Element Msg
@@ -1604,6 +1823,15 @@ renderIpAddresses context project server model =
             let
                 icon =
                     Icon.sizedFeatherIcon 12 Icons.chevronDown
+
+                fixedIpAddressRows =
+                    GetterSetters.getServerFixedIps project server.osProps.uuid
+                        |> List.map
+                            (\ipAddress ->
+                                VH.compactKVSubRow
+                                    (Helpers.String.toTitleCase context.localization.nonFloatingIpAddress)
+                                    (Element.text ipAddress)
+                            )
             in
             Element.column
                 [ Element.spacing spacer.px8 ]
@@ -1622,36 +1850,18 @@ renderIpAddresses context project server model =
                 (floatingIpAddressRows ++ [ ipButton icon "IP Details" IpDetails ])
 
 
-serverVolumes : View.Types.Context -> Project -> Server -> Element.Element Msg
-serverVolumes context project server =
-    let
-        vols =
-            GetterSetters.getVolsAttachedToServer project server
-    in
-    case List.length vols of
+serverVolumes : View.Types.Context -> Project -> Server -> List OSTypes.Volume -> Element.Element Msg
+serverVolumes context project server volumes =
+    case List.length volumes of
         0 ->
             Element.text "(none)"
 
         _ ->
             let
-                vdevice : { a | device : String } -> Element.Element msg
-                vdevice =
-                    \v -> Element.text v.device
-
-                volDetailsButton v =
-                    Element.link []
-                        { url =
-                            Route.toUrl context.urlPathPrefix <|
-                                Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
-                                    Route.VolumeDetail v.uuid
-                        , label =
-                            Style.Widgets.IconButton.goToButton context.palette (Just NoOp)
-                        }
-
                 volumeRow v =
                     let
                         ( device, mountpoint ) =
-                            if GetterSetters.isBootVolume (Just server.osProps.uuid) v then
+                            if GetterSetters.isVolumeCurrentlyBackingServer project (Just server.osProps.uuid) v then
                                 ( String.join " "
                                     [ "Boot"
                                     , context.localization.blockDevice
@@ -1660,48 +1870,84 @@ serverVolumes context project server =
                                 )
 
                             else
-                                case GetterSetters.volumeDeviceRawName server v of
+                                case GetterSetters.volumeDeviceRawName project server v.uuid of
                                     Just device_ ->
                                         ( device_
-                                        , case GetterSetters.volDeviceToMountpoint device_ of
-                                            Just mountpoint_ ->
-                                                mountpoint_
+                                        , Maybe.withDefault "Could not determine" <|
+                                            if GetterSetters.serverSupportsFeature NamedMountpoints server then
+                                                v.name |> Maybe.andThen GetterSetters.volNameToMountpoint
 
-                                            Nothing ->
-                                                "Could not determine"
+                                            else
+                                                GetterSetters.volDeviceToMountpoint (Just device_)
                                         )
 
                                     Nothing ->
                                         ( "Could not determine", "" )
                     in
                     { name = VH.resourceName v.name v.uuid
+                    , uuid = v.uuid
                     , device = device
                     , mountpoint = mountpoint
-                    , toButton = volDetailsButton v
                     }
+
+                columns =
+                    List.concat
+                        [ [ { header = Text.strong "Name"
+                            , width = Element.shrink
+                            , view =
+                                \v ->
+                                    Element.link []
+                                        { url =
+                                            Route.toUrl context.urlPathPrefix
+                                                (Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
+                                                    Route.VolumeDetail v.uuid
+                                                )
+                                        , label =
+                                            Element.el
+                                                [ Font.color (SH.toElementColor context.palette.primary), Element.width (Element.px 180) ]
+                                                (VH.ellipsizedText <| v.name)
+                                        }
+                            }
+                          ]
+                        , if GetterSetters.serverSupportsFeature NamedMountpoints server then
+                            []
+
+                          else
+                            [ { header = Text.strong "Device"
+                              , width = Element.fill
+                              , view = \v -> Element.text v.device
+                              }
+                            ]
+                        , [ { header = Text.strong "Mount point"
+                            , width = Element.fill
+                            , view = \v -> scrollableCell [ Element.width Element.fill ] <| Text.mono <| v.mountpoint
+                            }
+                          ]
+                        ]
             in
             Element.table
-                []
+                [ Element.spacing spacer.px16
+                ]
                 { data =
-                    vols
+                    volumes
                         |> List.map volumeRow
                         |> List.sortBy .device
                 , columns =
-                    [ { header = Element.el [ Font.heavy ] <| Element.text "Name"
-                      , width = Element.fill
-                      , view = \v -> Element.text v.name
-                      }
-                    , { header = Element.el [ Font.heavy ] <| Element.text "Device"
-                      , width = Element.fill
-                      , view = vdevice
-                      }
-                    , { header = Element.el [ Font.heavy ] <| Element.text "Mount point"
-                      , width = Element.fill
-                      , view = \v -> Element.text v.mountpoint
-                      }
-                    , { header = Element.none
-                      , width = Element.px 22
-                      , view = \v -> v.toButton
-                      }
-                    ]
+                    columns
                 }
+
+
+renderServerVolumes : View.Types.Context -> Project -> Server -> Element.Element Msg
+renderServerVolumes context project server =
+    let
+        renderTable volumes =
+            serverVolumes
+                context
+                project
+                server
+                (volumes |> List.filter (\v -> List.member v.uuid server.osProps.details.volumesAttached))
+    in
+    VH.renderRDPP context
+        project.volumes
+        (context.localization.blockDevice |> Helpers.String.pluralize)
+        renderTable
