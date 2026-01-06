@@ -9,7 +9,7 @@ import Helpers.String
 import Http
 import Json.Encode
 import OpenStack.Types as OSTypes
-import Rest.Helpers exposing (expectStringWithErrorBody, openstackCredentialedRequest, resultToMsgErrorBody)
+import Rest.Helpers exposing (expectVoidWithErrorBody, openstackCredentialedRequest)
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.HelperTypes exposing (HttpRequestMethod(..), ProjectIdentifier, Url)
 import Types.Server exposing (Server)
@@ -344,6 +344,14 @@ doAction jsonBody maybeTargetStatuses requestFloatingIpIfAppropriate projectId s
                         ("perform action for server " ++ server.osProps.uuid)
                         ErrorCrit
                         Nothing
+
+                resultToMsg =
+                    \result ->
+                        ProjectMsg
+                            projectId
+                        <|
+                            ServerMsg server.osProps.uuid <|
+                                ReceiveServerAction errorContext result
             in
             openstackCredentialedRequest
                 projectId
@@ -352,15 +360,8 @@ doAction jsonBody maybeTargetStatuses requestFloatingIpIfAppropriate projectId s
                 []
                 ( novaUrl, [ "servers", server.osProps.uuid, "action" ], [] )
                 (Http.jsonBody jsonBody)
-                (expectStringWithErrorBody
-                    (resultToMsgErrorBody
-                        errorContext
-                        (\_ ->
-                            ProjectMsg projectId <|
-                                ServerMsg server.osProps.uuid <|
-                                    ReceiveServerAction
-                        )
-                    )
+                (expectVoidWithErrorBody
+                    resultToMsg
                 )
     in
     SharedMsg.ProjectMsg projectId <|

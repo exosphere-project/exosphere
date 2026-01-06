@@ -45,12 +45,14 @@ type alias ExoServerProps =
 
 type alias ServerExoActions =
     { targetOpenstackStatus : Maybe (List OSTypes.ServerStatus) -- Maybe we have performed an instance action and are waiting for server to reflect that
+    , request : RDPP.RemoteDataPlusPlus HttpErrorWithBody ()
     }
 
 
 initServerExoActions : ServerExoActions
 initServerExoActions =
     { targetOpenstackStatus = Nothing
+    , request = RDPP.empty
     }
 
 

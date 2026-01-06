@@ -43,6 +43,7 @@ import Rest.Helpers
     exposing
         ( expectJsonWithErrorBody
         , expectStringWithErrorBody
+        , expectVoidWithErrorBody
         , openstackCredentialedRequest
         , resultToMsgErrorBody
         )
@@ -487,13 +488,12 @@ requestShelveServer projectId novaUrl serverId =
                 Nothing
 
         resultToMsg_ =
-            resultToMsgErrorBody
-                errorContext
-                (\_ ->
-                    ProjectMsg projectId <|
-                        ServerMsg serverId <|
-                            ReceiveServerAction
-                )
+            \result ->
+                ProjectMsg
+                    projectId
+                <|
+                    ServerMsg serverId <|
+                        ReceiveServerAction errorContext result
     in
     openstackCredentialedRequest
         projectId
@@ -502,7 +502,7 @@ requestShelveServer projectId novaUrl serverId =
         []
         ( novaUrl, [ "servers", serverId, "action" ], [] )
         (Http.jsonBody body)
-        (expectStringWithErrorBody resultToMsg_)
+        (expectVoidWithErrorBody resultToMsg_)
 
 
 requestPassphraseIfRequestable : Project -> Server -> Cmd SharedMsg
@@ -591,11 +591,9 @@ requestServerResize project serverUuid flavorId =
         []
         ( project.endpoints.nova, [ "servers", serverUuid, "action" ], [] )
         (Http.jsonBody body)
-        (expectStringWithErrorBody
-            (resultToMsgErrorBody errorContext
-                (\_ ->
-                    ProjectMsg (GetterSetters.projectIdentifier project) <| ServerMsg serverUuid <| ReceiveServerAction
-                )
+        (expectVoidWithErrorBody
+            (\result ->
+                ProjectMsg (GetterSetters.projectIdentifier project) <| ServerMsg serverUuid <| ReceiveServerAction errorContext result
             )
         )
 
@@ -844,22 +842,7 @@ receiveServers model project osServers =
                     let
                         -- Update server target statuses if they have been reached.
                         updatedProject =
-                            GetterSetters.projectUpdateServerExoActions p
-                                s.osProps.uuid
-                                (\exoActions ->
-                                    { exoActions
-                                        | targetOpenstackStatus =
-                                            exoActions.targetOpenstackStatus
-                                                |> Maybe.andThen
-                                                    (\statuses ->
-                                                        if List.member s.osProps.details.openstackStatus statuses then
-                                                            Nothing
-
-                                                        else
-                                                            Just statuses
-                                                    )
-                                    }
-                                )
+                            clearServerExoActionsIfTargetStatusReached p s.osProps.uuid s.osProps.details.openstackStatus
                     in
                     GetterSetters.projectUpdateServer updatedProject s
                 )
@@ -895,27 +878,46 @@ receiveServer model project interactionLevel osServer =
 
         -- Update server target statuses if they have been reached.
         updatedProject =
-            GetterSetters.projectUpdateServerExoActions project
-                osServer.uuid
-                (\exoActions ->
-                    { exoActions
-                        | targetOpenstackStatus =
-                            exoActions.targetOpenstackStatus
-                                |> Maybe.andThen
-                                    (\statuses ->
-                                        if List.member osServer.details.openstackStatus statuses then
-                                            Nothing
-
-                                        else
-                                            Just statuses
-                                    )
-                    }
-                )
+            clearServerExoActionsIfTargetStatusReached project osServer.uuid osServer.details.openstackStatus
 
         newProject =
             GetterSetters.projectUpdateServer updatedProject newServerUpdatedSomeExoProps
     in
     ( newProject, cmd )
+
+
+clearServerExoActionsIfTargetStatusReached : Project -> OSTypes.ServerUuid -> OSTypes.ServerStatus -> Project
+clearServerExoActionsIfTargetStatusReached project serverId currentStatus =
+    GetterSetters.projectUpdateServerExoActions project
+        serverId
+        (\exoActions ->
+            let
+                maybeTargetReached =
+                    exoActions.targetOpenstackStatus
+                        |> Maybe.map
+                            (\statuses ->
+                                List.member currentStatus statuses
+                            )
+            in
+            { exoActions
+                | targetOpenstackStatus =
+                    exoActions.targetOpenstackStatus
+                        |> Maybe.andThen
+                            (\statuses ->
+                                if maybeTargetReached == Just True then
+                                    Nothing
+
+                                else
+                                    Just statuses
+                            )
+                , request =
+                    if maybeTargetReached == Just True then
+                        RDPP.empty
+
+                    else
+                        exoActions.request
+            }
+        )
 
 
 receiveServer_ : Project -> InteractionLevel -> OSTypes.Server -> ( Server, Cmd SharedMsg )

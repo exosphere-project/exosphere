@@ -671,8 +671,10 @@ serverExoActionsDecoder =
 
 serverExoActionDecoder : Decode.Decoder Server.ServerExoActions
 serverExoActionDecoder =
-    Decode.map Server.ServerExoActions
+    Decode.map2 Server.ServerExoActions
         (Decode.field "targetOpenstackStatus" (Decode.nullable <| Decode.list serverStatusDecoder))
+        -- FIXME: Decode RDPP.
+        (Decode.field "request" (Decode.succeed RDPP.empty))
 
 
 serverStatusDecoder : Decode.Decoder OSTypes.ServerStatus
@@ -698,4 +700,7 @@ encodeServerExoAction exoAction =
                 Just statuses ->
                     Encode.list (Encode.string << OSTypes.serverStatusToString) statuses
           )
+
+        -- FIXME: Encode RDPP.
+        , ( "request", Encode.string "RDPP encoding not implemented" )
         ]

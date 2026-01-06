@@ -3635,7 +3635,12 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                 newProject =
                     GetterSetters.projectUpdateServerExoActions project
                         server.osProps.uuid
-                        (\exoActions -> { exoActions | targetOpenstackStatus = Just [ OSTypes.ServerResize ] })
+                        (\exoActions ->
+                            { exoActions
+                                | targetOpenstackStatus = Just [ OSTypes.ServerResize ]
+                                , request = RDPP.setLoading exoActions.request
+                            }
+                        )
 
                 newSharedModel =
                     GetterSetters.modelUpdateProject sharedModel newProject
@@ -3792,11 +3797,56 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
-        ReceiveServerAction ->
-            ApiModelHelpers.requestServer (GetterSetters.projectIdentifier project) NoInteraction server.osProps.uuid sharedModel
-                |> Helpers.pipelineCmd (ApiModelHelpers.requestServerEvents (GetterSetters.projectIdentifier project) server.osProps.uuid)
-                |> mapToOuterMsg
-                |> mapToOuterModel outerModel
+        ReceiveServerAction errorContext result ->
+            case result of
+                Ok () ->
+                    let
+                        -- Set the ServerExoAction result.
+                        updatedProject =
+                            GetterSetters.projectUpdateServerExoActions project
+                                server.osProps.uuid
+                                (\exoActions ->
+                                    { exoActions
+                                        | request =
+                                            RDPP.RemoteDataPlusPlus
+                                                (RDPP.DoHave () sharedModel.clientCurrentTime)
+                                                (RDPP.NotLoading Nothing)
+                                    }
+                                )
+
+                        updatedSharedModel =
+                            GetterSetters.modelUpdateProject sharedModel updatedProject
+
+                        -- Refresh the affected server's details.
+                        ( newSharedModel, cmd ) =
+                            ApiModelHelpers.requestServer (GetterSetters.projectIdentifier project) NoInteraction server.osProps.uuid updatedSharedModel
+                                |> Helpers.pipelineCmd (ApiModelHelpers.requestServerEvents (GetterSetters.projectIdentifier project) server.osProps.uuid)
+                    in
+                    ( newSharedModel, cmd )
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+                Err httpError ->
+                    let
+                        -- Set the ServerExoAction error.
+                        updatedProject =
+                            GetterSetters.projectUpdateServerExoActions project
+                                server.osProps.uuid
+                                (\exoActions ->
+                                    { exoActions
+                                        | request = RDPP.setNotLoading (Just ( httpError, sharedModel.clientCurrentTime )) exoActions.request
+                                    }
+                                )
+
+                        updatedSharedModel =
+                            GetterSetters.modelUpdateProject sharedModel updatedProject
+
+                        ( newSharedModel, errCmd ) =
+                            State.Error.processSynchronousApiError updatedSharedModel errorContext httpError
+                    in
+                    ( newSharedModel, errCmd )
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
 
         ReceiveConsoleUrl url ->
             Rest.Nova.receiveConsoleUrl sharedModel project server url
@@ -4193,7 +4243,12 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                 updatedProject =
                     GetterSetters.projectUpdateServerExoActions project
                         server.osProps.uuid
-                        (\exoActions -> { exoActions | targetOpenstackStatus = targetStatuses })
+                        (\exoActions ->
+                            { exoActions
+                                | targetOpenstackStatus = targetStatuses
+                                , request = RDPP.setLoading exoActions.request
+                            }
+                        )
 
                 newProject =
                     GetterSetters.projectUpdateServer updatedProject newServer
@@ -4615,7 +4670,12 @@ requestShelveServer project server deleteFloatingIps =
         newProject =
             GetterSetters.projectUpdateServerExoActions project
                 server.osProps.uuid
-                (\exoActions -> { exoActions | targetOpenstackStatus = targetStatus })
+                (\exoActions ->
+                    { exoActions
+                        | targetOpenstackStatus = targetStatus
+                        , request = RDPP.setLoading exoActions.request
+                    }
+                )
 
         shelveCmd =
             Rest.Nova.requestShelveServer (GetterSetters.projectIdentifier newProject) newProject.endpoints.nova server.osProps.uuid

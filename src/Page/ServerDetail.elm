@@ -1658,7 +1658,7 @@ renderIpAddresses context project server model =
     let
         disableWhenTransitioning value =
             if
-                server.exoProps.targetOpenstackStatus
+                (GetterSetters.getServerExoActions project server.osProps.uuid).targetOpenstackStatus
                     /= Nothing
                     || server.exoProps.deletionAttempted
             then
@@ -1698,7 +1698,7 @@ renderIpAddresses context project server model =
                         List.member server.osProps.details.openstackStatus [ OSTypes.ServerActive, OSTypes.ServerVerifyResize ]
 
                     isBecomingActive =
-                        server.exoProps.targetOpenstackStatus
+                        (GetterSetters.getServerExoActions project server.osProps.uuid).targetOpenstackStatus
                             |> Maybe.andThen List.head
                             |> Maybe.map (\status -> status == OSTypes.ServerActive)
                             |> Maybe.withDefault False
