@@ -18,7 +18,7 @@
     owner: '{{ vnc_server_user }}'
 
 - name: 'VNC passphrase set'
-  shell: 'echo "{{ exouser_passphrase }}" | vncpasswd -f > /home/{{ vnc_server_user }}/.vnc/passwd'
+  shell: 'echo "{{ exouser_passphrase }}" | HOME="/root" vncpasswd -f > /home/{{ vnc_server_user }}/.vnc/passwd'
   no_log: true
 
 - name: 'permissions set on VNC passphrase file'
