@@ -12,6 +12,7 @@ import Json.Decode as Decode
 import Json.Encode as Encode
 import LocalStorage.Types exposing (StoredProject, StoredProject2, StoredProject3, StoredProject4, StoredProject5, StoredProject6, StoredState)
 import OpenStack.Types as OSTypes
+import Rest.Helpers exposing (encodeHttpErrorWithBody, httpErrorWithBodyDecoder)
 import Set exposing (Set)
 import Style.Types as ST
 import Time
@@ -673,8 +674,7 @@ serverExoActionDecoder : Decode.Decoder Server.ServerExoActions
 serverExoActionDecoder =
     Decode.map2 Server.ServerExoActions
         (Decode.field "targetOpenstackStatus" (Decode.nullable <| Decode.list serverStatusDecoder))
-        -- FIXME: Decode RDPP.
-        (Decode.field "request" (Decode.succeed RDPP.empty))
+        (Decode.field "request" (RDPP.decoder (Decode.succeed ()) httpErrorWithBodyDecoder))
 
 
 serverStatusDecoder : Decode.Decoder OSTypes.ServerStatus
@@ -700,7 +700,5 @@ encodeServerExoAction exoAction =
                 Just statuses ->
                     Encode.list (Encode.string << OSTypes.serverStatusToString) statuses
           )
-
-        -- FIXME: Encode RDPP.
-        , ( "request", Encode.string "RDPP encoding not implemented" )
+        , ( "request", RDPP.encode (\() -> Encode.null) encodeHttpErrorWithBody exoAction.request )
         ]
