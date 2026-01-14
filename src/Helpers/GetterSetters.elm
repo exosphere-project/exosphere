@@ -44,6 +44,7 @@ module Helpers.GetterSetters exposing
     , projectDeleteSecurityGroupActions
     , projectDeleteSecurityGroupRule
     , projectDeleteServer
+    , projectDeleteServerExoAction
     , projectDeleteServerVolumeAction
     , projectIdentifier
     , projectLookup
@@ -1456,6 +1457,14 @@ projectUpdateServerExoActions project serverId onUpdateActions =
     { project
         | serverExoActions =
             serverExoActions
+    }
+
+
+projectDeleteServerExoAction : Project -> OSTypes.ServerUuid -> Project
+projectDeleteServerExoAction project serverId =
+    { project
+        | serverExoActions =
+            Dict.remove serverId project.serverExoActions
     }
 
 

@@ -3848,6 +3848,17 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
+        ResetServerAction ->
+            let
+                updatedProject =
+                    GetterSetters.projectDeleteServerExoAction project server.osProps.uuid
+
+                updatedSharedModel =
+                    GetterSetters.modelUpdateProject sharedModel updatedProject
+            in
+            ( { outerModel | sharedModel = updatedSharedModel }, Cmd.none )
+                |> mapToOuterMsg
+
         ReceiveConsoleUrl url ->
             Rest.Nova.receiveConsoleUrl sharedModel project server url
                 |> mapToOuterMsg

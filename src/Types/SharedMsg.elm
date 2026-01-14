@@ -156,6 +156,7 @@ type ServerSpecificMsgConstructor
     | RequestCreateServerFloatingIp (Maybe OSTypes.IpAddressValue)
     | RequestCreateServerHostname ( OpenStack.DnsRecordSet.DnsZone, OSTypes.IpAddressValue )
     | ReceiveServerAction ErrorContext (Result HttpErrorWithBody ())
+    | ResetServerAction
     | ReceiveConsoleUrl (Result HttpErrorWithBody OSTypes.ConsoleUrl)
     | ReceiveDeleteServer
     | ReceiveCreateServerFloatingIp ErrorContext (Result HttpErrorWithBody OSTypes.FloatingIp)
