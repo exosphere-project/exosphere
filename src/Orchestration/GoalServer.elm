@@ -26,12 +26,13 @@ import Types.HelperTypes
         )
 import Types.Interactivity exposing (InteractionLevel(..), interactionIsWanted)
 import Types.Project exposing (Project)
-import Types.Server exposing (ExoSetupStatus(..), Server, ServerFromExoProps, ServerOrigin(..))
+import Types.Server exposing (ExoSetupStatus(..), Server, ServerFromExoProps, ServerOrigin(..), ServerUiStatus(..))
 import Types.ServerVolumeActions as ServerVolumeActions
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
 import Types.View exposing (ProjectViewConstructor(..), ViewState(..))
 import UUID
 import Url
+import View.Helpers as VH
 
 
 goalNewServer : UUID.UUID -> Time.Posix -> Project -> ( Project, Cmd SharedMsg )
@@ -62,7 +63,7 @@ goalPollServers time maybeCloudSpecificConfig viewState project =
             , stepServerPollConsoleLog time
             , stepServerPollEvents time
             , stepServerPollVolumeAttachments time viewState
-            , stepServerPollSecurityGroups time
+            , stepServerPollSecurityGroups time viewState
             , stepServerNeedsConsoleUrl
             , stepServerGuacamoleAuth time userAppProxy
             ]
@@ -494,14 +495,48 @@ stepServerPollEvents time project server =
                             pollIfIntervalExceeded receivedTime
 
 
-stepServerPollSecurityGroups : Time.Posix -> Project -> Server -> ( Project, Cmd SharedMsg )
-stepServerPollSecurityGroups time project server =
+stepServerPollSecurityGroups : Time.Posix -> ViewState -> Project -> Server -> ( Project, Cmd SharedMsg )
+stepServerPollSecurityGroups time viewState project server =
     let
         serverId =
             server.osProps.uuid
 
+        serverSecurityGroups =
+            GetterSetters.getServerSecurityGroups project serverId
+
+        pollInterval =
+            case viewState of
+                ProjectView _ projectViewState ->
+                    case projectViewState of
+                        ServerDetail pageModel ->
+                            -- Are we on the detail page for this server?
+                            if pageModel.serverUuid == server.osProps.uuid then
+                                let
+                                    isSettingUpWithNoGroupsYet =
+                                        case serverSecurityGroups.data of
+                                            RDPP.DoHave [] _ ->
+                                                List.member (VH.getServerUiStatus project server) [ ServerUiStatusBuilding, ServerUiStatusRunningSetup ]
+
+                                            _ ->
+                                                False
+                                in
+                                if isSettingUpWithNoGroupsYet then
+                                    Rapid
+
+                                else
+                                    Regular
+
+                            else
+                                Seldom
+
+                        _ ->
+                            Seldom
+
+                _ ->
+                    Seldom
+
         pollIntervalMillis =
-            pollIntervalToMs Seldom
+            pollIntervalToMs pollInterval
 
         curTimeMillis =
             Time.posixToMillis time
@@ -520,9 +555,6 @@ stepServerPollSecurityGroups time project server =
                     GetterSetters.projectSetServerSecurityGroupsLoading serverId project
             in
             ( newProject, Rest.Nova.requestServerSecurityGroups newProject serverId )
-
-        serverSecurityGroups =
-            GetterSetters.getServerSecurityGroups project serverId
     in
     case serverSecurityGroups.refreshStatus of
         RDPP.Loading ->
