@@ -21,7 +21,6 @@ The current Maintainers for Exosphere are:
 
 | Name             | GitLab username | Organization                |
 | ---------------- | --------------- | --------------------------- |
-| Chris Martin     | cmart           | Indiana University          |
 | Julian Pistorius | julianpistorius | Indiana University          |
 | Kyle Tee         | LordParsley     | Ends of Invention (Pty) Ltd |
 
@@ -57,6 +56,12 @@ Maintainers may also be removed after being inactive, failure to fulfill their M
 A Maintainer may be removed at any time by a 2/3 vote of the other maintainers.
 
 Depending on the reason for removal, a Maintainer may be converted to Emeritus status. Emeritus Maintainers will still be consulted on some project matters, and can be rapidly returned to Maintainer status if their availability changes.
+
+The Emeritus Maintainers for Exosphere are:
+
+| Name             | GitLab username | Organization                |
+| ---------------- | --------------- | --------------------------- |
+| Chris Martin     | cmart           |                             |
 
 ## Meetings
 
