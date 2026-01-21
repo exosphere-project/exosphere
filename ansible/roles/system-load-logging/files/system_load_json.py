@@ -64,24 +64,23 @@ def disk():
 
 def gpu():
     try:
-        nvidia_smi_output_lines = cmd_stdout_lines(["nvidia-smi", "--query", "--display=UTILIZATION"])
-        output_stripped_whitespace = [line.strip() for line in nvidia_smi_output_lines]
-        # This code looks for this section of the command output and obtains the percentage value:
-        #     Utilization
-        #         Gpu                               : 5 %
-        in_utilization_section = False
-        for line in output_stripped_whitespace:
-            if in_utilization_section:
-                if line.startswith("Gpu"):
-                    match = re.search(r":\s*(\d+)\s*%", line)
-                    if match:
-                        gpu_used_percent = int(match.group(1))
-                        return gpu_used_percent
+        nvidia_smi_return = subprocess.run(
+            [
+                "nvidia-smi",
+                "--query-gpu=utilization.gpu",
+                "--format=csv,noheader,nounits",
+            ],
+            stdout=subprocess.PIPE
+        )
 
-            elif line.startswith("Utilization"):
-                in_utilization_section = True
-            else:
-               pass
+        if nvidia_smi_return.returncode != 0:
+            return None
+        
+        try:
+            return int(nvidia_smi_return.stdout.decode().strip())
+        except ValueError:
+            return None
+        
     except FileNotFoundError:
         return None
     return None
