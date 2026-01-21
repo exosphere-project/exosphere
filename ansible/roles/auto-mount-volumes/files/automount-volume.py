@@ -30,11 +30,15 @@ def sanitize(label: str) -> str:
 
 
 def udevadm_info(device: pathlib.Path) -> t.Dict[str, str]:
-    return json.loads(
-        subprocess.check_output(
-            ["udevadm", "info", "--json=pretty", str(device)],
-            text=True,
-        )
+    return dict(
+        [
+            val.split("=", maxsplit=1)
+            for val in subprocess.check_output(
+                ["udevadm", "info", "--query=property", str(device)]
+            )
+            .decode("utf-8")
+            .splitlines()
+        ]
     )
 
 
