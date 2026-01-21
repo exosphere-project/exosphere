@@ -1,5 +1,7 @@
 module Style.Helpers exposing
     ( allColorsPalette
+    , hueShift
+    , hueShiftIncremental
     , materialStyle
     , shadowDefaults
     , toElementColor
@@ -12,6 +14,7 @@ import Color
 import Color.Convert exposing (hexToColor)
 import Element
 import Element.Font as Font
+import Float.Extra
 import Html.Attributes
 import Style.Types as ST exposing (ElmUiWidgetStyle, ExoPalette, StyleMode, Theme(..))
 import Style.Widgets.Spacer exposing (spacer)
@@ -390,3 +393,20 @@ shadowDefaults =
     , size = 0
     , color = Element.rgba255 3 3 3 0.18
     }
+
+
+hueShift : Color.Color -> Float -> Color.Color
+hueShift baseColor shift =
+    let
+        clampHue v =
+            Float.Extra.modBy 1.0 v
+    in
+    baseColor
+        |> Color.toHsla
+        |> (\hsl -> { hsl | hue = clampHue (hsl.hue + shift) })
+        |> Color.fromHsla
+
+
+hueShiftIncremental : Color.Color -> Float -> Int -> Color.Color
+hueShiftIncremental baseColor increment shift =
+    hueShift baseColor (increment * toFloat shift)

@@ -5,28 +5,19 @@
 # Requires "top", "free", and "df" installed.
 
 import json
-import re
 import subprocess
 import sys
 import time
 
 
 def cmd_stdout_lines(cmd_list):
-    return subprocess.run(cmd_list, stdout=subprocess.PIPE) \
-        .stdout \
-        .decode() \
-        .split("\n")
+    return subprocess.check_output(cmd_list, text=True).splitlines()
 
 
 def cpu():
     # Returns percent CPU non-idle
     top_output_lines = cmd_stdout_lines(["top", "-b", "-n", "1"])
-    cpu_line = \
-        next(
-            filter(
-                (lambda l: l[:4] == "%Cpu"),
-                top_output_lines)
-        )
+    cpu_line = next(filter((lambda l: l[:4] == "%Cpu"), top_output_lines))
     cpu_idle_pct = float(cpu_line.split(",")[3][:5])
     cpu_used_pct = round(100 - cpu_idle_pct)
     return cpu_used_pct
@@ -36,12 +27,7 @@ def mem():
     # Returns percent of total memory not available
     # https://www.linuxatemyram.com/
     free_output_lines = cmd_stdout_lines(["free", "-t", "-m"])
-    total_line = \
-        next(
-            filter(
-                (lambda l: l[:4] == "Mem:"),
-                free_output_lines)
-        )
+    total_line = next(filter((lambda l: l[:4] == "Mem:"), free_output_lines))
     mem_avail_mb = int(total_line.split()[6])
     mem_total_mb = int(total_line.split()[1])
     mem_unavail_pct = round(100 - mem_avail_mb / mem_total_mb * 100)
@@ -51,39 +37,23 @@ def mem():
 def disk():
     # Returns percent of root filesystem used
     df_output_lines = cmd_stdout_lines(["df", "/"])
-    rootfs_line = \
-        next(
-            filter(
-                (lambda l: l.split()[-1] == "/"),
-                df_output_lines
-            )
-        )
+    rootfs_line = next(filter((lambda l: l.split()[-1] == "/"), df_output_lines))
     rootfs_used_pct = rootfs_line.split()[-2][:-1]
     return int(rootfs_used_pct)
 
 
 def gpu():
     try:
-        nvidia_smi_return = subprocess.run(
+        gpu_utilization = cmd_stdout_lines(
             [
                 "nvidia-smi",
                 "--query-gpu=utilization.gpu",
                 "--format=csv,noheader,nounits",
-            ],
-            stdout=subprocess.PIPE
+            ]
         )
-
-        if nvidia_smi_return.returncode != 0:
-            return None
-        
-        try:
-            return int(nvidia_smi_return.stdout.decode().strip())
-        except ValueError:
-            return None
-        
-    except FileNotFoundError:
+        return [int(l) for l in gpu_utilization]
+    except:
         return None
-    return None
 
 
 json_dict = {
@@ -91,7 +61,7 @@ json_dict = {
     "cpuPctUsed": cpu(),
     "memPctUsed": mem(),
     "rootfsPctUsed": disk(),
-    "gpuPctUsed": gpu()
+    "gpuPctUsed": gpu(),
 }
 output_line = json.dumps(json_dict) + "\n"
 sys.stdout.buffer.write(output_line.encode())
