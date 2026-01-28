@@ -1,5 +1,6 @@
 module Page.ServerResourceUsageCharts exposing (view)
 
+import Color
 import Dict
 import Element
 import Element.Font as Font
@@ -23,6 +24,7 @@ import LineChart.Interpolation as Interpolation
 import LineChart.Junk as Junk
 import LineChart.Legends as Legends
 import LineChart.Line as Line
+import List.Extra
 import Style.Helpers as SH
 import Style.Widgets.Icon as Icon
 import Style.Widgets.Spacer exposing (spacer)
@@ -53,20 +55,6 @@ view context widthPx ( currentTime, timeZone ) maybeServerResourceQtys timeSerie
 
         timeSeriesListLast30m =
             timeSeriesRecentDataPoints timeSeriesDict currentTime thirtyMinMillis
-
-        haveGpuData =
-            -- See if we have _any_ GPU usage data
-            timeSeriesListLast30m
-                |> Dict.toList
-                |> List.any
-                    (\( _, dataPoint ) ->
-                        case dataPoint.gpuPctUsed of
-                            Just _ ->
-                                True
-
-                            Nothing ->
-                                False
-                    )
 
         percentRangeCustomTick : Int -> Tick.Config msg
         percentRangeCustomTick percent =
@@ -189,33 +177,36 @@ view context widthPx ( currentTime, timeZone ) maybeServerResourceQtys timeSerie
             , dots = Dots.default
             }
 
+        seriesToLine color getData =
+            LineChart.line
+                color
+                Dots.none
+                ""
+                (timeSeriesListLast30m |> Dict.toList |> List.map (Tuple.mapSecond getData))
+
         series : (DataPoint -> Int) -> Maybe (DataPoint -> Int) -> List (LineChart.Series TimeAndSingleMetric)
         series getPrimaryData maybeGetSecondaryData =
-            List.concat
-                [ [ LineChart.line
-                        context.palette.primary
-                        Dots.none
-                        ""
-                        (timeSeriesListLast30m
-                            |> Dict.toList
-                            |> List.map (Tuple.mapSecond getPrimaryData)
-                        )
-                  ]
-                , case maybeGetSecondaryData of
-                    Just getSecondaryData ->
-                        [ LineChart.line
-                            SH.allColorsPalette.yellow.base
-                            Dots.none
-                            ""
-                            (timeSeriesListLast30m
-                                |> Dict.toList
-                                |> List.map (Tuple.mapSecond getSecondaryData)
-                            )
-                        ]
-
-                    Nothing ->
-                        []
+            List.filterMap identity
+                [ Just <| seriesToLine context.palette.primary getPrimaryData
+                , maybeGetSecondaryData
+                    |> Maybe.map (seriesToLine SH.allColorsPalette.yellow.base)
                 ]
+
+        gpuCount =
+            -- See if we have _any_ GPU usage data
+            timeSeriesListLast30m
+                |> Dict.toList
+                |> List.map (Tuple.second >> .gpuPctUsed >> List.length)
+                |> List.maximum
+                |> Maybe.withDefault 0
+
+        gpuSeries =
+            List.map
+                (\index ->
+                    seriesToLine (gpuColorByIndex index)
+                        (.gpuPctUsed >> List.Extra.getAt index >> Maybe.withDefault 0)
+                )
+                (List.range 0 (gpuCount - 1))
     in
     Element.row
         [ Element.width Element.fill
@@ -224,17 +215,11 @@ view context widthPx ( currentTime, timeZone ) maybeServerResourceQtys timeSerie
         , Element.spaceEvenly
         ]
         [ Element.column []
-            [ toCpuHeading context maybeServerResourceQtys haveGpuData
+            [ toCpuHeading context maybeServerResourceQtys gpuCount
             , LineChart.viewCustom
                 chartConfig
-                (series
-                    .cpuPctUsed
-                    (if haveGpuData then
-                        Just (\datapoint -> Maybe.withDefault 0 datapoint.gpuPctUsed)
-
-                     else
-                        Nothing
-                    )
+                (seriesToLine context.palette.primary .cpuPctUsed
+                    :: gpuSeries
                 )
                 |> Element.html
             ]
@@ -274,17 +259,19 @@ toChartHeading context title subtitle =
         ]
 
 
-toCpuHeading : View.Types.Context -> Maybe HelperTypes.ServerResourceQtys -> Bool -> Element.Element msg
-toCpuHeading context maybeServerResourceQtys haveGpuData =
+toCpuHeading : View.Types.Context -> Maybe HelperTypes.ServerResourceQtys -> Int -> Element.Element msg
+toCpuHeading context maybeServerResourceQtys gpuCount =
     toChartHeading
         context
-        (if haveGpuData then
-            Element.row [ Element.spacing spacer.px4 ]
+        (if gpuCount > 0 then
+            Element.row [ Element.spacing spacer.px4 ] <|
                 [ Text.strong "CPU"
                 , Icon.roundRect (context.palette.primary |> SH.toElementColor) 16
                 , Text.strong "and GPU"
-                , Icon.roundRect (SH.allColorsPalette.yellow.base |> SH.toElementColor) 16
                 ]
+                    ++ (List.range 0 (gpuCount - 1)
+                            |> List.map (\index -> Icon.roundRect (gpuColorByIndex index |> SH.toElementColor) 16)
+                       )
 
          else
             Text.strong "CPU"
@@ -340,3 +327,12 @@ toDiskHeading context maybeServerResourceQtys =
                 )
             |> Maybe.withDefault ""
         )
+
+
+
+-- Helpers
+
+
+gpuColorByIndex : Int -> Color.Color
+gpuColorByIndex =
+    SH.hueShiftIncremental SH.allColorsPalette.yellow.base 0.1

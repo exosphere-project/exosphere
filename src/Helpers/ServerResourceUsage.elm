@@ -6,6 +6,7 @@ module Helpers.ServerResourceUsage exposing
 import Dict
 import Helpers.Helpers as Helpers
 import Json.Decode
+import Json.Decode.Pipeline
 import Time
 import Types.ServerResourceUsage exposing (DataPoint, History, TimeSeries)
 
@@ -44,23 +45,22 @@ parseConsoleLog consoleLog prevHistory =
 
 logLineDecoder : Json.Decode.Decoder ( Int, DataPoint )
 logLineDecoder =
-    Json.Decode.map2
-        Tuple.pair
+    Json.Decode.map2 Tuple.pair
         (Json.Decode.field "epoch" Json.Decode.int
             -- This gets us milliseconds
             |> Json.Decode.map (\epoch -> epoch * 1000)
         )
-        (Json.Decode.map4
-            DataPoint
-            (Json.Decode.field "cpuPctUsed" Json.Decode.int)
-            (Json.Decode.field "memPctUsed" Json.Decode.int)
-            (Json.Decode.field "rootfsPctUsed" Json.Decode.int)
-            (Json.Decode.oneOf
-                [ Json.Decode.field "gpuPctUsed" Json.Decode.int
-                    |> Json.Decode.map Just
-                , Json.Decode.succeed Nothing
-                ]
-            )
+        (Json.Decode.succeed DataPoint
+            |> Json.Decode.Pipeline.required "cpuPctUsed" Json.Decode.int
+            |> Json.Decode.Pipeline.required "memPctUsed" Json.Decode.int
+            |> Json.Decode.Pipeline.required "rootfsPctUsed" Json.Decode.int
+            |> Json.Decode.Pipeline.optional "gpuPctUsed"
+                (Json.Decode.oneOf
+                    [ Json.Decode.list Json.Decode.int
+                    , Json.Decode.map List.singleton Json.Decode.int
+                    ]
+                )
+                []
         )
 
 
