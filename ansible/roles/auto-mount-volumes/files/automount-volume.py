@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 import argparse
 import json
 import logging
@@ -61,6 +62,7 @@ def get_all_volume_metadata_v5(metadata):
             volumes[uuid] = json.loads(v)
     return volumes
 
+
 def get_all_volume_metadata_v6(metadata):
     volumes = {}
     for d in metadata["devices"]:
@@ -70,11 +72,12 @@ def get_all_volume_metadata_v6(metadata):
                 volumes[uuid] = json.loads(tag.split("::", maxsplit=1)[1])
     return volumes
 
+
 def get_all_volume_metadata():
     metadata = get_openstack_metadata()
     v5 = {}
     v6 = {}
-    
+
     try:
         v5 = get_all_volume_metadata_v5(metadata)
     except Exception:
@@ -122,11 +125,21 @@ def do_mount(device: pathlib.Path):
     logger.info(f"do_mount({device})")
     disk_info = udevadm_info(device)
 
+    sysname = disk_info["SYSNAME"]
+    devname = disk_info["DEVNAME"]
     uuid = disk_info.get("ID_SERIAL_SHORT")
     volume_name = get_volume_name(uuid, default=device.name, retries=3)
     mountpoint: pathlib.Path = MOUNT_PATH / sanitize(volume_name)
 
-    if disk_info.get("ID_FS_USAGE", None) != "filesystem":
+    if disk_info["DEVTYPE"] == "partition":
+        if disk_info.get("ID_FS_USAGE", None) != "filesystem":
+            logger.warning(f"Refusing to mount unformatted partition {devname}")
+            return 2
+
+        partition_number = disk_info["PARTN"]
+        mountpoint = mountpoint.with_suffix(f".part{partition_number}")
+
+    elif disk_info.get("ID_FS_USAGE", None) != "filesystem":
         logger.info(f"formatting {device} to ext4")
         # Options borrowed from https://github.com/systemd/systemd/blob/0e2f18eedd/src/shared/mkfs-util.c#L418-L426
         log_exec(
@@ -154,7 +167,7 @@ def do_mount(device: pathlib.Path):
 
     current_mounts = {m.fs_file: m for m in get_mounts()}
     if str(mountpoint) in current_mounts:
-        mountpoint = mountpoint.with_name(mountpoint.name + "-" + uuid[-4:])
+        mountpoint = mountpoint.with_name(f"{mountpoint.name}-{sysname}")
 
     logger.info(f"mounting {device} to {mountpoint}")
     mountpoint.mkdir(mode=0o755, parents=True, exist_ok=True)

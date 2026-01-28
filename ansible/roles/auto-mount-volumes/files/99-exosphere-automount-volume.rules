@@ -1,2 +1,17 @@
-ACTION=="add|bind|change", KERNEL=="[sv]d[b-z]", ENV{SYSTEMD_WANTS}+="automount-volume@%k.service"
-ACTION=="remove", KERNEL=="[sv]d[b-z]", RUN+="/usr/bin/systemctl stop automount-volume@%k.service"
+# Ignore the root disk
+KERNEL=="sda*", GOTO="automount-end"
+
+# Ignore partitioned block devices
+SUBSYSTEM=="block", ENV{DEVTYPE}=="disk", ENV{ID_PART_TABLE_TYPE}!="", \
+        TAG+="automount-skip", GOTO="automount-end"
+
+# Ignore unformatted partitions
+SUBSYSTEM=="block", ENV{DEVTYPE}=="partition", ENV{ID_FS_USAGE}=="", \
+        TAG+="automount-skip", GOTO="automount-end"
+
+# Handle automounting
+ACTION=="add|bind|change", SUBSYSTEM=="block", ENV{SYSTEMD_WANTS}+="automount-volume@%k.service"
+ACTION=="remove",          SUBSYSTEM=="block", RUN+="/usr/bin/systemctl stop automount-volume@%k.service"
+
+
+LABEL="automount-end"
