@@ -1,10 +1,13 @@
 module Helpers.Helpers exposing
     ( alwaysRegex
+    , currentAppVersion
     , decodeFloatingIpOption
     , getNewFloatingIpOption
     , hiddenActionContexts
     , httpErrorToString
     , httpErrorWithBodyToString
+    , isAppUpdateAvailable
+    , latestAppVersion
     , lookupUsername
     , naiveUuidParser
     , newServerMetadata
@@ -769,3 +772,32 @@ hiddenActionContexts =
 specialActionContexts : { networkConnectivity : String }
 specialActionContexts =
     { networkConnectivity = "check network connectivity" }
+
+
+isAppUpdateAvailable : SharedModel -> Bool
+isAppUpdateAvailable model =
+    case model.latestVersion.data of
+        RDPP.DoHave latest _ ->
+            case ( model.version, latest.version ) of
+                -- If we know both versions & they don't match, show the update alert.
+                ( Just mv, Just lv ) ->
+                    not <| mv == lv
+
+                _ ->
+                    False
+
+        _ ->
+            False
+
+
+latestAppVersion : SharedModel -> String
+latestAppVersion model =
+    RDPP.toMaybe model.latestVersion
+        |> Maybe.map .version
+        |> Maybe.withDefault model.version
+        |> Maybe.withDefault "latest"
+
+
+currentAppVersion : SharedModel -> String
+currentAppVersion model =
+    model.version |> Maybe.withDefault "latest"
