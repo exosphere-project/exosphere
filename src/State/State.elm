@@ -768,7 +768,15 @@ processSharedMsg sharedMsg outerModel =
                         ( newBanners, cmd ) =
                             receiveBanners
                                 sharedModel.banners
-                                banners
+                                (banners
+                                    -- Append app version update banner if required.
+                                    ++ (if Helpers.isAppUpdateAvailable sharedModel then
+                                            [ Helpers.appVersionUpdateBanner sharedModel ]
+
+                                        else
+                                            []
+                                       )
+                                )
 
                         newDismissedBanners =
                             let
@@ -777,6 +785,7 @@ processSharedMsg sharedMsg outerModel =
                                         |> List.map bannerId
                                         |> Set.fromList
                             in
+                            -- Discard dismissed banners that are no longer relevant.
                             { newBanners | dismissedBanners = Set.intersect newBannerIds newBanners.dismissedBanners }
                     in
                     ( { sharedModel | banners = newDismissedBanners }, cmd )

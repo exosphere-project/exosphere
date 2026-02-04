@@ -1,5 +1,6 @@
 module Helpers.Helpers exposing
     ( alwaysRegex
+    , appVersionUpdateBanner
     , currentAppVersion
     , decodeFloatingIpOption
     , getNewFloatingIpOption
@@ -44,6 +45,7 @@ import OpenStack.Types as OSTypes
 import Parser exposing ((|.))
 import Regex
 import Time
+import Types.Banner exposing (Banner)
 import Types.Error
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes as HelperTypes
@@ -772,6 +774,15 @@ hiddenActionContexts =
 specialActionContexts : { networkConnectivity : String }
 specialActionContexts =
     { networkConnectivity = "check network connectivity" }
+
+
+appVersionUpdateBanner : SharedModel -> Banner
+appVersionUpdateBanner model =
+    { message = "A new version of Exosphere is available (" ++ latestAppVersion model ++ "). Please refresh your browser to update."
+    , level = Types.Banner.BannerInfo
+    , startsAt = Nothing
+    , endsAt = Nothing
+    }
 
 
 isAppUpdateAvailable : SharedModel -> Bool
