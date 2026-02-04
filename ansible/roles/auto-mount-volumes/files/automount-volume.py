@@ -125,7 +125,6 @@ def do_mount(device: pathlib.Path):
     logger.info(f"do_mount({device})")
     disk_info = udevadm_info(device)
 
-    sysname = disk_info["SYSNAME"]
     devname = disk_info["DEVNAME"]
     uuid = disk_info.get("ID_SERIAL_SHORT")
     volume_name = get_volume_name(uuid, default=device.name, retries=3)
@@ -167,7 +166,16 @@ def do_mount(device: pathlib.Path):
 
     current_mounts = {m.fs_file: m for m in get_mounts()}
     if str(mountpoint) in current_mounts:
-        mountpoint = mountpoint.with_name(f"{mountpoint.name}-{sysname}")
+        # If udev returned a unique sysname for the device, append it
+        if "SYSNAME" in disk_info:
+            sysname = disk_info["SYSNAME"]
+            mountpoint = mountpoint.with_name(f"{mountpoint.name}-{sysname}")
+        new_mountpoint = mountpoint
+        suffix = 1
+        while str(new_mountpoint) in current_mounts:
+            new_mountpoint = mountpoint.with_name(f"{mountpoint.name}-{suffix}")
+            suffix += 1
+        mountpoint = new_mountpoint
 
     logger.info(f"mounting {device} to {mountpoint}")
     mountpoint.mkdir(mode=0o755, parents=True, exist_ok=True)
