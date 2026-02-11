@@ -2,7 +2,7 @@ module Tests.OpenStack.OpenRc exposing (processOpenRcSuite)
 
 import Expect
 import OpenStack.OpenRc
-import OpenStack.Types exposing (OpenstackLogin)
+import OpenStack.Types exposing (ApplicationCredential, OpenstackLogin)
 import Page.LoginOpenstack
 import Test exposing (Test, describe, test)
 
@@ -112,6 +112,31 @@ withWindowsLineEndings =
     String.replace "\n" "\u{000D}\n"
 
 
+openrcAppCredential : String
+openrcAppCredential =
+    """
+export OS_AUTH_TYPE=v3applicationcredential
+export OS_AUTH_URL=https://mycloud.example:5000/v3
+export OS_APPLICATION_CREDENTIAL_ID=abcd-efgh
+export OS_APPLICATION_CREDENTIAL_SECRET=supersecret
+"""
+
+
+openrcAppCredentialQuotedAuthType : String
+openrcAppCredentialQuotedAuthType =
+    """
+export OS_AUTH_TYPE='v3applicationcredential'
+"""
+
+
+openrcAppCredentialCrlf : String
+openrcAppCredentialCrlf =
+    "export OS_AUTH_TYPE=v3applicationcredential\u{000D}\n"
+        ++ "export OS_AUTH_URL=https://mycloud.example:5000/v3\u{000D}\n"
+        ++ "export OS_APPLICATION_CREDENTIAL_ID=abcd-efgh\u{000D}\n"
+        ++ "export OS_APPLICATION_CREDENTIAL_SECRET=supersecret\u{000D}\n"
+
+
 processOpenRcSuite : Test
 processOpenRcSuite =
     describe "end result of processing imported openrc files"
@@ -216,4 +241,59 @@ processOpenRcSuite =
                             "redactedusername"
                             "redactedpassword"
                         )
+        , test "parse app credential id/secret from OpenRC" <|
+            \() ->
+                openrcAppCredential
+                    |> OpenStack.OpenRc.parseOpenRcAppCredential
+                    |> Expect.equal
+                        (Just
+                            (ApplicationCredential
+                                "abcd-efgh"
+                                "supersecret"
+                            )
+                        )
+        , test "do not parse app credential when one required field is missing" <|
+            \() ->
+                """
+                export OS_APPLICATION_CREDENTIAL_ID=abcd-efgh
+                """
+                    |> OpenStack.OpenRc.parseOpenRcAppCredential
+                    |> Expect.equal Nothing
+        , test "detect app credential auth type from OpenRC" <|
+            \() ->
+                openrcAppCredential
+                    |> OpenStack.OpenRc.openRcUsesAppCredentialAuth
+                    |> Expect.equal True
+        , test "detect app credential auth type when quoted" <|
+            \() ->
+                openrcAppCredentialQuotedAuthType
+                    |> OpenStack.OpenRc.openRcUsesAppCredentialAuth
+                    |> Expect.equal True
+        , test "do not detect app credential auth type when absent" <|
+            \() ->
+                openrcV3
+                    |> OpenStack.OpenRc.openRcUsesAppCredentialAuth
+                    |> Expect.equal False
+        , test "detect app credential auth type from OpenRC with CRLF line endings" <|
+            \() ->
+                openrcAppCredentialCrlf
+                    |> OpenStack.OpenRc.openRcUsesAppCredentialAuth
+                    |> Expect.equal True
+        , test "parse app credential id/secret from OpenRC with CRLF line endings" <|
+            \() ->
+                openrcAppCredentialCrlf
+                    |> OpenStack.OpenRc.parseOpenRcAppCredential
+                    |> Expect.equal
+                        (Just
+                            (ApplicationCredential
+                                "abcd-efgh"
+                                "supersecret"
+                            )
+                        )
+        , test "parse auth URL from OpenRC with CRLF line endings without trailing carriage return" <|
+            \() ->
+                openrcAppCredentialCrlf
+                    |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
+                    |> .authUrl
+                    |> Expect.equal "https://mycloud.example:5000/v3"
         ]

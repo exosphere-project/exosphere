@@ -1,63 +1,106 @@
-module OpenStack.OpenRc exposing (processOpenRc)
+module OpenStack.OpenRc exposing (openRcUsesAppCredentialAuth, parseOpenRcAppCredential, processOpenRc)
 
 import Helpers.String exposing (normalizeLineEndings)
 import OpenStack.Types as OSTypes
-import Parser exposing ((|.), (|=))
-import Set
 
 
 processOpenRc : OSTypes.OpenstackLogin -> String -> OSTypes.OpenstackLogin
 processOpenRc existingCreds openRc =
-    let
-        parseVar : String -> Maybe String
-        parseVar varName =
-            let
-                parseVariable =
-                    Parser.succeed identity
-                        |= Parser.variable
-                            -- This discards any bash variables defined with other bash variables, e.g. $OS_PASSWORD_INPUT
-                            { start = \c -> c /= '$'
-                            , inner = \c -> not (List.member c [ '\n', '"', '\'' ])
-                            , reserved = Set.empty
-                            }
-
-                varParser : Parser.Parser String
-                varParser =
-                    -- Why does this need to be Parser.succeed identity instead of Parser.succeed ()?
-                    Parser.succeed identity
-                        |. Parser.spaces
-                        |. Parser.oneOf [ Parser.keyword "export", Parser.succeed () ]
-                        |. Parser.spaces
-                        |. Parser.keyword varName
-                        |. Parser.symbol "="
-                        |= Parser.oneOf
-                            [ Parser.succeed identity
-                                |. Parser.symbol "\""
-                                |= parseVariable
-                                |. Parser.symbol "\""
-                            , Parser.succeed identity
-                                |. Parser.symbol "'"
-                                |= parseVariable
-                                |. Parser.symbol "'"
-                            , Parser.succeed identity
-                                |= parseVariable
-                            ]
-                        |. Parser.oneOf [ Parser.symbol "\n", Parser.end ]
-            in
-            openRc
-                |> normalizeLineEndings
-                |> String.split "\n"
-                |> List.map (\line -> Parser.run varParser line)
-                |> List.filterMap Result.toMaybe
-                |> List.head
-    in
     OSTypes.OpenstackLogin
-        (parseVar "OS_AUTH_URL" |> Maybe.withDefault existingCreds.authUrl)
-        (parseVar "OS_USER_DOMAIN_NAME"
+        (parseVar openRc "OS_AUTH_URL" |> Maybe.withDefault existingCreds.authUrl)
+        (parseVar openRc "OS_USER_DOMAIN_NAME"
             |> Maybe.withDefault
-                (parseVar "OS_USER_DOMAIN_ID"
+                (parseVar openRc "OS_USER_DOMAIN_ID"
                     |> Maybe.withDefault existingCreds.userDomain
                 )
         )
-        (parseVar "OS_USERNAME" |> Maybe.withDefault existingCreds.username)
-        (parseVar "OS_PASSWORD" |> Maybe.withDefault existingCreds.password)
+        (parseVar openRc "OS_USERNAME" |> Maybe.withDefault existingCreds.username)
+        (parseVar openRc "OS_PASSWORD" |> Maybe.withDefault existingCreds.password)
+
+
+parseOpenRcAppCredential : String -> Maybe OSTypes.ApplicationCredential
+parseOpenRcAppCredential openRc =
+    case ( parseVar openRc "OS_APPLICATION_CREDENTIAL_ID", parseVar openRc "OS_APPLICATION_CREDENTIAL_SECRET" ) of
+        ( Just uuid, Just secret ) ->
+            Just (OSTypes.ApplicationCredential uuid secret)
+
+        _ ->
+            Nothing
+
+
+openRcUsesAppCredentialAuth : String -> Bool
+openRcUsesAppCredentialAuth openRc =
+    parseVar openRc "OS_AUTH_TYPE"
+        |> Maybe.map String.toLower
+        |> Maybe.map ((==) "v3applicationcredential")
+        |> Maybe.withDefault False
+
+
+parseVar : String -> String -> Maybe String
+parseVar openRc varName =
+    openRc
+        |> normalizeLineEndings
+        |> String.lines
+        |> List.filterMap (parseLine varName)
+        |> List.head
+
+
+parseLine : String -> String -> Maybe String
+parseLine varName line =
+    let
+        trimmedLine =
+            line |> String.trim
+
+        lineWithoutExport =
+            if String.startsWith "export " trimmedLine then
+                String.dropLeft 7 trimmedLine |> String.trimLeft
+
+            else
+                trimmedLine
+
+        keyPrefix =
+            varName ++ "="
+    in
+    if String.startsWith keyPrefix lineWithoutExport then
+        lineWithoutExport
+            |> String.dropLeft (String.length keyPrefix)
+            |> parseValue
+
+    else
+        Nothing
+
+
+parseValue : String -> Maybe String
+parseValue rawValue =
+    let
+        value =
+            rawValue |> String.trim
+
+        startsWith : String -> Bool
+        startsWith prefix =
+            String.startsWith prefix value
+
+        unwrapQuotedValue : String -> Maybe String
+        unwrapQuotedValue quote =
+            if startsWith quote && String.endsWith quote value then
+                Just
+                    (value
+                        |> String.dropLeft 1
+                        |> String.dropRight 1
+                    )
+
+            else
+                Nothing
+    in
+    if String.startsWith "$" value then
+        -- Discard bash variables defined with other bash variables, e.g. $OS_PASSWORD_INPUT
+        Nothing
+
+    else if startsWith "\"" then
+        unwrapQuotedValue "\""
+
+    else if startsWith "'" then
+        unwrapQuotedValue "'"
+
+    else
+        Just value
