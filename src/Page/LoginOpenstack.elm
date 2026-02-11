@@ -154,11 +154,27 @@ update msg _ model =
             let
                 newCreds =
                     OpenStack.OpenRc.processOpenRc model.creds model.openRc
+
+                maybeAppCredential =
+                    OpenStack.OpenRc.parseOpenRcAppCredential model.openRc
+
+                entryTypeFromOpenRc =
+                    case maybeAppCredential of
+                        Just _ ->
+                            AppCredEntry
+
+                        Nothing ->
+                            if OpenStack.OpenRc.openRcUsesAppCredentialAuth model.openRc then
+                                AppCredEntry
+
+                            else
+                                CredsEntry
             in
             ( { model
                 | creds = newCreds
                 , appCredentialAuthUrl = newCreds.authUrl
-                , entryType = CredsEntry
+                , appCredential = Maybe.withDefault model.appCredential maybeAppCredential
+                , entryType = entryTypeFromOpenRc
               }
             , Cmd.none
             , SharedMsg.NoOp
@@ -225,7 +241,7 @@ view context _ model =
                         }
                     , Button.default
                         context.palette
-                        { text = "Use Application Credential"
+                        { text = "Use Application " ++ Helpers.String.toTitleCase context.localization.credential
                         , onPress = Just GotSelectAppCredInput
                         }
                     , Element.el [ Element.alignRight ]
@@ -352,6 +368,12 @@ loginOpenstackCredsEntry context model allCredsEntered =
 loginOpenstackAppCredEntry : View.Types.Context -> Model -> Bool -> Element.Element Msg
 loginOpenstackAppCredEntry context model allAppCredentialFieldsEntered =
     let
+        appCredentialText =
+            "application " ++ context.localization.credential
+
+        appCredentialLabel =
+            "Application " ++ Helpers.String.toTitleCase context.localization.credential
+
         textField text placeholderText onChange labelText =
             Input.text
                 (VH.inputItemAttributes context.palette)
@@ -363,7 +385,7 @@ loginOpenstackAppCredEntry context model allAppCredentialFieldsEntered =
     in
     Element.column
         (VH.formContainer ++ [ Element.spacing spacer.px16 ])
-        [ Element.el [] (Element.text "Enter your application credential.")
+        [ Element.el [] (Element.text ("Enter your " ++ appCredentialText ++ "."))
         , textField
             model.appCredentialAuthUrl
             "OS_AUTH_URL e.g. https://mycloud.net:5000/v3"
@@ -371,16 +393,16 @@ loginOpenstackAppCredEntry context model allAppCredentialFieldsEntered =
             "Keystone auth URL"
         , textField
             model.appCredential.uuid
-            "Application credential ID"
+            (appCredentialLabel ++ " ID")
             GotAppCredentialId
-            "Application Credential ID"
+            (appCredentialLabel ++ " ID")
         , Input.currentPassword
             (VH.inputItemAttributes context.palette)
             { text = model.appCredential.secret
-            , placeholder = Just (Input.placeholder [] (Element.text "Application credential secret"))
+            , placeholder = Just (Input.placeholder [] (Element.text (appCredentialText ++ " secret")))
             , show = False
             , onChange = GotAppCredentialSecret
-            , label = Input.labelAbove [ Text.fontSize Text.Small ] (Element.text "Application Credential Secret")
+            , label = Input.labelAbove [ Text.fontSize Text.Small ] (Element.text (appCredentialLabel ++ " Secret"))
             }
         , if allAppCredentialFieldsEntered then
             Element.none
