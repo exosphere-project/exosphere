@@ -4857,14 +4857,15 @@ createProject keystoneUrl maybeAppCredential token regionId outerModel =
                         |> List.concatMap .endpoints
                         |> List.Extra.find (\endpoint -> endpoint.regionId == regionId)
                         |> Maybe.map (\_ -> OSTypes.Region regionId "")
-
-        maybeDescription =
-            maybeUnscopedProvider
-                |> Maybe.andThen (\provider -> GetterSetters.unscopedProjectLookup provider token.project.uuid)
-                |> Maybe.andThen .description
     in
     case ( endpointsResult, maybeRegion ) of
         ( Ok endpoints, Just region ) ->
+            let
+                maybeDescription =
+                    maybeUnscopedProvider
+                        |> Maybe.andThen (\provider -> GetterSetters.unscopedProjectLookup provider token.project.uuid)
+                        |> Maybe.andThen .description
+            in
             createProject_ outerModel maybeAppCredential maybeDescription token region endpoints
 
         ( Err e, _ ) ->
@@ -4877,9 +4878,6 @@ createProject keystoneUrl maybeAppCredential token regionId outerModel =
 createProject_ : OuterModel -> Maybe OSTypes.ApplicationCredential -> Maybe OSTypes.ProjectDescription -> OSTypes.ScopedAuthToken -> OSTypes.Region -> Endpoints -> ( OuterModel, Cmd OuterMsg )
 createProject_ outerModel maybeAppCredential description authToken region endpoints =
     let
-        sharedModel =
-            outerModel.sharedModel
-
         projectSecret =
             case maybeAppCredential of
                 Just appCredential ->
@@ -4943,7 +4941,10 @@ createProject_ outerModel maybeAppCredential description authToken region endpoi
 
                 Nothing ->
                     [ Rest.Nova.requestServers newProject
-                    , Rest.Keystone.requestAppCredential sharedModel.clientUuid sharedModel.clientCurrentTime newProject
+                    , Rest.Keystone.requestAppCredential
+                        outerModel.sharedModel.clientUuid
+                        outerModel.sharedModel.clientCurrentTime
+                        newProject
                     ]
 
         ( newNewSharedModel, newCmd ) =
