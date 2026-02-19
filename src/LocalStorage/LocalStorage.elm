@@ -29,7 +29,7 @@ generateStoredState model =
         strippedProjects =
             List.map generateStoredProject model.projects
     in
-    encodeStoredState strippedProjects model.clientUuid model.style.styleMode model.viewContext.experimentalFeaturesEnabled model.banners.dismissedBanners
+    encodeStoredState strippedProjects model.clientUuid model.style.styleMode model.viewContext.experimentalFeaturesEnabled model.viewContext.appVersionUpdateNotificationsEnabled model.banners.dismissedBanners
 
 
 generateStoredProject : Types.Project.Project -> StoredProject
@@ -78,6 +78,10 @@ hydrateModelFromStoredState emptyModel newClientUuid storedState =
             storedState.experimentalFeaturesEnabled
                 |> Maybe.withDefault False
 
+        appVersionUpdateNotificationsEnabled =
+            storedState.appVersionUpdateNotificationsEnabled
+                |> Maybe.withDefault True
+
         viewContext =
             model.viewContext
 
@@ -95,6 +99,7 @@ hydrateModelFromStoredState emptyModel newClientUuid storedState =
         , viewContext =
             { viewContext
                 | experimentalFeaturesEnabled = experimentalFeaturesEnabled
+                , appVersionUpdateNotificationsEnabled = appVersionUpdateNotificationsEnabled
                 , palette = toExoPalette newStyle
             }
         , banners = newBanners
@@ -145,8 +150,8 @@ hydrateProjectFromStoredProject storedProject =
 -- Encoders
 
 
-encodeStoredState : List StoredProject -> UUID.UUID -> ST.StyleMode -> Bool -> Set String -> Encode.Value
-encodeStoredState projects clientUuid styleMode experimentalFeaturesEnabled dismissedBanners =
+encodeStoredState : List StoredProject -> UUID.UUID -> ST.StyleMode -> Bool -> Bool -> Set String -> Encode.Value
+encodeStoredState projects clientUuid styleMode experimentalFeaturesEnabled appVersionUpdateNotificationsEnabled dismissedBanners =
     let
         secretEncode : Types.Project.ProjectSecret -> Encode.Value
         secretEncode secret =
@@ -184,6 +189,7 @@ encodeStoredState projects clientUuid styleMode experimentalFeaturesEnabled dism
                 , ( "clientUuid", Encode.string (UUID.toString clientUuid) )
                 , ( "styleMode", encodeStyleMode styleMode )
                 , ( "experimentalFeaturesEnabled", Encode.bool experimentalFeaturesEnabled )
+                , ( "appVersionUpdateNotificationsEnabled", Encode.bool appVersionUpdateNotificationsEnabled )
                 , ( "dismissedBanners", Encode.list Encode.string (Set.toList dismissedBanners) )
                 ]
           )
@@ -405,8 +411,12 @@ storedStateDecoder =
                 )
                 |> Decode.map (Maybe.withDefault [])
                 |> Decode.map Set.fromList
+
+        appVersionUpdateNotificationsEnabled =
+            Decode.maybe
+                (Decode.at [ "9", "appVersionUpdateNotificationsEnabled" ] Decode.bool)
     in
-    Decode.map5 StoredState projects clientUuid styleMode experimentalFeaturesEnabled dismissedBanners
+    Decode.map6 StoredState projects clientUuid styleMode experimentalFeaturesEnabled appVersionUpdateNotificationsEnabled dismissedBanners
 
 
 storedProjectDecoder1 : Decode.Decoder StoredProject

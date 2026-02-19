@@ -770,7 +770,10 @@ processSharedMsg sharedMsg outerModel =
                                 sharedModel.banners
                                 (banners
                                     -- Append app version update banner if required.
-                                    ++ (if Helpers.isAppUpdateAvailable sharedModel then
+                                    ++ (if
+                                            Helpers.isAppUpdateAvailable sharedModel
+                                                && sharedModel.viewContext.appVersionUpdateNotificationsEnabled
+                                        then
                                             [ Helpers.appVersionUpdateBanner sharedModel ]
 
                                         else
@@ -1271,6 +1274,10 @@ processSharedMsg sharedMsg outerModel =
 
         SetExperimentalFeaturesEnabled choice ->
             ( { sharedModel | viewContext = { viewContext | experimentalFeaturesEnabled = choice } }, Cmd.none )
+                |> mapToOuterModel outerModel
+
+        SetAppVersionUpdateNotificationsEnabled choice ->
+            ( { sharedModel | viewContext = { viewContext | appVersionUpdateNotificationsEnabled = choice } }, Cmd.none )
                 |> mapToOuterModel outerModel
 
         TogglePopover popoverId ->

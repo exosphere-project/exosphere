@@ -54,6 +54,7 @@ type SharedMsg
     | VisibilityChanged Browser.Events.Visibility
     | SelectTheme ST.ThemeChoice
     | SetExperimentalFeaturesEnabled Bool
+    | SetAppVersionUpdateNotificationsEnabled Bool
     | TogglePopover PopoverId
     | NetworkConnection Bool
     | ReceiveWebLock ( String, Bool )

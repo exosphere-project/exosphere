@@ -20,6 +20,7 @@ type alias Model =
 type Msg
     = SelectTheme ST.ThemeChoice
     | GotEnableExperimentalFeatures Bool
+    | GotEnableAppVersionUpdateNotifications Bool
     | SharedMsg SharedMsg.SharedMsg
 
 
@@ -36,6 +37,9 @@ update msg _ model =
 
         GotEnableExperimentalFeatures choice ->
             ( model, Cmd.none, SharedMsg.SetExperimentalFeaturesEnabled choice )
+
+        GotEnableAppVersionUpdateNotifications choice ->
+            ( model, Cmd.none, SharedMsg.SetAppVersionUpdateNotificationsEnabled choice )
 
         SharedMsg sharedMsg ->
             ( model, Cmd.none, sharedMsg )
@@ -64,6 +68,21 @@ view context sharedModel _ =
                         , Font.regular
                         ]
                         [ Element.text "New features in development. An example is adding a custom workflow when you launch a server." ]
+                    )
+                    ST.PositionRight
+
+        appVersionUpdateNotificationsToggleTip =
+            Element.el [ Element.paddingXY spacer.px8 0 ] <|
+                Style.Widgets.ToggleTip.toggleTip
+                    context
+                    (\appVersionUpdateNotificationsTipId -> SharedMsg <| SharedMsg.TogglePopover appVersionUpdateNotificationsTipId)
+                    "settingsAppVersionUpdateNotificationsToggleTip"
+                    (Element.paragraph
+                        [ Element.width (Element.fill |> Element.minimum 300)
+                        , Element.spacing spacer.px8
+                        , Font.regular
+                        ]
+                        [ Element.text "Shows a dismissable banner when a new version of Exosphere is available. (Refresh your browser for this setting take effect.)" ]
                     )
                     ST.PositionRight
     in
@@ -100,6 +119,26 @@ view context sharedModel _ =
                         [ Element.onRight experimentalFeatureToggleTip
                         ]
                         "Experimental features"
+                    )
+            }
+        , Input.radio
+            [ Element.spacing spacer.px12 ]
+            { onChange =
+                \newChoice ->
+                    GotEnableAppVersionUpdateNotifications newChoice
+            , options =
+                [ Input.option False (Element.text "Disabled")
+                , Input.option True (Element.text "Enabled")
+                ]
+            , selected =
+                Just sharedModel.viewContext.appVersionUpdateNotificationsEnabled
+            , label =
+                Input.labelAbove
+                    VH.radioLabelAttributes
+                    (Text.text Text.Emphasized
+                        [ Element.onRight appVersionUpdateNotificationsToggleTip
+                        ]
+                        "Show App Update Notifications"
                     )
             }
         ]
