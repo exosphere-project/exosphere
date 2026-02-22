@@ -25,9 +25,11 @@ import Style.Widgets.Popover.Popover exposing (dropdownItemStyle, popover)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Spinner as Spinner
 import Style.Widgets.StatusBadge as StatusBadge
+import Style.Widgets.Tag exposing (tag)
 import Style.Widgets.Text as Text
 import Style.Widgets.Uuid exposing (uuidLabel)
 import Time
+import Types.Guacamole exposing (LaunchedWithGuacProps)
 import Types.Interaction as ITypes
 import Types.Interactivity exposing (InteractionLevel(..))
 import Types.Project exposing (Project)
@@ -197,6 +199,7 @@ type alias ServerRecord msg =
                 , interactionDetails : ITypes.InteractionDetails msg
                 }
         , securityGroupIds : List OSTypes.SecurityGroupUuid
+        , guacProps : Maybe LaunchedWithGuacProps
         }
 
 
@@ -254,6 +257,7 @@ serverRecords context currentTime project servers =
             , creator = serverCreatorName project server
             , interactions = interactions server
             , securityGroupIds = serverSecurityGroupIds server
+            , guacProps = IHelpers.getLaunchedWithGaucamoleProps server
             }
         )
         servers
@@ -454,12 +458,25 @@ serverView context currentTime project retainFloatingIpsWhenDeleting serverRecor
 
                 Nothing ->
                     Element.none
+
+        guiTag =
+            serverRecord.guacProps
+                |> Maybe.map .vncSupported
+                |> Maybe.withDefault False
+                |> (\vncSupported ->
+                        if vncSupported then
+                            tag context.palette context.localization.graphicalDesktopEnvironment
+
+                        else
+                            Element.none
+                   )
     in
     Element.column
         (listItemColumnAttribs context.palette)
         [ Element.row [ Element.spacing spacer.px12, Element.width Element.fill ]
             [ serverLink
             , VH.serverStatusBadgeFromStatus context.palette StatusBadge.Small serverRecord.status
+            , Element.el [ Element.alignRight ] guiTag
             , Element.el [ Element.alignRight ] interactionButton
             , Element.el [ Element.alignRight ] deleteServerBtnWithPopconfirm
             ]

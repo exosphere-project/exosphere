@@ -1,4 +1,4 @@
-module Helpers.Interaction exposing (interactionDetails, interactionStatus, interactionStatusWordColor)
+module Helpers.Interaction exposing (getLaunchedWithGaucamoleProps, interactionDetails, interactionStatus, interactionStatusWordColor)
 
 import Element
 import FeatherIcons as Icons
@@ -13,7 +13,7 @@ import Style.Helpers as SH
 import Style.Types
 import Style.Widgets.Icon as Icon
 import Time
-import Types.Guacamole as GuacTypes
+import Types.Guacamole as GuacTypes exposing (LaunchedWithGuacProps, ServerGuacamoleStatus(..))
 import Types.HelperTypes exposing (UserAppProxyHostname)
 import Types.Interaction as ITypes
 import Types.Project exposing (Project)
@@ -517,3 +517,18 @@ serverFromExoGuacStatus project server context currentTime tlsReverseProxyHostna
 type GuacType
     = Terminal
     | Desktop
+
+
+getLaunchedWithGaucamoleProps : Server -> Maybe LaunchedWithGuacProps
+getLaunchedWithGaucamoleProps server =
+    case server.exoProps.serverOrigin of
+        ServerFromExo serverFromExo ->
+            case serverFromExo.guacamoleStatus of
+                LaunchedWithGuacamole props ->
+                    Just props
+
+                _ ->
+                    Nothing
+
+        _ ->
+            Nothing
