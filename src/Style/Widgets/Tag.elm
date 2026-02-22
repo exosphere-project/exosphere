@@ -17,12 +17,10 @@ tagWithColor color text =
         [ Background.color (SH.toElementColorWithOpacity color 0.1)
         , Border.width 1
         , Border.color (SH.toElementColorWithOpacity color 0.7)
-        , Text.fontSize Text.Tiny
-        , Font.color (SH.toElementColor color)
         , Border.rounded 20
         , Element.paddingXY spacer.px8 spacer.px4
         ]
-        (Element.text text)
+        (Text.text Text.Tiny [ Font.color (SH.toElementColor color) ] text)
 
 
 tag : Style.Types.ExoPalette -> String -> Element.Element msg
