@@ -84,6 +84,7 @@ What can I do with Exosphere?
 - [Exosphere Project License](LICENSE)
 - [Acceptable Use Policy for Exosphere Hosted Sites](docs/acceptable-use-policy.md)
 - [Privacy Policy for Exosphere Hosted Sites](docs/privacy-policy.md)
+- [Vulnerability Disclosure Policy](docs/vulnerability-disclosure.md)
 
 ## Collaborate With Us
 
