@@ -108,8 +108,17 @@ var cloud_configs = {
           logo: "assets/img/hat-fedora.svg",
           versions: [
             {
-              friendlyName: "Rocky Linux 9",
+              friendlyName: "Rocky Linux 10",
               isPrimary: true,
+              imageFilters: {
+                name: "Featured-RockyLinux10",
+                visibility: "public",
+              },
+              restrictFlavorIds: null,
+            },
+            {
+              friendlyName: "Rocky Linux 9",
+              isPrimary: false,
               imageFilters: {
                 name: "Featured-RockyLinux9",
                 visibility: "public",
