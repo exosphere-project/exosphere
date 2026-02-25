@@ -41,6 +41,7 @@ nav:
       - 'Contribution Review Policy': 'docs/review-policy.md'
       - 'docs/quality-checklist.md'
       - 'docs/adr/README.md'
+      # Note: Aliased files require a symlink in the mkdocs src directory.
       - 'Exosphere Tests': 'tests/README.md'
       - 'Browser Integration Tests': 'integration-tests/README.md'
       - 'Performance Tests': 'performance-tests/README.md'
