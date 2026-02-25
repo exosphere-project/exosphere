@@ -7,6 +7,7 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons as Icons
+import Helpers.Connectivity
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers exposing (serverCreatorName)
 import Helpers.Interaction as IHelpers
@@ -40,10 +41,11 @@ import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
 import Style.Widgets.Uuid exposing (copyableUuid)
 import Time
+import Types.Guacamole exposing (ServerGuacamoleStatus(..))
 import Types.HelperTypes exposing (FloatingIpOption(..), ProjectIdentifier, ServerResourceQtys, UserAppProxyHostname)
 import Types.Interaction as ITypes
 import Types.Project exposing (Project)
-import Types.Server exposing (ExoFeature(..), ExoSetupStatus(..), Server, ServerOrigin(..))
+import Types.Server exposing (ExoFeature(..), ExoSetupStatus(..), Server, ServerOrigin(..), ServerUiStatus(..))
 import Types.ServerResourceUsage
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH exposing (edges)
@@ -533,6 +535,125 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
 
                 ( Nothing, _ ) ->
                     Element.none
+
+        connectivityWarningView =
+            let
+                maybeServerSecurityGroupUuids =
+                    GetterSetters.getServerSecurityGroups project server.osProps.uuid
+                        |> RDPP.toMaybe
+                        |> Maybe.map (List.map .uuid)
+
+                maybeProjectSecurityGroups =
+                    project.securityGroups
+                        |> RDPP.toMaybe
+
+                maybeSecurityGroups =
+                    case ( maybeServerSecurityGroupUuids, maybeProjectSecurityGroups ) of
+                        ( Just sgUuids, Just projectSecurityGroups ) ->
+                            Just
+                                (projectSecurityGroups
+                                    |> List.filter (\sg -> List.member sg.uuid sgUuids)
+                                )
+
+                        _ ->
+                            Nothing
+
+                maybeSecurityGroupRules =
+                    maybeSecurityGroups
+                        -- We make an effort to preserve maybe-ness instead of defaulting to []
+                        -- because an empty rule list will imply no incoming/outgoing connections are allowed.
+                        |> Maybe.map (List.concatMap .rules)
+
+                connectivityChecks =
+                    case maybeSecurityGroupRules of
+                        Just securityGroupRules ->
+                            ([ Helpers.Connectivity.outgoingHttpRule
+                             , Helpers.Connectivity.outgoingHttpsRule
+                             , Helpers.Connectivity.outgoingDnsUdpRule
+                             , Helpers.Connectivity.outgoingDnsTcpRule
+                             , Helpers.Connectivity.incomingSshRule context
+                             ]
+                                ++ (case server.exoProps.serverOrigin of
+                                        ServerFromExo serverFromExo ->
+                                            case serverFromExo.guacamoleStatus of
+                                                LaunchedWithGuacamole props ->
+                                                    Helpers.Connectivity.incomingGuacamoleRule context
+                                                        :: (if props.vncSupported then
+                                                                [ Helpers.Connectivity.incomingVncRule context ]
+
+                                                            else
+                                                                []
+                                                           )
+
+                                                _ ->
+                                                    []
+
+                                        _ ->
+                                            []
+                                   )
+                            )
+                                |> List.map (\c -> ( c, Helpers.Connectivity.isConnectionPermitted c securityGroupRules ))
+
+                        Nothing ->
+                            []
+
+                isConnectivityBroken =
+                    connectivityChecks
+                        |> List.any (\( _, permitted ) -> not permitted)
+
+                -- Don't show connectivity warnings when security group data may be unreliable or changing (esp. while building).
+                serverUiStatus =
+                    VH.getServerUiStatus project server
+
+                isStatusStableForSecurityGroupCheck =
+                    not <|
+                        List.member serverUiStatus
+                            [ ServerUiStatusUnknown
+                            , ServerUiStatusBuilding
+                            , ServerUiStatusDeleting
+                            , ServerUiStatusSoftDeleted
+                            , ServerUiStatusDeleted
+                            , ServerUiStatusResizing
+                            , ServerUiStatusVerifyResize
+                            , ServerUiStatusRevertingResize
+                            , ServerUiStatusMigrating
+                            , ServerUiStatusError
+                            ]
+            in
+            if context.experimentalFeaturesEnabled && isConnectivityBroken && isStatusStableForSecurityGroupCheck then
+                Alert.alert [ Element.width Element.fill ]
+                    context.palette
+                    { state = Alert.Warning
+                    , showIcon = True
+                    , showContainer = True
+                    , content =
+                        Element.column [ Element.spacing spacer.px8, Element.width Element.fill ] <|
+                            Text.p []
+                                [ Text.body <| "This " ++ context.localization.virtualComputer ++ "'s "
+                                , Link.link context.palette
+                                    (Route.toUrl context.urlPathPrefix <|
+                                        Route.ProjectRoute (GetterSetters.projectIdentifier project) <|
+                                            Route.ServerSecurityGroups server.osProps.uuid
+                                    )
+                                    (context.localization.securityGroup
+                                        ++ " configuration"
+                                    )
+                                , Text.body " may result in connectivity problems:"
+                                ]
+                                :: (connectivityChecks
+                                        |> List.filter (\( _, permitted ) -> not permitted)
+                                        |> List.map
+                                            (\( c, _ ) ->
+                                                Text.body <|
+                                                    " • "
+                                                        ++ Maybe.withDefault "Other connections" c.description
+                                                        ++ " may be blocked."
+                                            )
+                                   )
+                    }
+
+            else
+                Element.none
     in
     Element.column [ Element.spacing spacer.px24, Element.width Element.fill ]
         [ Element.row (Text.headingStyleAttrs context.palette)
@@ -572,6 +693,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
             , passphraseVulnWarning context server
             ]
         , serverFaultView
+        , connectivityWarningView
         , if List.member details.openstackStatus [ OSTypes.ServerActive, OSTypes.ServerVerifyResize ] then
             VH.tile
                 context
