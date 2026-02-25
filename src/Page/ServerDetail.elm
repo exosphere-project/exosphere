@@ -36,6 +36,7 @@ import Style.Widgets.Popover.Popover exposing (popover, popoverStyleDefaults)
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.StatusBadge as StatusBadge
+import Style.Widgets.Tag exposing (tag)
 import Style.Widgets.Text as Text
 import Style.Widgets.ToggleTip
 import Style.Widgets.Uuid exposing (copyableUuid)
@@ -351,11 +352,24 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
 
                     else
                         Element.none
+
+                guiTag =
+                    IHelpers.getLaunchedWithGaucamoleProps server
+                        |> Maybe.map .vncSupported
+                        |> Maybe.withDefault False
+                        |> (\vncSupported ->
+                                if vncSupported then
+                                    tag context.palette context.localization.graphicalDesktopEnvironment
+
+                                else
+                                    Element.none
+                           )
             in
             [ VH.tile
                 context
                 [ Icon.featherIcon [] Icons.monitor
                 , Element.text "Interactions"
+                , guiTag
                 ]
                 [ interactions
                     context
