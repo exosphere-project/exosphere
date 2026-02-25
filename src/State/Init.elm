@@ -86,6 +86,7 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
             , clientUuid = Nothing
             , styleMode = Nothing
             , experimentalFeaturesEnabled = Nothing
+            , appVersionUpdateNotificationsEnabled = Nothing
             , dismissedBanners = Set.empty
             }
 
@@ -233,6 +234,7 @@ initWithValidFlags flags cloudSpecificConfigs urlKey =
             , viewContext =
                 { cloudSpecificConfigs = cloudSpecificConfigs
                 , experimentalFeaturesEnabled = False
+                , appVersionUpdateNotificationsEnabled = True
                 , locale =
                     flags.localeGuessingString
                         |> FormatNumber.Locales.fromString

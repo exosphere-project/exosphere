@@ -3,7 +3,7 @@ module Page.HelpAbout exposing (Msg, headerView, update, view)
 import Browser.Navigation
 import Element
 import Element.Font as Font
-import Helpers.RemoteDataPlusPlus as RDPP
+import Helpers.Helpers exposing (currentAppVersion, isAppUpdateAvailable, latestAppVersion)
 import Style.Helpers as SH
 import Style.Widgets.Alert as Alert
 import Style.Widgets.Button as Button
@@ -83,42 +83,31 @@ view model context =
                     , Font.color (SH.toElementColor context.palette.neutral.text.subdued)
                     , Element.paddingEach { bottom = 0, left = spacer.px16, right = 0, top = 0 }
                     ]
-                    (copyableText context.palette [] (model.version |> Maybe.withDefault "latest"))
+                    (copyableText context.palette [] (currentAppVersion model))
                 ]
-            , case model.latestVersion.data of
-                RDPP.DoHave latest _ ->
-                    case ( model.version, latest.version ) of
-                        -- If we know both versions & they don't match, show the update alert.
-                        ( Just mv, Just lv ) ->
-                            if mv == lv then
-                                Element.none
+            , if isAppUpdateAvailable model then
+                Alert.alert []
+                    context.palette
+                    { state = Alert.Info
+                    , showIcon = False
+                    , showContainer = True
+                    , content =
+                        Element.row [ Element.width Element.fill ]
+                            [ Text.p [ Element.paddingEach { top = 0, bottom = spacer.px4, left = 0, right = spacer.px16 } ]
+                                [ Text.text Text.Small [] "A new version of Exosphere is available ("
+                                , Text.text Text.Small [ Text.fontFamily Text.Mono ] (latestAppVersion model)
+                                , Text.text Text.Small [] ")."
+                                ]
+                            , Button.button Button.Text
+                                context.palette
+                                { text = "Refresh to Update"
+                                , onPress = Just GotRefresh
+                                }
+                            ]
+                    }
 
-                            else
-                                Alert.alert []
-                                    context.palette
-                                    { state = Alert.Info
-                                    , showIcon = False
-                                    , showContainer = True
-                                    , content =
-                                        Element.row [ Element.width Element.fill ]
-                                            [ Text.p [ Element.paddingEach { top = 0, bottom = spacer.px4, left = 0, right = spacer.px16 } ]
-                                                [ Text.text Text.Small [] "A new version of Exosphere is available ("
-                                                , Text.text Text.Small [ Text.fontFamily Text.Mono ] lv
-                                                , Text.text Text.Small [] ")."
-                                                ]
-                                            , Button.button Button.Text
-                                                context.palette
-                                                { text = "Refresh to Update"
-                                                , onPress = Just GotRefresh
-                                                }
-                                            ]
-                                    }
-
-                        _ ->
-                            Element.none
-
-                _ ->
-                    Element.none
+              else
+                Element.none
             ]
         ]
 

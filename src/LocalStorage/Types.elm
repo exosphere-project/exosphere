@@ -66,5 +66,6 @@ type alias StoredState =
     , clientUuid : Maybe UUID.UUID
     , styleMode : Maybe Style.Types.StyleMode
     , experimentalFeaturesEnabled : Maybe Bool
+    , appVersionUpdateNotificationsEnabled : Maybe Bool
     , dismissedBanners : Set String
     }

@@ -1,10 +1,14 @@
 module Helpers.Helpers exposing
     ( alwaysRegex
+    , appVersionUpdateBanner
+    , currentAppVersion
     , decodeFloatingIpOption
     , getNewFloatingIpOption
     , hiddenActionContexts
     , httpErrorToString
     , httpErrorWithBodyToString
+    , isAppUpdateAvailable
+    , latestAppVersion
     , lookupUsername
     , naiveUuidParser
     , newServerMetadata
@@ -41,6 +45,7 @@ import OpenStack.Types as OSTypes
 import Parser exposing ((|.))
 import Regex
 import Time
+import Types.Banner exposing (Banner)
 import Types.Error
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes as HelperTypes
@@ -769,3 +774,41 @@ hiddenActionContexts =
 specialActionContexts : { networkConnectivity : String }
 specialActionContexts =
     { networkConnectivity = "check network connectivity" }
+
+
+appVersionUpdateBanner : SharedModel -> Banner
+appVersionUpdateBanner model =
+    { message = "A new version of Exosphere is available (" ++ latestAppVersion model ++ "). Please refresh your browser to update."
+    , level = Types.Banner.BannerInfo
+    , startsAt = Nothing
+    , endsAt = Nothing
+    }
+
+
+isAppUpdateAvailable : SharedModel -> Bool
+isAppUpdateAvailable model =
+    case model.latestVersion.data of
+        RDPP.DoHave latest _ ->
+            case ( model.version, latest.version ) of
+                -- If we know both versions & they don't match, show the update alert.
+                ( Just mv, Just lv ) ->
+                    not <| mv == lv
+
+                _ ->
+                    False
+
+        _ ->
+            False
+
+
+latestAppVersion : SharedModel -> String
+latestAppVersion model =
+    RDPP.toMaybe model.latestVersion
+        |> Maybe.map .version
+        |> Maybe.withDefault model.version
+        |> Maybe.withDefault "latest"
+
+
+currentAppVersion : SharedModel -> String
+currentAppVersion model =
+    model.version |> Maybe.withDefault "latest"

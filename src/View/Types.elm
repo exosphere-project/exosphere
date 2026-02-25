@@ -22,6 +22,7 @@ type alias Context =
     , cloudSpecificConfigs : Dict.Dict KeystoneHostname CloudSpecificConfig
     , windowSize : WindowSize
     , experimentalFeaturesEnabled : Bool
+    , appVersionUpdateNotificationsEnabled : Bool
     , baseUrl : Url.Url
     , urlPathPrefix : Maybe String
     , navigationKey : Browser.Navigation.Key

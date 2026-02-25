@@ -768,7 +768,18 @@ processSharedMsg sharedMsg outerModel =
                         ( newBanners, cmd ) =
                             receiveBanners
                                 sharedModel.banners
-                                banners
+                                (banners
+                                    -- Append app version update banner if required.
+                                    ++ (if
+                                            Helpers.isAppUpdateAvailable sharedModel
+                                                && sharedModel.viewContext.appVersionUpdateNotificationsEnabled
+                                        then
+                                            [ Helpers.appVersionUpdateBanner sharedModel ]
+
+                                        else
+                                            []
+                                       )
+                                )
 
                         newDismissedBanners =
                             let
@@ -777,6 +788,7 @@ processSharedMsg sharedMsg outerModel =
                                         |> List.map bannerId
                                         |> Set.fromList
                             in
+                            -- Discard dismissed banners that are no longer relevant.
                             { newBanners | dismissedBanners = Set.intersect newBannerIds newBanners.dismissedBanners }
                     in
                     ( { sharedModel | banners = newDismissedBanners }, cmd )
@@ -1262,6 +1274,10 @@ processSharedMsg sharedMsg outerModel =
 
         SetExperimentalFeaturesEnabled choice ->
             ( { sharedModel | viewContext = { viewContext | experimentalFeaturesEnabled = choice } }, Cmd.none )
+                |> mapToOuterModel outerModel
+
+        SetAppVersionUpdateNotificationsEnabled choice ->
+            ( { sharedModel | viewContext = { viewContext | appVersionUpdateNotificationsEnabled = choice } }, Cmd.none )
                 |> mapToOuterModel outerModel
 
         TogglePopover popoverId ->
