@@ -132,6 +132,7 @@ updateValid msg outerModel =
     {- We want to `setStorage` on every update. This function adds the setStorage
        command for every step of the update function.
     -}
+    -- TODO: Set storage after diff instead of on every update.
     let
         ( newOuterModel, cmds ) =
             updateUnderlying msg outerModel
@@ -3631,17 +3632,15 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
 
         RequestResizeServer flavorId ->
             let
-                oldExoProps =
-                    server.exoProps
-
-                newServer =
-                    { server
-                        | exoProps =
-                            { oldExoProps | targetOpenstackStatus = Just [ OSTypes.ServerResize ] }
-                    }
-
                 newProject =
-                    GetterSetters.projectUpdateServer project newServer
+                    GetterSetters.projectUpdateServerExoActions project
+                        server.osProps.uuid
+                        (\exoActions ->
+                            { exoActions
+                                | targetOpenstackStatus = Just [ OSTypes.ServerResize ]
+                                , request = RDPP.setLoading exoActions.request
+                            }
+                        )
 
                 newSharedModel =
                     GetterSetters.modelUpdateProject sharedModel newProject
@@ -3798,11 +3797,67 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
-        ReceiveServerAction ->
-            ApiModelHelpers.requestServer (GetterSetters.projectIdentifier project) NoInteraction server.osProps.uuid sharedModel
-                |> Helpers.pipelineCmd (ApiModelHelpers.requestServerEvents (GetterSetters.projectIdentifier project) server.osProps.uuid)
+        ReceiveServerAction errorContext result ->
+            case result of
+                Ok () ->
+                    let
+                        -- Set the ServerExoAction result.
+                        updatedProject =
+                            GetterSetters.projectUpdateServerExoActions project
+                                server.osProps.uuid
+                                (\exoActions ->
+                                    { exoActions
+                                        | request =
+                                            RDPP.RemoteDataPlusPlus
+                                                (RDPP.DoHave () sharedModel.clientCurrentTime)
+                                                (RDPP.NotLoading Nothing)
+                                    }
+                                )
+
+                        updatedSharedModel =
+                            GetterSetters.modelUpdateProject sharedModel updatedProject
+
+                        -- Refresh the affected server's details.
+                        ( newSharedModel, cmd ) =
+                            ApiModelHelpers.requestServer (GetterSetters.projectIdentifier project) NoInteraction server.osProps.uuid updatedSharedModel
+                                |> Helpers.pipelineCmd (ApiModelHelpers.requestServerEvents (GetterSetters.projectIdentifier project) server.osProps.uuid)
+                    in
+                    ( newSharedModel, cmd )
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+                Err httpError ->
+                    let
+                        -- Set the ServerExoAction error.
+                        updatedProject =
+                            GetterSetters.projectUpdateServerExoActions project
+                                server.osProps.uuid
+                                (\exoActions ->
+                                    { exoActions
+                                        | request = RDPP.setNotLoading (Just ( httpError, sharedModel.clientCurrentTime )) exoActions.request
+                                    }
+                                )
+
+                        updatedSharedModel =
+                            GetterSetters.modelUpdateProject sharedModel updatedProject
+
+                        ( newSharedModel, errCmd ) =
+                            State.Error.processSynchronousApiError updatedSharedModel errorContext httpError
+                    in
+                    ( newSharedModel, errCmd )
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+        ResetServerAction ->
+            let
+                updatedProject =
+                    GetterSetters.projectDeleteServerExoAction project server.osProps.uuid
+
+                updatedSharedModel =
+                    GetterSetters.modelUpdateProject sharedModel updatedProject
+            in
+            ( { outerModel | sharedModel = updatedSharedModel }, Cmd.none )
                 |> mapToOuterMsg
-                |> mapToOuterModel outerModel
 
         ReceiveConsoleUrl url ->
             Rest.Nova.receiveConsoleUrl sharedModel project server url
@@ -4192,13 +4247,22 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                 newServer =
                     Server server.osProps
                         { oldExoProps
-                            | targetOpenstackStatus = targetStatuses
-                            , floatingIpCreationOption = newFloatingIpOption
+                            | floatingIpCreationOption = newFloatingIpOption
                         }
                         server.interaction
 
+                updatedProject =
+                    GetterSetters.projectUpdateServerExoActions project
+                        server.osProps.uuid
+                        (\exoActions ->
+                            { exoActions
+                                | targetOpenstackStatus = targetStatuses
+                                , request = RDPP.setLoading exoActions.request
+                            }
+                        )
+
                 newProject =
-                    GetterSetters.projectUpdateServer project newServer
+                    GetterSetters.projectUpdateServer updatedProject newServer
 
                 ( newNewProject, cmd ) =
                     if requestFloatingIpIfAppropriate then
@@ -4525,6 +4589,7 @@ createProject_ outerModel description authToken region endpoints =
             , images = RDPP.RemoteDataPlusPlus RDPP.DontHave RDPP.Loading
             , servers = RDPP.RemoteDataPlusPlus RDPP.DontHave RDPP.Loading
             , serverEvents = Dict.empty
+            , serverExoActions = Dict.empty
             , serverSecurityGroups = Dict.empty
             , serverVolumeAttachments = Dict.empty
             , serverVolumeActions = Dict.empty
@@ -4610,25 +4675,21 @@ createUnscopedProvider model authToken authUrl =
 requestShelveServer : Project -> Server -> Bool -> ( Project, Cmd SharedMsg )
 requestShelveServer project server deleteFloatingIps =
     let
-        oldExoProps =
-            server.exoProps
-
         targetStatus =
             Just [ OSTypes.ServerShelved, OSTypes.ServerShelvedOffloaded ]
 
-        newServer =
-            { server
-                | exoProps =
-                    { oldExoProps
-                        | targetOpenstackStatus = targetStatus
-                    }
-            }
-
         newProject =
-            GetterSetters.projectUpdateServer project newServer
+            GetterSetters.projectUpdateServerExoActions project
+                server.osProps.uuid
+                (\exoActions ->
+                    { exoActions
+                        | targetOpenstackStatus = targetStatus
+                        , request = RDPP.setLoading exoActions.request
+                    }
+                )
 
         shelveCmd =
-            Rest.Nova.requestShelveServer (GetterSetters.projectIdentifier newProject) newProject.endpoints.nova newServer.osProps.uuid
+            Rest.Nova.requestShelveServer (GetterSetters.projectIdentifier newProject) newProject.endpoints.nova server.osProps.uuid
 
         cleanUpFloatingIpCmds =
             if deleteFloatingIps then

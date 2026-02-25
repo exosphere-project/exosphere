@@ -9,7 +9,7 @@ import Types.Error exposing (HttpErrorWithBody)
 import Types.HelperTypes as HelperTypes
 import Types.Jetstream2Accounting
 import Types.SecurityGroupActions exposing (ComparableSecurityGroupActionId, SecurityGroupAction)
-import Types.Server exposing (Server)
+import Types.Server exposing (Server, ServerExoActions)
 import Types.ServerActionRequestQueue exposing (ServerActionRequestJob)
 import Types.ServerVolumeActions exposing (ServerVolumeActionRequest)
 
@@ -27,6 +27,7 @@ type alias Project =
     , images : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Image)
     , servers : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List Server)
     , serverEvents : Dict OSTypes.ServerUuid (RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.ServerEvent))
+    , serverExoActions : Dict OSTypes.ServerUuid ServerExoActions
     , serverSecurityGroups : Dict OSTypes.ServerUuid (RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.ServerSecurityGroup))
     , serverVolumeAttachments : Dict OSTypes.ServerUuid (RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.VolumeAttachment))
     , serverVolumeActions : Dict OSTypes.ServerUuid (List ServerVolumeActionRequest)

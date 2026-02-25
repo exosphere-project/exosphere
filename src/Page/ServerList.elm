@@ -247,7 +247,7 @@ serverRecords context currentTime project servers =
             { id = server.osProps.uuid
             , selectable = server.osProps.details.lockStatus == OSTypes.ServerUnlocked
             , name = VH.resourceName (Just server.osProps.name) server.osProps.uuid
-            , status = VH.getServerUiStatus server
+            , status = VH.getServerUiStatus project server
             , size = flavorName context <| flavor server -- comparable flavor name
             , floatingIpAddress = floatingIpAddress server
             , creationTime = server.osProps.details.created

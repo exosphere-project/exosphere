@@ -14,6 +14,7 @@ module Helpers.GetterSetters exposing
     , getServerActionRequestQueue
     , getServerDnsRecordSets
     , getServerEvents
+    , getServerExoActions
     , getServerExouserPassphrase
     , getServerFixedIps
     , getServerFlavorGroup
@@ -43,6 +44,7 @@ module Helpers.GetterSetters exposing
     , projectDeleteSecurityGroupActions
     , projectDeleteSecurityGroupRule
     , projectDeleteServer
+    , projectDeleteServerExoAction
     , projectDeleteServerVolumeAction
     , projectIdentifier
     , projectLookup
@@ -70,6 +72,7 @@ module Helpers.GetterSetters exposing
     , projectUpdateSecurityGroup
     , projectUpdateSecurityGroupActionsIfExists
     , projectUpdateServer
+    , projectUpdateServerExoActions
     , projectUpsertSecurityGroupActions
     , projectUpsertServerSecurityGroups
     , projectUpsertServerVolumeAction
@@ -119,7 +122,7 @@ import Types.Error exposing (HttpErrorWithBody)
 import Types.HelperTypes as HelperTypes
 import Types.Project exposing (Project)
 import Types.SecurityGroupActions as SecurityGroupActions exposing (SecurityGroupAction)
-import Types.Server exposing (ExoServerVersion, Server, ServerOrigin(..))
+import Types.Server as Server exposing (ExoServerVersion, Server, ServerOrigin(..))
 import Types.ServerActionRequestQueue exposing (ServerActionRequest, ServerActionRequestJob)
 import Types.ServerVolumeActions exposing (ServerVolumeActionRequest)
 import Types.SharedModel exposing (SharedModel)
@@ -297,11 +300,11 @@ serverExoServerVersion server =
             Nothing
 
 
-serverSupportsFeature : Types.Server.ExoFeature -> Server -> Bool
+serverSupportsFeature : Server.ExoFeature -> Server -> Bool
 serverSupportsFeature feature server =
     case serverExoServerVersion server of
         Just v ->
-            Types.Server.exoVersionSupportsFeature feature v
+            Server.exoVersionSupportsFeature feature v
 
         Nothing ->
             False
@@ -1429,6 +1432,40 @@ getServerEvents : Project -> OSTypes.ServerUuid -> RDPP.RemoteDataPlusPlus HttpE
 getServerEvents project serverId =
     Dict.get serverId project.serverEvents
         |> Maybe.withDefault RDPP.empty
+
+
+getServerExoActions : Project -> OSTypes.ServerUuid -> Server.ServerExoActions
+getServerExoActions project serverId =
+    Dict.get serverId project.serverExoActions
+        |> Maybe.withDefault Server.initServerExoActions
+
+
+projectUpdateServerExoActions : Project -> OSTypes.ServerUuid -> (Server.ServerExoActions -> Server.ServerExoActions) -> Project
+projectUpdateServerExoActions project serverId onUpdateActions =
+    let
+        serverExoActions =
+            Dict.update serverId
+                (\actions_ ->
+                    let
+                        actions =
+                            Maybe.withDefault Server.initServerExoActions actions_
+                    in
+                    Just <| onUpdateActions actions
+                )
+                project.serverExoActions
+    in
+    { project
+        | serverExoActions =
+            serverExoActions
+    }
+
+
+projectDeleteServerExoAction : Project -> OSTypes.ServerUuid -> Project
+projectDeleteServerExoAction project serverId =
+    { project
+        | serverExoActions =
+            Dict.remove serverId project.serverExoActions
+    }
 
 
 projectUpsertServerVolumeAction : Project -> OSTypes.ServerUuid -> ServerVolumeActionRequest -> Project

@@ -1,7 +1,9 @@
 module Rest.Helpers exposing
-    ( expectJsonWithErrorBody
+    ( encodeHttpErrorWithBody
+    , expectJsonWithErrorBody
     , expectStringWithErrorBody
     , expectVoidWithErrorBody
+    , httpErrorWithBodyDecoder
     , httpResponseStringToResult
     , idOrName
     , keystoneUrlWithVersion
@@ -13,6 +15,7 @@ module Rest.Helpers exposing
 import Helpers.Helpers as Helpers
 import Http
 import Json.Decode as Decode
+import Json.Encode as Encode
 import OpenStack.Types as OSTypes
 import Task
 import Time
@@ -238,3 +241,73 @@ idOrName str =
 
     else
         "name"
+
+
+encodeHttpErrorWithBody : Types.Error.HttpErrorWithBody -> Encode.Value
+encodeHttpErrorWithBody errorWithBody =
+    Encode.object
+        [ ( "error", encodeHttpError errorWithBody.error )
+        , ( "body", Encode.string errorWithBody.body )
+        ]
+
+
+encodeHttpError : Http.Error -> Encode.Value
+encodeHttpError httpError =
+    case httpError of
+        Http.BadUrl url ->
+            Encode.object
+                [ ( "type", Encode.string "badUrl" )
+                , ( "url", Encode.string url )
+                ]
+
+        Http.Timeout ->
+            Encode.object [ ( "type", Encode.string "timeout" ) ]
+
+        Http.NetworkError ->
+            Encode.object [ ( "type", Encode.string "networkError" ) ]
+
+        Http.BadStatus status ->
+            Encode.object
+                [ ( "type", Encode.string "badStatus" )
+                , ( "status", Encode.int status )
+                ]
+
+        Http.BadBody message ->
+            Encode.object
+                [ ( "type", Encode.string "badBody" )
+                , ( "message", Encode.string message )
+                ]
+
+
+httpErrorWithBodyDecoder : Decode.Decoder Types.Error.HttpErrorWithBody
+httpErrorWithBodyDecoder =
+    Decode.map2 Types.Error.HttpErrorWithBody
+        (Decode.field "error" httpErrorDecoder)
+        (Decode.field "body" Decode.string)
+
+
+httpErrorDecoder : Decode.Decoder Http.Error
+httpErrorDecoder =
+    Decode.field "type" Decode.string
+        |> Decode.andThen
+            (\errorType ->
+                case errorType of
+                    "badUrl" ->
+                        Decode.map Http.BadUrl (Decode.field "url" Decode.string)
+
+                    "timeout" ->
+                        Decode.succeed Http.Timeout
+
+                    "networkError" ->
+                        Decode.succeed Http.NetworkError
+
+                    "badStatus" ->
+                        Decode.map Http.BadStatus (Decode.field "status" Decode.int)
+
+                    "badBody" ->
+                        Decode.map Http.BadBody (Decode.field "message" Decode.string)
+
+                    _ ->
+                        -- Wrap unknown error types in BadBody so decoding doesn't fail.
+                        Decode.succeed (Http.BadBody ("Unknown error type: " ++ errorType))
+            )

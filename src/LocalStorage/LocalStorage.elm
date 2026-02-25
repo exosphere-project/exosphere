@@ -4,18 +4,20 @@ module LocalStorage.LocalStorage exposing
     , storedStateDecoder
     )
 
-import Dict
+import Dict exposing (Dict)
 import Helpers.Helpers as Helpers
 import Helpers.Json exposing (resultToDecoder)
 import Helpers.RemoteDataPlusPlus as RDPP
 import Json.Decode as Decode
 import Json.Encode as Encode
-import LocalStorage.Types exposing (StoredProject, StoredProject2, StoredProject3, StoredProject4, StoredState)
+import LocalStorage.Types exposing (StoredProject, StoredProject2, StoredProject3, StoredProject4, StoredProject5, StoredProject6, StoredState)
 import OpenStack.Types as OSTypes
+import Rest.Helpers exposing (encodeHttpErrorWithBody, httpErrorWithBodyDecoder)
 import Set exposing (Set)
 import Style.Types as ST
 import Time
 import Types.Project
+import Types.Server as Server
 import Types.SharedModel as Types
 import UUID
 import View.Helpers exposing (toExoPalette)
@@ -37,6 +39,7 @@ generateStoredProject project =
     , region = project.region
     , endpoints = project.endpoints
     , description = project.description
+    , serverExoActions = project.serverExoActions
     }
 
 
@@ -108,6 +111,7 @@ hydrateProjectFromStoredProject storedProject =
     , images = RDPP.empty
     , servers = RDPP.empty
     , serverEvents = Dict.empty
+    , serverExoActions = storedProject.serverExoActions
     , serverSecurityGroups = Dict.empty
     , serverVolumeAttachments = Dict.empty
     , serverVolumeActions = Dict.empty
@@ -170,10 +174,11 @@ encodeStoredState projects clientUuid styleMode experimentalFeaturesEnabled dism
                         |> Maybe.map Encode.string
                         |> Maybe.withDefault Encode.null
                   )
+                , ( "serverExoActions", encodeServerExoActions storedProject.serverExoActions )
                 ]
     in
     Encode.object
-        [ ( "8"
+        [ ( "9"
           , Encode.object
                 [ ( "projects", Encode.list storedProjectEncode projects )
                 , ( "clientUuid", Encode.string (UUID.toString clientUuid) )
@@ -338,7 +343,10 @@ storedStateDecoder =
                 , Decode.at [ "7", "projects" ] (Decode.list storedProjectDecoder4)
 
                 -- Added region
-                , Decode.at [ "8", "projects" ] (Decode.list storedProjectDecoder)
+                , Decode.at [ "8", "projects" ] (Decode.list storedProjectDecoder5)
+
+                -- Add server exo actions (with OS target status).
+                , Decode.at [ "9", "projects" ] (Decode.list storedProjectDecoder6)
                 ]
 
         clientUuid =
@@ -351,6 +359,7 @@ storedStateDecoder =
                     , Decode.at [ "6", "clientUuid" ] Decode.string
                     , Decode.at [ "7", "clientUuid" ] Decode.string
                     , Decode.at [ "8", "clientUuid" ] Decode.string
+                    , Decode.at [ "9", "clientUuid" ] Decode.string
                     ]
                     |> Decode.map UUID.fromString
                     |> Decode.andThen
@@ -371,6 +380,7 @@ storedStateDecoder =
                     , Decode.at [ "6", "styleMode" ] Decode.string
                     , Decode.at [ "7", "styleMode" ] Decode.string
                     , Decode.at [ "8", "styleMode" ] Decode.string
+                    , Decode.at [ "9", "styleMode" ] Decode.string
                     ]
                     |> Decode.map parseStyleMode
                     |> Decode.andThen resultToDecoder
@@ -382,16 +392,19 @@ storedStateDecoder =
                     [ Decode.at [ "6", "experimentalFeaturesEnabled" ] Decode.bool
                     , Decode.at [ "7", "experimentalFeaturesEnabled" ] Decode.bool
                     , Decode.at [ "8", "experimentalFeaturesEnabled" ] Decode.bool
+                    , Decode.at [ "9", "experimentalFeaturesEnabled" ] Decode.bool
                     ]
                 )
 
         dismissedBanners =
             Decode.maybe
-                (Decode.at
-                    [ "8", "dismissedBanners" ]
-                    (Decode.map Set.fromList <| Decode.list Decode.string)
+                (Decode.oneOf
+                    [ Decode.at [ "8", "dismissedBanners" ] (Decode.list Decode.string)
+                    , Decode.at [ "9", "dismissedBanners" ] (Decode.list Decode.string)
+                    ]
                 )
-                |> Decode.map (Maybe.withDefault Set.empty)
+                |> Decode.map (Maybe.withDefault [])
+                |> Decode.map Set.fromList
     in
     Decode.map5 StoredState projects clientUuid styleMode experimentalFeaturesEnabled dismissedBanners
 
@@ -401,39 +414,15 @@ storedProjectDecoder1 =
     Decode.fail "Stored projects with a hard-coded password are no longer supported."
 
 
-storedProject2ToStoredProject : StoredProject2 -> Decode.Decoder StoredProject
-storedProject2ToStoredProject sp =
-    case Helpers.serviceCatalogToEndpoints sp.auth.catalog Nothing of
-        Ok endpoints ->
-            Decode.succeed <|
-                StoredProject
-                    sp.secret
-                    sp.auth
-                    Nothing
-                    endpoints
-                    Nothing
-
-        Err e ->
-            Decode.fail ("Could not decode endpoints from service catalog because: " ++ e)
-
-
 storedProjectDecoder2 : Decode.Decoder StoredProject
 storedProjectDecoder2 =
     Decode.map2 StoredProject2
         (Decode.field "secret" secretProjectSecretDecoder)
         (Decode.field "auth" storedAuthTokenDetailsDecoder)
-        |> Decode.andThen storedProject2ToStoredProject
-
-
-storedProject3ToStoredProject : StoredProject3 -> Decode.Decoder StoredProject
-storedProject3ToStoredProject sp =
-    Decode.succeed <|
-        StoredProject
-            sp.secret
-            sp.auth
-            Nothing
-            sp.endpoints
-            Nothing
+        |> Decode.andThen storedProject2ToStoredProject3
+        |> Decode.andThen storedProject3ToStoredProject4
+        |> Decode.andThen storedProject4ToStoredProject5
+        |> Decode.andThen storedProject5ToStoredProject6
 
 
 storedProjectDecoder3 : Decode.Decoder StoredProject
@@ -442,7 +431,89 @@ storedProjectDecoder3 =
         (Decode.field "secret" secretProjectSecretDecoder)
         (Decode.field "auth" storedAuthTokenDetailsDecoder)
         (Decode.field "endpoints" endpointsDecoder)
-        |> Decode.andThen storedProject3ToStoredProject
+        |> Decode.andThen storedProject3ToStoredProject4
+        |> Decode.andThen storedProject4ToStoredProject5
+        |> Decode.andThen storedProject5ToStoredProject6
+
+
+storedProjectDecoder4 : Decode.Decoder StoredProject
+storedProjectDecoder4 =
+    Decode.map4 StoredProject4
+        (Decode.field "secret" secretProjectSecretDecoder)
+        (Decode.field "auth" storedAuthTokenDetailsDecoder)
+        (Decode.field "endpoints" endpointsDecoder)
+        (Decode.field "description" (Decode.nullable Decode.string))
+        |> Decode.andThen storedProject4ToStoredProject5
+        |> Decode.andThen storedProject5ToStoredProject6
+
+
+storedProjectDecoder5 : Decode.Decoder StoredProject
+storedProjectDecoder5 =
+    Decode.map5 StoredProject5
+        (Decode.field "secret" secretProjectSecretDecoder)
+        (Decode.field "auth" storedAuthTokenDetailsDecoder)
+        (Decode.field "region" regionDecoder)
+        (Decode.field "endpoints" endpointsDecoder)
+        (Decode.field "description" (Decode.nullable Decode.string))
+        |> Decode.andThen storedProject5ToStoredProject6
+
+
+storedProjectDecoder6 : Decode.Decoder StoredProject
+storedProjectDecoder6 =
+    Decode.map6 StoredProject6
+        (Decode.field "secret" secretProjectSecretDecoder)
+        (Decode.field "auth" storedAuthTokenDetailsDecoder)
+        (Decode.field "region" regionDecoder)
+        (Decode.field "endpoints" endpointsDecoder)
+        (Decode.field "description" (Decode.nullable Decode.string))
+        (Decode.field "serverExoActions" serverExoActionsDecoder)
+
+
+storedProject2ToStoredProject3 : StoredProject2 -> Decode.Decoder StoredProject3
+storedProject2ToStoredProject3 sp =
+    case Helpers.serviceCatalogToEndpoints sp.auth.catalog Nothing of
+        Ok endpoints ->
+            Decode.succeed <|
+                StoredProject3
+                    sp.secret
+                    sp.auth
+                    endpoints
+
+        Err e ->
+            Decode.fail ("Could not decode endpoints from service catalog because: " ++ e)
+
+
+storedProject3ToStoredProject4 : StoredProject3 -> Decode.Decoder StoredProject4
+storedProject3ToStoredProject4 sp =
+    Decode.succeed <|
+        StoredProject4
+            sp.secret
+            sp.auth
+            sp.endpoints
+            Nothing
+
+
+storedProject4ToStoredProject5 : StoredProject4 -> Decode.Decoder StoredProject5
+storedProject4ToStoredProject5 sp =
+    Decode.succeed <|
+        StoredProject5
+            sp.secret
+            sp.auth
+            Nothing
+            sp.endpoints
+            sp.description
+
+
+storedProject5ToStoredProject6 : StoredProject5 -> Decode.Decoder StoredProject6
+storedProject5ToStoredProject6 sp =
+    Decode.succeed <|
+        StoredProject6
+            sp.secret
+            sp.auth
+            sp.region
+            sp.endpoints
+            sp.description
+            Dict.empty
 
 
 secretProjectSecretDecoder : Decode.Decoder Types.Project.ProjectSecret
@@ -466,37 +537,6 @@ secretProjectSecretDecoder =
                     Decode.fail <| "Invalid user type \"" ++ typeStr ++ "\". Must be either password or applicationCredential."
     in
     Decode.field "secretType" Decode.string |> Decode.andThen projectSecretFromType
-
-
-storedProjectDecoder4 : Decode.Decoder StoredProject
-storedProjectDecoder4 =
-    Decode.map4 StoredProject4
-        (Decode.field "secret" secretProjectSecretDecoder)
-        (Decode.field "auth" storedAuthTokenDetailsDecoder)
-        (Decode.field "endpoints" endpointsDecoder)
-        (Decode.field "description" (Decode.nullable Decode.string))
-        |> Decode.andThen storedProject4ToStoredProject
-
-
-storedProject4ToStoredProject : StoredProject4 -> Decode.Decoder StoredProject
-storedProject4ToStoredProject sp =
-    Decode.succeed <|
-        StoredProject
-            sp.secret
-            sp.auth
-            Nothing
-            sp.endpoints
-            sp.description
-
-
-storedProjectDecoder : Decode.Decoder StoredProject
-storedProjectDecoder =
-    Decode.map5 StoredProject
-        (Decode.field "secret" secretProjectSecretDecoder)
-        (Decode.field "auth" storedAuthTokenDetailsDecoder)
-        (Decode.field "region" regionDecoder)
-        (Decode.field "endpoints" endpointsDecoder)
-        (Decode.field "description" (Decode.nullable Decode.string))
 
 
 storedAuthTokenDetailsDecoder : Decode.Decoder OSTypes.ScopedAuthToken
@@ -620,3 +660,45 @@ parseStyleMode styleModeStr =
 
         _ ->
             Result.Err "unrecognized style mode"
+
+
+serverExoActionsDecoder : Decode.Decoder (Dict OSTypes.ServerUuid Server.ServerExoActions)
+serverExoActionsDecoder =
+    Decode.oneOf
+        [ Decode.dict serverExoActionDecoder
+        , Decode.succeed Dict.empty
+        ]
+
+
+serverExoActionDecoder : Decode.Decoder Server.ServerExoActions
+serverExoActionDecoder =
+    Decode.map2 Server.ServerExoActions
+        (Decode.field "targetOpenstackStatus" (Decode.nullable <| Decode.list serverStatusDecoder))
+        (Decode.field "request" (RDPP.decoder (Decode.succeed ()) httpErrorWithBodyDecoder))
+
+
+serverStatusDecoder : Decode.Decoder OSTypes.ServerStatus
+serverStatusDecoder =
+    Decode.string
+        |> Decode.map OSTypes.stringToServerStatus
+        |> Decode.andThen resultToDecoder
+
+
+encodeServerExoActions : Dict OSTypes.ServerUuid Server.ServerExoActions -> Encode.Value
+encodeServerExoActions exoActions =
+    Encode.dict identity encodeServerExoAction exoActions
+
+
+encodeServerExoAction : Server.ServerExoActions -> Encode.Value
+encodeServerExoAction exoAction =
+    Encode.object
+        [ ( "targetOpenstackStatus"
+          , case exoAction.targetOpenstackStatus of
+                Nothing ->
+                    Encode.null
+
+                Just statuses ->
+                    Encode.list (Encode.string << OSTypes.serverStatusToString) statuses
+          )
+        , ( "request", RDPP.encode (\() -> Encode.null) encodeHttpErrorWithBody exoAction.request )
+        ]

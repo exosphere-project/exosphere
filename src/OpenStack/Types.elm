@@ -118,6 +118,7 @@ module OpenStack.Types exposing
     , stringToAccessRuleAccessLevel
     , stringToAccessRuleAccessType
     , stringToAccessRuleState
+    , stringToServerStatus
     , stringToShareProtocol
     , stringToShareStatus
     , volumeExoTags
@@ -495,6 +496,76 @@ serverStatusToString serverStatus =
 
         ServerVerifyResize ->
             "VerifyResize"
+
+
+stringToServerStatus : String -> Result String ServerStatus
+stringToServerStatus status =
+    case status of
+        "Active" ->
+            Result.Ok ServerActive
+
+        "Build" ->
+            Result.Ok ServerBuild
+
+        "Deleted" ->
+            Result.Ok ServerDeleted
+
+        "Error" ->
+            Result.Ok ServerError
+
+        "HardReboot" ->
+            Result.Ok ServerHardReboot
+
+        "Migrating" ->
+            Result.Ok ServerMigrating
+
+        "Password" ->
+            Result.Ok ServerPassword
+
+        "Paused" ->
+            Result.Ok ServerPaused
+
+        "Reboot" ->
+            Result.Ok ServerReboot
+
+        "Rebuild" ->
+            Result.Ok ServerRebuild
+
+        "Rescue" ->
+            Result.Ok ServerRescue
+
+        "Resize" ->
+            Result.Ok ServerResize
+
+        "RevertResize" ->
+            Result.Ok ServerRevertResize
+
+        "Shelved" ->
+            Result.Ok ServerShelved
+
+        "ShelvedOffloaded" ->
+            Result.Ok ServerShelvedOffloaded
+
+        "Shutoff" ->
+            Result.Ok ServerShutoff
+
+        "SoftDeleted" ->
+            Result.Ok ServerSoftDeleted
+
+        "Stopped" ->
+            Result.Ok ServerStopped
+
+        "Suspended" ->
+            Result.Ok ServerSuspended
+
+        "Unknown" ->
+            Result.Ok ServerUnknown
+
+        "VerifyResize" ->
+            Result.Ok ServerVerifyResize
+
+        _ ->
+            Result.Err ("Unrecognized server status: " ++ status)
 
 
 type ServerPowerState

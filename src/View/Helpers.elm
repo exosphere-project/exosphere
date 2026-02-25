@@ -505,9 +505,9 @@ loginPickerButton context =
         }
 
 
-serverStatusBadge : ExoPalette -> StatusBadgeSize -> Server -> Element.Element msg
-serverStatusBadge palette size server =
-    serverStatusBadgeFromStatus palette size (getServerUiStatus server)
+serverStatusBadge : ExoPalette -> StatusBadgeSize -> Project -> Server -> Element.Element msg
+serverStatusBadge palette size project server =
+    serverStatusBadgeFromStatus palette size (getServerUiStatus project server)
 
 
 serverStatusBadgeFromStatus : ExoPalette -> StatusBadgeSize -> ServerUiStatus -> Element.Element msg
@@ -523,15 +523,15 @@ serverStatusBadgeFromStatus palette size status =
         contents
 
 
-getServerUiStatus : Server -> ServerUiStatus
-getServerUiStatus server =
+getServerUiStatus : Project -> Server -> ServerUiStatus
+getServerUiStatus project server =
     if server.exoProps.deletionAttempted then
         ServerUiStatusDeleting
 
     else
         let
             maybeFirstTargetStatus =
-                server.exoProps.targetOpenstackStatus
+                (GetterSetters.getServerExoActions project server.osProps.uuid).targetOpenstackStatus
                     |> Maybe.andThen List.head
 
             targetStatusActive =

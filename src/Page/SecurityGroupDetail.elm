@@ -225,7 +225,7 @@ serversTable context project { servers, progress, currentTime } =
                               , width = Element.shrink
                               , view =
                                     \item ->
-                                        VH.serverStatusBadge context.palette StatusBadge.Small item
+                                        VH.serverStatusBadge context.palette StatusBadge.Small project item
                               }
                             ]
                         }

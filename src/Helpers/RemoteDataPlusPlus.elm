@@ -5,7 +5,9 @@ module Helpers.RemoteDataPlusPlus exposing
     , RemoteDataPlusPlus
     , RequestedTime
     , andMap
+    , decoder
     , empty
+    , encode
     , gotData
     , isLoading
     , map
@@ -18,6 +20,8 @@ module Helpers.RemoteDataPlusPlus exposing
     , withDefault
     )
 
+import Json.Decode as Decode
+import Json.Encode as Encode
 import Time
 
 
@@ -151,3 +155,99 @@ toMaybe rdpp =
 
         _ ->
             Nothing
+
+
+{-| Encode an RDPP to JSON for storage.
+
+    {
+        "haveness": <boolean>,
+        "data": <data if haveness>,
+        "dataReceivedTime": <millis if haveness>,
+        "loading": <boolean>,
+        "errored": <boolean>,
+        "error": <error if errored>,
+        "errorReceivedTime": <millis if errored>
+    }
+
+-}
+encode : (data -> Encode.Value) -> (error -> Encode.Value) -> RemoteDataPlusPlus error data -> Encode.Value
+encode encodeData encodeError rdpp =
+    let
+        ( haveness, dataFields ) =
+            case rdpp.data of
+                DontHave ->
+                    ( False, [] )
+
+                DoHave data receivedTime ->
+                    ( True
+                    , [ ( "data", encodeData data )
+                      , ( "dataReceivedTime", Encode.int (Time.posixToMillis receivedTime) )
+                      ]
+                    )
+
+        ( loading, errored, errorFields ) =
+            case rdpp.refreshStatus of
+                Loading ->
+                    ( True, False, [] )
+
+                NotLoading Nothing ->
+                    ( False, False, [] )
+
+                NotLoading (Just ( error, errorTime )) ->
+                    ( False
+                    , True
+                    , [ ( "error", encodeError error )
+                      , ( "errorReceivedTime", Encode.int (Time.posixToMillis errorTime) )
+                      ]
+                    )
+    in
+    Encode.object
+        ([ ( "haveness", Encode.bool haveness )
+         , ( "loading", Encode.bool loading )
+         , ( "errored", Encode.bool errored )
+         ]
+            ++ dataFields
+            ++ errorFields
+        )
+
+
+decoder : Decode.Decoder data -> Decode.Decoder error -> Decode.Decoder (RemoteDataPlusPlus error data)
+decoder dataDecoder errorDecoder =
+    Decode.map2 RemoteDataPlusPlus
+        (havenessDecoder dataDecoder)
+        (refreshStatusDecoder errorDecoder)
+
+
+havenessDecoder : Decode.Decoder data -> Decode.Decoder (Haveness data)
+havenessDecoder dataDecoder =
+    Decode.field "haveness" Decode.bool
+        |> Decode.andThen
+            (\hasData ->
+                if hasData then
+                    Decode.map2 DoHave
+                        (Decode.field "data" dataDecoder)
+                        (Decode.field "dataReceivedTime" Decode.int |> Decode.map Time.millisToPosix)
+
+                else
+                    Decode.succeed DontHave
+            )
+
+
+refreshStatusDecoder : Decode.Decoder error -> Decode.Decoder (RefreshStatus error)
+refreshStatusDecoder errorDecoder =
+    Decode.map2 Tuple.pair
+        (Decode.field "loading" Decode.bool)
+        (Decode.field "errored" Decode.bool)
+        |> Decode.andThen
+            (\( loading, errored ) ->
+                if loading then
+                    Decode.succeed Loading
+
+                else if errored then
+                    Decode.map2 (\e t -> NotLoading (Just ( e, t )))
+                        (Decode.field "error" errorDecoder)
+                        (Decode.field "errorReceivedTime" Decode.int |> Decode.map Time.millisToPosix)
+
+                else
+                    Decode.succeed (NotLoading Nothing)
+            )

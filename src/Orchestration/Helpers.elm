@@ -108,14 +108,14 @@ serverPollIntervalMs_ : Project -> Server -> PollInterval
 serverPollIntervalMs_ project server =
     case GetterSetters.serverCreatedByCurrentUser project server.osProps.uuid of
         Just True ->
-            myOwnServerPollIntervalMs server
+            myOwnServerPollIntervalMs project server
 
         _ ->
             Seldom
 
 
-myOwnServerPollIntervalMs : Server -> PollInterval
-myOwnServerPollIntervalMs server =
+myOwnServerPollIntervalMs : Project -> Server -> PollInterval
+myOwnServerPollIntervalMs project server =
     case
         server.osProps.details.openstackStatus
     of
@@ -125,7 +125,7 @@ myOwnServerPollIntervalMs server =
         _ ->
             case
                 ( server.exoProps.deletionAttempted
-                , server.exoProps.targetOpenstackStatus
+                , (GetterSetters.getServerExoActions project server.osProps.uuid).targetOpenstackStatus
                 , server.exoProps.serverOrigin
                 )
             of

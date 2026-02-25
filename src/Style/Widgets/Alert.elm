@@ -89,7 +89,7 @@ alert styleAttrs palette { state, showIcon, showContainer, content } =
                 []
     in
     Element.row
-        ([ Element.padding spacer.px16
+        ([ Element.padding spacer.px12
          , Element.spacing spacer.px12
          , Text.fontSize Text.Body
          , Font.color (stateColor.textOnNeutralBG |> SH.toElementColor)

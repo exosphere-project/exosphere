@@ -10,7 +10,7 @@ import FeatherIcons as Icons
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers exposing (serverCreatorName)
 import Helpers.Interaction as IHelpers
-import Helpers.RemoteDataPlusPlus as RDPP
+import Helpers.RemoteDataPlusPlus as RDPP exposing (Haveness(..), RefreshStatus(..))
 import Helpers.String exposing (removeEmptiness)
 import Helpers.Time
 import Helpers.Validation as Validation
@@ -23,6 +23,7 @@ import OpenStack.Types as OSTypes
 import Page.ServerResourceUsageAlerts
 import Page.ServerResourceUsageCharts
 import Route
+import State.Error as Error
 import Style.Helpers as SH
 import Style.Types as ST
 import Style.Widgets.Alert as Alert
@@ -81,6 +82,7 @@ type Msg
     | GotIpInfoLevel IpInfoLevel
     | GotServerActionNamePendingConfirmation (Maybe String)
     | GotServerNamePendingConfirmation (Maybe String)
+    | GotResetServerAction
     | GotRetainFloatingIpsWhenDeleting Bool
     | GotDeleteFloatingIpsWhenShelving Bool
     | GotSetServerName String
@@ -115,6 +117,14 @@ update msg project model =
 
         GotServerNamePendingConfirmation maybeName ->
             ( { model | serverNamePendingConfirmation = maybeName }, Cmd.none, SharedMsg.NoOp )
+
+        GotResetServerAction ->
+            ( { model | serverActionNamePendingConfirmation = Nothing }
+            , Cmd.none
+            , SharedMsg.ProjectMsg (GetterSetters.projectIdentifier project) <|
+                SharedMsg.ServerMsg model.serverUuid <|
+                    SharedMsg.ResetServerAction
+            )
 
         GotRetainFloatingIpsWhenDeleting retain ->
             ( { model | retainFloatingIpsWhenDeleting = retain }, Cmd.none, SharedMsg.NoOp )
@@ -442,6 +452,87 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
 
                 Nothing ->
                     Element.none
+
+        statusTransitionInProgress =
+            let
+                { targetOpenstackStatus, request } =
+                    GetterSetters.getServerExoActions project server.osProps.uuid
+            in
+            case ( targetOpenstackStatus, request ) of
+                ( Just _, { data, refreshStatus } ) ->
+                    case ( data, refreshStatus ) of
+                        ( _, Loading ) ->
+                            -- The server status is a transition so we don't indicate anything further.
+                            Element.none
+
+                        ( _, NotLoading (Just ( error, _ )) ) ->
+                            Alert.alert [ Element.width Element.fill ]
+                                context.palette
+                                { state = Alert.Danger
+                                , showIcon = False
+                                , showContainer = True
+                                , content =
+                                    Element.row [ Element.spacing spacer.px8, Element.width Element.fill ]
+                                        [ Text.p [ Element.width Element.fill ] [ Text.body <| Error.formattedError error ]
+                                        , Button.button Button.Danger
+                                            context.palette
+                                            { text = "Clear"
+                                            , onPress = Just GotResetServerAction
+                                            }
+                                        ]
+                                }
+
+                        ( DoHave _ receivedAt, _ ) ->
+                            -- If we've been waiting > 5 minutes, show a reset button.
+                            if Time.posixToMillis currentTime < (Time.posixToMillis receivedAt + 5 * 60 * 1000) then
+                                Element.none
+
+                            else
+                                Alert.alert [ Element.width Element.fill ]
+                                    context.palette
+                                    { state = Alert.Warning
+                                    , showIcon = False
+                                    , showContainer = True
+                                    , content =
+                                        let
+                                            action =
+                                                VH.getServerUiStatus project server |> VH.getServerUiStatusStr
+
+                                            toggleTipId =
+                                                Helpers.String.hyphenate
+                                                    [ "resetToggleTip"
+                                                    , project.auth.project.uuid
+                                                    , server.osProps.uuid
+                                                    ]
+
+                                            relativeTime =
+                                                DateFormat.Relative.relativeTime currentTime receivedAt
+
+                                            resetToggleTip =
+                                                Style.Widgets.ToggleTip.toggleTip
+                                                    context
+                                                    popoverMsgMapper
+                                                    toggleTipId
+                                                    (Text.body <| "This operation was submitted " ++ relativeTime ++ " & may take some time to complete.\nIf it seems stuck, you can reset & try the action again.")
+                                                    ST.PositionLeft
+                                        in
+                                        Element.row [ Element.spacing spacer.px8, Element.width Element.fill ]
+                                            -- TODO: Some server actions are slower than others, we can probably estimate this better than using a fixed time.
+                                            [ Text.p [ Element.width Element.fill ] [ Text.body <| action ++ " is taking longer than expected." ]
+                                            , resetToggleTip
+                                            , Button.button Button.Warning
+                                                context.palette
+                                                { text = "Reset"
+                                                , onPress = Just GotResetServerAction
+                                                }
+                                            ]
+                                    }
+
+                        _ ->
+                            Element.none
+
+                ( Nothing, _ ) ->
+                    Element.none
     in
     Element.column [ Element.spacing spacer.px24, Element.width Element.fill ]
         [ Element.row (Text.headingStyleAttrs context.palette)
@@ -457,6 +548,7 @@ serverDetail_ context project ( currentTime, timeZone ) model server =
                 , serverActionsDropdown context project model server
                 ]
             ]
+        , statusTransitionInProgress
         , VH.tile
             context
             [ Icon.featherIcon [] Icons.cpu
@@ -725,7 +817,7 @@ serverStatus context project server =
             server.osProps.details
 
         statusBadge =
-            VH.serverStatusBadge context.palette StatusBadge.Normal server
+            VH.serverStatusBadge context.palette StatusBadge.Normal project server
 
         lockStatus : OSTypes.ServerLockStatus -> Element.Element Msg
         lockStatus lockStatus_ =
@@ -750,7 +842,7 @@ serverStatus context project server =
                     -- TODO nicer layout here?
                     Element.column [ Element.spacing spacer.px8, Element.padding spacer.px4 ]
                         [ Element.text ("OpenStack Status: " ++ friendlyOpenstackStatus details.openstackStatus)
-                        , case server.exoProps.targetOpenstackStatus of
+                        , case (GetterSetters.getServerExoActions project server.osProps.uuid).targetOpenstackStatus of
                             Just expectedStatusList ->
                                 let
                                     listStr =
@@ -1079,7 +1171,7 @@ serverActionsDropdown context project model server =
                 , onPress = Just toggleDropdownMsg
                 }
     in
-    case server.exoProps.targetOpenstackStatus of
+    case (GetterSetters.getServerExoActions project server.osProps.uuid).targetOpenstackStatus of
         Nothing ->
             let
                 dropdownId =
@@ -1658,7 +1750,7 @@ renderIpAddresses context project server model =
     let
         disableWhenTransitioning value =
             if
-                server.exoProps.targetOpenstackStatus
+                (GetterSetters.getServerExoActions project server.osProps.uuid).targetOpenstackStatus
                     /= Nothing
                     || server.exoProps.deletionAttempted
             then
@@ -1698,7 +1790,7 @@ renderIpAddresses context project server model =
                         List.member server.osProps.details.openstackStatus [ OSTypes.ServerActive, OSTypes.ServerVerifyResize ]
 
                     isBecomingActive =
-                        server.exoProps.targetOpenstackStatus
+                        (GetterSetters.getServerExoActions project server.osProps.uuid).targetOpenstackStatus
                             |> Maybe.andThen List.head
                             |> Maybe.map (\status -> status == OSTypes.ServerActive)
                             |> Maybe.withDefault False

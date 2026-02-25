@@ -1,4 +1,4 @@
-module State.Error exposing (processConnectivityError, processStringError, processSynchronousApiError)
+module State.Error exposing (formattedError, isNetworkError, processConnectivityError, processStringError, processSynchronousApiError)
 
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
@@ -44,6 +44,11 @@ processConnectivityError model online =
         error
 
 
+isNetworkError : String -> Bool
+isNetworkError error =
+    error == "NetworkError" || String.contains "Network error" error
+
+
 processStringError : SharedModel -> ErrorContext -> String -> ( SharedModel, Cmd SharedMsg )
 processStringError model errorContext error =
     let
@@ -55,14 +60,11 @@ processStringError model errorContext error =
                 Just online ->
                     not online
 
-        isNetworkError =
-            error == "NetworkError"
-
         newErrorContext =
             { actionContext = errorContext.actionContext
             , level =
                 -- if we know the network is offline, don't treat each network error as critical
-                if silenceNetworkErrors && isNetworkError then
+                if silenceNetworkErrors && isNetworkError error then
                     ErrorDebug
 
                 else
@@ -130,13 +132,46 @@ suppressError model syncApiError =
         ]
 
 
+decodeApiError : { a | body : String } -> Result Decode.Error SynchronousAPIError
+decodeApiError { body } =
+    Decode.decodeString
+        OSError.synchronousErrorJsonDecoder
+        body
+
+
+formattedError : HttpErrorWithBody -> String
+formattedError httpError =
+    case httpError.error of
+        Http.BadStatus code ->
+            let
+                apiErrorDecodeResult =
+                    decodeApiError httpError
+            in
+            case apiErrorDecodeResult of
+                Ok syncApiError ->
+                    syncApiError.message
+                        ++ " (response code: "
+                        ++ String.fromInt syncApiError.code
+                        ++ ")"
+
+                Err _ ->
+                    httpError.body
+                        ++ " (response code: "
+                        ++ String.fromInt code
+                        ++ ")"
+
+        Http.NetworkError ->
+            "Network error: Unable to submit request."
+
+        _ ->
+            Helpers.httpErrorToString httpError.error
+
+
 processSynchronousApiError : SharedModel -> ErrorContext -> HttpErrorWithBody -> ( SharedModel, Cmd SharedMsg )
 processSynchronousApiError model errorContext httpError =
     let
         apiErrorDecodeResult =
-            Decode.decodeString
-                OSError.synchronousErrorJsonDecoder
-                httpError.body
+            decodeApiError httpError
 
         newErrorContext =
             case apiErrorDecodeResult of
@@ -149,24 +184,5 @@ processSynchronousApiError model errorContext httpError =
 
                 Err _ ->
                     errorContext
-
-        formattedError =
-            case httpError.error of
-                Http.BadStatus code ->
-                    case apiErrorDecodeResult of
-                        Ok syncApiError ->
-                            syncApiError.message
-                                ++ " (response code: "
-                                ++ String.fromInt syncApiError.code
-                                ++ ")"
-
-                        Err _ ->
-                            httpError.body
-                                ++ " (response code: "
-                                ++ String.fromInt code
-                                ++ ")"
-
-                _ ->
-                    Helpers.httpErrorToString httpError.error
     in
-    processStringError model newErrorContext formattedError
+    processStringError model newErrorContext <| formattedError httpError
