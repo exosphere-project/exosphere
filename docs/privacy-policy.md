@@ -117,7 +117,8 @@ Only data collected from the time of the policy change forward will be used for 
 
 If you have questions or concerns about this policy, please contact us by one of the following means:
 
-- Open an issue [on our GitLab project](https://gitlab.com/exosphere/exosphere/-/issues)
-- Send an email to one or both of the following addresses
-  - Replace the `%` characters with the letter `r`: `ch%is@c-ma%t.in`
+- Open an issue [on our GitLab project](https://gitlab.com/exosphere/exosphere/-/issues/new?type=ISSUE).
+  - You may mark the issue as confidential using the "Turn on confidentiality" checkbox.
+- Send an email to one or both of the following maintainer addresses:
   - Replace the `%` characters with the letter `i`: `jul%an@jul%anp%stor%us.com`
+  - Replace the `%` characters with the letter `e`: `t%%.kyl%@gmail.com`
