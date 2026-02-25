@@ -79,6 +79,8 @@ The Maintainers will appoint a Security Response Team to handle security reports
 
 The Security Response Team is responsible for handling all reports of security issues (e.g. vulnerabilities and breaches).
 
+See the [Vulnerability Disclosure Policy](vulnerability-disclosure.md) for how reports should be submitted.
+
 ## Voting
 
 While most decisions in Exosphere are made via the [Contribution Review Policy](review-policy.md), periodically the Maintainers may need to vote on specific actions or changes.
