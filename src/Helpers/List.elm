@@ -1,10 +1,12 @@
-module Helpers.List exposing (multiSortBy, uniqueBy)
+module Helpers.List exposing (duplicatedValuesBy, multiSortBy, uniqueBy)
 
 {-| Sorts a list with multi-level comparison
 
     multiSortBy [ .isOpen, .rating ] restaurants
 
 -}
+
+import List.Extra
 
 
 multiSortBy : List (a -> comparable) -> List a -> List a
@@ -67,3 +69,19 @@ uniqueBy comparator list =
         )
         []
         list
+
+
+{-| Returns a list of duplicate field values based on a field extractor function.
+
+    duplicatedValuesBy .name
+        [ { name = "a", id = "1" }, { name = "b", id = "2" }, { name = "a", id = "3" } ]
+        == [ "a" ]
+
+-}
+duplicatedValuesBy : (a -> b) -> List a -> List b
+duplicatedValuesBy fieldExtractor list =
+    List.map fieldExtractor list
+        |> List.Extra.gatherEquals
+        -- Note that gatherEquals returns `("b", [])` for unique values.
+        |> List.filter (\( _, group ) -> List.length group > 0)
+        |> List.map Tuple.first
