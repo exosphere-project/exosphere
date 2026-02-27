@@ -14,6 +14,7 @@ import Helpers.Formatting exposing (humanCount)
 import Helpers.GetterSetters as GetterSetters exposing (isDefaultSecurityGroup)
 import Helpers.Helpers as Helpers
 import Helpers.Image exposing (detectImageOperatingSystem)
+import Helpers.List exposing (duplicatedValuesBy)
 import Helpers.Random as RandomHelper
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
@@ -837,6 +838,7 @@ view context project currentTime model =
                             ]
                        )
             , renderNetworkGuidance
+            , securityGroupCollisionWarning context project
             , Element.row
                 [ -- add extra padding to make it look separate from all form fields with uniform 32px spacing
                   -- inspired from PF demos: https://www.patternfly.org/v4/components/form/#basic
@@ -1980,6 +1982,47 @@ securityGroupPicker context project model =
             renderSecurityGroups
         , connectivityWarningView
         ]
+
+
+securityGroupCollisionWarning : View.Types.Context -> Project -> Element.Element Msg
+securityGroupCollisionWarning context project =
+    let
+        duplicatedNames =
+            case project.securityGroups.data of
+                RDPP.DoHave securityGroups _ ->
+                    duplicatedValuesBy
+                        (\sg -> String.toLower sg.name)
+                        securityGroups
+
+                RDPP.DontHave ->
+                    []
+    in
+    if not (List.isEmpty duplicatedNames) then
+        Alert.alert []
+            context.palette
+            { state = Alert.Warning
+            , showIcon = True
+            , showContainer = True
+            , content =
+                Element.column [ Element.width Element.fill, Element.spacing spacer.px12 ]
+                    [ Text.p [] <|
+                        List.map Text.body <|
+                            [ "This "
+                                ++ context.localization.unitOfTenancy
+                                ++ " has multiple "
+                                ++ Helpers.String.pluralize context.localization.securityGroup
+                                ++ " with the same name. "
+                            , "This may result in "
+                                ++ context.localization.virtualComputer
+                                ++ " setup problems. "
+                            , "Please ask your " ++ context.localization.openstackWithOwnKeystone ++ " administrator to rename or remove duplicates of:"
+                            ]
+                    , Text.p [] <| List.map (\name -> Text.body (" • " ++ name)) duplicatedNames
+                    ]
+            }
+
+    else
+        Element.none
 
 
 userDataInput : View.Types.Context -> Model -> Element.Element Msg

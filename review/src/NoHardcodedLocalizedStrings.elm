@@ -22,7 +22,7 @@ type alias LocalizedStrings =
 
 exosphereLocalizedStrings : LocalizedStrings
 exosphereLocalizedStrings =
-    [ ( "openstackWithOwnKeystone", "cloud" )
+    [ ( "openstackWithOwnKeystone", "cloud" ) -- TODO: Fix pre-existing instances of "cloud" in the codebase (e.g. "cloud administrator").
     , ( "openstackSharingKeystoneWithAnother", "region" )
     , ( "unitOfTenancy", "project" )
     , ( "maxResourcesPerProject", "resource limit" )
