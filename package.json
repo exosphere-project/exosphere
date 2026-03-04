@@ -13,6 +13,9 @@
     "test": "npx elm-test-rs && npx elm-test-rs --project review",
     "js:format": "npx prettier --check .",
     "js:typecheck": "npx tsc",
+    "perf:auth": "npx playwright test ./performance-tests/auth.spec.mjs --config=./performance-tests/playwright.config.mjs",
+    "perf:check": "npx playwright test ./performance-tests/check.spec.mjs --config=./performance-tests/playwright.config.mjs",
+    "perf:test": "npx playwright test ./performance-tests/performance.spec.mjs --config=./performance-tests/playwright.config.mjs",
     "elm:format": "npx elm-format --validate src tests review/src review/tests",
     "elm:analyse": "npx elm-analyse",
     "elm:review": "npx elm-review",
@@ -43,6 +46,12 @@
     "prettier": "^3.5.3",
     "terser": "^5.43.1",
     "typescript": "^5.3.3"
+  },
+  "optionalDependencies": {
+    "dotenv": "^17.0.0",
+    "lighthouse": "^12.6.0",
+    "playwright": "^1.52.0",
+    "rimraf": "^6.0.1"
   },
   "repository": {
     "type": "git",
