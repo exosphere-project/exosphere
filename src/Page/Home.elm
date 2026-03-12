@@ -11,8 +11,8 @@ import Route
 import Set
 import Style.Helpers as SH
 import Style.Types
+import Style.Widgets.Button as Button
 import Style.Widgets.Card exposing (clickableCardFixedSize)
-import Style.Widgets.DeleteButton
 import Style.Widgets.Icon as Icon
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Text as Text
@@ -85,7 +85,7 @@ headerView context sharedModel =
                 removePopconfirmId =
                     "RemoveAllProjects"
             in
-            Style.Widgets.DeleteButton.deletePopconfirm context
+            VH.dangerPopconfirm context
                 TogglePopover
                 removePopconfirmId
                 { confirmation =
@@ -110,7 +110,8 @@ headerView context sharedModel =
                             ++ " can be added back later."
                             |> Text.text Text.Small []
                         ]
-                , buttonText = Just "Remove"
+                , buttonText = "Remove"
+                , buttonVariant = Button.Danger
                 , onConfirm = Just Logout
                 , onCancel = Just NoOp
                 }

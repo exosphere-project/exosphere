@@ -17,6 +17,7 @@ import Route
 import Set
 import Style.Helpers as SH
 import Style.Types as ST
+import Style.Widgets.Button as Button
 import Style.Widgets.DataList as DataList
 import Style.Widgets.DeleteButton exposing (deleteIconButton)
 import Style.Widgets.HumanTime exposing (relativeTimeElement)
@@ -422,14 +423,15 @@ serverView context currentTime project retainFloatingIpsWhenDeleting serverRecor
                 , content =
                     \confirmEl ->
                         Element.column [ Element.spacing spacer.px8, Element.padding spacer.px4 ] <|
-                            [ Style.Widgets.DeleteButton.deletePopconfirmContent
+                            [ VH.dangerPopconfirmContent
                                 context.palette
                                 { confirmation =
                                     Element.text <|
                                         "Are you sure you want to delete this "
                                             ++ context.localization.virtualComputer
                                             ++ "?"
-                                , buttonText = Nothing
+                                , buttonText = "Delete"
+                                , buttonVariant = Button.Danger
                                 , onCancel = Just NoOp
                                 , onConfirm =
                                     Just <| GotDeleteConfirm serverRecord.id

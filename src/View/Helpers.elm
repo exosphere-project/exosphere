@@ -4,6 +4,8 @@ module View.Helpers exposing
     , compactKVSubRow
     , contentContainer
     , createdAgoByFromSize
+    , dangerPopconfirm
+    , dangerPopconfirmContent
     , deleteBulkResourcePopconfirm
     , deleteResourcePopconfirm
     , deleteResourcePopconfirmWithDisabledHint
@@ -105,6 +107,7 @@ import OpenStack.VolumeSnapshots as VS exposing (VolumeSnapshot)
 import Regex
 import Rest.Nova exposing (doAction)
 import Route
+import Set
 import String.Extra
 import Style.Helpers as SH
 import Style.Types as ST exposing (ExoPalette)
@@ -112,9 +115,10 @@ import Style.Widgets.Button as Button
 import Style.Widgets.Card
 import Style.Widgets.Code exposing (codeBlock, codeSpan)
 import Style.Widgets.CopyableText exposing (copyableTextAccessory)
-import Style.Widgets.DeleteButton as DeleteButton exposing (DeleteButtonState, deleteIconButtonWithDisabledHint, deletePopconfirm)
-import Style.Widgets.Icon exposing (featherIcon)
+import Style.Widgets.DeleteButton as DeleteButton exposing (DeleteButtonState, PopconfirmContent, deleteIconButtonWithDisabledHint)
+import Style.Widgets.Icon exposing (featherIcon, sizedFeatherIcon)
 import Style.Widgets.Link as Link
+import Style.Widgets.Popover.Popover exposing (popover)
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.Spacer exposing (spacer)
 import Style.Widgets.Spinner as Spinner
@@ -1600,7 +1604,7 @@ deleteResourcePopconfirmWithDisabledHint context project msgMapper resource popc
                 , resource.uuid
                 ]
     in
-    deletePopconfirm context
+    dangerPopconfirm context
         msgMapper
         deletePopconfirmId
         { confirmation =
@@ -1608,7 +1612,8 @@ deleteResourcePopconfirmWithDisabledHint context project msgMapper resource popc
                 "Are you sure you want to delete this "
                     ++ resource.word
                     ++ "?"
-        , buttonText = Nothing
+        , buttonText = "Delete"
+        , buttonVariant = Button.Danger
         , onCancel = onCancel
         , onConfirm = onConfirm
         }
@@ -1666,6 +1671,53 @@ deleteVolumeWarning context project volume =
             Nothing
 
 
+dangerPopconfirmContent : ExoPalette -> PopconfirmContent msg -> Element.Attribute msg -> Element.Element msg
+dangerPopconfirmContent palette { confirmation, buttonText, buttonVariant, onConfirm, onCancel } closePopconfirm =
+    Element.column
+        [ Element.spacing spacer.px16, Element.padding spacer.px4, Element.width Element.fill ]
+        [ Element.row [ Element.spacing spacer.px8 ]
+            [ Element.el [ Element.alignTop ] <|
+                sizedFeatherIcon 20 Icons.alertTriangle
+            , confirmation
+            ]
+        , Element.row [ Element.spacing spacer.px12, Element.alignRight ]
+            [ Element.el [ closePopconfirm ] <|
+                Button.default
+                    palette
+                    { text = "Cancel"
+                    , onPress = onCancel
+                    }
+            , Element.el [ closePopconfirm ] <|
+                Button.button buttonVariant
+                    palette
+                    { text = buttonText
+                    , onPress = onConfirm
+                    }
+            ]
+        ]
+
+
+dangerPopconfirm :
+    { viewContext | palette : ExoPalette, showPopovers : Set.Set PopoverId }
+    -> (PopoverId -> msg)
+    -> PopoverId
+    -> PopconfirmContent msg
+    -> ST.PopoverPosition
+    -> (msg -> Bool -> Element.Element msg)
+    -> Element.Element msg
+dangerPopconfirm context msgMapper id content position target =
+    popover context
+        msgMapper
+        { id = id
+        , content = dangerPopconfirmContent context.palette content
+        , contentStyleAttrs = []
+        , position = position
+        , distanceToTarget = Nothing
+        , target = target
+        , targetStyleAttrs = []
+        }
+
+
 deleteResourcePopconfirm : View.Types.Context -> Project -> (PopoverId -> msg) -> { r | uuid : String, word : String } -> String -> Maybe msg -> Maybe msg -> Element.Element msg
 deleteResourcePopconfirm context project msgMapper resource popconfirmTag onConfirm onCancel =
     deleteResourcePopconfirmWithDisabledHint
@@ -1689,7 +1741,7 @@ deleteBulkResourcePopconfirm context project msgMapper resource popconfirmTag on
                 , "bulk"
                 ]
     in
-    deletePopconfirm context
+    dangerPopconfirm context
         msgMapper
         deletePopconfirmId
         { confirmation =
@@ -1707,7 +1759,8 @@ deleteBulkResourcePopconfirm context project msgMapper resource popconfirmTag on
                     ++ " "
                     ++ (resource.word |> Helpers.String.pluralizeCount resource.count)
                     ++ "?"
-        , buttonText = Nothing
+        , buttonText = "Delete"
+        , buttonVariant = Button.Danger
         , onCancel = onCancel
         , onConfirm = onConfirm
         }
@@ -1766,7 +1819,7 @@ detachVolumeButton context project msgMapper popconfirmTag volume onConfirm onCa
         detachPopconfirmId =
             Helpers.String.hyphenate [ popconfirmTag, project.auth.project.uuid, volume.uuid ]
     in
-    deletePopconfirm context
+    dangerPopconfirm context
         msgMapper
         detachPopconfirmId
         { confirmation =
@@ -1780,7 +1833,8 @@ detachVolumeButton context project msgMapper popconfirmTag volume onConfirm onCa
                 , Element.text
                     "Make sure to close any open files before detaching."
                 ]
-        , buttonText = Just "Detach"
+        , buttonText = "Detach"
+        , buttonVariant = Button.Danger
         , onConfirm = onConfirm
         , onCancel = onCancel
         }

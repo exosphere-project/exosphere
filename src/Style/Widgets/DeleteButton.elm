@@ -3,27 +3,23 @@ module Style.Widgets.DeleteButton exposing
     , PopconfirmContent
     , deleteIconButton
     , deleteIconButtonWithDisabledHint
-    , deletePopconfirm
-    , deletePopconfirmContent
     )
 
 import Element
 import FeatherIcons as Icons
 import Html.Attributes as HtmlA
-import Set
 import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
 import Style.Widgets.Button as Button
 import Style.Widgets.Icon exposing (sizedFeatherIcon)
-import Style.Widgets.Popover.Popover exposing (popover)
-import Style.Widgets.Popover.Types exposing (PopoverId)
 import Style.Widgets.Spacer exposing (spacer)
 import Widget
 
 
 type alias PopconfirmContent msg =
     { confirmation : Element.Element msg
-    , buttonText : Maybe String
+    , buttonText : String
+    , buttonVariant : Button.Variant
     , onConfirm : Maybe msg
     , onCancel : Maybe msg
     }
@@ -81,50 +77,3 @@ deleteIconButtonWithDisabledHint palette styleIsPrimary enabledDisabled onPress 
         styleIsPrimary
         hint
         action
-
-
-deletePopconfirmContent : ExoPalette -> PopconfirmContent msg -> Element.Attribute msg -> Element.Element msg
-deletePopconfirmContent palette { confirmation, buttonText, onConfirm, onCancel } closePopconfirm =
-    Element.column
-        [ Element.spacing spacer.px16, Element.padding spacer.px4, Element.width Element.fill ]
-        [ Element.row [ Element.spacing spacer.px8 ]
-            [ Element.el [ Element.alignTop ] <|
-                sizedFeatherIcon 20 Icons.alertTriangle
-            , confirmation
-            ]
-        , Element.row [ Element.spacing spacer.px12, Element.alignRight ]
-            [ Element.el [ closePopconfirm ] <|
-                Button.default
-                    palette
-                    { text = "Cancel"
-                    , onPress = onCancel
-                    }
-            , Element.el [ closePopconfirm ] <|
-                Button.button Button.Danger
-                    palette
-                    { text = Maybe.withDefault "Delete" buttonText
-                    , onPress = onConfirm
-                    }
-            ]
-        ]
-
-
-deletePopconfirm :
-    { viewContext | palette : ExoPalette, showPopovers : Set.Set PopoverId }
-    -> (PopoverId -> msg)
-    -> PopoverId
-    -> PopconfirmContent msg
-    -> Style.Types.PopoverPosition
-    -> (msg -> Bool -> Element.Element msg)
-    -> Element.Element msg
-deletePopconfirm context msgMapper id content position target =
-    popover context
-        msgMapper
-        { id = id
-        , content = deletePopconfirmContent context.palette content
-        , contentStyleAttrs = []
-        , position = position
-        , distanceToTarget = Nothing
-        , target = target
-        , targetStyleAttrs = []
-        }
