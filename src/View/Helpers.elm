@@ -129,7 +129,7 @@ import Types.Project exposing (Project)
 import Types.Server exposing (ExoSetupStatus(..), Server, ServerOrigin(..), ServerUiStatus(..))
 import Types.SharedModel exposing (LogMessage, SharedModel, Style)
 import Types.SharedMsg as SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
-import View.Types exposing (PortRangeBounds(..), RemoteType(..), SelectMod(..), ServerActionOption)
+import View.Types exposing (Context, PortRangeBounds(..), RemoteType(..), SelectMod(..), ServerActionOption)
 
 
 toExoPalette : Style -> ExoPalette
@@ -2182,8 +2182,8 @@ getVolumeStatusBadgeState status =
             StatusBadge.Warning
 
 
-getAllowedServerActions : Maybe String -> Maybe String -> Maybe String -> OSTypes.ServerStatus -> OSTypes.ServerLockStatus -> List ServerActionName -> List ServerActionOption
-getAllowedServerActions maybeWordForServer maybeWordForImage maybeWordForFlavor serverStatus serverLockStatus disallowedActions =
+getAllowedServerActions : Context -> OSTypes.ServerStatus -> OSTypes.ServerLockStatus -> List ServerActionName -> List ServerActionOption
+getAllowedServerActions context serverStatus serverLockStatus disallowedActions =
     let
         allowedByServerStatus action =
             case action.allowedStatuses of
@@ -2204,26 +2204,23 @@ getAllowedServerActions maybeWordForServer maybeWordForImage maybeWordForFlavor 
         allowedByDisallowedActions action =
             not <| List.member action.name disallowedActions
     in
-    actions maybeWordForServer maybeWordForImage maybeWordForFlavor
+    actions context
         |> List.filter allowedByServerStatus
         |> List.filter allowedByLockStatus
         |> List.filter allowedByDisallowedActions
 
 
-actions : Maybe String -> Maybe String -> Maybe String -> List ServerActionOption
-actions maybeWordForServer maybeWordForImage maybeWordForFlavor =
+actions : Context -> List ServerActionOption
+actions context =
     let
         wordForServer =
-            maybeWordForServer
-                |> Maybe.withDefault "server"
+            context.localization.virtualComputer
 
         wordForImage =
-            maybeWordForImage
-                |> Maybe.withDefault "image"
+            context.localization.staticRepresentationOfBlockDeviceContents
 
         wordForFlavor =
-            maybeWordForFlavor
-                |> Maybe.withDefault "flavor"
+            context.localization.virtualComputerHardwareConfig
     in
     [ { name = "Confirm"
       , description =
@@ -2378,7 +2375,9 @@ actions maybeWordForServer maybeWordForImage maybeWordForFlavor =
                 |> Helpers.String.toTitleCase
       , description =
             String.join " "
-                [ "Create snapshot image of"
+                [ "Create snapshot"
+                , wordForImage
+                , "of"
                 , wordForServer
                 ]
       , allowedStatuses = Just [ OSTypes.ServerActive, OSTypes.ServerPaused, OSTypes.ServerShutoff, OSTypes.ServerSuspended ]

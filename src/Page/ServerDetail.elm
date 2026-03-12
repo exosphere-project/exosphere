@@ -1267,10 +1267,7 @@ serverActionsDropdown context project model server =
             Element.column [ Element.spacing spacer.px8 ] <|
                 List.map
                     (renderServerAction context project model server closeDropdown)
-                    (VH.getAllowedServerActions
-                        (Just context.localization.virtualComputer)
-                        (Just context.localization.staticRepresentationOfBlockDeviceContents)
-                        (Just context.localization.virtualComputerHardwareConfig)
+                    (VH.getAllowedServerActions context
                         server.osProps.details.openstackStatus
                         server.osProps.details.lockStatus
                         disallowedActions
