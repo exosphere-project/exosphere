@@ -1,5 +1,6 @@
 module Rest.Nova exposing
-    ( receiveConsoleUrl
+    ( doAction
+    , receiveConsoleUrl
     , receiveFlavors
     , receiveKeypairs
     , receiveServer
@@ -776,6 +777,45 @@ requestDeleteServerMetadata project serverUuid metadataKey =
         ( project.endpoints.nova, [ "servers", serverUuid, "metadata", metadataKey ], [] )
         Http.emptyBody
         (expectStringWithErrorBody resultToMsg)
+
+
+doAction : Encode.Value -> Maybe (List OSTypes.ServerStatus) -> Bool -> ProjectIdentifier -> Server -> Bool -> SharedMsg
+doAction jsonBody maybeTargetStatuses requestFloatingIpIfAppropriate projectId server _ =
+    let
+        credentialedRequest : Url -> Cmd SharedMsg
+        credentialedRequest novaUrl =
+            let
+                errorContext =
+                    ErrorContext
+                        ("perform action for server " ++ server.osProps.uuid)
+                        ErrorCrit
+                        Nothing
+
+                resultToMsg =
+                    \result ->
+                        ProjectMsg
+                            projectId
+                        <|
+                            ServerMsg server.osProps.uuid <|
+                                ReceiveServerAction errorContext result
+            in
+            openstackCredentialedRequest
+                projectId
+                Post
+                Nothing
+                []
+                ( novaUrl, [ "servers", server.osProps.uuid, "action" ], [] )
+                (Http.jsonBody jsonBody)
+                (expectVoidWithErrorBody
+                    resultToMsg
+                )
+    in
+    ProjectMsg projectId <|
+        ServerMsg server.osProps.uuid <|
+            RequestServerAction
+                credentialedRequest
+                maybeTargetStatuses
+                requestFloatingIpIfAppropriate
 
 
 

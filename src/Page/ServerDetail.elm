@@ -17,7 +17,6 @@ import Helpers.Time
 import Helpers.Validation as Validation
 import List.Extra
 import OpenStack.DnsRecordSet
-import OpenStack.ServerActions as ServerActions
 import OpenStack.ServerNameValidator exposing (serverNameValidator)
 import OpenStack.ServerVolumes exposing (serverCanHaveVolumeAttached)
 import OpenStack.Types as OSTypes
@@ -50,7 +49,7 @@ import Types.Server exposing (ExoFeature(..), ExoSetupStatus(..), Server, Server
 import Types.ServerResourceUsage
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH exposing (edges)
-import View.Types
+import View.Types exposing (SelectMod(..), ServerActionOption)
 import Widget
 
 
@@ -1268,7 +1267,7 @@ serverActionsDropdown context project model server =
             Element.column [ Element.spacing spacer.px8 ] <|
                 List.map
                     (renderServerAction context project model server closeDropdown)
-                    (ServerActions.getAllowed
+                    (VH.getAllowedServerActions
                         (Just context.localization.virtualComputer)
                         (Just context.localization.staticRepresentationOfBlockDeviceContents)
                         (Just context.localization.virtualComputerHardwareConfig)
@@ -1519,7 +1518,7 @@ renderServerAction :
     -> Model
     -> Server
     -> Element.Attribute Msg
-    -> ServerActions.ServerAction
+    -> ServerActionOption
     -> Element.Element Msg
 renderServerAction context project model server closeActionsDropdown serverAction =
     let
@@ -1609,7 +1608,7 @@ renderServerAction context project model server closeActionsDropdown serverActio
                 renderActionButton context serverAction actionMsg title (Just closeActionsDropdown)
 
 
-confirmationMessage : ServerActions.ServerAction -> String
+confirmationMessage : ServerActionOption -> String
 confirmationMessage serverAction =
     "Are you sure you want to " ++ (serverAction.name |> String.toLower) ++ "?"
 
@@ -1619,7 +1618,7 @@ renderServerActionOption :
     -> Project
     -> Model
     -> Server
-    -> ServerActions.ServerAction
+    -> ServerActionOption
     -> ( List (Element.Element Msg), SharedMsg.SharedMsg )
 renderServerActionOption context project model server serverAction =
     let
@@ -1649,7 +1648,7 @@ deleteActionOption :
     -> Project
     -> Model
     -> Server
-    -> ServerActions.ServerAction
+    -> ServerActionOption
     -> ( List (Element.Element Msg), SharedMsg.SharedMsg )
 deleteActionOption context project model server serverAction =
     ( [ Input.checkbox
@@ -1679,7 +1678,7 @@ shelveActionOption :
     -> Project
     -> Model
     -> Server
-    -> ServerActions.ServerAction
+    -> ServerActionOption
     -> ( List (Element.Element Msg), SharedMsg.SharedMsg )
 shelveActionOption context project model server serverAction =
     ( [ Input.checkbox
@@ -1704,21 +1703,21 @@ shelveActionOption context project model server serverAction =
     )
 
 
-serverActionSelectModButton : View.Types.Context -> ServerActions.SelectMod -> (Widget.TextButton Msg -> Element.Element Msg)
+serverActionSelectModButton : View.Types.Context -> SelectMod -> (Widget.TextButton Msg -> Element.Element Msg)
 serverActionSelectModButton context selectMod =
     let
         buttonPalette =
             case selectMod of
-                ServerActions.NoMod ->
+                NoMod ->
                     (SH.materialStyle context.palette).button
 
-                ServerActions.Primary ->
+                Primary ->
                     (SH.materialStyle context.palette).primaryButton
 
-                ServerActions.Warning ->
+                Warning ->
                     (SH.materialStyle context.palette).warningButton
 
-                ServerActions.Danger ->
+                Danger ->
                     (SH.materialStyle context.palette).dangerButton
     in
     Widget.textButton
@@ -1735,7 +1734,7 @@ serverActionSelectModButton context selectMod =
         }
 
 
-renderActionButton : View.Types.Context -> ServerActions.ServerAction -> Maybe Msg -> String -> Maybe (Element.Attribute Msg) -> Element.Element Msg
+renderActionButton : View.Types.Context -> ServerActionOption -> Maybe Msg -> String -> Maybe (Element.Attribute Msg) -> Element.Element Msg
 renderActionButton context serverAction actionMsg title closeActionsDropdown =
     let
         additionalBtnAttribs =
@@ -1760,7 +1759,7 @@ renderActionButton context serverAction actionMsg title closeActionsDropdown =
         ]
 
 
-renderConfirmationButton : View.Types.Context -> ServerActions.ServerAction -> Maybe SharedMsg.SharedMsg -> Maybe Msg -> String -> Element.Attribute Msg -> Element.Element Msg
+renderConfirmationButton : View.Types.Context -> ServerActionOption -> Maybe SharedMsg.SharedMsg -> Maybe Msg -> String -> Element.Attribute Msg -> Element.Element Msg
 renderConfirmationButton context serverAction actionMsg cancelMsg title closeActionsDropdown =
     Element.row
         [ Element.spacing spacer.px12 ]

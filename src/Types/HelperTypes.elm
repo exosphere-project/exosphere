@@ -24,7 +24,6 @@ module Types.HelperTypes exposing
     , ProjectIdentifier
     , SelectedFlavor(..)
     , SentryConfig
-    , ServerActionName
     , ServerResourceQtys
     , SupportableItemType(..)
     , UnscopedProvider
@@ -41,6 +40,7 @@ module Types.HelperTypes exposing
 
 import Dict exposing (Dict)
 import Helpers.RemoteDataPlusPlus as RDPP
+import OpenStack.ServerActions exposing (ServerActionName)
 import OpenStack.Types as OSTypes
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput)
 import Types.Error exposing (HttpErrorWithBody)
@@ -218,10 +218,6 @@ type alias FlavorGroup =
     , description : Maybe String
     , disallowedActions : List ServerActionName
     }
-
-
-type alias ServerActionName =
-    String
 
 
 type alias FlavorGroupTitle =
