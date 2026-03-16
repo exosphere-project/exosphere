@@ -107,6 +107,11 @@ OS_IDENTITY_API_VERSION=3
     """
 
 
+withWindowsLineEndings : String -> String
+withWindowsLineEndings =
+    String.replace "\n" "\u{000D}\n"
+
+
 processOpenRcSuite : Test
 processOpenRcSuite =
     describe "end result of processing imported openrc files"
@@ -180,6 +185,18 @@ processOpenRcSuite =
         , test "ensure an 'API Version 3' open _without_ comments works" <|
             \() ->
                 openrcV3
+                    |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
+                    |> Expect.equal
+                        (OpenstackLogin
+                            "https://cell.alliance.rebel:5000/v3"
+                            "Default"
+                            "enfysnest"
+                            ""
+                        )
+        , test "ensure parsing works with Windows CRLF line endings" <|
+            \() ->
+                openrcV3
+                    |> withWindowsLineEndings
                     |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
                     |> Expect.equal
                         (OpenstackLogin

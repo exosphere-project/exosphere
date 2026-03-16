@@ -1,5 +1,6 @@
 module OpenStack.OpenRc exposing (processOpenRc)
 
+import Helpers.String exposing (normalizeLineEndings)
 import OpenStack.Types as OSTypes
 import Parser exposing ((|.), (|=))
 import Set
@@ -44,6 +45,7 @@ processOpenRc existingCreds openRc =
                         |. Parser.oneOf [ Parser.symbol "\n", Parser.end ]
             in
             openRc
+                |> normalizeLineEndings
                 |> String.split "\n"
                 |> List.map (\line -> Parser.run varParser line)
                 |> List.filterMap Result.toMaybe
