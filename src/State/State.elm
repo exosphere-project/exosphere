@@ -21,6 +21,7 @@ import Maybe
 import OpenStack.DnsRecordSet
 import OpenStack.Error
 import OpenStack.SecurityGroupRule as SecurityGroupRule
+import OpenStack.ServerActions as ServerActions exposing (ServerAction(..))
 import OpenStack.ServerPassword as OSServerPassword
 import OpenStack.ServerTags as OSServerTags
 import OpenStack.ServerVolumes as OSSvrVols
@@ -4247,50 +4248,12 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
-        RequestServerAction func targetStatuses requestFloatingIpIfAppropriate ->
+        RequestServerAction action ->
             let
-                oldExoProps =
-                    server.exoProps
-
-                newFloatingIpOption =
-                    if requestFloatingIpIfAppropriate then
-                        -- Reset this to whatever is stored in server metadata, because we may need to re-request/re-assign a floating IP despite having previously reached the terminal state of DoNotUseFloatingIp.
-                        Helpers.decodeFloatingIpOption server.osProps.details
-
-                    else
-                        oldExoProps.floatingIpCreationOption
-
-                newServer =
-                    Server server.osProps
-                        { oldExoProps
-                            | floatingIpCreationOption = newFloatingIpOption
-                        }
-                        server.interaction
-
-                updatedProject =
-                    GetterSetters.projectUpdateServerExoActions project
-                        server.osProps.uuid
-                        (\exoActions ->
-                            { exoActions
-                                | targetOpenstackStatus = targetStatuses
-                                , request = RDPP.setLoading exoActions.request
-                            }
-                        )
-
-                newProject =
-                    GetterSetters.projectUpdateServer updatedProject newServer
-
-                ( newNewProject, cmd ) =
-                    if requestFloatingIpIfAppropriate then
-                        GoalServer.requestFloatingIp newProject newServer
-
-                    else
-                        ( newProject, Cmd.none )
-
-                newSharedModel =
-                    GetterSetters.modelUpdateProject sharedModel newNewProject
+                ( newProject, cmd ) =
+                    requestServerAction project server action
             in
-            ( newSharedModel, Cmd.batch [ func newProject.endpoints.nova, cmd ] )
+            ( GetterSetters.modelUpdateProject sharedModel newProject, cmd )
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
@@ -4744,6 +4707,86 @@ requestShelveServer project server deleteFloatingIps =
     , Cmd.batch
         [ shelveCmd
         , Cmd.batch cleanUpFloatingIpCmds
+        ]
+    )
+
+
+requestServerAction : Project -> Server -> ServerActions.ServerAction -> ( Project, Cmd SharedMsg )
+requestServerAction project server action =
+    let
+        targetStatuses =
+            case action of
+                Unshelve ->
+                    Just [ OSTypes.ServerActive ]
+
+                ServerActions.ConfirmResize ->
+                    Just [ OSTypes.ServerActive ]
+
+                ServerActions.RevertResize ->
+                    Just [ OSTypes.ServerActive ]
+
+                Start ->
+                    Just [ OSTypes.ServerActive ]
+
+                ServerActions.Unpause ->
+                    Just [ OSTypes.ServerActive ]
+
+                ServerActions.Resume ->
+                    Just [ OSTypes.ServerActive ]
+
+                ServerActions.Suspend ->
+                    Just [ OSTypes.ServerSuspended ]
+
+                ServerActions.Reboot ->
+                    Just [ OSTypes.ServerActive ]
+
+                _ ->
+                    Nothing
+
+        oldExoProps =
+            server.exoProps
+
+        newFloatingIpOption =
+            case action of
+                Unshelve ->
+                    -- Reset this to whatever is stored in server metadata, because we may need to re-request/re-assign a floating IP despite having previously reached the terminal state of DoNotUseFloatingIp.
+                    Helpers.decodeFloatingIpOption server.osProps.details
+
+                _ ->
+                    oldExoProps.floatingIpCreationOption
+
+        newServer =
+            Server server.osProps
+                { oldExoProps
+                    | floatingIpCreationOption = newFloatingIpOption
+                }
+                server.interaction
+
+        updatedProject =
+            GetterSetters.projectUpdateServerExoActions project
+                server.osProps.uuid
+                (\exoActions ->
+                    { exoActions
+                        | targetOpenstackStatus = targetStatuses
+                        , request = RDPP.setLoading exoActions.request
+                    }
+                )
+
+        newProject =
+            GetterSetters.projectUpdateServer updatedProject newServer
+
+        ( newNewProject, floatingIpCmd ) =
+            case action of
+                Unshelve ->
+                    GoalServer.requestFloatingIp newProject newServer
+
+                _ ->
+                    ( newProject, Cmd.none )
+    in
+    ( newNewProject
+    , Cmd.batch
+        [ Rest.Nova.requestDoAction newProject server.osProps.uuid action
+        , floatingIpCmd
         ]
     )
 

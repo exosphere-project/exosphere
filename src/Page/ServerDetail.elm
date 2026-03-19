@@ -1597,7 +1597,7 @@ renderServerAction context project model server closeActionsDropdown serverActio
             else
                 let
                     actionMsg =
-                        Just <| SharedMsg <| serverAction.action (GetterSetters.projectIdentifier project) server model.retainFloatingIpsWhenDeleting
+                        Just <| SharedMsg <| serverAction.action (GetterSetters.projectIdentifier project) server.osProps.uuid model.retainFloatingIpsWhenDeleting
 
                     title =
                         serverAction.name
@@ -1623,7 +1623,7 @@ renderServerActionOption context project model server serverAction =
             not <| List.isEmpty <| GetterSetters.getServerFloatingIps project server.osProps.uuid
 
         noOption =
-            ( [], serverAction.action (GetterSetters.projectIdentifier project) server False )
+            ( [], serverAction.action (GetterSetters.projectIdentifier project) server.osProps.uuid False )
     in
     if hasFloatingIps then
         case serverAction.name of
@@ -1666,7 +1666,7 @@ deleteActionOption context project model server serverAction =
                     )
             }
       ]
-    , serverAction.action (GetterSetters.projectIdentifier project) server model.retainFloatingIpsWhenDeleting
+    , serverAction.action (GetterSetters.projectIdentifier project) server.osProps.uuid model.retainFloatingIpsWhenDeleting
     )
 
 
@@ -1696,7 +1696,7 @@ shelveActionOption context project model server serverAction =
                     )
             }
       ]
-    , serverAction.action (GetterSetters.projectIdentifier project) server model.deleteFloatingIpsWhenShelving
+    , serverAction.action (GetterSetters.projectIdentifier project) server.osProps.uuid model.deleteFloatingIpsWhenShelving
     )
 
 

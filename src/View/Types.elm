@@ -16,7 +16,6 @@ import Set
 import Style.Types exposing (ExoPalette)
 import Style.Widgets.Popover.Types exposing (PopoverId)
 import Types.HelperTypes exposing (CloudSpecificConfig, KeystoneHostname, Localization, ProjectIdentifier, WindowSize)
-import Types.Server exposing (Server)
 import Types.SharedMsg exposing (SharedMsg)
 import Url
 
@@ -66,7 +65,7 @@ type alias ServerActionOption =
     , description : String
     , allowedStatuses : Maybe (List OSTypes.ServerStatus)
     , allowedLockStatus : Maybe OSTypes.ServerLockStatus
-    , action : ProjectIdentifier -> Server -> Bool -> SharedMsg
+    , action : ProjectIdentifier -> OSTypes.ServerUuid -> Bool -> SharedMsg
     , selectMod : SelectMod
     , confirmable : Bool
     }

@@ -12,6 +12,7 @@ module Rest.Nova exposing
     , requestDeleteKeypair
     , requestDeleteServer
     , requestDeleteServerMetadata
+    , requestDoAction
     , requestFlavors
     , requestKeypairs
     , requestServer
@@ -38,6 +39,7 @@ import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
 import Json.Encode as Encode
+import OpenStack.ServerActions as ServerActions
 import OpenStack.ServerPassword as OSServerPassword
 import OpenStack.Types as OSTypes
 import Rest.Helpers
@@ -779,43 +781,43 @@ requestDeleteServerMetadata project serverUuid metadataKey =
         (expectStringWithErrorBody resultToMsg)
 
 
-doAction : Encode.Value -> Maybe (List OSTypes.ServerStatus) -> Bool -> ProjectIdentifier -> Server -> Bool -> SharedMsg
-doAction jsonBody maybeTargetStatuses requestFloatingIpIfAppropriate projectId server _ =
+requestDoAction : Project -> OSTypes.ServerUuid -> ServerActions.ServerAction -> Cmd SharedMsg
+requestDoAction project serverUuid action =
     let
-        credentialedRequest : Url -> Cmd SharedMsg
-        credentialedRequest novaUrl =
-            let
-                errorContext =
-                    ErrorContext
-                        ("perform action for server " ++ server.osProps.uuid)
-                        ErrorCrit
-                        Nothing
+        projectId =
+            GetterSetters.projectIdentifier project
 
-                resultToMsg =
-                    \result ->
-                        ProjectMsg
-                            projectId
-                        <|
-                            ServerMsg server.osProps.uuid <|
-                                ReceiveServerAction errorContext result
-            in
-            openstackCredentialedRequest
-                projectId
-                Post
+        errorContext =
+            ErrorContext
+                ("perform action for server " ++ serverUuid)
+                ErrorCrit
                 Nothing
-                []
-                ( novaUrl, [ "servers", server.osProps.uuid, "action" ], [] )
-                (Http.jsonBody jsonBody)
-                (expectVoidWithErrorBody
-                    resultToMsg
-                )
+
+        resultToMsg =
+            \result ->
+                ProjectMsg
+                    projectId
+                <|
+                    ServerMsg serverUuid <|
+                        ReceiveServerAction errorContext result
     in
+    openstackCredentialedRequest
+        projectId
+        Post
+        Nothing
+        []
+        ( project.endpoints.nova, [ "servers", serverUuid, "action" ], [] )
+        (Http.jsonBody (ServerActions.serverActionToJsonBody action))
+        (expectVoidWithErrorBody
+            resultToMsg
+        )
+
+
+doAction : ServerActions.ServerAction -> ProjectIdentifier -> OSTypes.ServerUuid -> Bool -> SharedMsg
+doAction action projectId serverUuid _ =
     ProjectMsg projectId <|
-        ServerMsg server.osProps.uuid <|
-            RequestServerAction
-                credentialedRequest
-                maybeTargetStatuses
-                requestFloatingIpIfAppropriate
+        ServerMsg serverUuid <|
+            RequestServerAction action
 
 
 

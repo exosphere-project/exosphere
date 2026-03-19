@@ -92,7 +92,6 @@ import Helpers.Url as UrlHelpers
 import Html
 import Html.Styled
 import Html.Styled.Attributes
-import Json.Encode
 import List.Extra
 import Markdown.Block
 import Markdown.Html
@@ -100,7 +99,7 @@ import Markdown.Parser
 import Markdown.Renderer
 import OpenStack.Quotas as OSQuotas
 import OpenStack.SecurityGroupRule exposing (Remote(..), SecurityGroupRuleDirection(..), SecurityGroupRuleEthertype(..), SecurityGroupRuleProtocol(..), directionToString, etherTypeToString, protocolToString)
-import OpenStack.ServerActions exposing (ServerActionName)
+import OpenStack.ServerActions as ServerActions exposing (ServerActionName)
 import OpenStack.Types as OSTypes exposing (ShareStatus(..), Volume, VolumeStatus(..))
 import OpenStack.VolumeSnapshots as VS exposing (VolumeSnapshot)
 import Regex
@@ -2232,7 +2231,7 @@ actions context =
       , allowedStatuses = Just [ OSTypes.ServerVerifyResize ]
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
-            doAction (Json.Encode.object [ ( "confirmResize", Json.Encode.null ) ]) (Just [ OSTypes.ServerActive ]) False
+            doAction ServerActions.ConfirmResize
       , selectMod = Primary
       , confirmable = False
       }
@@ -2246,7 +2245,7 @@ actions context =
       , allowedStatuses = Just [ OSTypes.ServerVerifyResize ]
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
-            doAction (Json.Encode.object [ ( "revertResize", Json.Encode.null ) ]) (Just [ OSTypes.ServerActive ]) False
+            doAction ServerActions.RevertResize
       , selectMod = NoMod
       , confirmable = False
       }
@@ -2260,7 +2259,7 @@ actions context =
       , allowedStatuses = Nothing
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
-            doAction (Json.Encode.object [ ( "lock", Json.Encode.null ) ]) Nothing False
+            doAction ServerActions.Lock
       , selectMod = NoMod
       , confirmable = False
       }
@@ -2274,7 +2273,7 @@ actions context =
       , allowedStatuses = Nothing
       , allowedLockStatus = Just OSTypes.ServerLocked
       , action =
-            doAction (Json.Encode.object [ ( "unlock", Json.Encode.null ) ]) Nothing False
+            doAction ServerActions.Unlock
       , selectMod = Warning
       , confirmable = False
       }
@@ -2287,7 +2286,7 @@ actions context =
       , allowedStatuses = Just [ OSTypes.ServerShutoff, OSTypes.ServerStopped ]
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
-            doAction (Json.Encode.object [ ( "os-start", Json.Encode.null ) ]) (Just [ OSTypes.ServerActive ]) False
+            doAction ServerActions.Start
       , selectMod = Primary
       , confirmable = False
       }
@@ -2300,7 +2299,7 @@ actions context =
       , allowedStatuses = Just [ OSTypes.ServerPaused ]
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
-            doAction (Json.Encode.object [ ( "unpause", Json.Encode.null ) ]) (Just [ OSTypes.ServerActive ]) False
+            doAction ServerActions.Unpause
       , selectMod = Primary
       , confirmable = False
       }
@@ -2313,7 +2312,7 @@ actions context =
       , allowedStatuses = Just [ OSTypes.ServerSuspended ]
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
-            doAction (Json.Encode.object [ ( "resume", Json.Encode.null ) ]) (Just [ OSTypes.ServerActive ]) False
+            doAction ServerActions.Resume
       , selectMod = Primary
       , confirmable = False
       }
@@ -2326,7 +2325,7 @@ actions context =
       , allowedStatuses = Just [ OSTypes.ServerShelved, OSTypes.ServerShelvedOffloaded ]
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
-            doAction (Json.Encode.object [ ( "unshelve", Json.Encode.null ) ]) (Just [ OSTypes.ServerActive ]) True
+            doAction ServerActions.Unshelve
       , selectMod = Primary
       , confirmable = False
       }
@@ -2335,7 +2334,7 @@ actions context =
       , allowedStatuses = Just [ OSTypes.ServerActive ]
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
-            doAction (Json.Encode.object [ ( "suspend", Json.Encode.null ) ]) (Just [ OSTypes.ServerSuspended ]) False
+            doAction ServerActions.Suspend
       , selectMod = NoMod
       , confirmable = False
       }
@@ -2349,8 +2348,8 @@ actions context =
       , allowedStatuses = Just [ OSTypes.ServerActive, OSTypes.ServerPaused, OSTypes.ServerShutoff, OSTypes.ServerSuspended ]
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
-            \projectId server deleteFloatingIp ->
-                ProjectMsg projectId <| ServerMsg server.osProps.uuid <| RequestShelveServer deleteFloatingIp
+            \projectId serverUuid deleteFloatingIp ->
+                ProjectMsg projectId <| ServerMsg serverUuid <| RequestShelveServer deleteFloatingIp
       , selectMod = NoMod
       , confirmable = True
       }
@@ -2399,16 +2398,7 @@ actions context =
 
       -- TODO soft and hard reboot? Call hard reboot "reset"?
       , action =
-            doAction
-                (Json.Encode.object
-                    [ ( "reboot"
-                      , Json.Encode.object
-                            [ ( "type", Json.Encode.string "SOFT" ) ]
-                      )
-                    ]
-                )
-                (Just [ OSTypes.ServerActive ])
-                False
+            doAction ServerActions.Reboot
       , selectMod = Warning
       , confirmable = False
       }
@@ -2442,8 +2432,8 @@ actions context =
                 ]
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
-            \projectId server retainFloatingIp ->
-                ProjectMsg projectId <| ServerMsg server.osProps.uuid <| RequestDeleteServer retainFloatingIp
+            \projectId serverUuid retainFloatingIp ->
+                ProjectMsg projectId <| ServerMsg serverUuid <| RequestDeleteServer retainFloatingIp
       , selectMod = Danger
       , confirmable = True
       }
@@ -2453,7 +2443,7 @@ actions context =
        , { name = "Pause"
          , description = "Stop server execution but persist memory state"
          , allowedStatuses = [ OSTypes.ServerActive ]
-         , action = doAction <| Json.Encode.object [ ( "pause", Json.Encode.null ) ]
+         , action = doAction ServerActions.Pause
          , selectMod = None
          , targetStatus = [ OSTypes.ServerPaused ]
          }
@@ -2463,7 +2453,7 @@ actions context =
        , { name = "Stop"
          , description = "Shut down server"
          , allowedStatuses = [ OSTypes.ServerActive ]
-         , action = doAction <| Json.Encode.object [ ( "os-stop", Json.Encode.null ) ]
+         , action = doAction ServerActions.Stop
          , selectMod = None
          , targetStatus = [ OSTypes.ServerStopped ]
          }

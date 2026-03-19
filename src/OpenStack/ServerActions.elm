@@ -1,4 +1,6 @@
-module OpenStack.ServerActions exposing (ServerAction(..), ServerActionName, serverActionToString, stringToServerAction)
+module OpenStack.ServerActions exposing (ServerAction(..), ServerActionName, serverActionToJsonBody, serverActionToString, stringToServerAction)
+
+import Json.Encode as Encode
 
 
 type ServerAction
@@ -20,6 +22,21 @@ type ServerAction
 
 type alias ServerActionName =
     String
+
+
+serverActionToJsonBody : ServerAction -> Encode.Value
+serverActionToJsonBody action =
+    case action of
+        Reboot ->
+            Encode.object
+                [ ( "reboot"
+                  , Encode.object
+                        [ ( "type", Encode.string "SOFT" ) ]
+                  )
+                ]
+
+        _ ->
+            Encode.object [ ( serverActionToString action, Encode.null ) ]
 
 
 serverActionToString : ServerAction -> String
