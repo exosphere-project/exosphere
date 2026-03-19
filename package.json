@@ -9,7 +9,7 @@
     "postinstall": "npm run elm:sideload && npm run elm:git",
     "start": "npm run live",
     "elm": "npx elm-watch make",
-    "live": "ELM_WATCH_HOST=app.exosphere.localhost elm-watch hot",
+    "live": "cross-env ELM_WATCH_HOST=app.exosphere.localhost elm-watch hot",
     "test": "npx elm-test-rs && npx elm-test-rs --project review",
     "js:format": "npx prettier --check .",
     "js:typecheck": "npx tsc",
@@ -35,6 +35,7 @@
   },
   "devDependencies": {
     "@lydell/elm": "^0.19.1-14",
+    "cross-env": "^10.1.0",
     "elm-analyse": "^0.16.5",
     "elm-format": "^0.8.6",
     "elm-git-install": "^0.1.4",
