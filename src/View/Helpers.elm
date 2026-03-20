@@ -101,7 +101,7 @@ import Markdown.Parser
 import Markdown.Renderer
 import OpenStack.Quotas as OSQuotas
 import OpenStack.SecurityGroupRule exposing (Remote(..), SecurityGroupRuleDirection(..), SecurityGroupRuleEthertype(..), SecurityGroupRuleProtocol(..), directionToString, etherTypeToString, protocolToString)
-import OpenStack.ServerActions as ServerActions exposing (ServerActionName)
+import OpenStack.ServerActions as ServerActions exposing (ApplicableServerStatuses(..), ServerActionName)
 import OpenStack.Types as OSTypes exposing (ShareStatus(..), Volume, VolumeStatus(..))
 import OpenStack.VolumeSnapshots as VS exposing (VolumeSnapshot)
 import Regex
@@ -2239,12 +2239,15 @@ getAllowedServerActions : Context -> OSTypes.ServerStatus -> OSTypes.ServerLockS
 getAllowedServerActions context serverStatus serverLockStatus disallowedActions =
     let
         allowedByServerStatus action =
-            case action.allowedStatuses of
-                Nothing ->
+            case ServerActions.allowedServerStatuses action.serverAction of
+                AnyServerStatus ->
                     True
 
-                Just allowedStatuses ->
+                SpecificServerStatuses allowedStatuses ->
                     List.member serverStatus allowedStatuses
+
+                NoServerStatuses ->
+                    False
 
         allowedByLockStatus action =
             case action.allowedLockStatus of
@@ -2282,7 +2285,7 @@ actions context =
                 , wordForServer
                 , "resize operation"
                 ]
-      , allowedStatuses = Just [ OSTypes.ServerVerifyResize ]
+      , serverAction = ServerActions.ConfirmResize
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
             doAction ServerActions.ConfirmResize
@@ -2296,7 +2299,7 @@ actions context =
                 , wordForServer
                 , "resize operation"
                 ]
-      , allowedStatuses = Just [ OSTypes.ServerVerifyResize ]
+      , serverAction = ServerActions.RevertResize
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
             doAction ServerActions.RevertResize
@@ -2310,7 +2313,7 @@ actions context =
                 , wordForServer
                 , "actions until it is unlocked"
                 ]
-      , allowedStatuses = Nothing
+      , serverAction = ServerActions.Lock
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
             doAction ServerActions.Lock
@@ -2324,7 +2327,7 @@ actions context =
                 , wordForServer
                 , "actions"
                 ]
-      , allowedStatuses = Nothing
+      , serverAction = ServerActions.Unlock
       , allowedLockStatus = Just OSTypes.ServerLocked
       , action =
             doAction ServerActions.Unlock
@@ -2337,7 +2340,7 @@ actions context =
                 [ "Start stopped"
                 , wordForServer
                 ]
-      , allowedStatuses = Just [ OSTypes.ServerShutoff, OSTypes.ServerStopped ]
+      , serverAction = ServerActions.Start
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
             doAction ServerActions.Start
@@ -2350,7 +2353,7 @@ actions context =
                 [ "Restore paused"
                 , wordForServer
                 ]
-      , allowedStatuses = Just [ OSTypes.ServerPaused ]
+      , serverAction = ServerActions.Unpause
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
             doAction ServerActions.Unpause
@@ -2363,7 +2366,7 @@ actions context =
                 [ "Resume suspended"
                 , wordForServer
                 ]
-      , allowedStatuses = Just [ OSTypes.ServerSuspended ]
+      , serverAction = ServerActions.Resume
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
             doAction ServerActions.Resume
@@ -2376,7 +2379,7 @@ actions context =
                 [ "Restore shelved"
                 , wordForServer
                 ]
-      , allowedStatuses = Just [ OSTypes.ServerShelved, OSTypes.ServerShelvedOffloaded ]
+      , serverAction = ServerActions.Unshelve
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
             doAction ServerActions.Unshelve
@@ -2385,7 +2388,7 @@ actions context =
       }
     , { name = "Suspend"
       , description = "Save execution state to disk"
-      , allowedStatuses = Just [ OSTypes.ServerActive ]
+      , serverAction = ServerActions.Suspend
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
             doAction ServerActions.Suspend
@@ -2399,7 +2402,7 @@ actions context =
                 , wordForServer
                 , "and offload it from compute host"
                 ]
-      , allowedStatuses = Just [ OSTypes.ServerActive, OSTypes.ServerPaused, OSTypes.ServerShutoff, OSTypes.ServerSuspended ]
+      , serverAction = ServerActions.Shelve
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
             \projectId serverUuid deleteFloatingIp ->
@@ -2415,7 +2418,7 @@ actions context =
                 , "to a different"
                 , wordForFlavor
                 ]
-      , allowedStatuses = Just [ OSTypes.ServerActive, OSTypes.ServerShutoff ]
+      , serverAction = ServerActions.Resize
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
             -- This must be overridden in the Page to do anything
@@ -2433,7 +2436,7 @@ actions context =
                 , "of"
                 , wordForServer
                 ]
-      , allowedStatuses = Just [ OSTypes.ServerActive, OSTypes.ServerPaused, OSTypes.ServerShutoff, OSTypes.ServerSuspended ]
+      , serverAction = ServerActions.CreateImage
       , allowedLockStatus = Nothing
       , action =
             -- This must be overridden in the Page to do anything
@@ -2447,7 +2450,7 @@ actions context =
                 [ "Restart"
                 , wordForServer
                 ]
-      , allowedStatuses = Just [ OSTypes.ServerActive, OSTypes.ServerShutoff ]
+      , serverAction = ServerActions.Reboot
       , allowedLockStatus = Just OSTypes.ServerUnlocked
 
       -- TODO soft and hard reboot? Call hard reboot "reset"?
@@ -2462,28 +2465,7 @@ actions context =
                 [ "Destroy"
                 , wordForServer
                 ]
-      , allowedStatuses =
-            Just
-                [ OSTypes.ServerActive
-                , OSTypes.ServerBuild
-                , OSTypes.ServerError
-                , OSTypes.ServerHardReboot
-                , OSTypes.ServerMigrating
-                , OSTypes.ServerPassword
-                , OSTypes.ServerPaused
-                , OSTypes.ServerReboot
-                , OSTypes.ServerRebuild
-                , OSTypes.ServerRescue
-                , OSTypes.ServerResize
-                , OSTypes.ServerRevertResize
-                , OSTypes.ServerShelved
-                , OSTypes.ServerShelvedOffloaded
-                , OSTypes.ServerShutoff
-                , OSTypes.ServerStopped
-                , OSTypes.ServerSuspended
-                , OSTypes.ServerUnknown
-                , OSTypes.ServerVerifyResize
-                ]
+      , serverAction = ServerActions.Delete
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
             \projectId serverUuid retainFloatingIp ->
@@ -2496,7 +2478,7 @@ actions context =
        -- Not showing to users
        , { name = "Pause"
          , description = "Stop server execution but persist memory state"
-         , allowedStatuses = [ OSTypes.ServerActive ]
+         , serverAction = ServerActions.Pause
          , action = doAction ServerActions.Pause
          , selectMod = None
          , targetStatus = [ OSTypes.ServerPaused ]
@@ -2506,7 +2488,7 @@ actions context =
        -- Not showing to users
        , { name = "Stop"
          , description = "Shut down server"
-         , allowedStatuses = [ OSTypes.ServerActive ]
+         , serverAction = ServerActions.Stop
          , action = doAction ServerActions.Stop
          , selectMod = None
          , targetStatus = [ OSTypes.ServerStopped ]

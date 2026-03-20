@@ -10,7 +10,7 @@ module View.Types exposing
 import Browser.Navigation
 import Dict
 import FormatNumber.Locales
-import OpenStack.ServerActions exposing (ServerActionName)
+import OpenStack.ServerActions as ServerActions exposing (ServerActionName)
 import OpenStack.Types as OSTypes
 import Set
 import Style.Types exposing (ExoPalette)
@@ -63,7 +63,7 @@ type SelectMod
 type alias ServerActionOption =
     { name : ServerActionName
     , description : String
-    , allowedStatuses : Maybe (List OSTypes.ServerStatus)
+    , serverAction : ServerActions.ServerAction
     , allowedLockStatus : Maybe OSTypes.ServerLockStatus
     , action : ProjectIdentifier -> OSTypes.ServerUuid -> Bool -> SharedMsg
     , selectMod : SelectMod
