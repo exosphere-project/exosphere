@@ -1769,6 +1769,33 @@ processProjectSpecificMsg outerModel project msg =
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
+        RequestServerActions serverActions ->
+            let
+                applyAction : ( OSTypes.ServerUuid, ServerActions.ServerAction ) -> ( Project, Cmd SharedMsg ) -> ( Project, Cmd SharedMsg )
+                applyAction ( serverUuid, action ) ( accProj, accCmd ) =
+                    case GetterSetters.serverLookup accProj serverUuid of
+                        Just server ->
+                            let
+                                ( actionProj, actionCmd ) =
+                                    requestServerAction accProj server action
+                            in
+                            ( actionProj, Cmd.batch [ accCmd, actionCmd ] )
+
+                        Nothing ->
+                            ( accProj, accCmd )
+
+                ( newProject, cmd ) =
+                    List.foldl
+                        applyAction
+                        ( project, Cmd.none )
+                        serverActions
+            in
+            ( GetterSetters.modelUpdateProject sharedModel newProject
+            , cmd
+            )
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
         ReceiveServers errorContext result ->
             case result of
                 Ok servers ->
