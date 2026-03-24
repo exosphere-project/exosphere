@@ -11,7 +11,8 @@ module OpenStack.SecurityGroupRule exposing
     , buildRuleGuacamole
     , buildRuleIcmp
     , buildRuleMosh
-    , buildRuleSSH
+    , buildRuleSsh
+    , buildRuleSshIPv6
     , buildRuleTcpEgress
     , buildRuleTcpIngress
     , compareSecurityGroupRuleLists
@@ -255,9 +256,9 @@ remoteSubsumedBy ruleA ruleB =
             False
 
 
-buildRuleTcpIngress : Int -> String -> SecurityGroupRuleTemplate
-buildRuleTcpIngress portNumber description =
-    { ethertype = Ipv4
+buildRuleTcpIngress : SecurityGroupRuleEthertype -> Int -> String -> SecurityGroupRuleTemplate
+buildRuleTcpIngress ethertype portNumber description =
+    { ethertype = ethertype
     , direction = Ingress
     , protocol = Just ProtocolTcp
     , portRangeMin = Just portNumber
@@ -360,19 +361,25 @@ buildRuleAllowAllOutgoingIPv6 =
     }
 
 
-buildRuleSSH : SecurityGroupRuleTemplate
-buildRuleSSH =
-    buildRuleTcpIngress 22 "SSH"
+buildRuleSsh : SecurityGroupRuleTemplate
+buildRuleSsh =
+    buildRuleTcpIngress Ipv4 22 "SSH"
+
+
+buildRuleSshIPv6 : SecurityGroupRuleTemplate
+buildRuleSshIPv6 =
+    buildRuleTcpIngress Ipv6 22 "SSH IPv6"
 
 
 buildRuleGuacamole : SecurityGroupRuleTemplate
 buildRuleGuacamole =
-    buildRuleTcpIngress 49528 "Guacamole"
+    buildRuleTcpIngress Ipv4 49528 "Guacamole"
 
 
 defaultRules : List SecurityGroupRuleTemplate
 defaultRules =
-    [ buildRuleSSH
+    [ buildRuleSsh
+    , buildRuleSshIPv6
     , buildRuleIcmp
     , buildRuleIcmpIPv6
     , buildRuleMosh
